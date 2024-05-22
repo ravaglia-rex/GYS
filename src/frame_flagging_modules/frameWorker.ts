@@ -18,6 +18,7 @@ onmessage = async (e) => {
         let person_count = 0;
         let device_detected = false;
         let multiple_people = false;
+        let zero_people = false;
         let person_looking_away = false; // Assume this can be detected somehow or set conditionally
         let person_speaking = false; // Assume this can be detected or set conditionally
 
@@ -33,6 +34,9 @@ onmessage = async (e) => {
         if (person_count > 1) {
             multiple_people = true; // More than one person detected
         }
+        if(person_count===0){
+            zero_people = true;
+        }
 
         let violation_types = [];
         if (device_detected) {
@@ -47,6 +51,10 @@ onmessage = async (e) => {
         if (person_speaking) {
             violation_types.push(FlaggedFrameType.CHATTERBOX);
         }
+        if(zero_people){
+            violation_types.push(FlaggedFrameType.YOUCANTSEEME);
+        }
+        
         if (violation_types.length === 0) {
             violation_types.push(FlaggedFrameType.PERFECTGUY); // No violations, normal behavior
         }
@@ -61,6 +69,6 @@ onmessage = async (e) => {
         });
 
         // Send the flagged frame back to the main thread
-        postMessage(predictions);
+        postMessage(flaggedFrame);
     }
 }

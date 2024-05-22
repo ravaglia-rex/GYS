@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { FlaggedFrame } from '../frame_flagging_modules/frameFlagClass.ts';
 
 const FrameCapture: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -6,8 +7,9 @@ const FrameCapture: React.FC = () => {
   const [streaming, setStreaming] = useState(false);
   const [intervalId, setIntervalId] = useState<number | null>(null);
   const [count, setCount] = useState(0);
-  const [detections, setDetections] = useState<any[]>([]);
-  const workerRef = useRef<Worker>();
+  const [frameFlags, setFrameFlags] = useState<FlaggedFrame|null>(null);
+  const videoWorkerRef = useRef<Worker>();
+  const audioWorkerRef = useRef<Worker>();
 
   useEffect(() => {
     const canvas = document.createElement('canvas');
@@ -18,35 +20,19 @@ const FrameCapture: React.FC = () => {
   }, [intervalId]);
 
   useEffect(() => {
-    workerRef.current = new Worker(new URL('../frame_flagging_modules/frameWorker.ts', import.meta.url), {type: 'module'});
+    videoWorkerRef.current = new Worker(new URL('../frame_flagging_modules/frameWorker.ts', import.meta.url), {type: 'module'});
+    audioWorkerRef.current = new Worker(new URL('../audio_flagging_modules/AudioWorker.ts', import.meta.url), {type: 'module'});
     return () => {
-        workerRef.current?.terminate();
+        videoWorkerRef.current?.terminate();
+        audioWorkerRef.current?.terminate();
     };
   }, []);
 
   useEffect(()=>{
-    workerRef.current?.addEventListener('message', (event: MessageEvent)=>{
-        setDetections(event.data);
+    videoWorkerRef.current?.addEventListener('message', (event: MessageEvent)=>{
+        setFrameFlags(event.data);
     });
   }, []);
-
-  const drawDetections = (detections: any[]) => {
-    const context = canvasRef.current?.getContext('2d');
-    if(context){
-        detections.forEach(prediction => {
-            const [x, y, width, height] = prediction.bbox;
-            context.strokeRect(x, y, width, height);
-            context.fillText(prediction.class, x, y);
-        });
-    }
-  };
-
-  useEffect(() => {
-    if(detections.length>0){
-        drawDetections(detections);
-        console.log(detections);
-    }
-  }, [detections]);
 
   const captureFrame = () => {
     if (videoRef.current && canvasRef.current) {
@@ -54,11 +40,12 @@ const FrameCapture: React.FC = () => {
       canvas.width = videoRef.current.videoWidth;
       canvas.height = videoRef.current.videoHeight;
       const context = canvas.getContext('2d');
-      
+       
       if (context) {
         context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
         const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-        workerRef.current?.postMessage({imageData});
+        const timestamp = new Date(Date.now());
+        videoWorkerRef.current?.postMessage({imageData, timestamp});
         setCount(c => c + 1);
       }
     }
@@ -71,7 +58,7 @@ const FrameCapture: React.FC = () => {
         videoRef.current.srcObject = stream;
         videoRef.current.play();
         setStreaming(true);
-        const frameRate = 1;
+        const frameRate = 6;
         const newIntervalId = setInterval(captureFrame, 1000 / frameRate) as unknown as number; // Type assertion
         setIntervalId(newIntervalId);
       }
@@ -83,6 +70,7 @@ const FrameCapture: React.FC = () => {
 
   const stopVideo = () => {
     if (videoRef.current && videoRef.current.srcObject instanceof MediaStream) {
+      setFrameFlags(null);
       videoRef.current.srcObject.getTracks().forEach(track => track.stop());
       setStreaming(false);
     }
@@ -103,16 +91,24 @@ const FrameCapture: React.FC = () => {
         )}
         <p>You have recorded {count} frames.</p>
       </div>
-      {detections.length > 0 && (
+      {frameFlags && (
         <div>
           <h2>Detections:</h2>
-          {detections.map((detection, index) => (
-            <div key={index}>
-              <p>Class: {detection.class}</p>
-              <p>Score: {detection.score.toFixed(2)}</p>
-              <p>BBox: {detection.bbox.join(', ')}</p>
+          {frameFlags.types.map((type, index) => (
+            <div key={`type_${index}`}>
+              <p>Type: {type}</p>
             </div>
           ))}
+          {
+            frameFlags.additionalInfo?.predictions.map((prediction:any, index:number) => (
+                <div key={`prediction_${index}`}>
+                    <p>Class: {prediction.class}</p>
+                    <p>Confidence: {prediction.score}</p>
+                    <p>Bounding Box: {prediction.bbox}</p>
+                </div>
+            ))
+          }
+          <p>Timestamp: {frameFlags.timestamp.toLocaleString()}</p>
         </div>
       )}
     </div>
