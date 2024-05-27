@@ -16,6 +16,7 @@ const AudioCapture:React.FC = () => {
         console.log('Model loaded successfully');
         isModelLoaded.current = true;
       } else if (event.data.type === 'prediction') {
+        console.log(event.data.classIndex);
         setPrediction(event.data.classIndex);
       } else if (event.data.type === 'error') {
         console.error(event.data.message);
@@ -54,12 +55,7 @@ const AudioCapture:React.FC = () => {
       recorder.addEventListener('dataavailable', async (event) => {
         if (event.data.size > 0 && workerRef.current) {
           let audioData = await event.data.arrayBuffer();
-          const byteLength = audioData.byteLength;
-          if (byteLength % 4 !== 0) {
-            const remainder = byteLength % 4;
-            const newByteLength = byteLength - remainder;
-            audioData = audioData.slice(0,newByteLength);
-          }
+          audioData = audioData.slice(0, 16000*3);
           workerRef.current.postMessage({ type: 'predict', audioData });
         }
       });

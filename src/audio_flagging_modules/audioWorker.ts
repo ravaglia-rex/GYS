@@ -14,7 +14,15 @@ onmessage = async (e) => {
   } else if (e.data.type === 'predict' && audio_model) {
     try {
       let audioData = new Float32Array(e.data.audioData);
-      const normalizedData = audioData.map(sample => sample / 32768);
+      const max_val = Math.max(...e.data.audioData.map(Math.abs));
+      const padding = (4 - (audioData.byteLength % 4)) % 4;
+      if (padding !== 0) {
+        const paddedData = new Float32Array(audioData.byteLength + padding);
+        paddedData.set(audioData, padding); // Add padding at the beginning
+        audioData = paddedData;
+      }
+      
+      const normalizedData = audioData.map(sample => sample/max_val);
       const tensor = tf.tensor1d(normalizedData, 'float32');
       const predictions = await audio_model.predict(tensor);
 
@@ -24,7 +32,7 @@ onmessage = async (e) => {
 
       postMessage({ type: 'prediction', classIndex: topClassIndex });
     } catch (error: any) {
-      postMessage({ type: 'error', message: 'Prediction error: ' + error.message });
+      postMessage({ type: 'error', message: 'Prediction error: ' + error.message});
     }
   }
 };
