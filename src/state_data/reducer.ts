@@ -3,6 +3,7 @@ import entityDetectionReducer from './entityDetectionSlice';
 import faceLandmarksReducer from './faceLandmarksSlice';
 import audioReducer from './audioSlice';
 import poseDetectionReducer from './poseDetectionSlice';
+import loadReducer from './loadSlice';
 
 import {
     persistReducer,
@@ -15,6 +16,7 @@ const rootReducer = combineReducers({
     faceLandmarks: faceLandmarksReducer,
     audio: audioReducer,
     poseDetection: poseDetectionReducer,
+    load: loadReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

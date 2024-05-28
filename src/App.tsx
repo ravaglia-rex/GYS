@@ -3,6 +3,7 @@ import './App.css';
 import FrameCapture from './components/FrameCapture';
 import FormEmbedding from './components/tally/FormEmbedding';
 import AudioCapture from './components/AudioCapture';
+import InternetSpeedTest from './components/InternetSpeedTest';
 import {persistor, store} from './state_data/reducer';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
@@ -14,6 +15,7 @@ function App() {
         <div className="App">
           <FrameCapture />
           <AudioCapture />
+          <InternetSpeedTest />
           <FormEmbedding />
         </div>
       </PersistGate>

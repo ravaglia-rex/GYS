@@ -65,7 +65,6 @@ const getEyeDirection = (landmarks: Array<Landmark>) => {
 const getMouthState = (landmarks: Array<Landmark>) => {
   const mouthFunnel = landmarks.find(l => l.categoryName === 'mouthFunnel')?.score || 0;
   const mouthClose = landmarks.find(l => l.categoryName === 'mouthClose')?.score || 0;
-  // const jawOpen = landmarks.find(l => l.categoryName === 'jawOpen')?.score || 0;
 
   const isOpen = mouthFunnel > mouthClose;
   const confidence = Math.max(mouthFunnel, mouthClose);

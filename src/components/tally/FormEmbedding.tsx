@@ -1,4 +1,6 @@
 import React, { useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../state_data/reducer';
 
 // Declare global interface to extend window object
 declare global {
@@ -10,6 +12,8 @@ declare global {
 }
 
 const FormEmbedding: React.FC = () => {
+    const loading = useSelector((state: RootState) => state.load.loading);
+
     useEffect(() => {
         const widgetScriptSrc = 'https://tally.so/widgets/embed.js';
 
@@ -45,20 +49,24 @@ const FormEmbedding: React.FC = () => {
           document.body.appendChild(script);
           return;
         }
-    }, []);
-    
+    }, [loading]); // Depend on the loading state
+
     return (
-        <iframe 
-          data-tally-src="https://tally.so/embed/npByEB?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1" 
-          loading="lazy" 
-          width="100%"
-          height="216"
-          frameBorder={0}
-          marginHeight={0}
-          marginWidth={0}
-          title="GYS  - Preliminary Exam (April24)"
-        >
-        </iframe>
+      <div>
+        {!loading && (
+          <iframe 
+            data-tally-src="https://tally.so/embed/npByEB?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1" 
+            loading="lazy" 
+            width="100%"
+            height="216"
+            frameBorder={0}
+            marginHeight={0}
+            marginWidth={0}
+            title="GYS  - Preliminary Exam (April24)"
+          >
+          </iframe>
+        )}
+      </div>
     );
 }
 
