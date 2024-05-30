@@ -45,3 +45,35 @@ export const captureFrame = (
     }
   }
 };
+
+export const analyzeLighting = (
+  videoRef: React.RefObject<HTMLVideoElement>,
+  canvasRef: React.MutableRefObject<HTMLCanvasElement | null>
+  ): boolean => {
+    if (videoRef.current && canvasRef.current) {
+      const canvas = canvasRef.current;
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      const context = canvas.getContext('2d');
+    if (!context) return false;
+
+    context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+
+    let totalBrightness = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const brightness = (0.299 * r + 0.587 * g + 0.114 * b);
+      totalBrightness += brightness;
+    }
+
+    const averageBrightness = totalBrightness / (data.length / 4);
+    const brightnessThreshold = 50; // Adjust this value based on your needs
+
+    return averageBrightness > brightnessThreshold;
+  }
+  return false;
+};

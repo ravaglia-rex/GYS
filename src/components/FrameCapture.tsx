@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { captureFrame } from "../functions/frame_handling/captureFrame.ts";
+import { captureFrame, analyzeLighting } from "../functions/frame_handling/captureFrame.ts";
 import { useDispatch, useSelector } from 'react-redux';
 import { setEntityDetection } from '../state_data/entityDetectionSlice.ts';
 import { setPoseDetection } from '../state_data/poseDetectionSlice.ts';
@@ -35,7 +35,15 @@ const FrameCapture: React.FC = () => {
             videoRef.current.srcObject = stream;
             videoRef.current.play();
             const frameRate = 1;
-            const newIntervalId = setInterval(() => captureFrame(videoRef, canvasRef, entityDetectiorRef, poseDetectionRef, faceLandmarksRef), 1000 / frameRate) as unknown as number;
+            const newIntervalId = setInterval(() => {
+              captureFrame(videoRef, canvasRef, entityDetectiorRef, poseDetectionRef, faceLandmarksRef)
+              if(canvasRef.current && videoRef.current){
+                const lighting_check = analyzeLighting(videoRef, canvasRef);
+                if(!lighting_check){
+                  alert('Poor lighting detected. Please adjust your lighting conditions.');
+              }
+            }
+          }, 1000 / frameRate) as unknown as number;
             setIntervalId(newIntervalId);
           }
         } catch (error: any) {
@@ -65,8 +73,8 @@ const FrameCapture: React.FC = () => {
         } else if(event.data.type==='prediction'){
           dispatch(setEntityDetection(event.data.flaggedFrame));
         } else if(event.data.type==='error'){
-          // Throw the user to a page stating that the state of the exam is saved but they need to restart the browser and check their camera permissions
-          console.error('Entity Worker Error: ', event.data.message);
+          // save state of the exam and push user to the entity detection error page
+          console.error('Entity Detection Error: ', event.data.message);
         }
       });
 
@@ -76,7 +84,7 @@ const FrameCapture: React.FC = () => {
         } else if(event.data.type==='prediction'){
           dispatch(setPoseDetection(event.data.poseResults));
         } else if(event.data.type==='error'){
-          // Throw the user to a page stating that the state of the exam is saved but they need to restart the browser and check their camera permissions/pose model
+          // save state of the exam and push user to the pose detection error page
           console.error('Pose Worker Error: ', event.data.message);
         }
       });
@@ -86,9 +94,8 @@ const FrameCapture: React.FC = () => {
           checkModelsLoaded();
         } else if(event.data.type==='prediction'){
           dispatch(setFaceLandmarks(event.data.faceLandmarks));
-          console.log(event.data.landmarks);
         } else if(event.data.type==='error'){
-          // Throw the user to a page stating that the state of the exam is saved but they need to restart the browser and check their camera permissions/face landmarks model
+          // save state of the exam and push user to the face landmarks error page
           console.error('Face Landmarks Error: ', event.data.message);
         }
       });
