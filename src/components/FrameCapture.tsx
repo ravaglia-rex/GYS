@@ -1,12 +1,12 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { captureFrame, analyzeLighting } from "../functions/frame_handling/captureFrame.ts";
+import { FRAME_RATE } from '../constants/constants.ts';
 import { useDispatch, useSelector } from 'react-redux';
 import { setEntityDetection } from '../state_data/entityDetectionSlice.ts';
 import { setPoseDetection } from '../state_data/poseDetectionSlice.ts';
 import { setFaceLandmarks } from '../state_data/faceLandmarksSlice.ts';
 import { RootState } from '../state_data/reducer.ts';
 import { setLoadState } from '../state_data/loadSlice.ts';
-
 
 const FrameCapture: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -34,7 +34,7 @@ const FrameCapture: React.FC = () => {
           if (videoRef.current) {
             videoRef.current.srcObject = stream;
             videoRef.current.play();
-            const frameRate = 1;
+            const frameRate = FRAME_RATE;
             const newIntervalId = setInterval(() => {
               captureFrame(videoRef, canvasRef, entityDetectiorRef, poseDetectionRef, faceLandmarksRef)
               if(canvasRef.current && videoRef.current){

@@ -1,11 +1,11 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import CameraError from '../components/error_pages/CameraError';
-import EntityDetectionError from '../components/error_pages/EntityDetectionError';
-import PoseDetectionError from '../components/error_pages/PoseDetectionError';
-import FaceLandmarksError from '../components/error_pages/FaceLandmarksError';
+import CameraError from '../pages/testing_page/error_pages/CameraError';
+import EntityDetectionError from '../pages/testing_page/error_pages/EntityDetectionError';
+import PoseDetectionError from '../pages/testing_page/error_pages/PoseDetectionError';
+import FaceLandmarksError from '../pages/testing_page/error_pages/FaceLandmarksError';
 
-const TestingPage = React.lazy(() => import('../components/testing_page/TestingPage'));
+const TestingPage = React.lazy(() => import('../pages/testing_page/TestingPage'));
 
 const AppRouter: React.FC = () => {
   return (

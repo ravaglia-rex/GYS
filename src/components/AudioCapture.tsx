@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { SAMPLE_RATE, SAMPLE_SIZE, AUDIO_RATE } from '../constants/constants';
 
 const AudioCapture:React.FC = () => {
   const workerRef = useRef<Worker>();
@@ -42,7 +43,7 @@ const AudioCapture:React.FC = () => {
         workerRef.current?.postMessage({ type: 'loadModel' });
       }
 
-      const audioStream = await navigator.mediaDevices.getUserMedia({audio: {channelCount: 1, sampleRate: 16000, sampleSize: 16}});
+      const audioStream = await navigator.mediaDevices.getUserMedia({audio: {channelCount: 1, sampleRate: SAMPLE_RATE, sampleSize: SAMPLE_SIZE}});
       const mime_types = ["audio/webm", "audio/mp4"].filter(MediaRecorder.isTypeSupported);
       if (mime_types.length === 0) {
         return alert("Browser not supported for audio recording.");
@@ -60,7 +61,7 @@ const AudioCapture:React.FC = () => {
         }
       });
 
-      recorder.start(3000);
+      recorder.start(AUDIO_RATE);
     } catch (error) {
       console.error('Error accessing the microphone:', error);
       alert('Error accessing microphone: ' + error);

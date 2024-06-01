@@ -1,4 +1,6 @@
 import React from "react";
+import { BRIGHTNESS_LOWER_THRESHOLD, BRIGHTNESS_UPPER_THRESHOLD } from "../../constants/constants";
+import { pushFrameData } from "../object_storage/push_frame_data";
 
 export const captureFrame = (
   videoRef: React.RefObject<HTMLVideoElement>,
@@ -42,6 +44,13 @@ export const captureFrame = (
         height: canvas.height,
         timestamp
       }, [imageDataBuffer3]);
+
+      canvas.toBlob(async (blob) => {
+        if (blob) {
+          const arrayBuffer = await blob.arrayBuffer();
+          pushFrameData('11111', 'abcd', timestamp.toISOString(), arrayBuffer);
+        }
+      }, 'image/png');
     }
   }
 };
@@ -71,9 +80,8 @@ export const analyzeLighting = (
     }
 
     const averageBrightness = totalBrightness / (data.length / 4);
-    const brightnessThreshold = 50; // Adjust this value based on your needs
 
-    return averageBrightness > brightnessThreshold;
+    return averageBrightness > BRIGHTNESS_LOWER_THRESHOLD && averageBrightness < BRIGHTNESS_UPPER_THRESHOLD;
   }
   return false;
 };

@@ -1,14 +1,9 @@
-const SPEED_TEST_INTERVAL = 1000 * 20; // 20 seconds
-const DOWNLOAD_SPEED_THRESHOLD = 2; // 2 Mbps
-const UPLOAD_SPEED_THRESHOLD = 1; // 1 Mbps
+import { DOWNLOAD_SPEED_THRESHOLD, UPLOAD_SPEED_THRESHOLD, SPEED_TEST_INTERVAL, DOWNLOAD_URL, UPLOAD_SIZE, UPLOAD_URL } from '../constants/constants';
 
 const testDownloadSpeed = async () => {
-  const downloadSize = 50000; // Size of the file to download in bytes
-  const url = `https://eu.httpbin.org/stream-bytes/${downloadSize}`;
-
   const startTime = Date.now();
   try {
-    const response = await fetch(url);
+    const response = await fetch(DOWNLOAD_URL);
     if(!response || !response.body) {
         console.error('No response or body');
         return -1;
@@ -34,13 +29,11 @@ const testDownloadSpeed = async () => {
 };
 
 const testUploadSpeed = async () => {
-  const uploadSize = 200000; // Size of the data to upload in bytes
+  const uploadSize = UPLOAD_SIZE;
   const data = new Uint8Array(uploadSize);
-  const url = 'https://eu.httpbin.org/post'; // URL that accepts POST requests
-
   const startTime = Date.now();
   try {
-    const response = await fetch(url, {
+    const response = await fetch(UPLOAD_URL, {
       method: 'POST',
       body: data,
       headers: {
