@@ -1,13 +1,13 @@
 import axios from 'axios';
 import { API_GATEWAY_ROUTE } from '../../constants/constants';
 
-const getPresignedFrameURL = async (userId: string, exam_id: string, datetime: string) => {
+const getPresignedAudioURL = async (userId: string, exam_id: string, datetime: string) => {
     try {
         const response = await axios.post(API_GATEWAY_ROUTE, {
             user_id: userId,
             exam_id: exam_id,
             datetime: datetime,
-            data_type: 'image'
+            data_type: 'audio'
         });
         const presignedUrl = response.data.presignedUrl;
         return presignedUrl;
@@ -17,21 +17,21 @@ const getPresignedFrameURL = async (userId: string, exam_id: string, datetime: s
     }
 };
 
-export const pushFrameData = async (userId: string, exam_id: string, datetime: string, frameData: ArrayBuffer) => {
+export const pushAudioData = async (userId: string, exam_id: string, datetime: string, audioData: ArrayBuffer[]) => {
     try {
-        const presignedUrl = await getPresignedFrameURL(userId, exam_id, datetime);
+        const presignedUrl = await getPresignedAudioURL(userId, exam_id, datetime);
         if (!presignedUrl) {
             console.log('Failed to get a presigned URL');
             return;
         }
 
-        const blob = new Blob([frameData], { type: 'image/png' });
+        const blob = new Blob(audioData, { type: 'audio/webm' });
         await axios.put(presignedUrl, blob, {
             headers: {
-                'Content-Type': 'image/png'
+                'Content-Type': 'audio/webm'
             }
         });
     } catch (error) {
-        console.error('Error pushing frame data:', error);
+        console.error('Error pushing audio data:', error);
     }
 };

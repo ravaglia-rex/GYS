@@ -66,13 +66,15 @@ const startMonitoring = () => {
       postMessage({
         type: 'downloadSpeedLow',
         downloadSpeed,
+        uploadSpeed
       });
       return;
     }
     if (uploadSpeed < UPLOAD_SPEED_THRESHOLD) {
       postMessage({
         type: 'uploadSpeedLow',
-        uploadSpeed,
+        downloadSpeed,
+        uploadSpeed
       });
       return;
     }

@@ -81,6 +81,7 @@ onmessage = async (e) => {
   if (e.data.type === 'loadModel') {
     try {
       await loadModel();
+      postMessage({ type: 'modelLoaded' });
     } catch (error: any) {
       postMessage({ type: 'error', message: 'Failed to load model: ' + error.message });
     }

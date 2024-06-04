@@ -51,7 +51,6 @@ onmessage = async (e) => {
           }))
         }
       };
-
       postMessage({ type: 'prediction', flaggedFrame });
     } catch (error: any) {
       postMessage({ type: 'error', message: 'Prediction error: ' + error.message });

@@ -10,7 +10,7 @@ export const BRIGHTNESS_UPPER_THRESHOLD = 200;
 // AUDIO CAPTURE CONSTANTS
 export const SAMPLE_SIZE = 16;
 export const SAMPLE_RATE = 16000;
-export const AUDIO_RATE = 3000;
+export const AUDIO_RATE = 960*5;
 
 // INTERNET BANDWIDTH MONITORING CONSTANTS
 export const SPEED_TEST_INTERVAL = 1000*20;
@@ -20,6 +20,7 @@ export const DOWNLOAD_SIZE = 50000;
 export const DOWNLOAD_URL = `https://eu.httpbin.org/stream-bytes/${DOWNLOAD_SIZE}`;
 export const UPLOAD_SIZE = 20000;
 export const UPLOAD_URL = 'https://eu.httpbin.org/post';
+export const VIOLATION_COUNT = 3;
 
 // S3 UPLOAD CONSTANTS
-export const FRAME_API_GATEWAY_ROUTE='https://2esqoxnli5.execute-api.us-west-1.amazonaws.com/default/argus-proctoring-gen-presigned-url';
+export const API_GATEWAY_ROUTE='https://2esqoxnli5.execute-api.us-west-1.amazonaws.com/default/argus-proctoring-gen-presigned-url';

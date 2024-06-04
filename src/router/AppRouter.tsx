@@ -4,6 +4,8 @@ import CameraError from '../pages/testing_page/error_pages/CameraError';
 import EntityDetectionError from '../pages/testing_page/error_pages/EntityDetectionError';
 import PoseDetectionError from '../pages/testing_page/error_pages/PoseDetectionError';
 import FaceLandmarksError from '../pages/testing_page/error_pages/FaceLandmarksError';
+import SpeedTestErrorPage from '../pages/testing_page/error_pages/SpeedTestError';
+import AudioErrorPage from '../pages/testing_page/error_pages/AudioErrorPage';
 
 const TestingPage = React.lazy(() => import('../pages/testing_page/TestingPage'));
 
@@ -53,6 +55,22 @@ const AppRouter: React.FC = () => {
           element={
             <Suspense fallback={<div>Loading...</div>}>
               <FaceLandmarksError />
+            </Suspense>
+          }
+        />
+        <Route
+          path='/internet_speed_error'
+          element={
+            <Suspense fallback={<div>Loading...</div>}>
+              <SpeedTestErrorPage />
+            </Suspense>
+          }
+        />
+        <Route 
+          path='/audio_error'
+          element={
+            <Suspense fallback={<div>Loading...</div>}>
+              <AudioErrorPage />
             </Suspense>
           }
         />
