@@ -9,10 +9,51 @@ import AudioErrorPage from '../pages/testing_page/error_pages/AudioErrorPage';
 
 const TestingPage = React.lazy(() => import('../pages/testing_page/TestingPage'));
 
+// CHANGE THIS TO MULTIPLE COMPONENTS INSTEAD OF THE CURRENT VERSION
+const SignInPage = React.lazy(() => import('../components/auth/SignIn'));
+const SignUpPage = React.lazy(() => import('../components/auth/SignUp'));
+const AccountCreationSuccessPage = React.lazy(() => import('../pages/testing_page/authentication_pages/AccountCreationSuccess'));
+const AccountCreationFailurePage = React.lazy(() => import('../pages/testing_page/authentication_pages/AccountCreationFailure'));
+
 const AppRouter: React.FC = () => {
   return (
     <Router>
+      {/* ------------------------------ SIGNUP AND LOGIN ROUTES ------------------------------ */}
       <Routes>
+        <Route 
+          path='/signup'
+          element={
+            <Suspense fallback={<div>Loading...</div>}>
+              <SignUpPage />
+            </Suspense>
+          }
+        />
+        <Route 
+          path='/login'
+          element={
+            <Suspense fallback={<div>Loading...</div>}>
+              <SignInPage />
+            </Suspense>
+          }
+        />
+        <Route 
+          path='/account-creation-success'
+          element={
+            <Suspense fallback={<div>Loading...</div>}>
+              <AccountCreationSuccessPage />
+            </Suspense>
+          }
+        />
+        <Route 
+          path='/account-creation-failure'
+          element={
+            <Suspense fallback={<div>Loading...</div>}>
+              <AccountCreationFailurePage />
+            </Suspense>
+          }
+        />
+        {/* ------------------------------ SIGNUP AND LOGIN ROUTES END ------------------------------ */}
+        {/* ------------------------------ TESTING PAGE ROUTES ------------------------------ */}
         <Route 
           path="/" 
           element={
@@ -22,7 +63,6 @@ const AppRouter: React.FC = () => {
           }
           errorElement={<div>There was an error loading the page.</div>}
         />
-
 
         {/* ------------------------------ ERROR PAGE ROUTES HERE ---------------------- */}
         <Route 
