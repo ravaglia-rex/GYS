@@ -86,7 +86,12 @@ const AudioCapture: React.FC = () => {
       recorderRef.current.addEventListener('dataavailable', async (event) => {
         if (event.data.size > 0 && workerRef.current) {
           let audio_buffer = await event.data.arrayBuffer();
-          audioData.current.push(audio_buffer);
+          if(audioData.current.length <= 2) {
+            audioData.current.push(audio_buffer);
+          }
+          else{
+            audioData.current[1] = audio_buffer;
+          }
           // decodeAudioData(audioData.current).then((decodedData) => {
           //   workerRef.current?.postMessage({ type: 'predict', audioData: decodedData });
           // });

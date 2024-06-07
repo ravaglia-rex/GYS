@@ -7,6 +7,7 @@ import FaceLandmarksError from '../pages/error_pages/FaceLandmarksError';
 import SpeedTestErrorPage from '../pages/error_pages/SpeedTestError';
 import AudioErrorPage from '../pages/error_pages/AudioErrorPage';
 import Protected from '../components/route_protection/Protected';
+import NotFoundPage from '../pages/NotFoundPage';
 import { LoadingSpinner } from '../components/ui/spinner';
 
 const TestingPage = React.lazy(() => import('../pages/testing_page/TestingPage'));
@@ -132,7 +133,7 @@ const AppRouter: React.FC = () => {
         />
         {/* ------------------------------ ERROR PAGE ROUTES END HERE ---------------------- */}
         {/* ------------------------------   ANY OTHER ROUTES HERE    ---------------------- */}
-        <Route path="*" element={<div>404 Not Found</div>} />
+        <Route path="*" element={<NotFoundPage/>} />
         {/* ------------------------------   ANY OTHER ROUTES END HERE    ---------------------- */}
       </Routes>
     </Router>
