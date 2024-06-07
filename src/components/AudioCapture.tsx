@@ -9,12 +9,12 @@ import { pushAudioData } from '../functions/object_storage/push_audio_data';
 import { useDispatch } from 'react-redux';
 import { setAudioCaptureSlice, cleanupAudioCaptureResources } from '../state_data/audioCaptureSlice';
 import { cleanupFrameResources } from '../state_data/frameCaptureSlice';
+import { useToast } from './ui/use-toast';
 
 const AudioCapture: React.FC = () => {
   const workerRef = useRef<Worker>();
-  // const [isRecording, setIsRecording] = useState<boolean>(false);
+  const { toast } = useToast();
   const [audiostream, setAudioStream] = useState<MediaStream | null>(null);
-  // const [prediction, setPrediction] = useState<number>(-1);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const isModelLoaded = useRef<boolean>(false); // Track model loading
   const audioData = useRef<ArrayBuffer[]>([]);
@@ -33,6 +33,11 @@ const AudioCapture: React.FC = () => {
         // evict the user to the error page and stop all recording; for this we'll also need to stop recording the video feed
         dispatch(cleanupAudioCaptureResources());
         dispatch(cleanupFrameResources());
+        toast({
+          variant: 'destructive',
+          title: 'Audio Error',
+          description: event.data.message,
+        });
         navigate('/audio_error');
       }
     };
@@ -60,13 +65,18 @@ const AudioCapture: React.FC = () => {
       }  
       const audioStream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, sampleRate: SAMPLE_RATE, sampleSize: SAMPLE_SIZE } });
       setAudioStream(audioStream);
-      // setIsRecording(true);
+
       dispatch(setAudioCaptureSlice({ audioWorker: workerRef.current, audioStream }));
       const mime_types = ["audio/webm", "audio/ogg", "audio/wav", "audio/mp4"].filter(MediaRecorder.isTypeSupported);
       if (mime_types.length === 0) {
         console.error("Browser not supported for audio recording.");
         dispatch(cleanupAudioCaptureResources());
         dispatch(cleanupFrameResources());
+        toast({
+          variant: 'destructive',
+          title: 'Audio Error',
+          description: 'Browser not supported for audio recording.'
+        });
         navigate('/audio_error');
         return;
       }
@@ -89,6 +99,11 @@ const AudioCapture: React.FC = () => {
       console.error('Error accessing the microphone:', error);
       dispatch(cleanupAudioCaptureResources());
       dispatch(cleanupFrameResources());
+      toast({
+        variant: 'destructive',
+        title: 'Audio Error',
+        description: 'Error accessing the microphone.'
+      });
       navigate('/audio_error');
     }
   };
