@@ -19,7 +19,7 @@ const testDownloadSpeed = async () => {
 
     const endTime = Date.now();
     const durationInSeconds = (endTime - startTime) / 1000;
-    const speedInMbps = (bytesRead * 8) / (durationInSeconds * 1000000); // Convert bytes to megabits
+    const speedInMbps = (bytesRead * 8) / (durationInSeconds * 100000);
 
     return speedInMbps;
   } catch (error) {
@@ -44,7 +44,7 @@ const testUploadSpeed = async () => {
 
     if (response.ok) {
       const durationInSeconds = (endTime - startTime) / 1000;
-      const speedInMbps = (uploadSize * 8) / (durationInSeconds * 1000000); // Convert bytes to megabits
+      const speedInMbps = (uploadSize * 8) / (durationInSeconds * 100000); // Convert bytes to megabits
 
       return speedInMbps;
     } else {

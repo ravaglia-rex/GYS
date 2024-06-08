@@ -1,10 +1,10 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "../../firebase/firebase";
 
 const AccountCreationSuccessPage: React.FC = () => {
     const navigate = useNavigate();
-    const auth = getAuth();
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -18,7 +18,7 @@ const AccountCreationSuccessPage: React.FC = () => {
         });
 
         return () => unsubscribe();
-    }, [auth, navigate]);
+    }, [navigate]);
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-100">

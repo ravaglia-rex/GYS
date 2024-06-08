@@ -8,6 +8,7 @@ import { tabSwitchingState } from "../../state_data/tabSwitchingSlice";
 export const captureFrame = (
   videoRef: React.RefObject<HTMLVideoElement>,
   canvasRef: React.MutableRefObject<HTMLCanvasElement | null>,
+  user_id: string,
   entityWorkerRef: Worker,
   poseWorkerRef: Worker,
   faceLandmarksRef: Worker
@@ -53,7 +54,7 @@ export const captureFrame = (
       canvas.toBlob(async (blob) => {
         if (blob) {
           const arrayBuffer = await blob.arrayBuffer();
-          pushFrameData('11111', 'abcd', timestamp.toISOString(), arrayBuffer);
+          pushFrameData(user_id, 'abcd', timestamp.toISOString(), arrayBuffer);
         }
       }, 'image/png');
     }
@@ -93,7 +94,7 @@ export const analyzeLighting = (
 
 type states_type = [React.MutableRefObject<any[]>, React.MutableRefObject<any[]>, React.MutableRefObject<any[]>, internetSpeedState, tabSwitchingState];
 
-export const triggerMetadataUpdate = async (event_type: string, event_data: any, states: states_type) => {
+export const triggerMetadataUpdate = async (event_type: string, event_data: any, states: states_type, user_id: string) => {
   switch (event_type) {
     case 'entityDetection':
       states[0].current.push(event_data);
@@ -127,7 +128,7 @@ export const triggerMetadataUpdate = async (event_type: string, event_data: any,
       }
     };
     
-    pushStateData('11111', 'abcd', entityDetectionState.timestamp.toISOString(), currentState);
+    pushStateData(user_id, 'abcd', entityDetectionState.timestamp.toISOString(), currentState);
     states[0].current = [];
     states[1].current = [];
     states[2].current = [];

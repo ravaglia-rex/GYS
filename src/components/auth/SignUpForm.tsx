@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { UserCredential, createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
-import { app } from "../../firebase/firebase";
-import { getAuth } from "firebase/auth";
+import { auth } from "../../firebase/firebase";
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -43,7 +42,6 @@ const signupSchema = z.object({
 
 const SignUpPage: React.FC = () => {
     const [schools, setSchools] = useState<{ id: string, name: string }[]>([]);
-    const auth = getAuth(app);
     const navigate = useNavigate();
     const {toast} = useToast();
 

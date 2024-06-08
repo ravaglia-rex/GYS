@@ -149,7 +149,7 @@ onmessage = async (e) => {
                 let poseResults = {
                     pose,
                     action: predictAction(face_and_shoulder_points),
-                    timestamp: e.data.timestamp
+                    timestamp: e.data.timestamp,
                 };
                 postMessage({type: 'prediction', poseResults});
             } else {

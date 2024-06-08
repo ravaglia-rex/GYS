@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
-import { UserCredential, getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth';
-import { app } from '../../firebase/firebase';
+import { UserCredential, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth';
 import { NavLink, useNavigate } from 'react-router-dom';
+import { auth } from '../../firebase/firebase';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -29,7 +29,6 @@ const signinSchema = z.object({
 const SignInPage: React.FC = () => {
     const navigate = useNavigate();
     const {toast} = useToast();
-    const auth = getAuth(app);
     const form = useForm({
         resolver: zodResolver(signinSchema),
         defaultValues: {
@@ -46,7 +45,7 @@ const SignInPage: React.FC = () => {
         });
 
         return () => unsubscribe();
-    }, [auth, navigate]);
+    }, [navigate]);
 
     const signIn = (data: z.infer<typeof signinSchema>) => {
         signInWithEmailAndPassword(auth, data.email, data.password)

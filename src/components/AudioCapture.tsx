@@ -10,6 +10,7 @@ import { useDispatch } from 'react-redux';
 import { setAudioCaptureSlice, cleanupAudioCaptureResources } from '../state_data/audioCaptureSlice';
 import { cleanupFrameResources } from '../state_data/frameCaptureSlice';
 import { useToast } from './ui/use-toast';
+import { auth } from '../firebase/firebase';
 
 const AudioCapture: React.FC = () => {
   const workerRef = useRef<Worker>();
@@ -95,7 +96,7 @@ const AudioCapture: React.FC = () => {
           // decodeAudioData(audioData.current).then((decodedData) => {
           //   workerRef.current?.postMessage({ type: 'predict', audioData: decodedData });
           // });
-          pushAudioData('11111', 'abcd', new Date().toISOString(), audioData.current);
+          pushAudioData(auth?.currentUser?.uid||'11111', 'abcd', new Date().toISOString(), audioData.current);
         }
       });
 

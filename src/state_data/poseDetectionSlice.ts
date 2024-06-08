@@ -15,7 +15,7 @@ interface PoseDetectionPayload {
 const initialState: PoseDetectionState = {
     pose: [],
     action: [],
-    timestamp: [],
+    timestamp: []
 };
 
 export const poseDetectionSlice = createSlice({

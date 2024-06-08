@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 
 import { captureFrame, analyzeLighting, triggerMetadataUpdate } from "../functions/frame_handling/captureFrame.ts";
+import { auth } from '../firebase/firebase.ts';
 
 import { FRAME_RATE } from '../constants/constants.ts';
 
@@ -14,8 +15,8 @@ import { setEntityDetectionWorker, setPoseDetectionWorker, setFaceLandmarkDetect
 import { cleanupAudioCaptureResources } from '../state_data/audioCaptureSlice.ts';
 import { RootState } from '../state_data/reducer.ts';
 import { setLoadState } from '../state_data/loadSlice.ts';
-import { useToast } from './ui/use-toast.tsx';
-import { Progress } from './ui/progress.tsx';
+import { useToast } from './ui/use-toast';
+import { Progress } from './ui/progress';
 
 const FrameCapture: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -24,20 +25,18 @@ const FrameCapture: React.FC = () => {
   const entityDetectiorRef = useRef<Worker | null>(null);
   const poseDetectionRef = useRef<Worker | null>(null);
   const faceLandmarksRef = useRef<Worker | null>(null);
-  const modelLoaded = useRef<number>(0);
+  const modelLoaded = useRef<{ [key: string]: boolean }>({});
   const { toast } = useToast();
+  const dispatch = useDispatch();
+  const loading = useSelector((state: RootState) => state.load.loading);
+  const navigate = useNavigate();
+  const videoStream = useSelector((state: RootState) => state.frameCapture.videoStream);
 
   const entityDetectionState = useRef<Array<any>>([]);
   const faceLandmarksState = useRef<Array<any>>([]);
   const poseDetectionState = useRef<Array<any>>([]);
-
   const internetSpeedStateSelector = useSelector((state: RootState) => state.internetSpeed);
   const tabSwitchingStateSelector = useSelector((state: RootState) => state.tabSwitching);
-
-  const dispatch = useDispatch();
-  const loading = useSelector((state: RootState) => state.load.loading);
-
-  const navigate = useNavigate();
 
   useEffect(() => {
     const canvas = document.createElement('canvas');
@@ -49,9 +48,9 @@ const FrameCapture: React.FC = () => {
 
   useEffect(() => {
     const setupWorkers = () => {
-      const worker1 = new Worker(new URL('../frame_flagging_modules/entityDetectionWorker.ts', import.meta.url), {type: 'module'});
-      const worker2 = new Worker(new URL('../frame_flagging_modules/poseDetectionWorker.ts', import.meta.url), {type: 'module'});
-      const worker3 = new Worker(new URL('../frame_flagging_modules/faceLandmarksWorker.ts', import.meta.url), {type: 'module'});
+      const worker1 = new Worker(new URL('../frame_flagging_modules/entityDetectionWorker.ts', import.meta.url), { type: 'module' });
+      const worker2 = new Worker(new URL('../frame_flagging_modules/poseDetectionWorker.ts', import.meta.url), { type: 'module' });
+      const worker3 = new Worker(new URL('../frame_flagging_modules/faceLandmarksWorker.ts', import.meta.url), { type: 'module' });
 
       entityDetectiorRef.current = worker1;
       poseDetectionRef.current = worker2;
@@ -61,29 +60,28 @@ const FrameCapture: React.FC = () => {
       dispatch(setFaceLandmarkDetectionWorker(worker3));
 
       const checkModelsLoaded = () => {
-        modelLoaded.current += 1;
-        if(modelLoaded.current === 3){
+        if (modelLoaded.current['entityDetection'] && modelLoaded.current['poseDetection'] && modelLoaded.current['faceLandmarks']) {
           dispatch(setLoadState(false));
+          console.log('Models loaded');
           setupVideoAndWorker();
         } else {
           dispatch(setLoadState(true));
         }
       }
 
-      worker1.addEventListener('message', (event: MessageEvent)=>{
-        if (event.data.type==='modelLoaded'){
+      worker1.addEventListener('message', (event: MessageEvent) => {
+        if (event.data.type === 'modelLoaded') {
+          modelLoaded.current['entityDetection'] = true;
           checkModelsLoaded();
-        } else if(event.data.type==='prediction'){
-          triggerMetadataUpdate("entityDetection", event.data.flaggedFrame, [entityDetectionState, faceLandmarksState, poseDetectionState, internetSpeedStateSelector, tabSwitchingStateSelector]);
+        } else if (event.data.type === 'prediction') {
+          triggerMetadataUpdate("entityDetection", event.data.flaggedFrame, [entityDetectionState, faceLandmarksState, poseDetectionState, internetSpeedStateSelector, tabSwitchingStateSelector], auth?.currentUser?.uid || '11111');
           dispatch(setEntityDetection(event.data.flaggedFrame));
-        } else if(event.data.type==='error'){
-          // save state of the exam and push user to the entity detection error page
+        } else if (event.data.type === 'error') {
           toast({
             variant: 'destructive',
             title: 'Entity Detection Error',
             description: event.data.message,
           });
-
           dispatch(cleanupFrameResources());
           dispatch(cleanupAudioCaptureResources());
           navigate('/entity_detection_error');
@@ -91,13 +89,13 @@ const FrameCapture: React.FC = () => {
       });
 
       worker2.addEventListener('message', (event: MessageEvent) => {
-        if (event.data.type==='modelLoaded'){
+        if (event.data.type === 'modelLoaded') {
+          modelLoaded.current['poseDetection'] = true;
           checkModelsLoaded();
-        } else if(event.data.type==='prediction'){
-          triggerMetadataUpdate("poseDetection", event.data.poseResults, [entityDetectionState, faceLandmarksState, poseDetectionState, internetSpeedStateSelector, tabSwitchingStateSelector]);
+        } else if (event.data.type === 'prediction') {
+          triggerMetadataUpdate("poseDetection", event.data.poseResults, [entityDetectionState, faceLandmarksState, poseDetectionState, internetSpeedStateSelector, tabSwitchingStateSelector], auth?.currentUser?.uid || '11111');
           dispatch(setPoseDetection(event.data.poseResults));
-        } else if(event.data.type==='error'){
-          // save state of the exam and push user to the pose detection error page
+        } else if (event.data.type === 'error') {
           toast({
             variant: 'destructive',
             title: 'Pose Detection Error',
@@ -109,14 +107,14 @@ const FrameCapture: React.FC = () => {
         }
       });
 
-      worker3.addEventListener('message', (event: MessageEvent)=>{
-        if (event.data.type==='modelLoaded'){
+      worker3.addEventListener('message', (event: MessageEvent) => {
+        if (event.data.type === 'modelLoaded') {
+          modelLoaded.current['faceLandmarks'] = true;
           checkModelsLoaded();
-        } else if(event.data.type==='prediction'){
-          triggerMetadataUpdate("faceLandmarks", event.data.faceLandmarks, [entityDetectionState, faceLandmarksState, poseDetectionState, internetSpeedStateSelector, tabSwitchingStateSelector]);
+        } else if (event.data.type === 'prediction') {
+          triggerMetadataUpdate("faceLandmarks", event.data.faceLandmarks, [entityDetectionState, faceLandmarksState, poseDetectionState, internetSpeedStateSelector, tabSwitchingStateSelector], auth?.currentUser?.uid || '11111');
           dispatch(setFaceLandmarks(event.data.faceLandmarks));
-        } else if(event.data.type==='error'){
-          // save state of the exam and push user to the face landmarks error page
+        } else if (event.data.type === 'error') {
           toast({
             variant: 'destructive',
             title: 'Face Landmarks Error',
@@ -127,44 +125,47 @@ const FrameCapture: React.FC = () => {
           navigate('/face_landmarks_model_error');
         }
       });
-      worker1.postMessage({type: 'loadModel'});
-      worker2.postMessage({type: 'loadModel'});
-      worker3.postMessage({type: 'loadModel'});
+
+      worker1.postMessage({ type: 'loadModel' });
+      worker2.postMessage({ type: 'loadModel' });
+      worker3.postMessage({ type: 'loadModel' });
 
       return () => {
-        worker1?.terminate();
-        worker2?.terminate();
-        worker3?.terminate();
+        worker1.terminate();
+        worker2.terminate();
+        worker3.terminate();
       };
     };
 
     const setupVideoAndWorker = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        dispatch(setVideoStream(stream));
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play();
-          const frameRate = FRAME_RATE;
-          const newIntervalId = setInterval(() => {
-            if(entityDetectiorRef.current && poseDetectionRef.current && faceLandmarksRef.current && canvasRef && videoRef){
-              captureFrame(videoRef, canvasRef, entityDetectiorRef.current, poseDetectionRef.current, faceLandmarksRef.current);
-            }
-            if(canvasRef.current && videoRef.current){
-              const lighting_check = analyzeLighting(videoRef, canvasRef);
-              if(!lighting_check){
-                toast({
-                  variant: 'destructive',
-                  title: 'Lighting Error',
-                  description: 'Please ensure that you are in a well-lit environment',
-                });
-                dispatch(cleanupFrameResources());
-                dispatch(cleanupAudioCaptureResources());
-                navigate('/lighting_error');
-              }
-            }
-          }, 1000 / frameRate) as unknown as number;
-          dispatch(setFrameIntervalId(newIntervalId));
+        if(!videoStream){
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          dispatch(setVideoStream(stream));
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            videoRef.current.onloadedmetadata = async () => {
+                await videoRef.current?.play();
+                const frameRate = FRAME_RATE;
+                const newIntervalId = setInterval(() => {
+                  if (entityDetectiorRef.current && poseDetectionRef.current && faceLandmarksRef.current && canvasRef.current && videoRef.current) {
+                    captureFrame(videoRef, canvasRef, auth?.currentUser?.uid || '11111', entityDetectiorRef.current, poseDetectionRef.current, faceLandmarksRef.current);
+                    const lighting_check = analyzeLighting(videoRef, canvasRef);
+                    if (!lighting_check) {
+                      toast({
+                        variant: 'destructive',
+                        title: 'Lighting Error',
+                        description: 'Please ensure that you are in a well-lit environment',
+                      });
+                      dispatch(cleanupFrameResources());
+                      dispatch(cleanupAudioCaptureResources());
+                      navigate('/lighting_error');
+                    }
+                  }
+                }, 1000 / frameRate) as unknown as number;
+                dispatch(setFrameIntervalId(newIntervalId));
+            };
+          }
         }
       } catch (error: any) {
         console.error('Error accessing the camera', error);
@@ -178,15 +179,22 @@ const FrameCapture: React.FC = () => {
         navigate('/camera_error');
       }
     };
-
-    setupWorkers();
-  }, [dispatch, internetSpeedStateSelector, tabSwitchingStateSelector, navigate, toast]);
+    if(!entityDetectiorRef.current || !poseDetectionRef.current || !faceLandmarksRef.current){
+      setupWorkers();
+    }
+  }, [dispatch, videoStream, internetSpeedStateSelector, tabSwitchingStateSelector, navigate, toast]);
 
   return (
     <div>
-      {loading? (<div> <Progress value={modelLoaded.current*100/3}/> </div>): (<div>
-        <video ref={videoRef} autoPlay playsInline muted style={{display: 'none'}}></video> 
-      </div>)}
+      {loading ? (
+        <div>
+          <Progress value={(Object.keys(modelLoaded.current).length * 100) / 3} />
+        </div>
+      ) : (
+        <div>
+          <video ref={videoRef} autoPlay playsInline muted style={{ display: 'none' }}></video>
+        </div>
+      )}
     </div>
   );
 };

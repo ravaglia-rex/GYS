@@ -90,7 +90,7 @@ onmessage = async (e) => {
       const imageData = new ImageData(new Uint8ClampedArray(e.data.imageData), e.data.width, e.data.height);
       const results = await faceLandmarker.detect(imageData);
       const [eye_state, mouth_state] = processLandmarks(results.faceBlendshapes[0].categories);
-      postMessage({ type: 'prediction', faceLandmarks: {eye_state, mouth_state, timestamp: e.data.timestamp}, landmarks: results.faceBlendshapes[0].categories});
+      postMessage({ type: 'prediction', faceLandmarks: {eye_state, mouth_state, timestamp: e.data.timestamp}});
     } catch (error: any) {
       postMessage({ type: 'error', message: 'Failed to predict: ' + error.message });
     }

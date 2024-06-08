@@ -1,7 +1,7 @@
 import React, { ReactNode, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { app } from '../../firebase/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../../firebase/firebase';
 import { LoadingSpinner } from '../ui/spinner';
 
 interface ProtectedProps {
@@ -10,7 +10,6 @@ interface ProtectedProps {
 
 const Protected: React.FC<ProtectedProps> = ({ children }) => {
   const navigate = useNavigate();
-  const auth = getAuth(app);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,7 +22,7 @@ const Protected: React.FC<ProtectedProps> = ({ children }) => {
 
     // Cleanup subscription on unmount
     return () => unsubscribe();
-  }, [auth, navigate]);
+  }, [navigate]);
 
   if (loading) {
     // Render nothing or a loading spinner while checking authentication status
