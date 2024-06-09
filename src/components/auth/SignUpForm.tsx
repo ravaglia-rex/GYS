@@ -20,6 +20,14 @@ import {
     FormMessage,
 } from '../ui/form';
 
+import {
+    Select,
+    SelectItem,
+    SelectContent,
+    SelectTrigger,
+    SelectValue,
+} from '../ui/select';
+
 import { Button } from '../ui/button';
 import { Checkbox } from '../ui/checkbox';
 import { Input } from '../ui/input';
@@ -31,6 +39,7 @@ const signupSchema = z.object({
     first_name: z.string().min(1, 'First name is required'),
     last_name: z.string().min(1, 'Last name is required'),
     school: z.string().min(1, 'School is required'),
+    grade: z.number().int().min(1, 'Grade is required'),
     email: z.string().email(),
     password: z.string().min(6, 'Password must be at least 6 characters'),
     confirm_password: z.string().min(6, 'Password must be at least 6 characters'),
@@ -43,7 +52,7 @@ const signupSchema = z.object({
 const SignUpPage: React.FC = () => {
     const [schools, setSchools] = useState<{ id: string, name: string }[]>([]);
     const navigate = useNavigate();
-    const {toast} = useToast();
+    const { toast } = useToast();
 
     const form = useForm({
         resolver: zodResolver(signupSchema),
@@ -51,6 +60,7 @@ const SignUpPage: React.FC = () => {
             first_name: '',
             last_name: '',
             school: '',
+            grade: 0,
             email: '',
             password: '',
             confirm_password: '',
@@ -81,6 +91,7 @@ const SignUpPage: React.FC = () => {
                 first_name: data.first_name,
                 last_name: data.last_name,
                 school_id: data.school,
+                grade: data.grade,
             });
 
             toast({
@@ -148,6 +159,35 @@ const SignUpPage: React.FC = () => {
                                     </FormControl>
                                     <FormDescription>Take me from darkness to light</FormDescription>
                                     <FormMessage>{form.formState.errors.school?.message}</FormMessage>
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="grade"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Grade</FormLabel>
+                                    <FormControl>
+                                        <Select 
+                                            onValueChange={(value) => field.onChange(Number(value))}
+                                            defaultValue={field.value.toString()}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select grade" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="6">6th Grade</SelectItem>
+                                                <SelectItem value="7">7th Grade</SelectItem>
+                                                <SelectItem value="8">8th Grade</SelectItem>
+                                                <SelectItem value="9">9th Grade</SelectItem>
+                                                <SelectItem value="10">10th Grade</SelectItem>
+                                                <SelectItem value="11">11th Grade</SelectItem>
+                                                <SelectItem value="12">12th Grade</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </FormControl>
+                                    <FormMessage>{form.formState.errors.grade?.message}</FormMessage>
                                 </FormItem>
                             )}
                         />
