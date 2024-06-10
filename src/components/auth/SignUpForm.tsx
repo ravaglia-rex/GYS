@@ -83,10 +83,17 @@ const SignUpPage: React.FC = () => {
             const userCredential: UserCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
 
             // Step 2: Send email verification
-            await sendEmailVerification(userCredential.user);
+            sendEmailVerification(userCredential.user);
 
             // Step 3: Create the student record in Firestore
-            await createStudent({
+            // Find the school id from the school name
+            schools.forEach((school) => {
+                if (school.name === data.school) {
+                    data.school = school.id;
+                }
+            });
+            
+            createStudent({
                 uid: userCredential.user.uid,
                 first_name: data.first_name,
                 last_name: data.last_name,

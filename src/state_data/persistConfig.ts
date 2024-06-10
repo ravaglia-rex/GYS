@@ -3,7 +3,7 @@ import storage from 'redux-persist/lib/storage';
 const persistConfig = {
     key: 'root',
     storage,
-    blacklist: ['load', 'audioCapture', 'frameCapture', 'internetSpeed'],
+    blacklist: ['load', 'audioCapture', 'frameCapture', 'internetSpeed', 'examDetails'],
 };
 
 export default persistConfig;

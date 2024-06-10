@@ -6,11 +6,12 @@ import { SAMPLE_RATE, SAMPLE_SIZE, AUDIO_RATE } from '../constants/constants';
 
 import { pushAudioData } from '../functions/object_storage/push_audio_data';
 
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { setAudioCaptureSlice, cleanupAudioCaptureResources } from '../state_data/audioCaptureSlice';
 import { cleanupFrameResources } from '../state_data/frameCaptureSlice';
 import { useToast } from './ui/use-toast';
 import { auth } from '../firebase/firebase';
+import { RootState } from '../state_data/reducer';
 
 const AudioCapture: React.FC = () => {
   const workerRef = useRef<Worker>();
@@ -20,9 +21,12 @@ const AudioCapture: React.FC = () => {
   const isModelLoaded = useRef<boolean>(false); // Track model loading
   const audioData = useRef<ArrayBuffer[]>([]);
   const dispatch = useDispatch();
+  const exam_id = useSelector((state: RootState) => state.examDetails.examId);
   const navigate = useNavigate();
 
   useEffect(() => {
+    if(exam_id === "") return;
+
     workerRef.current = new Worker(new URL('../audio_flagging_modules/audioWorker.ts', import.meta.url), { type: 'module' });
     workerRef.current.onmessage = (event) => {
       if (event.data.type === 'modelLoaded') {
@@ -57,7 +61,7 @@ const AudioCapture: React.FC = () => {
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [exam_id]);
 
   const startRecording = async () => {
     try {
@@ -96,7 +100,7 @@ const AudioCapture: React.FC = () => {
           // decodeAudioData(audioData.current).then((decodedData) => {
           //   workerRef.current?.postMessage({ type: 'predict', audioData: decodedData });
           // });
-          pushAudioData(auth?.currentUser?.uid||'11111', 'abcd', new Date().toISOString(), audioData.current);
+          pushAudioData(auth?.currentUser?.uid||'11111', exam_id, new Date().toISOString(), audioData.current);
         }
       });
 

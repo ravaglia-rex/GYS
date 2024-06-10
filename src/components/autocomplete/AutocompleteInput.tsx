@@ -63,8 +63,8 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({ schools, onSelect
             <CommandGroup>
               {schools.map((school) => (
                 <CommandItem
-                  key={school.id}
-                  value={school.id}
+                  key={school.name}
+                  value={school.name}
                   onSelect={() => handleSelect(school.id)}
                 >
                   {school.name}

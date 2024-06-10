@@ -8,6 +8,7 @@ import SpeedTestErrorPage from '../pages/error_pages/SpeedTestError';
 import AudioErrorPage from '../pages/error_pages/AudioErrorPage';
 import Protected from '../components/route_protection/Protected';
 import NotFoundPage from '../pages/NotFoundPage';
+import LightingErrorPage from '../pages/error_pages/LightingErrorPage';
 import { LoadingSpinner } from '../components/ui/spinner';
 
 const TestingPage = React.lazy(() => import('../pages/testing_page/TestingPage'));
@@ -30,6 +31,7 @@ const AppRouter: React.FC = () => {
               <SignUpPage />
             </Suspense>
           }
+          errorElement={<NotFoundPage />}
         />
         <Route 
           path='/login'
@@ -38,6 +40,7 @@ const AppRouter: React.FC = () => {
               <SignInPage />
             </Suspense>
           }
+          errorElement={<NotFoundPage />}
         />
         <Route 
           path='/account-creation-success'
@@ -46,6 +49,7 @@ const AppRouter: React.FC = () => {
               <AccountCreationSuccessPage />
             </Suspense>
           }
+          errorElement={<NotFoundPage />}
         />
         <Route 
           path='/account-creation-failure'
@@ -54,6 +58,7 @@ const AppRouter: React.FC = () => {
               <AccountCreationFailurePage />
             </Suspense>
           }
+          errorElement={<NotFoundPage />}
         />
         {/* ------------------------------ SIGNUP AND LOGIN ROUTES END ------------------------------ */}
         {/* ------------------------------ TESTING PAGE ROUTES ------------------------------ */}
@@ -66,7 +71,7 @@ const AppRouter: React.FC = () => {
               </Suspense>
             </Protected>
           }
-          errorElement={<div>There was an error loading the page.</div>}
+          errorElement={<NotFoundPage />}
         />
 
         {/* ------------------------------ ERROR PAGE ROUTES HERE ---------------------- */}
@@ -79,6 +84,18 @@ const AppRouter: React.FC = () => {
               </Suspense>
             </Protected>
           }
+          errorElement={<NotFoundPage />}
+        />
+        <Route 
+          path="/lighting_error" 
+          element={
+            <Protected>
+              <Suspense fallback={<div><LoadingSpinner className='loading-spinner'/></div>}>
+                <LightingErrorPage />
+              </Suspense>
+            </Protected>
+          }
+          errorElement={<NotFoundPage />}
         />
         <Route 
           path="/entity_model_error" 
@@ -89,6 +106,7 @@ const AppRouter: React.FC = () => {
               </Suspense>
             </Protected>
           }
+          errorElement={<NotFoundPage />}
         />
         <Route 
           path='/pose_model_error'
@@ -99,6 +117,7 @@ const AppRouter: React.FC = () => {
               </Suspense>
             </Protected>
           }
+          errorElement={<NotFoundPage />}
         />
 
         <Route
@@ -110,6 +129,7 @@ const AppRouter: React.FC = () => {
               </Suspense>
             </Protected>
           }
+          errorElement={<NotFoundPage />}
         />
         <Route
           path='/internet_speed_error'
@@ -120,6 +140,7 @@ const AppRouter: React.FC = () => {
               </Suspense>
             </Protected>
           }
+          errorElement={<NotFoundPage />}
         />
         <Route 
           path='/audio_error'
@@ -130,6 +151,7 @@ const AppRouter: React.FC = () => {
               </Suspense>
             </Protected>
           }
+          errorElement={<NotFoundPage />}
         />
         {/* ------------------------------ ERROR PAGE ROUTES END HERE ---------------------- */}
         {/* ------------------------------   ANY OTHER ROUTES HERE    ---------------------- */}

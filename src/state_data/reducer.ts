@@ -13,7 +13,8 @@ import tabSwitchingReducer from './tabSwitchingSlice';
 import loadReducer from './loadSlice';
 
 import frameCaptureReducer from './frameCaptureSlice';
-import audioCaptureSlice from './audioCaptureSlice';
+import audioCaptureReducer from './audioCaptureSlice';
+import examDetailsReducer from './examDetailsSlice';
 
 import {
     persistReducer,
@@ -30,7 +31,8 @@ const rootReducer = combineReducers({
     tabSwitching: tabSwitchingReducer,
     load: loadReducer,
     frameCapture: frameCaptureReducer,
-    audioCapture: audioCaptureSlice
+    audioCapture: audioCaptureReducer,
+    examDetails: examDetailsReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

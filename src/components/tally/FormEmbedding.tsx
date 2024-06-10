@@ -1,13 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../state_data/reducer';
 import { cleanupAudioCaptureResources } from '../../state_data/audioCaptureSlice';
 import { cleanupFrameResources } from '../../state_data/frameCaptureSlice';
-import { auth } from '../../firebase/firebase';
-import { onAuthStateChanged } from "firebase/auth";
-import { getSchoolId } from '../../db/studentCollection';
-import { getExamId } from '../../db/examMappingCollection';
-import { useToast } from '../ui/use-toast';
 
 declare global {
   interface Window {
@@ -20,45 +15,7 @@ declare global {
 const FormEmbedding: React.FC = () => {
   const loading = useSelector((state: RootState) => state.load.loading);
   const dispatch = useDispatch();
-  const [formLink, setFormLink] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
-  const { toast } = useToast();
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setUserId(user.uid);
-      } else {
-        setUserId(null);
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    const fetchFormLink = async () => {
-      if (!userId) return;
-
-      try {
-        // Fetch school ID based on user ID
-        const schoolId = await getSchoolId(userId);
-
-        // Fetch form link based on school ID
-        const exam_link = await getExamId(schoolId);
-        setFormLink(exam_link);
-      } catch (error: any) {
-        toast({
-          variant: 'destructive',
-          title: 'Form Embedding Error',
-          description: error.message,
-        });
-      }
-    };
-
-    fetchFormLink();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
+  const exam_id = useSelector((state: RootState) => state.examDetails.examId);
 
   useEffect(() => {
     const widgetScriptSrc = 'https://tally.so/widgets/embed.js';
@@ -95,7 +52,7 @@ const FormEmbedding: React.FC = () => {
       document.body.appendChild(script);
       return;
     }
-  }, [loading, formLink]); // Depend on the loading state and formLink
+  }, [loading, exam_id]); // Depend on the loading state and exam_id
 
   useEffect(() => {
     const handleMessage = (e: MessageEvent) => {
@@ -120,9 +77,9 @@ const FormEmbedding: React.FC = () => {
 
   return (
     <div>
-      {!loading && formLink && (
+      {!loading && exam_id && (
         <iframe 
-          data-tally-src={formLink}
+          data-tally-src={`https://tally.so/embed/${exam_id}?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1`}
           loading="lazy"
           width="100%"
           height="216"
