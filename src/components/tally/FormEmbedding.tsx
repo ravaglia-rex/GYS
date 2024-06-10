@@ -59,7 +59,6 @@ const FormEmbedding: React.FC = () => {
       if (typeof e.data === 'string' && e.data.includes('Tally.FormSubmitted')) {
         try {
           const payload = JSON.parse(e.data).payload;
-          console.log('Form submitted:', payload);
           dispatch(cleanupAudioCaptureResources());
           dispatch(cleanupFrameResources());
         } catch (error) {
