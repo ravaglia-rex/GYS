@@ -38,6 +38,13 @@ const FrameCapture: React.FC = () => {
   const poseDetectionState = useRef<Array<any>>([]);
   const internetSpeedStateSelector = useSelector((state: RootState) => state.internetSpeed);
   const tabSwitchingStateSelector = useSelector((state: RootState) => state.tabSwitching);
+  const internetSpeedState = useRef<any>(null);
+  const tabSwitchingState = useRef<any>(null);
+
+  useEffect(() => {
+    internetSpeedState.current = internetSpeedStateSelector;
+    tabSwitchingState.current = tabSwitchingStateSelector;
+}, [internetSpeedStateSelector, tabSwitchingStateSelector]);
 
   useEffect(() => {
     const fetchFormLink = async () => {
@@ -101,7 +108,8 @@ const FrameCapture: React.FC = () => {
           modelLoaded.current['entityDetection'] = true;
           checkModelsLoaded();
         } else if (event.data.type === 'prediction') {
-          triggerMetadataUpdate("entityDetection", event.data.flaggedFrame, [entityDetectionState, faceLandmarksState, poseDetectionState, internetSpeedStateSelector, tabSwitchingStateSelector], user_id, exam_id);
+          // console.log(internetSpeedStateSelector, tabSwitchingStateSelector);
+          triggerMetadataUpdate("entityDetection", event.data.flaggedFrame, [entityDetectionState, faceLandmarksState, poseDetectionState, internetSpeedState.current, tabSwitchingState.current], user_id, exam_id);
           dispatch(setEntityDetection(event.data.flaggedFrame));
         } else if (event.data.type === 'error') {
           console.error("Entity Detection Worker Error:", event.data.message);
@@ -118,7 +126,8 @@ const FrameCapture: React.FC = () => {
           modelLoaded.current['poseDetection'] = true;
           checkModelsLoaded();
         } else if (event.data.type === 'prediction') {
-          triggerMetadataUpdate("poseDetection", event.data.poseResults, [entityDetectionState, faceLandmarksState, poseDetectionState, internetSpeedStateSelector, tabSwitchingStateSelector], user_id, exam_id);
+          // console.log(internetSpeedStateSelector, tabSwitchingStateSelector);
+          triggerMetadataUpdate("poseDetection", event.data.poseResults, [entityDetectionState, faceLandmarksState, poseDetectionState, internetSpeedState.current, tabSwitchingState.current], user_id, exam_id);
           dispatch(setPoseDetection(event.data.poseResults));
         } else if (event.data.type === 'error') {
           console.error("Pose Detection Worker Error:", event.data.message);
@@ -135,6 +144,7 @@ const FrameCapture: React.FC = () => {
           modelLoaded.current['faceLandmarks'] = true;
           checkModelsLoaded();
         } else if (event.data.type === 'prediction') {
+          // console.log(internetSpeedStateSelector, tabSwitchingStateSelector);
           triggerMetadataUpdate("faceLandmarks", event.data.faceLandmarks, [entityDetectionState, faceLandmarksState, poseDetectionState, internetSpeedStateSelector, tabSwitchingStateSelector], user_id, exam_id);
           dispatch(setFaceLandmarks(event.data.faceLandmarks));
         } else if (event.data.type === 'error') {

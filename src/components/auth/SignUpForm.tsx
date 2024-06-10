@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { UserCredential, createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
+import { createExpeditedSchool } from "../../db/schoolCollection";
 import { auth } from "../../firebase/firebase";
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -81,32 +82,36 @@ const SignUpPage: React.FC = () => {
         try {
             // Step 1: Create the user in Firebase Auth
             const userCredential: UserCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
-
+    
             // Step 2: Send email verification
-            sendEmailVerification(userCredential.user);
-
+            await sendEmailVerification(userCredential.user);
+    
             // Step 3: Create the student record in Firestore
-            // Find the school id from the school name
-            schools.forEach((school) => {
-                if (school.name === data.school) {
-                    data.school = school.id;
-                }
-            });
+            let schoolId = data.school;
+    
+            const matchedSchool = schools.find(school => school.name === data.school);
+            if (matchedSchool) {
+                schoolId = matchedSchool.id;
+            } else {
+                // Create a new school and assign the returned ID
+                schoolId = await createExpeditedSchool({ school_name: data.school });
+            }
             
+            // Step 4: Create the student record
             createStudent({
                 uid: userCredential.user.uid,
                 first_name: data.first_name,
                 last_name: data.last_name,
-                school_id: data.school,
+                school_id: schoolId,
                 grade: data.grade,
             });
-
+    
             toast({
                 variant: 'default',
                 title: 'Account created successfully!',
                 description: `Welcome to Argus, ${data.first_name}! A verification email has been sent to ${data.email}.`,
             });
-
+    
             navigate('/account-creation-success');
         } catch (error: any) {
             toast({

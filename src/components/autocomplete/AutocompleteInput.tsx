@@ -1,5 +1,3 @@
-"use client"
-
 import * as React from "react"
 import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons"
 
@@ -8,7 +6,6 @@ import { Button } from "../ui/button"
 import {
   Command,
   CommandEmpty,
-  CommandGroup,
   CommandInput,
   CommandItem,
   CommandList,
@@ -26,18 +23,28 @@ interface School {
 
 interface AutocompleteInputProps {
   schools: School[]
-  onSelect: (schoolId: string) => void
+  onSelect: (schoolId: string, schoolName?: string) => void
   className?: string
 }
 
 const AutocompleteInput: React.FC<AutocompleteInputProps> = ({ schools, onSelect, className }) => {
   const [open, setOpen] = React.useState(false)
-  const [value, setValue] = React.useState("")
+  const [inputValue, setInputValue] = React.useState("")
+  const [selectedValue, setSelectedValue] = React.useState("")
 
-  const handleSelect = (currentValue: string) => {
-    setValue(currentValue === value ? "" : currentValue)
-    onSelect(currentValue === value ? "" : currentValue)
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setInputValue(event.target.value)
+  }
+
+  const handleSelect = (schoolId: string, schoolName: string) => {
+    setSelectedValue(schoolName)
+    setInputValue(schoolName)
+    onSelect(schoolId, schoolName)
     setOpen(false)
+  }
+
+  const handleCustomInputSelect = () => {
+    handleSelect(inputValue, inputValue)
   }
 
   return (
@@ -49,34 +56,42 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({ schools, onSelect
           aria-expanded={open}
           className={cn("w-[200px] justify-between", className)}
         >
-          {value
-            ? schools.find((school) => school.id === value)?.name
-            : "Select school..."}
+          {selectedValue || "Select school..."}
           <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[200px] p-0">
         <Command>
-          <CommandInput placeholder="Search school..." className="h-9 text-gray-400" />
+          <CommandInput
+            placeholder="Search school..."
+            className="h-9 text-gray-400"
+            value={inputValue}
+            onInput={handleInputChange}
+          />
           <CommandList>
+            {schools.filter(school => school.name.toLowerCase().includes(inputValue.toLowerCase())).map(school => (
+              <CommandItem
+                key={school.id}
+                value={school.name}
+                onSelect={() => handleSelect(school.id, school.name)}
+              >
+                {school.name}
+                <CheckIcon
+                  className={cn(
+                    "ml-auto h-4 w-4",
+                    selectedValue === school.name ? "opacity-100" : "opacity-0"
+                  )}
+                />
+              </CommandItem>
+            ))}
+            {inputValue && !schools.some(school => school.name.toLowerCase() === inputValue.toLowerCase()) && (
+              <CommandItem
+                onSelect={handleCustomInputSelect}
+              >
+                Add "{inputValue}"
+              </CommandItem>
+            )}
             <CommandEmpty>No school found.</CommandEmpty>
-            <CommandGroup>
-              {schools.map((school) => (
-                <CommandItem
-                  key={school.name}
-                  value={school.name}
-                  onSelect={() => handleSelect(school.id)}
-                >
-                  {school.name}
-                  <CheckIcon
-                    className={cn(
-                      "ml-auto h-4 w-4",
-                      value === school.id ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                </CommandItem>
-              ))}
-            </CommandGroup>
           </CommandList>
         </Command>
       </PopoverContent>

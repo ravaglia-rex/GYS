@@ -58,7 +58,6 @@ const FormEmbedding: React.FC = () => {
     const handleMessage = (e: MessageEvent) => {
       if (typeof e.data === 'string' && e.data.includes('Tally.FormSubmitted')) {
         try {
-          const payload = JSON.parse(e.data).payload;
           dispatch(cleanupAudioCaptureResources());
           dispatch(cleanupFrameResources());
         } catch (error) {
@@ -72,6 +71,7 @@ const FormEmbedding: React.FC = () => {
     return () => {
       window.removeEventListener('message', handleMessage);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch]);
 
   return (

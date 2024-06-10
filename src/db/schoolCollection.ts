@@ -20,6 +20,19 @@ type School = {
     tuition: number;
 };
 
+type expeditedSchool = {
+    school_name: string;
+}
+
+export const createExpeditedSchool = async (school: expeditedSchool) => {
+    try {
+        const school_obj = await addDoc(collection(db, "schools"), school);
+        return school_obj.id;
+    } catch (e) {
+        throw new Error(`Error creating ${school.school_name}. Please contact administrator!`);
+    }
+}
+
 export const createSchool = async (school: School) => {
     try {
         await addDoc(collection(db, "schools"), school);
