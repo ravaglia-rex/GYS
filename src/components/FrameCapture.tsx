@@ -108,7 +108,6 @@ const FrameCapture: React.FC = () => {
           modelLoaded.current['entityDetection'] = true;
           checkModelsLoaded();
         } else if (event.data.type === 'prediction') {
-          // console.log(internetSpeedStateSelector, tabSwitchingStateSelector);
           triggerMetadataUpdate("entityDetection", event.data.flaggedFrame, [entityDetectionState, faceLandmarksState, poseDetectionState, internetSpeedState.current, tabSwitchingState.current], user_id, exam_id);
           dispatch(setEntityDetection(event.data.flaggedFrame));
         } else if (event.data.type === 'error') {
@@ -126,7 +125,6 @@ const FrameCapture: React.FC = () => {
           modelLoaded.current['poseDetection'] = true;
           checkModelsLoaded();
         } else if (event.data.type === 'prediction') {
-          // console.log(internetSpeedStateSelector, tabSwitchingStateSelector);
           triggerMetadataUpdate("poseDetection", event.data.poseResults, [entityDetectionState, faceLandmarksState, poseDetectionState, internetSpeedState.current, tabSwitchingState.current], user_id, exam_id);
           dispatch(setPoseDetection(event.data.poseResults));
         } else if (event.data.type === 'error') {
@@ -144,7 +142,6 @@ const FrameCapture: React.FC = () => {
           modelLoaded.current['faceLandmarks'] = true;
           checkModelsLoaded();
         } else if (event.data.type === 'prediction') {
-          // console.log(internetSpeedStateSelector, tabSwitchingStateSelector);
           triggerMetadataUpdate("faceLandmarks", event.data.faceLandmarks, [entityDetectionState, faceLandmarksState, poseDetectionState, internetSpeedStateSelector, tabSwitchingStateSelector], user_id, exam_id);
           dispatch(setFaceLandmarks(event.data.faceLandmarks));
         } else if (event.data.type === 'error') {
