@@ -7,18 +7,16 @@ import { SAMPLE_RATE, SAMPLE_SIZE, AUDIO_RATE } from '../constants/constants';
 import { pushAudioData } from '../functions/object_storage/push_audio_data';
 
 import { useDispatch, useSelector } from 'react-redux';
-import { setAudioCaptureSlice, cleanupAudioCaptureResources } from '../state_data/audioCaptureSlice';
+import { cleanupAudioCaptureResources } from '../state_data/audioCaptureSlice';
 import { cleanupFrameResources } from '../state_data/frameCaptureSlice';
 import { useToast } from './ui/use-toast';
 import { auth } from '../firebase/firebase';
 import { RootState } from '../state_data/reducer';
 
 const AudioCapture: React.FC = () => {
-  const workerRef = useRef<Worker>();
   const { toast } = useToast();
   const [audiostream, setAudioStream] = useState<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
-  const isModelLoaded = useRef<boolean>(false); // Track model loading
   const audioData = useRef<ArrayBuffer[]>([]);
   const dispatch = useDispatch();
   const exam_id = useSelector((state: RootState) => state.examDetails.examId);
@@ -26,32 +24,9 @@ const AudioCapture: React.FC = () => {
 
   useEffect(() => {
     if(exam_id === "") return;
-
-    workerRef.current = new Worker(new URL('../audio_flagging_modules/audioWorker.ts', import.meta.url), { type: 'module' });
-    workerRef.current.onmessage = (event) => {
-      if (event.data.type === 'modelLoaded') {
-        isModelLoaded.current = true;
-        startRecording();
-      } else if (event.data.type === 'prediction') {
-      } else if (event.data.type === 'error') {
-        console.error(event.data.message);
-        // evict the user to the error page and stop all recording; for this we'll also need to stop recording the video feed
-        dispatch(cleanupAudioCaptureResources());
-        dispatch(cleanupFrameResources());
-        toast({
-          variant: 'destructive',
-          title: 'Audio Error',
-          description: event.data.message,
-        });
-        navigate('/audio_error');
-      }
-    };
-
-    // Load the model on component mount
-    workerRef.current.postMessage({ type: 'loadModel' });
+    startRecording();
 
     return () => {
-      workerRef.current?.terminate();
       audioData.current = [];
       if (recorderRef.current && recorderRef.current.state !== 'inactive') {
         recorderRef.current.stop();
@@ -70,8 +45,6 @@ const AudioCapture: React.FC = () => {
       }  
       const audioStream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, sampleRate: SAMPLE_RATE, sampleSize: SAMPLE_SIZE } });
       setAudioStream(audioStream);
-
-      dispatch(setAudioCaptureSlice({ audioWorker: workerRef.current, audioStream }));
       const mime_types = ["audio/webm", "audio/ogg", "audio/wav", "audio/mp4"].filter(MediaRecorder.isTypeSupported);
       if (mime_types.length === 0) {
         console.error("Browser not supported for audio recording.");
@@ -89,7 +62,7 @@ const AudioCapture: React.FC = () => {
       recorderRef.current = recorder;
 
       recorderRef.current.addEventListener('dataavailable', async (event) => {
-        if (event.data.size > 0 && workerRef.current) {
+        if (event.data.size > 0) {
           let audio_buffer = await event.data.arrayBuffer();
           if(audioData.current.length <= 2) {
             audioData.current.push(audio_buffer);
@@ -97,9 +70,6 @@ const AudioCapture: React.FC = () => {
           else{
             audioData.current[1] = audio_buffer;
           }
-          // decodeAudioData(audioData.current).then((decodedData) => {
-          //   workerRef.current?.postMessage({ type: 'predict', audioData: decodedData });
-          // });
           pushAudioData(auth?.currentUser?.uid||'11111', exam_id, new Date().toISOString(), audioData.current);
         }
       });
@@ -118,34 +88,7 @@ const AudioCapture: React.FC = () => {
     }
   };
 
-  // const decodeAudioData = async (audioData: ArrayBuffer[]): Promise<Float32Array> => {
-  //   const audio_context = new AudioContext({ sampleRate: 16000 });
-  //   try {
-  //       const decoded_data = await audio_context.decodeAudioData(audioData);
-  //       return decoded_data.getChannelData(0);
-  //   } catch (error) {
-  //       console.error("Failed to decode audio data:", error);
-  //       throw error;
-  //   }
-  // };
-
-
-  // const stopRecording = () => {
-  //   if (recorderRef.current && recorderRef.current.state !== 'inactive') {
-  //     recorderRef.current.stop();
-  //   }
-  //   if (audiostream) {
-  //     audiostream.getTracks().forEach(track => track.stop());
-  //   }
-  //   setIsRecording(false);
-  //   setAudioStream(null);
-  // };
-
   return (
-    // <div>
-    //   {isRecording ? <p>Recording...</p> : <p>Ready to record</p>}
-    //   {prediction !== -1 && <p>Predicted Class: {prediction}</p>}
-    // </div>
     null
   );
 };
