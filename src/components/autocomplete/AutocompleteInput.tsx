@@ -39,7 +39,7 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({ schools, onSelect
   const handleSelect = (schoolId: string, schoolName: string) => {
     setSelectedValue(schoolName)
     setInputValue(schoolName)
-    onSelect(schoolId, schoolName)
+    onSelect(schoolName, schoolName)
     setOpen(false)
   }
 
@@ -71,7 +71,7 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({ schools, onSelect
           <CommandList>
             {schools.filter(school => school.name.toLowerCase().includes(inputValue.toLowerCase())).map(school => (
               <CommandItem
-                key={school.id}
+                key={school.name}
                 value={school.name}
                 onSelect={() => handleSelect(school.id, school.name)}
               >

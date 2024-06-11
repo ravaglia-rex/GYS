@@ -79,14 +79,8 @@ const SignUpPage: React.FC = () => {
     }, []);
 
     const onSubmit = async (data: z.infer<typeof signupSchema>) => {
-        try {
-            // Step 1: Create the user in Firebase Auth
-            const userCredential: UserCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
-    
-            // Step 2: Send email verification
-            await sendEmailVerification(userCredential.user);
-    
-            // Step 3: Create the student record in Firestore
+        try {    
+            // Step 1: Find the school record
             let schoolId = data.school;
     
             const matchedSchool = schools.find(school => school.name === data.school);
@@ -96,6 +90,12 @@ const SignUpPage: React.FC = () => {
                 // Create a new school and assign the returned ID
                 schoolId = await createExpeditedSchool({ school_name: data.school });
             }
+
+            // Step 2: Create the user in Firebase Auth
+            const userCredential: UserCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+
+            // Step 3: Send email verification
+            await sendEmailVerification(userCredential.user);
             
             // Step 4: Create the student record
             createStudent({
