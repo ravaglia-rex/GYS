@@ -39,24 +39,23 @@ const UIDValidationForm: React.FC<UIDValidationFormProps> = ({setUserData}) => {
     const {nextStep} = useStepper();
 
     const onSubmit = async (data: z.infer<typeof uidSchema>) => {
-        try {    
-            // Check if the uid exists in airtable
-            // If it does, set user data which is passed as an argument to this component
-            // If it doesn't, let it remain null
+        try {
             if(data.uid && data.uid!==''){
-                console.log("here");
+                
                 const result = await getUserData(data.uid);
                 if (result.success) {
-                    setUserData(result.data);
+                    setUserData(data.uid);
+                    nextStep();
                 }
                 else {
                     setUserData("");
+                    nextStep();
                 }
             }
         } catch (error: any) {
             setUserData("");
+            nextStep();
         }
-        nextStep();
     };
 
     return (

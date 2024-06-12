@@ -25,3 +25,4 @@ export const VIOLATION_COUNT = 3;
 // S3 UPLOAD CONSTANTS
 export const GEN_PRESIGNED_URLS='/argus-proctoring-gen-presigned-url';
 export const STUDENTS_DATA_PHASE_1='/argusAirtableStudentsRetrieval';
+export const SCHOOLS_DATA='/argusAirtableSchoolsRetrieval';

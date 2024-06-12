@@ -9,7 +9,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { createStudent } from "../../db/studentCollection";
-import { fetchSchools } from "../../db/schoolCollection";
+import { fetchSchools } from "../../airtable/schoolData";
 
 import {
     Form,
@@ -77,8 +77,14 @@ const SignUpForm: React.FC<SignUpFormProps> = ({userData}) => {
 
     useEffect(() => {
         const fetchSchoolsData = async () => {
-            const schoolsData = await fetchSchools();
-            setSchools(schoolsData);
+            try {
+                const schoolsData = await fetchSchools();
+                if(schoolsData.data){
+                    setSchools(schoolsData.data);
+                }
+            } catch (error: any) {
+                return null;
+            }
         };
 
         fetchSchoolsData();
