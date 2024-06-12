@@ -96,7 +96,6 @@ const FrameCapture: React.FC = () => {
 
       const checkModelsLoaded = () => {
         if (modelLoaded.current['entityDetection'] && modelLoaded.current['poseDetection'] && modelLoaded.current['faceLandmarks']) {
-          dispatch(setLoadState(false));
           setupVideoAndWorker();
         } else {
           dispatch(setLoadState(true));
@@ -174,6 +173,7 @@ const FrameCapture: React.FC = () => {
             videoRef.current.srcObject = stream;
             videoRef.current.onloadedmetadata = async () => {
               await videoRef.current?.play();
+              dispatch(setLoadState(false));
               const frameRate = FRAME_RATE;
               const newIntervalId = setInterval(() => {
                 if (entityDetectiorRef.current && poseDetectionRef.current && faceLandmarksRef.current && canvasRef.current && videoRef.current) {

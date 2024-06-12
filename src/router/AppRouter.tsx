@@ -9,7 +9,7 @@ import AudioErrorPage from '../pages/error_pages/AudioErrorPage';
 import Protected from '../components/route_protection/Protected';
 import NotFoundPage from '../pages/NotFoundPage';
 import LightingErrorPage from '../pages/error_pages/LightingErrorPage';
-import { LoadingSpinner } from '../components/ui/spinner';
+import BigSpinner from '../components/BigSpinner';
 
 const TestingPage = React.lazy(() => import('../pages/testing_page/TestingPage'));
 
@@ -18,6 +18,7 @@ const SignInPage = React.lazy(() => import('../components/auth/SignInForm'));
 const StepperForm = React.lazy(() => import('../components/auth/StepperForm'));
 const AccountCreationSuccessPage = React.lazy(() => import('../pages/authentication_pages/AccountCreationSuccess'));
 const AccountCreationFailurePage = React.lazy(() => import('../pages/authentication_pages/AccountCreationFailure'));
+const WaitlistCreationSuccessPage = React.lazy(() => import('../pages/authentication_pages/WaitlistCreationSuccess'));
 
 const AppRouter: React.FC = () => {
   return (
@@ -27,7 +28,7 @@ const AppRouter: React.FC = () => {
         <Route 
           path='/signup'
           element={
-            <Suspense fallback={<div><LoadingSpinner className='loading-spinner'/></div>}>
+            <Suspense fallback={<BigSpinner/>}>
               <StepperForm />
             </Suspense>
           }
@@ -36,7 +37,7 @@ const AppRouter: React.FC = () => {
         <Route 
           path='/login'
           element={
-            <Suspense fallback={<div><LoadingSpinner className='loading-spinner'/></div>}>
+            <Suspense fallback={<BigSpinner/>}>
               <SignInPage />
             </Suspense>
           }
@@ -45,8 +46,17 @@ const AppRouter: React.FC = () => {
         <Route 
           path='/account-creation-success'
           element={
-            <Suspense fallback={<div><LoadingSpinner className='loading-spinner'/></div>}>
+            <Suspense fallback={<BigSpinner/>}>
               <AccountCreationSuccessPage />
+            </Suspense>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        <Route 
+          path='/waitlist-success'
+          element={
+            <Suspense fallback={<BigSpinner/>}>
+              <WaitlistCreationSuccessPage />
             </Suspense>
           }
           errorElement={<NotFoundPage />}
@@ -54,7 +64,7 @@ const AppRouter: React.FC = () => {
         <Route 
           path='/account-creation-failure'
           element={
-            <Suspense fallback={<div><LoadingSpinner className='loading-spinner'/></div>}>
+            <Suspense fallback={<BigSpinner/>}>
               <AccountCreationFailurePage />
             </Suspense>
           }
@@ -66,7 +76,7 @@ const AppRouter: React.FC = () => {
           path="/" 
           element={
             <Protected>
-              <Suspense fallback={<div><LoadingSpinner className='loading-spinner'/></div>}>
+              <Suspense fallback={<BigSpinner/>}>
                 <TestingPage />
               </Suspense>
             </Protected>
@@ -79,7 +89,7 @@ const AppRouter: React.FC = () => {
           path="/camera_error" 
           element={
             <Protected>
-              <Suspense fallback={<div><LoadingSpinner className='loading-spinner'/></div>}>
+              <Suspense fallback={<BigSpinner/>}>
                 <CameraError />
               </Suspense>
             </Protected>
@@ -90,7 +100,7 @@ const AppRouter: React.FC = () => {
           path="/lighting_error" 
           element={
             <Protected>
-              <Suspense fallback={<div><LoadingSpinner className='loading-spinner'/></div>}>
+              <Suspense fallback={<BigSpinner/>}>
                 <LightingErrorPage />
               </Suspense>
             </Protected>
@@ -101,7 +111,7 @@ const AppRouter: React.FC = () => {
           path="/entity_model_error" 
           element={
             <Protected>
-              <Suspense fallback={<div><LoadingSpinner className='loading-spinner'/></div>}>
+              <Suspense fallback={<BigSpinner/>}>
                 <EntityDetectionError />
               </Suspense>
             </Protected>
@@ -112,7 +122,7 @@ const AppRouter: React.FC = () => {
           path='/pose_model_error'
           element={
             <Protected>
-              <Suspense fallback={<div><LoadingSpinner className='loading-spinner'/></div>}>
+              <Suspense fallback={<BigSpinner/>}>
                 <PoseDetectionError />
               </Suspense>
             </Protected>
@@ -124,7 +134,7 @@ const AppRouter: React.FC = () => {
           path='/face_landmarks_model_error'
           element={
             <Protected>
-              <Suspense fallback={<div><LoadingSpinner className='loading-spinner'/></div>}>
+              <Suspense fallback={<BigSpinner/>}>
                 <FaceLandmarksError />
               </Suspense>
             </Protected>
@@ -135,7 +145,7 @@ const AppRouter: React.FC = () => {
           path='/internet_speed_error'
           element={
             <Protected>
-              <Suspense fallback={<div><LoadingSpinner className='loading-spinner'/></div>}>
+              <Suspense fallback={<BigSpinner/>}>
                 <SpeedTestErrorPage />
               </Suspense>
             </Protected>
@@ -146,7 +156,7 @@ const AppRouter: React.FC = () => {
           path='/audio_error'
           element={
             <Protected>
-              <Suspense fallback={<div><LoadingSpinner className='loading-spinner'/></div>}>
+              <Suspense fallback={<BigSpinner/>}>
                 <AudioErrorPage />
               </Suspense>
             </Protected>
