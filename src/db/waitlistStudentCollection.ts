@@ -1,10 +1,6 @@
 import {
-    doc,
     addDoc,
     collection,
-    query,
-    where,
-    getDocs,
 } from "firebase/firestore";
 import db from "./db";
 
