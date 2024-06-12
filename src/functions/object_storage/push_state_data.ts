@@ -1,9 +1,9 @@
 import axios from 'axios';
-import { API_GATEWAY_ROUTE } from '../../constants/constants';
+import { GEN_PRESIGNED_URLS } from '../../constants/constants';
 
 const getPresignedStateURL = async (userId: string, exam_id: string, datetime: string) => {
     try {
-        const response = await axios.post(API_GATEWAY_ROUTE, {
+        const response = await axios.post(`${process.env.REACT_APP_API_GATEWAY_ROUTE}${GEN_PRESIGNED_URLS}`, {
             user_id: userId,
             exam_id: exam_id,
             datetime: datetime,

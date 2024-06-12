@@ -1,14 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { UserCredential, createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { createExpeditedSchool } from "../../db/schoolCollection";
-import { auth } from "../../firebase/firebase";
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-import { createStudent } from "../../db/studentCollection";
+import { createWaitlistedStudent } from "../../db/waitlistStudentCollection";
+// import { fetchSchools } from "../../db/schoolCollection";
 import { fetchSchools } from "../../airtable/schoolData";
 
 import {
@@ -30,48 +29,33 @@ import {
 } from '../ui/select';
 
 import { Button } from '../ui/button';
-import { Checkbox } from '../ui/checkbox';
 import { Input } from '../ui/input';
 import { useToast } from '../ui/use-toast';
-import TnCDialog from "./TnCDialog";
 import AutocompleteInput from "../autocomplete/AutocompleteInput";
 import { useStepper } from "../ui/stepper";
 
-const signupSchema = z.object({
+const waitlistSchema = z.object({
     first_name: z.string().min(1, 'First name is required'),
     last_name: z.string().min(1, 'Last name is required'),
     school: z.string().min(1, 'School is required'),
     grade: z.number().int().min(1, 'Grade is required'),
     email: z.string().email(),
-    password: z.string().min(6, 'Password must be at least 6 characters'),
-    confirm_password: z.string().min(6, 'Password must be at least 6 characters'),
-    terms: z.boolean().refine((val) => val === true, { message: "You must agree to the terms and conditions" }),
-}).refine(data => data.password === data.confirm_password, {
-    message: "Passwords do not match",
-    path: ["confirm_password"]
 });
 
-interface SignUpFormProps {
-    userData: string;
-}
-
-const SignUpForm: React.FC<SignUpFormProps> = ({userData}) => {
+const WaitlistPage: React.FC = () => {
     const [schools, setSchools] = useState<{ id: string, name: string }[]>([]);
     const navigate = useNavigate();
     const { toast } = useToast();
     const { nextStep } = useStepper();
 
     const form = useForm({
-        resolver: zodResolver(signupSchema),
+        resolver: zodResolver(waitlistSchema),
         defaultValues: {
             first_name: '',
             last_name: '',
             school: '',
             grade: 0,
-            email: '',
-            password: '',
-            confirm_password: '',
-            terms: false,
+            email: ''
         },
     });
 
@@ -90,7 +74,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({userData}) => {
         fetchSchoolsData();
     }, []);
 
-    const onSubmit = async (data: z.infer<typeof signupSchema>) => {
+    const onSubmit = async (data: z.infer<typeof waitlistSchema>) => {
         try {    
             // Step 1: Find the school record
             let schoolId = data.school;
@@ -102,16 +86,9 @@ const SignUpForm: React.FC<SignUpFormProps> = ({userData}) => {
                 // Create a new school and assign the returned ID
                 schoolId = await createExpeditedSchool({ school_name: data.school });
             }
-
-            // Step 2: Create the user in Firebase Auth
-            const userCredential: UserCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
-
-            // Step 3: Send email verification
-            await sendEmailVerification(userCredential.user);
             
             // Step 4: Create the student record
-            createStudent({
-                uid: userCredential.user.uid,
+            createWaitlistedStudent({
                 first_name: data.first_name,
                 last_name: data.last_name,
                 school_id: schoolId,
@@ -120,16 +97,16 @@ const SignUpForm: React.FC<SignUpFormProps> = ({userData}) => {
     
             toast({
                 variant: 'default',
-                title: 'Account created successfully!',
-                description: `Welcome to Argus, ${data.first_name}! A verification email has been sent to ${data.email}.`,
+                title: 'We\'ve added you to the waitlist! 🎉',
+                description: `We'll send you an email when you can create your account.`,
             });
             nextStep();
-            navigate('/account-creation-success');
+            navigate('/waitlist-success');
         } catch (error: any) {
             toast({
                 variant: 'destructive',
                 title: 'Uh oh! Something went wrong.',
-                description: error?.message || 'An error occurred while signing up. Please try again.',
+                description: error?.message || 'An error occurred while adding you to the waitlist. Please try again later.',
             });
         }
     };
@@ -225,54 +202,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({userData}) => {
                             </FormItem>
                         )}
                     />
-                    <FormField
-                        control={form.control}
-                        name="password"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Password</FormLabel>
-                                <FormControl>
-                                    <Input {...field} type="password" placeholder="Password" />
-                                </FormControl>
-                                <FormDescription>Set your password</FormDescription>
-                                <FormMessage>{form.formState.errors.password?.message}</FormMessage>
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="confirm_password"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Confirm Password</FormLabel>
-                                <FormControl>
-                                    <Input {...field} type="password" placeholder="Confirm Password" />
-                                </FormControl>
-                                <FormDescription>Confirm your password</FormDescription>
-                                <FormMessage>{form.formState.errors.confirm_password?.message}</FormMessage>
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="terms"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormControl>
-                                    <div className="flex items-center space-x-2">
-                                        <Checkbox 
-                                            id="terms" 
-                                            checked={field.value} 
-                                            onCheckedChange={field.onChange} 
-                                        />
-                                        <TnCDialog />
-                                    </div>
-                                </FormControl>
-                                <FormMessage>{form.formState.errors.terms?.message}</FormMessage>
-                            </FormItem>
-                        )}
-                    />
-                    <Button type="submit" className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-md">Sign Up</Button>
+                    <Button type="submit" className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-md">Add me to Waitlist ⏱️</Button>
                 </form>
             </Form>
             <p className="text-sm text-center text-gray-600 mt-4">
@@ -283,4 +213,4 @@ const SignUpForm: React.FC<SignUpFormProps> = ({userData}) => {
     );
 };
 
-export default SignUpForm;
+export default WaitlistPage;
