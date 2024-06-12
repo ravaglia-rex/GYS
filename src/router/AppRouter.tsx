@@ -15,7 +15,7 @@ const TestingPage = React.lazy(() => import('../pages/testing_page/TestingPage')
 
 // CHANGE THIS TO MULTIPLE COMPONENTS INSTEAD OF THE CURRENT VERSION
 const SignInPage = React.lazy(() => import('../components/auth/SignInForm'));
-const SignUpPage = React.lazy(() => import('../components/auth/SignUpForm'));
+const StepperForm = React.lazy(() => import('../components/auth/StepperForm'));
 const AccountCreationSuccessPage = React.lazy(() => import('../pages/authentication_pages/AccountCreationSuccess'));
 const AccountCreationFailurePage = React.lazy(() => import('../pages/authentication_pages/AccountCreationFailure'));
 
@@ -28,7 +28,7 @@ const AppRouter: React.FC = () => {
           path='/signup'
           element={
             <Suspense fallback={<div><LoadingSpinner className='loading-spinner'/></div>}>
-              <SignUpPage />
+              <StepperForm />
             </Suspense>
           }
           errorElement={<NotFoundPage />}
