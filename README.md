@@ -1,38 +1,33 @@
-# Argus frontend
+# Argus Frontend
 
-## Available Scripts
+Welcome to the Argus frontend repository! This platform is designed to serve tests with integrated proctoring capabilities, ensuring both convenience and integrity. Below you'll find the commands you can use to interact with the project directly from your terminal.
 
-In the project directory, you can run:
+## 🚀 Quick Start
+
+In your project directory, you can execute the following commands:
 
 ### `npm start`
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
-
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+- **What it does:** Launches the app in development mode.
+- **How to use:** Open [http://localhost:3000](http://localhost:3000) in your browser to view the app.
+- **Extra perks:** Enjoy live reloading and direct feedback in your console for any lint errors.
 
 ### `npm test`
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- **What it does:** Initiates the test runner in an interactive watch mode.
+- **Learn more:** Check out the [official testing guide](https://facebook.github.io/create-react-app/docs/running-tests) for detailed information.
 
 ### `npm run build`
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+- **What it does:** Compiles the app for production into the `build` folder. It ensures the build is optimized for top-notch performance, minifying the output and appending hashes to filenames.
+- **Ready for deployment:** Follow the [deployment guide](https://facebook.github.io/create-react-app/docs/deployment) to get your app out there!
 
 ### `npm run eject`
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+- **Caution:** This is a one-way operation — once you `eject`, there's no going back!
+- **Why use it:** If you want more control over the build tools and configurations, `eject` will transfer all the configuration files and dependencies into your project directory, allowing you full customization.
+- **Note:** Post-ejection, all commands will still operate, but they will now reference the copied scripts which you can tweak to your preference. This command is ideal for those who are prepared to manage their configuration independently.
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## 📘 Useful Info
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+Choosing to `eject` is entirely optional. The default setup is tailored for small to mid-sized deployments, and it is robust enough to meet most needs without modification. However, if the need arises, `eject` provides the freedom to reshape the build setup as you see fit. 
