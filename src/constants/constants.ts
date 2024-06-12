@@ -23,4 +23,5 @@ export const UPLOAD_URL = 'https://eu.httpbin.org/post';
 export const VIOLATION_COUNT = 3;
 
 // S3 UPLOAD CONSTANTS
-export const API_GATEWAY_ROUTE='https://2esqoxnli5.execute-api.us-west-1.amazonaws.com/default/argus-proctoring-gen-presigned-url';
+export const GEN_PRESIGNED_URLS='/argus-proctoring-gen-presigned-url';
+export const STUDENTS_DATA_PHASE_1='/argusAirtableStudentsRetrieval';
