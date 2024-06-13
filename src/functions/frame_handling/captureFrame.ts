@@ -125,6 +125,7 @@ export const triggerMetadataUpdate = async (event_type: string, event_data: any,
       },
       "tab_switching": {
         "tab_switched": states[4].tab_switch_count,
+        "full_screen_switched": states[4].full_screen_switch_count,
         "timestamp": states[4].timestamp
       }
     };

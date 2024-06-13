@@ -2,25 +2,36 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 export interface tabSwitchingState {
     tab_switch_count: number;
+    full_screen_switch_count: number;
     timestamp: string;
 }
 
 const initialState: tabSwitchingState = {
     tab_switch_count: 0,
+    full_screen_switch_count: 0,
     timestamp: "",
 };
+
+interface SwitchPayload {
+    count: number;
+    timestamp: string;
+}
 
 export const tabSwitchingSlice = createSlice({
     name: "tabSwitching",
     initialState,
     reducers: {
-        setTabSwitched: (state, action: PayloadAction<tabSwitchingState>) => {
-            state.tab_switch_count = action.payload.tab_switch_count;
+        setTabSwitched: (state, action: PayloadAction<SwitchPayload>) => {
+            state.tab_switch_count = action.payload.count;
+            state.timestamp = action.payload.timestamp;
+        },
+        setFullScreenSwitched: (state, action: PayloadAction<SwitchPayload>) => {
+            state.full_screen_switch_count = action.payload.count;
             state.timestamp = action.payload.timestamp;
         },
     },
 });
 
-export const { setTabSwitched } = tabSwitchingSlice.actions;
+export const { setTabSwitched, setFullScreenSwitched } = tabSwitchingSlice.actions;
 
 export default tabSwitchingSlice.reducer;

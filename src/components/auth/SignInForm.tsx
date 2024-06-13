@@ -37,6 +37,14 @@ const SignInPage: React.FC = () => {
         },
     });
 
+    const enterFullScreen = () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => {
+            alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+            });
+        }
+    };
+
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -69,6 +77,7 @@ const SignInPage: React.FC = () => {
                     title: 'Signed in successfully!',
                     description: `Welcome back, ${userCredential.user.email}`,
                 });
+                enterFullScreen();
                 navigate('/');
             })
             .catch((error) => {
