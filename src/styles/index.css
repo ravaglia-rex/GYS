@@ -80,3 +80,21 @@
   height: 100px; /* Set the size of the spinner */
   /* Add any other styles you need for the spinner */
 }
+
+.access-page {
+  text-align: center;
+}
+
+.icons {
+  font-size: 48px;
+  margin: 20px 0;
+}
+
+.instructions {
+  text-align: left;
+  margin-top: 20px;
+}
+
+.instructions li {
+  margin-bottom: 10px;
+}

@@ -67,11 +67,11 @@ const UIDValidationForm: React.FC<UIDValidationFormProps> = ({setUserData}) => {
                         name="uid"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>User ID</FormLabel>
+                                <FormLabel>Exam ID</FormLabel>
                                 <FormControl>
                                     <Input {...field} placeholder="eg. AB12345" />
                                 </FormControl>
-                                <FormDescription>Your user id from phase 1</FormDescription>
+                                <FormDescription>Your exam id from GYS Talent Search</FormDescription>
                                 <FormMessage>{form.formState.errors.uid?.message}</FormMessage>
                             </FormItem>
                         )}

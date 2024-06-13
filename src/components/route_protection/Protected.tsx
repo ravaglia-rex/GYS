@@ -2,7 +2,7 @@ import React, { ReactNode, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../firebase/firebase';
-import { LoadingSpinner } from '../ui/spinner';
+import BigSpinner from '../BigSpinner';
 import { signOut } from 'firebase/auth';
 import { checkSingleTab } from './sessionHandler';
 
@@ -43,7 +43,7 @@ const Protected: React.FC<ProtectedProps> = ({ children }) => {
 
   if (loading) {
     // Render nothing or a loading spinner while checking authentication status
-    return <LoadingSpinner className='loading-spinner-protected'/>;
+    return <BigSpinner/>;
   }
 
   return <>{children}</>;

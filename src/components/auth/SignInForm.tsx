@@ -48,7 +48,7 @@ const SignInPage: React.FC = () => {
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             if (user) {
-                navigate('/');
+                navigate('/camera-microphone-access');
             }
         });
 
@@ -78,7 +78,7 @@ const SignInPage: React.FC = () => {
                     description: `Welcome back, ${userCredential.user.email}`,
                 });
                 enterFullScreen();
-                navigate('/');
+                navigate('/camera-microphone-access');
             })
             .catch((error) => {
                 toast({

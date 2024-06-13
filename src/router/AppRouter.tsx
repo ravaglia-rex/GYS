@@ -19,6 +19,7 @@ const StepperForm = React.lazy(() => import('../components/auth/StepperForm'));
 const AccountCreationSuccessPage = React.lazy(() => import('../pages/authentication_pages/AccountCreationSuccess'));
 const AccountCreationFailurePage = React.lazy(() => import('../pages/authentication_pages/AccountCreationFailure'));
 const WaitlistCreationSuccessPage = React.lazy(() => import('../pages/authentication_pages/WaitlistCreationSuccess'));
+const CameraMicrophoneAccess = React.lazy(() => import('../components/CameraMicrophoneAccess'));
 
 const AppRouter: React.FC = () => {
   return (
@@ -72,6 +73,18 @@ const AppRouter: React.FC = () => {
         />
         {/* ------------------------------ SIGNUP AND LOGIN ROUTES END ------------------------------ */}
         {/* ------------------------------ TESTING PAGE ROUTES ------------------------------ */}
+        <Route 
+          path="/camera-microphone-access" 
+          element={
+            <Protected>
+              <Suspense fallback={<BigSpinner/>}>
+                <CameraMicrophoneAccess />
+              </Suspense>
+            </Protected>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        
         <Route 
           path="/" 
           element={
