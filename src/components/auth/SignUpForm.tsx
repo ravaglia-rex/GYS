@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { UserCredential, createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { createExpeditedSchool } from "../../db/schoolCollection";
 import { auth } from "../../firebase/firebase";
@@ -61,6 +61,7 @@ interface SignUpFormProps {
 const SignUpForm: React.FC<SignUpFormProps> = ({userData}) => {
     const [schools, setSchools] = useState<{ id: string, name: string }[]>([]);
     const { toast } = useToast();
+    const navigate = useNavigate();
     const { nextStep } = useStepper();
 
     const form = useForm({
@@ -129,6 +130,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({userData}) => {
                 description: `Welcome to Argus, ${data.first_name}! A verification email has been sent to ${data.email}.`,
             });
             nextStep();
+            navigate('/account-creation-success');
         } catch (error: any) {
             toast({
                 variant: 'destructive',
