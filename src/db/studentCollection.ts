@@ -15,6 +15,9 @@ type Student = {
     last_name: string;
     school_id: string;
     grade: number;
+    parent_name: string;
+    parent_email: string;
+    parent_phone: string;
 };
 
 export const createStudent = async (student: Student) => {

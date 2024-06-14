@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { UserCredential, createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { createExpeditedSchool } from "../../db/schoolCollection";
 import { auth } from "../../firebase/firebase";
@@ -54,14 +54,19 @@ const signupSchema = z.object({
     path: ["confirm_password"]
 });
 
-interface SignUpFormProps {
-    userData: string;
+interface UserObj {
+    uid: string;
+    parentEmail: string;
 }
 
-const SignUpForm: React.FC<SignUpFormProps> = ({userData}) => {
+interface SignUpFormProps {
+    userData: string;
+    setUserObj: (userObj: UserObj) => void;
+}
+
+const SignUpForm: React.FC<SignUpFormProps> = ({userData, setUserObj}) => {
     const [schools, setSchools] = useState<{ id: string, name: string }[]>([]);
     const { toast } = useToast();
-    const navigate = useNavigate();
     const { nextStep } = useStepper();
 
     const form = useForm({
@@ -122,15 +127,22 @@ const SignUpForm: React.FC<SignUpFormProps> = ({userData}) => {
                 last_name: data.last_name,
                 school_id: schoolId,
                 grade: data.grade,
+                parent_name: data.parent_name,
+                parent_email: data.parent_email,
+                parent_phone: data.parent_phone,
             });
-    
+            
+            setUserObj({
+                uid: userCredential.user.uid,
+                parentEmail: data.parent_email,
+            });
+
             toast({
                 variant: 'default',
                 title: 'Account created successfully!',
                 description: `Welcome to Argus, ${data.first_name}! A verification email has been sent to ${data.email}.`,
             });
             nextStep();
-            navigate('/account-creation-success');
         } catch (error: any) {
             toast({
                 variant: 'destructive',

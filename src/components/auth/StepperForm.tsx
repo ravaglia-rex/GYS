@@ -2,14 +2,32 @@ import React, {useState} from 'react';
 import {Step, Stepper} from '../ui/stepper';
 import UIDValidationForm from './UIDValidationForm';
 import SecondStepForm from './SecondStepForm';
+import PaymentMethodForm from './PaymentMethodForm';
 
-const steps = [
-    {label: 'Step 1', content: 'UID Validation'},
-    {label: 'Step 2', content: 'Waitlist/Registration'}
-];
+interface StepData {
+    label: string;
+    content: string;
+    condition?: () => boolean;
+}
+
+interface UserObj {
+    uid: string;
+    parentEmail: string;
+}
+
 
 const StepperForm: React.FC = () => {
     const [userData, setUserData] = useState<string>("");
+    const [userObj, setUserObj] = useState<UserObj>({uid: "", parentEmail: ""});
+    const steps: StepData[] = [
+        { label: 'Step 1', content: 'UID Validation' },
+        { label: 'Step 2', content: 'Waitlist/Registration' },
+        {
+            label: 'Step 3',
+            content: 'Payment Method',
+            condition: () => userData !== ""
+        }
+    ];
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-cover bg-no-repeat"
@@ -21,17 +39,24 @@ const StepperForm: React.FC = () => {
                     initialStep={0} 
                     steps={steps}
                 >
-                    {steps.map((stepProps, index) => {
-                        if (index === 0) {
-                            return (
-                                <Step key={stepProps.label} {...stepProps}>
-                                    <UIDValidationForm setUserData={setUserData} />
-                                </Step>
-                            );
+                    {steps.filter(step => !step.condition || step.condition()).map((step, index) => {
+                        let stepContent;
+                        switch (index) {
+                            case 0:
+                                stepContent = <UIDValidationForm setUserData={setUserData} />;
+                                break;
+                            case 1:
+                                stepContent = <SecondStepForm userData={userData} setUserObj={setUserObj}/>;
+                                break;
+                            case 2:
+                                stepContent = <PaymentMethodForm uid={userObj.uid} parentEmail={userObj.parentEmail}/>;
+                                break;
+                            default:
+                                stepContent = <div>Unknown step</div>;
                         }
                         return (
-                            <Step key={stepProps.label} {...stepProps}>
-                                <SecondStepForm userData={userData} />
+                            <Step key={step.label} {...step}>
+                                {stepContent}
                             </Step>
                         );
                     })}

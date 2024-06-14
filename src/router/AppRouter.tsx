@@ -19,6 +19,8 @@ const StepperForm = React.lazy(() => import('../components/auth/StepperForm'));
 const AccountCreationSuccessPage = React.lazy(() => import('../pages/authentication_pages/AccountCreationSuccess'));
 const AccountCreationFailurePage = React.lazy(() => import('../pages/authentication_pages/AccountCreationFailure'));
 const WaitlistCreationSuccessPage = React.lazy(() => import('../pages/authentication_pages/WaitlistCreationSuccess'));
+const VerifyEmailPage = React.lazy(() => import('../pages/authentication_pages/VerifyEmailPage'));
+const VerifyEmailErrorPage = React.lazy(() => import('../pages/authentication_pages/VerifyEmailErrorPage'));
 const CameraMicrophoneAccess = React.lazy(() => import('../components/CameraMicrophoneAccess'));
 
 const AppRouter: React.FC = () => {
@@ -53,6 +55,26 @@ const AppRouter: React.FC = () => {
           }
           errorElement={<NotFoundPage />}
         />
+        <Route 
+          path='/auth/action'
+          element={
+            <Suspense fallback={<BigSpinner/>}>
+              <VerifyEmailPage />
+            </Suspense>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        
+        <Route 
+          path='/auth/verify-email-error'
+          element={
+            <Suspense fallback={<BigSpinner/>}>
+              <VerifyEmailErrorPage />
+            </Suspense>
+          }
+          errorElement={<NotFoundPage />}
+        />
+
         <Route 
           path='/waitlist-success'
           element={
