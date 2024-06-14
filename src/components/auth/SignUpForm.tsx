@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { UserCredential, createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { createExpeditedSchool } from "../../db/schoolCollection";
 import { auth } from "../../firebase/firebase";
@@ -45,7 +45,10 @@ const signupSchema = z.object({
     email: z.string().email(),
     password: z.string().min(6, 'Password must be at least 6 characters'),
     confirm_password: z.string().min(6, 'Password must be at least 6 characters'),
-    terms: z.boolean().refine((val) => val === true, { message: "You must agree to the terms and conditions" }),
+    parent_name: z.string().min(2, 'Parent name is required'),
+    parent_email: z.string().email(),
+    parent_phone: z.string().min(10, 'Phone number must be at least 10 characters'),
+    terms: z.boolean().refine((val) => val === true, { message: "You must agree to the terms and conditions" }), 
 }).refine(data => data.password === data.confirm_password, {
     message: "Passwords do not match",
     path: ["confirm_password"]
@@ -57,7 +60,6 @@ interface SignUpFormProps {
 
 const SignUpForm: React.FC<SignUpFormProps> = ({userData}) => {
     const [schools, setSchools] = useState<{ id: string, name: string }[]>([]);
-    const navigate = useNavigate();
     const { toast } = useToast();
     const { nextStep } = useStepper();
 
@@ -71,6 +73,9 @@ const SignUpForm: React.FC<SignUpFormProps> = ({userData}) => {
             email: '',
             password: '',
             confirm_password: '',
+            parent_name: '',
+            parent_email: '',
+            parent_phone: '',
             terms: false,
         },
     });
@@ -124,7 +129,6 @@ const SignUpForm: React.FC<SignUpFormProps> = ({userData}) => {
                 description: `Welcome to Argus, ${data.first_name}! A verification email has been sent to ${data.email}.`,
             });
             nextStep();
-            navigate('/account-creation-success');
         } catch (error: any) {
             toast({
                 variant: 'destructive',
@@ -213,10 +217,53 @@ const SignUpForm: React.FC<SignUpFormProps> = ({userData}) => {
                     />
                     <FormField
                         control={form.control}
+                        name="parent_name"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Parent's Name</FormLabel>
+                                <FormControl>
+                                    <Input {...field} />
+                                </FormControl>
+                                <FormDescription>The bow that bends for you to fly far</FormDescription>
+                                <FormMessage>{form.formState.errors.parent_name?.message}</FormMessage>
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={form.control}
+                        name="parent_email"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Parent's Email</FormLabel>
+                                <FormControl>
+                                    <Input {...field} type="email" placeholder="parent@argus.ai"/>
+                                </FormControl>
+                                <FormMessage>{form.formState.errors.parent_email?.message}</FormMessage>
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={form.control}
+                        name="parent_phone"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Parent's Phone</FormLabel>
+                                <FormControl>
+                                    <Input {...field} type="tel" placeholder="123-456-7890"/>
+                                </FormControl>
+                                <FormMessage>{form.formState.errors.parent_phone?.message}</FormMessage>
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={form.control}
                         name="email"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Email Address</FormLabel>
+                                <FormLabel>Your Email Address</FormLabel>
                                 <FormControl>
                                     <Input {...field} type="email" placeholder="hello@argus.ai" />
                                 </FormControl>

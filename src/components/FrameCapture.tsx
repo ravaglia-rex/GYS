@@ -29,7 +29,7 @@ const FrameCapture: React.FC = () => {
   const dispatch = useDispatch();
   const loading = useSelector((state: RootState) => state.load.loading);
   const videoStream = useSelector((state: RootState) => state.frameCapture.videoStream);
-  const exam_id = useSelector((state: RootState) => state.examDetails.examId);
+  const exam_id = useSelector((state: RootState) => state.examDetails.examId)|| "mOGkN8";
   const user_id = auth.currentUser?.uid || "11111";
 
   const entityDetectionState = useRef<Array<any>>([]);
