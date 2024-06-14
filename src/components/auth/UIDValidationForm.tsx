@@ -1,4 +1,5 @@
 import React, {Dispatch, SetStateAction} from "react";
+import { useState } from "react";
 import { NavLink } from "react-router-dom";
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -29,7 +30,7 @@ interface UIDValidationFormProps {
 }
 
 const UIDValidationForm: React.FC<UIDValidationFormProps> = ({setUserData}) => {
-
+    const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
     const form = useForm({
         resolver: zodResolver(uidSchema),
         defaultValues: {
@@ -39,6 +40,7 @@ const UIDValidationForm: React.FC<UIDValidationFormProps> = ({setUserData}) => {
     const {nextStep} = useStepper();
 
     const onSubmit = async (data: z.infer<typeof uidSchema>) => {
+        setIsSubmitted(true);
         try {
             if(data.uid && data.uid!==''){
                 
@@ -56,6 +58,7 @@ const UIDValidationForm: React.FC<UIDValidationFormProps> = ({setUserData}) => {
             setUserData("");
             nextStep();
         }
+        setIsSubmitted(false);
     };
 
     return (
@@ -76,7 +79,7 @@ const UIDValidationForm: React.FC<UIDValidationFormProps> = ({setUserData}) => {
                             </FormItem>
                         )}
                     />
-                    <Button type="submit" className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-md">Look me up!</Button>
+                    <Button disabled={isSubmitted} type="submit" className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-md">Look me up!</Button>
                 </form>
             </Form>
             <p className="text-sm text-center text-gray-600 mt-4">
