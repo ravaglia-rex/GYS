@@ -154,7 +154,7 @@ const WaitlistPage: React.FC = () => {
                                         className="bg-transparent rounded-lg w-full"
                                     />
                                 </FormControl>
-                                <FormDescription>Take me from darkness to light</FormDescription>
+                                <FormDescription className='text-xs'>Take me from darkness to light</FormDescription>
                                 <FormMessage>{form.formState.errors.school?.message}</FormMessage>
                             </FormItem>
                         )}

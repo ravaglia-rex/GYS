@@ -13,7 +13,6 @@ onmessage = async (e) => {
     }
   } else if (e.data.type === 'predict' && audio_model) {
     try {
-      console.log(e.data.audioData);
       // const normalizedData = audioData.map(sample => sample/Math.max(...audioData));
       // const tensor = tf.tensor1d(audioData, 'float32');
       // const predictions = await audio_model.predict(tensor);

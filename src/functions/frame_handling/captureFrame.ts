@@ -7,15 +7,14 @@ import { tabSwitchingState } from "../../state_data/tabSwitchingSlice";
 
 export const captureFrame = (
   videoRef: React.RefObject<HTMLVideoElement>,
-  canvasRef: React.MutableRefObject<HTMLCanvasElement | null>,
+  canvas: HTMLCanvasElement,
   user_id: string,
   exam_id: string,
   entityWorkerRef: Worker,
   poseWorkerRef: Worker,
   faceLandmarksRef: Worker
 ) => {
-  if (videoRef.current && canvasRef.current) {
-    const canvas = canvasRef.current;
+  if (videoRef.current && canvas) {
     canvas.width = videoRef.current.videoWidth;
     canvas.height = videoRef.current.videoHeight;
     const context = canvas.getContext('2d', {willReadFrequently: true});
@@ -64,10 +63,9 @@ export const captureFrame = (
 
 export const analyzeLighting = (
   videoRef: React.RefObject<HTMLVideoElement>,
-  canvasRef: React.MutableRefObject<HTMLCanvasElement | null>
+  canvas: HTMLCanvasElement
   ): boolean => {
-    if (videoRef.current && canvasRef.current) {
-      const canvas = canvasRef.current;
+    if (videoRef.current && canvas) {
       canvas.width = videoRef.current.videoWidth;
       canvas.height = videoRef.current.videoHeight;
       const context = canvas.getContext('2d');

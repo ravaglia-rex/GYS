@@ -21,8 +21,7 @@ export const pushStateData = async (userId: string, exam_id: string, datetime: s
     try {
         const presignedUrl = await getPresignedStateURL(userId, exam_id, datetime);
         if (!presignedUrl) {
-            console.log('Failed to get a presigned URL');
-            return;
+            throw new Error('Failed to get presigned URL');
         }
 
         await axios.put(presignedUrl, JSON.stringify(stateData), {
@@ -30,7 +29,8 @@ export const pushStateData = async (userId: string, exam_id: string, datetime: s
                 'Content-Type': 'application/json'
             }
         });
-    } catch (error) {
-        console.error('Error pushing audio data:', error);
+    } catch (error: any) {
+        console.error('Error pushing state data:', error);
+        throw new Error('Error pushing state data:', error);
     }
 };

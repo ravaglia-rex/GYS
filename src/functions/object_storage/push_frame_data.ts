@@ -21,8 +21,7 @@ export const pushFrameData = async (userId: string, exam_id: string, datetime: s
     try {
         const presignedUrl = await getPresignedFrameURL(userId, exam_id, datetime);
         if (!presignedUrl) {
-            console.log('Failed to get a presigned URL');
-            return;
+            throw new Error('Failed to get presigned URL');
         }
 
         const blob = new Blob([frameData], { type: 'image/png' });
@@ -31,7 +30,8 @@ export const pushFrameData = async (userId: string, exam_id: string, datetime: s
                 'Content-Type': 'image/png'
             }
         });
-    } catch (error) {
+    } catch (error:any) {
         console.error('Error pushing frame data:', error);
+        throw new Error('Error pushing frame data:', error);
     }
 };

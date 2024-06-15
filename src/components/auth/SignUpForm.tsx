@@ -195,7 +195,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({userData, setUserObj}) => {
                                         className="bg-transparent rounded-lg w-full"
                                     />
                                 </FormControl>
-                                <FormDescription>Take me from darkness to light</FormDescription>
+                                <FormDescription className='text-xs'>Take me from darkness to light</FormDescription>
                                 <FormMessage>{form.formState.errors.school?.message}</FormMessage>
                             </FormItem>
                         )}
@@ -238,7 +238,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({userData, setUserObj}) => {
                                 <FormControl>
                                     <Input {...field} />
                                 </FormControl>
-                                <FormDescription>The bow that bends for you to fly far</FormDescription>
+                                <FormDescription className='text-xs'>The bow that bends for you to fly far</FormDescription>
                                 <FormMessage>{form.formState.errors.parent_name?.message}</FormMessage>
                             </FormItem>
                         )}
@@ -281,7 +281,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({userData, setUserObj}) => {
                                 <FormControl>
                                     <Input {...field} type="email" placeholder="hello@argus.ai" />
                                 </FormControl>
-                                <FormDescription>We'll never share your email.</FormDescription>
+                                <FormDescription className='text-xs'>We'll never share your email.</FormDescription>
                                 <FormMessage>{form.formState.errors.email?.message}</FormMessage>
                             </FormItem>
                         )}
@@ -295,7 +295,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({userData, setUserObj}) => {
                                 <FormControl>
                                     <Input {...field} type="password" placeholder="Password" />
                                 </FormControl>
-                                <FormDescription>Set your password</FormDescription>
+                                <FormDescription className='text-xs'>Set your password</FormDescription>
                                 <FormMessage>{form.formState.errors.password?.message}</FormMessage>
                             </FormItem>
                         )}
@@ -309,7 +309,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({userData, setUserObj}) => {
                                 <FormControl>
                                     <Input {...field} type="password" placeholder="Confirm Password" />
                                 </FormControl>
-                                <FormDescription>Confirm your password</FormDescription>
+                                <FormDescription className='text-xs'>Confirm your password</FormDescription>
                                 <FormMessage>{form.formState.errors.confirm_password?.message}</FormMessage>
                             </FormItem>
                         )}

@@ -68,7 +68,11 @@ const SignInPage: React.FC = () => {
                         navigate('/login');
                     }
                     ).catch((error) => {
-                        console.log(error);
+                        toast({
+                            variant: 'destructive',
+                            title: 'Uh oh! Something went wrong.',
+                            description: error.message || 'An error occurred while signing in. Please try again.',
+                        });
                     });
                     return;
                 }
@@ -92,7 +96,7 @@ const SignInPage: React.FC = () => {
     return (
         <div
             className="flex items-center justify-center min-h-screen bg-cover bg-no-repeat"
-            style={{ backgroundImage: `url(/assets/sign-in-background.jpg)` }}
+            style={{ backgroundImage: `url(/assets/sign-up-background.jpg)` }}
         >
             <div className="bg-white bg-opacity-75 backdrop-filter backdrop-blur-lg p-8 rounded-lg shadow-md w-full max-w-md">
                 <h2 className="text-2xl font-semibold text-center mb-6">Sign in to Argus</h2>
@@ -107,7 +111,7 @@ const SignInPage: React.FC = () => {
                                     <FormControl>
                                         <Input type="email" placeholder="hello@argus.ai" {...field} />
                                     </FormControl>
-                                    <FormDescription>We'll never share your email.</FormDescription>
+                                    <FormDescription className='text-xs'>We'll never share your email.</FormDescription>
                                     <FormMessage>{form.formState.errors.email?.message}</FormMessage>
                                 </FormItem>
                             )}
@@ -121,7 +125,7 @@ const SignInPage: React.FC = () => {
                                     <FormControl>
                                         <Input type="password" placeholder="••••••••" {...field} />
                                     </FormControl>
-                                    <FormDescription>Shhhhhh</FormDescription>
+                                    <FormDescription className='text-xs'>Minimum of 6 characters</FormDescription>
                                     <FormMessage>{form.formState.errors.password?.message}</FormMessage>
                                 </FormItem>
                             )}
