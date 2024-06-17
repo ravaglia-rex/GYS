@@ -10,6 +10,7 @@ type Student = {
     last_name: string;
     school_id: string;
     grade: number;
+    email: string;
 };
 
 export const createWaitlistedStudent = async (student: Student) => {

@@ -95,6 +95,7 @@ const WaitlistPage: React.FC = () => {
                 last_name: data.last_name,
                 school_id: schoolId,
                 grade: data.grade,
+                email: data.email,
             });
     
             toast({
