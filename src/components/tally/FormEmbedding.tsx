@@ -3,6 +3,8 @@ import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../state_data/reducer';
 import { cleanupAudioCaptureResources } from '../../state_data/audioCaptureSlice';
 import { cleanupFrameResources } from '../../state_data/frameCaptureSlice';
+import { auth } from '../../firebase/firebase';
+import { createSubmissionRecord } from '../../db/studentSubmissionMapping';
 
 declare global {
   interface Window {
@@ -55,9 +57,22 @@ const FormEmbedding: React.FC = () => {
   }, [loading, exam_id]); // Depend on the loading state and exam_id
 
   useEffect(() => {
-    const handleMessage = (e: MessageEvent) => {
+    const handleMessage = async (e: MessageEvent) => {
       if (typeof e.data === 'string' && e.data.includes('Tally.FormSubmitted')) {
         try {
+          const data = JSON.parse(e.data);
+          const student_uid = auth.currentUser?.uid||"<UNKNOWN_USER_ID>";
+          const submission_id = data.payload.id;
+          const submission_time = data.payload.createdAt;
+          const form_id = data.payload.formId;
+
+          await createSubmissionRecord({
+            student_uid,
+            submission_id,
+            form_id,
+            submission_time,
+          });
+
           dispatch(cleanupAudioCaptureResources());
           dispatch(cleanupFrameResources());
         } catch (error) {
