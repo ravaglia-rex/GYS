@@ -31,8 +31,6 @@ const WorkerSetupComponent: React.FC<WorkerSetupComponentProps> = ({hasCameraAcc
   const entityDetectionState = useRef<Array<any>>([]);
   const faceLandmarksState = useRef<Array<any>>([]);
   const poseDetectionState = useRef<Array<any>>([]);
-  const internetSpeedStateSelector = useSelector((state: RootState) => state.internetSpeed);
-  const tabSwitchingStateSelector = useSelector((state: RootState) => state.tabSwitching);
 
   const setupWorkers = () => {
     const worker1 = new Worker(new URL('../frame_flagging_modules/entityDetectionWorker.ts', import.meta.url), { type: 'module' });
@@ -92,7 +90,7 @@ const WorkerSetupComponent: React.FC<WorkerSetupComponentProps> = ({hasCameraAcc
         setModelsLoaded({ ...modelLoaded, faceLandmarks: true });
         checkModelsLoaded();
       } else if (event.data.type === 'prediction') {
-        triggerMetadataUpdate("faceLandmarks", event.data.faceLandmarks, [entityDetectionState, faceLandmarksState, poseDetectionState, internetSpeedStateSelector, tabSwitchingStateSelector], user_id, exam_id);
+        triggerMetadataUpdate("faceLandmarks", event.data.faceLandmarks, [entityDetectionState, faceLandmarksState, poseDetectionState, internetSpeedState.current, tabSwitchingState.current], user_id, exam_id);
         dispatch(setFaceLandmarks(event.data.faceLandmarks));
       } else if (event.data.type === 'error') {
         toast({

@@ -87,8 +87,8 @@ const PaymentForm: React.FC<UserObj> = ({ uid, parentEmail }) => {
                 />
                 {paymentMethod === 'credit_card' && (
                     <div className="flex items-center space-x-2">
-                        <Input readOnly value="https://buy.stripe.com/test_14kdTF1hR8Ig2GIfYY" className="flex-1 bg-gray-100 cursor-pointer" />
-                        <span className="material-icons cursor-pointer text-gray-600" onClick={() => window.open('https://buy.stripe.com/test_14kdTF1hR8Ig2GIfYY', '_blank')}>
+                        <Input readOnly value="https://buy.stripe.com/5kA8xG7NtfkL3SwcMO" className="flex-1 bg-gray-100 cursor-pointer" />
+                        <span className="material-icons cursor-pointer text-gray-600" onClick={() => window.open('https://buy.stripe.com/5kA8xG7NtfkL3SwcMO', '_blank')}>
                             launch
                         </span>
                     </div>

@@ -21,6 +21,9 @@ import {
     FormMessage,
 } from '../ui/form';
 
+import { PhoneInput } from "../ui/phone-input";
+import { isValidPhoneNumber } from "react-phone-number-input";
+
 import {
     Select,
     SelectItem,
@@ -36,6 +39,7 @@ import { useToast } from '../ui/use-toast';
 import TnCDialog from "./TnCDialog";
 import AutocompleteInput from "../autocomplete/AutocompleteInput";
 import { useStepper } from "../ui/stepper";
+import CongratulationsDialog from "./CongratulationsDialog";
 
 const signupSchema = z.object({
     first_name: z.string().min(1, 'First name is required'),
@@ -47,7 +51,7 @@ const signupSchema = z.object({
     confirm_password: z.string().min(6, 'Password must be at least 6 characters'),
     parent_name: z.string().min(2, 'Parent name is required'),
     parent_email: z.string().email(),
-    parent_phone: z.string().min(10, 'Phone number must be at least 10 characters'),
+    parent_phone: z.string().refine(isValidPhoneNumber, { message: "Invalid phone number" }),
     terms: z.boolean().refine((val) => val === true, { message: "You must agree to the terms and conditions" }), 
 }).refine(data => data.password === data.confirm_password, {
     message: "Passwords do not match",
@@ -68,6 +72,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({userData, setUserObj}) => {
     const [schools, setSchools] = useState<{ id: string, name: string }[]>([]);
     const { toast } = useToast();
     const { nextStep } = useStepper();
+    const [showDialog, setShowDialog] = useState(true);
 
     const form = useForm({
         resolver: zodResolver(signupSchema),
@@ -154,6 +159,9 @@ const SignUpForm: React.FC<SignUpFormProps> = ({userData, setUserObj}) => {
 
     return (
         <div>
+            {showDialog && (
+                <CongratulationsDialog isOpen={showDialog} onClose={() => setShowDialog(false)} />
+            )}
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                     <FormField
@@ -265,7 +273,10 @@ const SignUpForm: React.FC<SignUpFormProps> = ({userData, setUserObj}) => {
                             <FormItem>
                                 <FormLabel>Parent's Phone</FormLabel>
                                 <FormControl>
-                                    <Input {...field} type="tel" placeholder="123-456-7890"/>
+                                    <PhoneInput 
+                                        {...field}
+                                        placeholder="+911234567890"
+                                    />
                                 </FormControl>
                                 <FormMessage>{form.formState.errors.parent_phone?.message}</FormMessage>
                             </FormItem>

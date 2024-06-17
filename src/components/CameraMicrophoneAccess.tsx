@@ -45,15 +45,25 @@ const CameraMicrophoneAccess: React.FC = () => {
       <div className="bg-white p-8 rounded-lg shadow-md text-center max-w-md mx-auto">
         <h1 className="text-3xl font-semibold text-red-600 mb-4">Camera and Microphone Access Required</h1>
         <p className="text-lg text-gray-700 mb-6">
-          Please allow access to your camera and microphone to proceed with the exam. You will be recorded during the exam to ensure integrity.
+          Please allow access to your camera and microphone to proceed with the exam. You will be recorded during the exam to ensure integrity. Ensure that you are in a well-lit room and your face and shoulders are clearly visible.
         </p>
         <div className="flex justify-center space-x-4 mb-6">
-          <i className="material-icons text-6xl cursor-pointer hover:text-red-500" onClick={requestCameraAccess} style={{ opacity: hasCameraAccess ? 0.5 : 1 }}>
+          <button
+            className={`material-icons text-6xl hover:text-red-500 border border-gray-300 rounded-full p-2 ${hasCameraAccess ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            onClick={hasCameraAccess ? undefined : requestCameraAccess}
+            disabled={hasCameraAccess}
+            style={{ transition: 'all 0.3s ease-in-out' }}
+          >
             videocam
-          </i> {/* Camera Icon */}
-          <i className="material-icons text-6xl cursor-pointer hover:text-red-500" onClick={requestMicrophoneAccess} style={{ opacity: hasMicrophoneAccess ? 0.5 : 1 }}>
+          </button> {/* Camera Icon Button */}
+          <button
+            className={`material-icons text-6xl hover:text-red-500 border border-gray-300 rounded-full p-2 ${hasMicrophoneAccess ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            onClick={hasMicrophoneAccess ? undefined : requestMicrophoneAccess}
+            disabled={hasMicrophoneAccess}
+            style={{ transition: 'all 0.3s ease-in-out' }}
+          >
             mic
-          </i> {/* Microphone Icon */}
+          </button> {/* Microphone Icon Button */}
         </div>
         {hasCameraAccess && hasMicrophoneAccess && (
           <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" onClick={handleAcknowledge}>

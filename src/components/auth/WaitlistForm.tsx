@@ -33,6 +33,7 @@ import { Input } from '../ui/input';
 import { useToast } from '../ui/use-toast';
 import AutocompleteInput from "../autocomplete/AutocompleteInput";
 import { useStepper } from "../ui/stepper";
+import WaitlistDialog from "./WaitlistDialog";
 
 const waitlistSchema = z.object({
     first_name: z.string().min(1, 'First name is required'),
@@ -47,6 +48,7 @@ const WaitlistPage: React.FC = () => {
     const navigate = useNavigate();
     const { toast } = useToast();
     const { nextStep } = useStepper();
+    const [showDialog, setShowDialog] = useState(true);
 
     const form = useForm({
         resolver: zodResolver(waitlistSchema),
@@ -113,6 +115,9 @@ const WaitlistPage: React.FC = () => {
 
     return (
         <div>
+            {showDialog && (
+                <WaitlistDialog isOpen={showDialog} onClose={() => setShowDialog(false)} />
+            )}
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                     <FormField
