@@ -32,7 +32,7 @@ const TabSwitchingMonitor: React.FC<TabSwitchingMonitorProps> = ({isSubmitted}) 
         timestamp: new Date().toISOString()
       }));
     }
-  }, [dispatch, tabSwitching.full_screen_switch_count]);
+  }, [dispatch, tabSwitching.full_screen_switch_count, isSubmitted]);
 
   useEffect(() => {
     document.addEventListener('fullscreenchange', onFullScreenChange);

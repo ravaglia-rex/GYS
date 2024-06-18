@@ -14,7 +14,7 @@ const TestingPage: React.FC = () => {
 
   return (
     <div>
-      <FrameCapture />
+      <FrameCapture isSubmitted={isSubmitted}/>
       <AudioCapture />
       <InternetSpeedTest />
       <TabSwitchingMonitor isSubmitted={isSubmitted} />

@@ -6,7 +6,11 @@ import CameraSetup from './CameraSetup.tsx';
 import WorkerSetupComponent from './WorkerSetupComponent.tsx';
 import CameraAccessCheckComponent from './CameraAccessCheckComponent.tsx';
 
-const FrameCapture: React.FC = () => {
+interface FrameCaptureProps {
+  isSubmitted: boolean;
+}
+
+const FrameCapture: React.FC<FrameCaptureProps> = ({isSubmitted}) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [modelLoaded, setModelLoaded] = useState<{ [key: string]: boolean }>({});
   const entityDetectiorRef = useRef<Worker | null>(null);
@@ -30,7 +34,7 @@ const FrameCapture: React.FC = () => {
         <FormSetup hasFormLoaded={formLoaded} setFormLoaded={setFormLoaded} />
         <CameraAccessCheckComponent hasCameraAccess={hasCameraAccess} setHasCameraAccess={setHasCameraAccess} videoRef={videoRef} />
         <WorkerSetupComponent hasCameraAccess={hasCameraAccess} formLoaded={formLoaded} modelLoaded={modelLoaded} setModelsLoaded={setModelLoaded} entityDetectionWorkerRef={entityDetectiorRef} poseDetectionWorkerRef={poseDetectionRef} faceLandmarksWorkerRef={faceLandmarksRef} internetSpeedState={internetSpeedState} tabSwitchingState={tabSwitchingState}/>
-        <CameraSetup hasCameraAccess={hasCameraAccess} setHasCameraAccess={setHasCameraAccess} haveModelsLoaded={modelLoaded} videoRef={videoRef} entityDetectionWorkerRef={entityDetectiorRef} poseDetectionWorkerRef={poseDetectionRef} faceLandmarksWorkerRef={faceLandmarksRef}/>
+        <CameraSetup hasCameraAccess={hasCameraAccess} isSubmitted={isSubmitted} setHasCameraAccess={setHasCameraAccess} haveModelsLoaded={modelLoaded} videoRef={videoRef} entityDetectionWorkerRef={entityDetectiorRef} poseDetectionWorkerRef={poseDetectionRef} faceLandmarksWorkerRef={faceLandmarksRef}/>
     </div>
   );
 };

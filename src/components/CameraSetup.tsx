@@ -11,6 +11,7 @@ import { useToast } from './ui/use-toast';
 
 interface CameraSetupProps {
     hasCameraAccess: boolean;
+    isSubmitted: boolean;
     setHasCameraAccess: React.Dispatch<React.SetStateAction<boolean>>;
     haveModelsLoaded: { [key: string]: boolean };
     videoRef: React.RefObject<HTMLVideoElement>;
@@ -19,7 +20,7 @@ interface CameraSetupProps {
     faceLandmarksWorkerRef: React.RefObject<Worker>;
 }
 
-const CameraSetup: React.FC<CameraSetupProps> = ({hasCameraAccess, setHasCameraAccess, haveModelsLoaded, videoRef, entityDetectionWorkerRef, poseDetectionWorkerRef, faceLandmarksWorkerRef}) => {
+const CameraSetup: React.FC<CameraSetupProps> = ({hasCameraAccess, isSubmitted, setHasCameraAccess, haveModelsLoaded, videoRef, entityDetectionWorkerRef, poseDetectionWorkerRef, faceLandmarksWorkerRef}) => {
     const user_id = auth.currentUser?.uid || "11111";
     const exam_id = useSelector((state: RootState) => state.examDetails.examId)|| "mOGkN8";
   
@@ -30,7 +31,7 @@ const CameraSetup: React.FC<CameraSetupProps> = ({hasCameraAccess, setHasCameraA
     useEffect(() => {
         const setupCamera = async () => {
         try {
-            if (hasCameraAccess && !videoStream) {
+            if (hasCameraAccess && !videoStream && !isSubmitted) {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true });
             dispatch(setVideoStream(stream));
             if (videoRef.current) {
@@ -73,7 +74,7 @@ const CameraSetup: React.FC<CameraSetupProps> = ({hasCameraAccess, setHasCameraA
         };
         setupCamera();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [haveModelsLoaded, dispatch, entityDetectionWorkerRef, poseDetectionWorkerRef, faceLandmarksWorkerRef, exam_id, user_id, videoStream, videoRef, hasCameraAccess, toast]);
+    }, [haveModelsLoaded, dispatch, entityDetectionWorkerRef, poseDetectionWorkerRef, faceLandmarksWorkerRef, exam_id, user_id, videoStream, videoRef, hasCameraAccess, toast, isSubmitted]);
 
 
   return (
