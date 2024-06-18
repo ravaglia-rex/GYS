@@ -14,7 +14,11 @@ declare global {
   }
 }
 
-const FormEmbedding: React.FC = () => {
+interface FormEmbeddingProps {
+  setSubmitted: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+const FormEmbedding: React.FC<FormEmbeddingProps> = ({setSubmitted}) => {
   const loading = useSelector((state: RootState) => state.load.loading);
   const dispatch = useDispatch();
   const exam_id = useSelector((state: RootState) => state.examDetails.examId);
@@ -65,7 +69,8 @@ const FormEmbedding: React.FC = () => {
           const submission_id = data.payload.id;
           const submission_time = data.payload.createdAt;
           const form_id = data.payload.formId;
-
+          setSubmitted(true);
+          
           await createSubmissionRecord({
             student_uid,
             submission_id,
