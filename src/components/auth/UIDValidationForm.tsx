@@ -1,4 +1,4 @@
-import React, {Dispatch, SetStateAction} from "react";
+import React, { Dispatch, SetStateAction } from "react";
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 
@@ -7,6 +7,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { getUserData } from "../../airtable/studentPhase";
 import { useStepper } from "../ui/stepper";
+import { addUidToPhase1, checkUidExists } from "../../db/phase1UIDCollection";
 
 import {
     Form,
@@ -22,14 +23,14 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 
 const uidSchema = z.object({
-    uid: z.string().optional(),
+    uid: z.string().nonempty("UID is required"),
 });
 
 interface UIDValidationFormProps {
     setUserData: Dispatch<SetStateAction<string>>;
 }
 
-const UIDValidationForm: React.FC<UIDValidationFormProps> = ({setUserData}) => {
+const UIDValidationForm: React.FC<UIDValidationFormProps> = ({ setUserData }) => {
     const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
     const form = useForm({
         resolver: zodResolver(uidSchema),
@@ -37,19 +38,29 @@ const UIDValidationForm: React.FC<UIDValidationFormProps> = ({setUserData}) => {
             uid: '',
         },
     });
-    const {nextStep} = useStepper();
+    const { nextStep } = useStepper();
 
     const onSubmit = async (data: z.infer<typeof uidSchema>) => {
         setIsSubmitted(true);
         try {
-            if(data.uid && data.uid!==''){
+            if (data.uid && data.uid !== '') {
+                const uidExists = await checkUidExists(data.uid);
+                console.log(uidExists);
+                if (uidExists) {
+                    form.setError("uid", {
+                        type: "manual",
+                        message: "UID already used!",
+                    });
+                    setIsSubmitted(false);
+                    return;
+                }
                 
+                await addUidToPhase1(data.uid);
                 const result = await getUserData(data.uid);
                 if (result.success) {
                     setUserData(data.uid);
                     nextStep();
-                }
-                else {
+                } else {
                     setUserData("");
                     nextStep();
                 }
