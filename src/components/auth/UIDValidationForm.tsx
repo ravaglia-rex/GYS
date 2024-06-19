@@ -48,7 +48,7 @@ const UIDValidationForm: React.FC<UIDValidationFormProps> = ({ setUserData }) =>
                 if (uidExists) {
                     form.setError("uid", {
                         type: "manual",
-                        message: "UID already used!",
+                        message: "UID already used!\n If you think this is a mistake, please contact us at talentsearch@argus.ai",
                     });
                     setIsSubmitted(false);
                     return;
