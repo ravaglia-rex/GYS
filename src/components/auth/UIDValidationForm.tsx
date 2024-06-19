@@ -21,6 +21,7 @@ import {
 
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
+import ResultsDialog from './ResultsDialog';
 
 const uidSchema = z.object({
     uid: z.string().nonempty("UID is required"),
@@ -32,6 +33,9 @@ interface UIDValidationFormProps {
 
 const UIDValidationForm: React.FC<UIDValidationFormProps> = ({ setUserData }) => {
     const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
+    const [dialogOpen, setDialogOpen] = useState<boolean>(false);
+    const [remainingDays, setRemainingDays] = useState<number>(0);
+    const [remainingHours, setRemainingHours] = useState<number>(0);
     const form = useForm({
         resolver: zodResolver(uidSchema),
         defaultValues: {
@@ -57,8 +61,14 @@ const UIDValidationForm: React.FC<UIDValidationFormProps> = ({ setUserData }) =>
                 await addUidToPhase1(data.uid);
                 const result = await getUserData(data.uid);
                 if (result.success) {
-                    setUserData(data.uid);
-                    nextStep();
+                    if (result.data.daysDifference !== undefined) {
+                        setUserData(data.uid);
+                        nextStep();
+                    } else if (result.data.remainingDays !== undefined && result.data.remainingHours !== undefined) {
+                        setRemainingDays(result.data.remainingDays);
+                        setRemainingHours(result.data.remainingHours);
+                        setDialogOpen(true);
+                    }
                 } else {
                     setUserData("");
                     nextStep();
@@ -69,6 +79,10 @@ const UIDValidationForm: React.FC<UIDValidationFormProps> = ({ setUserData }) =>
             nextStep();
         }
         setIsSubmitted(false);
+    };
+
+    const closeDialog = () => {
+        setDialogOpen(false);
     };
 
     return (
@@ -96,6 +110,12 @@ const UIDValidationForm: React.FC<UIDValidationFormProps> = ({ setUserData }) =>
                 Already have an account?{" "}
                 <NavLink to="/login" className="text-green-600 hover:underline">Sign in</NavLink>
             </p>
+            <ResultsDialog 
+                isOpen={dialogOpen}
+                onClose={closeDialog}
+                remainingDays={remainingDays}
+                remainingHours={remainingHours}
+            />
         </div>
     );
 };
