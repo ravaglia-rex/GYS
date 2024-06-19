@@ -45,7 +45,6 @@ const UIDValidationForm: React.FC<UIDValidationFormProps> = ({ setUserData }) =>
         try {
             if (data.uid && data.uid !== '') {
                 const uidExists = await checkUidExists(data.uid);
-                console.log(uidExists);
                 if (uidExists) {
                     form.setError("uid", {
                         type: "manual",
