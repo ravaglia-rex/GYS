@@ -7,8 +7,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { createWaitlistedStudent } from "../../db/waitlistStudentCollection";
-// import { fetchSchools } from "../../db/schoolCollection";
-import { fetchSchools } from "../../airtable/schoolData";
+import { fetchSchoolNamesAndIds } from "../../db/schoolCollection";
 
 import {
     Form,
@@ -64,9 +63,9 @@ const WaitlistPage: React.FC = () => {
     useEffect(() => {
         const fetchSchoolsData = async () => {
             try {
-                const schoolsData = await fetchSchools();
-                if(schoolsData.data){
-                    setSchools(schoolsData.data);
+                const schoolsData = await fetchSchoolNamesAndIds();
+                if(schoolsData){
+                    setSchools(schoolsData);
                 }
             } catch (error: any) {
                 return null;

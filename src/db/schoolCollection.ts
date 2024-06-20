@@ -57,11 +57,14 @@ export const readSchool = async (school_id: string) => {
     }
 };
 
-// FETCH ALL SCHOOL NAMES
-export const fetchSchoolNames = async () => {
+// FETCH ALL SCHOOL NAMES AND IDs
+export const fetchSchoolNamesAndIds = async () => {
     try {
         const schools = await getDocs(collection(db, "schools"));
-        return schools.docs.map(doc => doc.data().school_name);
+        return schools.docs.map(doc => ({
+            id: doc.id,
+            name: doc.data().school_name
+        }));
     } catch (e) {
         throw new Error(`Error fetching schools. Please contact administrator!`);
     }
