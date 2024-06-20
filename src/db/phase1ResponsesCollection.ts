@@ -6,7 +6,12 @@ import {
 } from "firebase/firestore";
 import db from "./db";
 
-// Function to calculate the difference in days and hours
+// Define the UserData type
+type UserData =
+    | { daysDifference: number }
+    | { remainingDays: number; remainingHours: number }
+    | { message: string };
+
 const calculateDateDifference = (createdAt: string) => {
     const currentDate = new Date();
     const createdAtDate = new Date(createdAt);
@@ -23,14 +28,14 @@ const calculateDateDifference = (createdAt: string) => {
 };
 
 // FETCH RESULT BASED ON UID
-export const getUserData = async (uid: string) => {
+export const getUserData = async (uid: string): Promise<UserData> => {
     try {
         const resultRef = collection(db, "phase_1_exam_responses");
         const resultQuery = query(resultRef, where("UserID", "==", uid));
         const resultSnapshot = await getDocs(resultQuery);
 
         if (resultSnapshot.empty) {
-            throw new Error(`No matching result found for UID ${uid}. Please contact administrator!`);
+            return { message: "User not created yet" };
         }
         const resultData = resultSnapshot.docs[0].data();
 
@@ -38,13 +43,16 @@ export const getUserData = async (uid: string) => {
             throw new Error(`No createdAt field found in the result for UID ${uid}.`);
         }
 
+        const dateDifference = calculateDateDifference(resultData.createdAt);
+
         if (resultData.result) {
-            const dateDifference = calculateDateDifference(resultData.createdAt);
             return dateDifference;
+        } else if ('daysDifference' in dateDifference) {
+            return { message: "User has to be waitlisted" };
         } else {
-            throw new Error(`Result for UID ${uid} is not true.`);
+            return dateDifference;
         }
     } catch (error) {
-        throw new Error(`Error fetching result for UID ${uid}. Please contact administrator!`);
+        throw new Error(`Error fetching result for UID ${uid}. Please contact talentsearch@argus.ai`);
     }
 };

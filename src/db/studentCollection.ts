@@ -26,7 +26,7 @@ export const createStudent = async (student: Student) => {
         await setDoc(docRef, student);
         return { message: `Student ${student.first_name} ${student.last_name} created successfully!` };
     } catch (e) {
-        throw new Error(`Error creating ${student.first_name} ${student.last_name}. Please contact administrator!`);
+        throw new Error(`Error creating ${student.first_name} ${student.last_name}. Please contact talentsearch@argus.ai`);
     }
 };
 
@@ -36,11 +36,11 @@ export const getSchoolId = async (userId: string) => {
         const studentQuery = query(studentsRef, where("uid", "==", userId));
         const studentSnapshot = await getDocs(studentQuery);
         if (studentSnapshot.empty) {
-            throw new Error(`No matching student found for user ${userId}. Please contact administrator!`);
+            throw new Error(`No matching student found for user ${userId}. Please contact talentsearch@argus.ai`);
         }
         const studentData = studentSnapshot.docs[0].data();
         return studentData.school_id;
     } catch (error) {
-        throw new Error(`Error fetching school ID for user ${userId}. Please contact administrator!`);
+        throw new Error(`Error fetching school ID for user ${userId}. Please contact talentsearch@argus.ai`);
     }
 }

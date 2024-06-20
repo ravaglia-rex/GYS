@@ -18,6 +18,6 @@ export const createWaitlistedStudent = async (student: Student) => {
         await addDoc(collection(db, "waitlisted_students"), student);
         return { message: `Student ${student.first_name} ${student.last_name} created successfully!` };
     } catch (e) {
-        throw new Error(`Error creating ${student.first_name} ${student.last_name}. Please contact administrator!`);
+        throw new Error(`Error creating ${student.first_name} ${student.last_name}. Please contact talentsearch@argus.ai`);
     }
 };

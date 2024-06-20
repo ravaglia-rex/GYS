@@ -1,7 +1,6 @@
 import React, { Dispatch, SetStateAction } from "react";
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
-
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -52,31 +51,40 @@ const UIDValidationForm: React.FC<UIDValidationFormProps> = ({ setUserData }) =>
                 if (uidExists) {
                     form.setError("uid", {
                         type: "manual",
-                        message: "UID already used!\n If you think this is a mistake, please contact us at talentsearch@argus.ai",
+                        message: "UID already used! If you think this is a mistake, please contact us at talentsearch@argus.ai",
                     });
                     setIsSubmitted(false);
                     return;
                 }
-                
+
                 const result = await getUserData(data.uid);
-                if (result) {
-                    if (result.daysDifference !== undefined) {
-                        await addUidToPhase1(data.uid);
-                        setUserData(data.uid);
+                if ('message' in result) {
+                    if (result.message === "User hasn't been created yet. Please check back later or email talentsearch@argus.ai") {
+                        form.setError("uid", {
+                            type: "manual",
+                            message: result.message,
+                        });
+                    } else if (result.message === "User has to be waitlisted") {
+                        addUidToPhase1(data.uid);
+                        setUserData("");
                         nextStep();
-                    } else if (result.remainingDays !== undefined && result.remainingHours !== undefined) {
-                        setRemainingDays(result.remainingDays);
-                        setRemainingHours(result.remainingHours);
-                        setDialogOpen(true);
                     }
-                } else {
-                    setUserData("");
+                } else if ('daysDifference' in result) {
+                    addUidToPhase1(data.uid);
+                    setUserData(data.uid);
                     nextStep();
+                } else if ('remainingDays' in result && 'remainingHours' in result) {
+                    setRemainingDays(result.remainingDays);
+                    setRemainingHours(result.remainingHours);
+                    setDialogOpen(true);
                 }
             }
         } catch (error: any) {
+            form.setError("uid", {
+                type: "manual",
+                message: "Error fetching result for UID. Please contact talentsearch@argus.ai",
+            });
             setUserData("");
-            nextStep();
         }
         setIsSubmitted(false);
     };

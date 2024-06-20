@@ -29,7 +29,7 @@ export const createExpeditedSchool = async (school: expeditedSchool) => {
         const school_obj = await addDoc(collection(db, "schools"), school);
         return school_obj.id;
     } catch (e) {
-        throw new Error(`Error creating ${school.school_name}. Please contact administrator!`);
+        throw new Error(`Error creating ${school.school_name}. Please contact talentsearch@argus.ai`);
     }
 }
 
@@ -38,7 +38,7 @@ export const createSchool = async (school: School) => {
         await addDoc(collection(db, "schools"), school);
         return { message: `School ${school.school_name} created successfully!` };
     } catch (e) {
-        throw new Error(`Error creating ${school.school_name}. Please contact administrator!`);
+        throw new Error(`Error creating ${school.school_name}. Please contact talentsearch@argus.ai`);
     }
 };
 
@@ -53,7 +53,7 @@ export const readSchool = async (school_id: string) => {
             throw new Error(`School ${school_id} not found`);
         }
     } catch (e) {
-        throw new Error(`Error reading school ${school_id}. Please contact administrator!`);
+        throw new Error(`Error reading school ${school_id}. Please contact talentsearch@argus.ai`);
     }
 };
 
@@ -66,7 +66,7 @@ export const fetchSchoolNamesAndIds = async () => {
             name: doc.data().school_name
         }));
     } catch (e) {
-        throw new Error(`Error fetching schools. Please contact administrator!`);
+        throw new Error(`Error fetching schools. Please contact talentsearch@argus.ai`);
     }
 };
 
@@ -83,7 +83,7 @@ export const getSchoolIdByName = async (school_name: string) => {
             return doc.id;
         }
     } catch (e) {
-        throw new Error(`Error fetching school ID for ${school_name}. Please contact administrator!`);
+        throw new Error(`Error fetching school ID for ${school_name}. Please contact talentsearch@argus.ai`);
     }
 };
 
@@ -96,6 +96,6 @@ export const fetchSchools = async () => {
             name: doc.data().school_name,
         }));
     } catch (e) {
-        throw new Error(`Error fetching schools. Please contact administrator!`);
+        throw new Error(`Error fetching schools. Please contact talentsearch@argus.ai`);
     }
 };

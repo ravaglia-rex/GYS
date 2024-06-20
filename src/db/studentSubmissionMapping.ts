@@ -17,6 +17,6 @@ export const createSubmissionRecord = async (submission_record: SubmissionRecord
         const payment_obj = await addDoc(collection(db, "student_submission_mappings"), submission_record);
         return payment_obj.id;
     } catch (e) {
-        throw new Error(`Error recording submission details. Please contact administrator!`);
+        throw new Error(`Error recording submission details. Please contact talentsearch@argus.ai`);
     }
 };
