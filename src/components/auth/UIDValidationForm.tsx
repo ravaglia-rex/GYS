@@ -5,7 +5,7 @@ import { NavLink } from "react-router-dom";
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { getUserData } from "../../airtable/studentPhase";
+import { getUserData } from "../../db/phase1ResponsesCollection";
 import { useStepper } from "../ui/stepper";
 import { addUidToPhase1, checkUidExists } from "../../db/phase1UIDCollection";
 
@@ -58,15 +58,15 @@ const UIDValidationForm: React.FC<UIDValidationFormProps> = ({ setUserData }) =>
                     return;
                 }
                 
-                await addUidToPhase1(data.uid);
                 const result = await getUserData(data.uid);
-                if (result.success) {
-                    if (result.data.daysDifference !== undefined) {
+                if (result) {
+                    if (result.daysDifference !== undefined) {
+                        await addUidToPhase1(data.uid);
                         setUserData(data.uid);
                         nextStep();
-                    } else if (result.data.remainingDays !== undefined && result.data.remainingHours !== undefined) {
-                        setRemainingDays(result.data.remainingDays);
-                        setRemainingHours(result.data.remainingHours);
+                    } else if (result.remainingDays !== undefined && result.remainingHours !== undefined) {
+                        setRemainingDays(result.remainingDays);
+                        setRemainingHours(result.remainingHours);
                         setDialogOpen(true);
                     }
                 } else {
