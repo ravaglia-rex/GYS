@@ -1,26 +1,31 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import CameraError from '../pages/error_pages/CameraError';
-import EntityDetectionError from '../pages/error_pages/EntityDetectionError';
-import PoseDetectionError from '../pages/error_pages/PoseDetectionError';
-import FaceLandmarksError from '../pages/error_pages/FaceLandmarksError';
-import SpeedTestErrorPage from '../pages/error_pages/SpeedTestError';
-import AudioErrorPage from '../pages/error_pages/AudioErrorPage';
 import Protected from '../components/route_protection/Protected';
 import NotFoundPage from '../pages/NotFoundPage';
-import LightingErrorPage from '../pages/error_pages/LightingErrorPage';
 import BigSpinner from '../components/BigSpinner';
 
-const TestingPage = React.lazy(() => import('../pages/testing_page/TestingPage'));
-
-// CHANGE THIS TO MULTIPLE COMPONENTS INSTEAD OF THE CURRENT VERSION
-const SignInPage = React.lazy(() => import('../components/auth/SignInForm'));
-const StepperForm = React.lazy(() => import('../components/auth/StepperForm'));
-const AccountCreationSuccessPage = React.lazy(() => import('../pages/authentication_pages/AccountCreationSuccess'));
-const AccountCreationFailurePage = React.lazy(() => import('../pages/authentication_pages/AccountCreationFailure'));
-const WaitlistCreationSuccessPage = React.lazy(() => import('../pages/authentication_pages/WaitlistCreationSuccess'));
+/* 
+AUTHENTICATION PAGES: These are the pages that are used for the signup and login process
+*/
+const AuthenticationPage = React.lazy(() => import('../pages/authentication_pages/AuthenticationPage'));
 const VerifyEmailPage = React.lazy(() => import('../pages/authentication_pages/VerifyEmailPage'));
 const VerifyEmailErrorPage = React.lazy(() => import('../pages/authentication_pages/VerifyEmailErrorPage'));
+
+/*
+TESTING PAGES: These are the pages for serving the exam
+*/
+const TestingPage = React.lazy(() => import('../pages/testing_page/TestingPage'));
+const CameraError = React.lazy(() => import('../pages/error_pages/CameraError'));
+const EntityDetectionError = React.lazy(() => import('../pages/error_pages/EntityDetectionError'));
+const PoseDetectionError = React.lazy(() => import('../pages/error_pages/PoseDetectionError'));
+const FaceLandmarksError = React.lazy(() => import('../pages/error_pages/FaceLandmarksError'));
+const SpeedTestError = React.lazy(() => import('../pages/error_pages/SpeedTestError'));
+const AudioErrorPage = React.lazy(() => import('../pages/error_pages/AudioErrorPage'));
+const LightingErrorPage = React.lazy(() => import('../pages/error_pages/LightingErrorPage'));
+
+/*
+CAMERA AND MICROPHONE ACCESS PAGE: This page is used to check if the camera and microphone are working
+*/
 const CameraMicrophoneAccess = React.lazy(() => import('../components/CameraMicrophoneAccess'));
 
 const AppRouter: React.FC = () => {
@@ -28,29 +33,11 @@ const AppRouter: React.FC = () => {
     <Router>
       {/* ------------------------------ SIGNUP AND LOGIN ROUTES ------------------------------ */}
       <Routes>
-        <Route 
-          path='/signup'
+        <Route
+          path="/"
           element={
             <Suspense fallback={<BigSpinner/>}>
-              <StepperForm />
-            </Suspense>
-          }
-          errorElement={<NotFoundPage />}
-        />
-        <Route 
-          path='/login'
-          element={
-            <Suspense fallback={<BigSpinner/>}>
-              <SignInPage />
-            </Suspense>
-          }
-          errorElement={<NotFoundPage />}
-        />
-        <Route 
-          path='/account-creation-success'
-          element={
-            <Suspense fallback={<BigSpinner/>}>
-              <AccountCreationSuccessPage />
+              <AuthenticationPage />
             </Suspense>
           }
           errorElement={<NotFoundPage />}
@@ -74,26 +61,19 @@ const AppRouter: React.FC = () => {
           }
           errorElement={<NotFoundPage />}
         />
-
-        <Route 
-          path='/waitlist-success'
-          element={
-            <Suspense fallback={<BigSpinner/>}>
-              <WaitlistCreationSuccessPage />
-            </Suspense>
-          }
-          errorElement={<NotFoundPage />}
-        />
-        <Route 
-          path='/account-creation-failure'
-          element={
-            <Suspense fallback={<BigSpinner/>}>
-              <AccountCreationFailurePage />
-            </Suspense>
-          }
-          errorElement={<NotFoundPage />}
-        />
         {/* ------------------------------ SIGNUP AND LOGIN ROUTES END ------------------------------ */}
+        {/* DASHBOARD ROUTES */}
+        <Route 
+          path="/dashboard" 
+          element={
+            <Protected>
+              <Suspense fallback={<BigSpinner/>}>
+                <h1>Dashboard</h1>
+              </Suspense>
+            </Protected>
+          }
+          errorElement={<NotFoundPage />}
+        />
         {/* ------------------------------ TESTING PAGE ROUTES ------------------------------ */}
         <Route 
           path="/camera-microphone-access" 
@@ -108,7 +88,7 @@ const AppRouter: React.FC = () => {
         />
         
         <Route 
-          path="/" 
+          path="/testing" 
           element={
             <Protected>
               <Suspense fallback={<BigSpinner/>}>
@@ -181,7 +161,7 @@ const AppRouter: React.FC = () => {
           element={
             <Protected>
               <Suspense fallback={<BigSpinner/>}>
-                <SpeedTestErrorPage />
+                <SpeedTestError />
               </Suspense>
             </Protected>
           }

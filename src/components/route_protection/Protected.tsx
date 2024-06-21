@@ -24,7 +24,7 @@ const Protected: React.FC<ProtectedProps> = ({ children }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user) {
-        navigate('/login');
+        navigate('/');
       }
       setLoading(false); // Authentication check is done
     });

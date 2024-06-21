@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
 import { createExpeditedSchool } from "../../db/schoolCollection";
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-import { createWaitlistedStudent } from "../../db/waitlistStudentCollection";
 import { fetchSchoolNamesAndIds } from "../../db/schoolCollection";
 
 import {
@@ -28,35 +26,30 @@ import {
 } from '../ui/select';
 
 import { Button } from '../ui/button';
-import { Input } from '../ui/input';
 import { useToast } from '../ui/use-toast';
 import AutocompleteInput from "../autocomplete/AutocompleteInput";
 import { useStepper } from "../ui/stepper";
-import WaitlistDialog from "./WaitlistDialog";
 
-const waitlistSchema = z.object({
-    first_name: z.string().min(1, 'First name is required'),
-    last_name: z.string().min(1, 'Last name is required'),
+const schoolSchema = z.object({
     school: z.string().min(1, 'School is required'),
-    grade: z.number().int().min(1, 'Grade is required'),
-    email: z.string().email(),
-});
+    grade: z.number().int().min(1, 'Grade is required'), 
+})
 
-const WaitlistPage: React.FC = () => {
-    const [schools, setSchools] = useState<{ id: string, name: string }[]>([]);
-    const navigate = useNavigate();
+interface SchoolInfoFormProps {
+    setSchool: (school: string) => void;
+    setGrade: (grade: number) => void;
+}
+
+const SchoolInfoForm: React.FC<SchoolInfoFormProps> = ({setSchool, setGrade}) => {
+    const [schoolsList, setSchoolsList] = useState<{ id: string, name: string }[]>([]);
     const { toast } = useToast();
-    const { nextStep } = useStepper();
-    const [showDialog, setShowDialog] = useState(true);
+    const { nextStep, prevStep } = useStepper();
 
     const form = useForm({
-        resolver: zodResolver(waitlistSchema),
+        resolver: zodResolver(schoolSchema),
         defaultValues: {
-            first_name: '',
-            last_name: '',
             school: '',
             grade: 0,
-            email: ''
         },
     });
 
@@ -65,7 +58,7 @@ const WaitlistPage: React.FC = () => {
             try {
                 const schoolsData = await fetchSchoolNamesAndIds();
                 if(schoolsData){
-                    setSchools(schoolsData);
+                    setSchoolsList(schoolsData);
                 }
             } catch (error: any) {
                 return null;
@@ -75,77 +68,35 @@ const WaitlistPage: React.FC = () => {
         fetchSchoolsData();
     }, []);
 
-    const onSubmit = async (data: z.infer<typeof waitlistSchema>) => {
+    const onSubmit = async (data: z.infer<typeof schoolSchema>) => {
         try {    
             // Step 1: Find the school record
             let schoolId = data.school;
     
-            const matchedSchool = schools.find(school => school.name === data.school);
+            const matchedSchool = schoolsList.find(school => school.name === data.school);
             if (matchedSchool) {
                 schoolId = matchedSchool.id;
             } else {
                 // Create a new school and assign the returned ID
                 schoolId = await createExpeditedSchool({ school_name: data.school });
             }
-            
-            // Step 4: Create the student record
-            createWaitlistedStudent({
-                first_name: data.first_name,
-                last_name: data.last_name,
-                school_id: schoolId,
-                grade: data.grade,
-                email: data.email,
-            });
-    
-            toast({
-                variant: 'default',
-                title: 'We\'ve added you to the waitlist! 🎉',
-                description: `We'll send you an email when you can create your account.`,
-            });
+            setSchool(schoolId);
+            setGrade(data.grade);
             nextStep();
-            navigate('/waitlist-success');
         } catch (error: any) {
             toast({
                 variant: 'destructive',
                 title: 'Uh oh! Something went wrong.',
-                description: error?.message || 'An error occurred while adding you to the waitlist. Please try again later.',
+                description: error?.message || 'An error occurred while signing up. Please try again.',
             });
         }
     };
 
     return (
         <div>
-            {showDialog && (
-                <WaitlistDialog isOpen={showDialog} onClose={() => setShowDialog(false)} />
-            )}
+            <h2 className="text-2xl font-semibold text-center mb-6">Alma Mater 🏫</h2>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    <FormField
-                        control={form.control}
-                        name="first_name"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>First Name</FormLabel>
-                                <FormControl>
-                                    <Input {...field} placeholder="First Name" />
-                                </FormControl>
-                                <FormMessage>{form.formState.errors.first_name?.message}</FormMessage>
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="last_name"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Last Name</FormLabel>
-                                <FormControl>
-                                    <Input {...field} placeholder="Last Name" />
-                                </FormControl>
-                                <FormMessage>{form.formState.errors.last_name?.message}</FormMessage>
-                            </FormItem>
-                        )}
-                    />
                     <FormField
                         control={form.control}
                         name="school"
@@ -154,7 +105,7 @@ const WaitlistPage: React.FC = () => {
                                 <FormLabel>School</FormLabel>
                                 <FormControl>
                                     <AutocompleteInput 
-                                        schools={schools} 
+                                        schools={schoolsList} 
                                         onSelect={(selectedSchoolId) => field.onChange(selectedSchoolId)}
                                         className="bg-transparent rounded-lg w-full"
                                     />
@@ -193,29 +144,12 @@ const WaitlistPage: React.FC = () => {
                             </FormItem>
                         )}
                     />
-                    <FormField
-                        control={form.control}
-                        name="email"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Email Address</FormLabel>
-                                <FormControl>
-                                    <Input {...field} type="email" placeholder="hello@argus.ai" />
-                                </FormControl>
-                                <FormDescription>We'll never share your email.</FormDescription>
-                                <FormMessage>{form.formState.errors.email?.message}</FormMessage>
-                            </FormItem>
-                        )}
-                    />
-                    <Button type="submit" className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-md">Add me to Waitlist ⏱️</Button>
+                    <Button type="submit" className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-md">Next</Button>
+                    <Button type="button" onClick={() => prevStep()} className="w-full py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md">Previous</Button>
                 </form>
             </Form>
-            <p className="text-sm text-center text-gray-600 mt-4">
-                Already have an account?{" "}
-                <NavLink to="/login" className="text-green-600 hover:underline">Sign in</NavLink>
-            </p>
         </div>
     );
 };
 
-export default WaitlistPage;
+export default SchoolInfoForm;

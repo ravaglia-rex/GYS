@@ -1,5 +1,5 @@
 import React from "react";
-import SignUpForm from "./SignUpForm";
+import SignUpForm from "./Sign___UpForm";
 import WaitlistForm from "./WaitlistForm";
 
 interface UserObj {

@@ -56,7 +56,7 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({ schools, onSelect
           aria-expanded={open}
           className={cn("w-[200px] justify-between", className)}
         >
-          {selectedValue || "Select school..."}
+          <span className="truncate max-w-full">{selectedValue || "Select school..."}</span>
           <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
