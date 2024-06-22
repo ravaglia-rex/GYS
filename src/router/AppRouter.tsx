@@ -24,6 +24,12 @@ const AudioErrorPage = React.lazy(() => import('../pages/error_pages/AudioErrorP
 const LightingErrorPage = React.lazy(() => import('../pages/error_pages/LightingErrorPage'));
 
 /*
+DASHBOARD PAGES: These are the pages that are used for the dashboard
+*/
+const NavigationMenu = React.lazy(() => import('../components/dashboard/NavigationBar'));
+
+
+/*
 CAMERA AND MICROPHONE ACCESS PAGE: This page is used to check if the camera and microphone are working
 */
 const CameraMicrophoneAccess = React.lazy(() => import('../components/CameraMicrophoneAccess'));
@@ -68,7 +74,7 @@ const AppRouter: React.FC = () => {
           element={
             <Protected>
               <Suspense fallback={<BigSpinner/>}>
-                <h1>Dashboard</h1>
+                <NavigationMenu />
               </Suspense>
             </Protected>
           }
