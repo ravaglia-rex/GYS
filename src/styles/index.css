@@ -75,12 +75,6 @@
   }
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
 .loading-spinner {
   width: 100px; /* Set the size of the spinner */
   height: 100px; /* Set the size of the spinner */
