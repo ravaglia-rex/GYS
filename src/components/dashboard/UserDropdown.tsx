@@ -8,9 +8,7 @@ import {
     DropdownMenuItem 
 } from '../ui/dropdown-menu';
 import { Button } from '../ui/button';
-import {
-    Image
-} from 'lucide-react';
+import { UserCircle2Icon } from 'lucide-react';
 import SignOutButton from '../auth/SignOutButton';
 
 const UserDropdown: React.FC = () => {
@@ -22,7 +20,7 @@ const UserDropdown: React.FC = () => {
           size="icon"
           className="overflow-hidden rounded-full"
         >
-          <Image className='overflow-hidden rounded-full' size={24} />
+          <UserCircle2Icon size={24} className="text-gray-400" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="bg-gray-900 text-white">
