@@ -26,7 +26,7 @@ const LightingErrorPage = React.lazy(() => import('../pages/error_pages/Lighting
 /*
 DASHBOARD PAGES: These are the pages that are used for the dashboard
 */
-const NavigationMenu = React.lazy(() => import('../components/dashboard/NavigationBar'));
+const DashboardPage = React.lazy(() => import('../pages/dashboard_pages/DashboardPage'));
 
 
 /*
@@ -74,7 +74,7 @@ const AppRouter: React.FC = () => {
           element={
             <Protected>
               <Suspense fallback={<BigSpinner/>}>
-                <NavigationMenu />
+                <DashboardPage />
               </Suspense>
             </Protected>
           }

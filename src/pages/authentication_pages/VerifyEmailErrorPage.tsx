@@ -11,7 +11,7 @@ const VerifyEmailErrorPage: React.FC = () => {
             if (user) {
                 user.reload().then(() => {
                     if (user.emailVerified) {
-                        navigate("/login");
+                        navigate("/");
                     }
                 });
             }
@@ -27,7 +27,7 @@ const VerifyEmailErrorPage: React.FC = () => {
                 <p className="text-lg text-gray-700 mb-6">
                     Yeah, this is awkward. It seems like your email verification link is invalid. Please try again.
                 </p>
-                <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-300" onClick={() => navigate('/login')}>
+                <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-300" onClick={() => navigate('/')}>
                     Go to Login
                 </button>
             </div>

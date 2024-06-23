@@ -7,7 +7,7 @@ const SignOutButton = () => {
     const navigate = useNavigate();
     const signOutUser = () => {
         signOut(auth).then(() => {
-            navigate('/login');
+            navigate('/');
         }).catch((error) => {
             console.log(error);
         });

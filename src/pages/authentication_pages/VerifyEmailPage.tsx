@@ -25,7 +25,7 @@ const VerifyEmail: React.FC = () => {
                       });
                     // Redirect to login page after 5 seconds if email is verified
                     const timer = setTimeout(() => {
-                        navigate('/login');
+                        navigate('/');
                     }, 5000);
                     return () => clearTimeout(timer); // Cleanup timer
                 })
