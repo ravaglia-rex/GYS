@@ -20,7 +20,7 @@ type ExamCardProps = React.ComponentProps<typeof Card> & {
   cardTitle: string;
   cardDescription: string;
   duration: number;
-  examDetails: ExamDetail[];
+  examDetails: string[];
   additionalInstructions: string[];
 };
 
@@ -37,13 +37,21 @@ const ExamCard: React.FC<ExamCardProps> = ({ className, cardTitle, cardDescripti
       </CardHeader>
       <CardContent className="grid gap-4">
         <div className="space-y-4">
-          {examDetails.map((detail, index) => (
-            <div key={index} className="mb-4">
-              <p className="text-lg font-medium">{detail.section}</p>
-              <p className="text-sm">Questions: {detail.questions}</p>
-              <p className="text-sm text-muted-foreground">{detail.description}</p>
-            </div>
-          ))}
+          {examDetails.map((detailString, index) => {
+            let detail: ExamDetail;
+            try {
+              detail = JSON.parse(detailString);
+            } catch (e) {
+              return null;
+            }
+            return (
+              <div key={index} className="mb-4">
+                <p className="text-lg font-medium">{detail.section}</p>
+                <p className="text-sm">Questions: {detail.questions}</p>
+                <p className="text-sm text-muted-foreground">{detail.description}</p>
+              </div>
+            );
+          })}
         </div>
         <div className="pt-4">
           {additionalInstructions.map((instruction, index) => (

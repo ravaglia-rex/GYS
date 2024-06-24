@@ -16,7 +16,7 @@ const ExamCardsGroup: React.FC<{ uid: string }> = ({ uid }) => {
           const details = await getExamDetails(formLinks);
           setExamData(details);
         }
-      } catch (error:any) {
+      } catch (error: any) {
         setError(error.message);
       } finally {
         setLoading(false);
@@ -31,16 +31,18 @@ const ExamCardsGroup: React.FC<{ uid: string }> = ({ uid }) => {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {examData.map((data, index) => (
-        <ExamCard
-          key={index}
-          cardTitle={data.card_title}
-          duration={data.duration}
-          cardDescription={data.card_description}
-          examDetails={JSON.parse("[]")}
-          additionalInstructions={data.additional_instructions}
-        />
-      ))}
+      {examData.map((data, index) => {
+        return (
+          <ExamCard
+            key={index}
+            cardTitle={data.card_title}
+            duration={data.duration}
+            cardDescription={data.card_description}
+            examDetails={data.exam_details}
+            additionalInstructions={data.additional_instructions}
+          />
+        );
+      })}
     </div>
   );
 };
