@@ -7,7 +7,6 @@ export const getUserData = async (studentId: string) => {
             userId: studentId
         });
 
-        // Check if the response was successful
         if (response.status === 200) {
             return {
                 success: true,

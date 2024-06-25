@@ -6,7 +6,6 @@ import {
 } from "firebase/firestore";
 import db from "./db";
 
-// Define the UserData type
 type UserData =
     | { daysDifference: number }
     | { remainingDays: number; remainingHours: number }

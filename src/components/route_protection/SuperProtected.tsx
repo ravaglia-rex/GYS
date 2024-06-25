@@ -30,7 +30,6 @@ const SuperProtected: React.FC<SuperProtectedProps> = ({ children }) => {
     }, []);
 
     if (loading) {
-        // Render nothing or a loading spinner while checking authentication status
         return <BigSpinner/>;
     }
 

@@ -12,7 +12,7 @@ import { Button } from "./ui/button";
 
 interface CameraAccessDialogProps {
   hasCameraAccess: boolean;
-  setHasCameraAccess: (hasAccess: boolean) => void; // Added to update the camera access state
+  setHasCameraAccess: (hasAccess: boolean) => void;
 }
 
 const CameraAccessDialog: React.FC<CameraAccessDialogProps> = ({ hasCameraAccess, setHasCameraAccess }) => {
@@ -21,10 +21,9 @@ const CameraAccessDialog: React.FC<CameraAccessDialogProps> = ({ hasCameraAccess
         navigator.mediaDevices.getUserMedia({ video: true })
             .then((stream) => {
                 setHasCameraAccess(true);
-                stream.getTracks().forEach(track => track.stop()); // Stop using the stream
+                stream.getTracks().forEach(track => track.stop());
             })
             .catch((error) => {
-                // Handle errors (such as user denying access)
                 setHasCameraAccess(false);
             });
     }, [setHasCameraAccess]);

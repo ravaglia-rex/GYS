@@ -10,13 +10,11 @@ import {
 } from "./ui/dialog";
 import { Button } from "./ui/button";
 
-// Define the props using an interface
 interface FullScreenDialogProps {
   isFullScreen: boolean;
   isSubmitted: boolean;
 }
 
-// Apply the interface to the component function
 const FullScreenDialog: React.FC<FullScreenDialogProps> = ({ isFullScreen, isSubmitted }) => {
     const enterFullScreen = () => {
         if (!document.fullscreenElement) {

@@ -53,7 +53,6 @@ const ExamCardsGroup: React.FC<{ uid: string }> = ({ uid }) => {
   if (loading) return <p>Loading...</p>;
   if (error) return <p>Error: {error}</p>;
 
-  // Filter incomplete exams for display
   const incompleteExams = examDetailsState.filter((data) => !data.completed);
 
   return (

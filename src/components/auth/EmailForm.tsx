@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { checkEmailExists } from '../../db/emailMappingCollection';
-
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../../firebase/firebase';
+import { useNavigate } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -32,12 +34,22 @@ const EmailSchema = z.object({
 const EmailEntryForm: React.FC<EmailEntryFormProps> = ({ setEmail, setEmailExists }) => {
     const { toast } = useToast();
     const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
+    const navigate = useNavigate();
     const form = useForm({
         resolver: zodResolver(EmailSchema),
         defaultValues: {
             email: '',
         },
     });
+
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                navigate('/dashboard');
+            }
+        });
+        return () => unsubscribe();
+    }, [navigate]);
 
     const onSubmit = async (data: z.infer<typeof EmailSchema>) => {
         setIsSubmitted(true);

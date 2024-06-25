@@ -17,15 +17,13 @@ const Protected: React.FC<ProtectedProps> = ({ children }) => {
       if (!user) {
         navigate('/');
       }
-      setLoading(false); // Authentication check is done
+      setLoading(false);
     });
 
-    // Cleanup subscription on unmount
     return () => unsubscribe();
   }, [navigate]);
 
   if (loading) {
-    // Render nothing or a loading spinner while checking authentication status
     return <BigSpinner/>;
   }
 

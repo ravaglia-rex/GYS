@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { UserCredential, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth';
+import React, { useState } from 'react';
+import { UserCredential, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../../firebase/firebase';
 
@@ -40,15 +40,6 @@ const SignInForm: React.FC<SignInFormProps> = ({ email }) => {
         },
     });
     const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
-
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            if (user) {
-                navigate('/dashboard');
-            }
-        });
-        return () => unsubscribe();
-    }, [navigate]);
 
     const signIn = async (data: z.infer<typeof signinSchema>) => {
         setIsSubmitted(true);
