@@ -26,7 +26,7 @@ const UserDropdown: React.FC = () => {
       <DropdownMenuContent align="end" className="bg-gray-900 text-white">
         <DropdownMenuLabel className="text-gray-400">My Account</DropdownMenuLabel>
         <DropdownMenuSeparator className="bg-gray-700" />
-        <DropdownMenuItem className="hover:bg-gray-700">Settings</DropdownMenuItem>
+        <DropdownMenuItem className="hover:bg-gray-700">Profile</DropdownMenuItem>
         <DropdownMenuItem className="hover:bg-gray-700">Support</DropdownMenuItem>
         <DropdownMenuSeparator className="bg-gray-700" />
         <DropdownMenuItem className="hover:bg-gray-700">

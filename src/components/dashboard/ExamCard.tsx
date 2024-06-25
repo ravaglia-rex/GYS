@@ -20,11 +20,12 @@ type ExamCardProps = React.ComponentProps<typeof Card> & {
   cardTitle: string;
   cardDescription: string;
   duration: number;
+  paymentNeeded: boolean;
   examDetails: string[];
   additionalInstructions: string[];
 };
 
-const ExamCard: React.FC<ExamCardProps> = ({ className, cardTitle, cardDescription, duration, examDetails, additionalInstructions, ...props }) => {
+const ExamCard: React.FC<ExamCardProps> = ({ className, cardTitle, cardDescription, duration, examDetails, additionalInstructions, paymentNeeded, ...props }) => {
   return (
     <Card className={cn("w-[380px]", className)} {...props}>
       <CardHeader>

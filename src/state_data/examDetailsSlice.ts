@@ -1,23 +1,39 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-interface ExamDetailsPayload {
-    examId: string;
+export interface ExamDetailsPayload {
+    formId: string;
+    additionalInstructions: string[];
+    examDetails: string[];
+    duration: number;
+    cardTitle: string;
+    paymentNeeded: boolean;
+    cardDescription: string;
+    completed: boolean;
+    cost: number;
+    currency: string;
 }
 
-const initialState: ExamDetailsPayload = {
-    examId: "",
-};
+interface ExamDetailsGroup {
+    examDetails: ExamDetailsPayload[];
+    examDetailsLoaded: boolean;
+}
+
+const initialState: ExamDetailsGroup = {
+    examDetails: [],
+    examDetailsLoaded: false,
+}
 
 export const examDetailsSlice = createSlice({
     name: "examDetails",
     initialState,
     reducers: {
-        setExamID: (state, action: PayloadAction<{examId: string}>) => {
-            state.examId = action.payload.examId;
+        setExamDetails: (state, action: PayloadAction<ExamDetailsGroup>) => {
+            state.examDetails = action.payload.examDetails;
+            state.examDetailsLoaded = true;
         },
     },
 });
 
-export const { setExamID } = examDetailsSlice.actions;
+export const { setExamDetails } = examDetailsSlice.actions;
 
 export default examDetailsSlice.reducer;

@@ -27,6 +27,7 @@ const LightingErrorPage = React.lazy(() => import('../pages/error_pages/Lighting
 DASHBOARD PAGES: These are the pages that are used for the dashboard
 */
 const DashboardPage = React.lazy(() => import('../pages/dashboard_pages/DashboardPage'));
+const PaymentHistory = React.lazy(() => import('../pages/dashboard_pages/PaymentHistory'));
 
 
 /*
@@ -75,6 +76,17 @@ const AppRouter: React.FC = () => {
             <Protected>
               <Suspense fallback={<BigSpinner/>}>
                 <DashboardPage />
+              </Suspense>
+            </Protected>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        <Route
+          path="/payment-history"
+          element={
+            <Protected>
+              <Suspense fallback={<BigSpinner/>}>
+                <PaymentHistory />
               </Suspense>
             </Protected>
           }
