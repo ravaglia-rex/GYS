@@ -82,7 +82,7 @@ const AppRouter: React.FC = () => {
           errorElement={<NotFoundPage />}
         />
         <Route
-          path="/payment-history"
+          path="/payments"
           element={
             <Protected>
               <Suspense fallback={<BigSpinner/>}>

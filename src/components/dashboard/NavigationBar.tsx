@@ -32,14 +32,14 @@ const Navbar: React.FC = () => {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Link
-                    to="/payment-history"
-                    className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors hover:text-foreground ${isActive('/payment-history')}`}
+                    to="/payments"
+                    className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors hover:text-foreground ${isActive('/payments')}`}
                   >
                     <DollarSign className="h-6 w-6" />
-                    <span className="sr-only">Payment History</span>
+                    <span className="sr-only">Payments</span>
                   </Link>
                 </TooltipTrigger>
-                <TooltipContent side="right">Payment History</TooltipContent>
+                <TooltipContent side="right">Payments</TooltipContent>
               </Tooltip>
             </nav>
             <nav className="mt-auto flex flex-col items-center gap-6 px-3 sm:py-6">
