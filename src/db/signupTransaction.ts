@@ -56,7 +56,6 @@ export const runSignUpTransaction = async (student: Student, email: string, exam
             }
         });
     } catch (e) {
-        console.error(e);
         throw new Error(`Error creating ${student.first_name} ${student.last_name}. Please contact talentsearch@argus.ai`);
     }
 };
