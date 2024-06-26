@@ -100,7 +100,7 @@ const RenderRazorpay: React.FC<RenderRazorpayProps> = ({
         await handlePayment('failed', response);
       }
     },
-    prefill: {
+    notes: {
       uid: uid,
       form_id: form_id,
     },
