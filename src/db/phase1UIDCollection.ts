@@ -5,17 +5,17 @@ import {
 } from "firebase/firestore";
 import db from "./db";
 
-export const addUidToPhase1 = async (uid: string): Promise<void> => {
+export const addExamIDToPhase1 = async (examID: string): Promise<void> => {
     try {
-        await setDoc(doc(db, "phase_1_uids", uid), {
-            uid: uid
+        await setDoc(doc(db, "phase_1_uids", examID), {
+            examID: examID
         });
     } catch (error) {
-        throw new Error(`Error adding UID: ${uid}`);
+        throw new Error(`Error adding Exam ID: ${examID}`);
     }
 };
 
-export const checkUidExists = async (uid: string): Promise<boolean> => {
+export const checkExamIDExists = async (uid: string): Promise<boolean> => {
     try {
         const docRef = doc(db, "phase_1_uids", uid);
         const docSnap = await getDoc(docRef);

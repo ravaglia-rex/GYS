@@ -6,24 +6,16 @@ import {
 } from "firebase/firestore";
 import db from "./db";
 
-type UserData =
-    | { daysDifference: number }
-    | { remainingDays: number; remainingHours: number }
-    | { message: string };
+type UserData = { 
+    eligibleDateTime: string 
+} | { 
+    message: string 
+};
 
-const calculateDateDifference = (createdAt: string) => {
-    const currentDate = new Date();
+const calculateEligibilityDateTime = (createdAt: string): string => {
     const createdAtDate = new Date(createdAt);
-    const differenceInTime = currentDate.getTime() - createdAtDate.getTime();
-    const differenceInDays = Math.floor(differenceInTime / (1000 * 3600 * 24));
-
-    if (differenceInDays >= 7) {
-        return { daysDifference: differenceInDays };
-    } else {
-        const remainingDays = 7 - differenceInDays;
-        const remainingHours = 24 - new Date(differenceInTime).getUTCHours();
-        return { remainingDays, remainingHours };
-    }
+    createdAtDate.setDate(createdAtDate.getDate() + 7);
+    return createdAtDate.toISOString(); // Returns date and time in ISO format
 };
 
 // FETCH RESULT BASED ON UID
@@ -42,14 +34,12 @@ export const getUserData = async (uid: string): Promise<UserData> => {
             throw new Error(`No createdAt field found in the result for UID ${uid}.`);
         }
 
-        const dateDifference = calculateDateDifference(resultData.createdAt);
+        const eligibleDateTime = calculateEligibilityDateTime(resultData.createdAt);
 
         if (resultData.result) {
-            return dateDifference;
-        } else if ('daysDifference' in dateDifference) {
-            return { message: "User has to be waitlisted" };
+            return { eligibleDateTime };
         } else {
-            return dateDifference;
+            return { eligibleDateTime };
         }
     } catch (error) {
         throw new Error(`Error fetching result for UID ${uid}. Please contact talentsearch@argus.ai`);

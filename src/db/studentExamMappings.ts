@@ -1,4 +1,4 @@
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc } from "firebase/firestore";
 import db from "./db";
 
 export const getExamIds = async (uid: string) => {
@@ -24,3 +24,19 @@ export const getExamIds = async (uid: string) => {
     throw new Error(`Error fetching exam IDs for user. Please contact talentsearch@argus.ai`);
   }
 };
+
+export const assignExamToUser = async (uid: string, formLink: string, completed: boolean, eligibilityDateTime: string) => {
+  try {
+  const examMappingRef = collection(db, "student_exam_mappings");
+  const newExamData = {
+    uid,
+    form_link: formLink,
+    completed,
+    eligibility_at: eligibilityDateTime,
+  }
+  await addDoc(examMappingRef, newExamData);
+  return {success: true, message: "Exam assigned successfully"};
+  } catch (error) {
+    throw new Error(`Error assigning exam to user. Please contact talentsearch@argus.ai`);
+  }
+}

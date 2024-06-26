@@ -6,8 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-import { createStudent } from "../../db/studentCollection";
-import { addEmailMapping } from "../../db/emailMappingCollection";
+import { runSignUpTransaction } from "../../db/signupTransaction";
 
 import {
     Form,
@@ -46,10 +45,13 @@ interface TnCPassProps {
     parent_email: string;
     parent_phone: string;
     email: string;
+    examID: string;
+    isQualified: boolean | null;
+    eligibleDateTime: string;
     setEmailExists: (emailExists: boolean|null) => void;
 }
 
-const TnCPassForm: React.FC<TnCPassProps> = ({ first_name, last_name, school, grade, parent_name, parent_email, parent_phone, email, setEmailExists }) => {
+const TnCPassForm: React.FC<TnCPassProps> = ({ first_name, last_name, school, grade, parent_name, parent_email, parent_phone, email, examID, isQualified, eligibleDateTime, setEmailExists }) => {
     const { toast } = useToast();
     const { prevStep } = useStepper();
     const [isSubmitted, setSubmitted] = useState<boolean>(false);
@@ -73,8 +75,7 @@ const TnCPassForm: React.FC<TnCPassProps> = ({ first_name, last_name, school, gr
             // Step 2: Send email verification
             await sendEmailVerification(userCredential.user);
 
-            // Step 3: Create the student record
-            await createStudent({
+            const new_student = {
                 uid: userCredential.user.uid,
                 first_name: first_name,
                 last_name: last_name,
@@ -83,10 +84,10 @@ const TnCPassForm: React.FC<TnCPassProps> = ({ first_name, last_name, school, gr
                 parent_name: parent_name,
                 parent_email: parent_email,
                 parent_phone: parent_phone,
-            });
+            };
 
-            // Step 4: Add email to email mapping collection
-            await addEmailMapping(userCredential.user.uid, email);
+            // Step 3: Run the sign up transaction
+            await runSignUpTransaction(new_student, email, examID, isQualified, eligibleDateTime);
 
             // Sign out and redirect to home page
             await signOut(auth);

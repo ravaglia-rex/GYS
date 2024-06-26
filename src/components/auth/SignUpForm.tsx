@@ -13,10 +13,13 @@ interface StepData {
 
 interface SignUpProps {
     email: string;
+    examID: string;
+    isQualified: boolean|null;
+    eligibleDateTime: string;
     setEmailExists: (emailExists: boolean|null) => void;
 }
 
-const SignUpForm: React.FC<SignUpProps> = ({email, setEmailExists}) => {
+const SignUpForm: React.FC<SignUpProps> = ({email, setEmailExists, examID, isQualified, eligibleDateTime}) => {
     const [firstName, setFirstName] = useState<string>("");
     const [lastName, setLastName] = useState<string>("");
     const [school, setSchool] = useState<string>("");
@@ -52,7 +55,7 @@ const SignUpForm: React.FC<SignUpProps> = ({email, setEmailExists}) => {
                             stepContent = <ParentInfoForm setParentName={setParentName} setParentEmail={setParentEmail} setParentPhone={setParentPhone}/>;
                             break;
                         case 3:
-                            stepContent = <TnCPassForm first_name={firstName} last_name={lastName} school={school} grade={grade} parent_name={parentName} parent_email={parentEmail} parent_phone={parentPhone} email={email} setEmailExists = {setEmailExists}/>;
+                            stepContent = <TnCPassForm first_name={firstName} last_name={lastName} school={school} grade={grade} parent_name={parentName} parent_email={parentEmail} parent_phone={parentPhone} email={email} examID={examID} isQualified={isQualified} eligibleDateTime={eligibleDateTime} setEmailExists = {setEmailExists}/>;
                             break;
                         default:
                             stepContent = <div>Unknown step</div>;

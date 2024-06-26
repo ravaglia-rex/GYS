@@ -1,19 +1,30 @@
 import React, { useState } from 'react';
 import EmailEntryForm from '../../components/auth/EmailForm';
 import SignInForm from '../../components/auth/SignInForm';
-import SignUpForm from '../../components/auth/SignUpForm.tsx';
+import SignUpForm from '../../components/auth/SignUpForm';
 
 const AuthenticationPage: React.FC = () => {
     const [email, setEmail] = useState<string>("");
-    const [emailExists, setEmailExists] = useState<boolean|null>(null);
+    const [emailExists, setEmailExists] = useState<boolean | null>(null);
+    const [examID, setExamID] = useState<string>("");
+    const [isQualified, setIsQualified] = useState<boolean | null>(null);
+    const [eligibleDateTime, setEligibilityDateTime] = useState<string>("");
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-cover bg-no-repeat"
             style={{ backgroundImage: `url(/assets/sign-up-background.jpg)` }}
         >
-            {emailExists === null && <EmailEntryForm setEmail={setEmail} setEmailExists={setEmailExists} />}
+            {emailExists === null && (
+                <EmailEntryForm
+                    setEmail={setEmail}
+                    setEmailExists={setEmailExists}
+                    setExamID={setExamID}
+                    setIsQualified={setIsQualified}
+                    setEligibilityDateTime={setEligibilityDateTime}
+                />
+            )}
             {emailExists === true && <SignInForm email={email} />}
-            {emailExists === false && <SignUpForm email={email} setEmailExists={setEmailExists}/>}
+            {emailExists === false && <SignUpForm email={email} setEmailExists={setEmailExists} examID={examID} isQualified={isQualified} eligibleDateTime={eligibleDateTime}/>}
         </div>
     );
 };
