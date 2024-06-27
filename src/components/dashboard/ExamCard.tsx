@@ -37,7 +37,7 @@ const ExamCard: React.FC<ExamCardProps> = ({ formID, className, cardTitle, cardD
         <CardDescription>{cardDescription}</CardDescription>
         <div className="flex items-center mt-2 text-sm text-muted-foreground">
           <Clock className="mr-2 h-4 w-4" />
-          <span>{duration} hours</span>
+          <span>{duration} hour{duration>1?"s":""}</span>
         </div>
       </CardHeader>
       <CardContent className="grid gap-4">

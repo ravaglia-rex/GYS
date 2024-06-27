@@ -28,9 +28,12 @@ const studentPaymentsSlice = createSlice({
       state.payments = action.payload;
       state.paymentsLoaded = true;
     },
+    resetPayments: (state) => {
+      state.payments = [];
+      state.paymentsLoaded = false;
+    }
   },
 });
 
-export const { setPayments } = studentPaymentsSlice.actions;
-
+export const { setPayments, resetPayments } = studentPaymentsSlice.actions;
 export default studentPaymentsSlice.reducer;

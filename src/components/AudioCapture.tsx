@@ -18,7 +18,7 @@ const AudioCapture: React.FC = () => {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const audioData = useRef<ArrayBuffer[]>([]);
   const dispatch = useDispatch();
-  const exam_id = localStorage.getItem('currentFormId') || "11111";
+  const exam_id = localStorage.getItem('currentFormId') || "<UNKNOWN_FORM_ID>";
   const navigate = useNavigate();
 
   useEffect(() => {

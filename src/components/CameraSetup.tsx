@@ -22,7 +22,7 @@ interface CameraSetupProps {
 
 const CameraSetup: React.FC<CameraSetupProps> = ({hasCameraAccess, isSubmitted, setHasCameraAccess, haveModelsLoaded, videoRef, entityDetectionWorkerRef, poseDetectionWorkerRef, faceLandmarksWorkerRef}) => {
     const user_id = auth.currentUser?.uid || "11111";
-    const exam_id = localStorage.getItem('currentFormId') || "11111";
+    const exam_id = localStorage.getItem('currentFormId') || "<UNKNOWN_FORM_ID>";
   
     const { toast } = useToast();
     const dispatch = useDispatch();

@@ -24,8 +24,8 @@ interface WorkerSetupComponentProps {
 const WorkerSetupComponent: React.FC<WorkerSetupComponentProps> = ({hasCameraAccess, formLoaded, modelLoaded, setModelsLoaded, entityDetectionWorkerRef, poseDetectionWorkerRef, faceLandmarksWorkerRef, internetSpeedState, tabSwitchingState}) => {
   const { toast } = useToast();
   const dispatch = useDispatch();
-  const exam_id = localStorage.getItem('currentFormId') || "11111";
-  const user_id = auth.currentUser?.uid || "11111";
+  const exam_id = localStorage.getItem('currentFormId') || "<UNKNOWN_FORM_ID>";
+  const user_id = auth.currentUser?.uid || "<UNKNOWN_USER_ID>";
 
   const entityDetectionState = useRef<Array<any>>([]);
   const faceLandmarksState = useRef<Array<any>>([]);

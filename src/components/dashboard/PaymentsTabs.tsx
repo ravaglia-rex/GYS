@@ -27,7 +27,7 @@ const PaymentsTabs: React.FC<{ uid: string }> = ({ uid }) => {
 
   const transformPaymentData = (paymentData: any) => {
     return {
-      paidOn: new Date(paymentData.paid_on.seconds * 1000 + paymentData.paid_on.nanoseconds / 1000000),
+      paidOn: new Date(paymentData.paid_on),
       paymentMethod: paymentData.payment_method,
       paymentStatus: paymentData.payment_status,
       transactionId: paymentData.transaction_id,

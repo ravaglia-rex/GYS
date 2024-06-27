@@ -21,35 +21,31 @@ interface FormEmbeddingProps {
 const FormEmbedding: React.FC<FormEmbeddingProps> = ({setSubmitted}) => {
   const loading = useSelector((state: RootState) => state.load.loading);
   const dispatch = useDispatch();
-  const exam_id = localStorage.getItem('currentFormId') || "11111";
+  const exam_id = localStorage.getItem('currentFormId') || "<UNKNOWN_FORM_ID>";
 
   useEffect(() => {
     const widgetScriptSrc = 'https://tally.so/widgets/embed.js';
 
     const load = () => {
-      // Load Tally embeds
       if (window.Tally) {
         window.Tally.loadEmbeds();
         return;
       }
 
-      // Fallback if window.Tally is not available
       document
         .querySelectorAll<HTMLIFrameElement>('iframe[data-tally-src]:not([src])')
         .forEach((iframeEl) => {
-          if (iframeEl.dataset.tallySrc) {  // Make sure dataset.tallySrc exists
-            iframeEl.src = iframeEl.dataset.tallySrc;  // Properly set src from dataset
+          if (iframeEl.dataset.tallySrc) {
+            iframeEl.src = iframeEl.dataset.tallySrc;
           }
         });
     };
 
-    // If Tally is already loaded, load the embeds
     if (window.Tally) {
       load();
       return;
     }
 
-    // If the Tally widget script is not loaded yet, load it
     if (document.querySelector(`script[src="${widgetScriptSrc}"]`) === null) {
       const script = document.createElement('script');
       script.src = widgetScriptSrc;
@@ -58,7 +54,7 @@ const FormEmbedding: React.FC<FormEmbeddingProps> = ({setSubmitted}) => {
       document.body.appendChild(script);
       return;
     }
-  }, [loading, exam_id]); // Depend on the loading state and exam_id
+  }, [loading, exam_id]);
 
   useEffect(() => {
     const handleMessage = async (e: MessageEvent) => {
@@ -105,7 +101,7 @@ const FormEmbedding: React.FC<FormEmbeddingProps> = ({setSubmitted}) => {
           frameBorder={0}
           marginHeight={0}
           marginWidth={0}
-          title="GYS - Preliminary Exam"
+          title="Argus Talent Exam"
         >
         </iframe>
       )}

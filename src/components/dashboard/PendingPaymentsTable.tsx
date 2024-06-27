@@ -19,7 +19,7 @@ import { ExamDetailsPayload } from "../../state_data/examDetailsSlice";
 import { auth } from "../../firebase/firebase";
 import { handleOrderExam } from "../../functions/payment_handling/razorpay_functions";
 import RenderRazorpay from "./RenderRazorpay";
-import {LoadingSpinner as Spinner } from "../ui/spinner"; // Import the Spinner component
+import {LoadingSpinner as Spinner } from "../ui/spinner";
 
 const PendingPaymentsTable: React.FC<{ payments: ExamDetailsPayload[] }> = ({ payments }) => {
   const [displayRazorpay, setDisplayRazorpay] = useState(false);
@@ -52,7 +52,7 @@ const PendingPaymentsTable: React.FC<{ payments: ExamDetailsPayload[] }> = ({ pa
     } catch (error) {
       console.error("Error creating order:", error);
     } finally {
-      setLoadingPayment(null); // Reset loading state
+      setLoadingPayment(null);
     }
   };
 

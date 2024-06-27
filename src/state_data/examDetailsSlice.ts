@@ -32,9 +32,13 @@ export const examDetailsSlice = createSlice({
             state.examDetails = action.payload.examDetails;
             state.examDetailsLoaded = true;
         },
+        resetExamDetails: (state) => {
+            state.examDetails = [];
+            state.examDetailsLoaded = false;
+        }
     },
 });
 
-export const { setExamDetails } = examDetailsSlice.actions;
+export const { setExamDetails, resetExamDetails } = examDetailsSlice.actions;
 
 export default examDetailsSlice.reducer;
