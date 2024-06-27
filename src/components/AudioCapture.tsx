@@ -6,12 +6,11 @@ import { SAMPLE_RATE, SAMPLE_SIZE, AUDIO_RATE } from '../constants/constants';
 
 import { pushAudioData } from '../functions/object_storage/push_audio_data';
 
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { cleanupAudioCaptureResources } from '../state_data/audioCaptureSlice';
 import { cleanupFrameResources } from '../state_data/frameCaptureSlice';
 import { useToast } from './ui/use-toast';
 import { auth } from '../firebase/firebase';
-import { RootState } from '../state_data/reducer';
 
 const AudioCapture: React.FC = () => {
   const { toast } = useToast();
@@ -19,7 +18,7 @@ const AudioCapture: React.FC = () => {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const audioData = useRef<ArrayBuffer[]>([]);
   const dispatch = useDispatch();
-  const exam_id = useSelector((state: RootState) => state.examDetails.examId);
+  const exam_id = localStorage.getItem('currentFormId') || "11111";
   const navigate = useNavigate();
 
   useEffect(() => {

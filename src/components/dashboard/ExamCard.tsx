@@ -1,6 +1,6 @@
-import { Check, Clock } from "lucide-react";
+import { Clock } from "lucide-react";
 import { cn } from "../../lib/utils";
-import { Button } from "../ui/button";
+
 import {
   Card,
   CardContent,
@@ -10,6 +10,8 @@ import {
   CardTitle,
 } from "../ui/card";
 
+import StartExamButton from "./StartExamButton";
+
 type ExamDetail = {
   section: string;
   questions: number;
@@ -17,15 +19,17 @@ type ExamDetail = {
 };
 
 type ExamCardProps = React.ComponentProps<typeof Card> & {
+  formID: string;
   cardTitle: string;
   cardDescription: string;
   duration: number;
   paymentNeeded: boolean;
   examDetails: string[];
   additionalInstructions: string[];
+  isProctored: boolean;
 };
 
-const ExamCard: React.FC<ExamCardProps> = ({ className, cardTitle, cardDescription, duration, examDetails, additionalInstructions, paymentNeeded, ...props }) => {
+const ExamCard: React.FC<ExamCardProps> = ({ formID, className, cardTitle, cardDescription, duration, examDetails, additionalInstructions, paymentNeeded, isProctored, ...props }) => {
   return (
     <Card className={cn("w-[380px]", className)} {...props}>
       <CardHeader>
@@ -63,9 +67,7 @@ const ExamCard: React.FC<ExamCardProps> = ({ className, cardTitle, cardDescripti
         </div>
       </CardContent>
       <CardFooter>
-        <Button className="w-full">
-          <Check className="mr-2 h-4 w-4" /> Start Exam
-        </Button>
+        <StartExamButton formId={formID} paymentNeeded={paymentNeeded} isProctored={isProctored} />
       </CardFooter>
     </Card>
   );

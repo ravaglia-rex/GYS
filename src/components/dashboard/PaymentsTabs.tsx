@@ -68,6 +68,7 @@ const PaymentsTabs: React.FC<{ uid: string }> = ({ uid }) => {
               completed: completed[index],
               cost: detail.cost,
               currency: detail.currency,
+              isProctored: detail.is_proctored,
             }));
 
           dispatch(setExamDetails({ examDetails: validDetails, examDetailsLoaded: true }));

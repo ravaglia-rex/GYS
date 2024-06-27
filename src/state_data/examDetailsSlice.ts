@@ -11,6 +11,7 @@ export interface ExamDetailsPayload {
     completed: boolean;
     cost: number;
     currency: string;
+    isProctored: boolean;
 }
 
 interface ExamDetailsGroup {

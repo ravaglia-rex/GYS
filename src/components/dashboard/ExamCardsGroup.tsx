@@ -33,6 +33,7 @@ const ExamCardsGroup: React.FC<{ uid: string }> = ({ uid }) => {
                 completed: completed[index],
                 cost: detail.cost,
                 currency: detail.currency,
+                isProctored: detail.is_proctored,
               }));
 
             dispatch(setExamDetails({ examDetails: validDetails, examDetailsLoaded: true }));
@@ -60,12 +61,14 @@ const ExamCardsGroup: React.FC<{ uid: string }> = ({ uid }) => {
       {incompleteExams.map((data, index) => (
         <ExamCard
           key={index}
+          formID={data.formId}
           cardTitle={data.cardTitle}
           duration={data.duration}
           cardDescription={data.cardDescription}
           examDetails={data.examDetails}
           additionalInstructions={data.additionalInstructions}
           paymentNeeded={data.paymentNeeded}
+          isProctored={data.isProctored}
         />
       ))}
     </div>

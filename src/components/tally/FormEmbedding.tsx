@@ -21,7 +21,7 @@ interface FormEmbeddingProps {
 const FormEmbedding: React.FC<FormEmbeddingProps> = ({setSubmitted}) => {
   const loading = useSelector((state: RootState) => state.load.loading);
   const dispatch = useDispatch();
-  const exam_id = useSelector((state: RootState) => state.examDetails.examId);
+  const exam_id = localStorage.getItem('currentFormId') || "11111";
 
   useEffect(() => {
     const widgetScriptSrc = 'https://tally.so/widgets/embed.js';
