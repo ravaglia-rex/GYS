@@ -5,6 +5,7 @@ import { cleanupAudioCaptureResources } from '../../state_data/audioCaptureSlice
 import { cleanupFrameResources } from '../../state_data/frameCaptureSlice';
 import { auth } from '../../firebase/firebase';
 import { createSubmissionRecord } from '../../db/studentSubmissionMapping';
+import { markExamComplete } from '../../db/studentExamMappings';
 
 declare global {
   interface Window {
@@ -73,6 +74,8 @@ const FormEmbedding: React.FC<FormEmbeddingProps> = ({setSubmitted}) => {
             form_id,
             submission_time,
           });
+
+          await markExamComplete(student_uid, form_id);
 
           dispatch(cleanupAudioCaptureResources());
           dispatch(cleanupFrameResources());
