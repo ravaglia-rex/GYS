@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { RootState } from '../../state_data/reducer';
 import { cleanupAudioCaptureResources } from '../../state_data/audioCaptureSlice';
 import { cleanupFrameResources } from '../../state_data/frameCaptureSlice';
@@ -19,10 +20,12 @@ interface FormEmbeddingProps {
   setSubmitted: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const FormEmbedding: React.FC<FormEmbeddingProps> = ({setSubmitted}) => {
+const FormEmbedding: React.FC<FormEmbeddingProps> = ({ setSubmitted }) => {
   const loading = useSelector((state: RootState) => state.load.loading);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const exam_id = localStorage.getItem('currentFormId') || "<UNKNOWN_FORM_ID>";
+  const [submissionComplete, setSubmissionComplete] = useState(false);
 
   useEffect(() => {
     const widgetScriptSrc = 'https://tally.so/widgets/embed.js';
@@ -62,7 +65,7 @@ const FormEmbedding: React.FC<FormEmbeddingProps> = ({setSubmitted}) => {
       if (typeof e.data === 'string' && e.data.includes('Tally.FormSubmitted')) {
         try {
           const data = JSON.parse(e.data);
-          const student_uid = auth.currentUser?.uid||"<UNKNOWN_USER_ID>";
+          const student_uid = auth.currentUser?.uid || "<UNKNOWN_USER_ID>";
           const submission_id = data.payload.id;
           const submission_time = data.payload.createdAt;
           const form_id = data.payload.formId;
@@ -79,6 +82,8 @@ const FormEmbedding: React.FC<FormEmbeddingProps> = ({setSubmitted}) => {
 
           dispatch(cleanupAudioCaptureResources());
           dispatch(cleanupFrameResources());
+          
+          setSubmissionComplete(true);
         } catch (error) {
           console.error('Error parsing message data:', error);
         }
@@ -107,6 +112,25 @@ const FormEmbedding: React.FC<FormEmbeddingProps> = ({setSubmitted}) => {
           title="Argus Talent Exam"
         >
         </iframe>
+      )}
+      {submissionComplete && (
+        <div style={{ marginTop: '20px', textAlign: 'center' }}>
+          <p>You can now navigate to the dashboard.</p>
+          <button 
+            onClick={() => navigate('/dashboard')} 
+            style={{ 
+              padding: '10px 20px', 
+              fontSize: '16px', 
+              backgroundColor: '#007BFF', 
+              color: '#fff', 
+              border: 'none', 
+              borderRadius: '5px', 
+              cursor: 'pointer' 
+            }}
+          >
+            Go to Dashboard
+          </button>
+        </div>
       )}
     </div>
   );
