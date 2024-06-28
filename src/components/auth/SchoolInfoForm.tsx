@@ -94,7 +94,7 @@ const SchoolInfoForm: React.FC<SchoolInfoFormProps> = ({setSchool, setGrade}) =>
 
     return (
         <div>
-            <h2 className="text-2xl font-semibold text-center mb-6">Alma Mater 🏫</h2>
+            <h2 className="text-2xl font-semibold text-center mb-6">School 🏫</h2>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                     <FormField

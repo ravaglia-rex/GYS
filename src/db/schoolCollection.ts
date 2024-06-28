@@ -60,8 +60,10 @@ export const readSchool = async (school_id: string) => {
 // FETCH ALL SCHOOL NAMES AND IDs
 export const fetchSchoolNamesAndIds = async () => {
     try {
-        const schools = await getDocs(collection(db, "schools"));
-        return schools.docs.map(doc => ({
+        const schools = collection(db, "schools");
+        const schoolQuery = query(schools, where("education_world", "==", true));
+        const schoolsSnapshot = await getDocs(schoolQuery);
+        return schoolsSnapshot.docs.map(doc => ({
             id: doc.id,
             name: doc.data().school_name
         }));
