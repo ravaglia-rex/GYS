@@ -12,6 +12,7 @@ export interface ExamDetailsPayload {
     cost: number;
     currency: string;
     isProctored: boolean;
+    eligibility_at: string;
 }
 
 interface ExamDetailsGroup {

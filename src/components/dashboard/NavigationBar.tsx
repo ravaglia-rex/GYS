@@ -27,7 +27,7 @@ const Navbar: React.FC = () => {
                                 <span className="sr-only">Dashboard</span>
                             </Link>
                         </TooltipTrigger>
-                        <TooltipContent side="right">Dashboard</TooltipContent>
+                        <TooltipContent side="right" className="z-50">Dashboard</TooltipContent>
                     </Tooltip>
                     <Tooltip>
                         <TooltipTrigger asChild>
@@ -39,7 +39,7 @@ const Navbar: React.FC = () => {
                                 <span className="sr-only">Payments</span>
                             </Link>
                         </TooltipTrigger>
-                        <TooltipContent side="right">Payments</TooltipContent>
+                        <TooltipContent side="right" className="z-50">Payments</TooltipContent>
                     </Tooltip>
                 </nav>
                 <nav className="mt-auto flex flex-col items-center gap-6 px-3 sm:py-6">
@@ -55,7 +55,7 @@ const Navbar: React.FC = () => {
                                 <span className="sr-only">Settings</span>
                             </div>
                         </TooltipTrigger>
-                        <TooltipContent side="right">Settings (Coming Soon)</TooltipContent>
+                        <TooltipContent side="right" className="z-50">Settings (Coming Soon)</TooltipContent>
                     </Tooltip>
                 </nav>
             </aside>

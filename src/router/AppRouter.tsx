@@ -1,6 +1,7 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Protected from '../components/route_protection/Protected';
+import SuperProtected from '../components/route_protection/SuperProtected';
 import NotFoundPage from '../pages/NotFoundPage';
 import BigSpinner from '../components/BigSpinner';
 
@@ -96,11 +97,11 @@ const AppRouter: React.FC = () => {
         <Route 
           path="/camera-microphone-access" 
           element={
-            <Protected>
+            <SuperProtected>
               <Suspense fallback={<BigSpinner/>}>
                 <CameraMicrophoneAccess />
               </Suspense>
-            </Protected>
+            </SuperProtected>
           }
           errorElement={<NotFoundPage />}
         />
@@ -108,11 +109,11 @@ const AppRouter: React.FC = () => {
         <Route 
           path="/testing" 
           element={
-            <Protected>
+            <SuperProtected>
               <Suspense fallback={<BigSpinner/>}>
                 <TestingPage />
               </Suspense>
-            </Protected>
+            </SuperProtected>
           }
           errorElement={<NotFoundPage />}
         />

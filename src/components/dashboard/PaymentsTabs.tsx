@@ -52,7 +52,7 @@ const PaymentsTabs: React.FC<{ uid: string }> = ({ uid }) => {
 
     const loadExamDetails = async () => {
       try {
-        const { formLinks, completed } = await getExamIds(uid);
+        const { formLinks, completed, eligibility_at } = await getExamIds(uid);
         if (formLinks.length > 0) {
           const details = await getExamDetails(formLinks);
           const validDetails: ExamDetailsPayload[] = details
@@ -69,6 +69,7 @@ const PaymentsTabs: React.FC<{ uid: string }> = ({ uid }) => {
               cost: detail.cost,
               currency: detail.currency,
               isProctored: detail.is_proctored,
+              eligibility_at: eligibility_at[index]
             }));
 
           dispatch(setExamDetails({ examDetails: validDetails, examDetailsLoaded: true }));

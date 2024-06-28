@@ -16,6 +16,12 @@ const ExamCardsGroup: React.FC<{ uid: string }> = ({ uid }) => {
   const [loading, setLoading] = useState(!examDetailsLoaded);
   const [error, setError] = useState<string | null>(null);
 
+  const checkEligibility = (eligibility_at: string) => {
+    const eligibilityDate = new Date(eligibility_at);
+    const currentDate = new Date();
+    return currentDate >= eligibilityDate;
+  };
+
   const transformPaymentData = (paymentData: any) => {
     return {
       paidOn: new Date(paymentData.paid_on),
@@ -43,7 +49,7 @@ const ExamCardsGroup: React.FC<{ uid: string }> = ({ uid }) => {
 
     const loadExamDetails = async () => {
       try {
-        const { formLinks, completed } = await getExamIds(uid);
+        const { formLinks, completed, eligibility_at } = await getExamIds(uid);
         if (formLinks.length > 0) {
           const details = await getExamDetails(formLinks);
           const validDetails: ExamDetailsPayload[] = details
@@ -60,6 +66,7 @@ const ExamCardsGroup: React.FC<{ uid: string }> = ({ uid }) => {
               cost: detail.cost,
               currency: detail.currency,
               isProctored: detail.is_proctored,
+              eligibility_at: eligibility_at[index]
             }));
 
           dispatch(setExamDetails({ examDetails: validDetails, examDetailsLoaded: true }));
@@ -99,6 +106,8 @@ const ExamCardsGroup: React.FC<{ uid: string }> = ({ uid }) => {
           additionalInstructions={data.additionalInstructions}
           paymentNeeded={data.paymentNeeded}
           isProctored={data.isProctored}
+          eligibilityAt={data.eligibility_at}
+          isEligible={checkEligibility(data.eligibility_at)}
         />
       ))}
     </div>

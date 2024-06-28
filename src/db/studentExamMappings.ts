@@ -7,19 +7,21 @@ export const getExamIds = async (uid: string) => {
     const examQuery = query(examMappingRef, where("uid", "==", uid));
     const examSnapshot = await getDocs(examQuery);
     if (examSnapshot.empty) {
-      return { formLinks: [], completed: [] };
+      return { formLinks: [], completed: [], eligibility_at: [] };
     }
 
     let formLinks: string[] = [];
     let completed: boolean[] = [];
+    let eligibility_at: string[] = [];
 
     examSnapshot.forEach(doc => {
       const examData = doc.data();
       formLinks.push(examData.form_link);
       completed.push(examData.completed);
+      eligibility_at.push(examData.eligibility_at);
     });
 
-    return { formLinks, completed };
+    return { formLinks, completed, eligibility_at };
   } catch (error) {
     throw new Error(`Error fetching exam IDs for user. Please contact talentsearch@argus.ai`);
   }

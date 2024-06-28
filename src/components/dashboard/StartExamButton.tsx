@@ -26,6 +26,14 @@ const StartExamButton: React.FC<StartExamButtonProps> = ({ formId, paymentNeeded
   const navigate = useNavigate();
   const studentPayments = useSelector((state: RootState) => state.studentPayments.payments);
 
+  const enterFullScreen = () => {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+        alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+        });
+    }
+  };
+
   const handleStartExam = () => {
     setLoading(true);
     // if studentPayments isn't loaded yet, load it first
@@ -45,6 +53,7 @@ const StartExamButton: React.FC<StartExamButtonProps> = ({ formId, paymentNeeded
     localStorage.setItem('isProctored', JSON.stringify(isProctored));
 
     if (isProctored) {
+      enterFullScreen();
       navigate('/camera-microphone-access');
     } else {
       navigate('/testing');

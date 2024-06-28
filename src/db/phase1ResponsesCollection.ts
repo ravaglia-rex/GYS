@@ -14,8 +14,8 @@ type UserData = {
 
 const calculateEligibilityDateTime = (createdAt: string): string => {
     const createdAtDate = new Date(createdAt);
-    createdAtDate.setDate(createdAtDate.getDate() + 7);
-    return createdAtDate.toISOString(); // Returns date and time in ISO format
+    createdAtDate.setDate(createdAtDate.getDate() + 2);
+    return createdAtDate.toISOString();
 };
 
 // FETCH RESULT BASED ON UID
