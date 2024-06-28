@@ -13,13 +13,10 @@ interface StepData {
 
 interface SignUpProps {
     email: string;
-    examID: string;
-    isQualified: boolean|null;
-    eligibleDateTime: string;
     setEmailExists: (emailExists: boolean|null) => void;
 }
 
-const SignUpForm: React.FC<SignUpProps> = ({email, setEmailExists, examID, isQualified, eligibleDateTime}) => {
+const SignUpForm: React.FC<SignUpProps> = ({email, setEmailExists}) => {
     const [firstName, setFirstName] = useState<string>("");
     const [lastName, setLastName] = useState<string>("");
     const [school, setSchool] = useState<string>("");
@@ -27,6 +24,9 @@ const SignUpForm: React.FC<SignUpProps> = ({email, setEmailExists, examID, isQua
     const [parentName, setParentName] = useState<string>("");
     const [parentEmail, setParentEmail] = useState<string>("");
     const [parentPhone, setParentPhone] = useState<string>("");
+    const [examID, setExamID] = useState<string>("");
+    const [isQualified, setIsQualified] = useState<boolean | null>(null);
+    const [eligibleDateTime, setEligibilityDateTime] = useState<string>("");
 
     const steps: StepData[] = [
         { label: 'Step 1', content: 'Personal Information' },
@@ -46,7 +46,7 @@ const SignUpForm: React.FC<SignUpProps> = ({email, setEmailExists, examID, isQua
                     let stepContent;
                     switch (index) {
                         case 0:
-                            stepContent = <PersonalInformation setFirstName={setFirstName} setLastName={setLastName}/>;
+                            stepContent = <PersonalInformation setFirstName={setFirstName} setLastName={setLastName} setExamID={setExamID} setIsQualified={setIsQualified} setEligibilityDateTime={setEligibilityDateTime}/>;
                             break;
                         case 1:
                             stepContent = <SchoolInfoForm setSchool={setSchool} setGrade={setGrade}/>;

@@ -6,9 +6,6 @@ import SignUpForm from '../../components/auth/SignUpForm';
 const AuthenticationPage: React.FC = () => {
     const [email, setEmail] = useState<string>("");
     const [emailExists, setEmailExists] = useState<boolean | null>(null);
-    const [examID, setExamID] = useState<string>("");
-    const [isQualified, setIsQualified] = useState<boolean | null>(null);
-    const [eligibleDateTime, setEligibilityDateTime] = useState<string>("");
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-cover bg-no-repeat"
@@ -18,13 +15,10 @@ const AuthenticationPage: React.FC = () => {
                 <EmailEntryForm
                     setEmail={setEmail}
                     setEmailExists={setEmailExists}
-                    setExamID={setExamID}
-                    setIsQualified={setIsQualified}
-                    setEligibilityDateTime={setEligibilityDateTime}
                 />
             )}
             {emailExists === true && <SignInForm email={email} />}
-            {emailExists === false && <SignUpForm email={email} setEmailExists={setEmailExists} examID={examID} isQualified={isQualified} eligibleDateTime={eligibleDateTime}/>}
+            {emailExists === false && <SignUpForm email={email} setEmailExists={setEmailExists}/>}
         </div>
     );
 };

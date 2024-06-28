@@ -14,11 +14,13 @@ export const getExamIds = async (uid: string) => {
     let completed: boolean[] = [];
     let eligibility_at: string[] = [];
 
+    const currentDate = new Date().toISOString();
+
     examSnapshot.forEach(doc => {
       const examData = doc.data();
       formLinks.push(examData.form_link);
       completed.push(examData.completed);
-      eligibility_at.push(examData.eligibility_at);
+      eligibility_at.push(examData.eligibility_at || currentDate);
     });
 
     return { formLinks, completed, eligibility_at };
