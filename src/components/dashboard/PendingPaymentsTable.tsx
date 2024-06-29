@@ -84,6 +84,7 @@ const PendingPaymentsTable: React.FC<{ payments: ExamDetailsPayload[] }> = ({ pa
                       <Button
                         onClick={() => handlePayNow(exam.formId, exam.cardTitle, exam.cost, exam.currency)}
                         disabled={true}
+                        
                       >
                         {loadingPayment === exam.formId ? <Spinner /> : "Pay Now"}
                       </Button>
