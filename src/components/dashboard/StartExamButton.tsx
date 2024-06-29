@@ -23,14 +23,15 @@ type StartExamButtonProps = {
 const StartExamButton: React.FC<StartExamButtonProps> = ({ formId, paymentNeeded, isProctored }) => {
   const [loading, setLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false); // State for payment confirmation checkbox
   const navigate = useNavigate();
   const studentPayments = useSelector((state: RootState) => state.studentPayments.payments);
 
   const enterFullScreen = () => {
     if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(err => {
+      document.documentElement.requestFullscreen().catch(err => {
         alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
-        });
+      });
     }
   };
 
@@ -40,15 +41,13 @@ const StartExamButton: React.FC<StartExamButtonProps> = ({ formId, paymentNeeded
     const hasPaid = studentPayments.some((payment) => payment.formId === formId && payment.paymentStatus === 'completed');
 
     if (!hasPaid && paymentNeeded) {
-      alert('You need to pay for this exam before you can start it');
-      setLoading(false);
-      return;
+      setDialogOpen(true);
+    } else {
+      startExam();
     }
-
-    setDialogOpen(true);
   };
 
-  const confirmStartExam = () => {
+  const startExam = () => {
     localStorage.setItem('currentFormId', formId);
     localStorage.setItem('isProctored', JSON.stringify(isProctored));
 
@@ -60,15 +59,22 @@ const StartExamButton: React.FC<StartExamButtonProps> = ({ formId, paymentNeeded
     }
   };
 
+  const confirmStartExam = () => {
+    startExam();
+    setDialogOpen(false);
+  };
+
   const handleDialogClose = () => {
     setDialogOpen(false);
     setLoading(false);
+    setPaymentConfirmed(false); // Reset payment confirmation state on dialog close
   };
 
   const handleDialogStateChange = (isOpen: boolean) => {
     if (!isOpen) {
       setLoading(false);
       setDialogOpen(false);
+      setPaymentConfirmed(false); // Reset payment confirmation state on dialog close
     }
   };
 
@@ -82,10 +88,19 @@ const StartExamButton: React.FC<StartExamButtonProps> = ({ formId, paymentNeeded
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Are you sure?</DialogTitle>
-            <DialogDescription>
-              You have to complete this exam in one sitting.
-            </DialogDescription>
           </DialogHeader>
+          <DialogDescription>
+            You have to complete this exam in one sitting.
+            <label className="flex items-center mt-2">
+              <input
+                type="checkbox"
+                className="form-checkbox h-4 w-4 text-green-500"
+                checked={paymentConfirmed}
+                onChange={() => setPaymentConfirmed(!paymentConfirmed)}
+              />
+              <span className="ml-2">I understand that I need to pay to receive the results for this exam.</span>
+            </label>
+          </DialogDescription>
           <DialogFooter>
             <Button 
               onClick={handleDialogClose} 
@@ -95,11 +110,14 @@ const StartExamButton: React.FC<StartExamButtonProps> = ({ formId, paymentNeeded
             </Button>
             <Button 
               onClick={confirmStartExam} 
-              className="bg-green-500 text-white hover:bg-green-600"
+              className={`bg-green-500 text-white hover:bg-green-600 ${!paymentConfirmed && 'opacity-50 cursor-not-allowed'}`}
+              disabled={!paymentConfirmed}
             >
               <Check className="mr-2 h-4 w-4" /> Yes, Start Exam
             </Button>
           </DialogFooter>
+          <DialogDescription>
+          </DialogDescription>
         </DialogContent>
       </Dialog>
     </>
