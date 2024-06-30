@@ -39,7 +39,7 @@ export const getUserData = async (uid: string): Promise<UserData> => {
         if (resultData.result) {
             return { eligibleDateTime };
         } else {
-            return { eligibleDateTime };
+            return { message: "User has to be waitlisted"};
         }
     } catch (error) {
         throw new Error(`Error fetching result for UID ${uid}. Please contact talentsearch@argus.ai`);

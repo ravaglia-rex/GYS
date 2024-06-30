@@ -4,6 +4,7 @@ import { createExpeditedSchool } from "../../db/schoolCollection";
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import WaitlistDialog from "./WaitlistDialog";
 
 import { fetchSchoolNamesAndIds } from "../../db/schoolCollection";
 
@@ -29,6 +30,7 @@ import { Button } from '../ui/button';
 import { useToast } from '../ui/use-toast';
 import AutocompleteInput from "../autocomplete/AutocompleteInput";
 import { useStepper } from "../ui/stepper";
+import CongratulationsDialog from "./CongratulationsDialog";
 
 const schoolSchema = z.object({
     school: z.string().min(1, 'School is required'),
@@ -36,14 +38,16 @@ const schoolSchema = z.object({
 })
 
 interface SchoolInfoFormProps {
+    isQualified: boolean | null;
     setSchool: (school: string) => void;
     setGrade: (grade: number) => void;
 }
 
-const SchoolInfoForm: React.FC<SchoolInfoFormProps> = ({setSchool, setGrade}) => {
+const SchoolInfoForm: React.FC<SchoolInfoFormProps> = ({setSchool, setGrade, isQualified}) => {
     const [schoolsList, setSchoolsList] = useState<{ id: string, name: string }[]>([]);
     const { toast } = useToast();
     const { nextStep, prevStep } = useStepper();
+    const [showDialog, setShowDialog] = useState(true);
 
     const form = useForm({
         resolver: zodResolver(schoolSchema),
@@ -94,6 +98,12 @@ const SchoolInfoForm: React.FC<SchoolInfoFormProps> = ({setSchool, setGrade}) =>
 
     return (
         <div>
+            {(showDialog && isQualified===false) && (
+                <WaitlistDialog isOpen={showDialog} onClose={() => setShowDialog(false)} />
+            )}
+            {(showDialog && isQualified===true) && (
+                <CongratulationsDialog isOpen={showDialog} onClose={() => setShowDialog(false)} />
+            )}
             <h2 className="text-2xl font-semibold text-center mb-6">School 🏫</h2>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">

@@ -72,9 +72,6 @@ const TnCPassForm: React.FC<TnCPassProps> = ({ first_name, last_name, school, gr
             // Step 1: Create the user in Firebase Auth
             const userCredential: UserCredential = await createUserWithEmailAndPassword(auth, email, data.password);
 
-            // Step 2: Send email verification
-            await sendEmailVerification(userCredential.user);
-
             const new_student = {
                 uid: userCredential.user.uid,
                 first_name: first_name,
@@ -86,8 +83,11 @@ const TnCPassForm: React.FC<TnCPassProps> = ({ first_name, last_name, school, gr
                 parent_phone: parent_phone,
             };
 
-            // Step 3: Run the sign up transaction
+            // Step 2: Run the sign up transaction
             await runSignUpTransaction(new_student, email, examID, isQualified, eligibleDateTime);
+
+            // Step 3: Send email verification
+            await sendEmailVerification(userCredential.user);
 
             // Sign out and redirect to home page
             await signOut(auth);
