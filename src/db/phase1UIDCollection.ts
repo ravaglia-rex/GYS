@@ -1,13 +1,18 @@
 import { 
-    setDoc, 
-    getDoc, 
-    doc 
+    setDoc,
+    doc, 
+    collection, 
+    query, 
+    where, 
+    getDocs 
 } from "firebase/firestore";
 import db from "./db";
 
 export const addExamIDToPhase1 = async (examID: string): Promise<void> => {
     try {
-        await setDoc(doc(db, "phase_1_uids", examID), {
+        const sanitizedExamID = examID.replace(/\//g, "_");
+        console.log(sanitizedExamID);
+        await setDoc(doc(db, "phase_1_uids", sanitizedExamID), {
             examID: examID
         });
     } catch (error) {
@@ -15,12 +20,13 @@ export const addExamIDToPhase1 = async (examID: string): Promise<void> => {
     }
 };
 
-export const checkExamIDExists = async (uid: string): Promise<boolean> => {
+export const checkExamIDExists = async (examID: string): Promise<boolean> => {
     try {
-        const docRef = doc(db, "phase_1_uids", uid);
-        const docSnap = await getDoc(docRef);
+        const phase1Collection = collection(db, "phase_1_uids");
+        const q = query(phase1Collection, where("examID", "==", examID.trim()));
+        const querySnapshot = await getDocs(q);
 
-        if (docSnap.exists()) {
+        if (!querySnapshot.empty) {
             return true;
         } else {
             return false;

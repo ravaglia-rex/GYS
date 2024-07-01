@@ -31,7 +31,8 @@ export const runSignUpTransaction = async (student: Student, email: string, exam
 
             // Step 3: Add the exam id to phase 1 uids collection
             if(examID !== null && examID !== ""){
-                const examIDRef = doc(collection(db, "phase_1_uids"), examID);
+                const sanitizedExamID = examID.replace(/\//g, "_").trim();
+                const examIDRef = doc(collection(db, "phase_1_uids"), sanitizedExamID);
                 transaction.set(examIDRef, {
                     examID: examID
                 });
@@ -56,6 +57,7 @@ export const runSignUpTransaction = async (student: Student, email: string, exam
             }
         });
     } catch (e) {
+        console.error(e);
         throw new Error(`Error creating ${student.first_name} ${student.last_name}. Please contact talentsearch@argus.ai`);
     }
 };
