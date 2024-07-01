@@ -11,7 +11,6 @@ import db from "./db";
 export const addExamIDToPhase1 = async (examID: string): Promise<void> => {
     try {
         const sanitizedExamID = examID.replace(/\//g, "_");
-        console.log(sanitizedExamID);
         await setDoc(doc(db, "phase_1_uids", sanitizedExamID), {
             examID: examID
         });
