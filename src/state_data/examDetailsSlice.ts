@@ -13,6 +13,7 @@ export interface ExamDetailsPayload {
     currency: string;
     isProctored: boolean;
     eligibility_at: string;
+    result?: boolean | null;
 }
 
 interface ExamDetailsGroup {

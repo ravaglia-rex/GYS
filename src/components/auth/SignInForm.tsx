@@ -21,6 +21,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { LoadingSpinner as Spinner } from '../ui/spinner';
 import { useToast } from '../ui/use-toast';
+import { getExamIds } from '../../db/studentExamMappings';
 
 const signinSchema = z.object({
     password: z.string().min(6, 'Password must be at least 6 characters'),
@@ -46,15 +47,20 @@ const SignInForm: React.FC<SignInFormProps> = ({ email }) => {
         try {
             const userCredential: UserCredential = await signInWithEmailAndPassword(auth, email, data.password);
             if (!userCredential.user.emailVerified) {
-                toast({
-                    variant: 'destructive',
-                    title: 'Email not verified',
-                    description: 'Please verify your email to continue.',
-                });
-                await signOut(auth);
-                navigate('/');
-                setIsSubmitted(false);
-                return;
+                const {formLinks, completed} = await getExamIds(userCredential.user.uid);
+                const hasPermission = formLinks.includes('npByEB') && !completed[formLinks.indexOf('npByEB')];
+                if(!hasPermission){
+                    toast({
+                        variant: 'destructive',
+                        title: 'Email not verified',
+                        description: 'Please verify your email to continue.',
+                    });
+                    
+                    await signOut(auth);
+                    navigate('/');
+                    setIsSubmitted(false);
+                    return;
+                }
             }
             toast({
                 variant: 'default',

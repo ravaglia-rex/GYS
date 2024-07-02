@@ -49,7 +49,8 @@ const ExamCardsGroup: React.FC<{ uid: string }> = ({ uid }) => {
 
     const loadExamDetails = async () => {
       try {
-        const { formLinks, completed, eligibility_at } = await getExamIds(uid);
+        const { formLinks, completed, eligibility_at, result } = await getExamIds(uid);
+        console.log(result);
         if (formLinks.length > 0) {
           const details = await getExamDetails(formLinks);
           const validDetails: ExamDetailsPayload[] = details
@@ -66,7 +67,8 @@ const ExamCardsGroup: React.FC<{ uid: string }> = ({ uid }) => {
               cost: detail.cost,
               currency: detail.currency,
               isProctored: detail.is_proctored,
-              eligibility_at: eligibility_at[index]
+              eligibility_at: eligibility_at[index],
+              result: result[index],
             }));
 
           dispatch(setExamDetails({ examDetails: validDetails, examDetailsLoaded: true }));
@@ -92,9 +94,26 @@ const ExamCardsGroup: React.FC<{ uid: string }> = ({ uid }) => {
   if (error) return <p>Error: {error}</p>;
 
   const incompleteExams = examDetailsState.filter((data) => !data.completed);
+  const completedExams = examDetailsState.filter((data) => data.completed);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {completedExams.map((data, index) => (
+        <ExamCard
+          key={index}
+          formID={data.formId}
+          cardTitle={data.cardTitle}
+          duration={data.duration}
+          cardDescription={data.cardDescription}
+          examDetails={data.examDetails}
+          additionalInstructions={data.additionalInstructions}
+          paymentNeeded={data.paymentNeeded}
+          isProctored={data.isProctored}
+          eligibilityAt={data.eligibility_at}
+          isEligible={checkEligibility(data.eligibility_at)}
+          hasCleared={data.result}
+        />
+      ))}
       {incompleteExams.map((data, index) => (
         <ExamCard
           key={index}

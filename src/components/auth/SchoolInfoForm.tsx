@@ -62,7 +62,7 @@ const SchoolInfoForm: React.FC<SchoolInfoFormProps> = ({ setSchool, setGrade, is
       } catch (error: any) {
         return null;
       } finally {
-        setLoading(false); // Set loading to false after fetching
+        setLoading(false);
       }
     };
 
@@ -115,7 +115,7 @@ const SchoolInfoForm: React.FC<SchoolInfoFormProps> = ({ setSchool, setGrade, is
                     schools={schoolsList} 
                     onSelect={(selectedSchoolId) => field.onChange(selectedSchoolId)}
                     className="bg-transparent rounded-lg w-full"
-                    loading={loading} // Pass loading prop to AutocompleteInput
+                    loading={loading}
                   />
                 </FormControl>
                 <FormDescription className="text-xs">Take me from darkness to light</FormDescription>

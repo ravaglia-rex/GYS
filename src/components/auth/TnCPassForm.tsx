@@ -26,6 +26,7 @@ import TnCDialog from "./TnCDialog";
 import { useStepper } from "../ui/stepper";
 import { LoadingSpinner as Spinner } from "../ui/spinner";
 import { useNavigate } from "react-router-dom";
+import VerifyEmailDialog from "./VerifyEmailDialog";
 
 const signupSchema = z.object({
     password: z.string().min(6, 'Password must be at least 6 characters'),
@@ -56,6 +57,7 @@ const TnCPassForm: React.FC<TnCPassProps> = ({ first_name, last_name, school, gr
     const { prevStep } = useStepper();
     const [isSubmitted, setSubmitted] = useState<boolean>(false);
     const navigate = useNavigate();
+    const [isVerifyDialogOpen, setVerifyDialogOpen] = useState<boolean>(false);
 
     const form = useForm({
         resolver: zodResolver(signupSchema),
@@ -91,7 +93,8 @@ const TnCPassForm: React.FC<TnCPassProps> = ({ first_name, last_name, school, gr
 
             // Sign out and redirect to home page
             if(isQualified !== null){
-                await signOut(auth);
+                setVerifyDialogOpen(true);
+                return;
             }
             setEmailExists(null);
             navigate("/");
@@ -170,6 +173,11 @@ const TnCPassForm: React.FC<TnCPassProps> = ({ first_name, last_name, school, gr
                     <Button type="button" onClick={() => prevStep()} className="w-full py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md">Previous</Button>
                 </form>
             </Form>
+            <VerifyEmailDialog isOpen={isVerifyDialogOpen} onClose={() => {
+                setVerifyDialogOpen(false);
+                signOut(auth);
+                navigate("/");
+            }} />
         </div>
     );
 };

@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -69,7 +68,7 @@ const PersonalInformationForm: React.FC<PersonalInformationProps> = ({ setFirstN
                             type: "manual",
                             message: "Exam ID already used! If you think this is a mistake, please contact us at talentsearch@argus.ai"
                         });
-                        setIsLoading(false); // Set loading state to false if there's an error
+                        setIsLoading(false);
                         return;
                     }
                     const result = await getUserData(data.examId);
@@ -77,9 +76,9 @@ const PersonalInformationForm: React.FC<PersonalInformationProps> = ({ setFirstN
                         if (result.message === "User not created yet") {
                             form.setError("examId", {
                                 type: "manual",
-                                message: "User hasn't been created yet. Please check back later or email talentsearch@argus.ai"
+                                message: "This Exam ID doesn't exist! Are you sure you submitted an exam with this exam id? If yes please email talentsearch@argus.ai"
                             });
-                            setIsLoading(false); // Set loading state to false if there's an error
+                            setIsLoading(false);
                             return;
                         } else if (result.message === "User has to be waitlisted") {
                             setExamID(data.examId);
@@ -88,16 +87,16 @@ const PersonalInformationForm: React.FC<PersonalInformationProps> = ({ setFirstN
                     } else if ('eligibleDateTime' in result) {
                         setExamID(data.examId);
                         setIsQualified(true);
-                        setEligibilityDateTime(result.eligibleDateTime);
+                        setEligibilityDateTime(result.eligibleDateTime||"");
                     }
-                } catch (error) {
+                } catch (error: any) {
                     toast({
                         variant: 'destructive',
                         title: 'Uh oh!',
-                        description: 'There was an issue checking your exam ID. Please try again later or email us at talentsearch@argus.ai',
+                        description: error.message||'An unexpected error occurred',
                         duration: 2000,
                     });
-                    setIsLoading(false); // Set loading state to false if there's an error
+                    setIsLoading(false);
                     return;
                 }
             }
@@ -173,7 +172,7 @@ const PersonalInformationForm: React.FC<PersonalInformationProps> = ({ setFirstN
                                     <FormControl>
                                         <Input type="text" placeholder="Enter your exam ID" {...field} />
                                     </FormControl>
-                                    <FormDescription className="text-xs">This is only needed while registering for the first time!</FormDescription>
+                                    <FormDescription className="text-xs">Only for students who used an Exam ID previously and are now creating an account to check their results</FormDescription>
                                     <FormMessage>{form.formState.errors.examId?.message}</FormMessage>
                                 </FormItem>
                             )}
