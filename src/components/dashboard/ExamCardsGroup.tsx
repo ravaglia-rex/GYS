@@ -112,6 +112,7 @@ const ExamCardsGroup: React.FC<{ uid: string }> = ({ uid }) => {
           eligibilityAt={data.eligibility_at}
           isEligible={checkEligibility(data.eligibility_at)}
           hasCleared={data.result}
+          hasCompleted={data.completed}
         />
       ))}
       {incompleteExams.map((data, index) => (

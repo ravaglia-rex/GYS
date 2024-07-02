@@ -30,6 +30,7 @@ type ExamCardProps = React.ComponentProps<typeof Card> & {
   isEligible: boolean;
   eligibilityAt: string;
   hasCleared?: boolean | null;
+  hasCompleted?: boolean;
 };
 
 const ExamCard: React.FC<ExamCardProps> = ({
@@ -45,6 +46,7 @@ const ExamCard: React.FC<ExamCardProps> = ({
   isEligible,
   eligibilityAt,
   hasCleared,
+  hasCompleted,
   ...props
 }) => {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -125,6 +127,24 @@ const ExamCard: React.FC<ExamCardProps> = ({
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+        )}
+
+        {hasCompleted!== undefined && hasCompleted && (
+          <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div
+                className="absolute flex items-center justify-center z-20 cursor-not-allowed bg-gray-800 bg-opacity-75 text-white"
+                style={{ width: cardDimensions.width, height: cardDimensions.height }}
+              >
+                <Clock className="h-8 w-8" />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="z-30">
+              You has completed this exam. Waiting for results.
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
         )}
 
         <Card className={cn("relative rounded-lg", !isEligible ? 'pointer-events-none' : '', className)} {...props}>
