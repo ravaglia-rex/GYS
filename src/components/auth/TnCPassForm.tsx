@@ -90,7 +90,9 @@ const TnCPassForm: React.FC<TnCPassProps> = ({ first_name, last_name, school, gr
             await sendEmailVerification(userCredential.user);
 
             // Sign out and redirect to home page
-            await signOut(auth);
+            if(isQualified !== null){
+                await signOut(auth);
+            }
             setEmailExists(null);
             navigate("/");
 
