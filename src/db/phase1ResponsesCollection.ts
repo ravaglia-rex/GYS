@@ -1,46 +1,17 @@
-import {
-    collection,
-    query,
-    where,
-    getDocs,
-} from "firebase/firestore";
-import db from "./db";
+import axios from 'axios';
+import { PHASE_1_QUERIES_APIS, CHECK_PHASE_1_ELIBIGILITY } from '../constants/constants';
 
-type UserData = { 
-    eligibleDateTime: string 
-} | { 
-    message: string 
-};
-
-const calculateEligibilityDateTime = (createdAt: string): string => {
-    const createdAtDate = new Date(createdAt);
-    createdAtDate.setDate(createdAtDate.getDate() + 2);
-    return createdAtDate.toISOString();
+type UserData = {
+    eligibleDateTime?: string;
+    message?: string;
 };
 
 // FETCH RESULT BASED ON UID
 export const getUserData = async (uid: string): Promise<UserData> => {
     try {
-        const resultRef = collection(db, "phase_1_exam_responses");
-        const resultQuery = query(resultRef, where("UserID", "==", uid));
-        const resultSnapshot = await getDocs(resultQuery);
-
-        if (resultSnapshot.empty) {
-            return { message: "User not created yet" };
-        }
-        const resultData = resultSnapshot.docs[0].data();
-
-        if (!resultData.createdAt) {
-            throw new Error(`No createdAt field found in the result for UID ${uid}.`);
-        }
-
-        const eligibleDateTime = calculateEligibilityDateTime(resultData.createdAt);
-
-        if (resultData.result) {
-            return { eligibleDateTime };
-        } else {
-            return { message: "User has to be waitlisted"};
-        }
+        const response = await axios.get(`${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${PHASE_1_QUERIES_APIS}${CHECK_PHASE_1_ELIBIGILITY}/${uid}`);
+        const data = response.data;
+        return data;
     } catch (error) {
         throw new Error(`Error fetching result for UID ${uid}. Please contact talentsearch@argus.ai`);
     }

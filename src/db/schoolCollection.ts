@@ -1,24 +1,5 @@
-import {
-    collection,
-    addDoc,
-    getDoc,
-    getDocs,
-    doc,
-    query,
-    where
-} from "firebase/firestore";
-import db from "./db";
-
-// CREATE SCHOOL RECORD
-type School = {
-    school_name: string;
-    address: string;
-    city: string;
-    state: string;
-    zip: string;
-    number_of_students: number;
-    tuition: number;
-};
+import axios from 'axios';
+import { CREATE_EXPEDITED_SCHOOL, SCHOOLS_APIS, FETCH_SCHOOL_NAMES_AND_IDS } from "../constants/constants";
 
 type expeditedSchool = {
     school_name: string;
@@ -26,77 +7,22 @@ type expeditedSchool = {
 
 export const createExpeditedSchool = async (school: expeditedSchool) => {
     try {
-        const school_obj = await addDoc(collection(db, "schools"), school);
-        return school_obj.id;
+        const response = await axios.post(`${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOLS_APIS}${CREATE_EXPEDITED_SCHOOL}`, {
+            school_name: school.school_name
+        });
+        const data = response.data;
+        return data.id;
     } catch (e) {
         throw new Error(`Error creating ${school.school_name}. Please contact talentsearch@argus.ai`);
     }
 }
 
-export const createSchool = async (school: School) => {
-    try {
-        await addDoc(collection(db, "schools"), school);
-        return { message: `School ${school.school_name} created successfully!` };
-    } catch (e) {
-        throw new Error(`Error creating ${school.school_name}. Please contact talentsearch@argus.ai`);
-    }
-};
-
-// READ SCHOOL RECORD
-export const readSchool = async (school_id: string) => {
-    try {
-        const docRef = doc(db, "schools", school_id);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-            return docSnap.data();
-        } else {
-            throw new Error(`School ${school_id} not found`);
-        }
-    } catch (e) {
-        throw new Error(`Error reading school ${school_id}. Please contact talentsearch@argus.ai`);
-    }
-};
-
 // FETCH ALL SCHOOL NAMES AND IDs
 export const fetchSchoolNamesAndIds = async () => {
     try {
-        const schools = collection(db, "schools");
-        const schoolQuery = query(schools, where("education_world", "==", true));
-        const schoolsSnapshot = await getDocs(schoolQuery);
-        return schoolsSnapshot.docs.map(doc => ({
-            id: doc.id,
-            name: doc.data().school_name
-        }));
-    } catch (e) {
-        throw new Error(`Error fetching schools. Please contact talentsearch@argus.ai`);
-    }
-};
-
-// GET SCHOOL ID BY NAME
-export const getSchoolIdByName = async (school_name: string) => {
-    try {
-        const schoolsRef = collection(db, "schools");
-        const q = query(schoolsRef, where("school_name", "==", school_name.trim()));
-        const querySnapshot = await getDocs(q);
-        if (querySnapshot.empty) {
-            throw new Error(`School with name ${school_name} not found`);
-        } else {
-            const doc = querySnapshot.docs[0]; // Assuming school names are unique
-            return doc.id;
-        }
-    } catch (e) {
-        throw new Error(`Error fetching school ID for ${school_name}. Please contact talentsearch@argus.ai`);
-    }
-};
-
-// FETCH ALL SCHOOL IDS AND NAMES
-export const fetchSchools = async () => {
-    try {
-        const schoolsSnapshot = await getDocs(collection(db, "schools"));
-        return schoolsSnapshot.docs.map(doc => ({
-            id: doc.id,
-            name: doc.data().school_name,
-        }));
+        const response = await axios.get(`${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOLS_APIS}${FETCH_SCHOOL_NAMES_AND_IDS}`);
+        const data = await response.data;
+        return data;
     } catch (e) {
         throw new Error(`Error fetching schools. Please contact talentsearch@argus.ai`);
     }

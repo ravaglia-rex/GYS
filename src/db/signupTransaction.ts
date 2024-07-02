@@ -1,9 +1,5 @@
-import {
-    runTransaction,
-    doc,
-    collection
-} from 'firebase/firestore';
-import db from './db';
+import axios from 'axios';
+import { STUDENTS_APIS, SIGN_UP_TRANSACTION } from '../constants/constants';
 
 type Student = {
     uid: string;
@@ -18,44 +14,14 @@ type Student = {
 
 export const runSignUpTransaction = async (student: Student, email: string, examID: string, isQualified: boolean | null, eligibleDateTime: string) => {
     try {
-        await runTransaction(db, async (transaction) => {
-            // Step 1: Create the student record
-            const studentRef = doc(collection(db, "students"), student.uid);
-            transaction.set(studentRef, student);
-            
-            // Step 2: Add email to email mapping collection
-            const emailMappingRef = doc(collection(db, "student_email_mappings"), student.uid);
-            transaction.set(emailMappingRef, {
-                email,
-            });
-
-            // Step 3: Add the exam id to phase 1 uids collection
-            if(examID !== null && examID !== ""){
-                const sanitizedExamID = examID.replace(/\//g, "_").trim();
-                const examIDRef = doc(collection(db, "phase_1_uids"), sanitizedExamID);
-                transaction.set(examIDRef, {
-                    examID: examID
-                });
-            }
-
-            // Step 4: Map the user to an exam id based on the eligibility
-            let form_link: string | null = null;
-            if (isQualified === null) {
-                form_link = "npByEB";
-            } else if (isQualified) {
-                form_link = "mOGkN8";
-            }
-            if (form_link !== null) {
-                const examMappingRef = doc(collection(db, "student_exam_mappings"), student.uid);
-                const newExamData = {
-                    uid: student.uid,
-                    form_link: form_link,
-                    completed: false,
-                    eligibility_at: eligibleDateTime,
-                };
-                transaction.set(examMappingRef, newExamData);
-            }
+        await axios.post(`${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${STUDENTS_APIS}${SIGN_UP_TRANSACTION}`, {
+            student: student,
+            email: email,
+            examID: examID,
+            isQualified: isQualified,
+            eligibleDateTime: eligibleDateTime,
         });
+        return { message: `Student ${student.first_name} ${student.last_name} created successfully!` };
     } catch (e) {
         throw new Error(`Error creating ${student.first_name} ${student.last_name}. Please contact talentsearch@argus.ai`);
     }

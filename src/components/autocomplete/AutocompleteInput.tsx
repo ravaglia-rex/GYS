@@ -1,51 +1,52 @@
-import * as React from "react"
-import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons"
-
-import { cn } from "../../lib/utils"
-import { Button } from "../ui/button"
+import * as React from "react";
+import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons";
+import { cn } from "../../lib/utils";
+import { Button } from "../ui/button";
 import {
   Command,
   CommandEmpty,
   CommandInput,
   CommandItem,
   CommandList,
-} from "../ui/command"
+} from "../ui/command";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "../ui/popover"
+} from "../ui/popover";
+import { LoadingSpinner as Spinner } from "../ui/spinner"; // Import Spinner
 
 interface School {
-  id: string
-  name: string
+  id: string;
+  name: string;
 }
 
 interface AutocompleteInputProps {
-  schools: School[]
-  onSelect: (schoolId: string, schoolName?: string) => void
-  className?: string
+  schools: School[];
+  onSelect: (schoolId: string, schoolName?: string) => void;
+  className?: string;
+  loading: boolean; // Add loading prop
 }
 
-const AutocompleteInput: React.FC<AutocompleteInputProps> = ({ schools, onSelect, className }) => {
-  const [open, setOpen] = React.useState(false)
-  const [inputValue, setInputValue] = React.useState("")
-  const [selectedValue, setSelectedValue] = React.useState("")
+const AutocompleteInput: React.FC<AutocompleteInputProps> = ({ schools, onSelect, className, loading }) => {
+  const [open, setOpen] = React.useState(false);
+  const [inputValue, setInputValue] = React.useState("");
+  const [selectedValue, setSelectedValue] = React.useState("");
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setInputValue(event.target.value)
-  }
+    setInputValue(event.target.value);
+  };
 
   const handleSelect = (schoolId: string, schoolName: string) => {
-    setSelectedValue(schoolName)
-    setInputValue(schoolName)
-    onSelect(schoolName, schoolName)
-    setOpen(false)
-  }
+    setSelectedValue(schoolName);
+    setInputValue(schoolName);
+    onSelect(schoolId, schoolName);
+    setOpen(false);
+  };
 
   const handleCustomInputSelect = () => {
-    handleSelect(inputValue, inputValue)
-  }
+    handleSelect(inputValue, inputValue);
+  };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -69,34 +70,42 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({ schools, onSelect
             onInput={handleInputChange}
           />
           <CommandList>
-            {schools.filter(school => school.name.toLowerCase().includes(inputValue.toLowerCase())).map(school => (
-              <CommandItem
-                key={school.name}
-                value={school.name}
-                onSelect={() => handleSelect(school.id, school.name)}
-              >
-                {school.name}
-                <CheckIcon
-                  className={cn(
-                    "ml-auto h-4 w-4",
-                    selectedValue === school.name ? "opacity-100" : "opacity-0"
-                  )}
-                />
-              </CommandItem>
-            ))}
-            {inputValue && !schools.some(school => school.name.toLowerCase() === inputValue.toLowerCase()) && (
-              <CommandItem
-                onSelect={handleCustomInputSelect}
-              >
-                Add "{inputValue}"
-              </CommandItem>
+            {loading ? ( // Show spinner when loading
+              <div className="flex justify-center items-center h-20">
+                <Spinner />
+              </div>
+            ) : (
+              <>
+                {schools.filter(school => school.name.toLowerCase().includes(inputValue.toLowerCase())).map(school => (
+                  <CommandItem
+                    key={school.name}
+                    value={school.name}
+                    onSelect={() => handleSelect(school.id, school.name)}
+                  >
+                    {school.name}
+                    <CheckIcon
+                      className={cn(
+                        "ml-auto h-4 w-4",
+                        selectedValue === school.name ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                  </CommandItem>
+                ))}
+                {inputValue && !schools.some(school => school.name.toLowerCase() === inputValue.toLowerCase()) && (
+                  <CommandItem
+                    onSelect={handleCustomInputSelect}
+                  >
+                    Add "{inputValue}"
+                  </CommandItem>
+                )}
+                <CommandEmpty>No school found.</CommandEmpty>
+              </>
             )}
-            <CommandEmpty>No school found.</CommandEmpty>
           </CommandList>
         </Command>
       </PopoverContent>
     </Popover>
-  )
-}
+  );
+};
 
 export default AutocompleteInput;

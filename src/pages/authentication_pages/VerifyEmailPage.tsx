@@ -50,7 +50,7 @@ const VerifyEmail: React.FC = () => {
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-100">
             {isVerified && <div className="bg-white p-8 rounded-lg shadow-md text-center max-w-md mx-auto">
-                <h1 className="text-3xl font-semibold text-green-600 mb-4">Verify Your Email</h1>
+                <h1 className="text-3xl font-semibold text-green-600 mb-4">Verified Your Email</h1>
                 <p className="text-lg text-gray-700 mb-6">
                     You've successfully verified your email address. Redirecting to login...
                 </p>
