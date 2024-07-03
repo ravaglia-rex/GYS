@@ -62,7 +62,7 @@ const WorkerSetupComponent: React.FC<WorkerSetupComponentProps> = ({hasCameraAcc
         toast({
           variant: 'destructive',
           title: 'Model Error',
-          description: event.data.message,
+          description: "We can't detect any entities in the frame. Be sure to be in a well-lit environment and clearly in the camera frame.",
         });
       }
     });
@@ -79,7 +79,7 @@ const WorkerSetupComponent: React.FC<WorkerSetupComponentProps> = ({hasCameraAcc
         toast({
           variant: 'destructive',
           title: 'Model Error',
-          description: event.data.message,
+          description: "Are you sure your face and shoulders are visible in the camera frame?",
         });
       }
     });
@@ -95,7 +95,7 @@ const WorkerSetupComponent: React.FC<WorkerSetupComponentProps> = ({hasCameraAcc
         toast({
           variant: 'destructive',
           title: 'Model Error',
-          description: event.data.message,
+          description: "We can't detect any facial landmarks in the frame. Be sure to be in a well-lit environment and clearly in the camera frame.",
         });
       }
     });
