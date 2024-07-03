@@ -12,12 +12,6 @@ import { Clock, Lock, Check, AlertTriangle } from "lucide-react";
 import { cn } from "../../lib/utils";
 import StartExamButton from "./StartExamButton";
 
-type ExamDetail = {
-  section: string;
-  questions: number;
-  description: string;
-};
-
 type ExamCardProps = React.ComponentProps<typeof Card> & {
   formID: string;
   cardTitle: string;
@@ -72,65 +66,28 @@ const ExamCard: React.FC<ExamCardProps> = ({
 
   const { diffDays, diffHours } = calculateTimeRemaining(eligibilityAt);
 
-  return (
-    <div className="relative w-[380px]">
-      <div ref={cardRef} className="relative rounded-lg overflow-hidden">
-        {!isEligible && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div
-                  className="absolute flex items-center justify-center z-20 cursor-not-allowed bg-gray-800 bg-opacity-75 text-white"
-                  style={{ width: cardDimensions.width, height: cardDimensions.height }}
-                >
-                  <Lock className="h-8 w-8" />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="z-30">
-                Available in {diffDays} days and {diffHours} hours
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
-
-        {hasCleared !== undefined && hasCleared !== null && hasCleared && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div
-                  className="absolute flex items-center justify-center z-20 cursor-not-allowed bg-green-800 bg-opacity-75 text-white"
-                  style={{ width: cardDimensions.width, height: cardDimensions.height }}
-                >
-                  <Check className="h-8 w-8" />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="z-30">
-                You have cleared this exam
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
-
-        {hasCleared !== undefined && hasCleared !== null && !hasCleared && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div
-                  className="absolute flex items-center justify-center z-20 cursor-not-allowed bg-yellow-800 bg-opacity-75 text-white"
-                  style={{ width: cardDimensions.width, height: cardDimensions.height }}
-                >
-                  <AlertTriangle className="h-8 w-8" />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="z-30">
-                You have not cleared this exam
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
-
-        {hasCompleted!== undefined && hasCompleted && (
-          <TooltipProvider>
+  const renderOverlay = () => {
+    if (hasCleared !== undefined && hasCleared !== null) {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div
+                className={`absolute flex items-center justify-center z-20 cursor-not-allowed ${hasCleared ? 'bg-green-800' : 'bg-yellow-800'} bg-opacity-75 text-white`}
+                style={{ width: cardDimensions.width, height: cardDimensions.height }}
+              >
+                {hasCleared ? <Check className="h-8 w-8" /> : <AlertTriangle className="h-8 w-8" />}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="z-30">
+              {hasCleared ? "You have cleared this exam" : "You have not cleared this exam"}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    } else if (hasCompleted) {
+      return (
+        <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
               <div
@@ -141,12 +98,37 @@ const ExamCard: React.FC<ExamCardProps> = ({
               </div>
             </TooltipTrigger>
             <TooltipContent side="top" className="z-30">
-              You has completed this exam. Waiting for results.
+              You have completed this exam. Waiting for results.
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
-        )}
+      );
+    } else if (!isEligible) {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div
+                className="absolute flex items-center justify-center z-20 cursor-not-allowed bg-gray-800 bg-opacity-75 text-white"
+                style={{ width: cardDimensions.width, height: cardDimensions.height }}
+              >
+                <Lock className="h-8 w-8" />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="z-30">
+              Available in {diffDays} days and {diffHours} hours
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+    return null;
+  };
 
+  return (
+    <div className="relative w-[380px]">
+      <div ref={cardRef} className="relative rounded-lg overflow-hidden">
+        {renderOverlay()}
         <Card className={cn("relative rounded-lg", !isEligible ? 'pointer-events-none' : '', className)} {...props}>
           <CardHeader>
             <CardTitle>{cardTitle}</CardTitle>
@@ -159,7 +141,7 @@ const ExamCard: React.FC<ExamCardProps> = ({
           <CardContent className="grid gap-4">
             <div className="space-y-4">
               {examDetails.map((detailString, index) => {
-                let detail: ExamDetail;
+                let detail;
                 try {
                   detail = JSON.parse(detailString);
                 } catch (e) {

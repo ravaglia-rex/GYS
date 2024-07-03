@@ -91,9 +91,10 @@ const TnCPassForm: React.FC<TnCPassProps> = ({ first_name, last_name, school, gr
             // Step 3: Send email verification
             await sendEmailVerification(userCredential.user);
 
-            // Sign out and redirect to home page
             if(isQualified !== null){
                 setVerifyDialogOpen(true);
+                const cooldownEndTime = Date.now() + 60000;
+                localStorage.setItem('emailResendCooldown', cooldownEndTime.toString());
                 return;
             }
             setEmailExists(null);
