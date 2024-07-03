@@ -22,7 +22,10 @@ const VerifyEmail: React.FC = () => {
                         variant: 'default',
                         title: 'Email Verified',
                         description: 'You have successfully verified your email address. Redirecting to login...'
-                      });
+                    });
+                    setTimeout(() => {
+                        navigate('/');
+                    }, 2000);
                 })
                 .catch((error) => {
                     toast({
@@ -47,7 +50,7 @@ const VerifyEmail: React.FC = () => {
             {isVerified && <div className="bg-white p-8 rounded-lg shadow-md text-center max-w-md mx-auto">
                 <h1 className="text-3xl font-semibold text-green-600 mb-4">Verified Your Email</h1>
                 <p className="text-lg text-gray-700 mb-6">
-                    You've successfully verified your email address. You may now proceed to login.
+                    You've successfully verified your email address. Redirecting to login page...
                 </p>
             </div>}
         </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -8,8 +8,7 @@ import {
   DialogTitle,
 } from "../ui/dialog";
 import { Button } from "../ui/button";
-import { sendEmailVerification, onAuthStateChanged } from 'firebase/auth';
-import { useNavigate } from 'react-router-dom';
+import { sendEmailVerification } from 'firebase/auth';
 import { auth } from '../../firebase/firebase';
 import { useToast } from '../ui/use-toast';
 
@@ -19,32 +18,10 @@ interface VerifyEmailDialogProps {
 }
 
 const VerifyEmailDialog: React.FC<VerifyEmailDialogProps> = ({ isOpen, onClose }) => {
-  const navigate = useNavigate();
   const { toast } = useToast();
   const [isSending, setIsSending] = useState(false);
-  const [dialogOpenTime, setDialogOpenTime] = useState<number | null>(null);
   const [progress, setProgress] = useState(100); // For the progress bar
-  const cooldownRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (isOpen) {
-      const cooldownEnd = localStorage.getItem('emailResendCooldown');
-      if (cooldownEnd) {
-        const cooldownEndTime = parseInt(cooldownEnd, 10);
-        if (Date.now() < cooldownEndTime) {
-          cooldownRef.current = cooldownEndTime;
-          const remainingTime = cooldownEndTime - Date.now();
-          setProgress((remainingTime / 60000) * 100);
-        }
-      } else {
-        setDialogOpenTime(Date.now());
-        setProgress(100); // Reset progress bar to full
-      }
-    } else {
-      setDialogOpenTime(null);
-      setProgress(100); // Reset progress bar to full
-    }
-  }, [isOpen]);
+  const [cooldown, setCooldown] = useState<number | null>(null);
 
   const handleResendVerificationEmail = async () => {
     setIsSending(true);
@@ -53,7 +30,7 @@ const VerifyEmailDialog: React.FC<VerifyEmailDialogProps> = ({ isOpen, onClose }
         await sendEmailVerification(auth.currentUser);
         const cooldownEndTime = Date.now() + 60000; // Set cooldown for 1 minute
         localStorage.setItem('emailResendCooldown', cooldownEndTime.toString());
-        cooldownRef.current = cooldownEndTime;
+        setCooldown(cooldownEndTime);
         setProgress(100); // Reset progress bar to full
         toast({
           variant: 'default',
@@ -64,19 +41,20 @@ const VerifyEmailDialog: React.FC<VerifyEmailDialogProps> = ({ isOpen, onClose }
         toast({
           variant: 'destructive',
           title: 'User not authenticated',
-          description: 'Please sign in again.',
+          description: 'Interesting... You clearly haven\'t registered yet. Please sign up first.',
         });
       }
     } catch (error: any) {
       if (error.code === 'auth/too-many-requests') {
         const cooldownEndTime = Date.now() + 60000; // Set cooldown for 1 minute
         localStorage.setItem('emailResendCooldown', cooldownEndTime.toString());
-        cooldownRef.current = cooldownEndTime;
+        setCooldown(cooldownEndTime);
         setProgress(100); // Reset progress bar to full
         toast({
           variant: 'destructive',
           title: 'Not so fast friend!⏱️',
-          description: 'You can only resend the verification email once per minute',
+          description: 'You can only resend the verification email once per minute.',
+          duration: 20000,
         });
       } else {
         toast({
@@ -91,29 +69,23 @@ const VerifyEmailDialog: React.FC<VerifyEmailDialogProps> = ({ isOpen, onClose }
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        try {
-          await user.reload();
-          if (user.emailVerified) {
-            localStorage.removeItem('emailResendCooldown');
-            navigate('/dashboard');
-          }
-        } catch (error) {
-          console.error('Error reloading user:', error);
-        }
+    const savedCooldown = localStorage.getItem('emailResendCooldown');
+    if (savedCooldown) {
+      const cooldownEndTime = parseInt(savedCooldown, 10);
+      if (cooldownEndTime > Date.now()) {
+        setCooldown(cooldownEndTime);
+      } else {
+        localStorage.removeItem('emailResendCooldown');
       }
-    });
-
-    return () => unsubscribe();
-  }, [navigate]);
+    }
+  }, []);
 
   useEffect(() => {
-    if (cooldownRef.current !== null) {
+    if (cooldown !== null) {
       const interval = setInterval(() => {
-        const remainingTime = cooldownRef.current! - Date.now();
+        const remainingTime = cooldown - Date.now();
         if (remainingTime <= 0) {
-          cooldownRef.current = null;
+          setCooldown(null);
           localStorage.removeItem('emailResendCooldown');
           setProgress(0);
         } else {
@@ -123,10 +95,9 @@ const VerifyEmailDialog: React.FC<VerifyEmailDialogProps> = ({ isOpen, onClose }
 
       return () => clearInterval(interval);
     }
-  }, [cooldownRef]);
+  }, [cooldown]);
 
-  const currentCooldown = cooldownRef.current || (dialogOpenTime !== null ? dialogOpenTime + 60000 : null);
-  const isCooldownActive = currentCooldown !== null && Date.now() < currentCooldown;
+  const isCooldownActive = cooldown !== null && Date.now() < cooldown;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -137,21 +108,15 @@ const VerifyEmailDialog: React.FC<VerifyEmailDialogProps> = ({ isOpen, onClose }
         <DialogDescription>
           <p>To continue, please verify your email address.</p>
           <p>We have sent a verification link to your email. Please check your inbox and follow the instructions in the email to verify your account.</p>
-          <p>If you did not receive the email, please check your spam folder or click the button below to resend the verification email.</p>
+          <p>If you did not receive the email, please check your spam folder or click the button after <b>a minute</b> below to resend the verification email.</p>
         </DialogDescription>
         <DialogFooter className="relative">
           <div className="relative w-full">
-            <Button onClick={handleResendVerificationEmail} disabled={isSending || isCooldownActive} className="relative z-10" style={{ width: '100%' }}>
+            <Button onClick={handleResendVerificationEmail} disabled={isSending || isCooldownActive} className="relative z-10 w-full">
               {isSending ? 'Sending...' : 'Resend Verification Email'}
             </Button>
             {isCooldownActive && (
-              <div
-                className="absolute top-0 left-0 h-full bg-green-400 bg-opacity-50 pointer-events-none rounded-md"
-                style={{
-                  width: `${progress}%`,
-                  transition: 'width 1s linear',
-                }}
-              />
+              <div className="absolute top-0 left-0 h-full bg-green-400 bg-opacity-50 pointer-events-none rounded-md" style={{ width: `${progress}%`, transition: 'width 1s linear' }}></div>
             )}
           </div>
         </DialogFooter>
