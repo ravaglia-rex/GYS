@@ -9,7 +9,8 @@ type UserData = {
 // FETCH RESULT BASED ON UID
 export const getUserData = async (uid: string): Promise<UserData> => {
     try {
-        const response = await axios.get(`${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${PHASE_1_QUERIES_APIS}${CHECK_PHASE_1_ELIBIGILITY}/${uid}`);
+        const encodedUID = encodeURIComponent(uid);
+        const response = await axios.get(`${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${PHASE_1_QUERIES_APIS}${CHECK_PHASE_1_ELIBIGILITY}/${encodedUID}`);
         const data = response.data;
         return data;
     } catch (error) {
