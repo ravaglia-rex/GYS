@@ -75,7 +75,12 @@ const PersonalInformationForm: React.FC<PersonalInformationProps> = ({ setFirstN
                     if ('message' in result) {
                         if (result.message === "User not created yet") {
                             // We are now transparent to this error. I will simply allow this user to continue as a phase 1 participant.
-                            console.log("User not created yet");
+                            toast({
+                                variant: 'destructive',
+                                title: 'We haven\'t seen you before!',
+                                description: 'If you aren\'t a phase 1 participant, you should probably think harder what was that exam ID you entered previously.',
+                                duration: 9000,
+                            });
                         } else if (result.message === "User has to be waitlisted") {
                             setExamID(data.examId);
                             setIsQualified(false);
