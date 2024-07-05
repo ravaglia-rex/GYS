@@ -138,7 +138,7 @@ const FormEmbedding: React.FC<FormEmbeddingProps> = ({ setSubmitted, examDuratio
       )}
       <div id="timerContainer" style={{ position: 'fixed', top: '10px', right: '10px', backgroundColor: 'white', padding: '10px', borderRadius: '5px', display: 'flex', alignItems: 'center', gap: '10px' }}>
         <svg className="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="black" width="40px" height="40px"><path d="M12 1C5.924 1 1 5.924 1 12s4.924 11 11 11 11-4.924 11-11S18.076 1 12 1zm0 20c-4.963 0-9-4.037-9-9s4.037-9 9-9 9 4.037 9 9-4.037 9-9 9zm.5-13H11v7h5v-1.5h-3.5z"/></svg>
-        <table id="timerTable" style={{ fontSize: '45px', color: timeRemaining <= 0 ? 'red' : 'black', fontFamily: 'Arial', fontWeight: 'bold', border: '0px solid black', textAlign: 'center' }}>
+        <table id="timerTable" style={{ fontSize: '45px', color: timeRemaining <= examDuration*6? 'red' : 'black', fontFamily: 'Arial', fontWeight: 'bold', border: '0px solid black', textAlign: 'center' }}>
           <tr>
             <td>{formatTime(timeRemaining)}</td>
           </tr>

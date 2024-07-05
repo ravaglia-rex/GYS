@@ -74,12 +74,8 @@ const PersonalInformationForm: React.FC<PersonalInformationProps> = ({ setFirstN
                     const result = await getUserData(data.examId);
                     if ('message' in result) {
                         if (result.message === "User not created yet") {
-                            form.setError("examId", {
-                                type: "manual",
-                                message: "This Exam ID doesn't exist! Are you sure you submitted an exam with this exam id? If yes please email talentsearch@argus.ai"
-                            });
-                            setIsLoading(false);
-                            return;
+                            // We are now transparent to this error. I will simply allow this user to continue as a phase 1 participant.
+                            console.log("User not created yet");
                         } else if (result.message === "User has to be waitlisted") {
                             setExamID(data.examId);
                             setIsQualified(false);
