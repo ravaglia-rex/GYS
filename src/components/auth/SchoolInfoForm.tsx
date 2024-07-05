@@ -74,7 +74,7 @@ const SchoolInfoForm: React.FC<SchoolInfoFormProps> = ({ setSchool, setGrade, is
       // Step 1: Find the school record
       let schoolId = data.school;
 
-      const matchedSchool = schoolsList.find((school) => school.name === data.school);
+      const matchedSchool = schoolsList.find((school) => school.id === data.school);
       if (matchedSchool) {
         schoolId = matchedSchool.id;
       } else {
