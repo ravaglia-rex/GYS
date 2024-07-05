@@ -50,7 +50,6 @@ const ExamCardsGroup: React.FC<{ uid: string }> = ({ uid }) => {
     const loadExamDetails = async () => {
       try {
         const { formLinks, completed, eligibility_at, result } = await getExamIds(uid);
-        console.log(result);
         if (formLinks.length > 0) {
           const details = await getExamDetails(formLinks);
           const validDetails: ExamDetailsPayload[] = details

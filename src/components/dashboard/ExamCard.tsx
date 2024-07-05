@@ -170,7 +170,7 @@ const ExamCard: React.FC<ExamCardProps> = ({
             </div>
           </CardContent>
           <CardFooter>
-            {hasCleared === undefined && <StartExamButton formId={formID} paymentNeeded={paymentNeeded} isProctored={isProctored} />}
+            {hasCleared === undefined && <StartExamButton formId={formID} paymentNeeded={paymentNeeded} isProctored={isProctored} examDuration={duration*60}/>}
           </CardFooter>
         </Card>
       </div>
