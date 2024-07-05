@@ -4,7 +4,11 @@ import { RootState } from '../state_data/reducer';
 import { setTabSwitched, setFullScreenSwitched } from '../state_data/tabSwitchingSlice';
 import FullScreenDialog from './FullScreenDialog';
 
-const TabSwitchingMonitor: React.FC = () => {
+interface TabSwitchingMonitorProps {
+  isSubmitted: boolean;
+};
+
+const TabSwitchingMonitor: React.FC<TabSwitchingMonitorProps> = ({isSubmitted}) => {
   const dispatch = useDispatch();
   const [isFullScreen, setIsFullScreen] = useState(true);
   const tabSwitching = useSelector((state: RootState) => state.tabSwitching);
@@ -22,13 +26,13 @@ const TabSwitchingMonitor: React.FC = () => {
   const onFullScreenChange = useCallback(() => {
     const isFullScreenNow = Boolean(document.fullscreenElement);
     setIsFullScreen(isFullScreenNow);
-    if (!isFullScreenNow) {
+    if (!isFullScreenNow && !isSubmitted) {
       dispatch(setFullScreenSwitched({
         count: tabSwitching.full_screen_switch_count + 1,
         timestamp: new Date().toISOString()
       }));
     }
-  }, [dispatch, tabSwitching.full_screen_switch_count]);
+  }, [dispatch, tabSwitching.full_screen_switch_count, isSubmitted]);
 
   useEffect(() => {
     document.addEventListener('fullscreenchange', onFullScreenChange);
@@ -46,7 +50,7 @@ const TabSwitchingMonitor: React.FC = () => {
 
   return (
     <div>
-      {<FullScreenDialog isFullScreen={isFullScreen}/>}
+      {<FullScreenDialog isFullScreen={isFullScreen} isSubmitted={isSubmitted}/>}
     </div>
   );
 };

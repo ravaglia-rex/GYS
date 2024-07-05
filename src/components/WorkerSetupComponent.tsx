@@ -1,12 +1,11 @@
 import React, { useRef, useEffect } from 'react';
 import { triggerMetadataUpdate } from "../functions/frame_handling/captureFrame.ts";
 import { auth } from '../firebase/firebase.ts';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { setEntityDetection } from '../state_data/entityDetectionSlice.ts';
 import { setPoseDetection } from '../state_data/poseDetectionSlice.ts';
 import { setFaceLandmarks } from '../state_data/faceLandmarksSlice.ts';
 import { setEntityDetectionWorker, setPoseDetectionWorker, setFaceLandmarkDetectionWorker} from '../state_data/frameCaptureSlice.ts';
-import { RootState } from '../state_data/reducer.ts';
 import { setLoadState } from '../state_data/loadSlice.ts';
 import { useToast } from './ui/use-toast';
 
@@ -25,8 +24,8 @@ interface WorkerSetupComponentProps {
 const WorkerSetupComponent: React.FC<WorkerSetupComponentProps> = ({hasCameraAccess, formLoaded, modelLoaded, setModelsLoaded, entityDetectionWorkerRef, poseDetectionWorkerRef, faceLandmarksWorkerRef, internetSpeedState, tabSwitchingState}) => {
   const { toast } = useToast();
   const dispatch = useDispatch();
-  const exam_id = useSelector((state: RootState) => state.examDetails.examId)|| "mOGkN8";
-  const user_id = auth.currentUser?.uid || "11111";
+  const exam_id = localStorage.getItem('currentFormId') || "<UNKNOWN_FORM_ID>";
+  const user_id = auth.currentUser?.uid || "<UNKNOWN_USER_ID>";
 
   const entityDetectionState = useRef<Array<any>>([]);
   const faceLandmarksState = useRef<Array<any>>([]);
@@ -63,7 +62,7 @@ const WorkerSetupComponent: React.FC<WorkerSetupComponentProps> = ({hasCameraAcc
         toast({
           variant: 'destructive',
           title: 'Model Error',
-          description: event.data.message,
+          description: "We can't detect any entities in the frame. Be sure to be in a well-lit environment and clearly in the camera frame.",
         });
       }
     });
@@ -80,7 +79,7 @@ const WorkerSetupComponent: React.FC<WorkerSetupComponentProps> = ({hasCameraAcc
         toast({
           variant: 'destructive',
           title: 'Model Error',
-          description: event.data.message,
+          description: "Are you sure your face and shoulders are visible in the camera frame?",
         });
       }
     });
@@ -96,7 +95,7 @@ const WorkerSetupComponent: React.FC<WorkerSetupComponentProps> = ({hasCameraAcc
         toast({
           variant: 'destructive',
           title: 'Model Error',
-          description: event.data.message,
+          description: "We can't detect any facial landmarks in the frame. Be sure to be in a well-lit environment and clearly in the camera frame.",
         });
       }
     });

@@ -14,11 +14,11 @@ export const getExamId = async (schoolId: string) => {
         const examSnapshot = await getDocs(examQuery);
 
         if (examSnapshot.empty) {
-            throw new Error(`No matching exam mapping found for school ID ${schoolId}. Please contact administrator!`);
+            throw new Error(`No matching exam mapping found for school ID ${schoolId}. Please contact talentsearch@argus.ai`);
         }
         const examData = examSnapshot.docs[0].data();
         return examData.exam_link;
     } catch (error) {
-        throw new Error(`Error fetching exam ID for school ID ${schoolId}. Please contact administrator!`);
+        throw new Error(`Error fetching exam ID for school ID ${schoolId}. Please contact talentsearch@argus.ai`);
     }
 }

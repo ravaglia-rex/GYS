@@ -4,7 +4,7 @@ service cloud.firestore {
 
     // Allow admins to read and write all documents
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if hasAnyRole(["ADMIN", "OWNER"]);
     }
 
     // Rowy: Allow signed in users to read Rowy configuration and admins to write
@@ -23,16 +23,66 @@ service cloud.firestore {
       allow create: if request.auth.token.roles.size() > 0;
     }
 
-    // Schools: Allow public to read all documents
+    // Schools: Allow public to read all documents, anyone can write
     match /schools/{document=**} {
-      allow read, write: if true;  // Public can read
+      allow read: if true;
+      allow write: if true;
     }
 
-    // Students: Allow public to read all documents
+    // Students: Allow public to read all documents, only authenticated users can write
     match /students/{document=**} {
-      allow read, write: if true;  // Public can read
+      allow read: if true;
+      allow write: if request.auth != null;
     }
 
+    // Waitlisted Students: Allow public to read all documents, anyone can write
+    match /waitlisted_students/{document=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+    
+    match /phase_1_uids/{document=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+    
+    match /phase_1_exam_responses/{document=**} {
+    	allow read: if true;
+      allow write: if hasAnyRole(["ADMIN", "OWNER"]);
+    }
+
+    // Payment Method: Allow authenticated users to write
+    match /payment_method/{document=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // Student Submission Mappings: Allow authenticated users to write
+    match /student_submission_mappings/{document=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+    
+    match /student_email_mappings/{document=**} {
+    	allow read: if true;
+      allow write: if request.auth!=null;
+    }
+    
+    match /student_exam_mappings/{documentId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.uid;
+      allow write: if request.auth!=null;
+    }
+    
+    match /student_payment_mappings/{documentId} {
+      allow read: if request.auth != null && request.auth.uid==resource.data.uid;
+      allow write: if hasAnyRole(["ADMIN", "OWNER"]);
+    }
+    
+    match /exam_details/{documentId} {
+      allow read: if request.auth!=null;
+      allow write: if hasAnyRole(["ADMIN", "OWNER"]);
+    }
+    
     // Rowy: Allow public to read public Rowy configuration
     match /_rowy_/publicSettings {
       allow get: if true;

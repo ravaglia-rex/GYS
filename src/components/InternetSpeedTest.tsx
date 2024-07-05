@@ -24,7 +24,7 @@ const InternetSpeedMonitor: React.FC = () => {
         dispatch(setInternetSpeed({ upload_speed: event.data.uploadSpeed, download_speed: event.data.downloadSpeed, timestamp: new Date().toISOString(), violation_count: 0}));
         violation_count.current = 0;
       } else if (event.data.type === 'downloadSpeedLow') {
-        // start a timer to ask user to restore internet connection speeds failing which the user state needs to be stored and user redirected
+
         toast({
           variant: 'default',
           title: 'Download speed is below the threshold',
@@ -33,7 +33,7 @@ const InternetSpeedMonitor: React.FC = () => {
         dispatch(setInternetSpeed({ upload_speed: event.data.uploadSpeed, download_speed: event.data.downloadSpeed, timestamp: new Date().toISOString(), violation_count: violation_count.current+1}));
         violation_count.current += 1;
       } else if (event.data.type === 'uploadSpeedLow') {
-        // start a timer to ask user to restore internet connection speeds failing which the user state needs to be stored and user redirected
+
         toast({
           variant:'default',
           title: 'Upload speed is below the threshold',
@@ -43,7 +43,6 @@ const InternetSpeedMonitor: React.FC = () => {
         violation_count.current += 1;
       }
       if(violation_count.current >= VIOLATION_COUNT){
-        // redirect user to the internet speed error page
         toast({
           variant: 'destructive',
           title: 'Internet Speed Error',

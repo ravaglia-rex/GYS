@@ -1,8 +1,12 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { RootState } from '../../state_data/reducer';
 import { cleanupAudioCaptureResources } from '../../state_data/audioCaptureSlice';
 import { cleanupFrameResources } from '../../state_data/frameCaptureSlice';
+import { auth } from '../../firebase/firebase';
+import { createSubmissionRecord } from '../../db/studentSubmissionMapping';
+import { markExamComplete } from '../../db/studentExamMappings';
 
 declare global {
   interface Window {
@@ -12,38 +16,42 @@ declare global {
   }
 }
 
-const FormEmbedding: React.FC = () => {
+interface FormEmbeddingProps {
+  setSubmitted: React.Dispatch<React.SetStateAction<boolean>>;
+  examDuration: number;
+}
+
+const FormEmbedding: React.FC<FormEmbeddingProps> = ({ setSubmitted, examDuration }) => {
   const loading = useSelector((state: RootState) => state.load.loading);
   const dispatch = useDispatch();
-  const exam_id = useSelector((state: RootState) => state.examDetails.examId);
+  const navigate = useNavigate();
+  const exam_id = localStorage.getItem('currentFormId') || "<UNKNOWN_FORM_ID>";
+  const [submissionComplete, setSubmissionComplete] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState(examDuration * 60);
 
   useEffect(() => {
     const widgetScriptSrc = 'https://tally.so/widgets/embed.js';
 
     const load = () => {
-      // Load Tally embeds
       if (window.Tally) {
         window.Tally.loadEmbeds();
         return;
       }
 
-      // Fallback if window.Tally is not available
       document
         .querySelectorAll<HTMLIFrameElement>('iframe[data-tally-src]:not([src])')
         .forEach((iframeEl) => {
-          if (iframeEl.dataset.tallySrc) {  // Make sure dataset.tallySrc exists
-            iframeEl.src = iframeEl.dataset.tallySrc;  // Properly set src from dataset
+          if (iframeEl.dataset.tallySrc) {
+            iframeEl.src = iframeEl.dataset.tallySrc;
           }
         });
     };
 
-    // If Tally is already loaded, load the embeds
     if (window.Tally) {
       load();
       return;
     }
 
-    // If the Tally widget script is not loaded yet, load it
     if (document.querySelector(`script[src="${widgetScriptSrc}"]`) === null) {
       const script = document.createElement('script');
       script.src = widgetScriptSrc;
@@ -52,14 +60,32 @@ const FormEmbedding: React.FC = () => {
       document.body.appendChild(script);
       return;
     }
-  }, [loading, exam_id]); // Depend on the loading state and exam_id
+  }, [loading, exam_id]);
 
   useEffect(() => {
-    const handleMessage = (e: MessageEvent) => {
+    const handleMessage = async (e: MessageEvent) => {
       if (typeof e.data === 'string' && e.data.includes('Tally.FormSubmitted')) {
         try {
+          const data = JSON.parse(e.data);
+          const student_uid = auth.currentUser?.uid || "<UNKNOWN_USER_ID>";
+          const submission_id = data.payload.id;
+          const submission_time = data.payload.createdAt;
+          const form_id = data.payload.formId;
+          setSubmitted(true);
+          
+          await createSubmissionRecord({
+            student_uid,
+            submission_id,
+            form_id,
+            submission_time,
+          });
+
+          await markExamComplete(student_uid, form_id);
+
           dispatch(cleanupAudioCaptureResources());
           dispatch(cleanupFrameResources());
+          
+          setSubmissionComplete(true);
         } catch (error) {
           console.error('Error parsing message data:', error);
         }
@@ -74,6 +100,27 @@ const FormEmbedding: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch]);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev > 0) {
+          return prev - 1;
+        } else {
+          clearInterval(interval);
+          return 0;
+        }
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
   return (
     <div>
       {!loading && exam_id && (
@@ -85,9 +132,36 @@ const FormEmbedding: React.FC = () => {
           frameBorder={0}
           marginHeight={0}
           marginWidth={0}
-          title="GYS - Preliminary Exam"
+          title="Argus Talent Exam"
         >
         </iframe>
+      )}
+      <div id="timerContainer" style={{ position: 'fixed', top: '10px', right: '10px', backgroundColor: 'white', padding: '10px', borderRadius: '5px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <svg className="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="black" width="40px" height="40px"><path d="M12 1C5.924 1 1 5.924 1 12s4.924 11 11 11 11-4.924 11-11S18.076 1 12 1zm0 20c-4.963 0-9-4.037-9-9s4.037-9 9-9 9 4.037 9 9-4.037 9-9 9zm.5-13H11v7h5v-1.5h-3.5z"/></svg>
+        <table id="timerTable" style={{ fontSize: '45px', color: timeRemaining <= examDuration*6? 'red' : 'black', fontFamily: 'Arial', fontWeight: 'bold', border: '0px solid black', textAlign: 'center' }}>
+          <tr>
+            <td>{formatTime(timeRemaining)}</td>
+          </tr>
+        </table>
+      </div>
+      {submissionComplete && (
+        <div style={{ marginTop: '20px', textAlign: 'center' }}>
+          <p>You can now navigate to the dashboard.</p>
+          <button 
+            onClick={() => navigate('/dashboard')} 
+            style={{ 
+              padding: '10px 20px', 
+              fontSize: '16px', 
+              backgroundColor: '#007BFF', 
+              color: '#fff', 
+              border: 'none', 
+              borderRadius: '5px', 
+              cursor: 'pointer' 
+            }}
+          >
+            Go to Dashboard
+          </button>
+        </div>
       )}
     </div>
   );

@@ -12,7 +12,7 @@ function App() {
 
   useEffect(() => {
     const handleResize = () => {
-      const mobileWidthThreshold = 768; // Max width for mobile devices
+      const mobileWidthThreshold = 768;
       if (window.innerWidth < mobileWidthThreshold) {
         setIsMobileDevice(true);
       } else {
@@ -20,7 +20,7 @@ function App() {
       }
     };
 
-    handleResize(); // Check on initial mount
+    handleResize();
     window.addEventListener('resize', handleResize);
 
     return () => {

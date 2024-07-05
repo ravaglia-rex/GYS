@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from './ui/use-toast.tsx';
 import TabSwitchingMonitor from './TabSwitchingMonitor.tsx';
+import { Video, Mic, Sun, Wifi } from 'lucide-react';
 
 const CameraMicrophoneAccess: React.FC = () => {
   const [hasCameraAccess, setHasCameraAccess] = useState<boolean>(false);
@@ -38,45 +39,49 @@ const CameraMicrophoneAccess: React.FC = () => {
   };
 
   const handleAcknowledge = () => {
-    navigate('/'); // Navigate to the root path after acknowledgement
+    navigate('/testing');
   };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <TabSwitchingMonitor />
+      <TabSwitchingMonitor isSubmitted={false}/>
       <div className="bg-white p-8 rounded-lg shadow-md max-w-md mx-auto">
         <h1 className="text-3xl font-semibold text-red-600 mb-4">Camera and Microphone Access Required</h1>
         <ul className="text-lg text-gray-700 list-none space-y-2 text-justify">
-          <li>
-            <span className="material-icons align-middle text-green-500 mr-2">videocam</span>
+          <li className="flex items-center">
+            <Video className="text-green-500 mr-2" />
             Allow access to your camera; you will be recorded during the exam to ensure integrity.
           </li>
-          <li>
-            <span className="material-icons align-middle text-green-500 mr-2">mic</span>
+          <li className="flex items-center">
+            <Mic className="text-green-500 mr-2" />
             Allow access to your microphone.
           </li>
-          <li>
-            <span className="material-icons align-middle text-green-500 mr-2">light_mode</span>
+          <li className="flex items-center">
+            <Sun className="text-green-500 mr-2" />
             Ensure you are in a well-lit room with your face and shoulders clearly visible.
+          </li>
+          <li className="flex items-center">
+            <Wifi className="text-green-500 mr-2" />
+            Ensure your internet connection is stable and above 5Mbps at all times.
           </li>
         </ul>
         <hr className="my-4" /> {/* Separator line */}
         <div className="flex justify-center space-x-4 mb-4">
           <button
-            className={`material-icons text-6xl hover:text-red-500 border border-gray-300 rounded-full p-2 ${hasCameraAccess ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            className={`hover:text-red-500 border border-gray-300 rounded-full p-2 ${hasCameraAccess ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
             onClick={hasCameraAccess ? undefined : requestCameraAccess}
             disabled={hasCameraAccess}
             style={{ transition: 'all 0.3s ease-in-out' }}
           >
-            videocam
+            <Video className="text-6xl" />
           </button> {/* Camera Icon Button */}
           <button
-            className={`material-icons text-6xl hover:text-red-500 border border-gray-300 rounded-full p-2 ${hasMicrophoneAccess ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            className={`hover:text-red-500 border border-gray-300 rounded-full p-2 ${hasMicrophoneAccess ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
             onClick={hasMicrophoneAccess ? undefined : requestMicrophoneAccess}
             disabled={hasMicrophoneAccess}
             style={{ transition: 'all 0.3s ease-in-out' }}
           >
-            mic
+            <Mic className="text-6xl" />
           </button> {/* Microphone Icon Button */}
         </div>
         {hasCameraAccess && hasMicrophoneAccess && (

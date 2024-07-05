@@ -1,356 +1,130 @@
-import React, { useEffect, useState } from "react";
-import { NavLink } from "react-router-dom";
-import { UserCredential, createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
-import { createExpeditedSchool } from "../../db/schoolCollection";
-import { auth } from "../../firebase/firebase";
+import React, { useState } from 'react';
+import { Step, Stepper } from '../ui/stepper';
+import PersonalInformation from './PersonalInformation';
+import SchoolInfoForm from './SchoolInfoForm';
+import ParentInfoForm from './ParentInfoForm';
+import TnCPassForm from './TnCPassForm';
 
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-
-import { createStudent } from "../../db/studentCollection";
-import { fetchSchools } from "../../airtable/schoolData";
-
-import {
-    Form,
-    FormControl,
-    FormDescription,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from '../ui/form';
-
-import { PhoneInput } from "../ui/phone-input";
-import { isValidPhoneNumber } from "react-phone-number-input";
-
-import {
-    Select,
-    SelectItem,
-    SelectContent,
-    SelectTrigger,
-    SelectValue,
-} from '../ui/select';
-
-import { Button } from '../ui/button';
-import { Checkbox } from '../ui/checkbox';
-import { Input } from '../ui/input';
-import { useToast } from '../ui/use-toast';
-import TnCDialog from "./TnCDialog";
-import AutocompleteInput from "../autocomplete/AutocompleteInput";
-import { useStepper } from "../ui/stepper";
-import CongratulationsDialog from "./CongratulationsDialog";
-
-const signupSchema = z.object({
-    first_name: z.string().min(1, 'First name is required'),
-    last_name: z.string().min(1, 'Last name is required'),
-    school: z.string().min(1, 'School is required'),
-    grade: z.number().int().min(1, 'Grade is required'),
-    email: z.string().email(),
-    password: z.string().min(6, 'Password must be at least 6 characters'),
-    confirm_password: z.string().min(6, 'Password must be at least 6 characters'),
-    parent_name: z.string().min(2, 'Parent name is required'),
-    parent_email: z.string().email(),
-    parent_phone: z.string().refine(isValidPhoneNumber, { message: "Invalid phone number" }),
-    terms: z.boolean().refine((val) => val === true, { message: "You must agree to the terms and conditions" }), 
-}).refine(data => data.password === data.confirm_password, {
-    message: "Passwords do not match",
-    path: ["confirm_password"]
-});
-
-interface UserObj {
-    uid: string;
-    parentEmail: string;
+interface StepData {
+    label: string;
+    content: string;
+    condition?: () => boolean;
 }
 
-interface SignUpFormProps {
-    userData: string;
-    setUserObj: (userObj: UserObj) => void;
+interface SignUpProps {
+    email: string;
+    setEmailExists: (emailExists: boolean | null) => void;
 }
 
-const SignUpForm: React.FC<SignUpFormProps> = ({userData, setUserObj}) => {
-    const [schools, setSchools] = useState<{ id: string, name: string }[]>([]);
-    const { toast } = useToast();
-    const { nextStep } = useStepper();
-    const [showDialog, setShowDialog] = useState(true);
+const SignUpForm: React.FC<SignUpProps> = ({ email, setEmailExists }) => {
+    const [firstName, setFirstName] = useState<string>("");
+    const [lastName, setLastName] = useState<string>("");
+    const [school, setSchool] = useState<string>("");
+    const [grade, setGrade] = useState<number>(0);
+    const [parentName, setParentName] = useState<string>("");
+    const [parentEmail, setParentEmail] = useState<string>("");
+    const [parentPhone, setParentPhone] = useState<string>("");
+    const [examID, setExamID] = useState<string>("");
+    const [isQualified, setIsQualified] = useState<boolean | null>(null);
+    const [eligibleDateTime, setEligibilityDateTime] = useState<string>("");
 
-    const form = useForm({
-        resolver: zodResolver(signupSchema),
-        defaultValues: {
-            first_name: '',
-            last_name: '',
-            school: '',
-            grade: 0,
-            email: '',
-            password: '',
-            confirm_password: '',
-            parent_name: '',
-            parent_email: '',
-            parent_phone: '',
-            terms: false,
+    const steps: StepData[] = [
+        { label: 'Step 1', content: 'Personal Information' },
+        { label: 'Step 2', content: 'School Information' },
+        {
+            label: 'Step 3',
+            content: 'Parent Contact Information',
+            condition: () => isQualified !== null,
         },
-    });
-
-    useEffect(() => {
-        const fetchSchoolsData = async () => {
-            try {
-                const schoolsData = await fetchSchools();
-                if(schoolsData.data){
-                    setSchools(schoolsData.data);
-                }
-            } catch (error: any) {
-                return null;
-            }
-        };
-
-        fetchSchoolsData();
-    }, []);
-
-    const onSubmit = async (data: z.infer<typeof signupSchema>) => {
-        try {    
-            // Step 1: Find the school record
-            let schoolId = data.school;
-    
-            const matchedSchool = schools.find(school => school.name === data.school);
-            if (matchedSchool) {
-                schoolId = matchedSchool.id;
-            } else {
-                // Create a new school and assign the returned ID
-                schoolId = await createExpeditedSchool({ school_name: data.school });
-            }
-
-            // Step 2: Create the user in Firebase Auth
-            const userCredential: UserCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
-
-            // Step 3: Send email verification
-            await sendEmailVerification(userCredential.user);
-            
-            // Step 4: Create the student record
-            createStudent({
-                uid: userCredential.user.uid,
-                first_name: data.first_name,
-                last_name: data.last_name,
-                school_id: schoolId,
-                grade: data.grade,
-                parent_name: data.parent_name,
-                parent_email: data.parent_email,
-                parent_phone: data.parent_phone,
-            });
-            
-            setUserObj({
-                uid: userCredential.user.uid,
-                parentEmail: data.parent_email,
-            });
-
-            toast({
-                variant: 'default',
-                title: 'Account created successfully!',
-                description: `Welcome to Argus, ${data.first_name}! A verification email has been sent to ${data.email}.`,
-            });
-            nextStep();
-        } catch (error: any) {
-            toast({
-                variant: 'destructive',
-                title: 'Uh oh! Something went wrong.',
-                description: error?.message || 'An error occurred while signing up. Please try again.',
-            });
-        }
-    };
+        { 
+            label: isQualified === null ? 'Step 3' : 'Step 4', 
+            content: isQualified === null ? 'TnC and Password' : 'TnC and Password', // Adjust content based on your actual requirements
+        },
+    ];
 
     return (
-        <div>
-            {showDialog && (
-                <CongratulationsDialog isOpen={showDialog} onClose={() => setShowDialog(false)} />
-            )}
-            <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    <FormField
-                        control={form.control}
-                        name="first_name"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>First Name</FormLabel>
-                                <FormControl>
-                                    <Input {...field} placeholder="First Name" />
-                                </FormControl>
-                                <FormMessage>{form.formState.errors.first_name?.message}</FormMessage>
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="last_name"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Last Name</FormLabel>
-                                <FormControl>
-                                    <Input {...field} placeholder="Last Name" />
-                                </FormControl>
-                                <FormMessage>{form.formState.errors.last_name?.message}</FormMessage>
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="school"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>School</FormLabel>
-                                <FormControl>
-                                    <AutocompleteInput 
-                                        schools={schools} 
-                                        onSelect={(selectedSchoolId) => field.onChange(selectedSchoolId)}
-                                        className="bg-transparent rounded-lg w-full"
+        <div className="bg-white bg-opacity-75 backdrop-filter backdrop-blur-lg p-8 rounded-lg shadow-md w-full max-w-md">
+            <Stepper variant="circle-alt" initialStep={0} steps={steps}>
+                {steps
+                    .filter(step => !step.condition || step.condition())
+                    .map((step, index) => {
+                        let stepContent;
+                        switch (index) {
+                            case 0:
+                                stepContent = (
+                                    <PersonalInformation
+                                        setFirstName={setFirstName}
+                                        setLastName={setLastName}
+                                        setExamID={setExamID}
+                                        setIsQualified={setIsQualified}
+                                        setEligibilityDateTime={
+                                            setEligibilityDateTime
+                                        }
                                     />
-                                </FormControl>
-                                <FormDescription className='text-xs'>Take me from darkness to light</FormDescription>
-                                <FormMessage>{form.formState.errors.school?.message}</FormMessage>
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="grade"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Grade</FormLabel>
-                                <FormControl>
-                                    <Select 
-                                        onValueChange={(value) => field.onChange(Number(value))}
-                                        defaultValue={field.value.toString()}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select grade" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="6">6th Grade</SelectItem>
-                                            <SelectItem value="7">7th Grade</SelectItem>
-                                            <SelectItem value="8">8th Grade</SelectItem>
-                                            <SelectItem value="9">9th Grade</SelectItem>
-                                            <SelectItem value="10">10th Grade</SelectItem>
-                                            <SelectItem value="11">11th Grade</SelectItem>
-                                            <SelectItem value="12">12th Grade</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </FormControl>
-                                <FormMessage>{form.formState.errors.grade?.message}</FormMessage>
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="parent_name"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Parent's Name</FormLabel>
-                                <FormControl>
-                                    <Input {...field} />
-                                </FormControl>
-                                <FormDescription className='text-xs'>The bow that bends for you to fly far</FormDescription>
-                                <FormMessage>{form.formState.errors.parent_name?.message}</FormMessage>
-                            </FormItem>
-                        )}
-                    />
-
-                    <FormField
-                        control={form.control}
-                        name="parent_email"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Parent's Email</FormLabel>
-                                <FormControl>
-                                    <Input {...field} type="email" placeholder="parent@argus.ai"/>
-                                </FormControl>
-                                <FormMessage>{form.formState.errors.parent_email?.message}</FormMessage>
-                            </FormItem>
-                        )}
-                    />
-
-                    <FormField
-                        control={form.control}
-                        name="parent_phone"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Parent's Phone</FormLabel>
-                                <FormControl>
-                                    <PhoneInput 
-                                        {...field}
-                                        placeholder="+911234567890"
+                                );
+                                break;
+                            case 1:
+                                stepContent = (
+                                    <SchoolInfoForm
+                                        setSchool={setSchool}
+                                        setGrade={setGrade}
+                                        isQualified={isQualified}
                                     />
-                                </FormControl>
-                                <FormMessage>{form.formState.errors.parent_phone?.message}</FormMessage>
-                            </FormItem>
-                        )}
-                    />
-
-                    <FormField
-                        control={form.control}
-                        name="email"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Your Email Address</FormLabel>
-                                <FormControl>
-                                    <Input {...field} type="email" placeholder="hello@argus.ai" />
-                                </FormControl>
-                                <FormDescription className='text-xs'>We'll never share your email.</FormDescription>
-                                <FormMessage>{form.formState.errors.email?.message}</FormMessage>
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="password"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Password</FormLabel>
-                                <FormControl>
-                                    <Input {...field} type="password" placeholder="Password" />
-                                </FormControl>
-                                <FormDescription className='text-xs'>Set your password</FormDescription>
-                                <FormMessage>{form.formState.errors.password?.message}</FormMessage>
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="confirm_password"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Confirm Password</FormLabel>
-                                <FormControl>
-                                    <Input {...field} type="password" placeholder="Confirm Password" />
-                                </FormControl>
-                                <FormDescription className='text-xs'>Confirm your password</FormDescription>
-                                <FormMessage>{form.formState.errors.confirm_password?.message}</FormMessage>
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="terms"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormControl>
-                                    <div className="flex items-center space-x-2">
-                                        <Checkbox 
-                                            id="terms" 
-                                            checked={field.value} 
-                                            onCheckedChange={field.onChange} 
-                                        />
-                                        <TnCDialog />
-                                    </div>
-                                </FormControl>
-                                <FormMessage>{form.formState.errors.terms?.message}</FormMessage>
-                            </FormItem>
-                        )}
-                    />
-                    <Button type="submit" className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-md">Sign Up</Button>
-                </form>
-            </Form>
-            <p className="text-sm text-center text-gray-600 mt-4">
-                Already have an account?{" "}
-                <NavLink to="/login" className="text-green-600 hover:underline">Sign in</NavLink>
-            </p>
+                                );
+                                break;
+                            case 2:
+                                stepContent = isQualified === null ? (
+                                    <TnCPassForm
+                                        first_name={firstName}
+                                        last_name={lastName}
+                                        school={school}
+                                        grade={grade}
+                                        parent_name={parentName}
+                                        parent_email={parentEmail}
+                                        parent_phone={parentPhone}
+                                        email={email}
+                                        examID={examID}
+                                        isQualified={isQualified}
+                                        eligibleDateTime={eligibleDateTime}
+                                        setEmailExists={setEmailExists}
+                                    />
+                                ) : (
+                                    <ParentInfoForm
+                                        setParentName={setParentName}
+                                        setParentEmail={setParentEmail}
+                                        setParentPhone={setParentPhone}
+                                    />
+                                );
+                                break;
+                            case 3:
+                                stepContent = (
+                                    <TnCPassForm
+                                        first_name={firstName}
+                                        last_name={lastName}
+                                        school={school}
+                                        grade={grade}
+                                        parent_name={parentName}
+                                        parent_email={parentEmail}
+                                        parent_phone={parentPhone}
+                                        email={email}
+                                        examID={examID}
+                                        isQualified={isQualified}
+                                        eligibleDateTime={eligibleDateTime}
+                                        setEmailExists={setEmailExists}
+                                    />
+                                );
+                                break;
+                            default:
+                                stepContent = <div>Unknown step</div>;
+                                break;
+                        }
+                        return (
+                            <Step key={step.label} {...step}>
+                                {stepContent}
+                            </Step>
+                        );
+                    })}
+            </Stepper>
         </div>
     );
 };

@@ -15,6 +15,6 @@ export const createPaymentRecord = async (payment_method: Payment_Method) => {
         const payment_obj = await addDoc(collection(db, "payment_method"), payment_method);
         return payment_obj.id;
     } catch (e) {
-        throw new Error(`Error recording payment details. Please contact administrator!`);
+        throw new Error(`Error recording payment details. Please contact talentsearch@argus.ai`);
     }
 };
