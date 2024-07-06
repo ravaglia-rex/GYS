@@ -20,6 +20,7 @@ import { auth } from "../../firebase/firebase";
 import { handleOrderExam } from "../../functions/payment_handling/razorpay_functions";
 import RenderRazorpay from "./RenderRazorpay";
 import {LoadingSpinner as Spinner } from "../ui/spinner";
+import * as Sentry from '@sentry/react';
 
 const PendingPaymentsTable: React.FC<{ payments: ExamDetailsPayload[] }> = ({ payments }) => {
   const [displayRazorpay, setDisplayRazorpay] = useState(false);
@@ -50,6 +51,10 @@ const PendingPaymentsTable: React.FC<{ payments: ExamDetailsPayload[] }> = ({ pa
         setDisplayRazorpay(true);
       }
     } catch (error) {
+      Sentry.withScope((scope) => {
+        scope.setTag('location', 'PendingPaymentsTable.handlePayNow');
+        Sentry.captureException(error);
+      });
       console.error("Error creating order:", error);
     } finally {
       setLoadingPayment(null);

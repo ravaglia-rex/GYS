@@ -8,6 +8,7 @@ import { setFaceLandmarks } from '../state_data/faceLandmarksSlice.ts';
 import { setEntityDetectionWorker, setPoseDetectionWorker, setFaceLandmarkDetectionWorker} from '../state_data/frameCaptureSlice.ts';
 import { setLoadState } from '../state_data/loadSlice.ts';
 import { useToast } from './ui/use-toast';
+import * as Sentry from '@sentry/react';
 
 interface WorkerSetupComponentProps {
     hasCameraAccess: boolean;
@@ -59,6 +60,10 @@ const WorkerSetupComponent: React.FC<WorkerSetupComponentProps> = ({hasCameraAcc
         triggerMetadataUpdate("entityDetection", event.data.flaggedFrame, [entityDetectionState, faceLandmarksState, poseDetectionState, internetSpeedState.current, tabSwitchingState.current], user_id, exam_id);
         dispatch(setEntityDetection(event.data.flaggedFrame));
       } else if (event.data.type === 'error') {
+        Sentry.withScope((scope) => {
+          scope.setTag('location', 'WorkerSetupComponent.entityDetectionWorker');
+          Sentry.captureException(event.data.message);
+        });
         toast({
           variant: 'destructive',
           title: 'Model Error',
@@ -75,7 +80,10 @@ const WorkerSetupComponent: React.FC<WorkerSetupComponentProps> = ({hasCameraAcc
         triggerMetadataUpdate("poseDetection", event.data.poseResults, [entityDetectionState, faceLandmarksState, poseDetectionState, internetSpeedState.current, tabSwitchingState.current], user_id, exam_id);
         dispatch(setPoseDetection(event.data.poseResults));
       } else if (event.data.type === 'error') {
-        console.error("Pose Detection Worker Error:", event.data.message);
+        Sentry.withScope((scope) => {
+          scope.setTag('location', 'WorkerSetupComponent.poseDetectionWorker');
+          Sentry.captureException(event.data.message);
+        });
         toast({
           variant: 'destructive',
           title: 'Model Error',
@@ -92,6 +100,10 @@ const WorkerSetupComponent: React.FC<WorkerSetupComponentProps> = ({hasCameraAcc
         triggerMetadataUpdate("faceLandmarks", event.data.faceLandmarks, [entityDetectionState, faceLandmarksState, poseDetectionState, internetSpeedState.current, tabSwitchingState.current], user_id, exam_id);
         dispatch(setFaceLandmarks(event.data.faceLandmarks));
       } else if (event.data.type === 'error') {
+        Sentry.withScope((scope) => {
+          scope.setTag('location', 'WorkerSetupComponent.faceLandmarksWorker');
+          Sentry.captureException(event.data.message);
+        });
         toast({
           variant: 'destructive',
           title: 'Model Error',

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from './ui/use-toast.tsx';
 import TabSwitchingMonitor from './TabSwitchingMonitor.tsx';
 import { Video, Mic, Sun, Wifi } from 'lucide-react';
+import * as Sentry from '@sentry/react';
 
 const CameraMicrophoneAccess: React.FC = () => {
   const [hasCameraAccess, setHasCameraAccess] = useState<boolean>(false);
@@ -16,6 +17,10 @@ const CameraMicrophoneAccess: React.FC = () => {
       setHasCameraAccess(true);
       videoStream.getTracks().forEach(track => track.stop());
     } catch (error: any) {
+      Sentry.withScope((scope) => {
+        scope.setTag('location', 'CameraMicrophoneAccess.requestCameraAccess');
+        Sentry.captureException(error);
+      });
       toast({
         variant: 'destructive',
         title: 'Camera Access Denied',
@@ -30,6 +35,10 @@ const CameraMicrophoneAccess: React.FC = () => {
       setHasMicrophoneAccess(true);
       audioStream.getTracks().forEach(track => track.stop());
     } catch (error: any) {
+      Sentry.withScope((scope) => {
+        scope.setTag('location', 'CameraMicrophoneAccess.requestMicrophoneAccess');
+        Sentry.captureException(error);
+      });
       toast({
         variant: 'destructive',
         title: 'Microphone Access Denied',

@@ -22,6 +22,7 @@ import { Input } from '../ui/input';
 import { LoadingSpinner as Spinner } from '../ui/spinner';
 import { useToast } from '../ui/use-toast';
 import { getExamIds } from '../../db/studentExamMappings';
+import * as Sentry from '@sentry/react';
 
 const signinSchema = z.object({
     password: z.string().min(6, 'Password must be at least 6 characters'),
@@ -69,6 +70,11 @@ const SignInForm: React.FC<SignInFormProps> = ({ email }) => {
             });
             navigate('/dashboard');
         } catch (error: any) {
+            Sentry.withScope((scope) => {
+                scope.setTag('location', 'SignInForm.signIn');
+                scope.setExtra('email', email);
+                Sentry.captureException(error);
+            });
             toast({
                 variant: 'destructive',
                 title: 'Uh oh! Something went wrong.',

@@ -13,7 +13,7 @@ const SuperProtected: React.FC<SuperProtectedProps> = ({ children }) => {
     const handleTabClose = async () => {
         const user = auth.currentUser;
         if (user) {
-        await signOut(auth);
+            await signOut(auth);
         }
     };
 

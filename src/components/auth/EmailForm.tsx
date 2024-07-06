@@ -21,6 +21,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { useToast } from '../ui/use-toast';
 import { LoadingSpinner as Spinner } from '../ui/spinner';
+import * as Sentry from '@sentry/react';
 
 interface EmailEntryFormProps {
     setEmail: (email: string) => void;
@@ -58,6 +59,11 @@ const EmailEntryForm: React.FC<EmailEntryFormProps> = ({ setEmail, setEmailExist
             setEmail(data.email);
             setEmailExists(emailExists);
         } catch (error) {
+            Sentry.withScope((scope) => {
+                scope.setTag('location', 'EmailEntryForm.onSubmit');
+                scope.setExtra('email', data.email);
+                Sentry.captureException(error);
+            });
             toast({
                 variant: 'destructive',
                 title: 'Whoops!',

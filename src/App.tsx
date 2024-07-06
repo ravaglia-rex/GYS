@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './styles/index.css';
+import './sentry/sentry';
+import * as Sentry from '@sentry/react';
 import AppRouter from './router/AppRouter';
 import { persistor, store } from './state_data/reducer';
 import { Provider } from 'react-redux';
@@ -44,4 +46,4 @@ function App() {
   );
 }
 
-export default App;
+export default Sentry.withProfiler(App);

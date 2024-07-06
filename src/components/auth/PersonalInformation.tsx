@@ -20,7 +20,8 @@ import { useStepper } from "../ui/stepper";
 import { Checkbox } from '../ui/checkbox';
 import { checkExamIDExists } from '../../db/phase1UIDCollection';
 import { getUserData } from '../../db/phase1ResponsesCollection';
-import { LoadingSpinner as Spinner } from '../ui/spinner'; // Import Spinner
+import { LoadingSpinner as Spinner } from '../ui/spinner';
+import * as Sentry from '@sentry/react';
 
 const personalInfoSchema = z.object({
     first_name: z.string().min(1, 'First name is required'),
@@ -43,7 +44,7 @@ interface PersonalInformationProps {
 const PersonalInformationForm: React.FC<PersonalInformationProps> = ({ setFirstName, setLastName, setExamID, setIsQualified, setEligibilityDateTime }) => {
     const { toast } = useToast();
     const { nextStep } = useStepper();
-    const [isLoading, setIsLoading] = useState(false); // State to track loading status
+    const [isLoading, setIsLoading] = useState(false);
 
     const form = useForm({
         resolver: zodResolver(personalInfoSchema),
@@ -56,7 +57,7 @@ const PersonalInformationForm: React.FC<PersonalInformationProps> = ({ setFirstN
     });
 
     const onSubmit = async (data: z.infer<typeof personalInfoSchema>) => {
-        setIsLoading(true); // Set loading state to true when submission starts
+        setIsLoading(true);
         try {    
             setFirstName(data.first_name);
             setLastName(data.last_name);
@@ -64,6 +65,15 @@ const PersonalInformationForm: React.FC<PersonalInformationProps> = ({ setFirstN
                 try {
                     const examIDExists = await checkExamIDExists(data.examId);
                     if (examIDExists) {
+                        // This isn't an error but we want to log it
+                        Sentry.withScope((scope) => {
+                            scope.setTag('location', 'PersonalInformationForm.onSubmit');
+                            scope.setExtra('first_name', data.first_name);
+                            scope.setExtra('last_name', data.last_name);
+                            scope.setExtra('examId', data.examId);
+                            Sentry.captureMessage("Exam ID already used");
+                        });
+
                         form.setError("examId", {
                             type: "manual",
                             message: "Exam ID already used! If you think this is a mistake, please contact us at talentsearch@argus.ai"
@@ -75,6 +85,14 @@ const PersonalInformationForm: React.FC<PersonalInformationProps> = ({ setFirstN
                     if ('message' in result) {
                         if (result.message === "User not created yet") {
                             // We are now transparent to this error. I will simply allow this user to continue as a phase 1 participant.
+                            // This isn't an error but we want to log it
+                            Sentry.withScope((scope) => {
+                                scope.setTag('location', 'PersonalInformationForm.onSubmit');
+                                scope.setExtra('first_name', data.first_name);
+                                scope.setExtra('last_name', data.last_name);
+                                scope.setExtra('examId', data.examId);
+                                Sentry.captureMessage("User not created yet");
+                            });
                             toast({
                                 variant: 'destructive',
                                 title: 'We haven\'t seen you before!',
@@ -91,6 +109,13 @@ const PersonalInformationForm: React.FC<PersonalInformationProps> = ({ setFirstN
                         setEligibilityDateTime(result.eligibleDateTime||"");
                     }
                 } catch (error: any) {
+                    Sentry.withScope((scope) => {
+                        scope.setTag('location', 'PersonalInformationForm.onSubmit');
+                        scope.setExtra('first_name', data.first_name);
+                        scope.setExtra('last_name', data.last_name);
+                        scope.setExtra('examId', data.examId);
+                        Sentry.captureException(error);
+                    });
                     toast({
                         variant: 'destructive',
                         title: 'Uh oh!',
@@ -103,6 +128,13 @@ const PersonalInformationForm: React.FC<PersonalInformationProps> = ({ setFirstN
             }
             nextStep();
         } catch (error: any) {
+            Sentry.withScope((scope) => {
+                scope.setTag('location', 'PersonalInformationForm.onSubmit');
+                scope.setExtra('first_name', data.first_name);
+                scope.setExtra('last_name', data.last_name);
+                scope.setExtra('examId', data.examId);
+                Sentry.captureException(error);
+            });
             toast({
                 variant: 'destructive',
                 title: 'Uh oh! Something went wrong.',

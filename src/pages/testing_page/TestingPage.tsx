@@ -8,6 +8,7 @@ import BigSpinner from "../../components/BigSpinner";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../../state_data/reducer";
 import { setLoadState } from '../../state_data/loadSlice';
+import * as Sentry from "@sentry/react";
 
 const TestingPage: React.FC = () => {
   const loading = useSelector((state: RootState) => state.load.loading);
@@ -35,21 +36,27 @@ const TestingPage: React.FC = () => {
   }, [isProctored, dispatch]);
 
   return (
-    <div>
-      {isProctored && !isSubmitted ? (
-        <>
-          <FrameCapture isSubmitted={isSubmitted} />
-          <AudioCapture />
-          <InternetSpeedTest />
-          <TabSwitchingMonitor isSubmitted={isSubmitted} />
-        </>
-      ) : null}
-      {loading || isBuffering ? (
-        <BigSpinner />
-      ) : (
-        <FormEmbedding setSubmitted={setIsSubmitted} examDuration={examDuration}/>
-      )}
-    </div>
+    <Sentry.ErrorBoundary
+      beforeCapture={(scope) => {
+        scope.setTag("location", "TestingPage");
+      }}
+    >
+      <div>
+        {isProctored && !isSubmitted ? (
+          <>
+            <FrameCapture isSubmitted={isSubmitted} />
+            <AudioCapture />
+            <InternetSpeedTest />
+            <TabSwitchingMonitor isSubmitted={isSubmitted} />
+          </>
+        ) : null}
+        {loading || isBuffering ? (
+          <BigSpinner />
+        ) : (
+          <FormEmbedding setSubmitted={setIsSubmitted} examDuration={examDuration}/>
+        )}
+      </div>
+    </Sentry.ErrorBoundary>
   );
 };
 
