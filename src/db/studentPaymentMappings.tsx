@@ -16,6 +16,9 @@ export const getPayments = async (uid: string): Promise<Payment[]> => {
     const encodedUID = encodeURIComponent(uid);
     const response = await axios.get(`${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${STUDENTS_APIS}${FETCH_PAYMENTS}/${encodedUID}`);
     const data = response.data;
+    if(!data.payments) {
+      return [];
+    }
     return data.payments;
   } catch (error) {
     throw new Error(`Error fetching payments for user. Please contact support.`);
