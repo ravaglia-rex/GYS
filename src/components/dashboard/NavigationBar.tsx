@@ -12,7 +12,7 @@ const Navbar: React.FC = () => {
 
     return (
         <TooltipProvider>
-            <aside className="fixed inset-y-0 left-0 z-30 hidden w-16 flex-col bg-gray-900 text-white sm:flex">
+            <aside className="fixed inset-y-0 left-0 z-30 hidden w-16 flex-col bg-gray-900 text-white sm:flex z-50">
                 <div className="flex flex-col items-center py-4">
                     <img src='/argus_A_logo.png' alt="Argus Logo" className="h-12 w-12" />
                 </div>
