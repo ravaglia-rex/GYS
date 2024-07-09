@@ -22,7 +22,9 @@ export const getExamIds = async (uid: string) => {
       formLinks.push(examData.form_link);
       completed.push(examData.completed);
       let eligibilityDate: string;
-      if (examData.eligibility_at instanceof Date) {
+      if(examData.eligibility_at === "") {
+        eligibilityDate = currentDate;
+      } else if (examData.eligibility_at instanceof Date) {
         eligibilityDate = examData.eligibility_at.toISOString();
       } else if (typeof examData.eligibility_at === 'string') {
         eligibilityDate = examData.eligibility_at;
