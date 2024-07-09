@@ -11,6 +11,7 @@ import { cleanupAudioCaptureResources } from '../state_data/audioCaptureSlice';
 import { cleanupFrameResources } from '../state_data/frameCaptureSlice';
 import { useToast } from './ui/use-toast';
 import { auth } from '../firebase/firebase';
+import * as Sentry from '@sentry/react';
 
 const AudioCapture: React.FC = () => {
   const { toast } = useToast();
@@ -49,6 +50,10 @@ const AudioCapture: React.FC = () => {
         console.error("Browser not supported for audio recording.");
         dispatch(cleanupAudioCaptureResources());
         dispatch(cleanupFrameResources());
+        Sentry.withScope((scope) => {
+          scope.setTag('location', 'AudioCapture.startRecording');
+          Sentry.captureException(new Error('Browser not supported for audio recording.'));
+        });
         toast({
           variant: 'destructive',
           title: 'Audio Error',
@@ -75,7 +80,10 @@ const AudioCapture: React.FC = () => {
 
       recorderRef.current.start(AUDIO_RATE);
     } catch (error) {
-      console.error('Error accessing the microphone:', error);
+      Sentry.withScope((scope) => {
+        scope.setTag('location', 'AudioCapture.startRecording');
+        Sentry.captureException(error);
+      });
       dispatch(cleanupAudioCaptureResources());
       dispatch(cleanupFrameResources());
       toast({

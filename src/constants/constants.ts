@@ -34,11 +34,15 @@ export const RAZORPAY_ORDER_EXAM='/orderExam';
 export const SCHOOLS_APIS = '/schools';
 export const STUDENTS_APIS = '/students';
 export const PHASE_1_QUERIES_APIS = '/phase1Queries';
+export const EXAM_DETAILS_APIS = '/examDetails';
 
 export const CREATE_EXPEDITED_SCHOOL='/createExpeditedSchool';
 export const FETCH_SCHOOL_NAMES_AND_IDS='/fetchSchoolNamesAndIds';
 
 export const SIGN_UP_TRANSACTION='/runSignUpTransaction';
+export const FETCH_PAYMENTS='/getPayments';
 
 export const CHECK_EXAM_ID_USED='/checkExamIDUsed';
 export const CHECK_PHASE_1_ELIBIGILITY='/getPhase1Eligibility';
+
+export const FETCH_EXAM_DETAILS='/getExamDetails';

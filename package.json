@@ -22,6 +22,8 @@
     "@radix-ui/react-toast": "^1.1.5",
     "@radix-ui/react-tooltip": "^1.1.1",
     "@reduxjs/toolkit": "^2.2.5",
+    "@sentry/react": "^8.15.0",
+    "@sentry/tracing": "^7.114.0",
     "@shadcn/ui": "^0.0.4",
     "@tensorflow-models/coco-ssd": "^2.2.3",
     "@tensorflow-models/pose-detection": "^2.1.3",

@@ -1,14 +1,14 @@
-import { doc, getDoc } from "firebase/firestore";
-import db from "./db";
+import axios from "axios";
+import { EXAM_DETAILS_APIS, FETCH_EXAM_DETAILS } from "../constants/constants";
 
 export const getExamDetails = async (formLinks: string[]) => {
   try {
       const examDetailsPromises = formLinks.map(async (formLink) => {
-      const examDetailsRef = doc(db, "exam_details", formLink);
-      const examDetailsSnapshot = await getDoc(examDetailsRef);
-      if (examDetailsSnapshot.exists()) {
-        return examDetailsSnapshot.data();
-      } else {
+      try {
+        const encodedFormLink = encodeURIComponent(formLink);
+        const response = await axios.get(`${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${EXAM_DETAILS_APIS}${FETCH_EXAM_DETAILS}/${encodedFormLink}`);
+        return response.data;
+      } catch (error) {
         return null;
       }
     });

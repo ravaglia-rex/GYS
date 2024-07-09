@@ -5,6 +5,7 @@ import { auth } from '../../firebase/firebase';
 import { useDispatch } from 'react-redux';
 import { resetExamDetails } from '../../state_data/examDetailsSlice';
 import { resetPayments } from '../../state_data/studentPaymentsSlice';
+import * as Sentry from '@sentry/react';
 
 const SignOutButton: React.FC = () => {
   const navigate = useNavigate();
@@ -20,6 +21,10 @@ const SignOutButton: React.FC = () => {
 
       navigate('/');
     }).catch((error) => {
+      Sentry.withScope((scope) => {
+        scope.setTag('location', 'SignOutButton.signOutUser');
+        Sentry.captureException(error);
+      });
       console.log(error);
     });
   };

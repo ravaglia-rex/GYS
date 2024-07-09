@@ -11,6 +11,7 @@ import { Button } from "../ui/button";
 import { sendEmailVerification } from 'firebase/auth';
 import { auth } from '../../firebase/firebase';
 import { useToast } from '../ui/use-toast';
+import * as Sentry from '@sentry/react';
 
 interface VerifyEmailDialogProps {
   isOpen: boolean;
@@ -38,6 +39,10 @@ const VerifyEmailDialog: React.FC<VerifyEmailDialogProps> = ({ isOpen, onClose }
           description: 'Please check your inbox for the verification email.',
         });
       } else {
+        Sentry.withScope((scope) => {
+          scope.setTag('location', 'VerifyEmailDialog.handleResendVerificationEmail');
+          Sentry.captureException(new Error('User not authenticated'));
+        });
         toast({
           variant: 'destructive',
           title: 'User not authenticated',
@@ -45,11 +50,19 @@ const VerifyEmailDialog: React.FC<VerifyEmailDialogProps> = ({ isOpen, onClose }
         });
       }
     } catch (error: any) {
+      Sentry.withScope((scope) => {
+        scope.setTag('location', 'VerifyEmailDialog.handleResendVerificationEmail');
+        Sentry.captureException(error);
+      });
       if (error.code === 'auth/too-many-requests') {
         const cooldownEndTime = Date.now() + 60000; // Set cooldown for 1 minute
         localStorage.setItem('emailResendCooldown', cooldownEndTime.toString());
         setCooldown(cooldownEndTime);
         setProgress(100); // Reset progress bar to full
+        Sentry.withScope((scope) => {
+          scope.setTag('location', 'VerifyEmailDialog.handleResendVerificationEmail');
+          Sentry.captureMessage('Resend email cooldown triggered');
+        });
         toast({
           variant: 'destructive',
           title: 'Not so fast friend!⏱️',
@@ -57,6 +70,10 @@ const VerifyEmailDialog: React.FC<VerifyEmailDialogProps> = ({ isOpen, onClose }
           duration: 20000,
         });
       } else {
+        Sentry.withScope((scope) => {
+          scope.setTag('location', 'VerifyEmailDialog.handleResendVerificationEmail');
+          Sentry.captureException(error);
+        });
         toast({
           variant: 'destructive',
           title: 'Error sending email',

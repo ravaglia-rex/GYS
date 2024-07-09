@@ -20,6 +20,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { useToast } from '../ui/use-toast';
 import { useStepper } from "../ui/stepper";
+import * as Sentry from '@sentry/react';
 
 const signupSchema = z.object({
     parent_name: z.string().min(2, 'Parent name is required'),
@@ -53,6 +54,13 @@ const ParentInfoForm: React.FC<ParentInfoFormProps> = ({setParentName, setParent
             setParentPhone(data.parent_phone);
             nextStep();
         } catch (error: any) {
+            Sentry.withScope((scope) => {
+                scope.setTag('location', 'ParentInfoForm.onSubmit');
+                scope.setExtra('parent_name', data.parent_name);
+                scope.setExtra('parent_email', data.parent_email);
+                scope.setExtra('parent_phone', data.parent_phone);
+                Sentry.captureException(error);
+            });
             toast({
                 variant: 'destructive',
                 title: 'Uh oh! Something went wrong.',

@@ -9,6 +9,7 @@ import {
   DialogTrigger,
 } from "./ui/dialog";
 import { Button } from "./ui/button";
+import * as Sentry from '@sentry/react';
 
 interface CameraAccessDialogProps {
   hasCameraAccess: boolean;
@@ -24,6 +25,10 @@ const CameraAccessDialog: React.FC<CameraAccessDialogProps> = ({ hasCameraAccess
                 stream.getTracks().forEach(track => track.stop());
             })
             .catch((error) => {
+                Sentry.withScope((scope) => {
+                    scope.setTag('location', 'CameraAccessDialog.checkCameraAccess');
+                    Sentry.captureException(error);
+                });
                 setHasCameraAccess(false);
             });
     }, [setHasCameraAccess]);

@@ -21,7 +21,17 @@ export const getExamIds = async (uid: string) => {
       const examData = doc.data();
       formLinks.push(examData.form_link);
       completed.push(examData.completed);
-      eligibility_at.push(examData.eligibility_at || currentDate);
+      let eligibilityDate: string;
+      if(examData.eligibility_at === "") {
+        eligibilityDate = currentDate;
+      } else if (examData.eligibility_at instanceof Date) {
+        eligibilityDate = examData.eligibility_at.toISOString();
+      } else if (typeof examData.eligibility_at === 'string') {
+        eligibilityDate = examData.eligibility_at;
+      } else {
+        eligibilityDate = currentDate;
+      }
+      eligibility_at.push(eligibilityDate);
       result.push(examData.hasOwnProperty('result')? examData.result : null);
     });
     

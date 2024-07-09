@@ -7,6 +7,7 @@ import { cleanupFrameResources } from '../../state_data/frameCaptureSlice';
 import { auth } from '../../firebase/firebase';
 import { createSubmissionRecord } from '../../db/studentSubmissionMapping';
 import { markExamComplete } from '../../db/studentExamMappings';
+import * as Sentry from '@sentry/react';
 
 declare global {
   interface Window {
@@ -87,6 +88,11 @@ const FormEmbedding: React.FC<FormEmbeddingProps> = ({ setSubmitted, examDuratio
           
           setSubmissionComplete(true);
         } catch (error) {
+          Sentry.withScope((scope) => {
+            scope.setTag('location', 'FormEmbedding.handleMessage');
+            scope.setExtra('messageData', e.data);
+            Sentry.captureException(error);
+          });
           console.error('Error parsing message data:', error);
         }
       }

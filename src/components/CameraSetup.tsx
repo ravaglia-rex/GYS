@@ -8,6 +8,7 @@ import { cleanupAudioCaptureResources } from '../state_data/audioCaptureSlice.ts
 import { RootState } from '../state_data/reducer.ts';
 import { setLoadState } from '../state_data/loadSlice.ts';
 import { useToast } from './ui/use-toast';
+import * as Sentry from '@sentry/react';
 
 interface CameraSetupProps {
     hasCameraAccess: boolean;
@@ -62,6 +63,10 @@ const CameraSetup: React.FC<CameraSetupProps> = ({hasCameraAccess, isSubmitted, 
                 }
             }
         } catch (error: any) {
+                Sentry.withScope((scope) => {
+                    scope.setTag('location', 'CameraSetup.setupCamera');
+                    Sentry.captureException(error);
+                });
                 toast({
                 variant: 'destructive',
                 title: 'Camera Error',

@@ -7,6 +7,8 @@ import { RootState } from '../../state_data/reducer';
 import { setExamDetails, ExamDetailsPayload } from '../../state_data/examDetailsSlice';
 import { getPayments } from '../../db/studentPaymentMappings';
 import { setPayments } from '../../state_data/studentPaymentsSlice';
+import * as Sentry from '@sentry/react';
+import BigSpinner from '../BigSpinner';
 
 const ExamCardsGroup: React.FC<{ uid: string }> = ({ uid }) => {
   const dispatch = useDispatch();
@@ -38,10 +40,19 @@ const ExamCardsGroup: React.FC<{ uid: string }> = ({ uid }) => {
     const loadPayments = async () => {
       try {
         const paymentsData = await getPayments(uid);
+        if(paymentsData.length === 0) {
+          dispatch(setPayments([]));
+          setLoading(false);
+          return;
+        }
         const transformedData = paymentsData.map(transformPaymentData);
         dispatch(setPayments(transformedData));
         setLoading(false);
       } catch (error: any) {
+        Sentry.withScope((scope) => {
+          scope.setTag('location', 'ExamCardsGroup.loadPayments');
+          Sentry.captureException(error);
+        });
         setError(error.message);
         setLoading(false);
       }
@@ -74,6 +85,10 @@ const ExamCardsGroup: React.FC<{ uid: string }> = ({ uid }) => {
         }
         setLoading(false);
       } catch (error: any) {
+        Sentry.withScope((scope) => {
+          scope.setTag('location', 'ExamCardsGroup.loadExamDetails');
+          Sentry.captureException(error);
+        });
         setError(error.message);
         setLoading(false);
       }
@@ -89,7 +104,7 @@ const ExamCardsGroup: React.FC<{ uid: string }> = ({ uid }) => {
 
   }, [uid, dispatch, paymentsLoaded, examDetailsLoaded]);
 
-  if (loading) return <p>Loading...</p>;
+  if (loading) return <BigSpinner />;
   if (error) return <p>Error: {error}</p>;
 
   const incompleteExams = examDetailsState.filter((data) => !data.completed);

@@ -27,6 +27,7 @@ import { useStepper } from "../ui/stepper";
 import { LoadingSpinner as Spinner } from "../ui/spinner";
 import { useNavigate } from "react-router-dom";
 import VerifyEmailDialog from "./VerifyEmailDialog";
+import * as Sentry from '@sentry/react';
 
 const signupSchema = z.object({
     password: z.string().min(6, 'Password must be at least 6 characters'),
@@ -106,6 +107,21 @@ const TnCPassForm: React.FC<TnCPassProps> = ({ first_name, last_name, school, gr
                 description: `Welcome to Argus, ${first_name}! A verification email has been sent to ${email}.`,
             });
         } catch (error: any) {
+            Sentry.withScope((scope) => {
+                scope.setTag('location', 'TnCPassForm.onSubmit');
+                scope.setExtra('first_name', first_name);
+                scope.setExtra('last_name', last_name);
+                scope.setExtra('school', school);
+                scope.setExtra('grade', grade);
+                scope.setExtra('parent_name', parent_name);
+                scope.setExtra('parent_email', parent_email);
+                scope.setExtra('parent_phone', parent_phone);
+                scope.setExtra('email', email);
+                scope.setExtra('examID', examID);
+                scope.setExtra('isQualified', isQualified);
+                scope.setExtra('eligibleDateTime', eligibleDateTime);
+                Sentry.captureException(error);
+            });
             toast({
                 variant: 'destructive',
                 title: 'Uh oh! Something went wrong.',

@@ -25,6 +25,7 @@ import { Button } from "../ui/button";
 import { useToast } from "../ui/use-toast";
 import AutocompleteInput from "../autocomplete/AutocompleteInput";
 import { useStepper } from "../ui/stepper";
+import * as Sentry from "@sentry/react";
 
 const schoolSchema = z.object({
   school: z.string().min(1, "School is required"),
@@ -60,6 +61,10 @@ const SchoolInfoForm: React.FC<SchoolInfoFormProps> = ({ setSchool, setGrade, is
           setSchoolsList(schoolsData);
         }
       } catch (error: any) {
+        Sentry.withScope((scope) => {
+          scope.setTag("location", "SchoolInfoForm.fetchSchoolsData");
+          Sentry.captureException(error);
+        });
         return null;
       } finally {
         setLoading(false);
@@ -80,11 +85,22 @@ const SchoolInfoForm: React.FC<SchoolInfoFormProps> = ({ setSchool, setGrade, is
       } else {
         // Create a new school and assign the returned ID
         schoolId = await createExpeditedSchool({ school_name: data.school });
+        Sentry.withScope((scope) => {
+          scope.setTag("location", "SchoolInfoForm.createExpeditedSchool");
+          scope.setExtra("school_name", data.school);
+          Sentry.captureMessage("New school created");
+        });
       }
       setSchool(schoolId);
       setGrade(data.grade);
       nextStep();
     } catch (error: any) {
+      Sentry.withScope((scope) => {
+        scope.setTag("location", "SchoolInfoForm.onSubmit");
+        scope.setExtra("school", data.school);
+        scope.setExtra("grade", data.grade);
+        Sentry.captureException(error);
+      });
       toast({
         variant: "destructive",
         title: "Uh oh! Something went wrong.",
@@ -94,69 +110,69 @@ const SchoolInfoForm: React.FC<SchoolInfoFormProps> = ({ setSchool, setGrade, is
   };
 
   return (
-    <div>
-      {showDialog && isQualified === false && (
-        <WaitlistDialog isOpen={showDialog} onClose={() => setShowDialog(false)} />
-      )}
-      {showDialog && isQualified === true && (
-        <CongratulationsDialog isOpen={showDialog} onClose={() => setShowDialog(false)} />
-      )}
-      <h2 className="text-2xl font-semibold text-center mb-6">School 🏫</h2>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <FormField
-            control={form.control}
-            name="school"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>School</FormLabel>
-                <FormControl>
-                  <AutocompleteInput 
-                    schools={schoolsList} 
-                    onSelect={(selectedSchoolId) => field.onChange(selectedSchoolId)}
-                    className="bg-transparent rounded-lg w-full"
-                    loading={loading}
-                  />
-                </FormControl>
-                <FormDescription className="text-xs">Take me from darkness to light</FormDescription>
-                <FormMessage>{form.formState.errors.school?.message}</FormMessage>
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="grade"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Grade</FormLabel>
-                <FormControl>
-                  <Select 
-                    onValueChange={(value) => field.onChange(Number(value))}
-                    defaultValue={field.value.toString()}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select grade" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="6">6th Grade</SelectItem>
-                      <SelectItem value="7">7th Grade</SelectItem>
-                      <SelectItem value="8">8th Grade</SelectItem>
-                      <SelectItem value="9">9th Grade</SelectItem>
-                      <SelectItem value="10">10th Grade</SelectItem>
-                      <SelectItem value="11">11th Grade</SelectItem>
-                      <SelectItem value="12">12th Grade</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </FormControl>
-                <FormMessage>{form.formState.errors.grade?.message}</FormMessage>
-              </FormItem>
-            )}
-          />
-          <Button type="submit" className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-md">Next</Button>
-          <Button type="button" onClick={() => prevStep()} className="w-full py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md">Previous</Button>
-        </form>
-      </Form>
-    </div>
+      <div>
+        {showDialog && isQualified === false && (
+          <WaitlistDialog isOpen={showDialog} onClose={() => setShowDialog(false)} />
+        )}
+        {showDialog && isQualified === true && (
+          <CongratulationsDialog isOpen={showDialog} onClose={() => setShowDialog(false)} />
+        )}
+        <h2 className="text-2xl font-semibold text-center mb-6">School 🏫</h2>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <FormField
+              control={form.control}
+              name="school"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>School</FormLabel>
+                  <FormControl>
+                    <AutocompleteInput 
+                      schools={schoolsList} 
+                      onSelect={(selectedSchoolId) => field.onChange(selectedSchoolId)}
+                      className="bg-transparent rounded-lg w-full"
+                      loading={loading}
+                    />
+                  </FormControl>
+                  <FormDescription className="text-xs">Take me from darkness to light</FormDescription>
+                  <FormMessage>{form.formState.errors.school?.message}</FormMessage>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="grade"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Grade</FormLabel>
+                  <FormControl>
+                    <Select 
+                      onValueChange={(value) => field.onChange(Number(value))}
+                      defaultValue={field.value.toString()}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select grade" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="6">6th Grade</SelectItem>
+                        <SelectItem value="7">7th Grade</SelectItem>
+                        <SelectItem value="8">8th Grade</SelectItem>
+                        <SelectItem value="9">9th Grade</SelectItem>
+                        <SelectItem value="10">10th Grade</SelectItem>
+                        <SelectItem value="11">11th Grade</SelectItem>
+                        <SelectItem value="12">12th Grade</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage>{form.formState.errors.grade?.message}</FormMessage>
+                </FormItem>
+              )}
+            />
+            <Button type="submit" className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-md">Next</Button>
+            <Button type="button" onClick={() => prevStep()} className="w-full py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md">Previous</Button>
+          </form>
+        </Form>
+      </div>
   );
 };
 

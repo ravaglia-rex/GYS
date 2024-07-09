@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useToast } from '../ui/use-toast';
 import { useNavigate } from 'react-router-dom';
+import * as Sentry from '@sentry/react';
 
 const loadScript = (src: string): Promise<boolean> =>
   new Promise((resolve) => {
@@ -46,6 +47,10 @@ const RenderRazorpay: React.FC<RenderRazorpayProps> = ({
 
     if (!res) {
       console.log('Razorpay SDK failed to load. Are you online?');
+      Sentry.withScope((scope) => {
+        scope.setTag('location', 'RenderRazorpay.displayRazorpay');
+        Sentry.captureException(new Error('Razorpay SDK failed to load'));
+      });
       return;
     }
 
@@ -57,6 +62,10 @@ const RenderRazorpay: React.FC<RenderRazorpayProps> = ({
 
     rzp1.on('payment.failed', (response: any) => {
       paymentId.current = response.error.metadata.payment_id;
+      Sentry.withScope((scope) => {
+        scope.setTag('location', 'RenderRazorpay.payment.failed');
+        Sentry.captureException(new Error('Payment failed'));
+      });
     });
 
     rzp1.open();
