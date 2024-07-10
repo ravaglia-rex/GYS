@@ -75,7 +75,9 @@ const NewPasswordForm: React.FC<PasswordResetProps> = ({ actionCode }) => {
     }
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="flex items-center justify-center min-h-screen bg-cover bg-no-repeat"
+            style={{ backgroundImage: `url(/assets/reset-password.png)` }}
+        >
             <div className="bg-white bg-opacity-75 backdrop-filter backdrop-blur-lg p-8 rounded-lg shadow-md w-full max-w-md">
                 <h2 className="text-2xl font-semibold text-center mb-6">Reset Your Password</h2>
                 <Form {...form}>

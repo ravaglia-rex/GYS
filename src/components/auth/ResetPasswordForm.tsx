@@ -62,7 +62,7 @@ const ResetPasswordForm: React.FC = () => {
     };
 
     return (
-        <div>
+        <div className="bg-white bg-opacity-75 backdrop-filter backdrop-blur-lg p-8 rounded-lg shadow-md w-full max-w-md">
             <h2 className="text-2xl font-semibold text-center mb-6">Reset Your Password</h2>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(sendResetEmail)} className="space-y-6">
@@ -73,7 +73,7 @@ const ResetPasswordForm: React.FC = () => {
                             <FormItem>
                                 <FormLabel>Email Address</FormLabel>
                                 <FormControl>
-                                    <Input type="email" placeholder="you@example.com" {...field} />
+                                    <Input type="email" placeholder="hello@argus.ai" {...field} />
                                 </FormControl>
                                 <FormDescription className="text-xs">Enter the email address associated with your account.</FormDescription>
                                 <FormMessage>{form.formState.errors.email?.message}</FormMessage>
