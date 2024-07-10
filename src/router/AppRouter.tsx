@@ -9,8 +9,9 @@ import BigSpinner from '../components/BigSpinner';
 AUTHENTICATION PAGES: These are the pages that are used for the signup and login process
 */
 const AuthenticationPage = React.lazy(() => import('../pages/authentication_pages/AuthenticationPage'));
-const VerifyEmailPage = React.lazy(() => import('../pages/authentication_pages/VerifyEmailPage'));
+const AuthActionPage = React.lazy(() => import('../pages/authentication_pages/AuthActionPage'));
 const VerifyEmailErrorPage = React.lazy(() => import('../pages/authentication_pages/VerifyEmailErrorPage'));
+const ResetPasswordPage = React.lazy(() => import('../pages/authentication_pages/ResetPasswordPage'));
 
 /*
 TESTING PAGES: These are the pages for serving the exam
@@ -50,11 +51,22 @@ const AppRouter: React.FC = () => {
           }
           errorElement={<NotFoundPage />}
         />
+
+        <Route 
+          path='/reset-password'
+          element={
+            <Suspense fallback={<BigSpinner/>}>
+              <ResetPasswordPage />
+            </Suspense>
+          }
+          errorElement={<NotFoundPage />}
+        />
+
         <Route 
           path='/auth/action'
           element={
             <Suspense fallback={<BigSpinner/>}>
-              <VerifyEmailPage />
+              <AuthActionPage />
             </Suspense>
           }
           errorElement={<NotFoundPage />}
@@ -69,6 +81,7 @@ const AppRouter: React.FC = () => {
           }
           errorElement={<NotFoundPage />}
         />
+
         {/* ------------------------------ SIGNUP AND LOGIN ROUTES END ------------------------------ */}
         {/* DASHBOARD ROUTES */}
         <Route 

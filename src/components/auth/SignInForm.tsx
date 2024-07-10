@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UserCredential, signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { auth } from '../../firebase/firebase';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -108,6 +108,11 @@ const SignInForm: React.FC<SignInFormProps> = ({ email }) => {
                     </Button>
                 </form>
             </Form>
+            <div className='text-center mt-4'>
+                <Link to='/reset-password' className='text-sm text-blue-600 hover:underline'>
+                    Forgot password?
+                </Link>
+            </div>
         </div>
     );
 };
