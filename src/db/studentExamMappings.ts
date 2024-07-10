@@ -1,41 +1,13 @@
 import { collection, query, where, getDocs, addDoc, updateDoc } from "firebase/firestore";
 import db from "./db";
+import axios from "axios";
+import { STUDENTS_APIS, FETCH_EXAM_IDS } from "../constants/constants";
 
 export const getExamIds = async (uid: string) => {
   try {
-    const examMappingRef = collection(db, "student_exam_mappings");
-    const examQuery = query(examMappingRef, where("uid", "==", uid));
-    const examSnapshot = await getDocs(examQuery);
-    if (examSnapshot.empty) {
-      return { formLinks: [], completed: [], eligibility_at: [], result: [] };
-    }
-
-    let formLinks: string[] = [];
-    let completed: boolean[] = [];
-    let eligibility_at: string[] = [];
-    let result: (boolean|null)[] = [];
-
-    const currentDate = new Date().toISOString();
-
-    examSnapshot.forEach(doc => {
-      const examData = doc.data();
-      formLinks.push(examData.form_link);
-      completed.push(examData.completed);
-      let eligibilityDate: string;
-      if(examData.eligibility_at === "") {
-        eligibilityDate = currentDate;
-      } else if (examData.eligibility_at instanceof Date) {
-        eligibilityDate = examData.eligibility_at.toISOString();
-      } else if (typeof examData.eligibility_at === 'string') {
-        eligibilityDate = examData.eligibility_at;
-      } else {
-        eligibilityDate = currentDate;
-      }
-      eligibility_at.push(eligibilityDate);
-      result.push(examData.hasOwnProperty('result')? examData.result : null);
-    });
-    
-    return { formLinks, completed, eligibility_at, result };
+    const encodedUID = encodeURIComponent(uid);
+    const response = await axios.get(`${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${STUDENTS_APIS}${FETCH_EXAM_IDS}/${encodedUID}`);
+    return response.data;
   } catch (error) {
     throw new Error(`Error fetching exam IDs for user. Please contact talentsearch@argus.ai`);
   }

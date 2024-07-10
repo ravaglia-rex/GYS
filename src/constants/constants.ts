@@ -41,6 +41,7 @@ export const FETCH_SCHOOL_NAMES_AND_IDS='/fetchSchoolNamesAndIds';
 
 export const SIGN_UP_TRANSACTION='/runSignUpTransaction';
 export const FETCH_PAYMENTS='/getPayments';
+export const FETCH_EXAM_IDS='/getExamIds';
 
 export const CHECK_EXAM_ID_USED='/checkExamIDUsed';
 export const CHECK_PHASE_1_ELIBIGILITY='/getPhase1Eligibility';
