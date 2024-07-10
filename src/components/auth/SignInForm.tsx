@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ResendVerificationButton from './ResendVerificationButton';
 import { UserCredential, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { useNavigate, Link } from 'react-router-dom';
 import { auth } from '../../firebase/firebase';
@@ -42,12 +43,14 @@ const SignInForm: React.FC<SignInFormProps> = ({ email }) => {
         },
     });
     const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
+    const [loadResendVerification, setLoadResendVerification] = useState<boolean>(false);
 
     const signIn = async (data: z.infer<typeof signinSchema>) => {
         setIsSubmitted(true);
         try {
             const userCredential: UserCredential = await signInWithEmailAndPassword(auth, email, data.password);
             if (!userCredential.user.emailVerified) {
+                setLoadResendVerification(true);
                 const {formLinks, completed} = await getExamIds(userCredential.user.uid);
                 const hasPermission = formLinks.includes('npByEB') && !completed[formLinks.indexOf('npByEB')];
                 if(!hasPermission){
@@ -108,7 +111,9 @@ const SignInForm: React.FC<SignInFormProps> = ({ email }) => {
                     </Button>
                 </form>
             </Form>
+            
             <div className='text-center mt-4'>
+                {loadResendVerification && <ResendVerificationButton />}
                 <Link to='/reset-password' className='text-sm text-blue-600 hover:underline'>
                     Forgot password?
                 </Link>
