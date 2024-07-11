@@ -9,6 +9,7 @@ import { getPayments } from '../../db/studentPaymentMappings';
 import { setPayments } from '../../state_data/studentPaymentsSlice';
 import * as Sentry from '@sentry/react';
 import BigSpinner from '../BigSpinner';
+import { auth } from '../../firebase/firebase';
 
 const ExamCardsGroup: React.FC<{ uid: string }> = ({ uid }) => {
   const dispatch = useDispatch();
@@ -51,6 +52,7 @@ const ExamCardsGroup: React.FC<{ uid: string }> = ({ uid }) => {
       } catch (error: any) {
         Sentry.withScope((scope) => {
           scope.setTag('location', 'ExamCardsGroup.loadPayments');
+          scope.setExtra('email', auth.currentUser?.email);
           Sentry.captureException(error);
         });
         setError(error.message);
@@ -87,6 +89,7 @@ const ExamCardsGroup: React.FC<{ uid: string }> = ({ uid }) => {
       } catch (error: any) {
         Sentry.withScope((scope) => {
           scope.setTag('location', 'ExamCardsGroup.loadExamDetails');
+          scope.setExtra('email', auth.currentUser?.email);
           Sentry.captureException(error);
         });
         setError(error.message);

@@ -15,6 +15,7 @@ import { getExamIds } from "../../db/studentExamMappings";
 import { getExamDetails } from "../../db/examDetailsCollection";
 import { setExamDetails, ExamDetailsPayload } from '../../state_data/examDetailsSlice';
 import { RootState } from "../../state_data/reducer";
+import { auth } from "../../firebase/firebase";
 import * as Sentry from '@sentry/react';
 
 const PaymentsTabs: React.FC<{ uid: string }> = ({ uid }) => {
@@ -48,6 +49,7 @@ const PaymentsTabs: React.FC<{ uid: string }> = ({ uid }) => {
       } catch (error: any) {
         Sentry.withScope((scope) => {
           scope.setTag('location', 'PaymentsTabs.loadPayments');
+          scope.setExtra('email', auth.currentUser?.email);
           Sentry.captureException(error);
         });
         setError(error.message);
@@ -83,6 +85,7 @@ const PaymentsTabs: React.FC<{ uid: string }> = ({ uid }) => {
       } catch (error: any) {
         Sentry.withScope((scope) => {
           scope.setTag('location', 'PaymentsTabs.loadExamDetails');
+          scope.setExtra('email', auth.currentUser?.email);
           Sentry.captureException(error);
         });
         setError(error.message);
