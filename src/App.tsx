@@ -8,9 +8,11 @@ import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { Toaster } from './components/ui/toaster';
 import MinimumWidthPage from './pages/MinimumWidthPage';
+import UnsupportedBrowserPage from './pages/UnsupportedBrowserPage';
 
 function App() {
   const [isMobileDevice, setIsMobileDevice] = useState(false);
+  const [isChromiumBrowser, setIsChromiumBrowser] = useState(true);
 
   useEffect(() => {
     const handleResize = () => {
@@ -30,8 +32,25 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    const isChromiumBased = () => {
+      const userAgent = navigator.userAgent;
+      const isChrome = userAgent.includes('Chrome');
+      const isEdge = userAgent.includes('Edg');
+      const isArc = userAgent.includes('Arc');
+      return isChrome || isEdge || isArc;
+    };
+    if(!isChromiumBased()) {
+      setIsChromiumBrowser(false);
+    }
+  }, []);
+
   if (isMobileDevice) {
     return <MinimumWidthPage />;
+  }
+
+  if(!isChromiumBrowser){
+    return <UnsupportedBrowserPage />;
   }
 
   return (
