@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Check } from 'lucide-react';
+import * as Sentry from '@sentry/react';
 
 interface WebcamOverlayProps {
   setFaceAligned: React.Dispatch<React.SetStateAction<boolean>>;
@@ -11,6 +12,7 @@ const WebcamOverlay: React.FC<WebcamOverlayProps> = ({setFaceAligned}) => {
   const [isVideoPlaying, setIsVideoPlaying] = useState(true);
   const [isFaceAligned, setIsFaceAligned] = useState(false);
   const workerRef = useRef<Worker>();
+  let mediaStream = useRef<MediaStream>();
 
   useEffect(() => {
     const video = videoRef.current;
@@ -20,19 +22,20 @@ const WebcamOverlay: React.FC<WebcamOverlayProps> = ({setFaceAligned}) => {
     const startVideo = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        mediaStream.current = stream;
         if (video) {
           video.srcObject = stream;
           video.play();
         }
       } catch (err) {
-        console.error('Error accessing webcam: ', err);
+        Sentry.withScope((scope) => {
+          scope.setTag('location', 'WebcamOverlay.startVideo');
+          Sentry.captureException(err);
+        });
       }
     };
-
     if (isVideoPlaying) {
       startVideo();
-    } else if (video && video.srcObject) {
-      (video.srcObject as MediaStream).getTracks().forEach(track => track.stop());
     }
 
     const drawOutline = () => {
@@ -151,6 +154,10 @@ const WebcamOverlay: React.FC<WebcamOverlayProps> = ({setFaceAligned}) => {
   const handleStopVideo = () => {
     setFaceAligned(true);
     setIsVideoPlaying(false);
+    if(mediaStream.current) {
+      mediaStream.current.getTracks().forEach(track => track.stop());
+      workerRef.current?.terminate();
+    }
   };
 
   return (
