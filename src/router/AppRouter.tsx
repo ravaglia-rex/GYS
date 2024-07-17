@@ -18,6 +18,7 @@ TESTING PAGES: These are the pages for serving the exam
 */
 const TestingPage = React.lazy(() => import('../pages/testing_page/TestingPage'));
 const CameraError = React.lazy(() => import('../pages/error_pages/CameraError'));
+const WebcamOverlayPage = React.lazy(() => import('../pages/testing_page/WebcamOverlayPage'));
 const EntityDetectionError = React.lazy(() => import('../pages/error_pages/EntityDetectionError'));
 const PoseDetectionError = React.lazy(() => import('../pages/error_pages/PoseDetectionError'));
 const FaceLandmarksError = React.lazy(() => import('../pages/error_pages/FaceLandmarksError'));
@@ -113,6 +114,18 @@ const AppRouter: React.FC = () => {
             <SuperProtected>
               <Suspense fallback={<BigSpinner/>}>
                 <CameraMicrophoneAccess />
+              </Suspense>
+            </SuperProtected>
+          }
+          errorElement={<NotFoundPage />}
+        />
+
+        <Route
+          path="/webcam-overlay"
+          element={
+            <SuperProtected>
+              <Suspense fallback={<BigSpinner/>}>
+                <WebcamOverlayPage />
               </Suspense>
             </SuperProtected>
           }

@@ -48,7 +48,7 @@ const CameraMicrophoneAccess: React.FC = () => {
   };
 
   const handleAcknowledge = () => {
-    navigate('/testing');
+    navigate('/webcam-overlay');
   };
 
   return (

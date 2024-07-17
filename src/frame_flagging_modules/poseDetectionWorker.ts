@@ -128,17 +128,18 @@ onmessage = async (e) => {
             let pose = await detector.estimatePoses(input, {
                 flipHorizontal: false,
             });
+            // We are only interested in the first person. The first person is the one closest to the camera
             if(pose[0].keypoints.length > 0){
                 const face_points: FaceAnchorPoints = {
-                    nose: {x: pose[0].keypoints[0].x, y: pose[0].keypoints[0].y},
-                    left_eye: {x: pose[0].keypoints[1].x, y: pose[0].keypoints[1].y},
-                    right_eye: {x: pose[0].keypoints[2].x, y: pose[0].keypoints[2].y},
-                    left_ear: {x: pose[0].keypoints[3].x, y: pose[0].keypoints[3].y},
-                    right_ear: {x: pose[0].keypoints[4].x, y: pose[0].keypoints[4].y}
+                    nose: {x:  pose[0].keypoints.find(keypoint => keypoint.name === 'nose')?.x||-1, y: pose[0].keypoints.find(keypoint => keypoint.name === 'nose')?.y||-1},
+                    left_eye: {x: pose[0].keypoints.find(keypoint => keypoint.name === 'left_eye')?.x||-1, y: pose[0].keypoints.find(keypoint => keypoint.name === 'left_eye')?.y||-1},
+                    right_eye: {x: pose[0].keypoints.find(keypoint => keypoint.name === 'right_eye')?.x||-1, y: pose[0].keypoints.find(keypoint => keypoint.name === 'right_eye')?.y||-1},
+                    left_ear: {x: pose[0].keypoints.find(keypoint => keypoint.name === 'left_ear')?.x||-1, y: pose[0].keypoints.find(keypoint => keypoint.name === 'left_ear')?.y||-1},
+                    right_ear: {x: pose[0].keypoints.find(keypoint => keypoint.name === 'right_ear')?.x||-1, y: pose[0].keypoints.find(keypoint => keypoint.name === 'right_ear')?.y||-1}
                 };
                 const shoulder_points: ShoulderAnchorPoints = {
-                    left_shoulder: {x: pose[0].keypoints[5].x, y: pose[0].keypoints[5].y},
-                    right_shoulder: {x: pose[0].keypoints[6].x, y: pose[0].keypoints[6].y}
+                    left_shoulder: {x: pose[0].keypoints.find(keypoint => keypoint.name === 'left_shoulder')?.x||-1, y: pose[0].keypoints.find(keypoint => keypoint.name === 'left_shoulder')?.y||-1},
+                    right_shoulder: {x: pose[0].keypoints.find(keypoint => keypoint.name === 'right_shoulder')?.x||-1, y: pose[0].keypoints.find(keypoint => keypoint.name === 'right_shoulder')?.y||-1}
                 };
                 const face_and_shoulder_points: FaceAndShoulderAnchorPoints = {
                     ...face_points,
