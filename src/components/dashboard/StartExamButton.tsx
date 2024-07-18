@@ -93,6 +93,10 @@ const StartExamButton: React.FC<StartExamButtonProps> = ({ formId, paymentNeeded
           </DialogHeader>
           <DialogDescription>
             You have to complete this exam in one sitting.
+              <ul className='mt-2 ml-4 list-disc'>
+                <li>This is a proctored exam. You need to enable camera and microphone access for the duration of the exam.</li>
+                {paymentNeeded && <li>There's a fee for the exam, and you will be billed prior to receiving the score report.</li>}
+              </ul>
             <label className="flex items-center mt-2">
               <input
                 type="checkbox"
@@ -100,7 +104,7 @@ const StartExamButton: React.FC<StartExamButtonProps> = ({ formId, paymentNeeded
                 checked={paymentConfirmed}
                 onChange={() => setPaymentConfirmed(!paymentConfirmed)}
               />
-              <span className="ml-2">I understand that I need to pay to receive the results for this exam.</span>
+              <span className="ml-2">By checking this box, I agree to the terms and conditions for the exam</span>
             </label>
           </DialogDescription>
           <DialogFooter>

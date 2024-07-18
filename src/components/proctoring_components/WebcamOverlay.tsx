@@ -1,18 +1,27 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Check } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Check, X } from 'lucide-react';
 import * as Sentry from '@sentry/react';
+import BigSpinner from '../BigSpinner';
 
-interface WebcamOverlayProps {
-  setFaceAligned: React.Dispatch<React.SetStateAction<boolean>>;
-}
-
-const WebcamOverlay: React.FC<WebcamOverlayProps> = ({setFaceAligned}) => {
+const WebcamOverlay: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isVideoPlaying, setIsVideoPlaying] = useState(true);
   const [isFaceAligned, setIsFaceAligned] = useState(false);
+  const [isModelLoaded, setIsModelLoaded] = useState(false);
   const workerRef = useRef<Worker>();
+  const navigate = useNavigate();
   let mediaStream = useRef<MediaStream>();
+
+  const handleStartExam = () => {
+    setIsVideoPlaying(false);
+    if (mediaStream.current) {
+      mediaStream.current.getTracks().forEach(track => track.stop());
+      workerRef.current?.terminate();
+    }
+    navigate('/testing');
+  };
 
   useEffect(() => {
     const video = videoRef.current;
@@ -34,12 +43,26 @@ const WebcamOverlay: React.FC<WebcamOverlayProps> = ({setFaceAligned}) => {
         });
       }
     };
-    if (isVideoPlaying) {
+    if (isModelLoaded && isVideoPlaying) {
       startVideo();
     }
 
     const drawOutline = () => {
-      if (!canvas || !ctx) return;
+      if (!canvas || !ctx || !isModelLoaded) {
+        if (canvas && ctx) {
+          canvas.width = window.innerWidth;
+          canvas.height = window.innerHeight;
+          ctx.fillStyle = 'black';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        return;
+      }
+
+      // Set canvas dimensions to match video dimensions
+      if (video) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+      }
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -70,7 +93,7 @@ const WebcamOverlay: React.FC<WebcamOverlayProps> = ({setFaceAligned}) => {
       requestAnimationFrame(drawOutline);
     };
 
-    if (video && canvas && ctx) {
+    if (isModelLoaded && video && canvas && ctx) {
       video.addEventListener('play', () => {
         drawOutline();
       });
@@ -81,7 +104,7 @@ const WebcamOverlay: React.FC<WebcamOverlayProps> = ({setFaceAligned}) => {
         video.removeEventListener('play', drawOutline);
       }
     };
-  }, [isVideoPlaying]);
+  }, [isVideoPlaying, isModelLoaded]);
 
   useEffect(() => {
     const worker = new Worker(new URL('../../frame_flagging_modules/alignmentWorker.ts', import.meta.url));
@@ -89,7 +112,7 @@ const WebcamOverlay: React.FC<WebcamOverlayProps> = ({setFaceAligned}) => {
 
     worker.onmessage = (e) => {
       if (e.data.type === 'modelLoaded') {
-        console.log('Model loaded');
+        setIsModelLoaded(true);
       } else if (e.data.type === 'prediction') {
         const { left_ear_x, left_ear_y, right_ear_x, right_ear_y } = e.data;
         const canvas = canvasRef.current;
@@ -151,17 +174,8 @@ const WebcamOverlay: React.FC<WebcamOverlayProps> = ({setFaceAligned}) => {
     };
   }, [isVideoPlaying]);
 
-  const handleStopVideo = () => {
-    setFaceAligned(true);
-    setIsVideoPlaying(false);
-    if(mediaStream.current) {
-      mediaStream.current.getTracks().forEach(track => track.stop());
-      workerRef.current?.terminate();
-    }
-  };
-
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+    <div style={{ position: 'relative', width: '100%', height: 'calc(100% - 60px)' }}>
       <video
         ref={videoRef}
         style={{ width: '100%', height: '100%' }}
@@ -178,27 +192,33 @@ const WebcamOverlay: React.FC<WebcamOverlayProps> = ({setFaceAligned}) => {
         }}
       />
 
-      <button onClick={handleStopVideo} style={{ ...buttonStyle, backgroundColor: isFaceAligned ? 'green' : 'gray' }} disabled={!isFaceAligned}>
-        <Check />
-      </button>
+      {!isModelLoaded && (
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
+          <BigSpinner />
+        </div>
+      )}
+
+      {isModelLoaded && (
+        <>
+          <div className="absolute bottom-4 right-4 flex items-center justify-center">
+            <div style={{ width: '50px', height: '50px', borderRadius: '50%', backgroundColor: isFaceAligned ? 'green' : 'red', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {isFaceAligned ? <Check color="white" size={30} /> : <X color="white" size={30} />}
+            </div>
+          </div>
+
+          <div className="flex justify-center" style={{ position: 'absolute', bottom: '10px', width: '100%' }}>
+            <button
+              className={`font-bold py-2 px-4 rounded ${isFaceAligned ? 'bg-blue-500 hover:bg-blue-700 text-white cursor-pointer' : 'bg-gray-400 text-gray-700 cursor-not-allowed'}`}
+              onClick={handleStartExam}
+              disabled={!isFaceAligned}
+            >
+              Start Exam
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
-};
-
-const buttonStyle: React.CSSProperties = {
-  position: 'absolute',
-  bottom: '20px',
-  right: '20px',
-  color: 'white',
-  border: 'none',
-  borderRadius: '50%',
-  width: '50px',
-  height: '50px',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  cursor: 'pointer',
-  boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
 };
 
 export default WebcamOverlay;
