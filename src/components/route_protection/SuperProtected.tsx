@@ -19,11 +19,21 @@ const SuperProtected: React.FC<SuperProtectedProps> = ({ children }) => {
         }
     };
 
+    const handlePopState = async () => {
+        const user = auth.currentUser;
+        if (user) {
+            alert('Uh oh! No backsies! Please log back in to appear for the test. You will be logged out now.');
+            await signOut(auth);
+        }
+    };
+
     useEffect(() => {
         checkSingleTab();
         window.addEventListener('beforeunload', handleTabClose);
+        window.addEventListener('popstate', handlePopState);
         return () => {
-        window.removeEventListener('beforeunload', handleTabClose);
+            window.removeEventListener('beforeunload', handleTabClose);
+            window.removeEventListener('popstate', handlePopState);
         };
     }, []);
 

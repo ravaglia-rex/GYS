@@ -95,6 +95,8 @@ const StartExamButton: React.FC<StartExamButtonProps> = ({ formId, paymentNeeded
             You have to complete this exam in one sitting.
               <ul className='mt-2 ml-4 list-disc'>
                 <li>This is a proctored exam. You need to enable camera and microphone access for the duration of the exam.</li>
+                <li>Make sure you have a stable internet connection</li>
+                <li>Refrain from refreshing or pressing the back button</li>
                 {paymentNeeded && <li>There's a fee for the exam, and you will be billed prior to receiving the score report.</li>}
               </ul>
             <label className="flex items-center mt-2">
