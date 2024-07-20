@@ -31,7 +31,7 @@ DASHBOARD PAGES: These are the pages that are used for the dashboard
 */
 const DashboardPage = React.lazy(() => import('../pages/dashboard_pages/DashboardPage'));
 const PaymentHistory = React.lazy(() => import('../pages/dashboard_pages/PaymentHistory'));
-
+const ProfilePage = React.lazy(() => import('../pages/dashboard_pages/ProfilePage'));
 
 /*
 CAMERA AND MICROPHONE ACCESS PAGE: This page is used to check if the camera and microphone are working
@@ -102,6 +102,17 @@ const AppRouter: React.FC = () => {
             <Protected>
               <Suspense fallback={<BigSpinner/>}>
                 <PaymentHistory />
+              </Suspense>
+            </Protected>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        <Route
+          path="/profile"
+          element={
+            <Protected>
+              <Suspense fallback={<BigSpinner/>}>
+                <ProfilePage />
               </Suspense>
             </Protected>
           }

@@ -38,6 +38,7 @@ export const EXAM_DETAILS_APIS = '/examDetails';
 
 export const CREATE_EXPEDITED_SCHOOL='/createExpeditedSchool';
 export const FETCH_SCHOOL_NAMES_AND_IDS='/fetchSchoolNamesAndIds';
+export const FETCH_SCHOOL_NAME='/getSchoolDetails';
 
 export const SIGN_UP_TRANSACTION='/runSignUpTransaction';
 export const FETCH_PAYMENTS='/getPayments';
@@ -47,3 +48,6 @@ export const CHECK_EXAM_ID_USED='/checkExamIDUsed';
 export const CHECK_PHASE_1_ELIBIGILITY='/getPhase1Eligibility';
 
 export const FETCH_EXAM_DETAILS='/getExamDetails';
+
+export const FETCH_STUDENT_DATA='/getStudentDetails';
+export const UPDATE_STUDENT_DATA='/updateStudentDetails';
