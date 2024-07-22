@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { CREATE_EXPEDITED_SCHOOL, SCHOOLS_APIS, FETCH_SCHOOL_NAMES_AND_IDS } from "../constants/constants";
+import { CREATE_EXPEDITED_SCHOOL, SCHOOLS_APIS, FETCH_SCHOOL_NAMES_AND_IDS, FETCH_SCHOOL_NAME } from "../constants/constants";
 
 type expeditedSchool = {
     school_name: string;
@@ -25,5 +25,16 @@ export const fetchSchoolNamesAndIds = async () => {
         return data;
     } catch (e) {
         throw new Error(`Error fetching schools. Please contact talentsearch@argus.ai`);
+    }
+};
+
+// FETCH SCHOOL NAME
+export const getSchoolDetails = async (school_id: string) => {
+    try {
+        const response = await axios.get(`${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOLS_APIS}${FETCH_SCHOOL_NAME}/${school_id}`);
+        const data = await response.data;
+        return data;
+    } catch (e) {
+        throw new Error(`Error fetching school. Please contact talentsearch@argus.ai`);
     }
 };

@@ -8,8 +8,9 @@ import {
     DropdownMenuItem 
 } from '../ui/dropdown-menu';
 import { Button } from '../ui/button';
-import { UserCircle2Icon, UserIcon, HelpCircleIcon, Clock } from 'lucide-react';
+import { UserCircle2Icon, HelpCircleIcon, Clock } from 'lucide-react';
 import SignOutButton from '../auth/SignOutButton';
+import UserProfileButton from '../profile/UserProfileButton';
 
 const UserDropdown: React.FC = () => {
   return (
@@ -26,12 +27,8 @@ const UserDropdown: React.FC = () => {
       <DropdownMenuContent align="end" className="bg-gray-900 text-white">
         <DropdownMenuLabel className="text-gray-400">My Account</DropdownMenuLabel>
         <DropdownMenuSeparator className="bg-gray-700" />
-        <DropdownMenuItem className="hover:bg-gray-700 cursor-not-allowed">
-          <div className="flex items-center">
-            <UserIcon className="mr-2 h-4 w-4" />
-            Profile
-            <Clock className="ml-auto h-4 w-4 text-yellow-500" />
-          </div>
+        <DropdownMenuItem className="hover:bg-gray-700">
+          <UserProfileButton /> {/* Use the UserProfileButton here */}
         </DropdownMenuItem>
         <DropdownMenuItem className="hover:bg-gray-700 cursor-not-allowed">
           <div className="flex items-center">
