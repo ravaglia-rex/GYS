@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Settings, DollarSign, Clock } from 'lucide-react';
+import { Home, DollarSign} from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '../ui/tooltip';
 
 const Navbar: React.FC = () => {
@@ -42,7 +42,7 @@ const Navbar: React.FC = () => {
                         <TooltipContent side="right" className="z-50">Payments</TooltipContent>
                     </Tooltip>
                 </nav>
-                <nav className="mt-auto flex flex-col items-center gap-6 px-3 sm:py-6">
+                {/* <nav className="mt-auto flex flex-col items-center gap-6 px-3 sm:py-6">
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <div
@@ -57,7 +57,7 @@ const Navbar: React.FC = () => {
                         </TooltipTrigger>
                         <TooltipContent side="right" className="z-50">Settings (Coming Soon)</TooltipContent>
                     </Tooltip>
-                </nav>
+                </nav> */}
             </aside>
         </TooltipProvider>
     );

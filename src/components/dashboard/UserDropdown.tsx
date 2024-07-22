@@ -8,7 +8,7 @@ import {
     DropdownMenuItem 
 } from '../ui/dropdown-menu';
 import { Button } from '../ui/button';
-import { UserCircle2Icon, HelpCircleIcon, Clock } from 'lucide-react';
+import { UserCircle2Icon } from 'lucide-react';
 import SignOutButton from '../auth/SignOutButton';
 import UserProfileButton from '../profile/UserProfileButton';
 
@@ -28,14 +28,7 @@ const UserDropdown: React.FC = () => {
         <DropdownMenuLabel className="text-gray-400">My Account</DropdownMenuLabel>
         <DropdownMenuSeparator className="bg-gray-700" />
         <DropdownMenuItem className="hover:bg-gray-700">
-          <UserProfileButton /> {/* Use the UserProfileButton here */}
-        </DropdownMenuItem>
-        <DropdownMenuItem className="hover:bg-gray-700 cursor-not-allowed">
-          <div className="flex items-center">
-            <HelpCircleIcon className="mr-2 h-4 w-4" />
-            Support
-            <Clock className="ml-auto h-4 w-4 text-yellow-500" />
-          </div>
+          <UserProfileButton />
         </DropdownMenuItem>
         <DropdownMenuSeparator className="bg-gray-700" />
         <DropdownMenuItem className="hover:bg-gray-700">
