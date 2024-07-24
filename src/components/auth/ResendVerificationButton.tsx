@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "../ui/button";
 import { sendEmailVerification } from 'firebase/auth';
+import { UserCredential } from 'firebase/auth';
 import { auth } from '../../firebase/firebase';
 import { useToast } from '../ui/use-toast';
 import * as Sentry from '@sentry/react';
 
-const ResendVerificationButton: React.FC = () => {
+interface ResendVerificationButtonProps {
+  userCredential?: UserCredential|null;
+}
+
+const ResendVerificationButton: React.FC<ResendVerificationButtonProps> = ({userCredential}) => {
     const { toast } = useToast();
     const [isSending, setIsSending] = useState(false);
     const [progress, setProgress] = useState(100); // For the progress bar
@@ -14,8 +19,9 @@ const ResendVerificationButton: React.FC = () => {
     const handleResendVerificationEmail = async () => {
         setIsSending(true);
         try {
-          if (auth.currentUser) {
-            await sendEmailVerification(auth.currentUser);
+          const user = auth.currentUser||userCredential?.user;
+          if (user) {
+            await sendEmailVerification(user);
             const cooldownEndTime = Date.now() + 60000; // Set cooldown for 1 minute
             localStorage.setItem('emailResendCooldown', cooldownEndTime.toString());
             setCooldown(cooldownEndTime);

@@ -55,8 +55,8 @@ const EmailEntryForm: React.FC<EmailEntryFormProps> = ({ setEmail, setEmailExist
     const onSubmit = async (data: z.infer<typeof EmailSchema>) => {
         setIsSubmitted(true);
         try {
-            const emailExists = await checkEmailExists(data.email);
-            setEmail(data.email);
+            const emailExists = await checkEmailExists(data.email.toLowerCase());
+            setEmail(data.email.toLowerCase());
             setEmailExists(emailExists);
         } catch (error) {
             Sentry.withScope((scope) => {

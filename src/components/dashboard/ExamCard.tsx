@@ -8,7 +8,12 @@ import {
   CardTitle,
 } from "../ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '../ui/tooltip';
-import { Clock, Lock, Check, AlertTriangle } from "lucide-react";
+import { 
+  Clock,
+  Check, 
+  // Lock, 
+  AlertTriangle 
+} from "lucide-react";
 import { cn } from "../../lib/utils";
 import StartExamButton from "./StartExamButton";
 
@@ -55,16 +60,16 @@ const ExamCard: React.FC<ExamCardProps> = ({
     }
   }, [cardRef]);
 
-  const calculateTimeRemaining = (eligibilityAt: string) => {
-    const eligibilityDate = new Date(eligibilityAt);
-    const currentDate = new Date();
-    const diffTime = Math.max(eligibilityDate.getTime() - currentDate.getTime(), 0);
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    const diffHours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    return { diffDays, diffHours };
-  };
+  // const calculateTimeRemaining = (eligibilityAt: string) => {
+  //   const eligibilityDate = new Date(eligibilityAt);
+  //   const currentDate = new Date();
+  //   const diffTime = Math.max(eligibilityDate.getTime() - currentDate.getTime(), 0);
+  //   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  //   const diffHours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  //   return { diffDays, diffHours };
+  // };
 
-  const { diffDays, diffHours } = calculateTimeRemaining(eligibilityAt);
+  // const { diffDays, diffHours } = calculateTimeRemaining(eligibilityAt);
 
   const renderOverlay = () => {
     if (hasCleared !== undefined && hasCleared !== null) {
@@ -103,25 +108,26 @@ const ExamCard: React.FC<ExamCardProps> = ({
           </Tooltip>
         </TooltipProvider>
       );
-    } else if (!isEligible) {
-      return (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div
-                className="absolute flex items-center justify-center z-20 cursor-not-allowed bg-gray-800 bg-opacity-75 text-white"
-                style={{ width: cardDimensions.width, height: cardDimensions.height }}
-              >
-                <Lock className="h-8 w-8" />
-              </div>
-            </TooltipTrigger>
-            <TooltipContent side="top" className="z-30">
-              Available in {diffDays} days and {diffHours} hours
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      );
     }
+    // else if (!isEligible) {
+    //   return (
+    //     <TooltipProvider>
+    //       <Tooltip>
+    //         <TooltipTrigger asChild>
+    //           <div
+    //             className="absolute flex items-center justify-center z-20 cursor-not-allowed bg-gray-800 bg-opacity-75 text-white"
+    //             style={{ width: cardDimensions.width, height: cardDimensions.height }}
+    //           >
+    //             <Lock className="h-8 w-8" />
+    //           </div>
+    //         </TooltipTrigger>
+    //         <TooltipContent side="top" className="z-30">
+    //           Available in {diffDays} days and {diffHours} hours
+    //         </TooltipContent>
+    //       </Tooltip>
+    //     </TooltipProvider>
+    //   );
+    // }
     return null;
   };
 

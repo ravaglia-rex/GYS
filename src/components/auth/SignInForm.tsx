@@ -44,11 +44,13 @@ const SignInForm: React.FC<SignInFormProps> = ({ email }) => {
     });
     const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
     const [loadResendVerification, setLoadResendVerification] = useState<boolean>(false);
+    const [userCred, setUserCredential] = useState<UserCredential | null>(null);
 
     const signIn = async (data: z.infer<typeof signinSchema>) => {
         setIsSubmitted(true);
         try {
-            const userCredential: UserCredential = await signInWithEmailAndPassword(auth, email, data.password);
+            const userCredential = await signInWithEmailAndPassword(auth, email, data.password);
+            setUserCredential(userCredential);
             if (!userCredential.user.emailVerified) {
                 setLoadResendVerification(true);
                 const {formLinks, completed} = await getExamIds(userCredential.user.uid);
@@ -113,7 +115,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ email }) => {
             </Form>
             
             <div className='text-center mt-4'>
-                {loadResendVerification && <ResendVerificationButton />}
+                {loadResendVerification && <ResendVerificationButton userCredential={userCred}/>}
                 <Link to='/reset-password' className='text-sm text-blue-600 hover:underline'>
                     Forgot password?
                 </Link>
