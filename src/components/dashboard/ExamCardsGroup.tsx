@@ -8,7 +8,7 @@ import { setExamDetails, ExamDetailsPayload } from '../../state_data/examDetails
 import { getPayments } from '../../db/studentPaymentMappings';
 import { setPayments } from '../../state_data/studentPaymentsSlice';
 import * as Sentry from '@sentry/react';
-import BigSpinner from '../BigSpinner';
+import BigSpinner from '../ui/BigSpinner';
 import { auth } from '../../firebase/firebase';
 
 const ExamCardsGroup: React.FC<{ uid: string }> = ({ uid }) => {

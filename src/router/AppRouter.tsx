@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Protected from '../components/route_protection/Protected';
 import SuperProtected from '../components/route_protection/SuperProtected';
 import NotFoundPage from '../pages/NotFoundPage';
-import BigSpinner from '../components/BigSpinner';
+import BigSpinner from '../components/ui/BigSpinner';
 
 /* 
 AUTHENTICATION PAGES: These are the pages that are used for the signup and login process
@@ -36,7 +36,7 @@ const ProfilePage = React.lazy(() => import('../pages/dashboard_pages/ProfilePag
 /*
 CAMERA AND MICROPHONE ACCESS PAGE: This page is used to check if the camera and microphone are working
 */
-const CameraMicrophoneAccess = React.lazy(() => import('../components/CameraMicrophoneAccess'));
+const CameraMicrophoneAccess = React.lazy(() => import('../components/proctoring_components/CameraMicrophoneAccess'));
 
 const AppRouter: React.FC = () => {
   return (

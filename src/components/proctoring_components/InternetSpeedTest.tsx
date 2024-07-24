@@ -1,14 +1,14 @@
-import { VIOLATION_COUNT } from '../constants/constants.ts';
+import { VIOLATION_COUNT } from '../../constants/constants.ts';
 
 import React, { useEffect, useRef } from 'react';
 
 import { useNavigate } from 'react-router-dom';
 
 import { useDispatch } from 'react-redux';
-import { setInternetSpeed } from '../state_data/internetSpeedSlice';
-import { cleanupFrameResources } from '../state_data/frameCaptureSlice.ts';
-import { cleanupAudioCaptureResources } from '../state_data/audioCaptureSlice.ts';
-import { useToast } from './ui/use-toast.tsx';
+import { setInternetSpeed } from '../../state_data/internetSpeedSlice.ts';
+import { cleanupFrameResources } from '../../state_data/frameCaptureSlice.ts';
+import { cleanupAudioCaptureResources } from '../../state_data/audioCaptureSlice.ts';
+import { useToast } from '../ui/use-toast.tsx';
 import * as Sentry from '@sentry/react';
 
 const InternetSpeedMonitor: React.FC = () => {
@@ -18,7 +18,7 @@ const InternetSpeedMonitor: React.FC = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const worker = new Worker(new URL('../internet_speed_monitoring/internetSpeedWorker.ts', import.meta.url));
+    const worker = new Worker(new URL('../../internet_speed_monitoring/internetSpeedWorker.ts', import.meta.url));
 
     worker.onmessage = (event) => {
       if (event.data.type === 'speedTestResult') {

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import FrameCapture from "../../components/FrameCapture";
-import AudioCapture from "../../components/AudioCapture";
-import InternetSpeedTest from "../../components/InternetSpeedTest";
-import TabSwitchingMonitor from "../../components/TabSwitchingMonitor";
+import FrameCapture from "../../components/proctoring_components/FrameCapture";
+import AudioCapture from "../../components/proctoring_components/AudioCapture";
+import InternetSpeedTest from "../../components/proctoring_components/InternetSpeedTest";
+import TabSwitchingMonitor from "../../components/proctoring_components/TabSwitchingMonitor";
 import FormEmbedding from "../../components/tally/FormEmbedding";
-import BigSpinner from "../../components/BigSpinner";
+import BigSpinner from "../../components/ui/BigSpinner";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../../state_data/reducer";
 import { setLoadState } from '../../state_data/loadSlice';

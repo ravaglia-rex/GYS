@@ -1,6 +1,6 @@
 import React from 'react';
 import WebcamOverlay from '../../components/proctoring_components/WebcamOverlay';
-import TabSwitchingMonitor from '../../components/TabSwitchingMonitor';
+import TabSwitchingMonitor from '../../components/proctoring_components/TabSwitchingMonitor';
 
 const WebcamOverlayPage: React.FC = () => {
   return (

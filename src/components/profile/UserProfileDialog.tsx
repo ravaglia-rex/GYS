@@ -4,7 +4,7 @@ import { getSchoolDetails } from '../../db/schoolCollection';
 import AboutMeForm from './AboutMeForm';
 import ParentInfoForm from './ParentInfoForm';
 import SchoolInfoForm from './SchoolInfoForm';
-import BigSpinner from '../BigSpinner';
+import BigSpinner from '../ui/BigSpinner';
 
 interface UserProfileProps {
   user_id: string;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { RootState } from '../state_data/reducer';
-import { setTabSwitched, setFullScreenSwitched } from '../state_data/tabSwitchingSlice';
+import { RootState } from '../../state_data/reducer';
+import { setTabSwitched, setFullScreenSwitched } from '../../state_data/tabSwitchingSlice';
 import FullScreenDialog from './FullScreenDialog';
 
 interface TabSwitchingMonitorProps {

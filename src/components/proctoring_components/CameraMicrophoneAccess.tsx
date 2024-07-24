@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useToast } from './ui/use-toast.tsx';
+import { useToast } from '../ui/use-toast.tsx';
 import TabSwitchingMonitor from './TabSwitchingMonitor.tsx';
 import { Video, Mic, Sun, Wifi } from 'lucide-react';
 import * as Sentry from '@sentry/react';

@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
-import { cleanupInterval, cleanupFrameResources } from '../state_data/frameCaptureSlice.ts';
-import { cleanupAudioCaptureResources } from '../state_data/audioCaptureSlice.ts';
+import { cleanupInterval, cleanupFrameResources } from '../../state_data/frameCaptureSlice.ts';
+import { cleanupAudioCaptureResources } from '../../state_data/audioCaptureSlice.ts';
 import CameraAccessDialog from './CameraAccessDialog.tsx';
 
 interface CameraAccessCheckComponentProps {

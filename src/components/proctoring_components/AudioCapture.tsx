@@ -2,15 +2,15 @@ import React, { useEffect, useRef, useState } from 'react';
 
 import { useNavigate } from 'react-router-dom';
 
-import { SAMPLE_RATE, SAMPLE_SIZE, AUDIO_RATE } from '../constants/constants';
+import { SAMPLE_RATE, SAMPLE_SIZE, AUDIO_RATE } from '../../constants/constants';
 
-import { pushAudioData } from '../functions/object_storage/push_audio_data';
+import { pushAudioData } from '../../functions/object_storage/push_audio_data';
 
 import { useDispatch } from 'react-redux';
-import { cleanupAudioCaptureResources } from '../state_data/audioCaptureSlice';
-import { cleanupFrameResources } from '../state_data/frameCaptureSlice';
-import { useToast } from './ui/use-toast';
-import { auth } from '../firebase/firebase';
+import { cleanupAudioCaptureResources } from '../../state_data/audioCaptureSlice';
+import { cleanupFrameResources } from '../../state_data/frameCaptureSlice';
+import { useToast } from '../ui/use-toast';
+import { auth } from '../../firebase/firebase';
 import * as Sentry from '@sentry/react';
 
 const AudioCapture: React.FC = () => {

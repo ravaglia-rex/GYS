@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, X } from 'lucide-react';
 import * as Sentry from '@sentry/react';
-import BigSpinner from '../BigSpinner';
+import BigSpinner from '../ui/BigSpinner';
 
 const WebcamOverlay: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);

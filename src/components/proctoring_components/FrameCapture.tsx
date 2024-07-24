@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { RootState } from '../state_data/reducer.ts';
+import { RootState } from '../../state_data/reducer.ts';
 import CameraSetup from './CameraSetup.tsx';
 import WorkerSetupComponent from './WorkerSetupComponent.tsx';
 import CameraAccessCheckComponent from './CameraAccessCheckComponent.tsx';

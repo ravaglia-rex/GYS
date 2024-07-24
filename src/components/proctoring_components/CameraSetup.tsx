@@ -1,13 +1,13 @@
 import React, { useEffect } from 'react';
-import { auth } from '../firebase/firebase.ts';
-import { captureFrame, analyzeLighting} from "../functions/frame_handling/captureFrame.ts";
-import { FRAME_RATE } from '../constants/constants.ts';
+import { auth } from '../../firebase/firebase.ts';
+import { captureFrame, analyzeLighting} from "../../functions/frame_handling/captureFrame.ts";
+import { FRAME_RATE } from '../../constants/constants.ts';
 import { useDispatch, useSelector } from 'react-redux';
-import { setFrameIntervalId, setVideoStream, cleanupFrameResources } from '../state_data/frameCaptureSlice.ts';
-import { cleanupAudioCaptureResources } from '../state_data/audioCaptureSlice.ts';
-import { RootState } from '../state_data/reducer.ts';
-import { setLoadState } from '../state_data/loadSlice.ts';
-import { useToast } from './ui/use-toast';
+import { setFrameIntervalId, setVideoStream, cleanupFrameResources } from '../../state_data/frameCaptureSlice.ts';
+import { cleanupAudioCaptureResources } from '../../state_data/audioCaptureSlice.ts';
+import { RootState } from '../../state_data/reducer.ts';
+import { setLoadState } from '../../state_data/loadSlice.ts';
+import { useToast } from '../ui/use-toast.tsx';
 import * as Sentry from '@sentry/react';
 
 interface CameraSetupProps {

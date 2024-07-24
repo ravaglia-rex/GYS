@@ -1,5 +1,5 @@
 import React from "react";
-import { LoadingSpinner } from "./ui/spinner";
+import { LoadingSpinner } from "./spinner";
 
 const BigSpinner: React.FC = () => {
   return (

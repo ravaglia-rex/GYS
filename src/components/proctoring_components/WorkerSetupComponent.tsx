@@ -1,13 +1,13 @@
 import React, { useRef, useEffect } from 'react';
-import { triggerMetadataUpdate } from "../functions/frame_handling/captureFrame.ts";
-import { auth } from '../firebase/firebase.ts';
+import { triggerMetadataUpdate } from "../../functions/frame_handling/captureFrame.ts";
+import { auth } from '../../firebase/firebase.ts';
 import { useDispatch } from 'react-redux';
-import { setEntityDetection } from '../state_data/entityDetectionSlice.ts';
-import { setPoseDetection } from '../state_data/poseDetectionSlice.ts';
-import { setFaceLandmarks } from '../state_data/faceLandmarksSlice.ts';
-import { setEntityDetectionWorker, setPoseDetectionWorker, setFaceLandmarkDetectionWorker} from '../state_data/frameCaptureSlice.ts';
-import { setLoadState } from '../state_data/loadSlice.ts';
-import { useToast } from './ui/use-toast';
+import { setEntityDetection } from '../../state_data/entityDetectionSlice.ts';
+import { setPoseDetection } from '../../state_data/poseDetectionSlice.ts';
+import { setFaceLandmarks } from '../../state_data/faceLandmarksSlice.ts';
+import { setEntityDetectionWorker, setPoseDetectionWorker, setFaceLandmarkDetectionWorker} from '../../state_data/frameCaptureSlice.ts';
+import { setLoadState } from '../../state_data/loadSlice.ts';
+import { useToast } from '../ui/use-toast.tsx';
 import * as Sentry from '@sentry/react';
 
 interface WorkerSetupComponentProps {
@@ -33,9 +33,9 @@ const WorkerSetupComponent: React.FC<WorkerSetupComponentProps> = ({hasCameraAcc
   const poseDetectionState = useRef<Array<any>>([]);
 
   const setupWorkers = () => {
-    const worker1 = new Worker(new URL('../frame_flagging_modules/entityDetectionWorker.ts', import.meta.url), { type: 'module' });
-    const worker2 = new Worker(new URL('../frame_flagging_modules/poseDetectionWorker.ts', import.meta.url), { type: 'module' });
-    const worker3 = new Worker(new URL('../frame_flagging_modules/faceLandmarksWorker.ts', import.meta.url), { type: 'module' });
+    const worker1 = new Worker(new URL('../../frame_flagging_modules/entityDetectionWorker.ts', import.meta.url), { type: 'module' });
+    const worker2 = new Worker(new URL('../../frame_flagging_modules/poseDetectionWorker.ts', import.meta.url), { type: 'module' });
+    const worker3 = new Worker(new URL('../../frame_flagging_modules/faceLandmarksWorker.ts', import.meta.url), { type: 'module' });
 
     entityDetectionWorkerRef.current = worker1;
     poseDetectionWorkerRef.current = worker2;
