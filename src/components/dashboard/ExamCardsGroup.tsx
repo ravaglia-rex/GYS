@@ -118,6 +118,7 @@ const ExamCardsGroup: React.FC<{ uid: string }> = ({ uid }) => {
       {completedExams.map((data, index) => (
         <ExamCard
           key={index}
+          userID={uid}
           formID={data.formId}
           cardTitle={data.cardTitle}
           duration={data.duration}
@@ -135,6 +136,7 @@ const ExamCardsGroup: React.FC<{ uid: string }> = ({ uid }) => {
       {incompleteExams.map((data, index) => (
         <ExamCard
           key={index}
+          userID={uid}
           formID={data.formId}
           cardTitle={data.cardTitle}
           duration={data.duration}

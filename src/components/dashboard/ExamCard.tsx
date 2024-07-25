@@ -1,5 +1,13 @@
 import React, { useRef, useState, useEffect } from "react";
 import {
+  Table, 
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableRow,
+} from "../ui/table";
+
+import {
   Card,
   CardContent,
   CardDescription,
@@ -16,8 +24,11 @@ import {
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import StartExamButton from "./StartExamButton";
+import { fetchResultTotals } from "../../db/examResponsesCollection";
+import * as Sentry from '@sentry/react';
 
 type ExamCardProps = React.ComponentProps<typeof Card> & {
+  userID: string;
   formID: string;
   cardTitle: string;
   cardDescription: string;
@@ -32,7 +43,15 @@ type ExamCardProps = React.ComponentProps<typeof Card> & {
   hasCompleted?: boolean;
 };
 
+type ResultTotals = {
+  overallTotal: number;
+  typeTotals: {
+    [key: string]: number;
+  };
+};
+
 const ExamCard: React.FC<ExamCardProps> = ({
+  userID,
   formID,
   className,
   cardTitle,
@@ -50,6 +69,7 @@ const ExamCard: React.FC<ExamCardProps> = ({
 }) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const [cardDimensions, setCardDimensions] = useState({ width: 0, height: 0 });
+  const [resultTotals, setResultTotals] = useState<ResultTotals|null>(null);
 
   useEffect(() => {
     if (cardRef.current) {
@@ -60,16 +80,24 @@ const ExamCard: React.FC<ExamCardProps> = ({
     }
   }, [cardRef]);
 
-  // const calculateTimeRemaining = (eligibilityAt: string) => {
-  //   const eligibilityDate = new Date(eligibilityAt);
-  //   const currentDate = new Date();
-  //   const diffTime = Math.max(eligibilityDate.getTime() - currentDate.getTime(), 0);
-  //   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  //   const diffHours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  //   return { diffDays, diffHours };
-  // };
+  useEffect(() => {
+    const getResultTotals = async () => {
+      if (hasCleared !== undefined && hasCleared !== null) {
+        try {
+          setResultTotals(await fetchResultTotals(userID, formID));
+        } catch (e) {
+          Sentry.withScope((scope) => {
+            scope.setTag('location', 'ExamCard.getResultTotals');
+            scope.setExtra('userID', userID);
+            scope.setExtra('formID', formID);
+            Sentry.captureException(e);
+          });
+        }
+      }
+    };
 
-  // const { diffDays, diffHours } = calculateTimeRemaining(eligibilityAt);
+    getResultTotals();
+  }, [hasCleared, formID, userID]);
 
   const renderOverlay = () => {
     if (hasCleared !== undefined && hasCleared !== null) {
@@ -78,10 +106,31 @@ const ExamCard: React.FC<ExamCardProps> = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <div
-                className={`absolute flex items-center justify-center z-20 cursor-not-allowed ${hasCleared ? 'bg-green-800' : 'bg-yellow-800'} bg-opacity-75 text-white`}
+                className={`absolute flex flex-col items-center justify-center z-20 cursor-not-allowed ${hasCleared ? 'bg-green-800' : 'bg-yellow-800'} bg-opacity-75 text-white`}
                 style={{ width: cardDimensions.width, height: cardDimensions.height }}
               >
                 {hasCleared ? <Check className="h-8 w-8" /> : <AlertTriangle className="h-8 w-8" />}
+                <div className="mt-2 text-center text-lg font-bold">
+                  {hasCleared ? "Cleared" : "Not Cleared"}
+                  {resultTotals && (
+                    <Table>
+                      <TableBody>
+                        {Object.entries(resultTotals.typeTotals).map(([type, total]) => (
+                          <TableRow key={type}>
+                            <TableCell>{type}</TableCell>
+                            <TableCell>{total}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                      <TableFooter>
+                        <TableRow>
+                          <TableCell>Total</TableCell>
+                          <TableCell>{resultTotals.overallTotal}</TableCell>
+                        </TableRow>
+                      </TableFooter>
+                    </Table>
+                  )}
+                </div>
               </div>
             </TooltipTrigger>
             <TooltipContent side="top" className="z-30">
@@ -109,25 +158,7 @@ const ExamCard: React.FC<ExamCardProps> = ({
         </TooltipProvider>
       );
     }
-    // else if (!isEligible) {
-    //   return (
-    //     <TooltipProvider>
-    //       <Tooltip>
-    //         <TooltipTrigger asChild>
-    //           <div
-    //             className="absolute flex items-center justify-center z-20 cursor-not-allowed bg-gray-800 bg-opacity-75 text-white"
-    //             style={{ width: cardDimensions.width, height: cardDimensions.height }}
-    //           >
-    //             <Lock className="h-8 w-8" />
-    //           </div>
-    //         </TooltipTrigger>
-    //         <TooltipContent side="top" className="z-30">
-    //           Available in {diffDays} days and {diffHours} hours
-    //         </TooltipContent>
-    //       </Tooltip>
-    //     </TooltipProvider>
-    //   );
-    // }
+    
     return null;
   };
 

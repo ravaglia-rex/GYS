@@ -35,6 +35,7 @@ export const SCHOOLS_APIS = '/schools';
 export const STUDENTS_APIS = '/students';
 export const PHASE_1_QUERIES_APIS = '/phase1Queries';
 export const EXAM_DETAILS_APIS = '/examDetails';
+export const EXAM_RESPONSES_APIS = '/examResponses';
 
 export const CREATE_EXPEDITED_SCHOOL='/createExpeditedSchool';
 export const FETCH_SCHOOL_NAMES_AND_IDS='/fetchSchoolNamesAndIds';
@@ -51,3 +52,5 @@ export const FETCH_EXAM_DETAILS='/getExamDetails';
 
 export const FETCH_STUDENT_DATA='/getStudentDetails';
 export const UPDATE_STUDENT_DATA='/updateStudentDetails';
+
+export const FETCH_RESULT_TOTALS='/getResultTotals';
