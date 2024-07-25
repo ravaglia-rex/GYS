@@ -38,7 +38,7 @@ const Protected: React.FC<ProtectedProps> = ({ children }) => {
     if (!isLocalStorageAvailable()) {
       navigate('/local-storage-error');
     }
-  }, []);
+  }, [navigate]);
 
   if (loading) {
     return <BigSpinner/>;
