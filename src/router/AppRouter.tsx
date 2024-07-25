@@ -25,6 +25,7 @@ const FaceLandmarksError = React.lazy(() => import('../pages/error_pages/FaceLan
 const SpeedTestError = React.lazy(() => import('../pages/error_pages/SpeedTestError'));
 const AudioErrorPage = React.lazy(() => import('../pages/error_pages/AudioErrorPage'));
 const LightingErrorPage = React.lazy(() => import('../pages/error_pages/LightingErrorPage'));
+const LocalStorageErrorPage = React.lazy(() => import('../pages/error_pages/LocalStorageErrorPage'));
 
 /*
 DASHBOARD PAGES: These are the pages that are used for the dashboard
@@ -231,6 +232,16 @@ const AppRouter: React.FC = () => {
                 <AudioErrorPage />
               </Suspense>
             </Protected>
+          }
+          errorElement={<NotFoundPage />}
+        />
+
+        <Route 
+          path='/local-storage-error'
+          element={
+            <Suspense fallback={<BigSpinner/>}>
+              <LocalStorageErrorPage />
+            </Suspense>
           }
           errorElement={<NotFoundPage />}
         />

@@ -12,6 +12,17 @@ const Protected: React.FC<ProtectedProps> = ({ children }) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
 
+  const isLocalStorageAvailable = () => {
+    try {
+      const key = '__some_random_key__';
+      localStorage.setItem(key, key);
+      localStorage.removeItem(key);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user) {
@@ -22,6 +33,12 @@ const Protected: React.FC<ProtectedProps> = ({ children }) => {
 
     return () => unsubscribe();
   }, [navigate]);
+
+  useEffect(() => {
+    if (!isLocalStorageAvailable()) {
+      navigate('/local-storage-error');
+    }
+  }, []);
 
   if (loading) {
     return <BigSpinner/>;
