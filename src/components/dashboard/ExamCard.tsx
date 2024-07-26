@@ -128,8 +128,9 @@ const ExamCard: React.FC<ExamCardProps> = ({
                           <TableRow key={type}>
                             <TableCell>{type}</TableCell>
                             <TableCell>
-                              {total}
-                              {typeQuestions && typeQuestions[type] ? `/${typeQuestions[type]}` : ""}
+                              {typeQuestions && typeQuestions[type] 
+                              ? (total*100 / typeQuestions[type]).toFixed(0)+'%' 
+                              : total.toString()}
                             </TableCell>
                           </TableRow>
                         ))}
@@ -138,8 +139,7 @@ const ExamCard: React.FC<ExamCardProps> = ({
                         <TableRow>
                           <TableCell>Total</TableCell>
                           <TableCell>
-                            {resultTotals.overallTotal}
-                            {totalQuestions ? `/${totalQuestions}` : ""}
+                            {totalQuestions ? (resultTotals.overallTotal*100 / totalQuestions).toFixed(0)+'%' : resultTotals.overallTotal}
                           </TableCell>
                         </TableRow>
                       </TableFooter>
