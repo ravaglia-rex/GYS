@@ -41,6 +41,7 @@ type ExamCardProps = React.ComponentProps<typeof Card> & {
   eligibilityAt: string;
   hasCleared?: boolean | null;
   hasCompleted?: boolean;
+  typeQuestions?: Record<string, number>;
 };
 
 type ResultTotals = {
@@ -65,11 +66,13 @@ const ExamCard: React.FC<ExamCardProps> = ({
   eligibilityAt,
   hasCleared,
   hasCompleted,
+  typeQuestions,
   ...props
 }) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const [cardDimensions, setCardDimensions] = useState({ width: 0, height: 0 });
   const [resultTotals, setResultTotals] = useState<ResultTotals|null>(null);
+  const [totalQuestions, setTotalQuestions] = useState<number|null>(null);
 
   useEffect(() => {
     if (cardRef.current) {
@@ -99,6 +102,12 @@ const ExamCard: React.FC<ExamCardProps> = ({
     getResultTotals();
   }, [hasCleared, formID, userID]);
 
+  useEffect(() => {
+    if (typeQuestions) {
+      setTotalQuestions(Object.values(typeQuestions).reduce((sum, value) => sum + value, 0));
+    }
+  }, [typeQuestions]);
+
   const renderOverlay = () => {
     if (hasCleared !== undefined && hasCleared !== null) {
       return (
@@ -118,14 +127,20 @@ const ExamCard: React.FC<ExamCardProps> = ({
                         {Object.entries(resultTotals.typeTotals).map(([type, total]) => (
                           <TableRow key={type}>
                             <TableCell>{type}</TableCell>
-                            <TableCell>{total}</TableCell>
+                            <TableCell>
+                              {total}
+                              {typeQuestions && typeQuestions[type] ? `/${typeQuestions[type]}` : ""}
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
                       <TableFooter>
                         <TableRow>
                           <TableCell>Total</TableCell>
-                          <TableCell>{resultTotals.overallTotal}</TableCell>
+                          <TableCell>
+                            {resultTotals.overallTotal}
+                            {totalQuestions ? `/${totalQuestions}` : ""}
+                          </TableCell>
                         </TableRow>
                       </TableFooter>
                     </Table>

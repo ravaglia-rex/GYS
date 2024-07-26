@@ -81,6 +81,7 @@ const ExamCardsGroup: React.FC<{ uid: string }> = ({ uid }) => {
               isProctored: detail.is_proctored,
               eligibility_at: eligibility_at[index],
               result: result[index],
+              type_questions: detail.type_questions ? JSON.parse(detail.type_questions) : {},
             }));
 
           dispatch(setExamDetails({ examDetails: validDetails, examDetailsLoaded: true }));
@@ -131,6 +132,7 @@ const ExamCardsGroup: React.FC<{ uid: string }> = ({ uid }) => {
           isEligible={checkEligibility(data.eligibility_at)}
           hasCleared={data.result}
           hasCompleted={data.completed}
+          typeQuestions={data.type_questions}
         />
       ))}
       {incompleteExams.map((data, index) => (

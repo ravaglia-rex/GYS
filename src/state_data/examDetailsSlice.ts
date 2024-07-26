@@ -14,6 +14,7 @@ export interface ExamDetailsPayload {
     isProctored: boolean;
     eligibility_at: string;
     result?: boolean | null;
+    type_questions?: Record<string, number>;
 }
 
 interface ExamDetailsGroup {

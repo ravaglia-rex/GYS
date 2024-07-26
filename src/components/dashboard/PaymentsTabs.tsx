@@ -76,7 +76,8 @@ const PaymentsTabs: React.FC<{ uid: string }> = ({ uid }) => {
               cost: detail.cost,
               currency: detail.currency,
               isProctored: detail.is_proctored,
-              eligibility_at: eligibility_at[index]
+              eligibility_at: eligibility_at[index],
+              type_questions: detail.type_questions ? JSON.parse(detail.type_questions) : {},
             }));
 
           dispatch(setExamDetails({ examDetails: validDetails, examDetailsLoaded: true }));
