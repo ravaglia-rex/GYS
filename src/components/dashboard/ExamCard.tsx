@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import StartExamButton from "./StartExamButton";
-import { fetchResultTotals } from "../../db/examResponsesCollection";
+import { fetchResultTotals, fetchPhase1ResultTotals } from "../../db/examResponsesCollection";
 import * as Sentry from '@sentry/react';
 
 type ExamCardProps = React.ComponentProps<typeof Card> & {
@@ -70,6 +70,7 @@ const ExamCard: React.FC<ExamCardProps> = ({
   ...props
 }) => {
   const cardRef = useRef<HTMLDivElement>(null);
+  const footerRef = useRef<HTMLDivElement>(null);
   const [cardDimensions, setCardDimensions] = useState({ width: 0, height: 0 });
   const [resultTotals, setResultTotals] = useState<ResultTotals|null>(null);
   const [totalQuestions, setTotalQuestions] = useState<number|null>(null);
@@ -87,7 +88,15 @@ const ExamCard: React.FC<ExamCardProps> = ({
     const getResultTotals = async () => {
       if (hasCleared !== undefined && hasCleared !== null) {
         try {
-          setResultTotals(await fetchResultTotals(userID, formID));
+          const results = await fetchResultTotals(userID, formID);
+          if(results) {
+            setResultTotals(results);
+          } else if(formID==='npByEB'){
+            const phase1results = await fetchPhase1ResultTotals(userID);
+            if(phase1results) {
+              setResultTotals(phase1results);
+            }
+          }
         } catch (e) {
           Sentry.withScope((scope) => {
             scope.setTag('location', 'ExamCard.getResultTotals');
@@ -107,6 +116,12 @@ const ExamCard: React.FC<ExamCardProps> = ({
       setTotalQuestions(Object.values(typeQuestions).reduce((sum, value) => sum + value, 0));
     }
   }, [typeQuestions]);
+
+  const scrollToFooter = () => {
+    if (footerRef.current) {
+      footerRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
   const renderOverlay = () => {
     if (hasCleared !== undefined && hasCleared !== null) {
@@ -182,6 +197,11 @@ const ExamCard: React.FC<ExamCardProps> = ({
       <div ref={cardRef} className="relative rounded-lg overflow-hidden">
         {renderOverlay()}
         <Card className={cn("relative rounded-lg", !isEligible ? 'pointer-events-none' : '', className)} {...props}>
+          {hasCompleted === false && (
+            <div className="bg-gray-900 text-white p-2 text-sm rounded-t-lg cursor-pointer hover:bg-gray-700 hover:text-yellow-100 flex items-center justify-center" onClick={scrollToFooter}>
+              Please scroll down to the bottom to start the exam
+            </div>
+          )}
           <CardHeader>
             <CardTitle>{cardTitle}</CardTitle>
             <CardDescription>{cardDescription}</CardDescription>
@@ -221,7 +241,7 @@ const ExamCard: React.FC<ExamCardProps> = ({
               ))}
             </div>
           </CardContent>
-          <CardFooter>
+          <CardFooter ref={footerRef}>
             {hasCleared === undefined && <StartExamButton formId={formID} paymentNeeded={paymentNeeded} isProctored={isProctored} examDuration={duration*60}/>}
           </CardFooter>
         </Card>

@@ -149,6 +149,7 @@ const ExamCardsGroup: React.FC<{ uid: string }> = ({ uid }) => {
           isProctored={data.isProctored}
           eligibilityAt={data.eligibility_at}
           isEligible={checkEligibility(data.eligibility_at)}
+          hasCompleted={data.completed}
         />
       ))}
     </div>

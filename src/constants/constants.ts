@@ -54,3 +54,4 @@ export const FETCH_STUDENT_DATA='/getStudentDetails';
 export const UPDATE_STUDENT_DATA='/updateStudentDetails';
 
 export const FETCH_RESULT_TOTALS='/getResultTotals';
+export const FETCH_PHASE_1_RESULT_TOTALS='/getPhase1Results';
