@@ -89,6 +89,13 @@ const AboutMeForm: React.FC<AboutMeFormProps> = ({ user_id, first_name, last_nam
         }
     };
 
+    const handleCancel = () => {
+        form.reset({ first_name, last_name });
+        setIsEditingFirstName(false);
+        setIsEditingLastName(false);
+        setIsDirty(false);
+    };
+
     return (
         <div>
             <Card x-chunk="dashboard-04-chunk-1" className="bg-gray-800 text-white">
@@ -151,6 +158,13 @@ const AboutMeForm: React.FC<AboutMeFormProps> = ({ user_id, first_name, last_nam
                                 )}
                             />
                             <div className='mt-4 flex justify-end'>
+                                <Button 
+                                    type="button" 
+                                    onClick={handleCancel}
+                                    disabled={!isDirty||isSubmitted}
+                                    className="mr-2 py-2 px-4 bg-red-600 hover:bg-red-700 text-white rounded-md">
+                                    Cancel
+                                </Button>
                                 <Button 
                                     type="submit" 
                                     disabled={!isDirty||isSubmitted} 
