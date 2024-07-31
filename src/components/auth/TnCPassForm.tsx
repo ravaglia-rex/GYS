@@ -27,7 +27,9 @@ import { useStepper } from "../ui/stepper";
 import { LoadingSpinner as Spinner } from "../ui/spinner";
 import { useNavigate } from "react-router-dom";
 import VerifyEmailDialog from "./VerifyEmailDialog";
+
 import * as Sentry from '@sentry/react';
+import analytics from '../../segment/segment';
 
 const signupSchema = z.object({
     password: z.string().min(6, 'Password must be at least 6 characters'),
@@ -98,6 +100,36 @@ const TnCPassForm: React.FC<TnCPassProps> = ({ first_name, last_name, school, gr
                 setVerifyDialogOpen(true);
                 return;
             }
+
+            // Step 4: Track the event
+            if(isQualified === null) {
+                analytics.track('New User Signed Up', {
+                    email: email,
+                    first_name: first_name,
+                    last_name: last_name,
+                    school: school,
+                    grade: grade,
+                    parent_name: parent_name,
+                    parent_email: parent_email,
+                    parent_phone: parent_phone,
+                });
+            } else {
+                analytics.track('New User Signed Up', {
+                    subtitle: 'Parallel Entry User Signed Up',
+                    email: email,
+                    first_name: first_name,
+                    last_name: last_name,
+                    school: school,
+                    grade: grade,
+                    parent_name: parent_name,
+                    parent_email: parent_email,
+                    parent_phone: parent_phone,
+                    examID: examID,
+                    isQualified: isQualified,
+                });
+            }
+
+            // Step 5: Sign out the user
             setEmailExists(null);
             navigate("/");
 

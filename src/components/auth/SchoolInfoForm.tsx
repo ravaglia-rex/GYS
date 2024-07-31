@@ -25,7 +25,9 @@ import { Button } from "../ui/button";
 import { useToast } from "../ui/use-toast";
 import AutocompleteInput from "../autocomplete/AutocompleteInput";
 import { useStepper } from "../ui/stepper";
+
 import * as Sentry from "@sentry/react";
+import analytics from "../../segment/segment";
 
 const schoolSchema = z.object({
   school: z.string().min(1, "School is required"),
@@ -33,12 +35,13 @@ const schoolSchema = z.object({
 });
 
 interface SchoolInfoFormProps {
+  email: string;
   isQualified: boolean | null;
   setSchool: (school: string) => void;
   setGrade: (grade: number) => void;
 }
 
-const SchoolInfoForm: React.FC<SchoolInfoFormProps> = ({ setSchool, setGrade, isQualified }) => {
+const SchoolInfoForm: React.FC<SchoolInfoFormProps> = ({ email, setSchool, setGrade, isQualified }) => {
   const [schoolsList, setSchoolsList] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true); // Add loading state
   const { toast } = useToast();
@@ -85,6 +88,12 @@ const SchoolInfoForm: React.FC<SchoolInfoFormProps> = ({ setSchool, setGrade, is
       } else {
         // Create a new school and assign the returned ID
         schoolId = await createExpeditedSchool({ school_name: data.school });
+        
+        analytics.track("New School", {
+          email: email,
+          school_name: data.school,
+        });
+
         Sentry.withScope((scope) => {
           scope.setTag("location", "SchoolInfoForm.createExpeditedSchool");
           scope.setExtra("school_name", data.school);
