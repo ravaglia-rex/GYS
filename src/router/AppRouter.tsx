@@ -1,5 +1,6 @@
 import React, { Suspense, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
+import { auth } from '../firebase/firebase';
 import Protected from '../components/route_protection/Protected';
 import SuperProtected from '../components/route_protection/SuperProtected';
 import NotFoundPage from '../pages/NotFoundPage';
@@ -56,7 +57,7 @@ const RouteChangeTracker: React.FC = () => {
           const firstElement = mostRecentEntry.startTime;
           const lastElement = mostRecentEntry.loadEventEnd;
 
-          analytics.track('Page Load Time', {
+          analytics.track('[TIME] Page Load', {
             loadTime: pageLoadTime,
             firstElement: firstElement,
             lastElement: lastElement,
@@ -67,7 +68,12 @@ const RouteChangeTracker: React.FC = () => {
 
       observer.observe({ type: 'navigation', buffered: true });
 
-      analytics.page(location.pathname);
+      analytics.page(location.pathname, {
+        // Add user ID and email to page view if user is logged in
+        // This is useful for tracking user behavior
+        user: auth.currentUser ? auth.currentUser.uid : null,
+        email: auth.currentUser ? auth.currentUser.email : null,
+      });
 
       return () => {
         observer.disconnect();

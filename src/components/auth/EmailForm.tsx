@@ -61,7 +61,7 @@ const EmailEntryForm: React.FC<EmailEntryFormProps> = ({ setEmail, setEmailExist
             setEmail(data.email.toLowerCase());
             setEmailExists(emailExists);
             if(!emailExists) {
-                analytics.track('New User Flow', {
+                analytics.track('[DIRECT] New User Flow', {
                     email: data.email,
                 });
             }

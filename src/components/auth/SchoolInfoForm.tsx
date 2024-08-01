@@ -74,7 +74,7 @@ const SchoolInfoForm: React.FC<SchoolInfoFormProps> = ({ email, setSchool, setGr
         setLoading(false);
         const endTime = performance.now();
         const fetchTime = endTime - startTime;
-        analytics.track('Fetch Schools Data Time', {
+        analytics.track('[TIME] Schools Fetch', {
           fetchTime: fetchTime,
           email: email,
           url: window.location.href
@@ -98,7 +98,7 @@ const SchoolInfoForm: React.FC<SchoolInfoFormProps> = ({ email, setSchool, setGr
         // Create a new school and assign the returned ID
         schoolId = await createExpeditedSchool({ school_name: data.school });
         
-        analytics.track("New School", {
+        analytics.track("[CREATE] New School Added", {
           email: email,
           school_name: data.school,
         });

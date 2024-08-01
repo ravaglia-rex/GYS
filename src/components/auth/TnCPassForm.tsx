@@ -103,7 +103,7 @@ const TnCPassForm: React.FC<TnCPassProps> = ({ first_name, last_name, school, gr
 
             // Step 4: Track the event
             if(isQualified === null) {
-                analytics.track('New User Signed Up', {
+                analytics.track('[CREATE] New User Added', {
                     email: email,
                     first_name: first_name,
                     last_name: last_name,
@@ -114,8 +114,8 @@ const TnCPassForm: React.FC<TnCPassProps> = ({ first_name, last_name, school, gr
                     parent_phone: parent_phone,
                 });
             } else {
-                analytics.track('New User Signed Up', {
-                    subtitle: 'Parallel Entry User Signed Up',
+                analytics.track('[CREATE] New User Added', {
+                    subtitle: '[CREATE] Parallel Entry User Added',
                     email: email,
                     first_name: first_name,
                     last_name: last_name,
