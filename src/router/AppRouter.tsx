@@ -44,7 +44,37 @@ const RouteChangeTracker: React.FC = () => {
   const location = useLocation();
 
   useEffect(() => {
-    analytics.page(location.pathname);
+    const handleRouteChange = () => {
+      const observer = new PerformanceObserver((list) => {
+        const entries = list.getEntriesByType('navigation') as PerformanceNavigationTiming[];
+        if (entries.length > 0) {
+          // Get the most recent navigation entry
+          const mostRecentEntry = entries.reduce((latest, entry) => 
+            entry.startTime > latest.startTime ? entry : latest, entries[0]);
+          
+          const pageLoadTime = mostRecentEntry.loadEventEnd - mostRecentEntry.startTime;
+          const firstElement = mostRecentEntry.startTime;
+          const lastElement = mostRecentEntry.loadEventEnd;
+
+          analytics.track('Page Load Time', {
+            loadTime: pageLoadTime,
+            firstElement: firstElement,
+            lastElement: lastElement,
+            url: window.location.href,
+          });
+        }
+      });
+
+      observer.observe({ type: 'navigation', buffered: true });
+
+      analytics.page(location.pathname);
+
+      return () => {
+        observer.disconnect();
+      };
+    };
+
+    handleRouteChange();
   }, [location]);
 
   return null;

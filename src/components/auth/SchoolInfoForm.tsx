@@ -58,6 +58,7 @@ const SchoolInfoForm: React.FC<SchoolInfoFormProps> = ({ email, setSchool, setGr
 
   useEffect(() => {
     const fetchSchoolsData = async () => {
+      const startTime = performance.now();
       try {
         const schoolsData = await fetchSchoolNamesAndIds();
         if (schoolsData) {
@@ -71,10 +72,18 @@ const SchoolInfoForm: React.FC<SchoolInfoFormProps> = ({ email, setSchool, setGr
         return null;
       } finally {
         setLoading(false);
+        const endTime = performance.now();
+        const fetchTime = endTime - startTime;
+        analytics.track('Fetch Schools Data Time', {
+          fetchTime: fetchTime,
+          email: email,
+          url: window.location.href
+        });
       }
     };
 
     fetchSchoolsData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const onSubmit = async (data: z.infer<typeof schoolSchema>) => {

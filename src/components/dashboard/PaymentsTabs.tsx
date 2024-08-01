@@ -16,7 +16,9 @@ import { getExamDetails } from "../../db/examDetailsCollection";
 import { setExamDetails, ExamDetailsPayload } from '../../state_data/examDetailsSlice';
 import { RootState } from "../../state_data/reducer";
 import { auth } from "../../firebase/firebase";
+
 import * as Sentry from '@sentry/react';
+import segment from '../../segment/segment';
 
 const PaymentsTabs: React.FC<{ uid: string }> = ({ uid }) => {
   const dispatch = useDispatch();
@@ -41,6 +43,7 @@ const PaymentsTabs: React.FC<{ uid: string }> = ({ uid }) => {
 
   useEffect(() => {
     const loadPayments = async () => {
+      const startTime = performance.now();
       try {
         const paymentsData = await getPayments(uid);
         const transformedData = paymentsData.map(transformPaymentData);
@@ -54,10 +57,19 @@ const PaymentsTabs: React.FC<{ uid: string }> = ({ uid }) => {
         });
         setError(error.message);
         setLoading(false);
+      } finally {
+        const endTime = performance.now();
+        const fetchTime = endTime - startTime;
+        segment.track('Fetch Payments Data Time', {
+          fetchTime: fetchTime,
+          email: auth.currentUser?.email,
+          url: window.location.href
+        });
       }
     };
 
     const loadExamDetails = async () => {
+      const startTime = performance.now();
       try {
         const { formLinks, completed, eligibility_at } = await getExamIds(uid);
         if (formLinks.length > 0) {
@@ -91,6 +103,14 @@ const PaymentsTabs: React.FC<{ uid: string }> = ({ uid }) => {
         });
         setError(error.message);
         setLoading(false);
+      } finally {
+        const endTime = performance.now();
+        const fetchTime = endTime - startTime;
+        segment.track('Fetch Exam Details Data Time', {
+          fetchTime: fetchTime,
+          email: auth.currentUser?.email,
+          url: window.location.href
+        });
       }
     };
 
