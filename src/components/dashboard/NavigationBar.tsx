@@ -7,7 +7,7 @@ const Navbar: React.FC = () => {
     const location = useLocation();
 
     const isActive = (path: string) => {
-        return location.pathname === path ? 'text-foreground' : 'text-muted-foreground';
+        return location.pathname === path ? 'text-white' : 'text-muted-foreground';
     };
 
     return (
@@ -21,7 +21,7 @@ const Navbar: React.FC = () => {
                         <TooltipTrigger asChild>
                             <Link
                                 to="/dashboard"
-                                className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors hover:text-foreground ${isActive('/dashboard')}`}
+                                className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors hover:text-white ${isActive('/dashboard')}`}
                             >
                                 <Home className="h-6 w-6" />
                                 <span className="sr-only">Dashboard</span>
@@ -33,7 +33,7 @@ const Navbar: React.FC = () => {
                         <TooltipTrigger asChild>
                             <Link
                                 to="/payments"
-                                className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors hover:text-foreground ${isActive('/payments')}`}
+                                className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors hover:text-white ${isActive('/payments')}`}
                             >
                                 <DollarSign className="h-6 w-6" />
                                 <span className="sr-only">Payments</span>

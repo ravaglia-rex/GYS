@@ -98,6 +98,12 @@ const ParentInfoForm: React.FC<ParentInfoFormProps> = ({ user_id, parent_name, p
         }
     };
 
+    const handleCancel = () => {
+        form.reset({ parent_name, parent_phone, parent_email });
+        setIsEditingField(null);
+        setIsDirty(false);
+    };
+
     return (
         <div>
             <Card x-chunk="dashboard-04-chunk-1" className="bg-gray-800 text-white">
@@ -187,6 +193,14 @@ const ParentInfoForm: React.FC<ParentInfoFormProps> = ({ user_id, parent_name, p
                             />
 
                             <div className="mt-4 flex justify-end">
+                                <Button
+                                    type="button"
+                                    onClick={handleCancel}
+                                    disabled={!isDirty||isSubmitted}
+                                    className="py-2 px-4 bg-red-600 hover:bg-red-700 text-white rounded-md"
+                                >
+                                    Cancel
+                                </Button>
                                 <Button 
                                     type="submit" 
                                     disabled={!isDirty||isSubmitted} 

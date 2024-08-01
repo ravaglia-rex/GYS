@@ -66,6 +66,7 @@ const SignUpForm: React.FC<SignUpProps> = ({ email, setEmailExists }) => {
                             case 1:
                                 stepContent = (
                                     <SchoolInfoForm
+                                        email={email}
                                         setSchool={setSchool}
                                         setGrade={setGrade}
                                         isQualified={isQualified}

@@ -21,7 +21,9 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { useToast } from '../ui/use-toast';
 import { LoadingSpinner as Spinner } from '../ui/spinner';
+
 import * as Sentry from '@sentry/react';
+import analytics from '../../segment/segment';
 
 interface EmailEntryFormProps {
     setEmail: (email: string) => void;
@@ -58,6 +60,11 @@ const EmailEntryForm: React.FC<EmailEntryFormProps> = ({ setEmail, setEmailExist
             const emailExists = await checkEmailExists(data.email.toLowerCase());
             setEmail(data.email.toLowerCase());
             setEmailExists(emailExists);
+            if(!emailExists) {
+                analytics.track('[DIRECT] New User Flow', {
+                    email: data.email,
+                });
+            }
         } catch (error) {
             Sentry.withScope((scope) => {
                 scope.setTag('location', 'EmailEntryForm.onSubmit');

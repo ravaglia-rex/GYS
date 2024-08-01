@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../firebase/firebase';
 import BigSpinner from '../ui/BigSpinner';
+import analytics from '../../segment/segment';
 
 interface ProtectedProps {
   children: ReactNode;
@@ -25,10 +26,14 @@ const Protected: React.FC<ProtectedProps> = ({ children }) => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) {
+      if (user) {
+        analytics.identify(user.uid, {
+          email: user.email,
+        });
+        setLoading(false);
+      } else {
         navigate('/');
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
