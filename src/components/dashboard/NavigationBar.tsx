@@ -21,7 +21,8 @@ const Navbar: React.FC = () => {
                         <TooltipTrigger asChild>
                             <Link
                                 to="/dashboard"
-                                className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors hover:text-white ${isActive('/dashboard')}`}
+                                className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors hover:text-white ${isActive('/dashboard')} exams-dashboard
+                                `}
                             >
                                 <Home className="h-6 w-6" />
                                 <span className="sr-only">Dashboard</span>
@@ -33,7 +34,8 @@ const Navbar: React.FC = () => {
                         <TooltipTrigger asChild>
                             <Link
                                 to="/payments"
-                                className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors hover:text-white ${isActive('/payments')}`}
+                                className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors hover:text-white ${isActive('/payments')} payments-dashboard
+                                `}
                             >
                                 <DollarSign className="h-6 w-6" />
                                 <span className="sr-only">Payments</span>

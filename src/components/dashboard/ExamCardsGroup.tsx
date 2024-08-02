@@ -135,7 +135,7 @@ const ExamCardsGroup: React.FC<{ uid: string }> = ({ uid }) => {
   const completedExams = examDetailsState.filter((data) => data.completed);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 exam-cards-group">
       {completedExams.map((data, index) => (
         <ExamCard
           key={index}

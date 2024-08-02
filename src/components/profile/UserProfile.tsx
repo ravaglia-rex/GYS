@@ -63,16 +63,16 @@ const UserProfile: React.FC<UserProfileProps> = ({user_id}) => {
     return (
       <div>
         {loading ? <BigSpinner /> : 
-        (<div className="flex min-h-screen w-full flex-col">
+        (<div className="flex min-h-screen w-full flex-col profile-settings">
           <div className="flex min-h-[calc(100vh_-_theme(spacing.16))] flex-1 flex-col gap-4 p-4 md:gap-8 md:p-10">
             <div className="mx-auto grid w-full max-w-6xl gap-2">
                 <h1 className="text-3xl font-semibold">Profile Settings</h1>
             </div>
             <div className="mx-auto grid w-full max-w-6xl items-start gap-6 md:grid-cols-[180px_1fr] lg:grid-cols-[250px_1fr]">
               <nav className="flex md:flex-col gap-4 text-sm">
-                  <button onClick={() => setSelectedOption('AboutMe')} className={`font-semibold ${selectedOption === 'AboutMe' ? 'text-primary' : ''}`}>About Me</button>
-                  <button onClick={() => setSelectedOption('ParentInfo')} className={`${selectedOption === 'ParentInfo' ? 'font-semibold text-primary' : ''}`}>Parent Information</button>
-                  <button onClick={() => setSelectedOption('SchoolInfo')} className={`${selectedOption === 'SchoolInfo' ? 'font-semibold text-primary' : ''}`}>School Information</button>
+                  <button onClick={() => setSelectedOption('AboutMe')} className={`font-semibold ${selectedOption === 'AboutMe' ? 'text-primary' : ''} about-info`}>About Me</button>
+                  <button onClick={() => setSelectedOption('ParentInfo')} className={`${selectedOption === 'ParentInfo' ? 'font-semibold text-primary' : ''} parent-info`}>Parent Information</button>
+                  <button onClick={() => setSelectedOption('SchoolInfo')} className={`${selectedOption === 'SchoolInfo' ? 'font-semibold text-primary' : ''} school-info`}>School Information</button>
               </nav>
             <div className="flex-1">
                 {renderForm()}

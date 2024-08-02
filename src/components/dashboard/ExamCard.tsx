@@ -193,7 +193,7 @@ const ExamCard: React.FC<ExamCardProps> = ({
   };
 
   return (
-    <div className="relative w-[380px]">
+    <div className="relative w-[380px] exam-card">
       <div ref={cardRef} className="relative rounded-lg overflow-hidden">
         {renderOverlay()}
         <Card className={cn("relative rounded-lg", !isEligible ? 'pointer-events-none' : '', className)} {...props}>
