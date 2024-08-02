@@ -39,7 +39,7 @@ const SchoolInfoForm: React.FC<SchoolInfoFormProps> = ({ grade, school_name }) =
     });
 
     return (
-        <div>
+        <div className='profile-school'>
             <Card x-chunk="dashboard-04-chunk-1" className="bg-gray-800 text-white">
                 <CardHeader>
                     <CardTitle>School Information</CardTitle>

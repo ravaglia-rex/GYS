@@ -97,7 +97,7 @@ const AboutMeForm: React.FC<AboutMeFormProps> = ({ user_id, first_name, last_nam
     };
 
     return (
-        <div>
+        <div className='profile-about'>
             <Card x-chunk="dashboard-04-chunk-1" className="bg-gray-800 text-white">
                 <CardHeader>
                     <CardTitle>About Me</CardTitle>
@@ -168,7 +168,7 @@ const AboutMeForm: React.FC<AboutMeFormProps> = ({ user_id, first_name, last_nam
                                 <Button 
                                     type="submit" 
                                     disabled={!isDirty||isSubmitted} 
-                                    className="py-2 px-4 bg-green-600 hover:bg-green-700 text-white rounded-md">
+                                    className="py-2 px-4 bg-green-600 hover:bg-green-700 text-white rounded-md save-button">
                                     Save Changes
                                 </Button>
                             </div>

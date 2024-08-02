@@ -105,7 +105,7 @@ const ParentInfoForm: React.FC<ParentInfoFormProps> = ({ user_id, parent_name, p
     };
 
     return (
-        <div>
+        <div className='profile-parent'>
             <Card x-chunk="dashboard-04-chunk-1" className="bg-gray-800 text-white">
                 <CardHeader>
                     <CardTitle>Parent Information</CardTitle>

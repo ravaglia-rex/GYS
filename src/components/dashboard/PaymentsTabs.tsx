@@ -131,7 +131,7 @@ const PaymentsTabs: React.FC<{ uid: string }> = ({ uid }) => {
   const pendingPayments = examDetails.filter(exam => !paidExamIds.includes(exam.formId) && exam.paymentNeeded);
 
   return (
-    <Tabs defaultValue="pendingPayments" className="w-full">
+    <Tabs defaultValue="pendingPayments" className="w-full payments-tabs">
       <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="pendingPayments">Pending Payments</TabsTrigger>
         <TabsTrigger value="paymentsHistory">Payments History</TabsTrigger>
