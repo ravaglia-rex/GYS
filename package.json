@@ -48,6 +48,8 @@
     "embla-carousel-autoplay": "^8.1.8",
     "embla-carousel-react": "^8.1.8",
     "firebase": "^10.12.2",
+    "flag-icons": "^7.2.3",
+    "i18n-iso-countries": "^7.11.3",
     "lodash.debounce": "^4.0.8",
     "lucide-react": "^0.383.0",
     "network-speed": "^2.1.1",

@@ -36,6 +36,7 @@ export const STUDENTS_APIS = '/students';
 export const PHASE_1_QUERIES_APIS = '/phase1Queries';
 export const EXAM_DETAILS_APIS = '/examDetails';
 export const EXAM_RESPONSES_APIS = '/examResponses';
+export const RAZORPAY_APIS = '/razorpay';
 
 export const CREATE_EXPEDITED_SCHOOL='/createExpeditedSchool';
 export const FETCH_SCHOOL_NAMES_AND_IDS='/fetchSchoolNamesAndIds';
@@ -55,3 +56,6 @@ export const UPDATE_STUDENT_DATA='/updateStudentDetails';
 
 export const FETCH_RESULT_TOTALS='/getResultTotals';
 export const FETCH_PHASE_1_RESULT_TOTALS='/getPhase1Results';
+
+export const CREATE_RAZORPAY_CUSTOMER='/createCustomer';
+export const CREATE_RAZORPAY_ORDER='/createOrder';
