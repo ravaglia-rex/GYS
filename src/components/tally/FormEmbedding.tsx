@@ -4,10 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import { RootState } from '../../state_data/reducer';
 import { cleanupAudioCaptureResources } from '../../state_data/audioCaptureSlice';
 import { cleanupFrameResources } from '../../state_data/frameCaptureSlice';
+import { runExamSubmissionTransaction } from '../../db/studentSubmissionMapping';
 import { auth } from '../../firebase/firebase';
-import { createSubmissionRecord } from '../../db/studentSubmissionMapping';
-import { markExamComplete } from '../../db/studentExamMappings';
 import * as Sentry from '@sentry/react';
+import { resetExamDetails } from '../../state_data/examDetailsSlice';
 
 declare global {
   interface Window {
@@ -73,24 +73,22 @@ const FormEmbedding: React.FC<FormEmbeddingProps> = ({ setSubmitted, examDuratio
           const submission_time = data.payload.createdAt;
           const form_id = data.payload.formId;
           setSubmitted(true);
-          
-          await createSubmissionRecord({
-            student_uid,
-            submission_id,
-            form_id,
-            submission_time,
-          });
 
-          await markExamComplete(student_uid, form_id);
+          await runExamSubmissionTransaction(student_uid, submission_id, form_id, submission_time);
 
           dispatch(cleanupAudioCaptureResources());
           dispatch(cleanupFrameResources());
           
           setSubmissionComplete(true);
+          if(document.fullscreenElement){
+            document.exitFullscreen();
+          }
+          dispatch(resetExamDetails());
         } catch (error) {
           Sentry.withScope((scope) => {
             scope.setTag('location', 'FormEmbedding.handleMessage');
             scope.setExtra('messageData', e.data);
+            scope.setExtra('user', auth.currentUser);
             Sentry.captureException(error);
           });
           console.error('Error parsing message data:', error);

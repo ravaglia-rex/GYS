@@ -1,22 +1,16 @@
-import {
-    collection,
-    addDoc,
-} from "firebase/firestore";
-import db from "./db";
+import axios from "axios";
+import { EXAM_DETAILS_APIS, EXAM_SUBMISSION_TRANSACTION } from "../constants/constants";
 
-// CREATE SUBMISSION RECORD
-type SubmissionRecord = {
-    student_uid: string;
-    submission_id: string;
-    form_id: string;
-    submission_time: string;
-};
-
-export const createSubmissionRecord = async (submission_record: SubmissionRecord) => {
+export const runExamSubmissionTransaction = async (student_uid: string, submission_id: string, form_id: string, submission_time: string) => {
     try {
-        const payment_obj = await addDoc(collection(db, "student_submission_mappings"), submission_record);
-        return payment_obj.id;
-    } catch (e) {
-        throw new Error(`Error recording submission details. Please contact talentsearch@argus.ai`);
+        const response = await axios.post(`${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${EXAM_DETAILS_APIS}${EXAM_SUBMISSION_TRANSACTION}`, {
+            student_uid,
+            submission_id,
+            form_id,
+            submission_time,
+        });
+        return response.data;
+    } catch (error) {
+        throw new Error(`Error submitting exam. Please contact talentsearch@argus.ai on PRIORITY with your registered email`);
     }
 };
