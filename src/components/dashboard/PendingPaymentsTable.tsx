@@ -14,51 +14,19 @@ import {
   TableHeader,
   TableRow,
 } from "../ui/table";
-import { Button } from "../ui/button";
 import { ExamDetailsPayload } from "../../state_data/examDetailsSlice";
-import { auth } from "../../firebase/firebase";
-import { handleOrderExam } from "../../functions/payment_handling/razorpay_functions";
-import RenderRazorpay from "./RenderRazorpay";
-import {LoadingSpinner as Spinner } from "../ui/spinner";
-import * as Sentry from '@sentry/react';
+import { ChevronDown } from 'lucide-react';
+
+import PayeeDetailsForm from "./PayeeDetailsForm";
 
 const PendingPaymentsTable: React.FC<{ payments: ExamDetailsPayload[] }> = ({ payments }) => {
-  const [displayRazorpay, setDisplayRazorpay] = useState(false);
-  const [loadingPayment, setLoadingPayment] = useState<string | null>(null);
-  const [orderDetails, setOrderDetails] = useState({
-    amount: -1,
-    form_id: "",
-    title: "",
-    id: "",
-    currency: "",
-    uid: auth.currentUser?.uid || "",
-  });
+  const [openRows, setOpenRows] = useState<{ [key: string]: boolean }>({});
 
-  const handlePayNow = async (formId: string, title: string, cost: number, currency: string) => {
-    setLoadingPayment(formId);
-    try {
-      const data = await handleOrderExam(cost, currency, formId);
-
-      if (data && data.id) {
-        setOrderDetails({
-          amount: data.amount,
-          form_id: formId,
-          title: title,
-          id: data.id,
-          currency: data.currency,
-          uid: auth.currentUser?.uid || "",
-        });
-        setDisplayRazorpay(true);
-      }
-    } catch (error) {
-      Sentry.withScope((scope) => {
-        scope.setTag('location', 'PendingPaymentsTable.handlePayNow');
-        Sentry.captureException(error);
-      });
-      console.error("Error creating order:", error);
-    } finally {
-      setLoadingPayment(null);
-    }
+  const handleToggle = (formId: string) => {
+    setOpenRows((prevOpenRows) => ({
+      ...prevOpenRows,
+      [formId]: !prevOpenRows[formId],
+    }));
   };
 
   return (
@@ -76,25 +44,40 @@ const PendingPaymentsTable: React.FC<{ payments: ExamDetailsPayload[] }> = ({ pa
                   <TableHead>Name of the Exam</TableHead>
                   <TableHead>Duration</TableHead>
                   <TableHead>Cost</TableHead>
-                  <TableHead>Pay Now</TableHead>
+                  <TableHead>Pay</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {payments.map((exam) => (
-                  <TableRow key={exam.formId}>
-                    <TableCell>{exam.cardTitle}</TableCell>
-                    <TableCell>{exam.duration} hours</TableCell>
-                    <TableCell>{exam.currency} {exam.cost.toFixed(2)}</TableCell>
-                    <TableCell>
-                      <Button
-                        onClick={() => handlePayNow(exam.formId, exam.cardTitle, exam.cost, exam.currency)}
-                        disabled={true}
-                        
-                      >
-                        {loadingPayment === exam.formId ? <Spinner /> : "Pay Now"}
-                      </Button>
-                    </TableCell>
-                  </TableRow>
+                  <React.Fragment key={exam.formId}>
+                    <TableRow>
+                      <TableCell>{exam.cardTitle}</TableCell>
+                      <TableCell>{exam.duration} hours</TableCell>
+                      <TableCell>{exam.currency} {exam.cost.toFixed(2)}</TableCell>
+                      <TableCell>
+                        <button
+                          onClick={() => handleToggle(exam.formId)}
+                          className="flex items-center space-x-2"
+                        >
+                          <ChevronDown className={`transition-transform duration-300 ${openRows[exam.formId] ? 'transform rotate-180' : ''}`} />
+                        </button>
+                      </TableCell>
+                    </TableRow>
+                    {openRows[exam.formId] && (
+                      <TableRow>
+                        <TableCell colSpan={4} className="p-0">
+                          <div className="p-4">
+                            <PayeeDetailsForm
+                              formId={exam.formId}
+                              currency={exam.currency}
+                              cost={exam.cost}
+                              title={exam.cardTitle}
+                            />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </React.Fragment>
                 ))}
               </TableBody>
             </Table>
@@ -105,17 +88,6 @@ const PendingPaymentsTable: React.FC<{ payments: ExamDetailsPayload[] }> = ({ pa
           )}
         </CardContent>
       </Card>
-      {displayRazorpay && (
-        <RenderRazorpay
-          amount={orderDetails.amount}
-          currency={orderDetails.currency}
-          form_id={orderDetails.form_id}
-          title={orderDetails.title}
-          id={orderDetails.id}
-          uid={orderDetails.uid}
-          keyID={process.env.REACT_APP_RAZORPAY_KEY_ID || ""}
-        />
-      )}
     </div>
   );
 }
