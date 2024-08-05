@@ -46,6 +46,11 @@ const PaymentsTabs: React.FC<{ uid: string }> = ({ uid }) => {
       const startTime = performance.now();
       try {
         const paymentsData = await getPayments(uid);
+        if(paymentsData.length === 0) {
+          dispatch(setPayments([]));
+          setLoading(false);
+          return;
+        }
         const transformedData = paymentsData.map(transformPaymentData);
         dispatch(setPayments(transformedData));
         setLoading(false);
@@ -71,7 +76,7 @@ const PaymentsTabs: React.FC<{ uid: string }> = ({ uid }) => {
     const loadExamDetails = async () => {
       const startTime = performance.now();
       try {
-        const { formLinks, completed, eligibility_at } = await getExamIds(uid);
+        const { formLinks, completed, eligibility_at, result } = await getExamIds(uid);
         if (formLinks.length > 0) {
           const details = await getExamDetails(formLinks);
           const validDetails: ExamDetailsPayload[] = details
@@ -89,6 +94,7 @@ const PaymentsTabs: React.FC<{ uid: string }> = ({ uid }) => {
               currency: detail.currency,
               isProctored: detail.is_proctored,
               eligibility_at: eligibility_at[index],
+              result: result[index],
               type_questions: detail.type_questions ? JSON.parse(detail.type_questions) : {},
             }));
 

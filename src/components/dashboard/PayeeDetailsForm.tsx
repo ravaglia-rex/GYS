@@ -337,7 +337,7 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({formId, currency, co
                         />
                     )}
 
-                    <Button type="submit" className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-md">Pay Now</Button>
+                    <Button type="submit" disabled={true} className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-md">Pay Now</Button>
                 </form>
             </Form>
             {displayRazorpay && (
