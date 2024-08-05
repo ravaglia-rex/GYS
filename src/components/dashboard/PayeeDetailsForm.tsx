@@ -25,7 +25,7 @@ import { Checkbox } from '../ui/checkbox';
 import { useToast } from "../ui/use-toast";
 import CountriesInput from "../autocomplete/CountriesInput";
 import RenderRazorpay from "./RenderRazorpay";
-// import { LoadingSpinner as Spinner } from "../ui/spinner";
+import { LoadingSpinner as Spinner } from "../ui/spinner";
 
 import * as Sentry from '@sentry/react';
 
@@ -53,6 +53,7 @@ interface PayeeDetailsFormProps {
 const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({formId, currency, cost, title}) => {
     const { toast } = useToast();
     const [displayRazorpay, setDisplayRazorpay] = useState(false);
+    const [submitted, setSubmitted] = useState(false);
 
     // const [loadingPayment, setLoadingPayment] = useState<string | null>(null);
     const [orderDetails, setOrderDetails] = useState({
@@ -93,7 +94,7 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({formId, currency, co
         payee_zipcode: string,
         payee_country: string
       ) => {
-        // setLoadingPayment(formId);
+        setSubmitted(true);
         try {
           await handleCreateCustomer(
             payee_name,
@@ -136,10 +137,9 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({formId, currency, co
             Sentry.captureException(error);
           });
           console.error("Error creating order:", error);
+        } finally {
+          setSubmitted(false);
         }
-        // } finally {
-        // //   setLoadingPayment(null);
-        // }
       };
 
     const onSubmit = async (data: z.infer<typeof payeeSchema>) => {
@@ -337,7 +337,13 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({formId, currency, co
                         />
                     )}
 
-                    <Button type="submit" disabled={true} className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-md">Pay Now</Button>
+                    <Button 
+                        type="submit" 
+                        className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-md"
+                        disabled={submitted}
+                    >
+                        {submitted? <Spinner /> : <p>Pay Now</p>}
+                    </Button>
                 </form>
             </Form>
             {displayRazorpay && (

@@ -127,7 +127,6 @@ const PaymentsTabs: React.FC<{ uid: string }> = ({ uid }) => {
     if (!examDetailsLoaded) {
       loadExamDetails();
     }
-
   }, [uid, dispatch, paymentsLoaded, examDetailsLoaded]);
 
   if (loading) return <p>Loading...</p>;
