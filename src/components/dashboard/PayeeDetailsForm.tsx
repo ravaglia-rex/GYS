@@ -340,7 +340,7 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({formId, currency, co
                     <Button 
                         type="submit" 
                         className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-md"
-                        disabled={submitted}
+                        disabled={submitted||true}
                     >
                         {submitted? <Spinner /> : <p>Pay Now</p>}
                     </Button>
