@@ -135,7 +135,7 @@ const ExamCard: React.FC<ExamCardProps> = ({
               >
                 {hasCleared ? <Check className="h-8 w-8" /> : <AlertTriangle className="h-8 w-8" />}
                 <div className="mt-2 text-center text-lg font-bold">
-                  {hasCleared ? "Cleared" : "Not Cleared"}
+                  {hasCleared ? "Qualified" : "Not Qualified"}
                   {resultTotals && (
                     <Table>
                       <TableBody>
@@ -164,7 +164,7 @@ const ExamCard: React.FC<ExamCardProps> = ({
               </div>
             </TooltipTrigger>
             <TooltipContent side="top" className="z-30">
-              {hasCleared ? "You have cleared this exam" : "You have not cleared this exam"}
+              {hasCleared ? "You have qualified this exam" : "You have not qualified this exam"}
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
