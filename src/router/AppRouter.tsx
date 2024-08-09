@@ -49,7 +49,6 @@ const RouteChangeTracker: React.FC = () => {
       const observer = new PerformanceObserver((list) => {
         const entries = list.getEntriesByType('navigation') as PerformanceNavigationTiming[];
         if (entries.length > 0) {
-          // Get the most recent navigation entry
           const mostRecentEntry = entries.reduce((latest, entry) => 
             entry.startTime > latest.startTime ? entry : latest, entries[0]);
           
@@ -69,8 +68,6 @@ const RouteChangeTracker: React.FC = () => {
       observer.observe({ type: 'navigation', buffered: true });
 
       analytics.page(location.pathname, {
-        // Add user ID and email to page view if user is logged in
-        // This is useful for tracking user behavior
         user: auth.currentUser ? auth.currentUser.uid : null,
         email: auth.currentUser ? auth.currentUser.email : null,
       });
@@ -84,7 +81,7 @@ const RouteChangeTracker: React.FC = () => {
   }, [location]);
 
   return null;
-}
+};
 
 const AppRouter: React.FC = () => {
   return (
