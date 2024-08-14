@@ -23,7 +23,7 @@ import {
 } from "../ui/select";
 import { Button } from "../ui/button";
 import { useToast } from "../ui/use-toast";
-import AutocompleteInput from "../autocomplete/AutocompleteInput";
+import SchoolsInput from "../autocomplete/SchoolsInput"; // Import SchoolsInput
 import { useStepper } from "../ui/stepper";
 
 import * as Sentry from "@sentry/react";
@@ -43,7 +43,9 @@ interface SchoolInfoFormProps {
 
 const SchoolInfoForm: React.FC<SchoolInfoFormProps> = ({ email, setSchool, setGrade, isQualified }) => {
   const [schoolsList, setSchoolsList] = useState<{ id: string; name: string }[]>([]);
-  const [loading, setLoading] = useState(true); // Add loading state
+  const [loading, setLoading] = useState(true); 
+  const [isCustomSchool, setIsCustomSchool] = useState(false); 
+  const [customSchoolName, setCustomSchoolName] = useState(""); 
   const { toast } = useToast();
   const { nextStep, prevStep } = useStepper();
   const [showDialog, setShowDialog] = useState(true);
@@ -88,27 +90,28 @@ const SchoolInfoForm: React.FC<SchoolInfoFormProps> = ({ email, setSchool, setGr
 
   const onSubmit = async (data: z.infer<typeof schoolSchema>) => {
     try {
-      // Step 1: Find the school record
       let schoolId = data.school;
 
-      const matchedSchool = schoolsList.find((school) => school.id === data.school);
-      if (matchedSchool) {
-        schoolId = matchedSchool.id;
-      } else {
-        // Create a new school and assign the returned ID
-        schoolId = await createExpeditedSchool({ school_name: data.school });
+      if (isCustomSchool) {
+        schoolId = await createExpeditedSchool({ school_name: customSchoolName });
         
         analytics.track("[CREATE] New School Added", {
           email: email,
-          school_name: data.school,
+          school_name: customSchoolName,
         });
 
         Sentry.withScope((scope) => {
           scope.setTag("location", "SchoolInfoForm.createExpeditedSchool");
-          scope.setExtra("school_name", data.school);
+          scope.setExtra("school_name", customSchoolName);
           Sentry.captureMessage("New school created");
         });
+      } else {
+        const matchedSchool = schoolsList.find((school) => school.id === data.school);
+        if (matchedSchool) {
+          schoolId = matchedSchool.id;
+        }
       }
+
       setSchool(schoolId);
       setGrade(data.grade);
       nextStep();
@@ -145,13 +148,32 @@ const SchoolInfoForm: React.FC<SchoolInfoFormProps> = ({ email, setSchool, setGr
                 <FormItem>
                   <FormLabel>School</FormLabel>
                   <FormControl>
-                    <AutocompleteInput 
+                    <SchoolsInput 
                       schools={schoolsList} 
-                      onSelect={(selectedSchoolId) => field.onChange(selectedSchoolId)}
+                      onSelect={(selectedSchoolId, selectedSchoolName) => {
+                        field.onChange(selectedSchoolId);
+                        if (selectedSchoolId === "not-listed") {
+                          setIsCustomSchool(true);
+                        } else {
+                          setIsCustomSchool(false);
+                          setCustomSchoolName("");
+                        }
+                      }}
                       className="bg-transparent rounded-lg w-full"
                       loading={loading}
                     />
                   </FormControl>
+                  {isCustomSchool && (
+                    <div className="mt-4">
+                      <FormLabel>Enter your school name</FormLabel>
+                      <input 
+                        type="text" 
+                        value={customSchoolName} 
+                        onChange={(e) => setCustomSchoolName(e.target.value)}
+                        className="bg-transparent border border-gray-300 rounded-lg p-2 w-full"
+                      />
+                    </div>
+                  )}
                   <FormDescription className="text-xs">Take me from darkness to light</FormDescription>
                   <FormMessage>{form.formState.errors.school?.message}</FormMessage>
                 </FormItem>
