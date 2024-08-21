@@ -14,6 +14,7 @@ import {
   PopoverTrigger,
 } from "../ui/popover";
 import { LoadingSpinner as Spinner } from "../ui/spinner";
+import Fuse from "fuse.js";
 
 interface School {
   id: string;
@@ -37,28 +38,20 @@ const SchoolsInput: React.FC<SchoolsInputProps> = ({
   const [inputValue, setInputValue] = React.useState("");
   const [selectedValue, setSelectedValue] = React.useState("");
 
+  const fuse = React.useMemo(() => {
+    return new Fuse(schools, {
+      keys: ["name"],
+      includeScore: true,
+      threshold: 0.3,
+    });
+  }, [schools]);
+
   const filteredSchools = React.useMemo(() => {
     if (!inputValue) return schools;
 
-    const lowerCasedInput = inputValue.toLowerCase();
-    const filtered = schools.filter((school) => {
-      if (!school.name) return false;
-
-      const lowerCasedName = school.name.toLowerCase();
-      const initials = lowerCasedName
-        .split(" ")
-        .filter((word) => word.length > 0)
-        .map((word) => word[0])
-        .join("");
-
-      return (
-        lowerCasedName.includes(lowerCasedInput) ||
-        initials.includes(lowerCasedInput)
-      );
-    });
-
-    return filtered.length > 0 ? filtered : null;
-  }, [inputValue, schools]);
+    const results = fuse.search(inputValue);
+    return results.map(result => result.item);
+  }, [inputValue, schools, fuse]);
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(event.target.value);
@@ -99,7 +92,7 @@ const SchoolsInput: React.FC<SchoolsInputProps> = ({
               <div className="flex justify-center items-center h-20">
                 <Spinner />
               </div>
-            ) : filteredSchools ? (
+            ) : filteredSchools.length > 0 ? (
               filteredSchools.map((school) => (
                 <CommandItem
                   key={school.id}
