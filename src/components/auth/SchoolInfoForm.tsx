@@ -45,7 +45,9 @@ const SchoolInfoForm: React.FC<SchoolInfoFormProps> = ({ email, setSchool, setGr
   const [schoolsList, setSchoolsList] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true); 
   const [isCustomSchool, setIsCustomSchool] = useState(false); 
-  const [customSchoolName, setCustomSchoolName] = useState(""); 
+  const [customSchoolName, setCustomSchoolName] = useState("");
+  const [customSchoolCity, setCustomSchoolCity] = useState("");
+  const [customSchoolState, setCustomSchoolState] = useState("");
   const { toast } = useToast();
   const { nextStep, prevStep } = useStepper();
   const [showDialog, setShowDialog] = useState(true);
@@ -93,7 +95,11 @@ const SchoolInfoForm: React.FC<SchoolInfoFormProps> = ({ email, setSchool, setGr
       let schoolId = data.school;
 
       if (isCustomSchool) {
-        schoolId = await createExpeditedSchool({ school_name: customSchoolName });
+        schoolId = await createExpeditedSchool({ 
+          school_name: customSchoolName,
+          city: customSchoolCity,
+          state: customSchoolState
+        });
         
         analytics.track("[CREATE] New School Added", {
           email: email,
@@ -170,6 +176,20 @@ const SchoolInfoForm: React.FC<SchoolInfoFormProps> = ({ email, setSchool, setGr
                         type="text" 
                         value={customSchoolName} 
                         onChange={(e) => setCustomSchoolName(e.target.value)}
+                        className="bg-transparent border border-gray-300 rounded-lg p-2 w-full"
+                      />
+                      <FormLabel>Enter your school city</FormLabel>
+                      <input 
+                        type="text" 
+                        value={customSchoolCity} 
+                        onChange={(e) => setCustomSchoolCity(e.target.value)}
+                        className="bg-transparent border border-gray-300 rounded-lg p-2 w-full"
+                      />
+                      <FormLabel>Enter your school state</FormLabel>
+                      <input 
+                        type="text" 
+                        value={customSchoolState} 
+                        onChange={(e) => setCustomSchoolState(e.target.value)}
                         className="bg-transparent border border-gray-300 rounded-lg p-2 w-full"
                       />
                     </div>

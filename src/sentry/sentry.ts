@@ -21,7 +21,7 @@ Sentry.init({
     })
 ],
   tracesSampleRate: 0.5,
-  tracePropagationTargets: ["localhost", "https://argus-talent-search.web.app/", "https://exams.argus.ai"],
+  tracePropagationTargets: ["https://argus-talent-search.web.app/", "https://exams.argus.ai"],
   replaysSessionSampleRate: 0.1,
   replaysOnErrorSampleRate: 0.4,
 });
