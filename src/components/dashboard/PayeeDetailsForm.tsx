@@ -346,6 +346,7 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({formId, currency, co
                     </Button>
                 </form>
             </Form>
+            <p>We're working with our vendors to provide a better payments experience. The pay option will remain disabled till then</p>
             {displayRazorpay && (
                 <RenderRazorpay
                 amount={orderDetails.amount}
