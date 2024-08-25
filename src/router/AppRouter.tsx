@@ -1,11 +1,9 @@
-import React, { Suspense, useEffect } from 'react';
-import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
-import { auth } from '../firebase/firebase';
+import React, { Suspense } from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Protected from '../components/route_protection/Protected';
 import SuperProtected from '../components/route_protection/SuperProtected';
 import NotFoundPage from '../pages/NotFoundPage';
 import BigSpinner from '../components/ui/BigSpinner';
-import analytics from '../segment/segment';
 
 /* 
 AUTHENTICATION PAGES: These are the pages that are used for the signup and login process
@@ -41,53 +39,9 @@ CAMERA AND MICROPHONE ACCESS PAGE: This page is used to check if the camera and 
 */
 const CameraMicrophoneAccess = React.lazy(() => import('../components/proctoring_components/CameraMicrophoneAccess'));
 
-const RouteChangeTracker: React.FC = () => {
-  const location = useLocation();
-
-  useEffect(() => {
-    const handleRouteChange = () => {
-      const observer = new PerformanceObserver((list) => {
-        const entries = list.getEntriesByType('navigation') as PerformanceNavigationTiming[];
-        if (entries.length > 0) {
-          const mostRecentEntry = entries.reduce((latest, entry) => 
-            entry.startTime > latest.startTime ? entry : latest, entries[0]);
-          
-          const pageLoadTime = mostRecentEntry.loadEventEnd - mostRecentEntry.startTime;
-          const firstElement = mostRecentEntry.startTime;
-          const lastElement = mostRecentEntry.loadEventEnd;
-
-          analytics.track('[TIME] Page Load', {
-            loadTime: pageLoadTime,
-            firstElement: firstElement,
-            lastElement: lastElement,
-            url: window.location.href,
-          });
-        }
-      });
-
-      observer.observe({ type: 'navigation', buffered: true });
-
-      analytics.page(location.pathname, {
-        user: auth.currentUser ? auth.currentUser.uid : null,
-        email: auth.currentUser ? auth.currentUser.email : null,
-      });
-
-      return () => {
-        observer.disconnect();
-      };
-    };
-
-    handleRouteChange();
-  }, [location]);
-
-  return null;
-};
-
 const AppRouter: React.FC = () => {
   return (
     <Router>
-      {/* ------------------------- RUNS ANALYTICS FOR ROUTE CHANGES -------------------------- */}
-      <RouteChangeTracker />
       {/* ------------------------------ SIGNUP AND LOGIN ROUTES ------------------------------ */}
       <Routes>
         <Route
