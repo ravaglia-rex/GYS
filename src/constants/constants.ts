@@ -14,8 +14,8 @@ export const AUDIO_RATE = 960*5;
 
 // INTERNET BANDWIDTH MONITORING CONSTANTS
 export const SPEED_TEST_INTERVAL = 1000*20;
-export const DOWNLOAD_SPEED_THRESHOLD = 2;
-export const UPLOAD_SPEED_THRESHOLD = 1;
+export const DOWNLOAD_SPEED_THRESHOLD = 1;
+export const UPLOAD_SPEED_THRESHOLD = 0.5;
 export const DOWNLOAD_SIZE = 50000;
 export const DOWNLOAD_URL = `https://eu.httpbin.org/stream-bytes/${DOWNLOAD_SIZE}`;
 export const UPLOAD_SIZE = 20000;
