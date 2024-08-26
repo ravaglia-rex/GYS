@@ -43,7 +43,7 @@ const CameraSetup: React.FC<CameraSetupProps> = ({hasCameraAccess, isSubmitted, 
                     const frameRate = FRAME_RATE;
                     const newIntervalId = setInterval(() => {
                         const canvas = document.createElement('canvas');
-                        if (entityDetectionWorkerRef.current && poseDetectionWorkerRef.current && faceLandmarksWorkerRef.current && canvas && videoRef.current) {
+                        if (entityDetectionWorkerRef.current && poseDetectionWorkerRef.current && faceLandmarksWorkerRef.current && canvas && videoRef.current && videoRef.current.videoWidth && videoRef.current.videoHeight) {
                             captureFrame(videoRef, canvas, user_id, exam_id, entityDetectionWorkerRef.current, poseDetectionWorkerRef.current, faceLandmarksWorkerRef.current);
                             const lighting_check = analyzeLighting(videoRef, canvas);
                             if (!lighting_check) {
