@@ -9,7 +9,7 @@ const CameraError: React.FC = () => {
           There was an error accessing the camera
         </p>
         <p className="text-lg text-gray-700 mb-6">
-          Please close the browser window. You will receive an email to retake the assessment from the point you left off.
+          Please close the browser window. You'll need to grant microphone permissions and retake the test.
         </p>
       </div>
     </div>
