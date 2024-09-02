@@ -50,6 +50,17 @@ const SchoolsInput: React.FC<SchoolsInputProps> = ({
     if (!inputValue) return schools;
 
     const results = fuse.search(inputValue);
+    // Also allow abbreviation search (e.g. "MIT" for "Massachusetts Institute of Technology")
+    // this includes AVM School for Arya Vidya Mandir School
+    if (results.length === 0) {
+      const abbreviationResults = fuse.search(
+        inputValue
+          .split(" ")
+          .map((word) => word[0])
+          .join("")
+      );
+      results.push(...abbreviationResults);
+    }
     return results.map(result => result.item);
   }, [inputValue, schools, fuse]);
 
