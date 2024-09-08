@@ -32,9 +32,14 @@ export const faceLandmarksSlice = createSlice({
             state.mouth_state.push(action.payload.mouth_state);
             state.timestamp.push(action.payload.timestamp);
         },
+        resetFaceLandmarks: (state) => {
+            state.eye_state = [];
+            state.mouth_state = [];
+            state.timestamp = [];
+        }
     },
 });
 
-export const { setFaceLandmarks } = faceLandmarksSlice.actions;
+export const { setFaceLandmarks, resetFaceLandmarks } = faceLandmarksSlice.actions;
 
 export default faceLandmarksSlice.reducer;

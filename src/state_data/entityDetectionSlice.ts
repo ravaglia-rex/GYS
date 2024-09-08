@@ -42,9 +42,16 @@ export const entityDetectionSlice = createSlice({
             state.timestamp.push(action.payload.timestamp);
             state.additional_info.push(action.payload.additional_info);
         },
+        resetEntityDetection: (state) => {
+            state.person_count = [];
+            state.cell_phone = [];
+            state.laptop = [];
+            state.timestamp = [];
+            state.additional_info = [];
+        }
     },
 });
 
-export const { setEntityDetection } = entityDetectionSlice.actions;
+export const { setEntityDetection, resetEntityDetection } = entityDetectionSlice.actions;
 
 export default entityDetectionSlice.reducer;

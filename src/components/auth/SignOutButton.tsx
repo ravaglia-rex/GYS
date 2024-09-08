@@ -5,6 +5,11 @@ import { auth } from '../../firebase/firebase';
 import { useDispatch } from 'react-redux';
 import { resetExamDetails } from '../../state_data/examDetailsSlice';
 import { resetPayments } from '../../state_data/studentPaymentsSlice';
+import { resetEntityDetection } from '../../state_data/entityDetectionSlice';
+import { resetPoseDetection } from '../../state_data/poseDetectionSlice';
+import { resetFaceLandmarks } from '../../state_data/faceLandmarksSlice';
+import { resetInternetSpeed } from '../../state_data/internetSpeedSlice';
+import { resetTabSwitching } from '../../state_data/tabSwitchingSlice';
 import * as Sentry from '@sentry/react';
 
 const SignOutButton: React.FC = () => {
@@ -15,6 +20,11 @@ const SignOutButton: React.FC = () => {
     signOut(auth).then(() => {
       dispatch(resetExamDetails());
       dispatch(resetPayments());
+      dispatch(resetEntityDetection());
+      dispatch(resetPoseDetection());
+      dispatch(resetFaceLandmarks());
+      dispatch(resetInternetSpeed());
+      dispatch(resetTabSwitching());
 
       localStorage.removeItem('currentFormId');
       localStorage.removeItem('isProctored');
