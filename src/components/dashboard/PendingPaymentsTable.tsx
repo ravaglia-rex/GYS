@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -16,17 +16,44 @@ import {
 } from "../ui/table";
 import { ExamDetailsPayload } from "../../state_data/examDetailsSlice";
 import { ChevronDown } from 'lucide-react';
-
 import PayeeDetailsForm from "./PayeeDetailsForm";
+import { useToast } from "../ui/use-toast";
 
-const PendingPaymentsTable: React.FC<{ payments: ExamDetailsPayload[] }> = ({ payments }) => {
+type PendingPaymentsTableProps = {
+  payments: ExamDetailsPayload[];
+  highlightPaymentsEntry?: string;
+};
+
+const PendingPaymentsTable: React.FC<PendingPaymentsTableProps> = ({ payments, highlightPaymentsEntry }) => {
   const [openRows, setOpenRows] = useState<{ [key: string]: boolean }>({});
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [highlightedRow, setHighlightedRow] = useState<string | null>(highlightPaymentsEntry || null);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (highlightPaymentsEntry) {
+      // Display a toast notification
+      toast({
+        variant: 'default',
+        title: 'Payment Required',
+        description: 'Please complete the payment for the selected exam.',
+        duration: 2000,
+      });
+
+      setHighlightedRow(highlightPaymentsEntry);
+
+      // Remove highlight after 3 seconds
+      const timer = setTimeout(() => setHighlightedRow(null), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightPaymentsEntry, toast]);
 
   const handleToggle = (formId: string) => {
     setOpenRows((prevOpenRows) => ({
       ...prevOpenRows,
       [formId]: !prevOpenRows[formId],
     }));
+    setIsDialogOpen(!isDialogOpen);
   };
 
   return (
@@ -50,7 +77,7 @@ const PendingPaymentsTable: React.FC<{ payments: ExamDetailsPayload[] }> = ({ pa
               <TableBody>
                 {payments.map((exam) => (
                   <React.Fragment key={exam.formId}>
-                    <TableRow>
+                    <TableRow className={`transition duration-300 ease-in-out ${highlightedRow === exam.formId ? 'highlight-row' : ''}`}>
                       <TableCell>{exam.cardTitle}</TableCell>
                       <TableCell>{exam.duration} hours</TableCell>
                       <TableCell>{exam.currency} {exam.cost.toFixed(2)}</TableCell>
@@ -90,6 +117,6 @@ const PendingPaymentsTable: React.FC<{ payments: ExamDetailsPayload[] }> = ({ pa
       </Card>
     </div>
   );
-}
+};
 
 export default PendingPaymentsTable;

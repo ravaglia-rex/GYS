@@ -28,6 +28,11 @@ interface RenderRazorpayProps {
   form_id: string;
   title: string;
   uid: string;
+  email: string;
+  address_line_1: string;
+  city: string;
+  state: string;
+  zipcode: string;
 }
 
 const RenderRazorpay: React.FC<RenderRazorpayProps> = ({
@@ -38,6 +43,11 @@ const RenderRazorpay: React.FC<RenderRazorpayProps> = ({
   form_id,
   title,
   uid,
+  email,
+  address_line_1,
+  city,
+  state,
+  zipcode,
 }) => {
   const paymentId = useRef<string | null>(null);
   const paymentMethod = useRef<string | null>(null);
@@ -116,6 +126,11 @@ const RenderRazorpay: React.FC<RenderRazorpayProps> = ({
     notes: {
       uid: uid,
       form_id: form_id,
+      email: email,
+      address_line_1: address_line_1,
+      city: city,
+      state: state,
+      zipcode: zipcode,
     },
     theme: {
       color: '#000000',

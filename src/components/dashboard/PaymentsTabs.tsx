@@ -20,7 +20,12 @@ import { auth } from "../../firebase/firebase";
 import * as Sentry from '@sentry/react';
 import segment from '../../segment/segment';
 
-const PaymentsTabs: React.FC<{ uid: string }> = ({ uid }) => {
+type PaymentsTabsProps = {
+  uid: string;
+  highlightPaymentsEntry?: string;
+};
+
+const PaymentsTabs: React.FC<PaymentsTabsProps> = ({ uid, highlightPaymentsEntry }) => {
   const dispatch = useDispatch();
   const payments = useSelector((state: RootState) => state.studentPayments.payments);
   const paymentsLoaded = useSelector((state: RootState) => state.studentPayments.paymentsLoaded);
@@ -142,7 +147,7 @@ const PaymentsTabs: React.FC<{ uid: string }> = ({ uid }) => {
         <TabsTrigger value="paymentsHistory">Payments History</TabsTrigger>
       </TabsList>
       <TabsContent value="pendingPayments">
-        <PendingPaymentsTable payments={pendingPayments} />
+        <PendingPaymentsTable payments={pendingPayments} highlightPaymentsEntry={highlightPaymentsEntry}/>
       </TabsContent>
       <TabsContent value="paymentsHistory">
         <PastPaymentsTable payments={payments} />

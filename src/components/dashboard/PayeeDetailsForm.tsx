@@ -26,6 +26,7 @@ import { useToast } from "../ui/use-toast";
 import CountriesInput from "../autocomplete/CountriesInput";
 import RenderRazorpay from "./RenderRazorpay";
 import { LoadingSpinner as Spinner } from "../ui/spinner";
+import RefundPolicyDialog from "./RefundPolicyDialog";
 
 import * as Sentry from '@sentry/react';
 
@@ -54,6 +55,7 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({formId, currency, co
     const { toast } = useToast();
     const [displayRazorpay, setDisplayRazorpay] = useState(false);
     const [submitted, setSubmitted] = useState(false);
+    const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
 
     // const [loadingPayment, setLoadingPayment] = useState<string | null>(null);
     const [orderDetails, setOrderDetails] = useState({
@@ -63,6 +65,11 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({formId, currency, co
         id: "",
         currency: "",
         uid: auth.currentUser?.uid || "",
+        email: "",
+        address_line_1: "",
+        city: "",
+        state: "",
+        zipcode: "",
     });
 
     const form = useForm({
@@ -128,6 +135,11 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({formId, currency, co
               id: data.id,
               currency: data.currency,
               uid: auth.currentUser?.uid || "",
+              email: auth.currentUser?.email || "",
+              address_line_1: payee_address_line1,
+              city: payee_city,
+              state: payee_state,
+              zipcode: payee_zipcode
             });
             setDisplayRazorpay(true);
           }
@@ -338,15 +350,34 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({formId, currency, co
                     )}
 
                     <Button 
-                        type="submit" 
+                        type="button"
+                        onClick={async () => {
+                            const isValid = await form.trigger();
+                            if(isValid) {
+                                form.handleSubmit(onSubmit)();
+                            }
+                        }}
                         className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-md"
-                        disabled={submitted||true}
+                        disabled={submitted}
                     >
                         {submitted? <Spinner /> : <p>Pay Now</p>}
                     </Button>
+                    
+                    <br />
+
+                    <p className="text-center mt-4">
+                    <button
+                        type="button"
+                        onClick={() => setIsDialogOpen(true)} // Open dialog on button click
+                        className="text-blue-500 underline bg-transparent border-none cursor-pointer"
+                    >
+                        View Refund Policy
+                    </button>
+                    </p>
+
                 </form>
             </Form>
-            <p>We're working with our vendors to provide a better payments experience. The pay option will remain disabled till then</p>
+            <RefundPolicyDialog isOpen={isDialogOpen} onClose={() => setIsDialogOpen(false)} />
             {displayRazorpay && (
                 <RenderRazorpay
                 amount={orderDetails.amount}
@@ -355,6 +386,11 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({formId, currency, co
                 title={orderDetails.title}
                 id={orderDetails.id}
                 uid={orderDetails.uid}
+                email={orderDetails.email}
+                address_line_1={orderDetails.address_line_1}
+                city={orderDetails.city}
+                state={orderDetails.state}
+                zipcode={orderDetails.zipcode}
                 keyID={process.env.REACT_APP_RAZORPAY_KEY_ID || ""}
                 />
             )}
