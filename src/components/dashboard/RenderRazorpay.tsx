@@ -23,31 +23,39 @@ const loadScript = (src: string): Promise<boolean> =>
 interface RenderRazorpayProps {
   id: string;
   keyID: string;
+  order_id: string;
   currency: string;
   amount: number;
   form_id: string;
   title: string;
+  payee_name: string;
+  payee_email: string;
   uid: string;
   email: string;
   address_line_1: string;
   city: string;
   state: string;
   zipcode: string;
+  country: string;
 }
 
 const RenderRazorpay: React.FC<RenderRazorpayProps> = ({
   id,
   keyID,
+  order_id,
   currency,
   amount,
   form_id,
   title,
+  payee_name,
+  payee_email,
   uid,
   email,
   address_line_1,
   city,
   state,
   zipcode,
+  country,
 }) => {
   const paymentId = useRef<string | null>(null);
   const paymentMethod = useRef<string | null>(null);
@@ -113,9 +121,11 @@ const RenderRazorpay: React.FC<RenderRazorpayProps> = ({
     key: keyID,
     currency: currency,
     amount: amount,
+    order_id: order_id,
+    customer_id: id,
     name: 'Argus',
     description: `Payment for exam: ${title}`,
-    order_id: id,
+    image: 'https://argus-s3-bucket.s3.us-east-1.amazonaws.com/logos/argus.png',
     handler: async (response: any) => {
       if (response.razorpay_payment_id) {
         await handlePayment('success', response);
@@ -124,13 +134,16 @@ const RenderRazorpay: React.FC<RenderRazorpayProps> = ({
       }
     },
     notes: {
-      uid: uid,
-      form_id: form_id,
       email: email,
-      address_line_1: address_line_1,
+      user_id: uid,
+      line1: address_line_1,
       city: city,
       state: state,
+      country: country,
       zipcode: zipcode,
+      form_id: form_id,
+      payee_name: payee_name,
+      payee_email: payee_email,
     },
     theme: {
       color: '#000000',
