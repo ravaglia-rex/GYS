@@ -4,9 +4,13 @@ import CommonHeader from '../../components/dashboard/CommonHeader';
 import PaymentsTabs from '../../components/dashboard/PaymentsTabs';
 import { auth } from '../../firebase/firebase';
 import * as Sentry from '@sentry/react';
+import { useLocation } from 'react-router-dom';
 
 const PaymentHistory: React.FC = () => {
   const uid = auth.currentUser?.uid || '';
+  const location = useLocation();
+  const highlightPaymentsEntry = location.state ? location.state.highlightPaymentsEntry : "";
+
   return (
     <Sentry.ErrorBoundary
       beforeCapture={(scope) => {
@@ -18,7 +22,7 @@ const PaymentHistory: React.FC = () => {
         <div className="flex-1 flex flex-col">
           <CommonHeader />
           <main className="flex-1 p-6 ml-20 bg-gray-800">
-            <PaymentsTabs uid={uid}/>
+            <PaymentsTabs uid={uid} highlightPaymentsEntry={highlightPaymentsEntry || ""}/>
           </main>
         </div>
       </div>

@@ -29,9 +29,14 @@ export const tabSwitchingSlice = createSlice({
             state.full_screen_switch_count = action.payload.count;
             state.timestamp = action.payload.timestamp;
         },
+        resetTabSwitching: (state) => {
+            state.tab_switch_count = 0;
+            state.full_screen_switch_count = 0;
+            state.timestamp = "";
+        }
     },
 });
 
-export const { setTabSwitched, setFullScreenSwitched } = tabSwitchingSlice.actions;
+export const { setTabSwitched, setFullScreenSwitched, resetTabSwitching } = tabSwitchingSlice.actions;
 
 export default tabSwitchingSlice.reducer;

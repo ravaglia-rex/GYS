@@ -82,3 +82,24 @@
 .instructions li {
   margin-bottom: 10px;
 }
+
+@keyframes blinkHighlight {
+  0% {
+    border-color: #d3d3d3; /* Light gray border */
+    background-color: rgba(211, 211, 211, 0.2); /* Light gray background */
+  }
+  50% {
+    border-color: #d3d3d3;
+    background-color: rgba(211, 211, 211, 0.5);
+  }
+  100% {
+    border-color: #d3d3d3;
+    background-color: rgba(211, 211, 211, 0.2);
+  }
+}
+
+.highlight-row {
+  animation: blinkHighlight 1.5s ease-in-out 3; /* Faster animation */
+  border: 2px solid #d3d3d3;
+  border-radius: 8px;
+}

@@ -26,10 +26,16 @@ export const internetSpeedSlice = createSlice({
         },
         incrementViolationCount: (state) => {
             state.violation_count += 1;
+        },
+        resetInternetSpeed: (state) => {
+            state.upload_speed = -1;
+            state.download_speed = -1;
+            state.violation_count = 0;
+            state.timestamp = "";
         }
     },
 });
 
-export const { setInternetSpeed, incrementViolationCount } = internetSpeedSlice.actions;
+export const { setInternetSpeed, incrementViolationCount, resetInternetSpeed } = internetSpeedSlice.actions;
 
 export default internetSpeedSlice.reducer;

@@ -32,9 +32,14 @@ export const poseDetectionSlice = createSlice({
             state.action.push(action.payload.action);
             state.timestamp.push(action.payload.timestamp);
         },
+        resetPoseDetection: (state) => {
+            state.pose = [];
+            state.action = [];
+            state.timestamp = [];
+        }
     },
 });
 
-export const { setPoseDetection } = poseDetectionSlice.actions;
+export const { setPoseDetection, resetPoseDetection } = poseDetectionSlice.actions;
 
 export default poseDetectionSlice.reducer;

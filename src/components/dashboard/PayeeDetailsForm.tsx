@@ -1,365 +1,252 @@
-import React, {useState} from "react";
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-
-import {
-    Form,
-    FormControl,
-    FormDescription,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from '../ui/form';
-
-import { Input } from '../ui/input';
-import { PhoneInput } from "../ui/phone-input";
-import { isValidPhoneNumber } from "react-phone-number-input";
+import React, { useState, useEffect } from "react";
 
 import { auth } from "../../firebase/firebase";
-import { handleCreateCustomer, handleOrderExam } from "../../functions/payment_handling/razorpay_functions";
+import {
+  handleOrderExam,
+  getRazorpayPayees,
+} from "../../functions/payment_handling/razorpay_functions";
 
-import { Button } from "../ui/button";
-import { Checkbox } from '../ui/checkbox';
-import { useToast } from "../ui/use-toast";
-import CountriesInput from "../autocomplete/CountriesInput";
 import RenderRazorpay from "./RenderRazorpay";
-import { LoadingSpinner as Spinner } from "../ui/spinner";
-
+import AddPayeeDialog from "./AddPayeeDialog";
+import RefundPolicyDialog from "./RefundPolicyDialog";
+import PayeesInput from "../autocomplete/PayeesInput";
+import { useToast } from '../ui/use-toast';
 import * as Sentry from '@sentry/react';
 
-const payeeSchema = z.object({
-    payee_name: z.string().min(2, 'Payee name is required'),
-    payee_email: z.string().email(),
-    payee_contact: z.string().refine(isValidPhoneNumber, { message: "Invalid phone number" }),
-    payee_address_line1: z.string().min(2, 'Address is required'),
-    payee_address_line2: z.string().min(2, 'Address is required'),
-    payee_city: z.string().min(2, 'City is required'),
-    payee_state: z.string().min(2, 'State is required'),
-    payee_country: z.string().length(3, 'Country code must be 3 characters long'),
-    payee_zipcode: z.string().min(6, 'Zipcode is required'),
-    payee_has_gstin: z.boolean(),
-    payee_gstin: z.string().length(15, 'GSTIN must be 15 characters long').optional().or(z.literal('')),
-});
-
 interface PayeeDetailsFormProps {
-    formId: string;
-    currency: string;
-    cost: number;
-    title: string;
+  formId: string;
+  currency: string;
+  cost: number;
+  title: string;
 }
 
-const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({formId, currency, cost, title}) => {
-    const { toast } = useToast();
-    const [displayRazorpay, setDisplayRazorpay] = useState(false);
-    const [submitted, setSubmitted] = useState(false);
+interface Payee {
+  id: string;
+  name: string;
+  email: string;
+  contact: string;
+  address_line_1: string;
+  address_line_2: string;
+  city: string;
+  state: string;
+  country: string;
+  zipcode: string;
+}
 
-    // const [loadingPayment, setLoadingPayment] = useState<string | null>(null);
-    const [orderDetails, setOrderDetails] = useState({
-        amount: -1,
-        form_id: "",
-        title: "",
-        id: "",
-        currency: "",
-        uid: auth.currentUser?.uid || "",
-    });
+const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({
+  formId,
+  currency,
+  cost,
+  title,
+}) => {
+  const [payees, setPayees] = useState<Payee[]>([]);
+  const [order_id, setOrder_id] = useState<string>("");
 
-    const form = useForm({
-        resolver: zodResolver(payeeSchema),
-        defaultValues: {
-            payee_name: '',
-            payee_email: '',
-            payee_contact: '',
-            payee_address_line1: '',
-            payee_address_line2: '',
-            payee_city: '',
-            payee_state: '',
-            payee_country: '',
-            payee_zipcode: '',
-            payee_has_gstin: false,
-            payee_gstin: '',
-        },
-    });
+  const [selectedPayee, setSelectedPayee] = useState<Payee | null>(null);
+  const [isAddPayeeOpen, setIsAddPayeeOpen] = useState<boolean>(false);
+  const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
+  const [isConfirming, setIsConfirming] = useState<boolean>(false);
+  const [isPaying, setIsPaying] = useState<boolean>(false);
+  const [canProceed, setCanProceed] = useState<boolean>(false);
 
-    const handlePayNow = async (
-        payee_name: string, 
-        payee_email: string, 
-        payee_contact: string, 
-        payee_gstin: string,
-        payee_address_line1: string,
-        payee_address_line2: string,
-        payee_city: string,
-        payee_state: string,
-        payee_zipcode: string,
-        payee_country: string
-      ) => {
-        setSubmitted(true);
-        try {
-          await handleCreateCustomer(
-            payee_name,
-            payee_email,
-            payee_contact,
-            payee_gstin
-          );
-          
-          const data = await handleOrderExam(
-            cost,
-            currency,
-            payee_name,
-            payee_contact,
-            payee_email,
-            payee_address_line1,
-            payee_address_line2,
-            payee_city,
-            payee_state,
-            payee_zipcode,
-            payee_country,
-            formId,
-            title,
-            auth.currentUser?.uid || ""
-          )
-    
-          if (data && data.id) {
-            setOrderDetails({
-              amount: data.amount,
-              form_id: formId,
-              title: title,
-              id: data.id,
-              currency: data.currency,
-              uid: auth.currentUser?.uid || "",
-            });
-            setDisplayRazorpay(true);
-          }
-        } catch (error) {
-          Sentry.withScope((scope) => {
-            scope.setTag('location', 'PendingPaymentsTable.handlePayNow');
-            Sentry.captureException(error);
-          });
-          console.error("Error creating order:", error);
-        } finally {
-          setSubmitted(false);
-        }
-      };
+  const email = auth.currentUser?.email || "";
+  const uid = auth.currentUser?.uid || "";
 
-    const onSubmit = async (data: z.infer<typeof payeeSchema>) => {
-        try {
-            await handlePayNow(
-                data.payee_name,
-                data.payee_email,
-                data.payee_contact,
-                data.payee_gstin||'',
-                data.payee_address_line1,
-                data.payee_address_line2,
-                data.payee_city,
-                data.payee_state,
-                data.payee_zipcode,
-                data.payee_country
-            )
-        } catch (error: any) {
-            Sentry.withScope((scope) => {
-                scope.setTag('location', 'PayeeDetailsForm.onSubmit');
-                Sentry.captureException(error);
-            });
-            toast({
-                variant: 'destructive',
-                title: 'Uh oh! Something went wrong.',
-                description: error?.message || 'An error occurred while processing your details. Please try again.',
-            });
-        }
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchPayees = async () => {
+      try {
+        const res = await getRazorpayPayees(uid);
+        // Change razorpay_id to id for consistency
+        res.forEach((payee:any) => {
+          payee.id = payee.razorpay_id;
+          payee.address_line_1 = payee.line1;
+          payee.address_line_2 = payee.line2;
+          delete payee.razorpay_id;
+          delete payee.line1;
+          delete payee.line2;
+        });
+        setPayees(res);
+      } catch (e) {
+        Sentry.withScope((scope) => {
+          scope.setTag('location', 'PayeeDetailsForm.fetchPayees');
+          scope.setExtra('userID', uid);
+          Sentry.captureException(e);
+        });
+        toast({
+          variant: 'destructive',
+          title: 'Uh oh!',
+          description: 'Error fetching payees',
+        });
+      }
     };
+    fetchPayees();
+  }, [uid, toast]);
 
-    return (
-        <div>
-            <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    <FormField
-                        control={form.control}
-                        name="payee_name"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Payee's Name</FormLabel>
-                                <FormControl>
-                                    <Input {...field} />
-                                </FormControl>
-                                <FormMessage>{form.formState.errors.payee_name?.message}</FormMessage>
-                            </FormItem>
-                        )}
-                    />
+  const handlePayeeSelection = (payeeId: string) => {
+    if (payeeId === "new") {
+      setIsAddPayeeOpen(true);
+    } else {
+      const selected = payees.find((payee) => payee.id === payeeId);
+      if (selected) {
+        setSelectedPayee(selected);
+        setCanProceed(false); // Reset proceed state
+      }
+    }
+  };
 
-                    <FormField
-                        control={form.control}
-                        name="payee_email"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Payee's Email</FormLabel>
-                                <FormControl>
-                                    <Input {...field} type="email" />
-                                </FormControl>
-                                <FormMessage>{form.formState.errors.payee_email?.message}</FormMessage>
-                            </FormItem>
-                        )}
-                    />
+  const handleAddPayee = (newPayee: any) => {
+    setPayees((prevPayees) => [...prevPayees, newPayee]);
+    // Before setting the new payee as selected, we need to cast it as a Payee object
+    try {
+      const newPayeeObj = {
+        id: newPayee.id,
+        name: newPayee.name,
+        email: newPayee.email,
+        contact: newPayee.contact,
+        address_line_1: newPayee.notes.line1,
+        address_line_2: newPayee.notes.line2,
+        city: newPayee.notes.city,
+        state: newPayee.notes.state,
+        country: newPayee.notes.country,
+        zipcode: newPayee.notes.zipcode,
+      };
+      setSelectedPayee(newPayeeObj);
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Uh oh!',
+        description: newPayee.message,
+      });
+      Sentry.withScope((scope) => {
+        scope.setTag('location', 'PayeeDetailsForm.handleAddPayee');
+        scope.setExtra('newPayee', newPayee);
+        Sentry.captureException(error);
+      });
+    }
+  };
 
-                    <FormField
-                        control={form.control}
-                        name="payee_contact"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Payee's Phone</FormLabel>
-                                <FormControl>
-                                    <PhoneInput 
-                                        {...field}
-                                    />
-                                </FormControl>
-                                <FormMessage>{form.formState.errors.payee_contact?.message}</FormMessage>
-                            </FormItem>
-                        )}
-                    />
+  const handleConfirm = async () => {
+    if (!selectedPayee) return;
 
-                    <FormField
-                        control={form.control}
-                        name="payee_address_line1"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Address Line 1</FormLabel>
-                                <FormControl>
-                                    <Input {...field} />
-                                </FormControl>
-                                <FormMessage>{form.formState.errors.payee_address_line1?.message}</FormMessage>
-                            </FormItem>
-                        )}
-                    />
+    setIsConfirming(true); // Show spinner
+    try {
+      const order = await handleOrderExam(
+        cost*1.18,
+        currency,
+        selectedPayee.name,
+        selectedPayee.contact,
+        selectedPayee.email,
+        selectedPayee.address_line_1,
+        selectedPayee.address_line_2,
+        selectedPayee.city,
+        selectedPayee.state,
+        selectedPayee.zipcode,
+        selectedPayee.country,
+        formId,
+        title,
+        uid
+      );
+      setOrder_id(order.id);
+      setCanProceed(true); // Allow proceeding to payment
+    } catch (error) {
+      console.error("Error confirming order:", error);
+    } finally {
+      setIsConfirming(false); // Hide spinner
+    }
+  };
 
-                    <FormField
-                        control={form.control}
-                        name="payee_address_line2"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Address Line 2</FormLabel>
-                                <FormControl>
-                                    <Input {...field} />
-                                </FormControl>
-                                <FormMessage>{form.formState.errors.payee_address_line2?.message}</FormMessage>
-                            </FormItem>
-                        )}
-                    />
-                    <div style={{display: 'flex', justifyContent: 'space-between'}}>
-                        <FormField
-                            control={form.control}
-                            name="payee_city"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>City</FormLabel>
-                                    <FormControl>
-                                        <Input {...field} />
-                                    </FormControl>
-                                    <FormMessage>{form.formState.errors.payee_city?.message}</FormMessage>
-                                </FormItem>
-                            )}
-                        />
+  return (
+    <div>
+      <RefundPolicyDialog
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+      />
+      <AddPayeeDialog
+        isOpen={isAddPayeeOpen}
+        onClose={() => setIsAddPayeeOpen(false)}
+        onAddPayee={handleAddPayee}
+      />
+      <div>
+        <label htmlFor="payee-select" className="mb-2 block font-medium">
+          Select Payer:
+        </label>
+        <PayeesInput
+          payees={payees}
+          onSelect={(payeeId) => handlePayeeSelection(payeeId)}
+          loading={!payees}
+        />
+      </div>
 
-                        <FormField
-                            control={form.control}
-                            name="payee_state"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>State</FormLabel>
-                                    <FormControl>
-                                        <Input {...field} />
-                                    </FormControl>
-                                    <FormMessage>{form.formState.errors.payee_state?.message}</FormMessage>
-                                </FormItem>
-                            )}
-                        />
+      {selectedPayee && (
+        <div className="mt-4">
+          <h3 className="text-lg font-medium">Payer Details:</h3>
+          <ul className="mb-4 space-y-1">
+            <li><strong>Name:</strong> {selectedPayee.name}</li>
+            <li><strong>Email:</strong> {selectedPayee.email}</li>
+            <li><strong>Contact:</strong> {selectedPayee.contact}</li>
+            <li><strong>Address:</strong> {selectedPayee.address_line_1}, {selectedPayee.address_line_2}</li>
+            <li>
+              <strong>Location:</strong> {selectedPayee.city}, {selectedPayee.state}, {selectedPayee.country} - {selectedPayee.zipcode}
+            </li>
+            <li>
+              <strong>Cost:</strong> {cost} {currency}
+            </li>
+            <li>
+              <strong>GST:</strong> 18%
+            </li>
+            <li>
+              <strong>Total:</strong> {cost + cost * 0.18} {currency}
+            </li>
+          </ul>
 
-                        <FormField
-                            control={form.control}
-                            name="payee_country"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel style={{display: 'block'}}>Payee's Country</FormLabel>
-                                    <FormControl style={{display: 'block'}}>
-                                        <CountriesInput onSelect={(country) => field.onChange(country)}/>
-                                    </FormControl>
-                                </FormItem>
-                            )}
-                        />
-
-                        <FormField
-                            control={form.control}
-                            name="payee_zipcode"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Zipcode</FormLabel>
-                                    <FormControl>
-                                        <Input {...field} />
-                                    </FormControl>
-                                    <FormMessage>{form.formState.errors.payee_zipcode?.message}</FormMessage>
-                                </FormItem>
-                            )}
-                        />
-                    </div>
-
-                    <FormField
-                        control={form.control}
-                        name="payee_has_gstin"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormControl>
-                                    <div className="flex items-center space-x-2">
-                                        <Checkbox
-                                            checked={field.value}
-                                            onCheckedChange={field.onChange}
-                                        />
-                                        <FormLabel>Have a GSTIN?</FormLabel>
-                                    </div>
-                                </FormControl>
-                                <FormMessage>{form.formState.errors.payee_has_gstin?.message}</FormMessage>
-                            </FormItem>
-                        )}
-                    />
-
-                    {form.watch('payee_has_gstin') && (
-                        <FormField
-                            control={form.control}
-                            name="payee_gstin"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Payee's GSTIN</FormLabel>
-                                    <FormControl>
-                                        <Input {...field} />
-                                    </FormControl>
-                                    <FormDescription className='text-xs'>GSTIN must be 15 characters long</FormDescription>
-                                    <FormMessage>{form.formState.errors.payee_gstin?.message}</FormMessage>
-                                </FormItem>
-                            )}
-                        />
-                    )}
-
-                    <Button 
-                        type="submit" 
-                        className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-md"
-                        disabled={submitted||true}
-                    >
-                        {submitted? <Spinner /> : <p>Pay Now</p>}
-                    </Button>
-                </form>
-            </Form>
-            <p>We're working with our vendors to provide a better payments experience. The pay option will remain disabled till then</p>
-            {displayRazorpay && (
-                <RenderRazorpay
-                amount={orderDetails.amount}
-                currency={orderDetails.currency}
-                form_id={orderDetails.form_id}
-                title={orderDetails.title}
-                id={orderDetails.id}
-                uid={orderDetails.uid}
-                keyID={process.env.REACT_APP_RAZORPAY_KEY_ID || ""}
-                />
-            )}
+          {!canProceed ? (
+            // Add a link to the refund policy dialog
+            <div className="mb-4">
+              <p className="mb-2">By proceeding, you agree to our refund policy:</p>
+              <p className="text-blue-600 underline cursor-pointer" onClick={() => setIsDialogOpen(true)}>Refund Policy</p>
+            
+            <button
+              onClick={handleConfirm}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              disabled={isConfirming}
+            >
+              {isConfirming ? "Confirming..." : "Confirm"}
+            </button>
+          </div>
+          ) : !isPaying ? (
+            <button
+              onClick={() => setIsPaying(true)}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+            >
+              Proceed to Pay
+            </button>
+          ) : (
+            <RenderRazorpay
+              amount={cost * 100 * 1.18}
+              currency={currency}
+              order_id={order_id}
+              form_id={formId}
+              title={title}
+              payee_name={selectedPayee.name}
+              payee_email={selectedPayee.email}
+              payee_contact={selectedPayee.contact}
+              id={selectedPayee.id}
+              uid={uid}
+              email={email}
+              address_line_1={selectedPayee.address_line_1}
+              city={selectedPayee.city}
+              state={selectedPayee.state}
+              zipcode={selectedPayee.zipcode}
+              country={selectedPayee.country}
+              keyID={process.env.REACT_APP_RAZORPAY_KEY_ID || ""}
+            />
+          )}
         </div>
-    );
+      )}
+    </div>
+  );
 };
 
 export default PayeeDetailsForm;
