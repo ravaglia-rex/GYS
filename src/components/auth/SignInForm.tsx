@@ -8,6 +8,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
+import authTokenHandler from '../../functions/auth_token/auth_token_handler';
+
 import {
     Form,
     FormControl,
@@ -51,6 +53,8 @@ const SignInForm: React.FC<SignInFormProps> = ({ email }) => {
         try {
             const userCredential = await signInWithEmailAndPassword(auth, email, data.password);
             setUserCredential(userCredential);
+            const authToken = await userCredential.user.getIdToken();
+            authTokenHandler.setAuthToken(authToken);
             if (!userCredential.user.emailVerified) {
                 setLoadResendVerification(true);
                 const {formLinks, completed} = await getExamIds(userCredential.user.uid);

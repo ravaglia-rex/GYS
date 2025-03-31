@@ -65,7 +65,7 @@ const PayeesInput: React.FC<PayeeInputProps> = ({
           className={cn("w-[200px] justify-between", className)}
         >
           <span className="truncate max-w-full">
-            {selectedValue || "Select payee..."}
+            {selectedValue || "Select payer..."}
           </span>
           <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -103,10 +103,10 @@ const PayeesInput: React.FC<PayeeInputProps> = ({
                   </CommandItem>
                 ))}
                 <CommandItem
-                  onSelect={() => handleSelect("new", "Add Payee")}
+                  onSelect={() => handleSelect("new", "Add Payer")}
                   className="cursor-pointer text-sm bg-gray-50 hover:bg-gray-100"
                 >
-                  Add Payee
+                  Add Payer
                 </CommandItem>
               </>
             )}

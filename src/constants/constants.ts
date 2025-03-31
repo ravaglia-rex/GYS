@@ -61,3 +61,4 @@ export const FETCH_PHASE_1_RESULT_TOTALS='/getPhase1Results';
 export const CREATE_RAZORPAY_CUSTOMER='/createCustomer';
 export const CREATE_RAZORPAY_ORDER='/createOrder';
 export const GET_RAZORPAY_PAYEES='/getPayeeDetails';
+export const MARK_PAYMENT_PENDING='/markPaymentPending';

@@ -6,6 +6,7 @@ import { useDispatch } from 'react-redux';
 import { clearReduxState } from '../../functions/redux_state/redux_state_functions';
 
 import * as Sentry from '@sentry/react';
+import authTokenHandler from '../../functions/auth_token/auth_token_handler';
 
 const SignOutButton: React.FC = () => {
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ const SignOutButton: React.FC = () => {
       clearReduxState(dispatch);
       localStorage.removeItem('currentFormId');
       localStorage.removeItem('isProctored');
+      authTokenHandler.clearToken();
 
       navigate('/');
     }).catch((error) => {

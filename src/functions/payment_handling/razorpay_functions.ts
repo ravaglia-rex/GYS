@@ -1,5 +1,5 @@
 import axios from "axios";
-import { RAZORPAY_APIS, CREATE_RAZORPAY_CUSTOMER, CREATE_RAZORPAY_ORDER, GET_RAZORPAY_PAYEES, STUDENTS_APIS } from "../../constants/constants";
+import { RAZORPAY_APIS, CREATE_RAZORPAY_CUSTOMER, CREATE_RAZORPAY_ORDER, GET_RAZORPAY_PAYEES, STUDENTS_APIS, MARK_PAYMENT_PENDING } from "../../constants/constants";
 
 export const handleCreateCustomer = async (
   uid: string,
@@ -81,6 +81,45 @@ export const handleOrderExam = async (
         state: payee_state,
         zipcode: payee_zipcode
       }
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const markPaymentPending = async (
+  address_line_1: string,
+  amount: number,
+  city: string,
+  currency: string,
+  email: string,
+  exam_title: string,
+  form_id: string,
+  payee_email: string,
+  payee_name: string,
+  state: string,
+  student_name: string,
+  transaction_id: string,
+  uid: string,
+  zipcode: string
+) => {
+  try {
+    const response = await axios.post(`${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${STUDENTS_APIS}${MARK_PAYMENT_PENDING}`, {
+      address_line_1: address_line_1,
+      amount: amount,
+      city: city,
+      currency: currency,
+      email: email,
+      exam_title: exam_title,
+      form_id: form_id,
+      payee_email: payee_email,
+      payee_name: payee_name,
+      state: state,
+      student_name: student_name,
+      transaction_id: transaction_id,
+      uid: uid,
+      zipcode: zipcode
     });
     return response.data;
   } catch (error) {

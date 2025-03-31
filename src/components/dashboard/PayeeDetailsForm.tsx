@@ -10,6 +10,8 @@ import RenderRazorpay from "./RenderRazorpay";
 import AddPayeeDialog from "./AddPayeeDialog";
 import RefundPolicyDialog from "./RefundPolicyDialog";
 import PayeesInput from "../autocomplete/PayeesInput";
+import { useToast } from '../ui/use-toast';
+import * as Sentry from '@sentry/react';
 
 interface PayeeDetailsFormProps {
   formId: string;
@@ -50,6 +52,8 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({
   const email = auth.currentUser?.email || "";
   const uid = auth.currentUser?.uid || "";
 
+  const { toast } = useToast();
+
   useEffect(() => {
     const fetchPayees = async () => {
       try {
@@ -64,12 +68,21 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({
           delete payee.line2;
         });
         setPayees(res);
-      } catch (error) {
-        console.error("Error fetching payees:", error);
+      } catch (e) {
+        Sentry.withScope((scope) => {
+          scope.setTag('location', 'PayeeDetailsForm.fetchPayees');
+          scope.setExtra('userID', uid);
+          Sentry.captureException(e);
+        });
+        toast({
+          variant: 'destructive',
+          title: 'Uh oh!',
+          description: 'Error fetching payees',
+        });
       }
     };
     fetchPayees();
-  }, [uid]);
+  }, [uid, toast]);
 
   const handlePayeeSelection = (payeeId: string) => {
     if (payeeId === "new") {
@@ -83,9 +96,35 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({
     }
   };
 
-  const handleAddPayee = (newPayee: Payee) => {
+  const handleAddPayee = (newPayee: any) => {
     setPayees((prevPayees) => [...prevPayees, newPayee]);
-    setSelectedPayee(newPayee);
+    // Before setting the new payee as selected, we need to cast it as a Payee object
+    try {
+      const newPayeeObj = {
+        id: newPayee.id,
+        name: newPayee.name,
+        email: newPayee.email,
+        contact: newPayee.contact,
+        address_line_1: newPayee.notes.line1,
+        address_line_2: newPayee.notes.line2,
+        city: newPayee.notes.city,
+        state: newPayee.notes.state,
+        country: newPayee.notes.country,
+        zipcode: newPayee.notes.zipcode,
+      };
+      setSelectedPayee(newPayeeObj);
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Uh oh!',
+        description: newPayee.message,
+      });
+      Sentry.withScope((scope) => {
+        scope.setTag('location', 'PayeeDetailsForm.handleAddPayee');
+        scope.setExtra('newPayee', newPayee);
+        Sentry.captureException(error);
+      });
+    }
   };
 
   const handleConfirm = async () => {
@@ -94,7 +133,7 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({
     setIsConfirming(true); // Show spinner
     try {
       const order = await handleOrderExam(
-        cost,
+        cost*1.18,
         currency,
         selectedPayee.name,
         selectedPayee.contact,
@@ -110,8 +149,6 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({
         uid
       );
       setOrder_id(order.id);
-      console.log(selectedPayee.address_line_1);
-      console.log(selectedPayee.id);
       setCanProceed(true); // Allow proceeding to payment
     } catch (error) {
       console.error("Error confirming order:", error);
@@ -133,7 +170,7 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({
       />
       <div>
         <label htmlFor="payee-select" className="mb-2 block font-medium">
-          Select Payee:
+          Select Payer:
         </label>
         <PayeesInput
           payees={payees}
@@ -144,7 +181,7 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({
 
       {selectedPayee && (
         <div className="mt-4">
-          <h3 className="text-lg font-medium">Payee Details:</h3>
+          <h3 className="text-lg font-medium">Payer Details:</h3>
           <ul className="mb-4 space-y-1">
             <li><strong>Name:</strong> {selectedPayee.name}</li>
             <li><strong>Email:</strong> {selectedPayee.email}</li>
@@ -153,9 +190,23 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({
             <li>
               <strong>Location:</strong> {selectedPayee.city}, {selectedPayee.state}, {selectedPayee.country} - {selectedPayee.zipcode}
             </li>
+            <li>
+              <strong>Cost:</strong> {cost} {currency}
+            </li>
+            <li>
+              <strong>GST:</strong> 18%
+            </li>
+            <li>
+              <strong>Total:</strong> {cost + cost * 0.18} {currency}
+            </li>
           </ul>
 
           {!canProceed ? (
+            // Add a link to the refund policy dialog
+            <div className="mb-4">
+              <p className="mb-2">By proceeding, you agree to our refund policy:</p>
+              <p className="text-blue-600 underline cursor-pointer" onClick={() => setIsDialogOpen(true)}>Refund Policy</p>
+            
             <button
               onClick={handleConfirm}
               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -163,6 +214,7 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({
             >
               {isConfirming ? "Confirming..." : "Confirm"}
             </button>
+          </div>
           ) : !isPaying ? (
             <button
               onClick={() => setIsPaying(true)}
@@ -172,13 +224,14 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({
             </button>
           ) : (
             <RenderRazorpay
-              amount={cost * 100}
+              amount={cost * 100 * 1.18}
               currency={currency}
               order_id={order_id}
               form_id={formId}
               title={title}
               payee_name={selectedPayee.name}
               payee_email={selectedPayee.email}
+              payee_contact={selectedPayee.contact}
               id={selectedPayee.id}
               uid={uid}
               email={email}

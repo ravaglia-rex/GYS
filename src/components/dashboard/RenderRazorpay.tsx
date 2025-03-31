@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { useToast } from '../ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { resetPayments } from '../../state_data/studentPaymentsSlice';
+
 import { useDispatch } from 'react-redux';
 import * as Sentry from '@sentry/react';
 
@@ -10,11 +11,9 @@ const loadScript = (src: string): Promise<boolean> =>
     const script = document.createElement('script');
     script.src = src;
     script.onload = () => {
-      console.log('razorpay loaded successfully');
       resolve(true);
     };
     script.onerror = () => {
-      console.log('error in loading razorpay');
       resolve(false);
     };
     document.body.appendChild(script);
@@ -30,6 +29,7 @@ interface RenderRazorpayProps {
   title: string;
   payee_name: string;
   payee_email: string;
+  payee_contact: string;
   uid: string;
   email: string;
   address_line_1: string;
@@ -49,6 +49,7 @@ const RenderRazorpay: React.FC<RenderRazorpayProps> = ({
   title,
   payee_name,
   payee_email,
+  payee_contact,
   uid,
   email,
   address_line_1,
@@ -58,7 +59,6 @@ const RenderRazorpay: React.FC<RenderRazorpayProps> = ({
   country,
 }) => {
   const paymentId = useRef<string | null>(null);
-  const paymentMethod = useRef<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -67,7 +67,6 @@ const RenderRazorpay: React.FC<RenderRazorpayProps> = ({
     const res = await loadScript('https://checkout.razorpay.com/v1/checkout.js');
 
     if (!res) {
-      console.log('Razorpay SDK failed to load. Are you online?');
       Sentry.withScope((scope) => {
         scope.setTag('location', 'RenderRazorpay.displayRazorpay');
         Sentry.captureException(new Error('Razorpay SDK failed to load'));
@@ -77,12 +76,9 @@ const RenderRazorpay: React.FC<RenderRazorpayProps> = ({
 
     const rzp1 = new (window as any).Razorpay(options);
 
-    rzp1.on('payment.submit', (response: any) => {
-      paymentMethod.current = response.method;
-    });
-
     rzp1.on('payment.failed', (response: any) => {
       paymentId.current = response.error.metadata.payment_id;
+
       Sentry.withScope((scope) => {
         scope.setTag('location', 'RenderRazorpay.payment.failed');
         Sentry.captureException(new Error('Payment failed'));
@@ -103,8 +99,8 @@ const RenderRazorpay: React.FC<RenderRazorpayProps> = ({
     } else {
       toast({
         variant: 'destructive',
-        title: 'Payment Failed',
-        description: 'Your payment failed',
+        title: 'Oops! Payment Failed',
+        description: 'We couldn\'t process that payment. If the amount has been deducted, it will be refunded within 7 working days.',
         duration: 9000,
       });
     }
@@ -133,10 +129,16 @@ const RenderRazorpay: React.FC<RenderRazorpayProps> = ({
         await handlePayment('failed', response);
       }
     },
+    prefill: {
+      name: payee_name,
+      email: payee_email,
+      contact: payee_contact,
+    },
     notes: {
+      invoice_number: order_id.replace('order_', 'argus'),
       email: email,
       user_id: uid,
-      line1: address_line_1,
+      address_line_1: address_line_1,
       city: city,
       state: state,
       country: country,
@@ -144,6 +146,19 @@ const RenderRazorpay: React.FC<RenderRazorpayProps> = ({
       form_id: form_id,
       payee_name: payee_name,
       payee_email: payee_email,
+    },
+    modal: {
+      ondismiss: () => {
+        handlePayment('failed',  { 
+          error: { 
+            payment_id: paymentId.current 
+          }
+        });
+        Sentry.withScope((scope) => {
+          scope.setTag('location', 'RenderRazorpay.modal.ondismiss');
+          Sentry.captureException(new Error('Payment modal dismissed'));
+        });
+      },
     },
     theme: {
       color: '#000000',

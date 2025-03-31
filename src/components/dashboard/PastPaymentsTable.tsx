@@ -10,6 +10,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -64,6 +65,9 @@ const PastPaymentsTable: React.FC<{ payments: Payment[] }> = ({ payments }) => {
                 );
               })}
             </TableBody>
+            <TableFooter>
+              If the status is "failed", please retry payment after an hour. If the issue persists, please contact support at <a href="mailto:hello@argus.ai">email</a>.
+            </TableFooter>
           </Table>
         ) : (
           <div className="flex justify-center items-center h-48">
