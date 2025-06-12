@@ -10,14 +10,14 @@ import {
     FormItem,
     FormLabel,
     FormMessage,
-    FormDescription,
+    // FormDescription,
 } from '../ui/form';
 
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { useToast } from '../ui/use-toast';
 import { useStepper } from "../ui/stepper";
-import { Checkbox } from '../ui/checkbox';
+// import { Checkbox } from '../ui/checkbox';
 import { checkExamIDExists } from '../../db/phase1UIDCollection';
 import { getUserData } from '../../db/phase1ResponsesCollection';
 import { LoadingSpinner as Spinner } from '../ui/spinner';
@@ -176,7 +176,7 @@ const PersonalInformationForm: React.FC<PersonalInformationProps> = ({ setFirstN
                             </FormItem>
                         )}
                     />
-                    <FormField
+                    {/* <FormField
                         control={form.control}
                         name="hasExamId"
                         render={({ field }) => (
@@ -210,7 +210,7 @@ const PersonalInformationForm: React.FC<PersonalInformationProps> = ({ setFirstN
                                 </FormItem>
                             )}
                         />
-                    )}
+                    )} */}
                     <Button type="submit" className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-md flex justify-center items-center">
                         {isLoading ? <Spinner /> : 'Continue'}
                     </Button>

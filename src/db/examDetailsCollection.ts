@@ -14,7 +14,7 @@ export const getExamDetails = async (formLinks: string[]) => {
           headers: {
             'Authorization': `Bearer ${authToken}`
           }
-        }
+        };
         const response = await axios.request(config);
         return response.data;
       } catch (error) {

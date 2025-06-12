@@ -21,9 +21,30 @@ const ExamCardsGroup: React.FC<{ uid: string }> = ({ uid }) => {
   const [loading, setLoading] = useState(!examDetailsLoaded);
   const [error, setError] = useState<string | null>(null);
 
-  const checkEligibility = (eligibility_at: string) => {
+  const checkEligibility = (eligibility_at: string | number) => {
+    if (typeof eligibility_at === 'string') {
+      if(eligibility_at.trim() === '') {
+        return true;
+      }
+      try {
+        const eligibilityDate = new Date(eligibility_at);
+        const currentDate = new Date();
+        return currentDate >= eligibilityDate;
+      } catch(e) {
+        eligibility_at = Number(eligibility_at);
+      }
+    }
     const eligibilityDate = new Date(eligibility_at);
     const currentDate = new Date();
+    console.log(`Checking eligibility: currentDate=${currentDate}, eligibilityDate=${eligibilityDate}`);
+    if (isNaN(eligibilityDate.getTime())) {
+      console.error(`Invalid eligibility date: ${eligibility_at}`);
+      return false;
+    }
+    if (isNaN(currentDate.getTime())) {
+      console.error(`Invalid current date: ${currentDate}`);
+      return false;
+    }
     return currentDate >= eligibilityDate;
   };
 

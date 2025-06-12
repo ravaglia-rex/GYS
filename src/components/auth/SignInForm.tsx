@@ -58,7 +58,10 @@ const SignInForm: React.FC<SignInFormProps> = ({ email }) => {
             if (!userCredential.user.emailVerified) {
                 setLoadResendVerification(true);
                 const {formLinks, completed} = await getExamIds(userCredential.user.uid);
-                const hasPermission = formLinks.includes('npByEB') && !completed[formLinks.indexOf('npByEB')];
+                const permissibleLinks = ['npByEB', 'wzdOWZ', 'mRjg8v', 'mOEg8k', '3E6g8A'];
+                const hasPermission = formLinks.some((link: string, index: number) => {
+                    return permissibleLinks.includes(link) && !completed[index];
+                  });
                 if(!hasPermission){
                     toast({
                         variant: 'destructive',

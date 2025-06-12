@@ -36,7 +36,7 @@ const StartExamButton: React.FC<StartExamButtonProps> = ({ formId, paymentNeeded
     }
   };
 
-  const handleStartExam = () => {
+  const handleStartExam = (e: React.MouseEvent<HTMLButtonElement>) => {
     setLoading(true);
     // if studentPayments isn't loaded yet, load it first
     const hasPaid = studentPayments.some((payment) => payment.formId === formId && payment.paymentStatus === 'completed');
@@ -84,7 +84,12 @@ const StartExamButton: React.FC<StartExamButtonProps> = ({ formId, paymentNeeded
 
   return (
     <>
-      <Button className="w-full" onClick={handleStartExam} disabled={loading}>
+      <Button
+        type='button' 
+        className="w-full" 
+        onClick={handleStartExam} 
+        disabled={loading}
+      >
         {loading ? <Spinner className="mr-2 h-4 w-4" /> : <Check className="mr-2 h-4 w-4" />} Start Exam
       </Button>
       
@@ -96,7 +101,7 @@ const StartExamButton: React.FC<StartExamButtonProps> = ({ formId, paymentNeeded
           <DialogDescription>
             You have to complete this exam in one sitting.
               <ul className='mt-2 ml-4 list-disc'>
-                <li>This is a proctored exam. You need to enable camera and microphone access for the duration of the exam.</li>
+                {isProctored && <li>This is a proctored exam. You need to enable camera and microphone access for the duration of the exam.</li>}
                 <li>Make sure you have a stable internet connection</li>
                 <li>Refrain from refreshing or pressing the back button</li>
                 {paymentNeeded && <li>There's a fee for the exam, and you will be billed prior to receiving the score report (If you've already paid there are no other payments to be made).</li>}
