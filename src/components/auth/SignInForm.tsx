@@ -96,7 +96,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ email }) => {
     };
 
     return (
-        <div className="bg-white bg-opacity-75 backdrop-filter backdrop-blur-lg p-8 rounded-lg shadow-md w-full max-w-md">
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-gray-900/60 to-gray-900/40 backdrop-blur-xl p-8 shadow-2xl">
             <h2 className="text-2xl font-semibold text-center mb-6">Sign in to Argus</h2>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(signIn)} className="space-y-6">
@@ -105,16 +105,16 @@ const SignInForm: React.FC<SignInFormProps> = ({ email }) => {
                         name="password"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Password</FormLabel>
+                                <FormLabel className="text-sm text-gray-300">Password</FormLabel>
                                 <FormControl>
-                                    <Input type="password" placeholder="••••••••" {...field} />
+                                    <Input className="bg-gray-900/60 border-white/10 focus-visible:ring-gray-600 placeholder:text-gray-500" type="password" placeholder="••••••••" {...field} />
                                 </FormControl>
-                                <FormDescription className="text-xs">Minimum of 6 characters</FormDescription>
+                                <FormDescription className="text-xs text-gray-500">Minimum of 6 characters</FormDescription>
                                 <FormMessage>{form.formState.errors.password?.message}</FormMessage>
                             </FormItem>
                         )}
                     />
-                    <Button type="submit" disabled={isSubmitted} className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-md">
+                    <Button type="submit" disabled={isSubmitted} className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md">
                         {isSubmitted ? <Spinner /> : 'Sign In'}
                     </Button>
                 </form>
@@ -122,7 +122,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ email }) => {
             
             <div className='text-center mt-4'>
                 {loadResendVerification && <ResendVerificationButton userCredential={userCred}/>}
-                <Link to='/reset-password' className='text-sm text-blue-600 hover:underline'>
+                <Link to='/reset-password' className='text-sm text-emerald-400 hover:text-emerald-300 hover:underline'>
                     Forgot password?
                 </Link>
             </div>

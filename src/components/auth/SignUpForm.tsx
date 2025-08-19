@@ -43,7 +43,7 @@ const SignUpForm: React.FC<SignUpProps> = ({ email, setEmailExists }) => {
     ];
 
     return (
-        <div className="bg-white bg-opacity-75 backdrop-filter backdrop-blur-lg p-8 rounded-lg shadow-md w-full max-w-md">
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-gray-900/60 to-gray-900/40 backdrop-blur-xl p-6 sm:p-8 shadow-2xl">
             <Stepper variant="circle-alt" initialStep={0} steps={steps}>
                 {steps
                     .filter(step => !step.condition || step.condition())

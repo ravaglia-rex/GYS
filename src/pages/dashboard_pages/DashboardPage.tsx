@@ -14,12 +14,14 @@ const Dashboard: React.FC = () => {
         scope.setTag('location', 'Dashboard');
       }}
     >
-      <div className="flex bg-gray-800 text-white m-0 p-0 min-h-screen">
+      <div className="flex bg-gray-950 text-gray-100 m-0 p-0 min-h-screen">
         <Navbar />
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col pl-20">
           <CommonHeader />
-          <main className="flex-1 p-6 ml-20 bg-gray-800">
-            <ExamCardsGroup uid={uid} />
+          <main className="flex-1 p-6 bg-gradient-to-b from-gray-950 to-gray-900/80">
+            <div className="max-w-7xl mx-auto">
+              <ExamCardsGroup uid={uid} />
+            </div>
           </main>
         </div>
       </div>

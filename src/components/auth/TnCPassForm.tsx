@@ -166,6 +166,7 @@ const TnCPassForm: React.FC<TnCPassProps> = ({ first_name, last_name, school, gr
 
     return (
         <div>
+            <br/>
             <h2 className="text-2xl font-semibold text-center mb-6">And One Last Thing ....</h2>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">

@@ -147,6 +147,7 @@ const PersonalInformationForm: React.FC<PersonalInformationProps> = ({ setFirstN
 
     return (
         <div>
+            <br/>
             <h2 className="text-2xl font-semibold text-center mb-6">Who Am I? - The Eternal Question</h2>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">

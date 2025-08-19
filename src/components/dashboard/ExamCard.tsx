@@ -193,19 +193,19 @@ const ExamCard: React.FC<ExamCardProps> = ({
   };
 
   return (
-    <div className="relative w-[380px] exam-card">
-      <div ref={cardRef} className="relative rounded-lg overflow-hidden">
+    <div className="relative w-full exam-card">
+      <div ref={cardRef} className="relative rounded-2xl overflow-hidden">
         {renderOverlay()}
-        <Card className={cn("relative rounded-lg", !isEligible ? 'pointer-events-none' : '', className)} {...props}>
+        <Card className={cn("relative rounded-2xl border-white/10 bg-gray-900/60 backdrop-blur-xl", !isEligible ? 'pointer-events-none' : '', className)} {...props}>
           {hasCompleted === false && (
-            <div className="bg-gray-900 text-white p-2 text-sm rounded-t-lg cursor-pointer hover:bg-gray-700 hover:text-yellow-100 flex items-center justify-center" onClick={scrollToFooter}>
+            <div className="bg-emerald-700/20 text-emerald-300 p-2 text-sm rounded-t-2xl cursor-pointer hover:bg-emerald-700/30 flex items-center justify-center" onClick={scrollToFooter}>
               Please scroll down to the bottom to start the exam
             </div>
           )}
           <CardHeader>
-            <CardTitle>{cardTitle}</CardTitle>
-            <CardDescription>{cardDescription}</CardDescription>
-            <div className="flex items-center mt-2 text-sm text-muted-foreground">
+            <CardTitle className="text-white">{cardTitle}</CardTitle>
+            <CardDescription className="text-gray-400">{cardDescription}</CardDescription>
+            <div className="flex items-center mt-2 text-sm text-gray-400">
               <Clock className="mr-2 h-4 w-4" />
               <span>{duration} hour{duration > 1 ? "s" : ""}</span>
             </div>
@@ -221,9 +221,9 @@ const ExamCard: React.FC<ExamCardProps> = ({
                 }
                 return (
                   <div key={index} className="mb-4">
-                    <p className="text-lg font-medium">{detail.section}</p>
-                    <p className="text-sm">Questions: {detail.questions}</p>
-                    <p className="text-sm text-muted-foreground">{detail.description}</p>
+                    <p className="text-lg font-medium text-white">{detail.section}</p>
+                    <p className="text-sm text-gray-300">Questions: {detail.questions}</p>
+                    <p className="text-sm text-gray-400">{detail.description}</p>
                   </div>
                 );
               })}
@@ -231,11 +231,11 @@ const ExamCard: React.FC<ExamCardProps> = ({
             <div className="pt-4 space-y-4">
               {additionalInstructions.map((instruction, index) => (
                 <React.Fragment key={index}>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-gray-400">
                     {instruction}
                   </p>
                   {index < additionalInstructions.length - 1 && (
-                    <hr className="border-t border-gray-300" />
+                    <hr className="border-t border-white/10" />
                   )}
                 </React.Fragment>
               ))}

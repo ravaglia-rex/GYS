@@ -7,22 +7,22 @@ const Navbar: React.FC = () => {
     const location = useLocation();
 
     const isActive = (path: string) => {
-        return location.pathname === path ? 'text-white' : 'text-muted-foreground';
+        const active = location.pathname === path;
+        return active ? 'text-emerald-400 bg-emerald-500/10' : 'text-gray-400';
     };
 
     return (
         <TooltipProvider>
-            <aside className="fixed inset-y-0 left-0 z-30 hidden w-16 flex-col bg-gray-900 text-white sm:flex z-50">
+            <aside className="fixed inset-y-0 left-0 z-30 hidden w-20 flex-col bg-gray-900/80 text-white sm:flex z-50 backdrop-blur-xl border-r border-white/10">
                 <div className="flex flex-col items-center py-4">
-                    <img src='/argus_A_logo.png' alt="Argus Logo" className="h-12 w-12" />
+                    <img src='/argus_A_logo.png' alt="Argus Logo" className="h-10 w-10" />
                 </div>
-                <nav className="flex flex-col items-center gap-6 px-3 sm:py-6">
+                <nav className="flex flex-col items-center gap-4 px-3 sm:py-6">
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Link
                                 to="/dashboard"
-                                className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors hover:text-white ${isActive('/dashboard')} exams-dashboard
-                                `}
+                                className={`flex h-10 w-10 items-center justify-center rounded-xl transition-colors hover:text-white hover:bg-white/5 ${isActive('/dashboard')} exams-dashboard`}
                             >
                                 <Home className="h-6 w-6" />
                                 <span className="sr-only">Dashboard</span>
@@ -34,8 +34,7 @@ const Navbar: React.FC = () => {
                         <TooltipTrigger asChild>
                             <Link
                                 to="/payments"
-                                className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors hover:text-white ${isActive('/payments')} payments-dashboard
-                                `}
+                                className={`flex h-10 w-10 items-center justify-center rounded-xl transition-colors hover:text-white hover:bg-white/5 ${isActive('/payments')} payments-dashboard`}
                             >
                                 <DollarSign className="h-6 w-6" />
                                 <span className="sr-only">Payments</span>

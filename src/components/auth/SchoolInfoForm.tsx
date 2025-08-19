@@ -144,6 +144,7 @@ const SchoolInfoForm: React.FC<SchoolInfoFormProps> = ({ email, setSchool, setGr
         {showDialog && isQualified === true && (
           <CongratulationsDialog isOpen={showDialog} onClose={() => setShowDialog(false)} />
         )}
+        <br/>
         <h2 className="text-2xl font-semibold text-center mb-6">School 🏫</h2>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">

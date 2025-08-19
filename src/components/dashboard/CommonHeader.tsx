@@ -20,10 +20,10 @@ const CommonHeader: React.FC = () => {
 
     return (
         <div>
-            <header className="flex items-center justify-between p-4 bg-gray-900 shadow-md z-30 top-0 sticky">
-                <h1 className="text-xl font-bold ml-20">Exam Dashboard</h1>
-                <div className="flex items-center space-x-4 ml-auto">
-                    <Button onClick={handlleClickStart}>Need Help?</Button>
+            <header className="flex items-center justify-between p-4 bg-gray-900/80 backdrop-blur-xl border-b border-white/10 z-30 top-0 sticky">
+                <h1 className="text-xl font-semibold">Exam Dashboard</h1>
+                <div className="flex items-center space-x-3 ml-auto">
+                    <Button className="bg-emerald-600 hover:bg-emerald-500" onClick={handlleClickStart}>Need Help?</Button>
                     <UserDropdown />
                 </div>
             </header>

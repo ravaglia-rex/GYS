@@ -83,8 +83,11 @@ const EmailEntryForm: React.FC<EmailEntryFormProps> = ({ setEmail, setEmailExist
     };
 
     return (
-        <div className="bg-white bg-opacity-75 backdrop-filter backdrop-blur-lg p-8 rounded-lg shadow-md w-full max-w-md">
-            <h2 className="text-2xl font-semibold text-center mb-6">Welcome to Argus</h2>
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-gray-900/60 to-gray-900/40 backdrop-blur-xl p-8 shadow-2xl">
+            <div className="mb-6">
+                <h2 className="text-2xl font-semibold">Welcome to Argus</h2>
+                <p className="mt-1 text-sm text-gray-400">Sign in to continue to your exam portal</p>
+            </div>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                     <FormField
@@ -92,16 +95,16 @@ const EmailEntryForm: React.FC<EmailEntryFormProps> = ({ setEmail, setEmailExist
                         name="email"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Email Address</FormLabel>
+                                <FormLabel className="text-sm text-gray-300">Email address</FormLabel>
                                 <FormControl>
-                                    <Input type="email" placeholder="hello@argus.ai" {...field} />
+                                    <Input className="bg-gray-900/60 border-white/10 focus-visible:ring-gray-600 placeholder:text-gray-500" type="email" placeholder="you@school.edu" {...field} />
                                 </FormControl>
-                                <FormDescription className="text-xs">We'll never share your email.</FormDescription>
+                                <FormDescription className="text-xs text-gray-500">We'll never share your email.</FormDescription>
                                 <FormMessage>{form.formState.errors.email?.message}</FormMessage>
                             </FormItem>
                         )}
                     />
-                    <Button type="submit" disabled={isSubmitted} className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-md flex justify-center items-center">
+                    <Button type="submit" disabled={isSubmitted} className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md flex justify-center items-center">
                         {isSubmitted ? <Spinner /> : 'Continue'}
                     </Button>
                 </form>
