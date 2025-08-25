@@ -43,7 +43,6 @@ const ProfileSettings: React.FC = () => {
   const [formData, setFormData] = useState({
     displayName: currentUser?.displayName || '',
     email: currentUser?.email || '',
-    phoneNumber: '',
     school: '',
     grade: '',
     dateOfBirth: '',
@@ -51,6 +50,7 @@ const ProfileSettings: React.FC = () => {
     parentName: '',
     parentEmail: '',
     parentPhone: '',
+    phoneNumber: '',
     isPublic: true,
     emailNotifications: true,
     examReminders: true
@@ -70,14 +70,14 @@ const ProfileSettings: React.FC = () => {
           setFormData(prev => ({
             ...prev,
             displayName: (userData.first_name || '') + ' ' + (userData.last_name || ''),
-            phoneNumber: userData.parent_phone || '',
             school: userData.school_id || '', // Using school_id for now
             grade: userData.grade ? `${userData.grade}${getGradeSuffix(userData.grade)} Grade` : '',
             dateOfBirth: userData.dateOfBirth || '',
-            about: userData.about || '',
+            about: userData.about_me || '',
             parentName: userData.parent_name || '',
             parentEmail: userData.parent_email || '',
             parentPhone: userData.parent_phone || '',
+            phoneNumber: userData.phone_number || '',
           }));
 
           // Fetch school name if we have a school_id
@@ -156,15 +156,17 @@ const ProfileSettings: React.FC = () => {
         }
       }
 
-      // Save parent information changes
+      // Save parent information and about me changes
       if (currentUser?.uid) {
-        const parentUpdates: any = {};
-        if (formData.parentName) parentUpdates.parent_name = formData.parentName;
-        if (formData.parentEmail) parentUpdates.parent_email = formData.parentEmail;
-        if (formData.parentPhone) parentUpdates.parent_phone = formData.parentPhone;
+        const updates: any = {};
+        if (formData.parentName) updates.parent_name = formData.parentName;
+        if (formData.parentEmail) updates.parent_email = formData.parentEmail;
+        if (formData.parentPhone) updates.parent_phone = formData.parentPhone;
+        if (formData.phoneNumber) updates.phone_number = formData.phoneNumber;
+        if (formData.about !== undefined) updates.about_me = formData.about;
         
-        if (Object.keys(parentUpdates).length > 0) {
-          await updateStudent(currentUser.uid, parentUpdates);
+        if (Object.keys(updates).length > 0) {
+          await updateStudent(currentUser.uid, updates);
         }
       }
       
@@ -281,7 +283,7 @@ const ProfileSettings: React.FC = () => {
                 <Box>
                   <TextField
                     fullWidth
-                    label="Phone Number"
+                    label="WhatsApp Number"
                     value={formData.phoneNumber}
                     onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
                     disabled={!isEditing}
@@ -510,8 +512,7 @@ const ProfileSettings: React.FC = () => {
                   />
                 </Box>
 
-                {/* About Me field - commented out for later use
-                <Box>
+                <Box sx={{ gridColumn: { xs: '1', sm: '1 / -1' } }}>
                   <TextField
                     fullWidth
                     label="About Me"
@@ -520,6 +521,7 @@ const ProfileSettings: React.FC = () => {
                     disabled={!isEditing}
                     multiline
                     rows={4}
+                    placeholder="Tell us about yourself..."
                     sx={{
                       '& .MuiOutlinedInput-root': {
                         color: 'white',
@@ -537,7 +539,6 @@ const ProfileSettings: React.FC = () => {
                     }}
                   />
                 </Box>
-                */}
               </Box>
 
 

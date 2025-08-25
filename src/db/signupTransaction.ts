@@ -11,6 +11,7 @@ type Student = {
     parent_name: string;
     parent_email: string;
     parent_phone: string;
+    phone_number?: string;
 };
 
 export const runSignUpTransaction = async (student: Student, email: string, examID: string, isQualified: boolean | null, eligibleDateTime: string) => {

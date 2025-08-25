@@ -19,12 +19,14 @@ import {
     CardContent,
 } from '../ui/card';
 import { Input } from '../ui/input';
+import { Textarea } from '../ui/textarea';
 import * as Sentry from '@sentry/react';
 import { Button } from '../ui/button';
 
 const AboutMeSchema = z.object({
     first_name: z.string().min(1, 'First name is required'),
     last_name: z.string().min(1, 'Last name is required'),
+    about_me: z.string().optional(),
 });
 
 interface AboutMeFormProps {
