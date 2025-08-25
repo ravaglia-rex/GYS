@@ -20,7 +20,7 @@ export const getStudent = async (userId: string) => {
     }
 }
 
-export const updateStudent = async (user_id: string, student: {first_name?: string, last_name?: string, parent_name?: string, parent_email?: string, parent_phone?: string}) => {
+export const updateStudent = async (user_id: string, student: {first_name?: string, last_name?: string, parent_name?: string, parent_email?: string, parent_phone?: string, grade?: number}) => {
     try {
         const authToken = await authTokenHandler.getAuthToken();
         const config = {

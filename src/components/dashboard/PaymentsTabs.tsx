@@ -90,7 +90,6 @@ const PaymentsTabs: React.FC<PaymentsTabsProps> = ({ uid, highlightPaymentsEntry
               formId: formLinks[index],
               additionalInstructions: detail.additional_instructions,
               examDetails: detail.exam_details,
-              duration: detail.duration,
               cardTitle: detail.card_title,
               cardDescription: detail.card_description,
               paymentNeeded: detail.payment_needed,

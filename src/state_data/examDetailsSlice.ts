@@ -4,7 +4,6 @@ export interface ExamDetailsPayload {
     formId: string;
     additionalInstructions: string[];
     examDetails: string[];
-    duration: number;
     cardTitle: string;
     paymentNeeded: boolean;
     cardDescription: string;
@@ -15,6 +14,7 @@ export interface ExamDetailsPayload {
     eligibility_at: string;
     result?: boolean | null;
     type_questions?: Record<string, number>;
+    duration?: number;
 }
 
 interface ExamDetailsGroup {

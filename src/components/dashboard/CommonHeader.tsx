@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Box, Typography, Button as MuiButton } from '@mui/material';
 import { Button } from '../ui/button';
 import UserDropdown from './UserDropdown';
 import TourJoyride from '../tour/TourJoyride';
@@ -19,16 +20,46 @@ const CommonHeader: React.FC = () => {
     };
 
     return (
-        <div>
-            <header className="flex items-center justify-between p-4 bg-gray-900/80 backdrop-blur-xl border-b border-white/10 z-30 top-0 sticky">
-                <h1 className="text-xl font-semibold">Exam Dashboard</h1>
-                <div className="flex items-center space-x-3 ml-auto">
-                    <Button className="bg-emerald-600 hover:bg-emerald-500" onClick={handlleClickStart}>Need Help?</Button>
+        <Box>
+            <Box component="header" sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'space-between',
+                p: { xs: 2, sm: 3, md: 4 },
+                borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                zIndex: 30,
+                position: 'sticky',
+                top: 0
+            }}>
+                <Box>
+                    <Typography variant="h4" sx={{ 
+                        color: 'white', 
+                        fontWeight: 600,
+                        mb: 0.5
+                    }}>
+                        Exam Dashboard
+                    </Typography>
+                    <Typography variant="body2" sx={{ 
+                        color: 'rgba(255, 255, 255, 0.7)',
+                        fontSize: '0.875rem'
+                    }}>
+                        Welcome back, {auth.currentUser?.displayName || auth.currentUser?.email || 'Student'}! 👋
+                    </Typography>
+                </Box>
+                <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 2,
+                    ml: 'auto'
+                }}>
+                    <Button className="bg-emerald-600 hover:bg-emerald-500" onClick={handlleClickStart}>
+                        Need Help?
+                    </Button>
                     <UserDropdown />
-                </div>
-            </header>
+                </Box>
+            </Box>
             <TourJoyride run={run} setRun={setRun} />
-        </div>
+        </Box>
     )
 }
 

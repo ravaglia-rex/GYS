@@ -104,7 +104,6 @@ const ExamCardsGroup: React.FC<{ uid: string }> = ({ uid }) => {
               formId: formLinks[index],
               additionalInstructions: detail.additional_instructions,
               examDetails: detail.exam_details,
-              duration: detail.duration,
               cardTitle: detail.card_title,
               cardDescription: detail.card_description,
               paymentNeeded: detail.payment_needed,
@@ -115,6 +114,7 @@ const ExamCardsGroup: React.FC<{ uid: string }> = ({ uid }) => {
               eligibility_at: eligibility_at[index],
               result: result[index],
               type_questions: detail.type_questions ? JSON.parse(detail.type_questions) : {},
+              duration: detail.duration,
             }));
 
           dispatch(setExamDetails({ examDetails: validDetails, examDetailsLoaded: true }));

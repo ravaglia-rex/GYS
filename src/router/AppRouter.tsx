@@ -31,8 +31,10 @@ const LocalStorageErrorPage = React.lazy(() => import('../pages/error_pages/Loca
 DASHBOARD PAGES: These are the pages that are used for the dashboard
 */
 const DashboardPage = React.lazy(() => import('../pages/dashboard_pages/DashboardPage'));
-const PaymentHistory = React.lazy(() => import('../pages/dashboard_pages/PaymentHistory'));
 const ProfilePage = React.lazy(() => import('../pages/dashboard_pages/ProfilePage'));
+const SettingsPage = React.lazy(() => import('../pages/dashboard_pages/SettingsPage'));
+const ExamsPage = React.lazy(() => import('../pages/dashboard_pages/ExamsPage'));
+const BillingPage = React.lazy(() => import('../pages/dashboard_pages/BillingPage'));
 
 /*
 CAMERA AND MICROPHONE ACCESS PAGE: This page is used to check if the camera and microphone are working
@@ -97,17 +99,58 @@ const AppRouter: React.FC = () => {
           }
           errorElement={<NotFoundPage />}
         />
+        
+        {/* Exam Routes */}
         <Route
-          path="/payments"
+          path="/exams"
           element={
             <Protected>
               <Suspense fallback={<BigSpinner/>}>
-                <PaymentHistory />
+                <ExamsPage />
               </Suspense>
             </Protected>
           }
           errorElement={<NotFoundPage />}
         />
+        
+        <Route
+          path="/exams/available"
+          element={
+            <Protected>
+              <Suspense fallback={<BigSpinner/>}>
+                <ExamsPage />
+              </Suspense>
+            </Protected>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        
+        <Route
+          path="/exams/completed"
+          element={
+            <Protected>
+              <Suspense fallback={<BigSpinner/>}>
+                <ExamsPage />
+              </Suspense>
+            </Protected>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        
+        {/* Payment Routes */}
+        <Route
+          path="/payments"
+          element={
+            <Protected>
+              <Suspense fallback={<BigSpinner/>}>
+                <BillingPage />
+              </Suspense>
+            </Protected>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        
+        {/* Profile and Settings Routes */}
         <Route
           path="/profile"
           element={
@@ -119,6 +162,19 @@ const AppRouter: React.FC = () => {
           }
           errorElement={<NotFoundPage />}
         />
+        
+        <Route
+          path="/settings"
+          element={
+            <Protected>
+              <Suspense fallback={<BigSpinner/>}>
+                <SettingsPage />
+              </Suspense>
+            </Protected>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        
         {/* ------------------------------ TESTING PAGE ROUTES ------------------------------ */}
         <Route 
           path="/camera-microphone-access" 

@@ -1,30 +1,76 @@
-import React from 'react';
-import Navbar from '../../components/dashboard/NavigationBar';
-import CommonHeader from '../../components/dashboard/CommonHeader';
-import UserProfile from '../../components/profile/UserProfile';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import DashboardLayout from '../../layouts/DashboardLayout';
+import { Box, Typography, Button, Avatar } from '@mui/material';
+import { User, Settings } from 'lucide-react';
 import { auth } from '../../firebase/firebase';
-import * as Sentry from '@sentry/react';
 
-const Dashboard: React.FC = () => {
-  const user_id = auth.currentUser?.uid || '';
+const ProfilePage: React.FC = () => {
+  const navigate = useNavigate();
+  const currentUser = auth.currentUser;
 
+  useEffect(() => {
+    // Redirect to settings page
+    navigate('/settings', { replace: true });
+  }, [navigate]);
+
+  // Fallback content while redirecting
   return (
-    <Sentry.ErrorBoundary
-      beforeCapture={(scope) => {
-        scope.setTag('location', 'Dashboard');
-      }}
-    >
-      <div className="flex bg-gray-800 text-white m-0 p-0 min-h-screen">
-        <Navbar />
-        <div className="flex-1 flex flex-col">
-          <CommonHeader />
-          <main className="flex-1 p-6 ml-20 bg-gray-800">
-            <UserProfile user_id={user_id} />
-          </main>
-        </div>
-      </div>
-    </Sentry.ErrorBoundary>
+    <DashboardLayout>
+      <Box sx={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        minHeight: '60vh',
+        textAlign: 'center'
+      }}>
+        <Avatar sx={{
+          width: 120,
+          height: 120,
+          background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)',
+          color: 'white',
+          fontSize: '3rem',
+          fontWeight: 600,
+          mb: 3
+        }}>
+          <User size={48} />
+        </Avatar>
+        
+        <Typography variant="h4" sx={{ 
+          color: 'white', 
+          fontWeight: 600, 
+          mb: 2,
+          background: 'linear-gradient(45deg, #10b981, #3b82f6)',
+          backgroundClip: 'text',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent'
+        }}>
+          Profile Management
+        </Typography>
+        
+        <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 3, maxWidth: 500 }}>
+          Your profile has been moved to our new comprehensive settings system. 
+          You'll be redirected there automatically.
+        </Typography>
+        
+        <Button
+          variant="contained"
+          startIcon={<Settings size={16} />}
+          onClick={() => navigate('/settings')}
+          sx={{
+            backgroundColor: '#8b5cf6',
+            px: 4,
+            py: 1.5,
+            fontSize: '1.1rem',
+            '&:hover': { backgroundColor: '#7c3aed' }
+          }}
+        >
+          Go to Settings
+        </Button>
+      </Box>
+    </DashboardLayout>
   );
 };
 
-export default Dashboard;
+export default ProfilePage;

@@ -30,6 +30,15 @@ interface SchoolInfoFormProps {
 }
 
 const SchoolInfoForm: React.FC<SchoolInfoFormProps> = ({ grade, school_name }) => {
+    // Helper function to get grade suffix (1st, 2nd, 3rd, etc.)
+    const getGradeSuffix = (grade: number): string => {
+        if (grade >= 11 && grade <= 13) return 'th';
+        if (grade % 10 === 1) return 'st';
+        if (grade % 10 === 2) return 'nd';
+        if (grade % 10 === 3) return 'rd';
+        return 'th';
+    };
+
     const form = useForm<SchoolInfoFormProps>({
         resolver: zodResolver(SchoolInfoSchema),
         defaultValues: {
@@ -74,7 +83,7 @@ const SchoolInfoForm: React.FC<SchoolInfoFormProps> = ({ grade, school_name }) =
                                         <FormControl>
                                             <Input
                                                 {...field}
-                                                value={grade.toString()}
+                                                value={grade === 0 ? 'Not Set' : `${grade}${getGradeSuffix(grade)} Grade`}
                                                 disabled
                                                 className="bg-gray-700 text-white"
                                             />

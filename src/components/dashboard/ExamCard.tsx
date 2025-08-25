@@ -17,7 +17,6 @@ import {
 } from "../ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '../ui/tooltip';
 import { 
-  Clock,
   Check, 
   // Lock, 
   AlertTriangle 
@@ -31,8 +30,8 @@ type ExamCardProps = React.ComponentProps<typeof Card> & {
   userID: string;
   formID: string;
   cardTitle: string;
+  duration?: number;
   cardDescription: string;
-  duration: number;
   paymentNeeded: boolean;
   examDetails: string[];
   additionalInstructions: string[];
@@ -56,8 +55,8 @@ const ExamCard: React.FC<ExamCardProps> = ({
   formID,
   className,
   cardTitle,
-  cardDescription,
   duration,
+  cardDescription,
   examDetails,
   additionalInstructions,
   paymentNeeded,
@@ -178,7 +177,7 @@ const ExamCard: React.FC<ExamCardProps> = ({
                 className="absolute flex items-center justify-center z-20 cursor-not-allowed bg-gray-800 bg-opacity-75 text-white"
                 style={{ width: cardDimensions.width, height: cardDimensions.height }}
               >
-                <Clock className="h-8 w-8" />
+                <Check className="h-8 w-8" />
               </div>
             </TooltipTrigger>
             <TooltipContent side="top" className="z-30">
@@ -205,10 +204,6 @@ const ExamCard: React.FC<ExamCardProps> = ({
           <CardHeader>
             <CardTitle className="text-white">{cardTitle}</CardTitle>
             <CardDescription className="text-gray-400">{cardDescription}</CardDescription>
-            <div className="flex items-center mt-2 text-sm text-gray-400">
-              <Clock className="mr-2 h-4 w-4" />
-              <span>{duration} hour{duration > 1 ? "s" : ""}</span>
-            </div>
           </CardHeader>
           <CardContent className="grid gap-4">
             <div className="space-y-4">
@@ -242,7 +237,7 @@ const ExamCard: React.FC<ExamCardProps> = ({
             </div>
           </CardContent>
           <CardFooter ref={footerRef}>
-            {hasCleared === undefined && <StartExamButton formId={formID} paymentNeeded={paymentNeeded} isProctored={isProctored} examDuration={duration*60}/>}
+            {hasCleared === undefined && <StartExamButton formId={formID} paymentNeeded={paymentNeeded} isProctored={isProctored} />}
           </CardFooter>
         </Card>
       </div>

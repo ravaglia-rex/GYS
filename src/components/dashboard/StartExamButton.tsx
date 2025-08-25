@@ -18,10 +18,9 @@ type StartExamButtonProps = {
   formId: string;
   paymentNeeded: boolean;
   isProctored: boolean;
-  examDuration: number;
 };
 
-const StartExamButton: React.FC<StartExamButtonProps> = ({ formId, paymentNeeded, isProctored, examDuration }) => {
+const StartExamButton: React.FC<StartExamButtonProps> = ({ formId, paymentNeeded, isProctored }) => {
   const [loading, setLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false); // State for payment confirmation checkbox
@@ -53,7 +52,6 @@ const StartExamButton: React.FC<StartExamButtonProps> = ({ formId, paymentNeeded
   const startExam = () => {
     localStorage.setItem('currentFormId', formId);
     localStorage.setItem('isProctored', JSON.stringify(isProctored));
-    localStorage.setItem('examDuration', examDuration.toString());
 
     if (isProctored) {
       enterFullScreen();
