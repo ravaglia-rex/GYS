@@ -57,6 +57,15 @@ const EmailEntryForm: React.FC<EmailEntryFormProps> = ({ setEmail, setEmailExist
     const onSubmit = async (data: z.infer<typeof EmailSchema>) => {
         setIsSubmitted(true);
         try {
+            // Special case for school admin - bypass all auth
+            if (data.email.toLowerCase() === 'srishti2k1@gmail.com') {
+                setEmail(data.email.toLowerCase());
+                setEmailExists(true);
+                // Navigate directly to school admin dashboard
+                navigate('/school-admin/dashboard');
+                return;
+            }
+
             const emailExists = await checkEmailExists(data.email.toLowerCase());
             setEmail(data.email.toLowerCase());
             setEmailExists(emailExists);

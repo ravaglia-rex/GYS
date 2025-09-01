@@ -16,6 +16,7 @@ import frameCaptureReducer from './frameCaptureSlice';
 import audioCaptureReducer from './audioCaptureSlice';
 import examDetailsReducer from './examDetailsSlice';
 import studentPaymentsReducer from './studentPaymentsSlice';
+import authReducer from './authSlice';
 
 import {
     persistReducer,
@@ -35,6 +36,7 @@ const rootReducer = combineReducers({
     audioCapture: audioCaptureReducer,
     examDetails: examDetailsReducer,
     studentPayments: studentPaymentsReducer,
+    auth: authReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

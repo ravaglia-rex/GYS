@@ -1,12 +1,26 @@
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, Typography, Box, Button, Chip, Table, TableBody, TableCell, TableFooter, TableRow } from '@mui/material';
+import { Card, CardContent, Typography, Box, Button, Chip, Table, TableBody, TableCell, TableFooter, TableRow, IconButton } from '@mui/material';
 import { 
   CheckCircle, 
   XCircle, 
   Play,
-  Eye
+  Eye,
+  RefreshCw,
+  Clock
 } from 'lucide-react';
 import { fetchResultTotals, fetchPhase1ResultTotals } from '../../db/examResponsesCollection';
+import { getCurrentExamResult } from '../../db/studentExamMappings';
+
+// Add CSS for spinning animation
+const spinningStyle = {
+  '@keyframes spin': {
+    '0%': { transform: 'rotate(0deg)' },
+    '100%': { transform: 'rotate(360deg)' }
+  },
+  '&.animate-spin': {
+    animation: 'spin 1s linear infinite'
+  }
+};
 
 interface Exam {
   id: string;
@@ -19,6 +33,7 @@ interface Exam {
   score?: number;
   status: 'available' | 'completed' | 'upcoming' | 'in-progress';
   type_questions?: { [key: string]: number };
+  result?: boolean | null; // Add result field for qualification status
 }
 
 interface ResultTotals {
@@ -42,6 +57,50 @@ const EnhancedExamCard: React.FC<{
 }) => {
   const [resultTotals, setResultTotals] = useState<ResultTotals | null>(null);
   const [loadingResults, setLoadingResults] = useState(false);
+  const [currentResult, setCurrentResult] = useState<boolean | null>(null);
+  const [isLoadingResult, setIsLoadingResult] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  // Function to fetch current result from Firebase
+  const fetchCurrentResult = async () => {
+    if (!exam.completed || !uid) return;
+    
+    console.log(`[EnhancedExamCard] fetchCurrentResult: Starting fetch for uid=${uid}, examId=${exam.id}`);
+    
+    setIsLoadingResult(true);
+    try {
+      const resultData = await getCurrentExamResult(uid, exam.id);
+      console.log('[EnhancedExamCard] fetchCurrentResult: Firebase result fetched', resultData);
+      
+      setCurrentResult(resultData.result);
+      setLastUpdated(new Date());
+    } catch (error) {
+      console.error('[EnhancedExamCard] fetchCurrentResult: Error fetching current result:', error);
+      // Keep the existing result if fetch fails
+    } finally {
+      setIsLoadingResult(false);
+    }
+  };
+
+  // Initialize with cached result if available
+  useEffect(() => {
+    console.log('[EnhancedExamCard] useEffect: exam.completed, exam.result, currentResult', exam.completed, exam.result, currentResult);
+    
+    if (exam.completed && currentResult === null && exam.result !== null && exam.result !== undefined) {
+      console.log('[EnhancedExamCard] Using cached exam.result value as initial result:', exam.result);
+      setCurrentResult(exam.result);
+      setLastUpdated(new Date());
+    }
+  }, [exam.completed, exam.result, currentResult]);
+
+  // Effect to fetch current result on mount/refresh
+  useEffect(() => {
+    console.log('[EnhancedExamCard] useEffect: Fetching current result on mount/refresh. exam.completed:', exam.completed);
+    
+    if (exam.completed && uid) {
+      fetchCurrentResult();
+    }
+  }, [exam.completed, uid, exam.id]);
 
   // Fetch detailed results when exam is completed
   useEffect(() => {
@@ -76,7 +135,19 @@ const EnhancedExamCard: React.FC<{
       // You can adjust this threshold as needed
       return resultTotals.overallTotal >= 70; // Example: 70 points to qualify
     }
-    return false; // No qualified field in ResultTotals, so default to false
+    
+    // Use currentResult from Firebase if available, otherwise fall back to exam.result
+    const result = currentResult !== null ? currentResult : exam.result;
+    return result === true;
+  };
+
+  // Check if evaluation is in progress
+  const isEvaluationInProgress = () => {
+    if (!exam.completed) return false;
+    
+    // Use currentResult from Firebase if available, otherwise fall back to exam.result
+    const result = currentResult !== null ? currentResult : exam.result;
+    return result === null || result === undefined;
   };
 
   const getStatusColor = (status: string) => {
@@ -178,7 +249,7 @@ const EnhancedExamCard: React.FC<{
         </Box>
 
         {/* Exam Duration - Displayed above the results box */}
-        {exam.completed && resultTotals && exam.duration && (
+        {exam.completed && resultTotals && exam.duration && !isEvaluationInProgress() && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
             <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', fontWeight: 600 }}>
               Duration: {exam.duration} hours
@@ -186,7 +257,7 @@ const EnhancedExamCard: React.FC<{
           </Box>
         )}
 
-        {exam.completed && resultTotals && (
+        {exam.completed && resultTotals && !isEvaluationInProgress() && (
           <Box sx={{ 
             background: 'rgba(16, 185, 129, 0.1)', 
             border: '1px solid rgba(16, 185, 129, 0.3)',
@@ -239,7 +310,7 @@ const EnhancedExamCard: React.FC<{
         )}
 
         {/* Qualification Status - Displayed at bottom center of card */}
-        {exam.completed && resultTotals && (
+        {exam.completed && (
           <Box sx={{ 
             display: 'flex', 
             justifyContent: 'center', 
@@ -249,17 +320,51 @@ const EnhancedExamCard: React.FC<{
             p: 2,
             borderTop: '1px solid rgba(255, 255, 255, 0.1)'
           }}>
-            {isQualified() ? (
-              <CheckCircle size={20} color="#10b981" />
+            {isEvaluationInProgress() ? (
+              // Evaluation in Progress state
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Clock size={20} color="#3b82f6" />
+                  <Typography variant="body1" sx={{ 
+                    color: '#3b82f6', 
+                    fontWeight: 600 
+                  }}>
+                    Evaluation in Progress
+                  </Typography>
+                </Box>
+                
+                {/* Last checked timestamp */}
+                {lastUpdated && (
+                  <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)', fontStyle: 'italic' }}>
+                    Last checked: {lastUpdated.toLocaleTimeString()}
+                  </Typography>
+                )}
+              </Box>
             ) : (
-              <XCircle size={20} color="#ef4444" />
+              // Result available state
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  {isQualified() ? (
+                    <CheckCircle size={20} color="#10b981" />
+                  ) : (
+                    <XCircle size={20} color="#ef4444" />
+                  )}
+                  <Typography variant="body1" sx={{ 
+                    color: isQualified() ? '#10b981' : '#ef4444', 
+                    fontWeight: 600 
+                  }}>
+                    {isQualified() ? 'Qualified' : 'Not Qualified'}
+                  </Typography>
+                </Box>
+                
+                {/* Last updated timestamp */}
+                {lastUpdated && (
+                  <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)', fontStyle: 'italic' }}>
+                    Last updated: {lastUpdated.toLocaleTimeString()}
+                  </Typography>
+                )}
+              </Box>
             )}
-            <Typography variant="body1" sx={{ 
-              color: isQualified() ? '#10b981' : '#ef4444', 
-              fontWeight: 600 
-            }}>
-              {isQualified() ? 'Qualified' : 'Not Qualified'}
-            </Typography>
           </Box>
         )}
         

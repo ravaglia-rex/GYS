@@ -11,103 +11,8 @@ import {
 } from 'lucide-react';
 import { auth } from '../../firebase/firebase';
 
-// Spider Chart Component
-const SpiderChart: React.FC<{ data: { subject: string; score: number; maxScore: number }[] }> = ({ data }) => {
-  const canvasRef = React.useRef<HTMLCanvasElement>(null);
-
-  React.useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const width = canvas.width;
-    const height = canvas.height;
-    const centerX = width / 2;
-    const centerY = height / 2;
-    const radius = Math.min(width, height) * 0.35;
-
-    // Clear canvas
-    ctx.clearRect(0, 0, width, height);
-
-    // Draw background grid
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-    ctx.lineWidth = 1;
-
-    // Draw concentric circles
-    for (let i = 1; i <= 5; i++) {
-      const currentRadius = (radius * i) / 5;
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, currentRadius, 0, 2 * Math.PI);
-      ctx.stroke();
-    }
-
-    // Draw axis lines
-    const numSubjects = data.length;
-    for (let i = 0; i < numSubjects; i++) {
-      const angle = (2 * Math.PI * i) / numSubjects - Math.PI / 2;
-      const endX = centerX + radius * Math.cos(angle);
-      const endY = centerY + radius * Math.sin(angle);
-      
-      ctx.beginPath();
-      ctx.moveTo(centerX, centerY);
-      ctx.lineTo(endX, endY);
-      ctx.stroke();
-    }
-
-    // Draw spider chart
-    ctx.strokeStyle = '#8b5cf6';
-    ctx.fillStyle = 'rgba(139, 92, 246, 0.2)';
-    ctx.lineWidth = 2;
-
-    ctx.beginPath();
-    for (let i = 0; i < numSubjects; i++) {
-      const angle = (2 * Math.PI * i) / numSubjects - Math.PI / 2;
-      const scoreRatio = data[i].score / data[i].maxScore;
-      const currentRadius = radius * scoreRatio;
-      const x = centerX + currentRadius * Math.cos(angle);
-      const y = centerY + currentRadius * Math.sin(angle);
-      
-      if (i === 0) {
-        ctx.moveTo(x, y);
-      } else {
-        ctx.lineTo(x, y);
-      }
-    }
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-
-    // Draw data points
-    ctx.fillStyle = '#8b5cf6';
-    for (let i = 0; i < numSubjects; i++) {
-      const angle = (2 * Math.PI * i) / numSubjects - Math.PI / 2;
-      const scoreRatio = data[i].score / data[i].maxScore;
-      const currentRadius = radius * scoreRatio;
-      const x = centerX + currentRadius * Math.cos(angle);
-      const y = centerY + currentRadius * Math.sin(angle);
-      
-      ctx.beginPath();
-      ctx.arc(x, y, 4, 0, 2 * Math.PI);
-      ctx.fill();
-    }
-
-    // Draw subject labels
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.font = '12px Arial';
-    ctx.textAlign = 'center';
-    
-    for (let i = 0; i < numSubjects; i++) {
-      const angle = (2 * Math.PI * i) / numSubjects - Math.PI / 2;
-      const labelRadius = radius + 20;
-      const x = centerX + labelRadius * Math.cos(angle);
-      const y = centerY + labelRadius * Math.sin(angle);
-      
-      ctx.fillText(data[i].subject, x, y);
-    }
-  }, [data]);
-
+// Simple Column Chart Component
+const ColumnChart: React.FC<{ data: { subject: string; score: number }[] }> = ({ data }) => {
   if (!data || data.length === 0) {
     return (
       <Box sx={{ textAlign: 'center', py: 4 }}>
@@ -118,35 +23,151 @@ const SpiderChart: React.FC<{ data: { subject: string; score: number; maxScore: 
     );
   }
 
+  // Find the maximum score to normalize the columns
+  const maxScore = Math.max(...data.map(item => item.score));
+  const chartMax = maxScore + 3; // Add 3 to give breathing room at the top
+  
+  console.log('[ColumnChart] Debug info:', {
+    data,
+    maxScore,
+    chartMax,
+    dataLength: data.length
+  });
+
   return (
-    <Box sx={{ textAlign: 'center' }}>
-      <canvas
-        ref={canvasRef}
-        width={300}
-        height={300}
-        style={{ maxWidth: '100%', height: 'auto' }}
-      />
-      <Box sx={{ mt: 2 }}>
-        <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 1 }}>
-          Latest Exam Performance by Subject
-        </Typography>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center' }}>
-          {data.map((item, index) => (
-            <Box
-              key={index}
-              sx={{
-                px: 1.5,
-                py: 0.5,
-                borderRadius: 1,
-                backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                border: '1px solid rgba(139, 92, 246, 0.3)',
-              }}
-            >
-              <Typography variant="caption" sx={{ color: '#8b5cf6', fontWeight: 600 }}>
-                {item.subject}: {item.score}/{item.maxScore}
+    <Box sx={{ p: 2 }}>
+      <Typography variant="h6" sx={{ color: 'white', mb: 3, textAlign: 'center' }}>
+        Latest Exam Results
+      </Typography>
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'end', 
+        gap: 3, 
+        justifyContent: 'center',
+        height: '200px',
+        position: 'relative',
+        minWidth: '400px',
+        width: '100%'
+      }}>
+        {/* Y-axis labels */}
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          justifyContent: 'space-between',
+          height: '100%',
+          mr: 2,
+          position: 'absolute',
+          left: 0,
+          top: 0
+        }}>
+          {(() => {
+            // Create even intervals from 0 to chartMax
+            const yAxisValues = [chartMax, Math.round(chartMax * 0.75), Math.round(chartMax * 0.5), Math.round(chartMax * 0.25), 0];
+            console.log('[ColumnChart] Y-axis calculation:', { maxScore, chartMax, yAxisValues });
+            return yAxisValues.map((value) => (
+              <Typography 
+                key={value} 
+                variant="caption" 
+                sx={{ 
+                  color: 'rgba(255, 255, 255, 0.5)',
+                  fontSize: '0.7rem'
+                }}
+              >
+                {value}
               </Typography>
-            </Box>
-          ))}
+            ));
+          }
+          )()}
+        </Box>
+        
+        {/* Columns */}
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'end', 
+          gap: 3, 
+          justifyContent: 'center',
+          height: '100%',
+          width: '100%',
+          pl: 4
+        }}>
+          {data.map((item, index) => {
+            // Use relative scoring - compare each score to chartMax (maxScore + 3)
+            const percentage = chartMax > 0 ? (item.score / chartMax) * 100 : 0;
+            // Color coding based on relative performance
+            const color = percentage >= 90 ? '#10b981' : percentage >= 70 ? '#f59e0b' : '#ef4444';
+            
+            console.log(`[ColumnChart] Column ${index} (${item.subject}):`, {
+              score: item.score,
+              maxScore,
+              chartMax,
+              percentage: `${percentage.toFixed(2)}%`,
+              color,
+              height: `${((percentage / 100) * 160).toFixed(1)}px`
+            });
+            
+            return (
+              <Box key={index} sx={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center',
+                gap: 1,
+                flex: 1,
+                minWidth: '60px',
+                maxWidth: '100px',
+                position: 'relative', // Add this for absolute positioning
+                height: '200px' // Match the chart height
+              }}>
+                {/* Column */}
+                <Box
+                  sx={{
+                    width: '100%',
+                    backgroundColor: color,
+                    borderRadius: '4px 4px 0 0',
+                    transition: 'height 0.3s ease',
+                    position: 'absolute',
+                    bottom: '0px', // Start from the very bottom (0 baseline)
+                    left: 0,
+                    right: 0,
+                    boxShadow: `0 4px 12px ${color}40`
+                  }}
+                  style={{
+                    height: `${(percentage / 100) * 160}px` // Convert percentage to pixels
+                  }}
+                />
+                
+                {/* Score label at the top of the bar */}
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: 'white',
+                    fontWeight: 600,
+                    position: 'absolute',
+                    bottom: `${(percentage / 100) * 160 + 20}px`, // Position above the bar with some spacing
+                    transform: 'translateX(-50%)', // Center horizontally
+                    left: '50%',
+                    zIndex: 10
+                  }}
+                >
+                  {item.score}
+                </Typography>
+                
+                {/* Subject label */}
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    color: 'rgba(255, 255, 255, 0.8)',
+                    textAlign: 'center',
+                    fontSize: '0.75rem',
+                    lineHeight: 1.2,
+                    maxWidth: '100%',
+                    wordBreak: 'break-word'
+                  }}
+                >
+                  {item.subject}
+                </Typography>
+              </Box>
+            );
+          })}
         </Box>
       </Box>
     </Box>
@@ -163,7 +184,6 @@ interface DashboardOverviewProps {
   latestExamResults?: {
     subject: string;
     score: number;
-    maxScore: number;
   }[];
 }
 
@@ -350,7 +370,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExam
             {latestExamResults.length > 0 ? (
               // Show spider chart when there are results
               <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                <SpiderChart data={latestExamResults} />
+                <ColumnChart data={latestExamResults} />
               </Box>
             ) : (
               // Show message when no exams taken

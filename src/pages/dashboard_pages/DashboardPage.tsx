@@ -21,7 +21,7 @@ const Dashboard: React.FC = () => {
   const paymentsLoaded = useSelector((state: RootState) => state.studentPayments.paymentsLoaded);
   const [previousUid, setPreviousUid] = useState<string>('');
   const [loading, setLoading] = useState(false);
-  const [latestExamResults, setLatestExamResults] = useState<{ subject: string; score: number; maxScore: number }[]>([]);
+  const [latestExamResults, setLatestExamResults] = useState<{ subject: string; score: number }[]>([]);
 
   // Load exam data for dashboard stats
   const loadExamData = async () => {
@@ -119,11 +119,10 @@ const Dashboard: React.FC = () => {
       const resultTotals = await fetchResultTotals(uid, latestExam.formId);
       
       if (resultTotals && resultTotals.typeTotals) {
-        // Convert typeTotals to spider chart data format
+        // Convert typeTotals to simple score data for bar chart
         const chartData = Object.entries(resultTotals.typeTotals).map(([subject, score]) => ({
           subject: subject.charAt(0).toUpperCase() + subject.slice(1), // Capitalize first letter
-          score: score as number,
-          maxScore: 10 // Assuming max score is 10 for each subject, adjust as needed
+          score: score as number
         }));
         setLatestExamResults(chartData);
         console.log('Dashboard: Latest exam results loaded:', chartData);

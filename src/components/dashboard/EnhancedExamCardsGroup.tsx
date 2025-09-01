@@ -37,7 +37,7 @@ const EnhancedExamCardsGroup: React.FC<EnhancedExamCardsGroupProps> = ({
   const paymentsLoaded = useSelector((state: RootState) => state.studentPayments.paymentsLoaded);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [latestExamResults, setLatestExamResults] = useState<{ subject: string; score: number; maxScore: number }[]>([]);
+  const [latestExamResults, setLatestExamResults] = useState<{ subject: string; score: number }[]>([]);
 
   // Fetch latest exam results for spider chart
   useEffect(() => {
@@ -63,11 +63,10 @@ const EnhancedExamCardsGroup: React.FC<EnhancedExamCardsGroupProps> = ({
         const resultTotals = await fetchResultTotals(uid, latestExam.formId);
         
         if (resultTotals && resultTotals.typeTotals) {
-          // Convert typeTotals to spider chart data format
+          // Convert typeTotals to simple score data for bar chart
           const chartData = Object.entries(resultTotals.typeTotals).map(([subject, score]) => ({
             subject: subject.charAt(0).toUpperCase() + subject.slice(1), // Capitalize first letter
-            score: score as number,
-            maxScore: 10 // Assuming max score is 10 for each subject, adjust as needed
+            score: score as number
           }));
           setLatestExamResults(chartData);
         } else {
@@ -151,11 +150,13 @@ const EnhancedExamCardsGroup: React.FC<EnhancedExamCardsGroupProps> = ({
       eligibilityDate: exam.eligibility_at,
       completed: isCompleted,
       score: exam.result,
+      result: exam.result, // Add result field for qualification status
       status,
       paymentNeeded: exam.paymentNeeded,
       isProctored: exam.isProctored,
       cost: exam.cost,
-      currency: exam.currency
+      currency: exam.currency,
+      type_questions: exam.type_questions // Add type_questions for detailed results
     };
 
     return transformedExam;

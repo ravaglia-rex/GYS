@@ -26,6 +26,9 @@ import { LoadingSpinner as Spinner } from '../ui/spinner';
 import { useToast } from '../ui/use-toast';
 import { getExamIds } from '../../db/studentExamMappings';
 import analytics from '../../segment/segment';
+import { useDispatch } from 'react-redux';
+import { AppDispatch } from '../../state_data/reducer';
+import { checkUserRole } from '../../state_data/authSlice';
 
 const signinSchema = z.object({
     password: z.string().min(6, 'Password must be at least 6 characters'),
@@ -38,6 +41,7 @@ interface SignInFormProps {
 const SignInForm: React.FC<SignInFormProps> = ({ email }) => {
     const navigate = useNavigate();
     const { toast } = useToast();
+    const dispatch = useDispatch<AppDispatch>();
     const form = useForm({
         resolver: zodResolver(signinSchema),
         defaultValues: {
@@ -75,12 +79,21 @@ const SignInForm: React.FC<SignInFormProps> = ({ email }) => {
                     return;
                 }
             }
+            // Check user role and redirect accordingly
+            const roleResult = await dispatch(checkUserRole(userCredential.user.email || ''));
+            
             toast({
                 variant: 'default',
                 title: 'Signed in successfully!',
                 description: `Welcome back, ${userCredential.user.email}`,
             });
-            navigate('/dashboard');
+            
+            // Redirect based on role
+            // if (roleResult.payload?.role === 'schooladmin') {
+            //     navigate('/school-admin/dashboard');
+            // } else {
+            //     navigate('/dashboard');
+            // }
         } catch (error: any) {
             analytics.track('Sign In Failed', {
                 email,

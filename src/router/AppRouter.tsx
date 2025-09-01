@@ -2,6 +2,7 @@ import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Protected from '../components/route_protection/Protected';
 import SuperProtected from '../components/route_protection/SuperProtected';
+import SchoolAdminRoute from '../components/route_protection/SchoolAdminRoute';
 import NotFoundPage from '../pages/NotFoundPage';
 import BigSpinner from '../components/ui/BigSpinner';
 
@@ -35,6 +36,15 @@ const ProfilePage = React.lazy(() => import('../pages/dashboard_pages/ProfilePag
 const SettingsPage = React.lazy(() => import('../pages/dashboard_pages/SettingsPage'));
 const ExamsPage = React.lazy(() => import('../pages/dashboard_pages/ExamsPage'));
 const BillingPage = React.lazy(() => import('../pages/dashboard_pages/BillingPage'));
+
+/*
+SCHOOL ADMIN PAGES: These are the pages for school administrators
+*/
+const SchoolAdminPageWrapper = React.lazy(() => import('../components/school_admin/SchoolAdminPageWrapper'));
+const SchoolAdminDashboardPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminDashboardPage'));
+const SchoolAdminStudentsPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminStudentsPage'));
+const SchoolAdminAnalyticsPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminAnalyticsPage'));
+const SchoolAdminSettingsPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminSettingsPage'));
 
 /*
 CAMERA AND MICROPHONE ACCESS PAGE: This page is used to check if the camera and microphone are working
@@ -302,6 +312,65 @@ const AppRouter: React.FC = () => {
           errorElement={<NotFoundPage />}
         />
         {/* ------------------------------ ERROR PAGE ROUTES END HERE ---------------------- */}
+        
+        {/* ------------------------------ SCHOOL ADMIN ROUTES HERE ---------------------- */}
+        <Route 
+          path="/school-admin/dashboard" 
+          element={
+            <SchoolAdminRoute>
+              <Suspense fallback={<BigSpinner/>}>
+                <SchoolAdminPageWrapper>
+                  <SchoolAdminDashboardPage />
+                </SchoolAdminPageWrapper>
+              </Suspense>
+            </SchoolAdminRoute>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        
+        <Route 
+          path="/school-admin/students" 
+          element={
+            <SchoolAdminRoute>
+              <Suspense fallback={<BigSpinner/>}>
+                <SchoolAdminPageWrapper>
+                  <SchoolAdminStudentsPage />
+                </SchoolAdminPageWrapper>
+              </Suspense>
+            </SchoolAdminRoute>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        
+        <Route 
+          path="/school-admin/analytics" 
+          element={
+            <SchoolAdminRoute>
+              <Suspense fallback={<BigSpinner/>}>
+                <SchoolAdminPageWrapper>
+                  <SchoolAdminAnalyticsPage />
+                </SchoolAdminPageWrapper>
+              </Suspense>
+            </SchoolAdminRoute>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        
+        <Route 
+          path="/school-admin/settings" 
+          element={
+            <SchoolAdminRoute>
+              <Suspense fallback={<BigSpinner/>}>
+                <SchoolAdminPageWrapper>
+                  <SchoolAdminSettingsPage />
+                </SchoolAdminPageWrapper>
+              </Suspense>
+            </SchoolAdminRoute>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        {/* ------------------------------ SCHOOL ADMIN ROUTES END HERE ---------------------- */}
+        
         {/* ------------------------------   ANY OTHER ROUTES HERE    ---------------------- */}
         <Route path="*" element={<NotFoundPage/>} />
         {/* ------------------------------   ANY OTHER ROUTES END HERE    ---------------------- */}
