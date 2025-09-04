@@ -144,8 +144,7 @@ const SchoolInfoForm: React.FC<SchoolInfoFormProps> = ({ email, setSchool, setGr
         {showDialog && isQualified === true && (
           <CongratulationsDialog isOpen={showDialog} onClose={() => setShowDialog(false)} />
         )}
-        <br/>
-        <h2 className="text-2xl font-semibold text-center mb-6">School 🏫</h2>
+        <h2 className="text-2xl font-semibold text-center mb-6 text-white mt-8">School 🏫</h2>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
@@ -153,7 +152,7 @@ const SchoolInfoForm: React.FC<SchoolInfoFormProps> = ({ email, setSchool, setGr
               name="school"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>School</FormLabel>
+                  <FormLabel className="text-sm text-gray-300">School</FormLabel>
                   <FormControl>
                     <SchoolsInput 
                       schools={schoolsList} 
@@ -166,37 +165,46 @@ const SchoolInfoForm: React.FC<SchoolInfoFormProps> = ({ email, setSchool, setGr
                           setCustomSchoolName("");
                         }
                       }}
-                      className="bg-transparent rounded-lg w-full"
+                      className="bg-gray-900/60 border-white/10 focus-visible:ring-purple-600 rounded-lg w-full text-white"
                       loading={loading}
                     />
                   </FormControl>
                   {isCustomSchool && (
-                    <div className="mt-4">
-                      <FormLabel>Enter your school name</FormLabel>
-                      <input 
-                        type="text" 
-                        value={customSchoolName} 
-                        onChange={(e) => setCustomSchoolName(e.target.value)}
-                        className="bg-transparent border border-gray-300 rounded-lg p-2 w-full"
-                      />
-                      <FormLabel>Enter your school city</FormLabel>
-                      <input 
-                        type="text" 
-                        value={customSchoolCity} 
-                        onChange={(e) => setCustomSchoolCity(e.target.value)}
-                        className="bg-transparent border border-gray-300 rounded-lg p-2 w-full"
-                      />
-                      <FormLabel>Enter your school state</FormLabel>
-                      <input 
-                        type="text" 
-                        value={customSchoolState} 
-                        onChange={(e) => setCustomSchoolState(e.target.value)}
-                        className="bg-transparent border border-gray-300 rounded-lg p-2 w-full"
-                      />
+                    <div className="mt-4 space-y-4">
+                      <div>
+                        <FormLabel className="text-sm text-gray-300">Enter your school name</FormLabel>
+                        <input 
+                          type="text" 
+                          value={customSchoolName} 
+                          onChange={(e) => setCustomSchoolName(e.target.value)}
+                          className="bg-gray-900/60 border border-white/10 focus:ring-purple-600 focus:border-purple-600 rounded-lg p-2 w-full text-white placeholder:text-gray-500"
+                          placeholder="School name"
+                        />
+                      </div>
+                      <div>
+                        <FormLabel className="text-sm text-gray-300">Enter your school city</FormLabel>
+                        <input 
+                          type="text" 
+                          value={customSchoolCity} 
+                          onChange={(e) => setCustomSchoolCity(e.target.value)}
+                          className="bg-gray-900/60 border border-white/10 focus:ring-purple-600 focus:border-purple-600 rounded-lg p-2 w-full text-white placeholder:text-gray-500"
+                          placeholder="City"
+                        />
+                      </div>
+                      <div>
+                        <FormLabel className="text-sm text-gray-300">Enter your school state</FormLabel>
+                        <input 
+                          type="text" 
+                          value={customSchoolState} 
+                          onChange={(e) => setCustomSchoolState(e.target.value)}
+                          className="bg-gray-900/60 border border-white/10 focus:ring-purple-600 focus:border-purple-600 rounded-lg p-2 w-full text-white placeholder:text-gray-500"
+                          placeholder="State"
+                        />
+                      </div>
                     </div>
                   )}
-                  <FormDescription className="text-xs">Take me from darkness to light</FormDescription>
-                  <FormMessage>{form.formState.errors.school?.message}</FormMessage>
+                  <FormDescription className="text-xs text-gray-500">Take me from darkness to light</FormDescription>
+                  <FormMessage className="text-red-400">{form.formState.errors.school?.message}</FormMessage>
                 </FormItem>
               )}
             />
@@ -205,32 +213,43 @@ const SchoolInfoForm: React.FC<SchoolInfoFormProps> = ({ email, setSchool, setGr
               name="grade"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Grade</FormLabel>
+                  <FormLabel className="text-sm text-gray-300">Grade</FormLabel>
                   <FormControl>
                     <Select 
                       onValueChange={(value) => field.onChange(Number(value))}
                       defaultValue={field.value.toString()}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="bg-gray-900/60 border-white/10 focus:ring-purple-600 text-white">
                         <SelectValue placeholder="Select grade" />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="6">6th Grade</SelectItem>
-                        <SelectItem value="7">7th Grade</SelectItem>
-                        <SelectItem value="8">8th Grade</SelectItem>
-                        <SelectItem value="9">9th Grade</SelectItem>
-                        <SelectItem value="10">10th Grade</SelectItem>
-                        <SelectItem value="11">11th Grade</SelectItem>
-                        <SelectItem value="12">12th Grade</SelectItem>
+                      <SelectContent className="bg-gray-900 border-white/10">
+                        <SelectItem value="6" className="text-white hover:bg-purple-600/20">6th Grade</SelectItem>
+                        <SelectItem value="7" className="text-white hover:bg-purple-600/20">7th Grade</SelectItem>
+                        <SelectItem value="8" className="text-white hover:bg-purple-600/20">8th Grade</SelectItem>
+                        <SelectItem value="9" className="text-white hover:bg-purple-600/20">9th Grade</SelectItem>
+                        <SelectItem value="10" className="text-white hover:bg-purple-600/20">10th Grade</SelectItem>
+                        <SelectItem value="11" className="text-white hover:bg-purple-600/20">11th Grade</SelectItem>
+                        <SelectItem value="12" className="text-white hover:bg-purple-600/20">12th Grade</SelectItem>
                       </SelectContent>
                     </Select>
                   </FormControl>
-                  <FormMessage>{form.formState.errors.grade?.message}</FormMessage>
+                  <FormMessage className="text-red-400">{form.formState.errors.grade?.message}</FormMessage>
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-md">Next</Button>
-            <Button type="button" onClick={() => prevStep()} className="w-full py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md">Previous</Button>
+            <Button 
+              type="submit" 
+              className="w-full py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-md font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25"
+            >
+              Next
+            </Button>
+            <Button 
+              type="button" 
+              onClick={() => prevStep()} 
+              className="w-full py-2 bg-gray-800/60 hover:bg-gray-700/60 text-gray-300 border border-gray-600/30 rounded-md font-semibold transition-all duration-300"
+            >
+              Previous
+            </Button>
           </form>
         </Form>
       </div>

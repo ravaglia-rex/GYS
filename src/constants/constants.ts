@@ -53,6 +53,7 @@ export const CHECK_PHASE_1_ELIBIGILITY='/getPhase1Eligibility';
 
 export const FETCH_EXAM_DETAILS='/getExamDetails';
 export const EXAM_SUBMISSION_TRANSACTION='/submitExam';
+export const PHASE_2_SUBMISSION_TRANSACTION='/submitPhase2Exam';
 
 export const FETCH_STUDENT_DATA='/getStudentDetails';
 export const UPDATE_STUDENT_DATA='/updateStudentDetails';

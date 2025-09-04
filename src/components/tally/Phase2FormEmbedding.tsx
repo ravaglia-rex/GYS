@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { RootState } from '../../state_data/reducer';
 import { cleanupAudioCaptureResources } from '../../state_data/audioCaptureSlice';
 import { cleanupFrameResources } from '../../state_data/frameCaptureSlice';
-import { runExamSubmissionTransaction } from '../../db/studentSubmissionMapping';
+import { runPhase2ExamSubmissionTransaction } from '../../db/studentSubmissionMapping';
 import { auth } from '../../firebase/firebase';
 import * as Sentry from '@sentry/react';
 import { resetExamDetails } from '../../state_data/examDetailsSlice';
@@ -17,12 +17,12 @@ declare global {
   }
 }
 
-interface FormEmbeddingProps {
+interface Phase2FormEmbeddingProps {
   setSubmitted: React.Dispatch<React.SetStateAction<boolean>>;
   examDuration: number;
 }
 
-const FormEmbedding: React.FC<FormEmbeddingProps> = ({ setSubmitted, examDuration }) => {
+const Phase2FormEmbedding: React.FC<Phase2FormEmbeddingProps> = ({ setSubmitted, examDuration }) => {
   const loading = useSelector((state: RootState) => state.load.loading);
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -74,7 +74,7 @@ const FormEmbedding: React.FC<FormEmbeddingProps> = ({ setSubmitted, examDuratio
           const form_id = data.payload.formId;
           setSubmitted(true);
 
-          await runExamSubmissionTransaction(student_uid, submission_id, form_id, submission_time);
+          await runPhase2ExamSubmissionTransaction(student_uid, submission_id, form_id, submission_time);
 
           dispatch(cleanupAudioCaptureResources());
           dispatch(cleanupFrameResources());
@@ -86,7 +86,7 @@ const FormEmbedding: React.FC<FormEmbeddingProps> = ({ setSubmitted, examDuratio
           dispatch(resetExamDetails());
         } catch (error) {
           Sentry.withScope((scope) => {
-            scope.setTag('location', 'FormEmbedding.handleMessage');
+            scope.setTag('location', 'Phase2FormEmbedding.handleMessage');
             scope.setExtra('messageData', e.data);
             scope.setExtra('user', auth.currentUser);
             Sentry.captureException(error);
@@ -126,32 +126,19 @@ const FormEmbedding: React.FC<FormEmbeddingProps> = ({ setSubmitted, examDuratio
   };
 
   return (
-    <div style={{ 
-      backgroundColor: 'white', 
-      minHeight: '100vh',
-      width: '100%',
-      margin: 0,
-      padding: 0
-    }}>
+    <div>
       {!loading && exam_id && (
-        <div style={{ 
-          padding: '16px',
-          maxWidth: '1200px',
-          margin: '0 auto'
-        }}>
-          <iframe 
-            data-tally-src={`https://tally.so/embed/${exam_id}?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1`}
-            loading="lazy"
-            width="100%"
-            height="216"
-            frameBorder={0}
-            marginHeight={0}
-            marginWidth={0}
-            title="Argus Talent Exam"
-            style={{ backgroundColor: 'white' }}
-          >
-          </iframe>
-        </div>
+        <iframe 
+          data-tally-src={`https://tally.so/embed/${exam_id}?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1`}
+          loading="lazy"
+          width="100%"
+          height="216"
+          frameBorder={0}
+          marginHeight={0}
+          marginWidth={0}
+          title="Argus Talent Exam - Phase 2"
+        >
+        </iframe>
       )}
       <div id="timerContainer" style={{ position: 'fixed', top: '10px', right: '10px', backgroundColor: 'white', padding: '10px', borderRadius: '5px', display: 'flex', alignItems: 'center', gap: '10px' }}>
         <svg className="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="black" width="40px" height="40px"><path d="M12 1C5.924 1 1 5.924 1 12s4.924 11 11 11 11-4.924 11-11S18.076 1 12 1zm0 20c-4.963 0-9-4.037-9-9s4.037-9 9-9 9 4.037 9 9-4.037 9-9 9zm.5-13H11v7h5v-1.5h-3.5z"/></svg>
@@ -163,7 +150,7 @@ const FormEmbedding: React.FC<FormEmbeddingProps> = ({ setSubmitted, examDuratio
       </div>
       {submissionComplete && (
         <div style={{ marginTop: '20px', textAlign: 'center' }}>
-          <p>You can now navigate to the dashboard.</p>
+          <p>Phase 2 exam submitted successfully! You can now navigate to the dashboard.</p>
           <button 
             onClick={() => navigate('/dashboard')} 
             style={{ 
@@ -184,4 +171,4 @@ const FormEmbedding: React.FC<FormEmbeddingProps> = ({ setSubmitted, examDuratio
   );
 }
 
-export default FormEmbedding;
+export default Phase2FormEmbedding;

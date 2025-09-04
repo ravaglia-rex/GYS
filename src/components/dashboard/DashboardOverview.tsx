@@ -360,7 +360,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExam
                 <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '1rem' }}>
                   {latestExamResults.length > 0 
                     ? 'Your latest exam performance across different subjects'
-                    : 'Track your exam performance and progress'
+                    : 'Performance data will appear here once your exams are evaluated'
                   }
                 </Typography>
               </Box>
@@ -373,7 +373,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExam
                 <ColumnChart data={latestExamResults} />
               </Box>
             ) : (
-              // Show message when no exams taken
+              // Show message when no results available (either no exams taken or under evaluation)
               <Box sx={{ 
                 textAlign: 'center', 
                 py: 6,
@@ -395,10 +395,10 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExam
                   <BarChart3 size={40} color="#8b5cf6" />
                 </Box>
                 <Typography variant="h6" sx={{ color: 'white', fontWeight: 600 }}>
-                  No Exams Taken Yet
+                  No Results Available Yet
                 </Typography>
                 <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', maxWidth: 400 }}>
-                  Complete your first exam to see your performance breakdown and track your progress across different subjects.
+                  Complete your first exam or wait for your completed exams to be evaluated to see your performance breakdown and track your progress across different subjects.
                 </Typography>
                 
               </Box>

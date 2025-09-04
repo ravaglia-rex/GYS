@@ -16,17 +16,17 @@ const TnCDialog: React.FC = () => {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Label className="cursor-pointer text-blue-600 underline">Accept terms and conditions</Label>
+        <Label className="cursor-pointer text-white underline hover:text-purple-400 transition-colors">Accept terms and conditions</Label>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] bg-gray-900 border-gray-700 text-white">
         <DialogHeader>
-          <DialogTitle>Terms and Conditions</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-white">Terms and Conditions</DialogTitle>
+          <DialogDescription className="text-gray-300">
             Please read and accept our terms and conditions before using the platform.
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="h-60">
-          <div className="p-4">
+          <div className="p-4 text-gray-200 text-justify">
             <p>
               Welcome to Edupath, the mobile and web service of Edupath, Inc. (“Edupath,” “we,” or “us”). This page explains the terms by which you may use our online and/or mobile services, website, and software provided on or in connection with the service (collectively the “Service”). By accessing or using the Service, you signify that you have read, understood, and agree to be bound by this Terms of Service Agreement (“Agreement”) and to the collection and use of your information as set forth in the Edupath Privacy Policy, whether or not you are a registered user of our Service. This Agreement applies to all visitors, users, and others who access the Service (“Users”).
             </p>
@@ -196,7 +196,7 @@ const TnCDialog: React.FC = () => {
         </ScrollArea>
         <DialogFooter>
           <DialogTrigger asChild>
-            <Button>Close</Button>
+            <Button className="bg-purple-600 hover:bg-purple-700 text-white">Close</Button>
           </DialogTrigger>
         </DialogFooter>
       </DialogContent>

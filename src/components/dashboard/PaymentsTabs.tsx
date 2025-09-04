@@ -100,6 +100,7 @@ const PaymentsTabs: React.FC<PaymentsTabsProps> = ({ uid, highlightPaymentsEntry
               eligibility_at: eligibility_at[index],
               result: result[index],
               type_questions: detail.type_questions ? JSON.parse(detail.type_questions) : {},
+              duration: detail.duration,
             }));
 
           dispatch(setExamDetails({ examDetails: validDetails, examDetailsLoaded: true }));

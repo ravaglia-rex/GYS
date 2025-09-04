@@ -80,7 +80,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ email }) => {
                 }
             }
             // Check user role and redirect accordingly
-            const roleResult = await dispatch(checkUserRole(userCredential.user.email || ''));
+            // const roleResult = await dispatch(checkUserRole(userCredential.user.email || ''));
             
             toast({
                 variant: 'default',
@@ -88,12 +88,8 @@ const SignInForm: React.FC<SignInFormProps> = ({ email }) => {
                 description: `Welcome back, ${userCredential.user.email}`,
             });
             
-            // Redirect based on role
-            // if (roleResult.payload?.role === 'schooladmin') {
-            //     navigate('/school-admin/dashboard');
-            // } else {
-            //     navigate('/dashboard');
-            // }
+            // Redirect to dashboard after successful login
+            navigate('/dashboard');
         } catch (error: any) {
             analytics.track('Sign In Failed', {
                 email,
@@ -120,14 +116,18 @@ const SignInForm: React.FC<SignInFormProps> = ({ email }) => {
                             <FormItem>
                                 <FormLabel className="text-sm text-gray-300">Password</FormLabel>
                                 <FormControl>
-                                    <Input className="bg-gray-900/60 border-white/10 focus-visible:ring-gray-600 placeholder:text-gray-500" type="password" placeholder="••••••••" {...field} />
+                                    <Input className="bg-gray-900/60 border-white/10 focus-visible:ring-purple-600 placeholder:text-gray-500 text-white" type="password" placeholder="••••••••" {...field} />
                                 </FormControl>
                                 <FormDescription className="text-xs text-gray-500">Minimum of 6 characters</FormDescription>
-                                <FormMessage>{form.formState.errors.password?.message}</FormMessage>
+                                <FormMessage className="text-red-400">{form.formState.errors.password?.message}</FormMessage>
                             </FormItem>
                         )}
                     />
-                    <Button type="submit" disabled={isSubmitted} className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md">
+                    <Button 
+                        type="submit" 
+                        disabled={isSubmitted} 
+                        className="w-full py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-md font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25"
+                    >
                         {isSubmitted ? <Spinner /> : 'Sign In'}
                     </Button>
                 </form>
@@ -135,7 +135,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ email }) => {
             
             <div className='text-center mt-4'>
                 {loadResendVerification && <ResendVerificationButton userCredential={userCred}/>}
-                <Link to='/reset-password' className='text-sm text-emerald-400 hover:text-emerald-300 hover:underline'>
+                <Link to='/reset-password' className='text-sm text-purple-400 hover:text-purple-300 hover:underline transition-colors duration-300'>
                     Forgot password?
                 </Link>
             </div>

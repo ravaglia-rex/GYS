@@ -166,8 +166,7 @@ const TnCPassForm: React.FC<TnCPassProps> = ({ first_name, last_name, school, gr
 
     return (
         <div>
-            <br/>
-            <h2 className="text-2xl font-semibold text-center mb-6">And One Last Thing ....</h2>
+            <h2 className="text-2xl font-semibold text-center mb-6 text-white mt-8">And One Last Thing ....</h2>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                     <FormField
@@ -175,12 +174,17 @@ const TnCPassForm: React.FC<TnCPassProps> = ({ first_name, last_name, school, gr
                         name="password"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Password</FormLabel>
+                                <FormLabel className="text-sm text-gray-300">Password</FormLabel>
                                 <FormControl>
-                                    <Input {...field} type="password" placeholder="Password" />
+                                    <Input 
+                                        {...field} 
+                                        type="password" 
+                                        placeholder="Password" 
+                                        className="bg-gray-900/60 border-white/10 focus-visible:ring-purple-600 placeholder:text-gray-500 text-white"
+                                    />
                                 </FormControl>
-                                <FormDescription className='text-xs'>Set your password</FormDescription>
-                                <FormMessage>{form.formState.errors.password?.message}</FormMessage>
+                                <FormDescription className='text-xs text-gray-500'>Set your password</FormDescription>
+                                <FormMessage className="text-red-400">{form.formState.errors.password?.message}</FormMessage>
                             </FormItem>
                         )}
                     />
@@ -189,12 +193,17 @@ const TnCPassForm: React.FC<TnCPassProps> = ({ first_name, last_name, school, gr
                         name="confirm_password"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Confirm Password</FormLabel>
+                                <FormLabel className="text-sm text-gray-300">Confirm Password</FormLabel>
                                 <FormControl>
-                                    <Input {...field} type="password" placeholder="Confirm Password" />
+                                    <Input 
+                                        {...field} 
+                                        type="password" 
+                                        placeholder="Confirm Password" 
+                                        className="bg-gray-900/60 border-white/10 focus-visible:ring-purple-600 placeholder:text-gray-500 text-white"
+                                    />
                                 </FormControl>
-                                <FormDescription className='text-xs'>Confirm your password</FormDescription>
-                                <FormMessage>{form.formState.errors.confirm_password?.message}</FormMessage>
+                                <FormDescription className='text-xs text-gray-500'>Confirm your password</FormDescription>
+                                <FormMessage className="text-red-400">{form.formState.errors.confirm_password?.message}</FormMessage>
                             </FormItem>
                         )}
                     />
@@ -209,18 +218,29 @@ const TnCPassForm: React.FC<TnCPassProps> = ({ first_name, last_name, school, gr
                                             id="terms"
                                             checked={field.value}
                                             onCheckedChange={field.onChange}
+                                            className="border-white/20 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
                                         />
                                         <TnCDialog />
                                     </div>
                                 </FormControl>
-                                <FormMessage>{form.formState.errors.terms?.message}</FormMessage>
+                                <FormMessage className="text-red-400">{form.formState.errors.terms?.message}</FormMessage>
                             </FormItem>
                         )}
                     />
-                    <Button type="submit" disabled={isSubmitted} className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-md">
+                    <Button 
+                        type="submit" 
+                        disabled={isSubmitted} 
+                        className="w-full py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-md font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25"
+                    >
                         {isSubmitted ? <Spinner /> : 'Sign Up!'}
                     </Button>
-                    <Button type="button" onClick={() => prevStep()} className="w-full py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md">Previous</Button>
+                    <Button 
+                        type="button" 
+                        onClick={() => prevStep()} 
+                        className="w-full py-2 bg-gray-800/60 hover:bg-gray-700/60 text-gray-300 border border-gray-600/30 rounded-md font-semibold transition-all duration-300"
+                    >
+                        Previous
+                    </Button>
                 </form>
             </Form>
             <VerifyEmailDialog isOpen={isVerifyDialogOpen} onClose={() => {

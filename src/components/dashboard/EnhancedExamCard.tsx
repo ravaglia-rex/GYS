@@ -248,7 +248,74 @@ const EnhancedExamCard: React.FC<{
           />
         </Box>
 
-        {/* Exam Duration - Displayed above the results box */}
+        {/* Exam Details - Show for available exams */}
+        {exam.status === 'available' && !exam.completed && (
+          <Box sx={{ 
+            background: 'rgba(139, 92, 246, 0.1)', 
+            border: '1px solid rgba(139, 92, 246, 0.3)',
+            borderRadius: 2,
+            p: 2,
+            mb: 3
+          }}>
+            <Typography variant="body2" sx={{ color: '#8b5cf6', fontWeight: 600, mb: 2 }}>
+              Exam Details:
+            </Typography>
+            
+            {/* Duration */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              <Clock size={16} color="#8b5cf6" />
+              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)', fontWeight: 500 }}>
+                {exam.duration || 0.5} hour{exam.duration !== 1 ? 's' : ''}
+              </Typography>
+            </Box>
+
+            {/* Subject breakdown */}
+            {exam.type_questions && Object.keys(exam.type_questions).length > 0 && (
+              <Box sx={{ mt: 2 }}>
+                {Object.entries(exam.type_questions).map(([subject, count]) => (
+                  <Box key={subject} sx={{ mb: 2, p: 1.5, background: 'rgba(139, 92, 246, 0.05)', borderRadius: 1 }}>
+                    <Typography variant="body2" sx={{ color: '#8b5cf6', fontWeight: 600, mb: 0.5, textTransform: 'capitalize' }}>
+                      {subject}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.875rem' }}>
+                      Questions: {count}
+                    </Typography>
+                    {subject === 'reading' && (
+                      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.8rem', mt: 0.5 }}>
+                        Reading passages followed by questions.
+                      </Typography>
+                    )}
+                    {subject === 'english' && (
+                      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.8rem', mt: 0.5 }}>
+                        Covers concepts in grammar and breadth of english vocabulary
+                      </Typography>
+                    )}
+                    {subject === 'math' && (
+                      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.8rem', mt: 0.5 }}>
+                        Basic math including word problems, equations, and geometry
+                      </Typography>
+                    )}
+                  </Box>
+                ))}
+              </Box>
+            )}
+
+            {/* Instructions */}
+            <Box sx={{ mt: 2, p: 1.5, background: 'rgba(59, 130, 246, 0.1)', borderRadius: 1, border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+              <Typography variant="body2" sx={{ color: '#3b82f6', fontWeight: 600, mb: 1 }}>
+                Important Instructions:
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.875rem', mb: 1 }}>
+                • Ensure that you have a stable internet connection before starting the exam.
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.875rem' }}>
+                • The exam fees have been covered by your school.
+              </Typography>
+            </Box>
+          </Box>
+        )}
+
+        {/* Exam Duration - Displayed above the results box for completed exams */}
         {exam.completed && resultTotals && exam.duration && !isEvaluationInProgress() && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
             <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', fontWeight: 600 }}>

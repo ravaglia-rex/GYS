@@ -3,44 +3,24 @@ import FrameCapture from "../../components/proctoring_components/FrameCapture";
 import AudioCapture from "../../components/proctoring_components/AudioCapture";
 import InternetSpeedTest from "../../components/proctoring_components/InternetSpeedTest";
 import TabSwitchingMonitor from "../../components/proctoring_components/TabSwitchingMonitor";
-import FormEmbedding from "../../components/tally/FormEmbedding";
+import Phase2FormEmbedding from "../../components/tally/Phase2FormEmbedding";
 import BigSpinner from "../../components/ui/BigSpinner";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../../state_data/reducer";
 import { setLoadState } from '../../state_data/loadSlice';
 import * as Sentry from "@sentry/react";
 
-const TestingPage: React.FC = () => {
+const TestingPhase2Page: React.FC = () => {
   const loading = useSelector((state: RootState) => state.load.loading);
   const [isBuffering, setIsBuffering] = useState(true);
   const dispatch = useDispatch();
   const [isSubmitted, setIsSubmitted] = useState(false);
-  
-  // Get data from localStorage first, then fallback to URL params
-  const urlParams = new URLSearchParams(window.location.search);
-  const storedIsProctored = localStorage.getItem('isProctored') || urlParams.get('isProctored');
-  const storedExamDuration = localStorage.getItem('examDuration') || urlParams.get('examDuration');
-  const storedFormId = localStorage.getItem('currentFormId') || urlParams.get('formId');
-  
+  const storedIsProctored = localStorage.getItem('isProctored');
+  const storedExamDuration = localStorage.getItem('examDuration');
   const [isProctored, setIsProctored] = useState<boolean>(false);
   const [examDuration, setExamDuration] = useState<number>(0);
 
   useEffect(() => {
-    // Set form ID if it came from URL params
-    if (urlParams.get('formId') && !localStorage.getItem('currentFormId')) {
-      localStorage.setItem('currentFormId', urlParams.get('formId') || '');
-    }
-    
-    // Set isProctored if it came from URL params
-    if (urlParams.get('isProctored') && !localStorage.getItem('isProctored')) {
-      localStorage.setItem('isProctored', urlParams.get('isProctored') || 'false');
-    }
-    
-    // Set exam duration if it came from URL params
-    if (urlParams.get('examDuration') && !localStorage.getItem('examDuration')) {
-      localStorage.setItem('examDuration', urlParams.get('examDuration') || '60');
-    }
-    
     setIsProctored(storedIsProctored === 'true');
     const parseExamDuration = Number(storedExamDuration);
     if(!isNaN(parseExamDuration) && parseExamDuration > 0) {
@@ -58,7 +38,7 @@ const TestingPage: React.FC = () => {
   return (
     <Sentry.ErrorBoundary
       beforeCapture={(scope) => {
-        scope.setTag("location", "TestingPage");
+        scope.setTag("location", "TestingPhase2Page");
       }}
     >
       <div>
@@ -73,11 +53,11 @@ const TestingPage: React.FC = () => {
         {loading || isBuffering ? (
           <BigSpinner />
         ) : (
-          <FormEmbedding setSubmitted={setIsSubmitted} examDuration={examDuration}/>
+          <Phase2FormEmbedding setSubmitted={setIsSubmitted} examDuration={examDuration}/>
         )}
       </div>
     </Sentry.ErrorBoundary>
   );
 };
 
-export default TestingPage;
+export default TestingPhase2Page;

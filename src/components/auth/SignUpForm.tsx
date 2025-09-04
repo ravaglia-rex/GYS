@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Step, Stepper } from '../ui/stepper';
 import PersonalInformation from './PersonalInformation';
 import SchoolInfoForm from './SchoolInfoForm';
-import ParentInfoForm from './ParentInfoForm';
 import TnCPassForm from './TnCPassForm';
 
 interface StepData {
@@ -21,33 +20,17 @@ const SignUpForm: React.FC<SignUpProps> = ({ email, setEmailExists }) => {
     const [lastName, setLastName] = useState<string>("");
     const [school, setSchool] = useState<string>("");
     const [grade, setGrade] = useState<number>(0);
-    const [parentName, setParentName] = useState<string>("");
-    const [parentEmail, setParentEmail] = useState<string>("");
-    const [parentPhone, setParentPhone] = useState<string>("");
-    const [examID, setExamID] = useState<string>("");
-    const [isQualified, setIsQualified] = useState<boolean | null>(null);
-    const [eligibleDateTime, setEligibilityDateTime] = useState<string>("");
 
     const steps: StepData[] = [
         { label: 'Step 1', content: 'Personal Information' },
         { label: 'Step 2', content: 'School Information' },
-        {
-            label: 'Step 3',
-            content: 'Parent Contact Information',
-            condition: () => isQualified !== null,
-        },
-        { 
-            label: isQualified === null ? 'Step 3' : 'Step 4', 
-            content: isQualified === null ? 'TnC and Password' : 'TnC and Password', // Adjust content based on your actual requirements
-        },
+        { label: 'Step 3', content: 'TnC and Password' },
     ];
 
     return (
         <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-gray-900/60 to-gray-900/40 backdrop-blur-xl p-6 sm:p-8 shadow-2xl">
             <Stepper variant="circle-alt" initialStep={0} steps={steps}>
-                {steps
-                    .filter(step => !step.condition || step.condition())
-                    .map((step, index) => {
+                {steps.map((step, index) => {
                         let stepContent;
                         switch (index) {
                             case 0:
@@ -55,11 +38,6 @@ const SignUpForm: React.FC<SignUpProps> = ({ email, setEmailExists }) => {
                                     <PersonalInformation
                                         setFirstName={setFirstName}
                                         setLastName={setLastName}
-                                        setExamID={setExamID}
-                                        setIsQualified={setIsQualified}
-                                        setEligibilityDateTime={
-                                            setEligibilityDateTime
-                                        }
                                     />
                                 );
                                 break;
@@ -69,48 +47,24 @@ const SignUpForm: React.FC<SignUpProps> = ({ email, setEmailExists }) => {
                                         email={email}
                                         setSchool={setSchool}
                                         setGrade={setGrade}
-                                        isQualified={isQualified}
+                                        isQualified={null}
                                     />
                                 );
                                 break;
                             case 2:
-                                stepContent = isQualified === null ? (
-                                    <TnCPassForm
-                                        first_name={firstName}
-                                        last_name={lastName}
-                                        school={school}
-                                        grade={grade}
-                                        parent_name={parentName}
-                                        parent_email={parentEmail}
-                                        parent_phone={parentPhone}
-                                        email={email}
-                                        examID={examID}
-                                        isQualified={isQualified}
-                                        eligibleDateTime={eligibleDateTime}
-                                        setEmailExists={setEmailExists}
-                                    />
-                                ) : (
-                                    <ParentInfoForm
-                                        setParentName={setParentName}
-                                        setParentEmail={setParentEmail}
-                                        setParentPhone={setParentPhone}
-                                    />
-                                );
-                                break;
-                            case 3:
                                 stepContent = (
                                     <TnCPassForm
                                         first_name={firstName}
                                         last_name={lastName}
                                         school={school}
                                         grade={grade}
-                                        parent_name={parentName}
-                                        parent_email={parentEmail}
-                                        parent_phone={parentPhone}
+                                        parent_name=""
+                                        parent_email=""
+                                        parent_phone=""
                                         email={email}
-                                        examID={examID}
-                                        isQualified={isQualified}
-                                        eligibleDateTime={eligibleDateTime}
+                                        examID=""
+                                        isQualified={null}
+                                        eligibleDateTime=""
                                         setEmailExists={setEmailExists}
                                     />
                                 );

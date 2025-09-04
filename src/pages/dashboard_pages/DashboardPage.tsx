@@ -101,16 +101,19 @@ const Dashboard: React.FC = () => {
   // Load latest exam results for spider chart
   const loadLatestExamResults = async (examDetails: any[]) => {
     try {
-      // Find the most recent completed exam
-      const completedExams = examDetails.filter(exam => exam.completed);
+      // Find the most recent completed exam with available results (not under evaluation)
+      const completedExamsWithResults = examDetails.filter(exam => 
+        exam.completed && exam.result !== null && exam.result !== undefined
+      );
       
-      if (completedExams.length === 0) {
+      if (completedExamsWithResults.length === 0) {
         setLatestExamResults([]);
+        console.log('Dashboard: No completed exams with available results found');
         return;
       }
 
-      // Get the first completed exam (assuming they're already sorted by completion date)
-      const latestExam = completedExams[0];
+      // Get the first completed exam with results (assuming they're already sorted by completion date)
+      const latestExam = completedExamsWithResults[0];
       
       // Import the function to fetch result totals
       const { fetchResultTotals } = await import('../../db/examResponsesCollection');

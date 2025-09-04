@@ -8,31 +8,58 @@ import {
 } from "firebase/firestore";
 import db from "./db";
 
-export const checkEmailExists = async (email: string) => {
+// export const checkEmailExists = async (email: string) => {
+//     try {
+//         // First check student_email_mappings collection
+//         const emailMappingRef = collection(db, "student_email_mappings");
+//         const emailQuery = query(emailMappingRef, where("email", "==", email));
+//         const querySnapshot = await getDocs(emailQuery);
+
+//         if (querySnapshot.docs.length > 0) {
+//             return true;
+//         }
+
+//         // If not found in student mappings, check schooladmins collection
+//         const schoolAdminRef = collection(db, "schooladmins");
+//         const schoolAdminQuery = query(schoolAdminRef, where("email", "==", email));
+//         const schoolAdminSnapshot = await getDocs(schoolAdminQuery);
+
+//         if (schoolAdminSnapshot.docs.length > 0) {
+//             return true;
+//         }
+
+//         return false;
+//     } catch (error) {
+//         throw new Error(`Error fetching email for ${email}. Please contact us at talentsearch@argus.ai`);
+//     }
+// };
+export const checkEmailExists = async (email: string): Promise<boolean> => {
     try {
-        // First check student_email_mappings collection
-        const emailMappingRef = collection(db, "student_email_mappings");
-        const emailQuery = query(emailMappingRef, where("email", "==", email));
-        const querySnapshot = await getDocs(emailQuery);
-
-        if (querySnapshot.docs.length > 0) {
-            return true;
-        }
-
-        // If not found in student mappings, check schooladmins collection
-        const schoolAdminRef = collection(db, "schooladmins");
-        const schoolAdminQuery = query(schoolAdminRef, where("email", "==", email));
-        const schoolAdminSnapshot = await getDocs(schoolAdminQuery);
-
-        if (schoolAdminSnapshot.docs.length > 0) {
-            return true;
-        }
-
-        return false;
+      // First check student_email_mappings collection
+      const emailMappingRef = collection(db, "student_email_mappings");
+      const emailQuery = query(emailMappingRef, where("email", "==", email));
+      const querySnapshot = await getDocs(emailQuery);
+  
+      if (!querySnapshot.empty) {
+        return true;
+      }
+  
+      // If not found in student mappings, check schooladmins collection
+      const schoolAdminRef = collection(db, "schooladmins");
+      const schoolAdminQuery = query(schoolAdminRef, where("email", "==", email));
+      const schoolAdminSnapshot = await getDocs(schoolAdminQuery);
+  
+      if (!schoolAdminSnapshot.empty) {
+        return true;
+      }
+  
+      return false;
     } catch (error) {
-        throw new Error(`Error fetching email for ${email}. Please contact us at talentsearch@argus.ai`);
+      console.error("checkEmailExists failed:", error);
+      return false; // ✅ fail safe instead of throwing
     }
-};
+  };
+  
 
 export const addEmailMapping = async (uid: string, email: string) => {
     try {

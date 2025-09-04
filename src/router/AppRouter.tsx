@@ -18,6 +18,7 @@ const ResetPasswordPage = React.lazy(() => import('../pages/authentication_pages
 TESTING PAGES: These are the pages for serving the exam
 */
 const TestingPage = React.lazy(() => import('../pages/testing_page/TestingPage'));
+const TestingPhase2Page = React.lazy(() => import('../pages/testing_page/TestingPhase2Page'));
 const CameraError = React.lazy(() => import('../pages/error_pages/CameraError'));
 const WebcamOverlayPage = React.lazy(() => import('../pages/testing_page/WebcamOverlayPage'));
 const EntityDetectionError = React.lazy(() => import('../pages/error_pages/EntityDetectionError'));
@@ -216,6 +217,18 @@ const AppRouter: React.FC = () => {
             <SuperProtected>
               <Suspense fallback={<BigSpinner/>}>
                 <TestingPage />
+              </Suspense>
+            </SuperProtected>
+          }
+          errorElement={<NotFoundPage />}
+        />
+
+        <Route 
+          path="/testing-phase2" 
+          element={
+            <SuperProtected>
+              <Suspense fallback={<BigSpinner/>}>
+                <TestingPhase2Page />
               </Suspense>
             </SuperProtected>
           }

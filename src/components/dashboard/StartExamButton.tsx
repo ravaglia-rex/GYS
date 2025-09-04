@@ -18,9 +18,10 @@ type StartExamButtonProps = {
   formId: string;
   paymentNeeded: boolean;
   isProctored: boolean;
+  isPhase2?: boolean; // New prop to distinguish phase 2 exams
 };
 
-const StartExamButton: React.FC<StartExamButtonProps> = ({ formId, paymentNeeded, isProctored }) => {
+const StartExamButton: React.FC<StartExamButtonProps> = ({ formId, paymentNeeded, isProctored, isPhase2 = false }) => {
   const [loading, setLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false); // State for payment confirmation checkbox
@@ -53,11 +54,29 @@ const StartExamButton: React.FC<StartExamButtonProps> = ({ formId, paymentNeeded
     localStorage.setItem('currentFormId', formId);
     localStorage.setItem('isProctored', JSON.stringify(isProctored));
 
+    // For development: redirect to production exam URL
+    console.log('NODE_ENV:', process.env.NODE_ENV);
+    console.log('isDevelopment:', process.env.NODE_ENV === 'development');
+    
+    if (process.env.NODE_ENV === 'development') {
+      // Get exam duration from exam details (you might need to pass this as a prop)
+      const examDuration = 30; // Default to 30 minutes, or get from exam details
+      const productionUrl = `https://argus-talent-search.web.app/testing?formId=${formId}&isProctored=${isProctored}&examDuration=${examDuration}`;
+      console.log('Redirecting to production URL:', productionUrl);
+      window.location.href = productionUrl;
+      return;
+    }
+
     if (isProctored) {
       enterFullScreen();
       navigate('/camera-microphone-access');
     } else {
-      navigate('/testing');
+      // Navigate to different pages based on exam phase
+      if (isPhase2) {
+        navigate('/testing-phase2');
+      } else {
+        navigate('/testing');
+      }
     }
   };
 

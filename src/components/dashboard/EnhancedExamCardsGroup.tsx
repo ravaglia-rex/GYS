@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Box, Typography } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import { getExamIds } from '../../db/studentExamMappings';
 import { getExamDetails } from '../../db/examDetailsCollection';
 import { RootState } from '../../state_data/reducer';
@@ -31,6 +32,7 @@ const EnhancedExamCardsGroup: React.FC<EnhancedExamCardsGroupProps> = ({
   description 
 }) => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const examDetailsState = useSelector((state: RootState) => state.examDetails.examDetails);
   const examDetailsLoaded = useSelector((state: RootState) => state.examDetails.examDetailsLoaded);
   const paymentsState = useSelector((state: RootState) => state.studentPayments.payments);
@@ -141,11 +143,39 @@ const EnhancedExamCardsGroup: React.FC<EnhancedExamCardsGroupProps> = ({
       status = 'upcoming';
     }
 
+    // Determine if this is a qualifying exam based on form ID
+    const isQualifyingExam = ['wzdOWZ', 'mRjg8v', 'mOEg8k', '3E6g8A'].includes(exam.formId);
+    
+    // Set appropriate title and description for qualifying exams
+    let title = exam.cardTitle || `Exam ${exam.formId}`;
+    let description = exam.cardDescription || 'Complete this assessment to evaluate your knowledge and skills.';
+    
+    if (isQualifyingExam) {
+      title = 'GYS Talent Search';
+      // Determine grade range based on form ID
+      let gradeRange = '';
+      switch (exam.formId) {
+        case 'wzdOWZ':
+          gradeRange = 'classes 6 - 8';
+          break;
+        case 'mRjg8v':
+          gradeRange = 'classes 9 - 10';
+          break;
+        case 'mOEg8k':
+          gradeRange = 'class 11';
+          break;
+        case '3E6g8A':
+          gradeRange = 'class 12';
+          break;
+      }
+      description = `Qualifying Exam - ${gradeRange}`;
+    }
+
     const transformedExam = {
       id: exam.formId,
-      title: exam.cardTitle || `Exam ${exam.formId}`,
-      description: exam.cardDescription || 'Complete this assessment to evaluate your knowledge and skills.',
-      duration: exam.duration || 60,
+      title,
+      description,
+      duration: exam.duration || 0.5, // Default to 0.5 hours for qualifying exams
       totalQuestions: exam.type_questions ? Object.values(exam.type_questions).reduce((sum: number, count: any) => sum + (count || 0), 0) : 50,
       eligibilityDate: exam.eligibility_at,
       completed: isCompleted,
@@ -163,8 +193,48 @@ const EnhancedExamCardsGroup: React.FC<EnhancedExamCardsGroupProps> = ({
   };
 
   const handleStartExam = (examId: string) => {
-    // Navigate to exam or trigger exam start
-    // You can add navigation logic here
+    // Find the exam details to determine if it's phase 2
+    const examDetail = examDetailsState.find(exam => exam.formId === examId);
+    
+    if (!examDetail) {
+      console.error('Exam detail not found for ID:', examId);
+      return;
+    }
+
+    // Store exam information in localStorage
+    localStorage.setItem('currentFormId', examId);
+    localStorage.setItem('isProctored', JSON.stringify(examDetail.isProctored || false));
+    localStorage.setItem('examDuration', examDetail.duration?.toString() || '60');
+
+    // For development: redirect to production exam URL
+    console.log('EnhancedExamCardsGroup - NODE_ENV:', process.env.NODE_ENV);
+    console.log('EnhancedExamCardsGroup - isDevelopment:', process.env.NODE_ENV === 'development');
+    
+    if (process.env.NODE_ENV === 'development') {
+      const examDuration = examDetail.duration || 30; // Use actual duration or default to 30 minutes
+      const productionUrl = `https://argus-talent-search.web.app/testing?formId=${examId}&isProctored=${examDetail.isProctored || false}&examDuration=${examDuration}`;
+      console.log('EnhancedExamCardsGroup - Redirecting to production URL:', productionUrl);
+      window.location.href = productionUrl;
+      return;
+    }
+
+    // Determine if this is a phase 2 exam based on form ID or card title
+    // You can customize this logic based on your needs
+    const isPhase2Exam = examDetail.cardTitle?.toLowerCase().includes('challenge') || 
+                         examDetail.cardTitle?.toLowerCase().includes('phase 2') ||
+                         examId === 'your_phase2_form_id'; // Replace with actual phase 2 form ID
+
+    if (examDetail.isProctored) {
+      // For proctored exams, go to camera setup first
+      navigate('/camera-microphone-access');
+    } else {
+      // Navigate to appropriate testing page based on exam phase
+      if (isPhase2Exam) {
+        navigate('/testing-phase2');
+      } else {
+        navigate('/testing');
+      }
+    }
   };
 
   const handleViewResults = (examId: string) => {
