@@ -186,13 +186,14 @@ const EnhancedExamCardsGroup: React.FC<EnhancedExamCardsGroupProps> = ({
       isProctored: exam.isProctored,
       cost: exam.cost,
       currency: exam.currency,
-      type_questions: exam.type_questions // Add type_questions for detailed results
+      type_questions: exam.type_questions, // Add type_questions for detailed results
+      examDetails: exam.examDetails // Add examDetails for section parsing
     };
 
     return transformedExam;
   };
 
-  const handleStartExam = (examId: string) => {
+  const handleStartExam = (examId: string, examInfo?: { paymentNeeded?: boolean; isProctored?: boolean; duration?: number }) => {
     // Find the exam details to determine if it's phase 2
     const examDetail = examDetailsState.find(exam => exam.formId === examId);
     
@@ -201,18 +202,24 @@ const EnhancedExamCardsGroup: React.FC<EnhancedExamCardsGroupProps> = ({
       return;
     }
 
+    // Use examInfo if provided, otherwise fall back to examDetail
+    const isProctored = examInfo?.isProctored ?? examDetail.isProctored ?? false;
+    const duration = examInfo?.duration ?? (examDetail.duration ? examDetail.duration * 60 : 60);
+    const paymentNeeded = examInfo?.paymentNeeded ?? examDetail.paymentNeeded ?? false;
+
     // Store exam information in localStorage
     localStorage.setItem('currentFormId', examId);
-    localStorage.setItem('isProctored', JSON.stringify(examDetail.isProctored || false));
-    localStorage.setItem('examDuration', examDetail.duration?.toString() || '60');
+    localStorage.setItem('isProctored', JSON.stringify(isProctored));
+    localStorage.setItem('examDuration', duration.toString());
+    localStorage.setItem('paymentNeeded', JSON.stringify(paymentNeeded));
 
     // For development: redirect to production exam URL
     console.log('EnhancedExamCardsGroup - NODE_ENV:', process.env.NODE_ENV);
     console.log('EnhancedExamCardsGroup - isDevelopment:', process.env.NODE_ENV === 'development');
     
     if (process.env.NODE_ENV === 'development') {
-      const examDuration = examDetail.duration || 30; // Use actual duration or default to 30 minutes
-      const productionUrl = `https://argus-talent-search.web.app/testing?formId=${examId}&isProctored=${examDetail.isProctored || false}&examDuration=${examDuration}`;
+      const examDuration = duration || 30; // Use actual duration or default to 30 minutes
+      const productionUrl = `https://argus-talent-search.web.app/testing?formId=${examId}&isProctored=${isProctored}&examDuration=${examDuration}`;
       console.log('EnhancedExamCardsGroup - Redirecting to production URL:', productionUrl);
       window.location.href = productionUrl;
       return;
@@ -224,7 +231,7 @@ const EnhancedExamCardsGroup: React.FC<EnhancedExamCardsGroupProps> = ({
                          examDetail.cardTitle?.toLowerCase().includes('phase 2') ||
                          examId === 'your_phase2_form_id'; // Replace with actual phase 2 form ID
 
-    if (examDetail.isProctored) {
+    if (isProctored) {
       // For proctored exams, go to camera setup first
       navigate('/camera-microphone-access');
     } else {
@@ -571,7 +578,7 @@ const EnhancedExamCardsGroup: React.FC<EnhancedExamCardsGroupProps> = ({
         ) : (
           <Box sx={{ 
             display: 'grid', 
-            gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' },
+            gridTemplateColumns: { xs: '1fr', md: '1fr', lg: 'repeat(2, 1fr)' },
             gap: 3 
           }}>
             {filteredExams.map((exam) => (

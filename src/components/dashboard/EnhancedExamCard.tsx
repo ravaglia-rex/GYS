@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Card, CardContent, Typography, Box, Button, Chip, Table, TableBody, TableCell, TableFooter, TableRow, IconButton } from '@mui/material';
 import { 
   CheckCircle, 
@@ -34,6 +34,9 @@ interface Exam {
   status: 'available' | 'completed' | 'upcoming' | 'in-progress';
   type_questions?: { [key: string]: number };
   result?: boolean | null; // Add result field for qualification status
+  paymentNeeded?: boolean;
+  isProctored?: boolean;
+  examDetails?: string[]; // Array of JSON strings containing section details
 }
 
 interface ResultTotals {
@@ -46,9 +49,9 @@ interface ResultTotals {
 
 const EnhancedExamCard: React.FC<{
   exam: Exam;
-  onStartExam?: (examId: string) => void;
+  onStartExam?: (examId: string, examInfo?: { paymentNeeded?: boolean; isProctored?: boolean; duration?: number }) => void;
   onViewResults?: (examId: string) => void;
-  uid?: string; // Add user ID for fetching detailed results
+  uid?: string; // Add user ID for fetching detailed 
 }> = ({
   exam,
   onStartExam,
@@ -60,6 +63,17 @@ const EnhancedExamCard: React.FC<{
   const [currentResult, setCurrentResult] = useState<boolean | null>(null);
   const [isLoadingResult, setIsLoadingResult] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const footerRef = useRef<HTMLDivElement>(null);
+
+  // Function to scroll to footer
+  const scrollToFooter = () => {
+    if (footerRef.current) {
+      footerRef.current.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'end' 
+      });
+    }
+  };
 
   // Function to fetch current result from Firebase
   const fetchCurrentResult = async () => {
@@ -212,6 +226,36 @@ const EnhancedExamCard: React.FC<{
       }}
     >
       <CardContent sx={{ p: 3 }}>
+        {/* Scroll to start banner - Header */}
+        {exam.status === 'available' && !exam.completed && (
+          <Box 
+            onClick={scrollToFooter} 
+            sx={{ 
+              cursor: 'pointer', 
+              mb: 3,
+              p: 2,
+              background: 'rgba(59, 130, 246, 0.1)',
+              border: '1px solid rgba(59, 130, 246, 0.3)',
+              borderRadius: 2,
+              textAlign: 'center',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                background: 'rgba(59, 130, 246, 0.2)',
+                borderColor: 'rgba(59, 130, 246, 0.5)',
+                transform: 'translateY(-2px)'
+              }
+            }}
+          >
+            <Typography variant="body2" sx={{ 
+              color: '#3b82f6', 
+              fontWeight: 600,
+              textAlign: 'center'
+            }}>
+              Please scroll down to the bottom to start the exam
+            </Typography>
+          </Box>
+        )}
+
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
           <Box sx={{ flex: 1 }}>
             <Typography 
@@ -251,10 +295,6 @@ const EnhancedExamCard: React.FC<{
         {/* Exam Details - Show for available exams */}
         {exam.status === 'available' && !exam.completed && (
           <Box sx={{ 
-            background: 'rgba(139, 92, 246, 0.1)', 
-            border: '1px solid rgba(139, 92, 246, 0.3)',
-            borderRadius: 2,
-            p: 2,
             mb: 3
           }}>
             <Typography variant="body2" sx={{ color: '#8b5cf6', fontWeight: 600, mb: 2 }}>
@@ -269,9 +309,44 @@ const EnhancedExamCard: React.FC<{
               </Typography>
             </Box>
 
+            {/* Exam Details - Parse JSON strings if available */}
+            {exam.examDetails && exam.examDetails.length > 0 && (
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="body2" sx={{ color: '#8b5cf6', fontWeight: 600, mb: 2 }}>
+                  Exam Sections:
+                </Typography>
+                {exam.examDetails.map((detailString, index) => {
+                  try {
+                    const detail = JSON.parse(detailString);
+                    return (
+                      <Box key={index} sx={{ mb: 2, p: 1.5, background: 'rgba(59, 130, 246, 0.05)', borderRadius: 1, border: '1px solid rgba(59, 130, 246, 0.1)' }}>
+                        <Typography variant="body2" sx={{ color: '#3b82f6', fontWeight: 600, mb: 0.5 }}>
+                          {detail.section || `Section ${index + 1}`}
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.875rem', mb: 0.5 }}>
+                          Questions: {detail.questions || 'N/A'}
+                        </Typography>
+                        {detail.description && (
+                          <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.8rem' }}>
+                            {detail.description}
+                          </Typography>
+                        )}
+                      </Box>
+                    );
+                  } catch (error) {
+                    console.error('Error parsing exam detail:', error, detailString);
+                    return null;
+                  }
+                })}
+              </Box>
+            )}
+
             {/* Subject breakdown */}
             {exam.type_questions && Object.keys(exam.type_questions).length > 0 && (
               <Box sx={{ mt: 2 }}>
+                <Typography variant="body2" sx={{ color: '#8b5cf6', fontWeight: 600, mb: 2 }}>
+                  Subject Breakdown:
+                </Typography>
                 {Object.entries(exam.type_questions).map(([subject, count]) => (
                   <Box key={subject} sx={{ mb: 2, p: 1.5, background: 'rgba(139, 92, 246, 0.05)', borderRadius: 1 }}>
                     <Typography variant="body2" sx={{ color: '#8b5cf6', fontWeight: 600, mb: 0.5, textTransform: 'capitalize' }}>
@@ -441,12 +516,16 @@ const EnhancedExamCard: React.FC<{
           </Typography>
         )}
 
-        <Box sx={{ display: 'flex', gap: 2 }}>
+        <Box ref={footerRef} sx={{ display: 'flex', gap: 2 }}>
           {exam.status === 'available' && isEligible() && onStartExam && (
             <Button
               variant="contained"
               size="medium"
-              onClick={() => onStartExam(exam.id)}
+              onClick={() => onStartExam && onStartExam(exam.id, { 
+                paymentNeeded: exam.paymentNeeded, 
+                isProctored: exam.isProctored, 
+                duration: exam.duration ? exam.duration * 60 : undefined 
+              })}
               sx={{
                 background: 'linear-gradient(45deg, #10b981, #3b82f6)',
                 color: 'white',

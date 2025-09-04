@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Grid, Card, CardContent, Typography, Avatar } from '@mui/material';
+import { Box, Card, CardContent, Typography, Avatar } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { 
   TrendingUp, 

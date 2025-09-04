@@ -263,8 +263,8 @@ const ScoreBreakdownChart: React.FC<ScoreBreakdownChartProps> = ({
             {renderOverallScore(score)}
 
             {/* Subject Breakdown */}
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={8}>
+            <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', md: 'row' } }}>
+              <Box sx={{ flex: { xs: 1, md: 2 } }}>
                 <Typography variant="h6" sx={{ color: 'white', fontWeight: 600, mb: 3, fontSize: '1.1rem' }}>
                   Subject Performance
                 </Typography>
@@ -275,9 +275,9 @@ const ScoreBreakdownChart: React.FC<ScoreBreakdownChartProps> = ({
                 
                 {score.science && renderScoreBar('Science', score.science, score.maxScore, <Brain size={18} />)}
                 {score.socialStudies && renderScoreBar('Social Studies', score.socialStudies, score.maxScore, <Award size={18} />)}
-              </Grid>
+              </Box>
 
-              <Grid item xs={12} md={4}>
+              <Box sx={{ flex: { xs: 1, md: 1 } }}>
                 <Typography variant="h6" sx={{ color: 'white', fontWeight: 600, mb: 3, fontSize: '1.1rem' }}>
                   Performance Insights
                 </Typography>
@@ -330,8 +330,8 @@ const ScoreBreakdownChart: React.FC<ScoreBreakdownChartProps> = ({
                     </Box>
                   </Box>
                 </Box>
-              </Grid>
-            </Grid>
+              </Box>
+            </Box>
           </Box>
         ))}
       </CardContent>

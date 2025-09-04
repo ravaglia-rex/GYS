@@ -26,9 +26,6 @@ import { LoadingSpinner as Spinner } from '../ui/spinner';
 import { useToast } from '../ui/use-toast';
 import { getExamIds } from '../../db/studentExamMappings';
 import analytics from '../../segment/segment';
-import { useDispatch } from 'react-redux';
-import { AppDispatch } from '../../state_data/reducer';
-import { checkUserRole } from '../../state_data/authSlice';
 
 const signinSchema = z.object({
     password: z.string().min(6, 'Password must be at least 6 characters'),
@@ -41,7 +38,6 @@ interface SignInFormProps {
 const SignInForm: React.FC<SignInFormProps> = ({ email }) => {
     const navigate = useNavigate();
     const { toast } = useToast();
-    const dispatch = useDispatch<AppDispatch>();
     const form = useForm({
         resolver: zodResolver(signinSchema),
         defaultValues: {

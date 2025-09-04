@@ -38,7 +38,6 @@ import {
   Lock,
   Users,
   Database,
-  Analytics,
   Bell,
   ChevronDown,
   CheckCircle,
@@ -422,8 +421,8 @@ const PrivacySettings: React.FC = () => {
             Data Management
           </Typography>
 
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
+          <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', md: 'row' } }}>
+            <Box sx={{ flex: 1 }}>
               <Box sx={{ 
                 p: 3, 
                 borderRadius: 2, 
@@ -457,9 +456,9 @@ const PrivacySettings: React.FC = () => {
                   {privacySettings.dataRetentionPeriod} months
                 </Typography>
               </Box>
-            </Grid>
+            </Box>
 
-            <Grid item xs={12} md={6}>
+            <Box sx={{ flex: 1 }}>
               <Box sx={{ 
                 p: 3, 
                 borderRadius: 2, 
@@ -491,8 +490,8 @@ const PrivacySettings: React.FC = () => {
                   sx={{ color: 'white' }}
                 />
               </Box>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
 
           <Box sx={{ mt: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
             <Button

@@ -5,7 +5,6 @@ import {
   CardContent, 
   Typography, 
   Button, 
-  Grid,
   Avatar,
   Chip,
   Divider,
@@ -227,9 +226,9 @@ const BillingSettings: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Grid container spacing={3}>
+      <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', md: 'row' } }}>
         {/* Payment Methods */}
-        <Grid item xs={12} md={6}>
+        <Box sx={{ flex: 1 }}>
           <Card sx={{
             background: 'rgba(30, 41, 59, 0.6)',
             border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -348,10 +347,10 @@ const BillingSettings: React.FC = () => {
               </List>
             </CardContent>
           </Card>
-        </Grid>
+        </Box>
 
         {/* Billing History */}
-        <Grid item xs={12} md={6}>
+        <Box sx={{ flex: 1 }}>
           <Card sx={{
             background: 'rgba(30, 41, 59, 0.6)',
             border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -449,8 +448,8 @@ const BillingSettings: React.FC = () => {
               </Box>
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
 
       {/* Add Payment Method Dialog */}
       <Dialog 
@@ -471,8 +470,8 @@ const BillingSettings: React.FC = () => {
           Add Payment Method
         </DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box>
               <TextField
                 fullWidth
                 label="Card Number"
@@ -488,42 +487,44 @@ const BillingSettings: React.FC = () => {
                   '& .MuiInputLabel-root.Mui-focused': { color: '#8b5cf6' },
                 }}
               />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Expiry Date"
-                placeholder="MM/YY"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    color: 'white',
-                    '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
-                    '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
-                    '&.Mui-focused fieldset': { borderColor: '#8b5cf6' },
-                  },
-                  '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
-                  '& .MuiInputLabel-root.Mui-focused': { color: '#8b5cf6' },
-                }}
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="CVV"
-                placeholder="123"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    color: 'white',
-                    '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
-                    '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
-                    '&.Mui-focused fieldset': { borderColor: '#8b5cf6' },
-                  },
-                  '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
-                  '& .MuiInputLabel-root.Mui-focused': { color: '#8b5cf6' },
-                }}
-              />
-            </Grid>
-            <Grid item xs={12}>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <Box sx={{ flex: 1 }}>
+                <TextField
+                  fullWidth
+                  label="Expiry Date"
+                  placeholder="MM/YY"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      color: 'white',
+                      '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
+                      '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
+                      '&.Mui-focused fieldset': { borderColor: '#8b5cf6' },
+                    },
+                    '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
+                    '& .MuiInputLabel-root.Mui-focused': { color: '#8b5cf6' },
+                  }}
+                />
+              </Box>
+              <Box sx={{ flex: 1 }}>
+                <TextField
+                  fullWidth
+                  label="CVV"
+                  placeholder="123"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      color: 'white',
+                      '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
+                      '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
+                      '&.Mui-focused fieldset': { borderColor: '#8b5cf6' },
+                    },
+                    '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
+                    '& .MuiInputLabel-root.Mui-focused': { color: '#8b5cf6' },
+                  }}
+                />
+              </Box>
+            </Box>
+            <Box>
               <TextField
                 fullWidth
                 label="Cardholder Name"
@@ -539,8 +540,8 @@ const BillingSettings: React.FC = () => {
                   '& .MuiInputLabel-root.Mui-focused': { color: '#8b5cf6' },
                 }}
               />
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </DialogContent>
         <DialogActions sx={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', p: 2 }}>
           <Button 

@@ -641,8 +641,8 @@ const SecurityPrivacySettings: React.FC = () => {
             Additional Security Options
           </Typography>
 
-          <Grid container spacing={3}>
-            <Box sx={{ flex: { xs: "100%", sm: "50%" } , flexGrow: 0}}>
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 3 }}>
+            <Box sx={{ flex: 1 }}>
                               <FormControlLabel
                   control={
                     <Switch
@@ -683,7 +683,7 @@ const SecurityPrivacySettings: React.FC = () => {
                   sx={{ color: 'white', fontSize: '1rem', fontWeight: 500 }}
                 />
             </Box>
-          </Grid>
+          </Box>
 
           <Box sx={{ mt: 3, textAlign: 'center' }}>
             <Button
