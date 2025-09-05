@@ -18,15 +18,15 @@ interface RefundPolicyDialogProps {
 const RefundPolicyDialog: React.FC<RefundPolicyDialogProps> = ({ isOpen, onClose }) => {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] bg-slate-900 border-slate-700 p-6">
         <DialogHeader>
-          <DialogTitle>Refund Policy</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-white">Refund Policy</DialogTitle>
+          <DialogDescription className="text-slate-300">
             We want to ensure a transparent and hassle-free experience. Please review our refund policy before completing your purchase.
           </DialogDescription>
         </DialogHeader>
-        <ScrollArea className="h-60">
-          <div className="p-4 space-y-4 text-sm">
+        <ScrollArea className="h-48">
+          <div className="p-4 space-y-4 text-sm text-slate-300">
             <p><strong>1. Refund Eligibility:</strong></p>
             <ul className="pl-4 list-disc space-y-2">
               <li>Refunds are available for defective services, technical disruptions, or if the service provided does not match its description.</li>
@@ -58,7 +58,7 @@ const RefundPolicyDialog: React.FC<RefundPolicyDialogProps> = ({ isOpen, onClose
           <ScrollBar />
         </ScrollArea>
         <DialogFooter>
-          <Button onClick={onClose}>Close</Button>
+          <Button onClick={onClose} className="bg-blue-600 hover:bg-blue-700 text-white">Close</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

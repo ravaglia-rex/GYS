@@ -33,6 +33,7 @@ const PaymentsTabs: React.FC<PaymentsTabsProps> = ({ uid, highlightPaymentsEntry
   const examDetailsLoaded = useSelector((state: RootState) => state.examDetails.examDetailsLoaded);
   const [loading, setLoading] = useState(!paymentsLoaded || !examDetailsLoaded);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("pendingPayments");
 
   const transformPaymentData = (paymentData: any) => {
     return {
@@ -141,18 +142,38 @@ const PaymentsTabs: React.FC<PaymentsTabsProps> = ({ uid, highlightPaymentsEntry
   const pendingPayments = examDetails.filter(exam => !paidExamIds.includes(exam.formId) && exam.paymentNeeded);
 
   return (
-    <Tabs defaultValue="pendingPayments" className="w-full payments-tabs">
-      <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="pendingPayments">Pending Payments</TabsTrigger>
-        <TabsTrigger value="paymentsHistory">Payments History</TabsTrigger>
-      </TabsList>
-      <TabsContent value="pendingPayments">
-        <PendingPaymentsTable payments={pendingPayments} highlightPaymentsEntry={highlightPaymentsEntry}/>
-      </TabsContent>
-      <TabsContent value="paymentsHistory">
-        <PastPaymentsTable payments={payments} />
-      </TabsContent>
-    </Tabs>
+    <div className="w-full payments-tabs">
+     
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 bg-[rgba(30,41,59,0.6)] border-b border-[rgba(255,255,255,0.1)] relative">
+          <TabsTrigger 
+            value="pendingPayments" 
+            className="data-[state=active]:text-[#8b5cf6] data-[state=active]:!bg-transparent text-[rgba(255,255,255,0.7)] hover:text-white transition-colors relative z-10"
+          >
+            Pending Payments
+          </TabsTrigger>
+          <TabsTrigger 
+            value="paymentsHistory"
+            className="data-[state=active]:text-[#8b5cf6] data-[state=active]:!bg-transparent text-[rgba(255,255,255,0.7)] hover:text-white transition-colors relative z-10"
+          >
+            Payments History
+          </TabsTrigger>
+          {/* Active tab indicator */}
+          <div className="absolute bottom-0 h-0.5 bg-[#8b5cf6] transition-all duration-300 ease-in-out z-0" 
+               style={{
+                 width: '50%',
+                 transform: activeTab === 'pendingPayments' ? 'translateX(0%)' : 'translateX(100%)'
+               }}>
+          </div>
+        </TabsList>
+        <TabsContent value="pendingPayments" className="mt-0">
+          <PendingPaymentsTable payments={pendingPayments} highlightPaymentsEntry={highlightPaymentsEntry}/>
+        </TabsContent>
+        <TabsContent value="paymentsHistory" className="mt-0">
+          <PastPaymentsTable payments={payments} />
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }
 

@@ -132,28 +132,28 @@ const AddPayeeDialog: React.FC<AddPayeeDialogProps> = ({ isOpen, onClose, onAddP
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto p-6"
+        className="sm:max-w-[425px] max-h-[75vh] overflow-y-auto p-6 bg-slate-900 border-slate-700"
         style={{
             boxSizing: "border-box",
         }}
         >
         <DialogHeader>
-          <DialogTitle>Payer Details</DialogTitle>
-          <DialogDescription>Please enter the payer details.</DialogDescription>
+          <DialogTitle className="text-white">Payer Details</DialogTitle>
+          <DialogDescription className="text-slate-300">Please enter the payer details.</DialogDescription>
         </DialogHeader>
         <DialogFooter>
         <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                     <FormField
                         control={form.control}
                         name="payee_name"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Payer's Name</FormLabel>
+                                <FormLabel className="text-white">Payer's Name</FormLabel>
                                 <FormControl>
-                                    <Input {...field} />
+                                    <Input {...field} className="bg-slate-800 border-slate-600 text-white" />
                                 </FormControl>
-                                <FormMessage>{form.formState.errors.payee_name?.message}</FormMessage>
+                                <FormMessage className="text-red-400">{form.formState.errors.payee_name?.message}</FormMessage>
                             </FormItem>
                         )}
                     />
@@ -163,11 +163,11 @@ const AddPayeeDialog: React.FC<AddPayeeDialogProps> = ({ isOpen, onClose, onAddP
                         name="payee_email"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Payer's Email</FormLabel>
+                                <FormLabel className="text-white">Payer's Email</FormLabel>
                                 <FormControl>
-                                    <Input {...field} type="email" />
+                                    <Input {...field} type="email" className="bg-slate-800 border-slate-600 text-white" />
                                 </FormControl>
-                                <FormMessage>{form.formState.errors.payee_email?.message}</FormMessage>
+                                <FormMessage className="text-red-400">{form.formState.errors.payee_email?.message}</FormMessage>
                             </FormItem>
                         )}
                     />
@@ -177,13 +177,14 @@ const AddPayeeDialog: React.FC<AddPayeeDialogProps> = ({ isOpen, onClose, onAddP
                         name="payee_contact"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Payer's Phone</FormLabel>
+                                <FormLabel className="text-white">Payer's Phone</FormLabel>
                                 <FormControl>
                                     <PhoneInput 
                                         {...field}
+                                        className="bg-slate-800 border-slate-600 text-white"
                                     />
                                 </FormControl>
-                                <FormMessage>{form.formState.errors.payee_contact?.message}</FormMessage>
+                                <FormMessage className="text-red-400">{form.formState.errors.payee_contact?.message}</FormMessage>
                             </FormItem>
                         )}
                     />
@@ -193,11 +194,11 @@ const AddPayeeDialog: React.FC<AddPayeeDialogProps> = ({ isOpen, onClose, onAddP
                         name="payee_address_line1"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Address Line 1</FormLabel>
+                                <FormLabel className="text-white">Address Line 1</FormLabel>
                                 <FormControl>
-                                    <Input {...field} />
+                                    <Input {...field} className="bg-slate-800 border-slate-600 text-white" />
                                 </FormControl>
-                                <FormMessage>{form.formState.errors.payee_address_line1?.message}</FormMessage>
+                                <FormMessage className="text-red-400">{form.formState.errors.payee_address_line1?.message}</FormMessage>
                             </FormItem>
                         )}
                     />
@@ -207,11 +208,11 @@ const AddPayeeDialog: React.FC<AddPayeeDialogProps> = ({ isOpen, onClose, onAddP
                         name="payee_address_line2"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Address Line 2</FormLabel>
+                                <FormLabel className="text-white">Address Line 2</FormLabel>
                                 <FormControl>
-                                    <Input {...field} />
+                                    <Input {...field} className="bg-slate-800 border-slate-600 text-white" />
                                 </FormControl>
-                                <FormMessage>{form.formState.errors.payee_address_line2?.message}</FormMessage>
+                                <FormMessage className="text-red-400">{form.formState.errors.payee_address_line2?.message}</FormMessage>
                             </FormItem>
                         )}
                     />
@@ -221,11 +222,11 @@ const AddPayeeDialog: React.FC<AddPayeeDialogProps> = ({ isOpen, onClose, onAddP
                             name="payee_city"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>City</FormLabel>
+                                    <FormLabel className="text-white">City</FormLabel>
                                     <FormControl>
-                                        <Input {...field} />
+                                        <Input {...field} className="bg-slate-800 border-slate-600 text-white" />
                                     </FormControl>
-                                    <FormMessage>{form.formState.errors.payee_city?.message}</FormMessage>
+                                    <FormMessage className="text-red-400">{form.formState.errors.payee_city?.message}</FormMessage>
                                 </FormItem>
                             )}
                         />
@@ -235,11 +236,11 @@ const AddPayeeDialog: React.FC<AddPayeeDialogProps> = ({ isOpen, onClose, onAddP
                             name="payee_state"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>State</FormLabel>
+                                    <FormLabel className="text-white">State</FormLabel>
                                     <FormControl>
-                                        <Input {...field} />
+                                        <Input {...field} className="bg-slate-800 border-slate-600 text-white" />
                                     </FormControl>
-                                    <FormMessage>{form.formState.errors.payee_state?.message}</FormMessage>
+                                    <FormMessage className="text-red-400">{form.formState.errors.payee_state?.message}</FormMessage>
                                 </FormItem>
                             )}
                         />
@@ -249,9 +250,9 @@ const AddPayeeDialog: React.FC<AddPayeeDialogProps> = ({ isOpen, onClose, onAddP
                             name="payee_country"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel style={{display: 'block'}}>Country</FormLabel>
+                                    <FormLabel style={{display: 'block'}} className="text-white">Country</FormLabel>
                                     <FormControl style={{display: 'block'}}>
-                                        <CountriesInput onSelect={(country) => field.onChange(country)}/>
+                                        <CountriesInput onSelect={(country) => field.onChange(country)} className="bg-slate-800 border-slate-600 text-white"/>
                                     </FormControl>
                                 </FormItem>
                             )}
@@ -262,11 +263,11 @@ const AddPayeeDialog: React.FC<AddPayeeDialogProps> = ({ isOpen, onClose, onAddP
                             name="payee_zipcode"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Zipcode</FormLabel>
+                                    <FormLabel className="text-white">Zipcode</FormLabel>
                                     <FormControl>
-                                        <Input {...field} />
+                                        <Input {...field} className="bg-slate-800 border-slate-600 text-white" />
                                     </FormControl>
-                                    <FormMessage>{form.formState.errors.payee_zipcode?.message}</FormMessage>
+                                    <FormMessage className="text-red-400">{form.formState.errors.payee_zipcode?.message}</FormMessage>
                                 </FormItem>
                             )}
                         />

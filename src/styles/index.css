@@ -85,21 +85,21 @@
 
 @keyframes blinkHighlight {
   0% {
-    border-color: #d3d3d3; /* Light gray border */
-    background-color: rgba(211, 211, 211, 0.2); /* Light gray background */
+    border-color: #8b5cf6; /* Purple border */
+    background-color: rgba(139, 92, 246, 0.1); /* Purple background */
   }
   50% {
-    border-color: #d3d3d3;
-    background-color: rgba(211, 211, 211, 0.5);
+    border-color: #8b5cf6;
+    background-color: rgba(139, 92, 246, 0.2);
   }
   100% {
-    border-color: #d3d3d3;
-    background-color: rgba(211, 211, 211, 0.2);
+    border-color: #8b5cf6;
+    background-color: rgba(139, 92, 246, 0.1);
   }
 }
 
 .highlight-row {
   animation: blinkHighlight 1.5s ease-in-out 3; /* Faster animation */
-  border: 2px solid #d3d3d3;
+  border: 2px solid #8b5cf6;
   border-radius: 8px;
 }

@@ -156,6 +156,29 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({
       setIsConfirming(false); // Hide spinner
     }
   };
+ 
+  useEffect(() => {
+    const styleId = "remove-tr-hover";
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement("style");
+      style.id = styleId;
+      style.innerHTML = `
+        /* Remove hover background */
+        tr:hover.bg-muted\\/50,
+        tr.hover\\:bg-muted\\/50:hover {
+          background-color: transparent !important;
+        }
+  
+        /* Remove purple left border */
+        td > div.border-l-4.border-\\[\\#8b5cf6\\] {
+          border-left: none !important;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }, []);
+  
+
 
   return (
     <div>
@@ -169,7 +192,7 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({
         onAddPayee={handleAddPayee}
       />
       <div>
-        <label htmlFor="payee-select" className="mb-2 block font-medium">
+        <label htmlFor="payee-select" className="mb-2 block font-medium text-white text-lg">
           Select Payer:
         </label>
         <PayeesInput
@@ -181,8 +204,10 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({
 
       {selectedPayee && (
         <div className="mt-4">
-          <h3 className="text-lg font-medium">Payer Details:</h3>
-          <ul className="mb-4 space-y-1">
+          <h3 className="text-lg font-medium text-white mb-3">Payer Details:</h3>
+          
+          <ul className="mb-4 space-y-1 text-white [&_li:hover]:bg-transparent [&_li:hover]:text-white">
+
             <li><strong>Name:</strong> {selectedPayee.name}</li>
             <li><strong>Email:</strong> {selectedPayee.email}</li>
             <li><strong>Contact:</strong> {selectedPayee.contact}</li>
@@ -204,8 +229,8 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({
           {!canProceed ? (
             // Add a link to the refund policy dialog
             <div className="mb-4">
-              <p className="mb-2">By proceeding, you agree to our refund policy:</p>
-              <p className="text-blue-600 underline cursor-pointer" onClick={() => setIsDialogOpen(true)}>Refund Policy</p>
+              <p className="mb-2 text-white">By proceeding, you agree to our refund policy:</p>
+              <p className="text-blue-600 underline cursor-pointer mb-4" onClick={() => setIsDialogOpen(true)}>Refund Policy</p>
             
             <button
               onClick={handleConfirm}
