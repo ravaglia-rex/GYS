@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { useToast } from '../ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { resetPayments } from '../../state_data/studentPaymentsSlice';
+import { markPaymentPending } from '../../functions/payment_handling/razorpay_functions';
 
 import { useDispatch } from 'react-redux';
 import * as Sentry from '@sentry/react';
@@ -90,12 +91,40 @@ const RenderRazorpay: React.FC<RenderRazorpayProps> = ({
 
   const handlePayment = async (status: string, orderDetails: any) => {
     if (status === 'success') {
-      toast({
-        variant: 'default',
-        title: 'Payment Successful',
-        description: 'Your payment was successful',
-        duration: 9000,
-      });
+      try {
+        // Record the payment in the backend
+        await markPaymentPending(
+          address_line_1,
+          amount / 100, // Convert from paise to rupees
+          city,
+          currency,
+          email,
+          title,
+          form_id,
+          payee_email,
+          payee_name,
+          state,
+          payee_name, // student_name
+          order_id, // transaction_id
+          uid,
+          zipcode
+        );
+
+        toast({
+          variant: 'default',
+          title: 'Payment Successful',
+          description: 'Your payment was successful',
+          duration: 9000,
+        });
+      } catch (error) {
+        console.error('Error recording payment:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Payment Recorded',
+          description: 'Payment successful but there was an issue recording it. Please contact support.',
+          duration: 9000,
+        });
+      }
     } else {
       toast({
         variant: 'destructive',
@@ -108,7 +137,7 @@ const RenderRazorpay: React.FC<RenderRazorpayProps> = ({
     // Close the Razorpay script and redirect to the payments page
     setTimeout(() => {
       navigate('/payments');
-      dispatch(resetPayments());
+      // Reload the page to refresh payment data
       window.location.reload();
     }, 1000);
   };

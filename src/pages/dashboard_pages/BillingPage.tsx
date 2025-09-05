@@ -3,6 +3,8 @@ import { Box, Typography, Paper, Divider, Avatar } from '@mui/material';
 import { CreditCard } from 'lucide-react';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import PaymentHistory from './PaymentHistory';
+import PaymentsTabs from '../../components/dashboard/PaymentsTabs';
+import { auth } from '../../firebase/firebase';
 import * as Sentry from '@sentry/react';
 
 const BillingPage: React.FC = () => {
@@ -90,12 +92,12 @@ const BillingPage: React.FC = () => {
             </Box>
           </Paper>
 
-          {/* Payment History */}
+          {/* Payment Management */}
           <Box sx={{ mb: 4 }}>
             <Typography variant="h5" sx={{ color: 'white', fontWeight: 600, mb: 3 }}>
-              Payment History
+              Payment Management
             </Typography>
-            <PaymentHistory />
+            <PaymentsTabs uid={auth.currentUser?.uid || ""} />
           </Box>
         </Box>
       </DashboardLayout>

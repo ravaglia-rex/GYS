@@ -41,11 +41,23 @@ const StartExamButton: React.FC<StartExamButtonProps> = ({ formId, paymentNeeded
     // if studentPayments isn't loaded yet, load it first
     const hasPaid = studentPayments.some((payment) => payment.formId === formId && payment.paymentStatus === 'completed');
 
+    // DEBUG: Log the values to see what's happening
+    console.log('🔍 Payment Debug:', {
+      formId,
+      paymentNeeded,
+      isProctored,
+      isPhase2,
+      hasPaid,
+      studentPayments: studentPayments.filter(p => p.formId === formId)
+    });
+
     if (!hasPaid && paymentNeeded) {
+      console.log('💰 Redirecting to payments');
       // set highlightPaymentsEntry to formId to highlight the payment entry in the table
       navigate('/payments', { state: { highlightPaymentsEntry: formId } });
 
     } else {
+      console.log('🚀 Skipping payment, going to exam');
       startExam();
     }
   };
@@ -53,19 +65,15 @@ const StartExamButton: React.FC<StartExamButtonProps> = ({ formId, paymentNeeded
   const startExam = () => {
     localStorage.setItem('currentFormId', formId);
     localStorage.setItem('isProctored', JSON.stringify(isProctored));
-
-    // For development: redirect to production exam URL
-    console.log('NODE_ENV:', process.env.NODE_ENV);
-    console.log('isDevelopment:', process.env.NODE_ENV === 'development');
     
-    if (process.env.NODE_ENV === 'development') {
-      // Get exam duration from exam details (you might need to pass this as a prop)
-      const examDuration = 30; // Default to 30 minutes, or get from exam details
-      const productionUrl = `https://argus-talent-search.web.app/testing?formId=${formId}&isProctored=${isProctored}&examDuration=${examDuration}`;
-      console.log('Redirecting to production URL:', productionUrl);
-      window.location.href = productionUrl;
-      return;
-    }
+    // if (process.env.NODE_ENV === 'development') {
+    //   // Get exam duration from exam details (you might need to pass this as a prop)
+    //   const examDuration = 30; // Default to 30 minutes, or get from exam details
+    //   const productionUrl = `https://argus-talent-search.web.app/testing?formId=${formId}&isProctored=${isProctored}&examDuration=${examDuration}`;
+    //   console.log('Redirecting to production URL:', productionUrl);
+    //   window.location.href = productionUrl;
+    //   return;
+    // }
 
     if (isProctored) {
       enterFullScreen();

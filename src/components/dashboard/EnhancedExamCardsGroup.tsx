@@ -207,23 +207,39 @@ const EnhancedExamCardsGroup: React.FC<EnhancedExamCardsGroupProps> = ({
     const duration = examInfo?.duration ?? (examDetail.duration ? examDetail.duration * 60 : 60);
     const paymentNeeded = examInfo?.paymentNeeded ?? examDetail.paymentNeeded ?? false;
 
+    // Check if payment is needed and if user has paid
+    const hasPaid = paymentsState.some((payment) => payment.formId === examId && payment.paymentStatus === 'completed');
+
+    // DEBUG: Log the values to see what's happening
+    console.log('🔍 Payment Debug (EnhancedExamCardsGroup):', {
+      examId,
+      paymentNeeded,
+      isProctored,
+      hasPaid,
+      paymentsLoaded,
+      studentPayments: paymentsState.filter(p => p.formId === examId)
+    });
+
+    // If payment is needed and not paid, redirect to payments
+    if (!hasPaid && paymentNeeded) {
+      console.log('💰 Redirecting to payments from EnhancedExamCardsGroup');
+      navigate('/payments', { state: { highlightPaymentsEntry: examId } });
+      return;
+    }
+
     // Store exam information in localStorage
     localStorage.setItem('currentFormId', examId);
     localStorage.setItem('isProctored', JSON.stringify(isProctored));
     localStorage.setItem('examDuration', duration.toString());
     localStorage.setItem('paymentNeeded', JSON.stringify(paymentNeeded));
 
-    // For development: redirect to production exam URL
-    console.log('EnhancedExamCardsGroup - NODE_ENV:', process.env.NODE_ENV);
-    console.log('EnhancedExamCardsGroup - isDevelopment:', process.env.NODE_ENV === 'development');
-    
-    if (process.env.NODE_ENV === 'development') {
-      const examDuration = duration || 30; // Use actual duration or default to 30 minutes
-      const productionUrl = `https://argus-talent-search.web.app/testing?formId=${examId}&isProctored=${isProctored}&examDuration=${examDuration}`;
-      console.log('EnhancedExamCardsGroup - Redirecting to production URL:', productionUrl);
-      window.location.href = productionUrl;
-      return;
-    }
+    // if (process.env.NODE_ENV === 'development') {
+    //   const examDuration = duration || 30; // Use actual duration or default to 30 minutes
+    //   const productionUrl = `https://argus-talent-search.web.app/testing?formId=${examId}&isProctored=${isProctored}&examDuration=${examDuration}`;
+    //   console.log('EnhancedExamCardsGroup - Redirecting to production URL:', productionUrl);
+    //   window.location.href = productionUrl;
+    //   return;
+    // }
 
     // Determine if this is a phase 2 exam based on form ID or card title
     // You can customize this logic based on your needs
