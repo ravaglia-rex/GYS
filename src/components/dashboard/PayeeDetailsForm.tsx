@@ -7,6 +7,7 @@ import {
 } from "../../functions/payment_handling/razorpay_functions";
 
 import RenderRazorpay from "./RenderRazorpay";
+import DevModePayment from "./DevModePayment";
 import AddPayeeDialog from "./AddPayeeDialog";
 import RefundPolicyDialog from "./RefundPolicyDialog";
 import PayeesInput from "../autocomplete/PayeesInput";
@@ -51,6 +52,9 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({
 
   const email = auth.currentUser?.email || "";
   const uid = auth.currentUser?.uid || "";
+  
+  // Check if we're in dev mode
+  const isDevMode = process.env.NODE_ENV === 'development' || process.env.REACT_APP_DEV_MODE === 'true';
 
   const { toast } = useToast();
 
@@ -241,12 +245,35 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({
             </button>
           </div>
           ) : !isPaying ? (
-            <button
-              onClick={() => setIsPaying(true)}
-              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-            >
-              Proceed to Pay
-            </button>
+            <div className="space-y-2">
+              <button
+                onClick={() => setIsPaying(true)}
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              >
+                {isDevMode ? "Process Dev Payment" : "Proceed to Pay"}
+              </button>
+              {isDevMode && (
+                <p className="text-xs text-yellow-600 bg-yellow-100 p-2 rounded">
+                  🚧 Dev Mode: This will create mock payment data instead of processing real payment
+                </p>
+              )}
+            </div>
+          ) : isDevMode ? (
+            <DevModePayment
+              amount={cost * 100 * 1.18}
+              currency={currency}
+              form_id={formId}
+              title={title}
+              payee_name={selectedPayee.name}
+              payee_email={selectedPayee.email}
+              address_line_1={selectedPayee.address_line_1}
+              city={selectedPayee.city}
+              state={selectedPayee.state}
+              zipcode={selectedPayee.zipcode}
+              student_name={selectedPayee.name}
+              uid={uid}
+              email={email}
+            />
           ) : (
             <RenderRazorpay
               amount={cost * 100 * 1.18}

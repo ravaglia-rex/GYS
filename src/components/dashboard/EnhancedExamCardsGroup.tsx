@@ -75,7 +75,6 @@ const EnhancedExamCardsGroup: React.FC<EnhancedExamCardsGroupProps> = ({
           setLatestExamResults([]);
         }
       } catch (error) {
-        console.error('Error fetching result totals for spider chart:', error);
         setLatestExamResults([]);
       }
     };
@@ -85,7 +84,6 @@ const EnhancedExamCardsGroup: React.FC<EnhancedExamCardsGroupProps> = ({
 
   // Calculate stats for the dashboard
   const calculateStats = () => {
-    console.log('calculateStats called with examDetailsState:', examDetailsState);
     
     const totalExams = examDetailsState.length;
     const completedExams = examDetailsState.filter(exam => exam.completed).length;
@@ -111,7 +109,6 @@ const EnhancedExamCardsGroup: React.FC<EnhancedExamCardsGroupProps> = ({
       averageScore
     };
     
-    console.log('calculateStats result:', stats);
     return stats;
   };
 
@@ -198,7 +195,6 @@ const EnhancedExamCardsGroup: React.FC<EnhancedExamCardsGroupProps> = ({
     const examDetail = examDetailsState.find(exam => exam.formId === examId);
     
     if (!examDetail) {
-      console.error('Exam detail not found for ID:', examId);
       return;
     }
 
@@ -211,18 +207,9 @@ const EnhancedExamCardsGroup: React.FC<EnhancedExamCardsGroupProps> = ({
     const hasPaid = paymentsState.some((payment) => payment.formId === examId && payment.paymentStatus === 'completed');
 
     // DEBUG: Log the values to see what's happening
-    console.log('🔍 Payment Debug (EnhancedExamCardsGroup):', {
-      examId,
-      paymentNeeded,
-      isProctored,
-      hasPaid,
-      paymentsLoaded,
-      studentPayments: paymentsState.filter(p => p.formId === examId)
-    });
 
     // If payment is needed and not paid, redirect to payments
     if (!hasPaid && paymentNeeded) {
-      console.log('💰 Redirecting to payments from EnhancedExamCardsGroup');
       navigate('/payments', { state: { highlightPaymentsEntry: examId } });
       return;
     }
@@ -236,7 +223,6 @@ const EnhancedExamCardsGroup: React.FC<EnhancedExamCardsGroupProps> = ({
     // if (process.env.NODE_ENV === 'development') {
     //   const examDuration = duration || 30; // Use actual duration or default to 30 minutes
     //   const productionUrl = `https://argus-talent-search.web.app/testing?formId=${examId}&isProctored=${isProctored}&examDuration=${examDuration}`;
-    //   console.log('EnhancedExamCardsGroup - Redirecting to production URL:', productionUrl);
     //   window.location.href = productionUrl;
     //   return;
     // }
@@ -305,20 +291,11 @@ const EnhancedExamCardsGroup: React.FC<EnhancedExamCardsGroupProps> = ({
   };
 
   useEffect(() => {
-    console.log('EnhancedExamCardsGroup useEffect triggered:', { 
-      uid, 
-      paymentsLoaded, 
-      examDetailsLoaded,
-      filterType,
-      showDashboardOverview 
-    });
     
     const loadPayments = async () => {
       const startTime = performance.now();
       try {
-        console.log('Loading payments for uid:', uid);
         const paymentsData = await getPayments(uid);
-        console.log('Payments data received:', paymentsData);
         if(paymentsData.length === 0) {
           dispatch(setPayments([]));
           setLoading(false);
@@ -328,7 +305,6 @@ const EnhancedExamCardsGroup: React.FC<EnhancedExamCardsGroupProps> = ({
         dispatch(setPayments(transformedData));
         setLoading(false);
       } catch (error: any) {
-        console.error('Error loading payments:', error);
         Sentry.withScope((scope) => {
           scope.setTag('location', 'EnhancedExamCardsGroup.loadPayments');
           scope.setExtra('email', auth.currentUser?.email);
@@ -350,41 +326,26 @@ const EnhancedExamCardsGroup: React.FC<EnhancedExamCardsGroupProps> = ({
     const loadExamDetails = async () => {
       const startTime = performance.now();
       try {
-        console.log('Loading exam details for uid:', uid);
-        console.log('Current user email:', auth.currentUser?.email);
-        console.log('Environment variables:', {
-          REACT_APP_GOOGLE_CLOUD_FUNCTIONS: process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS,
-          NODE_ENV: process.env.NODE_ENV
-        });
-        console.log('API URL will be:', `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}/students/getExamIds/${uid}`);
         
         // Check if we have an auth token
         try {
           const authToken = await authTokenHandler.getAuthToken();
-          console.log('Auth token obtained:', authToken ? 'Yes' : 'No');
           if (authToken) {
-            console.log('Auth token length:', authToken.length);
           }
         } catch (tokenError) {
-          console.error('Error getting auth token:', tokenError);
         }
         
         const { formLinks, completed, eligibility_at, result } = await getExamIds(uid);
-        console.log('Exam IDs received:', { formLinks, completed, eligibility_at, result });
         
         if (!formLinks || formLinks.length === 0) {
-          console.log('No form links found for uid:', uid);
           dispatch(setExamDetails({ examDetails: [], examDetailsLoaded: true }));
           setLoading(false);
           return;
         }
         
-        console.log('Fetching exam details for form links:', formLinks);
         const details = await getExamDetails(formLinks);
-        console.log('Exam details received:', details);
         
         if (!details || details.length === 0) {
-          console.log('No exam details received for form links');
           dispatch(setExamDetails({ examDetails: [], examDetailsLoaded: true }));
           setLoading(false);
           return;
@@ -393,7 +354,6 @@ const EnhancedExamCardsGroup: React.FC<EnhancedExamCardsGroupProps> = ({
         const validDetails: ExamDetailsPayload[] = details
           .filter((detail: any): detail is any => detail !== null && typeof detail === 'object')
           .map((detail: any, index) => {
-            console.log(`Processing exam detail ${index}:`, detail);
             const examData = {
               formId: formLinks[index],
               additionalInstructions: detail.additional_instructions,
@@ -411,20 +371,12 @@ const EnhancedExamCardsGroup: React.FC<EnhancedExamCardsGroupProps> = ({
               type_questions: detail.type_questions ? JSON.parse(detail.type_questions) : {},
             };
             
-            console.log(`Transformed exam data ${index}:`, examData);
             return examData;
           });
 
-        console.log('Final transformed exam details:', validDetails);
         dispatch(setExamDetails({ examDetails: validDetails, examDetailsLoaded: true }));
         setLoading(false);
       } catch (error: any) {
-        console.error('Error loading exam details:', error);
-        console.error('Error details:', {
-          message: error.message,
-          stack: error.stack,
-          response: error.response?.data
-        });
         Sentry.withScope((scope) => {
           scope.setTag('location', 'EnhancedExamCardsGroup.loadExamDetails');
           scope.setExtra('email', auth.currentUser?.email);
@@ -478,14 +430,6 @@ const EnhancedExamCardsGroup: React.FC<EnhancedExamCardsGroupProps> = ({
   }
 
   // Debug information
-  console.log('EnhancedExamCardsGroup render state:', {
-    uid,
-    examDetailsState: examDetailsState?.length || 0,
-    examDetailsLoaded,
-    paymentsLoaded,
-    loading,
-    error
-  });
 
   const stats = calculateStats();
   const transformedExams = examDetailsState.map(transformExamData);

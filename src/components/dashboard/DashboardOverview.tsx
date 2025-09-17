@@ -27,12 +27,6 @@ const ColumnChart: React.FC<{ data: { subject: string; score: number }[] }> = ({
   const maxScore = Math.max(...data.map(item => item.score));
   const chartMax = maxScore + 3; // Add 3 to give breathing room at the top
   
-  console.log('[ColumnChart] Debug info:', {
-    data,
-    maxScore,
-    chartMax,
-    dataLength: data.length
-  });
 
   return (
     <Box sx={{ p: 2 }}>
@@ -63,7 +57,6 @@ const ColumnChart: React.FC<{ data: { subject: string; score: number }[] }> = ({
           {(() => {
             // Create even intervals from 0 to chartMax
             const yAxisValues = [chartMax, Math.round(chartMax * 0.75), Math.round(chartMax * 0.5), Math.round(chartMax * 0.25), 0];
-            console.log('[ColumnChart] Y-axis calculation:', { maxScore, chartMax, yAxisValues });
             return yAxisValues.map((value) => (
               <Typography 
                 key={value} 
@@ -96,14 +89,6 @@ const ColumnChart: React.FC<{ data: { subject: string; score: number }[] }> = ({
             // Color coding based on relative performance
             const color = percentage >= 90 ? '#10b981' : percentage >= 70 ? '#f59e0b' : '#ef4444';
             
-            console.log(`[ColumnChart] Column ${index} (${item.subject}):`, {
-              score: item.score,
-              maxScore,
-              chartMax,
-              percentage: `${percentage.toFixed(2)}%`,
-              color,
-              height: `${((percentage / 100) * 160).toFixed(1)}px`
-            });
             
             return (
               <Box key={index} sx={{ 
@@ -262,7 +247,6 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExam
       try {
         navigate(path);
       } catch (error) {
-        console.error('Navigation failed:', error);
         // Fallback to window.location if React Router fails
         window.location.href = path;
       }

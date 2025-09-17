@@ -66,15 +66,20 @@ const FormEmbedding: React.FC<FormEmbeddingProps> = ({ setSubmitted, examDuratio
   useEffect(() => {
     const handleMessage = async (e: MessageEvent) => {
       if (typeof e.data === 'string' && e.data.includes('Tally.FormSubmitted')) {
+
         try {
           const data = JSON.parse(e.data);
           const student_uid = auth.currentUser?.uid || "<UNKNOWN_USER_ID>";
           const submission_id = data.payload.id;
           const submission_time = data.payload.createdAt;
           const form_id = data.payload.formId;
+
+
           setSubmitted(true);
 
+
           await runExamSubmissionTransaction(student_uid, submission_id, form_id, submission_time);
+
 
           dispatch(cleanupAudioCaptureResources());
           dispatch(cleanupFrameResources());
@@ -84,14 +89,16 @@ const FormEmbedding: React.FC<FormEmbeddingProps> = ({ setSubmitted, examDuratio
             document.exitFullscreen();
           }
           dispatch(resetExamDetails());
+
         } catch (error) {
+          
           Sentry.withScope((scope) => {
             scope.setTag('location', 'FormEmbedding.handleMessage');
             scope.setExtra('messageData', e.data);
             scope.setExtra('user', auth.currentUser);
+            scope.setExtra('exam_id', exam_id);
             Sentry.captureException(error);
           });
-          console.error('Error parsing message data:', error);
         }
       }
     };

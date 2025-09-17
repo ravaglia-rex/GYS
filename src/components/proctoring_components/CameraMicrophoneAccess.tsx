@@ -82,7 +82,7 @@ const CameraMicrophoneAccess: React.FC = () => {
             disabled={hasCameraAccess}
             style={{ transition: 'all 0.3s ease-in-out' }}
           >
-            <Video className="text-6xl" />
+            <Video className="text-6xl text-gray-700" />
           </button> {/* Camera Icon Button */}
           <button
             className={`hover:text-red-500 border border-gray-300 rounded-full p-2 ${hasMicrophoneAccess ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
@@ -90,7 +90,7 @@ const CameraMicrophoneAccess: React.FC = () => {
             disabled={hasMicrophoneAccess}
             style={{ transition: 'all 0.3s ease-in-out' }}
           >
-            <Mic className="text-6xl" />
+            <Mic className="text-6xl text-gray-700" />
           </button> {/* Microphone Icon Button */}
         </div>
         {hasCameraAccess && hasMicrophoneAccess && (

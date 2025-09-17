@@ -47,12 +47,6 @@ const ExamsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
 
   // Debug logging
-  console.log('ExamsPage render:', {
-    pathname,
-    uid,
-    activeTab,
-    currentUser: auth.currentUser?.email
-  });
 
   // Determine active tab based on current route
   useEffect(() => {

@@ -29,15 +29,12 @@ const Dashboard: React.FC = () => {
     
     try {
       setLoading(true);
-      console.log('Dashboard: Loading exam data for stats calculation');
       
       // Load exam IDs and details
       const { formLinks, completed, eligibility_at, result } = await getExamIds(uid);
-      console.log('Dashboard: Exam IDs loaded:', { formLinks, completed, eligibility_at, result });
       
       if (formLinks && formLinks.length > 0) {
         const details = await getExamDetails(formLinks);
-        console.log('Dashboard: Exam details loaded:', details);
         
         const validDetails = details
           .filter((detail: any): detail is any => detail !== null && typeof detail === 'object')
@@ -58,20 +55,17 @@ const Dashboard: React.FC = () => {
             type_questions: detail.type_questions ? JSON.parse(detail.type_questions) : {},
           }));
 
-        console.log('Dashboard: Transformed exam details:', validDetails);
         dispatch(setExamDetails({ examDetails: validDetails, examDetailsLoaded: true }));
         
         // Fetch latest exam results for spider chart
         await loadLatestExamResults(validDetails);
       } else {
-        console.log('Dashboard: No exam links found');
         dispatch(setExamDetails({ examDetails: [], examDetailsLoaded: true }));
         setLatestExamResults([]);
       }
 
       // Load payments
       const paymentsData = await getPayments(uid);
-      console.log('Dashboard: Payments loaded:', paymentsData);
       
       // Transform payment data to match the expected interface
       const transformedPayments = (paymentsData || []).map((payment: any) => ({
@@ -87,7 +81,6 @@ const Dashboard: React.FC = () => {
       dispatch(setPaymentsAction(transformedPayments));
       
     } catch (error) {
-      console.error('Dashboard: Error loading exam data:', error);
       Sentry.withScope((scope) => {
         scope.setTag('location', 'Dashboard.loadExamData');
         scope.setExtra('uid', uid);
@@ -108,7 +101,6 @@ const Dashboard: React.FC = () => {
       
       if (completedExamsWithResults.length === 0) {
         setLatestExamResults([]);
-        console.log('Dashboard: No completed exams with available results found');
         return;
       }
 
@@ -128,13 +120,10 @@ const Dashboard: React.FC = () => {
           score: score as number
         }));
         setLatestExamResults(chartData);
-        console.log('Dashboard: Latest exam results loaded:', chartData);
       } else {
         setLatestExamResults([]);
-        console.log('Dashboard: No result totals found for latest exam');
       }
     } catch (error) {
-      console.error('Dashboard: Error loading latest exam results:', error);
       setLatestExamResults([]);
     }
   };
@@ -150,41 +139,24 @@ const Dashboard: React.FC = () => {
 
   // Clear Redux state only when uid actually changes (user switches accounts)
   useEffect(() => {
-    console.log('Dashboard: UID changed to:', uid);
-    console.log('Dashboard: Previous UID was:', previousUid);
-    console.log('Dashboard: Current user:', auth.currentUser);
-    console.log('Dashboard: Auth state:', {
-      uid: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      displayName: auth.currentUser?.displayName
-    });
     
     // Only clear state if this is a different user (uid actually changed)
     if (uid && uid !== previousUid) {
-      console.log('Dashboard: Different user detected, clearing old data');
       dispatch(setExamDetails({ examDetails: [], examDetailsLoaded: false }));
       dispatch(setPayments([]));
       setPreviousUid(uid);
     } else if (uid && uid === previousUid) {
-      console.log('Dashboard: Same user, keeping existing data');
     }
   }, [uid, dispatch, previousUid]);
 
   // Log Redux state changes for debugging (separate useEffect to avoid infinite loops)
   useEffect(() => {
-    console.log('Dashboard: Redux state updated:', {
-      examDetailsCount: examDetailsState?.length || 0,
-      examDetailsLoaded,
-      hasData: examDetailsState && examDetailsState.length > 0
-    });
   }, [examDetailsState, examDetailsLoaded]);
 
   // Calculate real stats from exam data
   const calculateStats = () => {
-    console.log('Dashboard calculateStats called with examDetailsState:', examDetailsState);
     
     if (!examDetailsState || examDetailsState.length === 0) {
-      console.log('No exam details available, returning default stats');
       return {
         totalExams: 0,
         completedExams: 0,
@@ -229,7 +201,6 @@ const Dashboard: React.FC = () => {
       averageScore
     };
     
-    console.log('Calculated stats:', stats);
     return stats;
   };
 

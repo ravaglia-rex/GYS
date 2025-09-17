@@ -25,7 +25,6 @@ const SignOutButton: React.FC = () => {
         scope.setTag('location', 'SignOutButton.signOutUser');
         Sentry.captureException(error);
       });
-      console.log(error);
     });
   };
 

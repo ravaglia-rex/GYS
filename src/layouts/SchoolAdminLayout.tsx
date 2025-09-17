@@ -14,7 +14,7 @@ import {
 } from '@mui/material';
 import { 
   Menu as MenuIcon,
-  Notifications as NotificationsIcon,
+  // COMMENTED OUT - Notifications as NotificationsIcon,
   School as SchoolIcon,
   Dashboard as DashboardIcon,
   People as PeopleIcon,
@@ -27,7 +27,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { useSelector } from 'react-redux';
 import { RootState } from '../state_data/reducer';
-import NotificationsDialog from '../components/dashboard/NotificationsDialog';
+// COMMENTED OUT - import NotificationsDialog from '../components/dashboard/NotificationsDialog';
 
 const DRAWER_WIDTH = 280;
 const DRAWER_WIDTH_MINI = 88;
@@ -70,7 +70,7 @@ export default function SchoolAdminLayout({ children }: SchoolAdminLayoutProps) 
   const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  // COMMENTED OUT - const [notificationsOpen, setNotificationsOpen] = useState(false);
   const currentUser = auth.currentUser;
   const navigate = useNavigate();
   const location = useLocation();
@@ -91,13 +91,14 @@ export default function SchoolAdminLayout({ children }: SchoolAdminLayoutProps) 
     setSidebarCollapsed(!sidebarCollapsed);
   };
 
-  const handleNotificationsOpen = () => {
-    setNotificationsOpen(true);
-  };
+  // COMMENTED OUT - Notification handlers
+  // const handleNotificationsOpen = () => {
+  //   setNotificationsOpen(true);
+  // };
 
-  const handleNotificationsClose = () => {
-    setNotificationsOpen(false);
-  };
+  // const handleNotificationsClose = () => {
+  //   setNotificationsOpen(false);
+  // };
 
   const handleLogout = async () => {
     try {
@@ -150,8 +151,8 @@ export default function SchoolAdminLayout({ children }: SchoolAdminLayoutProps) 
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            {/* Notifications */}
-            <IconButton 
+            {/* COMMENTED OUT - Notifications */}
+            {/* <IconButton 
               color="inherit" 
               sx={{ color: 'rgba(255, 255, 255, 0.8)' }}
               onClick={handleNotificationsOpen}
@@ -159,7 +160,7 @@ export default function SchoolAdminLayout({ children }: SchoolAdminLayoutProps) 
               <Badge badgeContent={3} color="error">
                 <NotificationsIcon />
               </Badge>
-            </IconButton>
+            </IconButton> */}
 
             {/* Profile Avatar */}
             <IconButton
@@ -303,11 +304,11 @@ export default function SchoolAdminLayout({ children }: SchoolAdminLayoutProps) 
         </Box>
       </Box>
 
-      {/* Notifications Dialog */}
-      <NotificationsDialog
+      {/* COMMENTED OUT - Notifications Dialog */}
+      {/* <NotificationsDialog
         open={notificationsOpen}
         onClose={handleNotificationsClose}
-      />
+      /> */}
     </Box>
   );
 }

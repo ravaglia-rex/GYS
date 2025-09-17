@@ -30,6 +30,7 @@ const Phase2FormEmbedding: React.FC<Phase2FormEmbeddingProps> = ({ setSubmitted,
   const [submissionComplete, setSubmissionComplete] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(examDuration * 60);
 
+
   useEffect(() => {
     const widgetScriptSrc = 'https://tally.so/widgets/embed.js';
 
@@ -56,42 +57,58 @@ const Phase2FormEmbedding: React.FC<Phase2FormEmbeddingProps> = ({ setSubmitted,
     if (document.querySelector(`script[src="${widgetScriptSrc}"]`) === null) {
       const script = document.createElement('script');
       script.src = widgetScriptSrc;
-      script.onload = load;
-      script.onerror = load;
+      script.onload = () => {
+        load();
+      };
+      script.onerror = (error) => {
+        load();
+      };
       document.body.appendChild(script);
       return;
+    } else {
+      load();
     }
   }, [loading, exam_id]);
 
   useEffect(() => {
     const handleMessage = async (e: MessageEvent) => {
+      
       if (typeof e.data === 'string' && e.data.includes('Tally.FormSubmitted')) {
+        
         try {
           const data = JSON.parse(e.data);
           const student_uid = auth.currentUser?.uid || "<UNKNOWN_USER_ID>";
           const submission_id = data.payload.id;
           const submission_time = data.payload.createdAt;
           const form_id = data.payload.formId;
+          
+
           setSubmitted(true);
 
+
           await runPhase2ExamSubmissionTransaction(student_uid, submission_id, form_id, submission_time);
+
 
           dispatch(cleanupAudioCaptureResources());
           dispatch(cleanupFrameResources());
           
           setSubmissionComplete(true);
+          
           if(document.fullscreenElement){
             document.exitFullscreen();
           }
+          
           dispatch(resetExamDetails());
+          
         } catch (error) {
+          
           Sentry.withScope((scope) => {
             scope.setTag('location', 'Phase2FormEmbedding.handleMessage');
             scope.setExtra('messageData', e.data);
             scope.setExtra('user', auth.currentUser);
+            scope.setExtra('exam_id', exam_id);
             Sentry.captureException(error);
           });
-          console.error('Error parsing message data:', error);
         }
       }
     };
@@ -116,8 +133,10 @@ const Phase2FormEmbedding: React.FC<Phase2FormEmbeddingProps> = ({ setSubmitted,
       });
     }, 1000);
 
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+      clearInterval(interval);
+    };
+  }, [examDuration]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -125,20 +144,23 @@ const Phase2FormEmbedding: React.FC<Phase2FormEmbeddingProps> = ({ setSubmitted,
     return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
+
   return (
     <div>
       {!loading && exam_id && (
-        <iframe 
-          data-tally-src={`https://tally.so/embed/${exam_id}?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1`}
-          loading="lazy"
-          width="100%"
-          height="216"
-          frameBorder={0}
-          marginHeight={0}
-          marginWidth={0}
-          title="Argus Talent Exam - Phase 2"
-        >
-        </iframe>
+        <>
+          <iframe 
+            data-tally-src={`https://tally.so/embed/${exam_id}?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1`}
+            loading="lazy"
+            width="100%"
+            height="216"
+            frameBorder={0}
+            marginHeight={0}
+            marginWidth={0}
+            title="Argus Talent Exam - Phase 2"
+          >
+          </iframe>
+        </>
       )}
       <div id="timerContainer" style={{ position: 'fixed', top: '10px', right: '10px', backgroundColor: 'white', padding: '10px', borderRadius: '5px', display: 'flex', alignItems: 'center', gap: '10px' }}>
         <svg className="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="black" width="40px" height="40px"><path d="M12 1C5.924 1 1 5.924 1 12s4.924 11 11 11 11-4.924 11-11S18.076 1 12 1zm0 20c-4.963 0-9-4.037-9-9s4.037-9 9-9 9 4.037 9 9-4.037 9-9 9zm.5-13H11v7h5v-1.5h-3.5z"/></svg>
@@ -149,23 +171,27 @@ const Phase2FormEmbedding: React.FC<Phase2FormEmbeddingProps> = ({ setSubmitted,
         </table>
       </div>
       {submissionComplete && (
-        <div style={{ marginTop: '20px', textAlign: 'center' }}>
-          <p>Phase 2 exam submitted successfully! You can now navigate to the dashboard.</p>
-          <button 
-            onClick={() => navigate('/dashboard')} 
-            style={{ 
-              padding: '10px 20px', 
-              fontSize: '16px', 
-              backgroundColor: '#007BFF', 
-              color: '#fff', 
-              border: 'none', 
-              borderRadius: '5px', 
-              cursor: 'pointer' 
-            }}
-          >
-            Go to Dashboard
-          </button>
-        </div>
+        <>
+          <div style={{ marginTop: '20px', textAlign: 'center' }}>
+            <p>Phase 2 exam submitted successfully! You can now navigate to the dashboard.</p>
+            <button 
+              onClick={() => {
+                navigate('/dashboard');
+              }} 
+              style={{ 
+                padding: '10px 20px', 
+                fontSize: '16px', 
+                backgroundColor: '#007BFF', 
+                color: '#fff', 
+                border: 'none', 
+                borderRadius: '5px', 
+                cursor: 'pointer' 
+              }}
+            >
+              Go to Dashboard
+            </button>
+          </div>
+        </>
       )}
     </div>
   );

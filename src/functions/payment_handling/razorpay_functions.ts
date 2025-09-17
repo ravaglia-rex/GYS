@@ -1,5 +1,5 @@
 import axios from "axios";
-import { RAZORPAY_APIS, CREATE_RAZORPAY_CUSTOMER, CREATE_RAZORPAY_ORDER, GET_RAZORPAY_PAYEES, STUDENTS_APIS, MARK_PAYMENT_PENDING } from "../../constants/constants";
+import { RAZORPAY_APIS, CREATE_RAZORPAY_CUSTOMER, CREATE_RAZORPAY_ORDER, GET_RAZORPAY_PAYEES, STUDENTS_APIS, MARK_PAYMENT_PENDING, DEV_MODE_PAYMENT } from "../../constants/constants";
 import authTokenHandler from "../auth_token/auth_token_handler";
 
 export const handleCreateCustomer = async (
@@ -169,6 +169,53 @@ export const getRazorpayPayees = async (
       }
     };
     
+    const response = await axios.request(config);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Dev mode payment bypass function
+export const devModePayment = async (
+  address_line_1: string,
+  amount: number,
+  city: string,
+  currency: string,
+  email: string,
+  exam_title: string,
+  form_id: string,
+  payee_email: string,
+  payee_name: string,
+  state: string,
+  student_name: string,
+  uid: string,
+  zipcode: string
+) => {
+  try {
+    // Dev mode payment doesn't require auth token
+    const config = {
+      method: 'post',
+      url: `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${RAZORPAY_APIS}${DEV_MODE_PAYMENT}`,
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      data: {
+        address_line_1: address_line_1,
+        amount: amount,
+        city: city,
+        currency: currency,
+        email: email,
+        exam_title: exam_title,
+        form_id: form_id,
+        payee_email: payee_email,
+        payee_name: payee_name,
+        state: state,
+        student_name: student_name,
+        uid: uid,
+        zipcode: zipcode
+      }
+    };
     const response = await axios.request(config);
     return response.data;
   } catch (error) {

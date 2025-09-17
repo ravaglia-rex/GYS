@@ -12,7 +12,7 @@ import {
 } from '@mui/material';
 import { 
   User, 
-  Bell, 
+  // COMMENTED OUT - Bell, 
   Shield, 
   CreditCard, 
   Globe,
@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import ProfileSettings from '../../components/settings/ProfileSettings';
-import NotificationSettings from '../../components/settings/NotificationSettings';
+// COMMENTED OUT - import NotificationSettings from '../../components/settings/NotificationSettings';
 import SecurityPrivacySettings from '../../components/settings/SecurityPrivacySettings';
 import { auth } from '../../firebase/firebase';
 
@@ -60,11 +60,12 @@ const SettingsPage: React.FC = () => {
       icon: <User size={20} />,
       description: 'Manage your personal information and preferences'
     },
-    {
-      label: 'Notifications',
-      icon: <Bell size={20} />,
-      description: 'Control how you receive notifications and updates'
-    },
+    // COMMENTED OUT - Notifications tab
+    // {
+    //   label: 'Notifications',
+    //   icon: <Bell size={20} />,
+    //   description: 'Control how you receive notifications and updates'
+    // },
     {
       label: 'Security & Privacy',
       icon: <Shield size={20} />,
@@ -222,11 +223,13 @@ const SettingsPage: React.FC = () => {
                 <ProfileSettings />
               </TabPanel>
               
+              {/* COMMENTED OUT - Notification Settings
               <TabPanel value={activeTab} index={1}>
                 <NotificationSettings />
               </TabPanel>
+              */}
               
-              <TabPanel value={activeTab} index={2}>
+              <TabPanel value={activeTab} index={1}>
                 <SecurityPrivacySettings />
               </TabPanel>
             </Box>

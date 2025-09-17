@@ -32,23 +32,14 @@ const AuthenticationPage: React.FC = () => {
                     <div className="w-full max-w-md">
                         <div className="mb-8">
                             <div className="mt-1">
-                                <h1 className="text-3xl font-semibold leading-snug">Focused. Fair. Future-ready.</h1>
+                                <h1 className="text-3xl font-semibold leading-snug">Unlock Opportunities. Earn Recognition.</h1>
                                 <p className="mt-2 text-gray-300 text-sm">
-                                    Take secure, proctored assessments with confidence. Advanced monitoring keeps the
-                                    exam fair while you focus on doing your best.
+                                Join a global community of young scholars and take the Talent Search to showcase your strengths, earn scholarships, and unlock opportunities—through a globally recognized exam.
+
                                 </p>
                             </div>
                         </div>
-                        {emailExists === null && (
-                            <EmailEntryForm
-                                setEmail={setEmail}
-                                setEmailExists={setEmailExists}
-                            />
-                        )}
-                        {emailExists === true && <SignInForm email={email} />}
-                        {emailExists === false && (
-                            <SignUpForm email={email} setEmailExists={setEmailExists} />
-                        )}
+                        <EmailEntryForm />
                     </div>
                 </div>
                 <div className="fixed bottom-4 right-4 text-xs text-gray-400">2025 Argus AI</div>

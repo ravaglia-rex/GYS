@@ -117,19 +117,19 @@ const SecuritySettings: React.FC = () => {
       statusColor: securitySettings.twoFactorAuth ? 'success' : 'default',
       action: (
         <Button
-          variant={securitySettings.twoFactorAuth ? "outlined" : "contained"}
+          variant="outlined"
           size="small"
-          onClick={() => handleSecuritySettingChange('twoFactorAuth', !securitySettings.twoFactorAuth)}
+          disabled
           sx={{
-            backgroundColor: securitySettings.twoFactorAuth ? 'transparent' : '#8b5cf6',
-            borderColor: '#8b5cf6',
-            color: securitySettings.twoFactorAuth ? '#8b5cf6' : 'white',
+            borderColor: '#6b7280',
+            color: '#6b7280',
+            cursor: 'not-allowed',
             '&:hover': {
-              backgroundColor: securitySettings.twoFactorAuth ? 'rgba(139, 92, 246, 0.1)' : '#7c3aed',
+              backgroundColor: 'transparent',
             }
           }}
         >
-          {securitySettings.twoFactorAuth ? 'Disable' : 'Enable'}
+          Coming Soon
         </Button>
       )
     },
@@ -155,18 +155,21 @@ const SecuritySettings: React.FC = () => {
       status: securitySettings.loginAlerts ? 'Active' : 'Inactive',
       statusColor: securitySettings.loginAlerts ? 'success' : 'default',
       action: (
-        <Switch
-          checked={securitySettings.loginAlerts}
-          onChange={(e) => handleSecuritySettingChange('loginAlerts', e.target.checked)}
+        <Button
+          variant="outlined"
+          size="small"
+          disabled
           sx={{
-            '& .MuiSwitch-switchBase.Mui-checked': {
-              color: '#10b981',
-            },
-            '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-              backgroundColor: '#10b981',
-            },
+            borderColor: '#6b7280',
+            color: '#6b7280',
+            cursor: 'not-allowed',
+            '&:hover': {
+              backgroundColor: 'transparent',
+            }
           }}
-        />
+        >
+          Coming Soon
+        </Button>
       )
     }
   ];
@@ -442,6 +445,7 @@ const SecuritySettings: React.FC = () => {
       </Box>
 
       {/* Additional Security Settings */}
+      {/* COMMENTED OUT - Additional Security Options
       <Card sx={{
         background: 'rgba(30, 41, 59, 0.6)',
         border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -514,6 +518,7 @@ const SecuritySettings: React.FC = () => {
           </Box>
         </CardContent>
       </Card>
+      */}
 
       {/* Security Tips */}
       <Box sx={{ mt: 4, p: 3, borderRadius: 2, backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)' }}>

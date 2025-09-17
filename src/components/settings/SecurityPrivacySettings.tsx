@@ -144,19 +144,19 @@ const SecurityPrivacySettings: React.FC = () => {
       icon: <Smartphone size={20} />,
       action: (
         <Button
-          variant={securitySettings.twoFactorAuth ? "outlined" : "contained"}
+          variant="outlined"
           size="small"
-          onClick={() => handleSecuritySettingChange('twoFactorAuth', !securitySettings.twoFactorAuth)}
+          disabled
           sx={{
-            backgroundColor: securitySettings.twoFactorAuth ? 'transparent' : '#10b981',
-            borderColor: '#10b981',
-            color: securitySettings.twoFactorAuth ? '#10b981' : 'white',
+            borderColor: '#6b7280',
+            color: '#6b7280',
+            cursor: 'not-allowed',
             '&:hover': {
-              backgroundColor: securitySettings.twoFactorAuth ? 'rgba(16, 185, 129, 0.1)' : '#059669',
+              backgroundColor: 'transparent',
             }
           }}
         >
-          {securitySettings.twoFactorAuth ? 'Disable' : 'Enable'}
+          Coming Soon
         </Button>
       )
     },
@@ -178,18 +178,21 @@ const SecurityPrivacySettings: React.FC = () => {
       description: 'Get notified of new login attempts',
       icon: <Shield size={20} />,
       action: (
-        <Switch
-          checked={securitySettings.loginAlerts}
-          onChange={(e) => handleSecuritySettingChange('loginAlerts', e.target.checked)}
+        <Button
+          variant="outlined"
+          size="small"
+          disabled
           sx={{
-            '& .MuiSwitch-switchBase.Mui-checked': {
-              color: '#10b981',
-            },
-            '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-              backgroundColor: '#10b981',
-            },
+            borderColor: '#6b7280',
+            color: '#6b7280',
+            cursor: 'not-allowed',
+            '&:hover': {
+              backgroundColor: 'transparent',
+            }
           }}
-        />
+        >
+          Coming Soon
+        </Button>
       )
     }
   ];
@@ -630,6 +633,7 @@ const SecurityPrivacySettings: React.FC = () => {
       </Box>
       </Box>     
     {/* Additional Security Settings */}
+    {/* COMMENTED OUT - Additional Security Options
       <Card sx={{
         background: 'rgba(30, 41, 59, 0.8)',
         border: '1px solid rgba(255, 255, 255, 0.15)',
@@ -702,6 +706,7 @@ const SecurityPrivacySettings: React.FC = () => {
           </Box>
         </CardContent>
       </Card>
+    */}
 
       {/* Security Tips */}
       <Box sx={{ mt: 4, p: 3, borderRadius: 2, backgroundColor: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.4)' }}>

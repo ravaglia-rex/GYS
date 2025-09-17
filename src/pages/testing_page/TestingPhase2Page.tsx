@@ -20,18 +20,23 @@ const TestingPhase2Page: React.FC = () => {
   const [isProctored, setIsProctored] = useState<boolean>(false);
   const [examDuration, setExamDuration] = useState<number>(0);
 
+
   useEffect(() => {
+    
     setIsProctored(storedIsProctored === 'true');
     const parseExamDuration = Number(storedExamDuration);
     if(!isNaN(parseExamDuration) && parseExamDuration > 0) {
       setExamDuration(parseExamDuration);
+    } else {
     }
     setIsBuffering(false);
+    
   }, [storedIsProctored, storedExamDuration]);
 
   useEffect(() => {
     if (!isProctored) {
       dispatch(setLoadState(false));
+    } else {
     }
   }, [isProctored, dispatch]);
 
@@ -51,9 +56,13 @@ const TestingPhase2Page: React.FC = () => {
           </>
         ) : null}
         {loading || isBuffering ? (
-          <BigSpinner />
+          <>
+            <BigSpinner />
+          </>
         ) : (
-          <Phase2FormEmbedding setSubmitted={setIsSubmitted} examDuration={examDuration}/>
+          <>
+            <Phase2FormEmbedding setSubmitted={setIsSubmitted} examDuration={examDuration}/>
+          </>
         )}
       </div>
     </Sentry.ErrorBoundary>

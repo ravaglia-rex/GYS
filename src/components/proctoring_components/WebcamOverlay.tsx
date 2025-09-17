@@ -59,9 +59,13 @@ const WebcamOverlay: React.FC = () => {
       }
 
       // Set canvas dimensions to match video dimensions
-      if (video) {
+      if (video && video.videoWidth > 0 && video.videoHeight > 0) {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
+      } else {
+        // If video dimensions are not ready, use fallback dimensions
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
       }
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -97,11 +101,17 @@ const WebcamOverlay: React.FC = () => {
       video.addEventListener('play', () => {
         drawOutline();
       });
+      
+      // Also listen for loadedmetadata to ensure video dimensions are ready
+      video.addEventListener('loadedmetadata', () => {
+        drawOutline();
+      });
     }
 
     return () => {
       if (video) {
         video.removeEventListener('play', drawOutline);
+        video.removeEventListener('loadedmetadata', drawOutline);
       }
     };
   }, [isVideoPlaying, isModelLoaded]);
@@ -145,9 +155,13 @@ const WebcamOverlay: React.FC = () => {
       const canvas = canvasRef.current;
       const worker = workerRef.current;
 
-      if (video && canvas && worker) {
+      if (video && canvas && worker && video.videoWidth > 0 && video.videoHeight > 0) {
         const ctx = canvas.getContext('2d');
         if (ctx) {
+          // Set canvas dimensions to match video dimensions
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
           const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
           worker.postMessage({

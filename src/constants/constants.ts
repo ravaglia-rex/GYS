@@ -62,8 +62,10 @@ export const FETCH_SCHOOL_ADMIN_DATA='/getSchoolAdminDetails';
 
 export const FETCH_RESULT_TOTALS='/getResultTotals';
 export const FETCH_PHASE_1_RESULT_TOTALS='/getPhase1Results';
+export const FETCH_PHASE_2_RESULT_TOTALS='/getPhase2Results';
 
 export const CREATE_RAZORPAY_CUSTOMER='/createCustomer';
 export const CREATE_RAZORPAY_ORDER='/createOrder';
 export const GET_RAZORPAY_PAYEES='/getPayeeDetails';
 export const MARK_PAYMENT_PENDING='/markPaymentPending';
+export const DEV_MODE_PAYMENT='/devModePayment';

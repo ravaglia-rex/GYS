@@ -65,7 +65,6 @@ const ProfileSettings: React.FC = () => {
       if (currentUser?.uid) {
         try {
           const userData = await getStudent(currentUser.uid);
-          console.log('Fetched user data:', userData); // Debug log
           setOriginalGrade(userData.grade || null);
           setFormData(prev => ({
             ...prev,
@@ -83,34 +82,24 @@ const ProfileSettings: React.FC = () => {
           // Fetch school name if we have a school_id
           if (userData.school_id) {
             try {
-              console.log('Fetching school details for ID:', userData.school_id);
               const schoolData = await getSchoolDetails(userData.school_id);
-              console.log('School data received:', schoolData);
-              console.log('School data type:', typeof schoolData);
-              console.log('School data keys:', Object.keys(schoolData || {}));
               
               if (schoolData && typeof schoolData === 'string') {
                 // API returns the school name directly as a string
                 setSchoolName(schoolData);
-                console.log('Setting school name to:', schoolData);
               } else if (schoolData && schoolData.school_name) {
                 // Fallback: API returns object with school_name property
                 setSchoolName(schoolData.school_name);
-                console.log('Setting school name to:', schoolData.school_name);
               } else {
-                console.log('No school name found in response, using school_id as fallback');
                 setSchoolName(userData.school_id);
               }
             } catch (error) {
-              console.error('Error fetching school name:', error);
               setSchoolName(userData.school_id || '');
             }
           } else {
-            console.log('No school_id found in user data');
             setSchoolName('');
           }
         } catch (error) {
-          console.error('Error fetching user data:', error);
         }
       }
     };
@@ -176,7 +165,6 @@ const ProfileSettings: React.FC = () => {
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {
-      console.error('Error saving profile:', error);
     } finally {
       setIsSaving(false);
     }
@@ -186,7 +174,6 @@ const ProfileSettings: React.FC = () => {
     const file = event.target.files?.[0];
     if (file) {
       // Handle avatar upload logic here
-      console.log('Avatar file:', file);
     }
   };
 

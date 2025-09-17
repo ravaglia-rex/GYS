@@ -18,11 +18,9 @@ const Phase2TestPage: React.FC = () => {
       );
       
       setTestResult(`✅ Success: ${JSON.stringify(result, null, 2)}`);
-      console.log("✅ Phase 2 submission test result:", result);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       setTestResult(`❌ Error: ${errorMessage}`);
-      console.error("❌ Phase 2 submission test error:", error);
     } finally {
       setIsLoading(false);
     }

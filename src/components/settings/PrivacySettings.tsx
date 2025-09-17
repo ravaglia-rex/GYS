@@ -91,7 +91,6 @@ const PrivacySettings: React.FC = () => {
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {
-      console.error('Error saving privacy settings:', error);
     } finally {
       setIsSaving(false);
     }
@@ -99,13 +98,11 @@ const PrivacySettings: React.FC = () => {
 
   const handleExportData = () => {
     // Simulate data export
-    console.log('Exporting data...');
     alert('Data export started. You will receive an email when it\'s ready.');
   };
 
   const handleDeleteAccount = () => {
     if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
-      console.log('Account deletion requested...');
       alert('Account deletion request submitted. Our team will contact you within 24 hours.');
     }
   };

@@ -17,7 +17,6 @@ const AuthActionPage: React.FC = () => {
     const actionCode = searchParams.get('oobCode');
 
     useEffect(() => {
-        console.log("mode: ", mode);
         if (mode === 'verifyEmail' && actionCode) {
             setVerifyEmailPage(true);
         } else if(mode === 'resetPassword' && actionCode) {

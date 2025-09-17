@@ -12,13 +12,13 @@ import {
   Badge
 } from '@mui/material';
 import { 
-  Menu as MenuIcon,
-  Notifications as NotificationsIcon
+  Menu as MenuIcon
+  // COMMENTED OUT - Notifications as NotificationsIcon
 } from '@mui/icons-material';
 import { auth } from '../firebase/firebase';
 import { useNavigate } from 'react-router-dom';
 import SidebarNavigation from '../layouts/SidebarNavigation';
-import NotificationsDialog from '../components/dashboard/NotificationsDialog';
+// COMMENTED OUT - import NotificationsDialog from '../components/dashboard/NotificationsDialog';
 
 const DRAWER_WIDTH = 280;
 const DRAWER_WIDTH_MINI = 88;
@@ -32,7 +32,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  // COMMENTED OUT - const [notificationsOpen, setNotificationsOpen] = useState(false);
   const currentUser = auth.currentUser;
   const navigate = useNavigate();
 
@@ -44,13 +44,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     setSidebarCollapsed(!sidebarCollapsed);
   };
 
-  const handleNotificationsOpen = () => {
-    setNotificationsOpen(true);
-  };
+  // COMMENTED OUT - Notification handlers
+  // const handleNotificationsOpen = () => {
+  //   setNotificationsOpen(true);
+  // };
 
-  const handleNotificationsClose = () => {
-    setNotificationsOpen(false);
-  };
+  // const handleNotificationsClose = () => {
+  //   setNotificationsOpen(false);
+  // };
 
   const drawerWidth = sidebarCollapsed ? DRAWER_WIDTH_MINI : DRAWER_WIDTH;
 
@@ -84,8 +85,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            {/* Notifications */}
-            <IconButton 
+            {/* COMMENTED OUT - Notifications */}
+            {/* <IconButton 
               color="inherit" 
               sx={{ color: 'rgba(255, 255, 255, 0.8)' }}
               onClick={handleNotificationsOpen}
@@ -93,7 +94,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               <Badge badgeContent={3} color="error">
                 <NotificationsIcon />
               </Badge>
-            </IconButton>
+            </IconButton> */}
 
             {/* Profile Avatar - Clickable to go to profile */}
             <IconButton
@@ -160,11 +161,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </Box>
       </Box>
 
-      {/* Notifications Dialog */}
-      <NotificationsDialog
+      {/* COMMENTED OUT - Notifications Dialog */}
+      {/* <NotificationsDialog
         open={notificationsOpen}
         onClose={handleNotificationsClose}
-      />
+      /> */}
     </Box>
   );
 }

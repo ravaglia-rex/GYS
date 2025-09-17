@@ -1,26 +1,19 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { Card, CardContent, Typography, Box, Button, Chip, Table, TableBody, TableCell, TableFooter, TableRow, IconButton } from '@mui/material';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { Card, CardContent, Typography, Box, Button, Chip, Table, TableBody, TableCell, TableFooter, TableRow } from '@mui/material';
 import { 
   CheckCircle, 
   XCircle, 
   Play,
   Eye,
-  RefreshCw,
-  Clock
+  Clock,
+  CreditCard
 } from 'lucide-react';
-import { fetchResultTotals, fetchPhase1ResultTotals } from '../../db/examResponsesCollection';
+import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import { RootState } from '../../state_data/reducer';
+import { fetchResultTotals, fetchPhase1ResultTotals, fetchPhase2ResultTotals } from '../../db/examResponsesCollection';
 import { getCurrentExamResult } from '../../db/studentExamMappings';
 
-// Add CSS for spinning animation
-const spinningStyle = {
-  '@keyframes spin': {
-    '0%': { transform: 'rotate(0deg)' },
-    '100%': { transform: 'rotate(360deg)' }
-  },
-  '&.animate-spin': {
-    animation: 'spin 1s linear infinite'
-  }
-};
 
 interface Exam {
   id: string;
@@ -58,12 +51,23 @@ const EnhancedExamCard: React.FC<{
   onViewResults,
   uid
 }) => {
+  const navigate = useNavigate();
+  const payments = useSelector((state: RootState) => state.studentPayments.payments);
   const [resultTotals, setResultTotals] = useState<ResultTotals | null>(null);
-  const [loadingResults, setLoadingResults] = useState(false);
   const [currentResult, setCurrentResult] = useState<boolean | null>(null);
-  const [isLoadingResult, setIsLoadingResult] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const footerRef = useRef<HTMLDivElement>(null);
+
+  // Check if this is a Phase 2 exam
+  const isPhase2Exam = useCallback(() => {
+    const isPhase2 = exam.title?.toLowerCase().includes('challenge') || 
+                     exam.title?.toLowerCase().includes('phase 2') ||
+                     exam.id === 'mVy95J'; // Your actual Phase 2 form ID from the logs
+    
+    // Debug logging
+    
+    return isPhase2;
+  }, [exam.title, exam.id]);
 
   // Function to scroll to footer
   const scrollToFooter = () => {
@@ -76,32 +80,23 @@ const EnhancedExamCard: React.FC<{
   };
 
   // Function to fetch current result from Firebase
-  const fetchCurrentResult = async () => {
+  const fetchCurrentResult = useCallback(async () => {
     if (!exam.completed || !uid) return;
     
-    console.log(`[EnhancedExamCard] fetchCurrentResult: Starting fetch for uid=${uid}, examId=${exam.id}`);
-    
-    setIsLoadingResult(true);
     try {
       const resultData = await getCurrentExamResult(uid, exam.id);
-      console.log('[EnhancedExamCard] fetchCurrentResult: Firebase result fetched', resultData);
       
       setCurrentResult(resultData.result);
       setLastUpdated(new Date());
     } catch (error) {
-      console.error('[EnhancedExamCard] fetchCurrentResult: Error fetching current result:', error);
       // Keep the existing result if fetch fails
-    } finally {
-      setIsLoadingResult(false);
     }
-  };
+  }, [exam.completed, uid, exam.id]);
 
   // Initialize with cached result if available
   useEffect(() => {
-    console.log('[EnhancedExamCard] useEffect: exam.completed, exam.result, currentResult', exam.completed, exam.result, currentResult);
     
     if (exam.completed && currentResult === null && exam.result !== null && exam.result !== undefined) {
-      console.log('[EnhancedExamCard] Using cached exam.result value as initial result:', exam.result);
       setCurrentResult(exam.result);
       setLastUpdated(new Date());
     }
@@ -109,12 +104,11 @@ const EnhancedExamCard: React.FC<{
 
   // Effect to fetch current result on mount/refresh
   useEffect(() => {
-    console.log('[EnhancedExamCard] useEffect: Fetching current result on mount/refresh. exam.completed:', exam.completed);
     
     if (exam.completed && uid) {
       fetchCurrentResult();
     }
-  }, [exam.completed, uid, exam.id]);
+  }, [exam.completed, uid, exam.id, fetchCurrentResult]);
 
   // Fetch detailed results when exam is completed
   useEffect(() => {
@@ -125,6 +119,9 @@ const EnhancedExamCard: React.FC<{
           if (exam.id === 'npByEB') {
             // Phase 1 exam
             results = await fetchPhase1ResultTotals(uid);
+          } else if (isPhase2Exam()) {
+            // Phase 2 exam
+            results = await fetchPhase2ResultTotals(uid, exam.id);
           } else {
             // Other exams
             results = await fetchResultTotals(uid, exam.id);
@@ -132,15 +129,15 @@ const EnhancedExamCard: React.FC<{
           
           if (results) {
             setResultTotals(results);
+          } else {
           }
         } catch (error) {
-          console.error('Error fetching results:', error);
         }
       }
     };
 
     getResultTotals();
-  }, [exam.completed, exam.id, uid]);
+  }, [exam.completed, exam.id, uid, isPhase2Exam]);
 
   // Check if qualified (for phase 1 exam)
   const isQualified = () => {
@@ -148,6 +145,16 @@ const EnhancedExamCard: React.FC<{
       // For phase 1, check if overallTotal meets qualification threshold
       // You can adjust this threshold as needed
       return resultTotals.overallTotal >= 70; // Example: 70 points to qualify
+    }
+    
+    // For Phase 2 exams, if we have results, consider it qualified
+    if (isPhase2Exam() && resultTotals) {
+      return true; // Phase 2 exams with results are considered qualified
+    }
+    
+    // For Phase 2 exams without results, show as not qualified (evaluation in progress)
+    if (isPhase2Exam() && !resultTotals) {
+      return false;
     }
     
     // Use currentResult from Firebase if available, otherwise fall back to exam.result
@@ -158,6 +165,11 @@ const EnhancedExamCard: React.FC<{
   // Check if evaluation is in progress
   const isEvaluationInProgress = () => {
     if (!exam.completed) return false;
+    
+    // For Phase 2 exams, if we have results (resultTotals), evaluation is complete
+    if (isPhase2Exam()) {
+      return !resultTotals; // Phase 2 exams without results are in progress
+    }
     
     // Use currentResult from Firebase if available, otherwise fall back to exam.result
     const result = currentResult !== null ? currentResult : exam.result;
@@ -208,6 +220,20 @@ const EnhancedExamCard: React.FC<{
     const eligibilityDate = new Date(exam.eligibilityDate);
     const currentDate = new Date();
     return currentDate >= eligibilityDate;
+  };
+
+
+  // Check if payment has been completed for this exam
+  const hasPaidForExam = () => {
+    return payments.some((payment) => 
+      payment.formId === exam.id && 
+      (payment.paymentStatus === 'success' || payment.paymentStatus === 'completed')
+    );
+  };
+
+  // Handle proceed to payment for Phase 2 exams
+  const handleProceedToPayment = () => {
+    navigate('/payments', { state: { highlightPaymentsEntry: exam.id } });
   };
 
   return (
@@ -334,7 +360,6 @@ const EnhancedExamCard: React.FC<{
                       </Box>
                     );
                   } catch (error) {
-                    console.error('Error parsing exam detail:', error, detailString);
                     return null;
                   }
                 })}
@@ -451,7 +476,7 @@ const EnhancedExamCard: React.FC<{
           </Box>
         )}
 
-        {/* Qualification Status - Displayed at bottom center of card */}
+        {/* Status Display - Different for Phase 2 vs other exams */}
         {exam.completed && (
           <Box sx={{ 
             display: 'flex', 
@@ -462,86 +487,187 @@ const EnhancedExamCard: React.FC<{
             p: 2,
             borderTop: '1px solid rgba(255, 255, 255, 0.1)'
           }}>
-            {isEvaluationInProgress() ? (
-              // Evaluation in Progress state
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Clock size={20} color="#3b82f6" />
-                  <Typography variant="body1" sx={{ 
-                    color: '#3b82f6', 
-                    fontWeight: 600 
-                  }}>
-                    Evaluation in Progress
-                  </Typography>
-                </Box>
-                
-                {/* Last checked timestamp */}
-                {lastUpdated && (
-                  <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)', fontStyle: 'italic' }}>
-                    Last checked: {lastUpdated.toLocaleTimeString()}
-                  </Typography>
-                )}
-              </Box>
-            ) : (
-              // Result available state
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  {isQualified() ? (
-                    <CheckCircle size={20} color="#10b981" />
-                  ) : (
-                    <XCircle size={20} color="#ef4444" />
+            {isPhase2Exam() ? (
+              // Phase 2 exam status - only show if evaluation is in progress
+              isEvaluationInProgress() && (
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Clock size={20} color="#3b82f6" />
+                    <Typography variant="body1" sx={{ 
+                      color: '#3b82f6', 
+                      fontWeight: 600 
+                    }}>
+                      Evaluation in Progress
+                    </Typography>
+                  </Box>
+                  
+                  {/* Last checked timestamp */}
+                  {lastUpdated && (
+                    <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)', fontStyle: 'italic' }}>
+                      Last checked: {lastUpdated.toLocaleTimeString()}
+                    </Typography>
                   )}
-                  <Typography variant="body1" sx={{ 
-                    color: isQualified() ? '#10b981' : '#ef4444', 
-                    fontWeight: 600 
-                  }}>
-                    {isQualified() ? 'Qualified' : 'Not Qualified'}
-                  </Typography>
                 </Box>
-                
-                {/* Last updated timestamp */}
-                {lastUpdated && (
-                  <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)', fontStyle: 'italic' }}>
-                    Last updated: {lastUpdated.toLocaleTimeString()}
-                  </Typography>
-                )}
-              </Box>
+              )
+            ) : (
+              // Non-Phase 2 exam status (original logic)
+              isEvaluationInProgress() ? (
+                // Evaluation in Progress state
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Clock size={20} color="#3b82f6" />
+                    <Typography variant="body1" sx={{ 
+                      color: '#3b82f6', 
+                      fontWeight: 600 
+                    }}>
+                      Evaluation in Progress
+                    </Typography>
+                  </Box>
+                  
+                  {/* Last checked timestamp */}
+                  {lastUpdated && (
+                    <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)', fontStyle: 'italic' }}>
+                      Last checked: {lastUpdated.toLocaleTimeString()}
+                    </Typography>
+                  )}
+                </Box>
+              ) : (
+                // Result available state
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    {isQualified() ? (
+                      <CheckCircle size={20} color="#10b981" />
+                    ) : (
+                      <XCircle size={20} color="#ef4444" />
+                    )}
+                    <Typography variant="body1" sx={{ 
+                      color: isQualified() ? '#10b981' : '#ef4444', 
+                      fontWeight: 600 
+                    }}>
+                      {isQualified() ? 'Qualified' : 'Not Qualified'}
+                    </Typography>
+                  </Box>
+                  
+                  {/* Last updated timestamp */}
+                  {lastUpdated && (
+                    <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)', fontStyle: 'italic' }}>
+                      Last updated: {lastUpdated.toLocaleTimeString()}
+                    </Typography>
+                  )}
+                </Box>
+              )
             )}
           </Box>
         )}
         
-        {loadingResults && (
-          <Typography variant="body2" sx={{ color: 'rgba(16, 185, 129, 0.7)', fontStyle: 'italic' }}>
-            Loading detailed results...
-          </Typography>
-        )}
 
-        <Box ref={footerRef} sx={{ display: 'flex', gap: 2 }}>
-          {exam.status === 'available' && isEligible() && onStartExam && (
-            <Button
-              variant="contained"
-              size="medium"
-              onClick={() => onStartExam && onStartExam(exam.id, { 
-                paymentNeeded: exam.paymentNeeded, 
-                isProctored: exam.isProctored, 
-                duration: exam.duration ? exam.duration * 60 : undefined 
-              })}
-              sx={{
-                background: 'linear-gradient(45deg, #10b981, #3b82f6)',
-                color: 'white',
-                px: 3,
-                py: 1,
-                borderRadius: 2,
-                fontWeight: 600,
-                '&:hover': {
-                  background: 'linear-gradient(45deg, #059669, #2563eb)',
-                  transform: 'translateY(-2px)'
-                },
-                transition: 'all 0.3s ease'
-              }}
-            >
-              Start Exam
-            </Button>
+        <Box ref={footerRef} sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+          {exam.status === 'available' && isEligible() && (
+            <>
+              {/* Phase 2 Exam Logic - Temporarily show for all exams with payment needed for testing */}
+              {(isPhase2Exam() || exam.paymentNeeded) && exam.paymentNeeded ? (
+                <>
+                  {/* Proceed to Payment Button - shown when payment is needed */}
+                  <Button
+                    variant="contained"
+                    size="medium"
+                    onClick={handleProceedToPayment}
+                    disabled={hasPaidForExam()}
+                    startIcon={<CreditCard size={18} />}
+                    sx={{
+                      background: hasPaidForExam() 
+                        ? 'rgba(255, 255, 255, 0.3)' 
+                        : 'linear-gradient(45deg, #8b5cf6, #3b82f6)',
+                      color: 'white',
+                      px: 3,
+                      py: 1,
+                      borderRadius: 2,
+                      fontWeight: 600,
+                      '&:hover': {
+                        background: hasPaidForExam() 
+                          ? 'rgba(255, 255, 255, 0.3)' 
+                          : 'linear-gradient(45deg, #7c3aed, #2563eb)',
+                        transform: hasPaidForExam() ? 'none' : 'translateY(-2px)'
+                      },
+                      '&:disabled': {
+                        background: 'rgba(255, 255, 255, 0.3)',
+                        color: 'rgba(255, 255, 255, 0.5)',
+                        cursor: 'not-allowed'
+                      },
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    {hasPaidForExam() ? 'Payment Complete' : 'Proceed to Payment'}
+                  </Button>
+
+                  {/* Start Exam Button - disabled until payment is complete */}
+                  <Button
+                    variant="contained"
+                    size="medium"
+                    onClick={() => onStartExam && onStartExam(exam.id, { 
+                      paymentNeeded: exam.paymentNeeded, 
+                      isProctored: exam.isProctored, 
+                      duration: exam.duration ? exam.duration * 60 : undefined 
+                    })}
+                    disabled={!hasPaidForExam()}
+                    startIcon={<Play size={18} />}
+                    sx={{
+                      background: hasPaidForExam() 
+                        ? 'linear-gradient(45deg, #10b981, #3b82f6)' 
+                        : 'rgba(255, 255, 255, 0.3)',
+                      color: 'white',
+                      px: 3,
+                      py: 1,
+                      borderRadius: 2,
+                      fontWeight: 600,
+                      '&:hover': {
+                        background: hasPaidForExam() 
+                          ? 'linear-gradient(45deg, #059669, #2563eb)' 
+                          : 'rgba(255, 255, 255, 0.3)',
+                        transform: hasPaidForExam() ? 'translateY(-2px)' : 'none'
+                      },
+                      '&:disabled': {
+                        background: 'rgba(255, 255, 255, 0.3)',
+                        color: 'rgba(255, 255, 255, 0.5)',
+                        cursor: 'not-allowed'
+                      },
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    Start Exam
+                  </Button>
+                </>
+              ) : (
+                /* Regular Exam Logic - single Start Exam button */
+                onStartExam && (
+                  <Button
+                    variant="contained"
+                    size="medium"
+                    onClick={() => onStartExam(exam.id, { 
+                      paymentNeeded: exam.paymentNeeded, 
+                      isProctored: exam.isProctored, 
+                      duration: exam.duration ? exam.duration * 60 : undefined 
+                    })}
+                    startIcon={<Play size={18} />}
+                    sx={{
+                      background: 'linear-gradient(45deg, #10b981, #3b82f6)',
+                      color: 'white',
+                      px: 3,
+                      py: 1,
+                      borderRadius: 2,
+                      fontWeight: 600,
+                      '&:hover': {
+                        background: 'linear-gradient(45deg, #059669, #2563eb)',
+                        transform: 'translateY(-2px)'
+                      },
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    Start Exam
+                  </Button>
+                )
+              )}
+            </>
           )}
           
           {exam.status === 'upcoming' && (

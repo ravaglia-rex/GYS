@@ -26,11 +26,15 @@ export const runExamSubmissionTransaction = async (student_uid: string, submissi
 };
 
 export const runPhase2ExamSubmissionTransaction = async (student_uid: string, submission_id: string, form_id: string, submission_time: string) => {
+    
     try {
         const authToken = await authTokenHandler.getAuthToken();
+        
+        const apiUrl = `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${EXAM_DETAILS_APIS}${PHASE_2_SUBMISSION_TRANSACTION}`;
+        
         const config = {
             method: 'post',
-            url: `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${EXAM_DETAILS_APIS}${PHASE_2_SUBMISSION_TRANSACTION}`,
+            url: apiUrl,
             headers: {
                 'Authorization': `Bearer ${authToken}`
             },
@@ -41,9 +45,13 @@ export const runPhase2ExamSubmissionTransaction = async (student_uid: string, su
                 submission_time,
             }
         };
+        
         const response = await axios.request(config);
+        
+        
         return response.data;
     } catch (error) {
+        
         throw new Error(`Error submitting phase 2 exam. Please contact talentsearch@argus.ai on PRIORITY with your registered email`);
     }
 };
