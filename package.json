@@ -73,7 +73,6 @@
     "redux-persist": "^6.0.0",
     "tailwind-merge": "^2.3.0",
     "tailwindcss-animate": "^1.0.7",
-    "typescript": "^4.9.5",
     "web-vitals": "^2.1.4",
     "zod": "^3.23.8"
   },
@@ -82,7 +81,9 @@
     "build": "react-scripts build && npm run sentry:sourcemaps",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org argus-0t --project argus-exam-platform ./build && sentry-cli sourcemaps upload --org argus-0t --project argus-exam-platform ./build"
+    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org argus-0t --project argus-exam-platform ./build && sentry-cli sourcemaps upload --org argus-0t --project argus-exam-platform ./build",
+    "update-phase2-categories": "ts-node --project tsconfig.scripts.json src/scripts/updatePhase2Categories.ts",
+    "update-phase2-categories:dry-run": "ts-node --project tsconfig.scripts.json src/scripts/updatePhase2Categories.ts --dry-run"
   },
   "eslintConfig": {
     "extends": [
@@ -106,6 +107,8 @@
     "@types/lodash.debounce": "^4.0.9",
     "@types/react-window": "^1.8.8",
     "comlink-loader": "^2.0.0",
-    "tailwindcss": "^3.4.4"
+    "tailwindcss": "^3.4.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
   }
 }

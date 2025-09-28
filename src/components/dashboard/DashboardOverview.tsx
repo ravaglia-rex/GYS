@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Card, CardContent, Typography, Avatar } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -10,6 +10,7 @@ import {
   BarChart3
 } from 'lucide-react';
 import { auth } from '../../firebase/firebase';
+import { getStudent } from '../../db/studentCollection';
 
 // Simple Column Chart Component
 const ColumnChart: React.FC<{ data: { subject: string; score: number }[] }> = ({ data }) => {
@@ -238,6 +239,29 @@ const StatCard: React.FC<{
 const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExamResults = [] }) => {
   const navigate = useNavigate();
   const [isNavigating, setIsNavigating] = useState(false);
+  const [userName, setUserName] = useState<string>('Student');
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    const fetchUserName = async () => {
+      if (auth.currentUser?.uid) {
+        try {
+          const userData = await getStudent(auth.currentUser.uid);
+          if (userData?.first_name) {
+            setUserName(userData.first_name.charAt(0).toUpperCase() + userData.first_name.slice(1).toLowerCase());
+          }
+        } catch (error) {
+          console.error('Error fetching user data:', error);
+          // Fallback to Firebase displayName or 'Student'
+          const fallbackName = auth.currentUser?.displayName?.split(' ')[0];
+          setUserName(fallbackName ? fallbackName.charAt(0).toUpperCase() + fallbackName.slice(1).toLowerCase() : 'Student');
+        }
+      }
+      setLoading(false);
+    };
+
+    fetchUserName();
+  }, []);
 
   const handleNavigation = (path: string) => {
     setIsNavigating(true);
@@ -267,7 +291,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExam
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent'
         }}>
-          👋 Welcome to Your Dashboard, {auth.currentUser?.displayName?.split(' ')[0] || 'Student'}!
+          👋 Welcome to Your Dashboard, {loading ? 'Student' : userName}!
         </Typography>
         <Typography variant="h6" sx={{ color: 'rgba(255, 255, 255, 0.9)', fontWeight: 400, fontSize: '1.2rem' }}>
           Track your progress, manage exams, and achieve your goals

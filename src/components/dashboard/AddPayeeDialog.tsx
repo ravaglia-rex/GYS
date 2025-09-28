@@ -252,7 +252,7 @@ const AddPayeeDialog: React.FC<AddPayeeDialogProps> = ({ isOpen, onClose, onAddP
                                 <FormItem>
                                     <FormLabel style={{display: 'block'}} className="text-white">Country</FormLabel>
                                     <FormControl style={{display: 'block'}}>
-                                        <CountriesInput onSelect={(country) => field.onChange(country)} className="bg-slate-800 border-slate-600 text-white"/>
+                                        <CountriesInput onSelect={(country) => field.onChange(country)} />
                                     </FormControl>
                                 </FormItem>
                             )}

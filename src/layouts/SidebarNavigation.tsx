@@ -54,6 +54,7 @@ const navItems: NavItem[] = [
     children: [
       { title: 'Available', path: '/exams/available', icon: <SchoolIcon /> },
       { title: 'Completed & Results', path: '/exams/completed', icon: <BarChartIcon /> },
+      { title: 'Analysis', path: '/exams/analysis', icon: <BarChartIcon /> },
     ],
   },
   {

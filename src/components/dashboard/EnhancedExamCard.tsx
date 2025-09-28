@@ -483,7 +483,7 @@ const EnhancedExamCard: React.FC<{
             justifyContent: 'center', 
             alignItems: 'center', 
             gap: 1, 
-            mt: 2,
+            mt: 1,
             p: 2,
             borderTop: '1px solid rgba(255, 255, 255, 0.1)'
           }}>
@@ -557,6 +557,37 @@ const EnhancedExamCard: React.FC<{
                 </Box>
               )
             )}
+          </Box>
+        )}
+
+        {/* Phase 2 Detailed Analysis Button - Show for completed Phase 2 exams */}
+        {exam.completed && isPhase2Exam() && !isEvaluationInProgress() && (
+          <Box sx={{ 
+            mt: 0,
+            display: 'flex',
+            justifyContent: 'center'
+          }}>
+            <Button
+              variant="contained"
+              size="medium"
+              onClick={() => navigate('/exams/analysis')}
+              startIcon={<Eye size={18} />}
+              sx={{
+                background: 'linear-gradient(45deg, #8b5cf6, #3b82f6)',
+                color: 'white',
+                px: 3,
+                py: 1,
+                borderRadius: 2,
+                fontWeight: 600,
+                '&:hover': {
+                  background: 'linear-gradient(45deg, #7c3aed, #2563eb)',
+                  transform: 'translateY(-2px)'
+                },
+                transition: 'all 0.3s ease'
+              }}
+            >
+              View Detailed Analysis
+            </Button>
           </Box>
         )}
         
