@@ -22,6 +22,11 @@ import { Input } from '../ui/input';
 import { LoadingSpinner as Spinner } from "../ui/spinner";
 
 import * as Sentry from "@sentry/react";
+import { 
+  updatePassword, 
+  reauthenticateWithCredential, 
+  EmailAuthProvider 
+} from 'firebase/auth';
 
 interface PasswordResetProps {
     actionCode: string;
@@ -75,49 +80,56 @@ const NewPasswordForm: React.FC<PasswordResetProps> = ({ actionCode }) => {
     }
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-cover bg-no-repeat"
-            style={{ backgroundImage: `url(/assets/reset-password.png)` }}
-        >
-            <div className="bg-white bg-opacity-75 backdrop-filter backdrop-blur-lg p-8 rounded-lg shadow-md w-full max-w-md">
-                <h2 className="text-2xl font-semibold text-center mb-6">Reset Your Password</h2>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                        <FormField
-                            control={form.control}
-                            name="password"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>New Password</FormLabel>
-                                    <FormControl>
-                                        <Input {...field} type="password" placeholder="••••••••" />
-                                    </FormControl>
-                                    <FormDescription className='text-xs'>Pick something unique...something memorable</FormDescription>
-                                    <FormMessage>{form.formState.errors.password?.message}</FormMessage>
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="confirm_password"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Confirm New Password</FormLabel>
-                                    <FormControl>
-                                        <Input {...field} type="password" placeholder="••••••••" />
-                                    </FormControl>
-                                    <FormDescription className='text-xs'>Confirm your new password</FormDescription>
-                                    <FormMessage>{form.formState.errors.confirm_password?.message}</FormMessage>
-                                </FormItem>
-                            )}
-                        />
-                        <FormControl>
-                            <Button type="submit" disabled={isSubmitted} className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-md">
-                                {isSubmitted ? <Spinner /> : 'Reset Password'}
-                            </Button>
-                        </FormControl>
-                    </form>
-                </Form>
-            </div>
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-gray-900/60 to-gray-900/40 backdrop-blur-xl p-8 shadow-2xl">
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <FormField
+                        control={form.control}
+                        name="password"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-sm text-gray-300">New Password</FormLabel>
+                                <FormControl>
+                                    <Input 
+                                        className="bg-gray-900/60 border-white/10 focus-visible:ring-purple-600 placeholder:text-gray-500 text-white" 
+                                        {...field} 
+                                        type="password" 
+                                        placeholder="••••••••" 
+                                    />
+                                </FormControl>
+                                <FormDescription className='text-xs text-gray-500'>Pick something unique...something memorable</FormDescription>
+                                <FormMessage className="text-red-400">{form.formState.errors.password?.message}</FormMessage>
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="confirm_password"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-sm text-gray-300">Confirm New Password</FormLabel>
+                                <FormControl>
+                                    <Input 
+                                        className="bg-gray-900/60 border-white/10 focus-visible:ring-purple-600 placeholder:text-gray-500 text-white" 
+                                        {...field} 
+                                        type="password" 
+                                        placeholder="••••••••" 
+                                    />
+                                </FormControl>
+                                <FormDescription className='text-xs text-gray-500'>Confirm your new password</FormDescription>
+                                <FormMessage className="text-red-400">{form.formState.errors.confirm_password?.message}</FormMessage>
+                            </FormItem>
+                        )}
+                    />
+                    <Button 
+                        type="submit" 
+                        disabled={isSubmitted} 
+                        className="w-full py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-md font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25"
+                    >
+                        {isSubmitted ? <Spinner /> : 'Reset Password'}
+                    </Button>
+                </form>
+            </Form>
         </div>
     );
 }

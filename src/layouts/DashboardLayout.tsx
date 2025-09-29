@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Box, 
   Drawer, 
@@ -12,29 +12,42 @@ import {
   Badge
 } from '@mui/material';
 import { 
-  Menu as MenuIcon
-  // COMMENTED OUT - Notifications as NotificationsIcon
+  Menu as MenuIcon,
+  Notifications as NotificationsIcon
 } from '@mui/icons-material';
 import { auth } from '../firebase/firebase';
 import { useNavigate } from 'react-router-dom';
 import SidebarNavigation from '../layouts/SidebarNavigation';
-// COMMENTED OUT - import NotificationsDialog from '../components/dashboard/NotificationsDialog';
+import NotificationsDialog from '../components/dashboard/NotificationsDialog';
 
 const DRAWER_WIDTH = 280;
 const DRAWER_WIDTH_MINI = 88;
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
+  availableExamsCount?: number;
+  resultsAvailableCount?: number;
 }
 
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
+export default function DashboardLayout({ 
+  children, 
+  availableExamsCount = 0, 
+  resultsAvailableCount = 0 
+}: DashboardLayoutProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  // COMMENTED OUT - const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const currentUser = auth.currentUser;
   const navigate = useNavigate();
+
+  // Add this useEffect to handle viewport changes
+  useEffect(() => {
+    if (!isMobile) {
+      setSidebarOpen(true);
+    }
+  }, [isMobile]);
 
   const handleDrawerToggle = () => {
     setSidebarOpen(!sidebarOpen);
@@ -44,103 +57,51 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     setSidebarCollapsed(!sidebarCollapsed);
   };
 
-  // COMMENTED OUT - Notification handlers
-  // const handleNotificationsOpen = () => {
-  //   setNotificationsOpen(true);
-  // };
+  // Notification handlers
+  const handleNotificationsOpen = () => {
+    setNotificationsOpen(true);
+  };
 
-  // const handleNotificationsClose = () => {
-  //   setNotificationsOpen(false);
-  // };
+  const handleNotificationsClose = () => {
+    setNotificationsOpen(false);
+  };
 
-  const drawerWidth = sidebarCollapsed ? DRAWER_WIDTH_MINI : DRAWER_WIDTH;
+  const handleLogout = async () => {
+    try {
+      await auth.signOut();
+      navigate('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
+  const handleProfileNavigation = () => {
+    navigate('/profile');
+  };
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      {/* App Bar */}
-      <AppBar
-        position="fixed"
-        sx={{
-          width: { lg: `calc(100% - ${drawerWidth}px)` },
-          ml: { lg: `${drawerWidth}px` },
-          backgroundColor: 'rgba(0,0,0, 0.2)',
-          backdropFilter: 'blur(10px)',
-          boxShadow: 'none',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-          zIndex: theme.zIndex.drawer + 1,
-        }}
-      >
-        <Toolbar sx={{ justifyContent: 'space-between' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <IconButton
-              color="inherit"
-              aria-label="open drawer"
-              edge="start"
-              onClick={handleDrawerToggle}
-              sx={{ mr: 2, display: { lg: 'none' } }}
-            >
-              <MenuIcon />
-            </IconButton>
-            
-          </Box>
-
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            {/* COMMENTED OUT - Notifications */}
-            {/* <IconButton 
-              color="inherit" 
-              sx={{ color: 'rgba(255, 255, 255, 0.8)' }}
-              onClick={handleNotificationsOpen}
-            >
-              <Badge badgeContent={3} color="error">
-                <NotificationsIcon />
-              </Badge>
-            </IconButton> */}
-
-            {/* Profile Avatar - Clickable to go to profile */}
-            <IconButton
-              onClick={() => navigate('/profile')}
-              sx={{ color: 'rgba(255, 255, 255, 0.8)' }}
-            >
-              <Avatar 
-                sx={{ 
-                  width: 32, 
-                  height: 32,
-                  bgcolor: 'rgba(139, 92, 246, 0.8)',
-                  color: 'white'
-                }}
-              >
-                {currentUser?.displayName?.charAt(0) || currentUser?.email?.charAt(0) || 'U'}
-              </Avatar>
-            </IconButton>
-          </Box>
-        </Toolbar>
-      </AppBar>
-
+    <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#0f172a' }}>
       {/* Sidebar */}
       <Drawer
-        variant={isMobile ? 'temporary' : 'permanent'}
+        variant={isMobile ? 'temporary' : 'persistent'}
         open={sidebarOpen}
         onClose={handleDrawerToggle}
         sx={{
-          width: drawerWidth,
+          width: sidebarCollapsed ? DRAWER_WIDTH_MINI : DRAWER_WIDTH,
           flexShrink: 0,
           '& .MuiDrawer-paper': {
-            width: drawerWidth,
+            width: sidebarCollapsed ? DRAWER_WIDTH_MINI : DRAWER_WIDTH,
             boxSizing: 'border-box',
-            backgroundColor: 'rgba(15, 23, 42, 0.98)',
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
             borderRight: '1px solid rgba(255, 255, 255, 0.1)',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-            backdropFilter: 'blur(20px)',
+            transition: 'width 0.3s ease',
           },
-        }}
-        ModalProps={{
-          keepMounted: true, // Better open performance on mobile.
         }}
       >
         <SidebarNavigation 
-          collapsed={sidebarCollapsed}
+          collapsed={sidebarCollapsed} 
           onCollapse={handleSidebarCollapse}
-          onClose={() => setSidebarOpen(false)}
+          onClose={handleDrawerToggle}
         />
       </Drawer>
 
@@ -149,23 +110,74 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         component="main"
         sx={{
           flexGrow: 1,
-          width: { lg: `calc(100% - ${drawerWidth}px)` },
+          display: 'flex',
+          flexDirection: 'column',
           minHeight: '100vh',
-          backgroundColor: 'rgba(15, 23, 42, 0.95)',
-          backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.1) 0%, transparent 50%)',
+          backgroundColor: '#0f172a',
+          transition: 'margin 0.3s ease',
+          marginLeft: 0,
         }}
       >
-        <Toolbar /> {/* Spacer for AppBar */}
-        <Box sx={{ p: 3 }}>
+        {/* Top App Bar */}
+        <AppBar
+          position="sticky"
+          sx={{
+            backgroundColor: 'rgba(15, 23, 42, 0.8)',
+            backdropFilter: 'blur(20px)',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+            boxShadow: 'none',
+          }}
+        >
+          <Toolbar sx={{ justifyContent: 'space-between', px: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              {isMobile && (
+                <IconButton
+                  color="inherit"
+                  aria-label="open drawer"
+                  onClick={handleDrawerToggle}
+                  edge="start"
+                  sx={{ mr: 2 }}
+                >
+                  <MenuIcon />
+                </IconButton>
+              )}
+           
+            </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              {/* User Avatar */}
+              <Avatar
+                sx={{
+                  width: 40,
+                  height: 40,
+                  backgroundColor: 'rgba(139, 92, 246, 0.2)',
+                  color: 'white',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    backgroundColor: 'rgba(139, 92, 246, 0.3)',
+                  }
+                }}
+                onClick={handleProfileNavigation}
+              >
+                {currentUser?.email?.charAt(0).toUpperCase() || 'U'}
+              </Avatar>
+            </Box>
+          </Toolbar>
+        </AppBar>
+
+        {/* Page Content */}
+        <Box sx={{ flexGrow: 1, p: 3 }}>
           {children}
         </Box>
       </Box>
 
-      {/* COMMENTED OUT - Notifications Dialog */}
-      {/* <NotificationsDialog
+      {/* Notifications Dialog */}
+      <NotificationsDialog
         open={notificationsOpen}
         onClose={handleNotificationsClose}
-      /> */}
+        availableExamsCount={availableExamsCount}
+        resultsAvailableCount={resultsAvailableCount}
+      />
     </Box>
   );
 }

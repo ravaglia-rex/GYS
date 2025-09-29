@@ -207,7 +207,10 @@ const Dashboard: React.FC = () => {
   const stats = calculateStats();
 
   return (
-    <DashboardLayout>
+    <DashboardLayout 
+      availableExamsCount={stats.availableExams}
+      resultsAvailableCount={stats.completedExams}
+    >
       <Box sx={{ p: 0 }}>
         {loading ? (
           <Box sx={{ 

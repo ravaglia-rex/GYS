@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -41,55 +41,9 @@ interface Notification {
 interface NotificationsDialogProps {
   open: boolean;
   onClose: () => void;
+  availableExamsCount: number;
+  resultsAvailableCount: number;
 }
-
-const mockNotifications: Notification[] = [
-  {
-    id: '1',
-    type: 'success',
-    title: 'Exam Completed',
-    message: 'Your Mathematics exam has been completed successfully. Results will be available within 24 hours.',
-    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-    isRead: false,
-    category: 'exam'
-  },
-  {
-    id: '2',
-    type: 'info',
-    title: 'New Exam Available',
-    message: 'A new Science exam is now available for you to take. Check the exams section for details.',
-    timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 hours ago
-    isRead: false,
-    category: 'exam'
-  },
-  {
-    id: '3',
-    type: 'success',
-    title: 'Payment Successful',
-    message: 'Your payment of $25.00 for the Advanced Mathematics exam has been processed successfully.',
-    timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
-    isRead: true,
-    category: 'payment'
-  },
-  {
-    id: '4',
-    type: 'warning',
-    title: 'Exam Reminder',
-    message: 'You have an upcoming exam in 2 hours. Please ensure your device is ready.',
-    timestamp: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
-    isRead: false,
-    category: 'exam'
-  },
-  {
-    id: '5',
-    type: 'info',
-    title: 'System Maintenance',
-    message: 'Scheduled maintenance will occur tonight from 2:00 AM to 4:00 AM. Service may be temporarily unavailable.',
-    timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
-    isRead: true,
-    category: 'system'
-  }
-];
 
 const getNotificationIcon = (type: Notification['type']) => {
   switch (type) {
@@ -142,8 +96,85 @@ const formatTimestamp = (timestamp: Date) => {
   return `${Math.floor(diffInMinutes / 1440)} days ago`;
 };
 
-export default function NotificationsDialog({ open, onClose }: NotificationsDialogProps) {
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
+// Function to generate dynamic notifications based on the rules
+const generateDynamicNotifications = (
+  availableExamsCount: number,
+  resultsAvailableCount: number
+): Notification[] => {
+  const notifications: Notification[] = [];
+  const now = new Date();
+
+  // Rule 1: If number of exams available is not 0, show "New Exam Available"
+  if (availableExamsCount > 0) {
+    notifications.push({
+      id: 'new-exam-available',
+      type: 'info',
+      title: 'New Exam Available',
+      message: `You have ${availableExamsCount} new exam${availableExamsCount > 1 ? 's' : ''} available to take. Check the exams section to get started.`,
+      timestamp: new Date(now.getTime() - 30 * 60 * 1000), // 30 minutes ago
+      isRead: false,
+      category: 'exam'
+    });
+  }
+
+  // Rule 2: If number of results available is 2, show 2 different notifications
+  if (resultsAvailableCount === 2) {
+    // First notification: Challenge exam evaluated and result available
+    notifications.push({
+      id: 'challenge-exam-result',
+      type: 'success',
+      title: 'Challenge Exam Evaluated',
+      message: 'Your challenge exam has been evaluated and results are now available. Check your performance analysis.',
+      timestamp: new Date(now.getTime() - 2 * 60 * 60 * 1000), // 2 hours ago
+      isRead: false,
+      category: 'exam'
+    });
+
+    // Second notification: Check your exam analysis now
+    notifications.push({
+      id: 'exam-analysis-ready',
+      type: 'info',
+      title: 'Analysis Complete',
+      message: 'Your detailed exam analysis is ready for review. Discover your strengths and areas for improvement.',
+      timestamp: new Date(now.getTime() - 1 * 60 * 60 * 1000), // 1 hour ago
+      isRead: false,
+      category: 'exam'
+    });
+  }
+
+  // Rule 3: If number of results available is 1, show qualifying exam result notification
+  if (resultsAvailableCount === 1) {
+    notifications.push({
+      id: 'qualifying-exam-result',
+      type: 'success',
+      title: 'Qualifying Exam Result Available',
+      message: 'Your qualifying exam has been evaluated and results are now available. View your performance and next steps.',
+      timestamp: new Date(now.getTime() - 3 * 60 * 60 * 1000), // 3 hours ago
+      isRead: false,
+      category: 'exam'
+    });
+  }
+
+  return notifications;
+};
+
+export default function NotificationsDialog({ 
+  open, 
+  onClose, 
+  availableExamsCount, 
+  resultsAvailableCount 
+}: NotificationsDialogProps) {
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  // Generate notifications when props change
+  useEffect(() => {
+    const dynamicNotifications = generateDynamicNotifications(
+      availableExamsCount, 
+      resultsAvailableCount
+    );
+    setNotifications(dynamicNotifications);
+  }, [availableExamsCount, resultsAvailableCount]);
+
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   const handleMarkAllAsRead = () => {
@@ -240,7 +271,11 @@ export default function NotificationsDialog({ open, onClose }: NotificationsDial
               </Box>
             </Box>
 
-            <List sx={{ p: 0 }}>
+            <List sx={{ 
+              p: 0,
+              maxHeight: notifications.length > 3 ? '400px' : 'auto',
+              overflowY: notifications.length > 3 ? 'auto' : 'visible'
+            }}>
               {notifications.map((notification, index) => (
                 <React.Fragment key={notification.id}>
                   <ListItem

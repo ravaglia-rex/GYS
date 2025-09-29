@@ -449,7 +449,16 @@ const EnhancedExamCard: React.FC<{
                   '& .MuiTableRow-root': { border: 'none' }
                 }}>
                   <TableBody>
-                    {Object.entries(resultTotals.typeTotals).map(([type, total]) => (
+                    {Object.entries(resultTotals.typeTotals)
+                      .filter(([type, total]) => {
+                        // For challenge exams (Phase 2), filter out Big5 related data
+                        if (isPhase2Exam()) {
+                          const big5Keys = ['openness', 'conscientiousness', 'extraversion', 'agreeableness', 'neuroticism', 'big5', 'personality'];
+                          return !big5Keys.some(big5Key => type.toLowerCase().includes(big5Key));
+                        }
+                        return true; // Show all data for non-challenge exams
+                      })
+                      .map(([type, total]) => (
                       <TableRow key={type}>
                         <TableCell sx={{ textTransform: 'capitalize', fontWeight: 500 }}>
                           {type}
@@ -466,7 +475,18 @@ const EnhancedExamCard: React.FC<{
                         Total
                       </TableCell>
                       <TableCell align="right" sx={{ fontWeight: 700, color: '#059669' }}>
-                        {resultTotals.overallTotal} points
+                        {(() => {
+                          // For challenge exams, calculate total excluding Big5 scores
+                          if (isPhase2Exam()) {
+                            const big5Keys = ['openness', 'conscientiousness', 'extraversion', 'agreeableness', 'neuroticism', 'big5', 'personality'];
+                            const nonBig5Total = Object.entries(resultTotals.typeTotals)
+                              .filter(([type, total]) => !big5Keys.some(big5Key => type.toLowerCase().includes(big5Key)))
+                              .reduce((sum, [type, total]) => sum + (total || 0), 0);
+                            return `${nonBig5Total} points`;
+                          }
+                          // For non-challenge exams, show the original total
+                          return `${resultTotals.overallTotal} points`;
+                        })()}
                       </TableCell>
                     </TableRow>
                   </TableFooter>

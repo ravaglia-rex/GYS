@@ -43,16 +43,24 @@ import {
   Eye as EyeIcon,
   EyeOff as EyeOffIcon
 } from 'lucide-react';
+import { updatePassword, signOut } from 'firebase/auth';
+import { auth } from '../../firebase/firebase';
+import { useNavigate } from 'react-router-dom';
 
 const SecurityPrivacySettings: React.FC = () => {
-  const [showOldPassword, setShowOldPassword] = useState(false);
+  const navigate = useNavigate();
+  
+  // Remove showOldPassword since we don't need current password
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [showError, setShowError] = useState(false);
+  const [showReauthPrompt, setShowReauthPrompt] = useState(false);
 
+  // Remove oldPassword from passwordData
   const [passwordData, setPasswordData] = useState({
-    oldPassword: '',
     newPassword: '',
     confirmPassword: ''
   });
@@ -106,21 +114,73 @@ const SecurityPrivacySettings: React.FC = () => {
   };
 
   const handlePasswordUpdate = async () => {
+    // Validate new passwords match
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      alert('New passwords do not match!');
+      setErrorMessage('New passwords do not match!');
+      setShowError(true);
+      setTimeout(() => setShowError(false), 5000);
+      return;
+    }
+
+    // Validate password strength
+    if (passwordData.newPassword.length < 6) {
+      setErrorMessage('Password must be at least 6 characters long!');
+      setShowError(true);
+      setTimeout(() => setShowError(false), 5000);
       return;
     }
 
     setIsSaving(true);
+    setErrorMessage('');
+    setShowError(false);
+    setShowSuccess(false);
+    setShowReauthPrompt(false);
+
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '' });
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('No user is currently signed in');
+      }
+
+      // Update password directly
+      await updatePassword(user, passwordData.newPassword);
+
+      // Clear form and show success
+      setPasswordData({ newPassword: '', confirmPassword: '' });
       setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000);
-    } catch (error) {
+      setTimeout(() => setShowSuccess(false), 5000);
+
+    } catch (error: any) {
       console.error('Error updating password:', error);
+      
+      if (error.code === 'auth/requires-recent-login') {
+        setShowReauthPrompt(true);
+        return;
+      }
+      
+      let errorMessage = 'Failed to update password. Please try again.';
+      
+      if (error.code === 'auth/weak-password') {
+        errorMessage = 'Password is too weak. Please choose a stronger password.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      setErrorMessage(errorMessage);
+      setShowError(true);
+      setTimeout(() => setShowError(false), 5000);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleReauthRedirect = async () => {
+    try {
+      await signOut(auth);
+      navigate('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      navigate('/');
     }
   };
 
@@ -360,7 +420,32 @@ const SecurityPrivacySettings: React.FC = () => {
     <Box>
       {showSuccess && (
         <Alert severity="success" sx={{ mb: 3 }}>
-          Settings updated successfully!
+          Password updated successfully!
+        </Alert>
+      )}
+
+      {showError && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {errorMessage}
+        </Alert>
+      )}
+
+      {showReauthPrompt && (
+        <Alert 
+          severity="warning" 
+          sx={{ mb: 3 }}
+          action={
+            <Button 
+              color="inherit" 
+              size="small" 
+              onClick={handleReauthRedirect}
+              sx={{ color: 'white', fontWeight: 'bold' }}
+            >
+              Sign Out & Sign Back In
+            </Button>
+          }
+        >
+          For security reasons, please sign out and sign back in before changing your password.
         </Alert>
       )}
 
@@ -449,42 +534,13 @@ const SecurityPrivacySettings: React.FC = () => {
                 Change Password
               </Typography>
               <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-                Update your password regularly for better security
+                Set a new password for your account
               </Typography>
             </Box>
           </Box>
 
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <TextField
-              fullWidth
-              label="Current Password"
-              type={showOldPassword ? 'text' : 'password'}
-              value={passwordData.oldPassword}
-              onChange={(e) => handlePasswordChange('oldPassword', e.target.value)}
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => setShowOldPassword(!showOldPassword)}
-                      edge="end"
-                      sx={{ color: 'rgba(255, 255, 255, 0.5)' }}
-                    >
-                      {showOldPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  color: 'white',
-                  '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
-                  '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
-                  '&.Mui-focused fieldset': { borderColor: '#8b5cf6' },
-                },
-                '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
-                '& .MuiInputLabel-root.Mui-focused': { color: '#8b5cf6' },
-              }}
-            />
+            {/* Remove Current Password field completely */}
 
             <TextField
               fullWidth
@@ -552,7 +608,7 @@ const SecurityPrivacySettings: React.FC = () => {
               variant="contained"
               startIcon={<Key size={16} />}
               onClick={handlePasswordUpdate}
-              disabled={isSaving || !passwordData.oldPassword || !passwordData.newPassword || !passwordData.confirmPassword}
+              disabled={isSaving || !passwordData.newPassword || !passwordData.confirmPassword}
               sx={{
                 backgroundColor: '#8b5cf6',
                 '&:hover': { backgroundColor: '#7c3aed' },

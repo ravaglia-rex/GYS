@@ -17,12 +17,25 @@ export interface Phase2ExamResponse {
     };
   };
   big5analysis?: string;
+  typeTotals?: {
+    big5?: {
+      openness: number;
+      conscientiousness: number;
+      extraversion: number;
+      agreeableness: number;
+      neuroticism: number;
+    };
+    logic?: number;
+    math?: number;
+    reading?: number;
+    writing?: number;
+    [key: string]: any;
+  };
   createdAt?: any;
 }
 
 export const getPhase2ExamResponse = async (studentId: string): Promise<Phase2ExamResponse | null> => {
   try {
-    console.log('Looking for Phase 2 exam data for student:', studentId);
     
     // First, get the submission ID from student_submission_mappings
     const submissionMappingQuery = query(
@@ -31,25 +44,19 @@ export const getPhase2ExamResponse = async (studentId: string): Promise<Phase2Ex
     );
     
     const submissionMappingSnapshot = await getDocs(submissionMappingQuery);
-    console.log('Submission mapping query results:', submissionMappingSnapshot.docs.length, 'documents found');
     
     if (submissionMappingSnapshot.empty) {
-      console.log('No submission mapping found for student:', studentId);
       return null;
     }
     
     const submissionMappingDoc = submissionMappingSnapshot.docs[0];
     const submissionMappingData = submissionMappingDoc.data();
-    console.log('Submission mapping data:', submissionMappingData);
     
     const submissionId = submissionMappingData.submission_id;
     
     if (!submissionId) {
-      console.log('No submission ID found for student:', studentId);
       return null;
     }
-    
-    console.log('Looking for Phase 2 exam response with submission ID:', submissionId);
     
     // Query the collection to find document with matching submissionId field
     const responseQuery = query(
@@ -60,20 +67,19 @@ export const getPhase2ExamResponse = async (studentId: string): Promise<Phase2Ex
     const responseSnapshot = await getDocs(responseQuery);
     
     if (responseSnapshot.empty) {
-      console.log('No phase 2 exam response found for submission ID:', submissionId);
       return null;
     }
     
     const responseDoc = responseSnapshot.docs[0];
     
     const responseData = responseDoc.data();
-    console.log('Phase 2 exam response found:', !!responseData);
     
     return {
       submissionId,
       studentId,
       responseData: responseData?.responseData || {},
       big5analysis: responseData?.big5analysis,
+      typeTotals: responseData?.typeTotals, // Add this line
       createdAt: responseData?.createdAt
     };
   } catch (error) {

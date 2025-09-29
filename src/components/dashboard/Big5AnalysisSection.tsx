@@ -67,6 +67,40 @@ const parseMarkdownToHtml = (text: string) => {
   return html;
 };
 
+// Update the interface to match the actual data structure
+interface Phase2ExamResponse {
+  submissionId: string;
+  studentId: string;
+  responseData: {
+    [questionId: string]: {
+      key: string;
+      label: string;
+      options: Array<{
+        id: string;
+        text: string;
+      }>;
+      type: string;
+      value: string[];
+    };
+  };
+  big5analysis?: string;
+  typeTotals?: {
+    big5?: {
+      openness: number;
+      conscientiousness: number;
+      extraversion: number;
+      agreeableness: number;
+      neuroticism: number;
+    };
+    logic?: number;
+    math?: number;
+    reading?: number;
+    writing?: number;
+    [key: string]: any;
+  };
+  createdAt?: any;
+}
+
 const Big5AnalysisSection: React.FC<Big5AnalysisSectionProps> = ({ studentId }) => {
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -74,18 +108,22 @@ const Big5AnalysisSection: React.FC<Big5AnalysisSectionProps> = ({ studentId }) 
   const [oceanScores, setOceanScores] = useState<OCEANScores | null>(null);
   const [isFirstTime, setIsFirstTime] = useState<boolean | null>(null);
 
-  // Function to extract OCEAN scores from analysis text
-  const extractOCEANScores = (analysisText: string): OCEANScores => {
-    // This is a simplified extraction - you might want to make this more sophisticated
-    // For now, we'll generate some sample scores based on the analysis content
-    const scores = {
-      Openness: Math.floor(Math.random() * 40) + 30, // 30-70 range
-      Conscientiousness: Math.floor(Math.random() * 40) + 30,
-      Extraversion: Math.floor(Math.random() * 40) + 30,
-      Agreeableness: Math.floor(Math.random() * 40) + 30,
-      Neuroticism: Math.floor(Math.random() * 40) + 30,
+  // Updated function to extract OCEAN scores from typeTotals.big5 and convert to percentages
+  const extractOCEANScoresFromTypeTotals = (typeTotals: any): OCEANScores | null => {
+    if (!typeTotals?.big5) {
+      return null;
+    }
+
+    const big5Scores = typeTotals.big5;
+    const maxScore = 16; // Maximum score for each Big5 trait
+    
+    return {
+      Openness: Math.round((big5Scores.openness || 0) / maxScore * 100),
+      Conscientiousness: Math.round((big5Scores.conscientiousness || 0) / maxScore * 100),
+      Extraversion: Math.round((big5Scores.extraversion || 0) / maxScore * 100),
+      Agreeableness: Math.round((big5Scores.agreeableness || 0) / maxScore * 100),
+      Neuroticism: Math.round((big5Scores.neuroticism || 0) / maxScore * 100),
     };
-    return scores;
   };
 
   const loadAnalysis = async () => {
@@ -97,12 +135,30 @@ const Big5AnalysisSection: React.FC<Big5AnalysisSectionProps> = ({ studentId }) 
     try {
       // Check if analysis already exists first
       const response = await getPhase2ExamResponse(studentId);
+      if (response?.typeTotals) {
+      }
+      
       const hasExistingAnalysis = response?.big5analysis;
       setIsFirstTime(!hasExistingAnalysis);
       
+      // Try to extract scores from typeTotals first
+      const scoresFromTypeTotals = extractOCEANScoresFromTypeTotals(response?.typeTotals);
+      
+      if (scoresFromTypeTotals) {
+        setOceanScores(scoresFromTypeTotals);
+      } else {
+        // Fallback to random scores for now
+        setOceanScores({
+          Openness: 50,
+          Conscientiousness: 60,
+          Extraversion: 55,
+          Agreeableness: 45,
+          Neuroticism: 40,
+        });
+      }
+      
       const analysisText = await generateBig5Analysis(studentId);
       setAnalysis(analysisText);
-      setOceanScores(extractOCEANScores(analysisText));
     } catch (err: any) {
       console.error('Error loading Big5 analysis:', err);
       setError(err.message || 'Failed to load personality analysis');

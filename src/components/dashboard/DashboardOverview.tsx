@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Card, CardContent, Typography, Avatar } from '@mui/material';
+import { Box, Card, CardContent, Typography, Avatar, IconButton, Badge } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { 
   TrendingUp, 
@@ -9,8 +9,10 @@ import {
   Target,
   BarChart3
 } from 'lucide-react';
+import { Notifications as NotificationsIcon } from '@mui/icons-material';
 import { auth } from '../../firebase/firebase';
 import { getStudent } from '../../db/studentCollection';
+import { getPhase2ExamResponse } from '../../db/phase2ExamResponsesCollection';
 
 // Simple Column Chart Component
 const ColumnChart: React.FC<{ data: { subject: string; score: number }[] }> = ({ data }) => {
@@ -179,20 +181,25 @@ const StatCard: React.FC<{
   icon: React.ReactElement;
   color: string;
   trend?: string;
-}> = ({ title, value, icon, color, trend }) => (
-  <Card sx={{
-    background: 'rgba(30, 41, 59, 0.8)',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    borderRadius: 3,
-    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
-    transition: 'all 0.3s ease',
-    '&:hover': {
-      transform: 'translateY(-4px)',
-      boxShadow: '0 8px 30px rgba(0, 0, 0, 0.3)',
-      borderColor: `${color}40`,
-    }
-  }}>
-    <CardContent sx={{ p: 3 }}>
+  onClick?: () => void;
+}> = ({ title, value, icon, color, trend, onClick }) => (
+  <Card 
+    onClick={onClick}
+    sx={{
+      background: 'rgba(30, 41, 59, 0.8)',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: 3,
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
+      transition: 'all 0.3s ease',
+      cursor: onClick ? 'pointer' : 'default',
+      '&:hover': {
+        transform: 'translateY(-4px)',
+        boxShadow: '0 8px 30px rgba(0, 0, 0, 0.3)',
+        borderColor: `${color}40`,
+      }
+    }}
+  >
+    <CardContent sx={{ p: 3, textAlign: 'left' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
         <Avatar
           sx={{
@@ -215,7 +222,7 @@ const StatCard: React.FC<{
             borderRadius: 2,
             backgroundColor: `${color}20`,
             color: color,
-            ml: 1, // Add left margin to create space from the icon
+            ml: 1,
           }}>
             <TrendingUp size={16} />
             <Typography variant="caption" sx={{ fontWeight: 600 }}>
@@ -236,11 +243,72 @@ const StatCard: React.FC<{
   </Card>
 );
 
+// Function to generate dynamic notifications based on the rules
+const generateDynamicNotifications = (
+  availableExamsCount: number,
+  resultsAvailableCount: number
+) => {
+  const notifications = [];
+  const now = new Date();
+
+  // Rule 1: If number of exams available is not 0, show "New Exam Available"
+  if (availableExamsCount > 0) {
+    notifications.push({
+      id: 'new-exam-available',
+      type: 'info',
+      title: 'New Exam Available',
+      message: `You have ${availableExamsCount} new exam${availableExamsCount > 1 ? 's' : ''} available to take. Check the exams section to get started.`,
+      timestamp: new Date(now.getTime() - 30 * 60 * 1000), // 30 minutes ago
+      color: '#8b5cf6'
+    });
+  }
+
+  // Rule 2: If number of results available is 2, show 2 different notifications
+  if (resultsAvailableCount === 2) {
+    // First notification: Challenge exam evaluated and result available
+    notifications.push({
+      id: 'challenge-exam-result',
+      type: 'success',
+      title: 'Challenge Exam Evaluated',
+      message: 'Your challenge exam has been evaluated and results are now available. Check your performance analysis.',
+      timestamp: new Date(now.getTime() - 2 * 60 * 60 * 1000), // 2 hours ago
+      color: '#10b981'
+    });
+
+    // Second notification: Check your exam analysis now
+    notifications.push({
+      id: 'exam-analysis-ready',
+      type: 'info',
+      title: 'Analysis Complete',
+      message: 'Your detailed exam analysis is ready for review. Discover your strengths and areas for improvement.',
+      timestamp: new Date(now.getTime() - 1 * 60 * 60 * 1000), // 1 hour ago
+      color: '#3b82f6'
+    });
+  }
+
+  // Rule 3: If number of results available is 1, show qualifying exam result notification
+  if (resultsAvailableCount === 1) {
+    notifications.push({
+      id: 'qualifying-exam-result',
+      type: 'success',
+      title: 'Qualifying Exam Result Available',
+      message: 'Your qualifying exam has been evaluated and results are now available. View your performance and next steps.',
+      timestamp: new Date(now.getTime() - 3 * 60 * 60 * 1000), // 3 hours ago
+      color: '#10b981'
+    });
+  }
+
+  return notifications;
+};
+
 const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExamResults = [] }) => {
   const navigate = useNavigate();
   const [isNavigating, setIsNavigating] = useState(false);
   const [userName, setUserName] = useState<string>('Student');
   const [loading, setLoading] = useState<boolean>(true);
+
+  // Generate notifications based on stats
+  const notifications = generateDynamicNotifications(stats.availableExams, stats.completedExams);
 
   useEffect(() => {
     const fetchUserName = async () => {
@@ -310,34 +378,32 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExam
           value={stats.totalExams}
           icon={<School size={24} />}
           color="#3b82f6"
-          trend="+2 this week"
         />
         
         <StatCard
-          title="Exams Completed"
+          title="Results Available"
           value={stats.completedExams}
           icon={<CheckCircle size={24} />}
           color="#10b981"
+          onClick={() => handleNavigation('/exams/completed')}
         />
          <StatCard
-          title="Available Exams"
+          title="Exams Available"
           value={stats.availableExams}
           icon={<Clock size={24} />}
           color="#8b5cf6"
+          onClick={() => handleNavigation('/exams/available')}
         />
         
         <StatCard
-          title="Average Score"
-          value={`${stats.averageScore}%`}
+          title="Ranking (Coming Soon!)"
+          value="--"
           icon={<Target size={24} />}
           color="#f59e0b"
-          trend={stats.averageScore >= 80 ? 'Excellent' : stats.averageScore >= 60 ? 'Good' : 'Needs Improvement'}
         />
-        
-       
       </Box>
 
-      {/* Performance Overview and Quick Actions - Side by side */}
+      {/* Performance Overview and Notifications - Side by side */}
       <Box sx={{ 
         display: 'grid', 
         gridTemplateColumns: { xs: '1fr', lg: '2fr 1fr' }, 
@@ -408,13 +474,12 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExam
                 <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', maxWidth: 400 }}>
                   Complete your first exam or wait for your completed exams to be evaluated to see your performance breakdown and track your progress across different subjects.
                 </Typography>
-                
               </Box>
             )}
           </CardContent>
         </Card>
 
-        {/* Quick Actions */}
+        {/* Latest Notifications */}
         <Card sx={{
           background: 'rgba(30, 41, 59, 0.8)',
           border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -422,124 +487,46 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExam
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
         }}>
           <CardContent sx={{ p: 3 }}>
-            <Typography variant="h6" sx={{ color: 'white', fontWeight: 600, mb: 2, fontSize: '1.2rem' }}>
-              Quick Actions
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+              <Typography variant="h6" sx={{ color: 'white', fontWeight: 600, fontSize: '1.2rem' }}>
+                Latest Notifications
+              </Typography>
+              <Badge 
+                badgeContent={notifications.length} 
+                color="error"
+                invisible={notifications.length === 0}
+              >
+                <NotificationsIcon sx={{ fontSize: 20, color: 'rgba(255, 255, 255, 0.8)' }} />
+              </Badge>
+            </Box>
           
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Box 
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    if (!isNavigating) {
-                      handleNavigation('/exams/available');
-                    }
-                  }
-                }}
-                sx={{
-                  p: 2,
-                  borderRadius: 2,
-                  backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                  border: '1px solid rgba(139, 92, 246, 0.3)',
-                  cursor: isNavigating ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s ease',
-                  opacity: isNavigating ? 0.7 : 1,
-                  '&:hover': {
-                    backgroundColor: isNavigating ? 'rgba(139, 92, 246, 0.1)' : 'rgba(139, 92, 246, 0.2)',
-                    transform: isNavigating ? 'none' : 'translateY(-2px)',
-                  },
-                  '&:focus': {
-                    outline: '2px solid rgba(139, 92, 246, 0.5)',
-                    outlineOffset: '2px',
-                  }
-                }} 
-                onClick={() => !isNavigating && handleNavigation('/exams/available')}
-              >
-                <Typography variant="body2" sx={{ color: '#8b5cf6', fontWeight: 600 }}>
-                  📚 Start New Exam
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'rgba(139, 92, 246, 0.7)' }}>
-                  {isNavigating ? 'Starting exam...' : 'Begin your next assessment'}
-                </Typography>
-              </Box>
-
-              <Box 
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    if (!isNavigating) {
-                      handleNavigation('/exams/completed');
-                    }
-                  }
-                }}
-                sx={{
-                  p: 2,
-                  borderRadius: 2,
-                  backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                  border: '1px solid rgba(16, 185, 129, 0.3)',
-                  cursor: isNavigating ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s ease',
-                  opacity: isNavigating ? 0.7 : 1,
-                  '&:hover': {
-                    backgroundColor: isNavigating ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.2)',
-                    transform: isNavigating ? 'none' : 'translateY(-2px)',
-                  },
-                  '&:focus': {
-                    outline: '2px solid rgba(16, 185, 129, 0.5)',
-                    outlineOffset: '2px',
-                  }
-                }} 
-                onClick={() => !isNavigating && handleNavigation('/exams/completed')}
-              >
-                <Typography variant="body2" sx={{ color: '#10b981', fontWeight: 600 }}>
-                  📊 View Results
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'rgba(16, 185, 129, 0.7)' }}>
-                  {isNavigating ? 'Loading results...' : 'Check your performance'}
-                </Typography>
-              </Box>
-
-              <Box 
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    if (!isNavigating) {
-                      handleNavigation('/settings');
-                    }
-                  }
-                }}
-                sx={{
-                  p: 2,
-                  borderRadius: 2,
-                  backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                  border: '1px solid rgba(59, 130, 246, 0.3)',
-                  cursor: isNavigating ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s ease',
-                  opacity: isNavigating ? 0.7 : 1,
-                  '&:hover': {
-                    backgroundColor: isNavigating ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.2)',
-                    transform: isNavigating ? 'none' : 'translateY(-2px)',
-                  },
-                  '&:focus': {
-                    outline: '2px solid rgba(59, 130, 246, 0.5)',
-                    outlineOffset: '2px',
-                  }
-                }} 
-                onClick={() => !isNavigating && handleNavigation('/settings')}
-              >
-                <Typography variant="body2" sx={{ color: '#3b82f6', fontWeight: 600 }}>
-                  ⚙️ Update Profile
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'rgba(59, 130, 246, 0.7)' }}>
-                  {isNavigating ? 'Opening settings...' : 'Manage your information'}
-                </Typography>
-              </Box>
+              {notifications.length === 0 ? (
+                <Box sx={{ textAlign: 'center', py: 2 }}>
+                  <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                    No notifications at the moment. Check back later for updates.
+                  </Typography>
+                </Box>
+              ) : (
+                notifications.map((notification) => (
+                  <Box
+                    key={notification.id}
+                    sx={{
+                      p: 2,
+                      borderRadius: 2,
+                      backgroundColor: `${notification.color}10`,
+                      border: `1px solid ${notification.color}30`,
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ color: notification.color, fontWeight: 600, mb: 0.5 }}>
+                      {notification.title}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                      {notification.message}
+                    </Typography>
+                  </Box>
+                ))
+              )}
             </Box>
           </CardContent>
         </Card>
