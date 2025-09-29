@@ -76,8 +76,10 @@ export default function SidebarNavigation({ collapsed, onCollapse, onClose }: Si
   const [openSubmenus, setOpenSubmenus] = React.useState<{ [key: string]: boolean }>({});
 
   const handleItemClick = (path: string) => {
-    navigate(path);
-    onClose(); // Close mobile sidebar
+    if (location.pathname !== path) {
+      navigate(path);
+      onClose(); // Close mobile sidebar only when actually navigating
+    }
   };
 
   const handleSubmenuToggle = (title: string) => {

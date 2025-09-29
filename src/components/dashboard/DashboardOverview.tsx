@@ -26,15 +26,32 @@ const ColumnChart: React.FC<{ data: { subject: string; score: number }[] }> = ({
     );
   }
 
-  // Find the maximum score to normalize the columns
-  const maxScore = Math.max(...data.map(item => item.score));
-  const chartMax = maxScore + 3; // Add 3 to give breathing room at the top
-  
+  // Define maximum points for each subject
+  const maxPointsMap: { [key: string]: number } = {
+    'Reading': 32,
+    'Writing': 16,
+    'Logic': 10,
+    'Math': 22
+  };
+
+  // Calculate percentages and find the maximum percentage for chart scaling
+  const dataWithPercentages = data.map(item => {
+    const maxPoints = maxPointsMap[item.subject] || 100; // Default to 100 if subject not found
+    const percentage = Math.round((item.score / maxPoints) * 100);
+    return {
+      ...item,
+      percentage,
+      maxPoints
+    };
+  });
+
+  const maxPercentage = Math.max(...dataWithPercentages.map(item => item.percentage));
+  const chartMax = Math.min(100, maxPercentage + 10); // Cap at 100% or max + 10%
 
   return (
     <Box sx={{ p: 2 }}>
       <Typography variant="h6" sx={{ color: 'white', mb: 3, textAlign: 'center' }}>
-        Latest Exam Results
+        Latest Exam Results (%)
       </Typography>
       <Box sx={{ 
         display: 'flex', 
@@ -69,7 +86,7 @@ const ColumnChart: React.FC<{ data: { subject: string; score: number }[] }> = ({
                   fontSize: '0.7rem'
                 }}
               >
-                {value}
+                {value}%
               </Typography>
             ));
           }
@@ -86,12 +103,17 @@ const ColumnChart: React.FC<{ data: { subject: string; score: number }[] }> = ({
           width: '100%',
           pl: 4
         }}>
-          {data.map((item, index) => {
-            // Use relative scoring - compare each score to chartMax (maxScore + 3)
-            const percentage = chartMax > 0 ? (item.score / chartMax) * 100 : 0;
-            // Color coding based on relative performance
-            const color = percentage >= 90 ? '#10b981' : percentage >= 70 ? '#f59e0b' : '#ef4444';
-            
+          {dataWithPercentages.map((item, index) => {
+            // Use the calculated percentage for bar height
+            const barHeight = (item.percentage / chartMax) * 160;
+            // Different colors for each subject
+            const colorMap: { [key: string]: string } = {
+              'Reading': '#FFB3BA',    // Light pink
+              'Writing': '#BAFFC9',    // Light green
+              'Logic': '#BAE1FF',     // Light blue
+              'Math': '#FFFFBA'       // Light yellow
+            };
+            const color = colorMap[item.subject] || '#99D5C9'; // Fallback color
             
             return (
               <Box key={index} sx={{ 
@@ -102,8 +124,8 @@ const ColumnChart: React.FC<{ data: { subject: string; score: number }[] }> = ({
                 flex: 1,
                 minWidth: '60px',
                 maxWidth: '100px',
-                position: 'relative', // Add this for absolute positioning
-                height: '200px' // Match the chart height
+                position: 'relative',
+                height: '200px'
               }}>
                 {/* Column */}
                 <Box
@@ -113,30 +135,30 @@ const ColumnChart: React.FC<{ data: { subject: string; score: number }[] }> = ({
                     borderRadius: '4px 4px 0 0',
                     transition: 'height 0.3s ease',
                     position: 'absolute',
-                    bottom: '0px', // Start from the very bottom (0 baseline)
+                    bottom: '0px',
                     left: 0,
                     right: 0,
                     boxShadow: `0 4px 12px ${color}40`
                   }}
                   style={{
-                    height: `${(percentage / 100) * 160}px` // Convert percentage to pixels
+                    height: `${barHeight}px`
                   }}
                 />
                 
-                {/* Score label at the top of the bar */}
+                {/* Percentage label at the top of the bar */}
                 <Typography
                   variant="caption"
                   sx={{
                     color: 'white',
                     fontWeight: 600,
                     position: 'absolute',
-                    bottom: `${(percentage / 100) * 160 + 20}px`, // Position above the bar with some spacing
-                    transform: 'translateX(-50%)', // Center horizontally
+                    bottom: `${barHeight + 20}px`,
+                    transform: 'translateX(-50%)',
                     left: '50%',
                     zIndex: 10
                   }}
                 >
-                  {item.score}
+                  {item.percentage}%
                 </Typography>
                 
                 {/* Subject label */}
@@ -306,6 +328,9 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExam
   const [isNavigating, setIsNavigating] = useState(false);
   const [userName, setUserName] = useState<string>('Student');
   const [loading, setLoading] = useState<boolean>(true);
+  const [phase2Results, setPhase2Results] = useState<{ subject: string; score: number }[]>([]);
+  const [hasPhase2Results, setHasPhase2Results] = useState<boolean>(false);
+  const [isLoadingPhase2, setIsLoadingPhase2] = useState<boolean>(true);
 
   // Generate notifications based on stats
   const notifications = generateDynamicNotifications(stats.availableExams, stats.completedExams);
@@ -331,6 +356,49 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExam
     fetchUserName();
   }, []);
 
+  // Check for phase 2 exam responses
+  useEffect(() => {
+    const checkPhase2Results = async () => {
+      if (!auth.currentUser?.uid) {
+        setIsLoadingPhase2(false);
+        return;
+      }
+
+      try {
+        const phase2Response = await getPhase2ExamResponse(auth.currentUser.uid);
+        
+        if (phase2Response && phase2Response.typeTotals) {
+          // Extract type totals excluding big5
+          const { big5, ...otherTotals } = phase2Response.typeTotals;
+          
+          // Convert to chart data format
+          const chartData = Object.entries(otherTotals)
+            .filter(([key, value]) => typeof value === 'number')
+            .map(([subject, score]) => ({
+              subject: subject.charAt(0).toUpperCase() + subject.slice(1),
+              score: score as number
+            }));
+          
+          if (chartData.length > 0) {
+            setPhase2Results(chartData);
+            setHasPhase2Results(true);
+          } else {
+            setHasPhase2Results(false);
+          }
+        } else {
+          setHasPhase2Results(false);
+        }
+      } catch (error) {
+        console.error('Error fetching phase 2 results:', error);
+        setHasPhase2Results(false);
+      } finally {
+        setIsLoadingPhase2(false);
+      }
+    };
+
+    checkPhase2Results();
+  }, []);
+
   const handleNavigation = (path: string) => {
     setIsNavigating(true);
     
@@ -344,6 +412,25 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExam
       }
     }, 150);
   };
+
+  // Determine which results to show
+  const getDisplayResults = () => {
+    if (isLoadingPhase2) {
+      return { data: [], isLoading: true };
+    }
+    
+    if (hasPhase2Results && phase2Results.length > 0) {
+      return { data: phase2Results, isLoading: false, isPhase2: true };
+    }
+    
+    if (latestExamResults.length > 0) {
+      return { data: latestExamResults, isLoading: false, isPhase2: false };
+    }
+    
+    return { data: [], isLoading: false };
+  };
+
+  const displayResults = getDisplayResults();
 
   return (
     <Box sx={{ mb: 4, ml: 1 }}>
@@ -432,8 +519,10 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExam
                   Performance Overview
                 </Typography>
                 <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '1rem' }}>
-                  {latestExamResults.length > 0 
-                    ? 'Your latest exam performance across different subjects'
+                  {displayResults.data.length > 0 
+                    ? (displayResults.isPhase2 
+                        ? 'Your Phase 2 exam performance across different subjects'
+                        : 'Your latest exam performance across different subjects')
                     : 'Performance data will appear here once your exams are evaluated'
                   }
                 </Typography>
@@ -441,13 +530,43 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExam
             </Box>
 
             {/* Content based on whether there are exam results */}
-            {latestExamResults.length > 0 ? (
-              // Show spider chart when there are results
+            {displayResults.isLoading ? (
+              // Show loading state
+              <Box sx={{ 
+                textAlign: 'center', 
+                py: 6,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 2
+              }}>
+                <Box sx={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: '50%',
+                  background: 'rgba(139, 92, 246, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '2px solid rgba(139, 92, 246, 0.3)',
+                  animation: 'pulse 2s infinite'
+                }}>
+                  <BarChart3 size={40} color="#8b5cf6" />
+                </Box>
+                <Typography variant="h6" sx={{ color: 'white', fontWeight: 600 }}>
+                  Loading Results...
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', maxWidth: 400 }}>
+                  Checking for your latest exam results and performance data.
+                </Typography>
+              </Box>
+            ) : displayResults.data.length > 0 ? (
+              // Show chart when there are results
               <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                <ColumnChart data={latestExamResults} />
+                <ColumnChart data={displayResults.data} />
               </Box>
             ) : (
-              // Show message when no results available (either no exams taken or under evaluation)
+              // Show message when no results available
               <Box sx={{ 
                 textAlign: 'center', 
                 py: 6,
