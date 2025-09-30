@@ -13,7 +13,39 @@ import { useNavigate } from 'react-router-dom';
 import { RootState } from '../../state_data/reducer';
 import { fetchResultTotals, fetchPhase1ResultTotals, fetchPhase2ResultTotals } from '../../db/examResponsesCollection';
 import { getCurrentExamResult } from '../../db/studentExamMappings';
+import { getStudent } from '../../db/studentCollection';
 
+// Phase 1 per-subject max by grade
+const getPhase1MaxPoints = (grade: number) => {
+  if (grade >= 6 && grade <= 8) return { math: 8, reading: 8, writing: 10 };
+  if (grade >= 9 && grade <= 10) return { math: 9, reading: 8, writing: 10 };
+  if (grade >= 11) return { math: 10, reading: 10, writing: 12 };
+  return { math: 10, reading: 10, writing: 12 };
+};
+
+// Phase 1 overall max by grade
+const getPhase1OverallMax = (grade: number) => {
+  if (grade >= 6 && grade <= 8) return 26;
+  if (grade >= 9 && grade <= 10) return 27;
+  return 32; // grades 11,12
+};
+
+// Phase 2 per-subject max (sums to 80)
+const getPhase2MaxPoints = () => ({
+  reading: 32,
+  writing: 16,
+  logic: 10,
+  math: 22,
+});
+
+// Exam type by formId
+const getExamType = (formId: string) => {
+  const phase1 = ['wzdOWZ', 'mRjg8v', 'mOEg8k', '3E6g8A', 'npByEB'];
+  const phase2 = ['mOGkN8', 'mVy95J'];
+  if (phase1.includes(formId)) return 'phase1';
+  if (phase2.includes(formId)) return 'phase2';
+  return 'unknown';
+};
 
 interface Exam {
   id: string;
@@ -56,7 +88,43 @@ const EnhancedExamCard: React.FC<{
   const [resultTotals, setResultTotals] = useState<ResultTotals | null>(null);
   const [currentResult, setCurrentResult] = useState<boolean | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [studentGrade, setStudentGrade] = useState<number>(12); // Default to grade 12
   const footerRef = useRef<HTMLDivElement>(null);
+
+  // Fetch student grade when component mounts
+  useEffect(() => {
+    const fetchStudentGrade = async () => {
+    if (uid) {
+      try {
+        const studentData = await getStudent(uid);
+        if (studentData?.grade) {
+          setStudentGrade(studentData.grade);
+        }
+      } catch (error) {
+        console.error('Error fetching student grade:', error);
+        // Keep default grade 12
+      }
+    }
+  };
+
+  fetchStudentGrade();
+  }, [uid]);
+
+  // Function to get max points for a subject based on exam type and grade
+    const getMaxPointsForSubject = (subject: string) => {
+    const examType = getExamType(exam.id);
+    
+    if (examType === 'phase1') {
+      const phase1MaxPoints = getPhase1MaxPoints(studentGrade);
+      return phase1MaxPoints[subject.toLowerCase() as keyof typeof phase1MaxPoints] || 10;
+    } else if (examType === 'phase2') {
+      const m2 = getPhase2MaxPoints();
+      return m2[subject.toLowerCase() as keyof ReturnType<typeof getPhase2MaxPoints>] ?? 0;
+    }
+    
+    // Default fallback
+    return 10;
+  };
 
   // Check if this is a Phase 2 exam
   const isPhase2Exam = useCallback(() => {
@@ -464,7 +532,10 @@ const EnhancedExamCard: React.FC<{
                           {type}
                         </TableCell>
                         <TableCell align="right" sx={{ fontWeight: 600 }}>
-                          {total} points
+                          {(() => {
+                            const maxPoints = getMaxPointsForSubject(type);
+                            return `${total}/${maxPoints} points`;
+                          })()}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -476,16 +547,17 @@ const EnhancedExamCard: React.FC<{
                       </TableCell>
                       <TableCell align="right" sx={{ fontWeight: 700, color: '#059669' }}>
                         {(() => {
-                          // For challenge exams, calculate total excluding Big5 scores
                           if (isPhase2Exam()) {
-                            const big5Keys = ['openness', 'conscientiousness', 'extraversion', 'agreeableness', 'neuroticism', 'big5', 'personality'];
+                            // Phase 2 overall is out of 80 (exclude Big5 in nonBig5Total)
+                            const big5Keys = ['openness','conscientiousness','extraversion','agreeableness','neuroticism','big5','personality'];
                             const nonBig5Total = Object.entries(resultTotals.typeTotals)
-                              .filter(([type, total]) => !big5Keys.some(big5Key => type.toLowerCase().includes(big5Key)))
-                              .reduce((sum, [type, total]) => sum + (total || 0), 0);
-                            return `${nonBig5Total} points`;
+                              .filter(([type]) => !big5Keys.some(k => type.toLowerCase().includes(k)))
+                              .reduce((sum, [, val]) => sum + (val || 0), 0);
+                            return `${nonBig5Total}/80 points`;
                           }
-                          // For non-challenge exams, show the original total
-                          return `${resultTotals.overallTotal} points`;
+                          // Phase 1 overall depends on grade
+                          const overallMax = getPhase1OverallMax(studentGrade);
+                          return `${resultTotals.overallTotal}/${overallMax} points`;
                         })()}
                       </TableCell>
                     </TableRow>

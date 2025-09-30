@@ -14,8 +14,26 @@ import { auth } from '../../firebase/firebase';
 import { getStudent } from '../../db/studentCollection';
 import { getPhase2ExamResponse } from '../../db/phase2ExamResponsesCollection';
 
-// Simple Column Chart Component
-const ColumnChart: React.FC<{ data: { subject: string; score: number }[] }> = ({ data }) => {
+const ColumnChart: React.FC<{ data: { subject: string; score: number }[]; isPhase2?: boolean }> = ({ data, isPhase2 }) => {
+  // Load student grade to pick Phase 1 caps
+  const [grade, setGrade] = React.useState<number>(12);
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const user = await getStudent(auth.currentUser?.uid || '');
+        if (user?.grade) setGrade(user.grade);
+      } catch {}
+    })();
+  }, []);
+
+  const phase1Max = React.useMemo(() => {
+    if (grade >= 6 && grade <= 8) return { math: 8, reading: 8, writing: 10 };
+    if (grade >= 9 && grade <= 10) return { math: 9, reading: 8, writing: 10 };
+    return { math: 10, reading: 10, writing: 12 }; // 11–12
+  }, [grade]);
+
+  const phase2Max = { reading: 32, writing: 16, logic: 10, math: 22 };
+
   if (!data || data.length === 0) {
     return (
       <Box sx={{ textAlign: 'center', py: 4 }}>
@@ -26,27 +44,16 @@ const ColumnChart: React.FC<{ data: { subject: string; score: number }[] }> = ({
     );
   }
 
-  // Define maximum points for each subject
-  const maxPointsMap: { [key: string]: number } = {
-    'Reading': 32,
-    'Writing': 16,
-    'Logic': 10,
-    'Math': 22
-  };
-
-  // Calculate percentages and find the maximum percentage for chart scaling
+  // Calculate percentages with correct caps
   const dataWithPercentages = data.map(item => {
-    const maxPoints = maxPointsMap[item.subject] || 100; // Default to 100 if subject not found
+    const key = item.subject.toLowerCase() as 'math' | 'reading' | 'writing' | 'logic';
+    const maxPoints = (isPhase2 ? (phase2Max as any)[key] : (phase1Max as any)[key]) ?? 100;
     const percentage = Math.round((item.score / maxPoints) * 100);
-    return {
-      ...item,
-      percentage,
-      maxPoints
-    };
+    return { ...item, percentage, maxPoints };
   });
 
   const maxPercentage = Math.max(...dataWithPercentages.map(item => item.percentage));
-  const chartMax = Math.min(100, maxPercentage + 10); // Cap at 100% or max + 10%
+  const chartMax = Math.min(110, Math.max(100, maxPercentage + 10));
 
   return (
     <Box sx={{ p: 2 }}>
@@ -63,34 +70,41 @@ const ColumnChart: React.FC<{ data: { subject: string; score: number }[] }> = ({
         minWidth: '400px',
         width: '100%'
       }}>
-        {/* Y-axis labels */}
-        <Box sx={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          justifyContent: 'space-between',
-          height: '100%',
-          mr: 2,
+      {/* Y-axis labels */}
+      <Box sx={{ 
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        height: '100%',
+        width: 32,
+        mr: 2
+      }}>
+               {(() => {
+  // Build ticks without showing 110; always include 100, 75, 50, 25, 0
+  const baseTicks = [100, 75, 50, 25, 0];
+  // Only include the top value if it's <= 100 (never show 110)
+  const topTick = chartMax <= 100 ? [chartMax] : [];
+  const ticks = Array.from(new Set([...topTick, ...baseTicks].filter(v => v <= chartMax))).sort((a, b) => b - a);
+
+  return ticks.map((value) => {
+    const pct = Math.max(0, Math.min(100, (value / chartMax) * 100));
+    return (
+      <Typography
+        key={`tick-${value}`}
+        variant="caption"
+        sx={{
           position: 'absolute',
-          left: 0,
-          top: 0
-        }}>
-          {(() => {
-            // Create even intervals from 0 to chartMax
-            const yAxisValues = [chartMax, Math.round(chartMax * 0.75), Math.round(chartMax * 0.5), Math.round(chartMax * 0.25), 0];
-            return yAxisValues.map((value) => (
-              <Typography 
-                key={value} 
-                variant="caption" 
-                sx={{ 
-                  color: 'rgba(255, 255, 255, 0.5)',
-                  fontSize: '0.7rem'
-                }}
-              >
-                {value}%
-              </Typography>
-            ));
-          }
-          )()}
+          bottom: `${pct}%`,
+          transform: 'translateY(50%)',
+          color: 'rgba(255, 255, 255, 0.5)',
+          fontSize: '0.7rem'
+        }}
+      >
+        {value}%
+      </Typography>
+    );
+  });
+})()}
         </Box>
         
         {/* Columns */}
@@ -105,7 +119,7 @@ const ColumnChart: React.FC<{ data: { subject: string; score: number }[] }> = ({
         }}>
           {dataWithPercentages.map((item, index) => {
             // Use the calculated percentage for bar height
-            const barHeight = (item.percentage / chartMax) * 160;
+            const barHeight = (item.percentage / chartMax) * 200;
             // Different colors for each subject
             const colorMap: { [key: string]: string } = {
               'Reading': '#FFB3BA',    // Light pink
@@ -120,6 +134,7 @@ const ColumnChart: React.FC<{ data: { subject: string; score: number }[] }> = ({
                 display: 'flex', 
                 flexDirection: 'column', 
                 alignItems: 'center',
+                justifyContent: 'flex-end',
                 gap: 1,
                 flex: 1,
                 minWidth: '60px',
@@ -127,7 +142,6 @@ const ColumnChart: React.FC<{ data: { subject: string; score: number }[] }> = ({
                 position: 'relative',
                 height: '200px'
               }}>
-                {/* Column */}
                 <Box
                   sx={{
                     width: '100%',
@@ -152,7 +166,7 @@ const ColumnChart: React.FC<{ data: { subject: string; score: number }[] }> = ({
                     color: 'white',
                     fontWeight: 600,
                     position: 'absolute',
-                    bottom: `${barHeight + 20}px`,
+                    bottom: `${barHeight + 12}px`,  // constant 12px gap above bar
                     transform: 'translateX(-50%)',
                     left: '50%',
                     zIndex: 10
@@ -162,19 +176,24 @@ const ColumnChart: React.FC<{ data: { subject: string; score: number }[] }> = ({
                 </Typography>
                 
                 {/* Subject label */}
-                <Typography 
-                  variant="caption" 
-                  sx={{ 
-                    color: 'rgba(255, 255, 255, 0.8)',
-                    textAlign: 'center',
-                    fontSize: '0.75rem',
-                    lineHeight: 1.2,
-                    maxWidth: '100%',
-                    wordBreak: 'break-word'
-                  }}
-                >
-                  {item.subject}
-                </Typography>
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  color: 'rgba(255, 255, 255, 0.8)',
+                  textAlign: 'center',
+                  fontSize: '0.75rem',
+                  lineHeight: 1.2,
+                  maxWidth: '100%',
+                  wordBreak: 'break-word',
+                  position: 'absolute',
+                  bottom: '-20px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: '100%'
+                }}
+              >
+                {item.subject}
+              </Typography>
               </Box>
             );
           })}
@@ -563,7 +582,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExam
             ) : displayResults.data.length > 0 ? (
               // Show chart when there are results
               <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                <ColumnChart data={displayResults.data} />
+                <ColumnChart data={displayResults.data} isPhase2={!!displayResults.isPhase2} />
               </Box>
             ) : (
               // Show message when no results available
