@@ -25,7 +25,14 @@ type PendingPaymentsTableProps = {
 };
 
 const PendingPaymentsTable: React.FC<PendingPaymentsTableProps> = ({ payments, highlightPaymentsEntry }) => {
-  const [openRows, setOpenRows] = useState<{ [key: string]: boolean }>({});
+  // Initialize all rows as expanded by default
+  const [openRows, setOpenRows] = useState<{ [key: string]: boolean }>(() => {
+    const initialOpenRows: { [key: string]: boolean } = {};
+    payments.forEach(payment => {
+      initialOpenRows[payment.formId] = true;
+    });
+    return initialOpenRows;
+  });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [highlightedRow, setHighlightedRow] = useState<string | null>(highlightPaymentsEntry || null);
   const { toast } = useToast();
@@ -47,6 +54,19 @@ const PendingPaymentsTable: React.FC<PendingPaymentsTableProps> = ({ payments, h
       return () => clearTimeout(timer);
     }
   }, [highlightPaymentsEntry, toast]);
+
+  // Update openRows when payments change to ensure new payments are expanded by default
+  useEffect(() => {
+    setOpenRows(prevOpenRows => {
+      const newOpenRows = { ...prevOpenRows };
+      payments.forEach(payment => {
+        if (newOpenRows[payment.formId] === undefined) {
+          newOpenRows[payment.formId] = true; // Default to expanded for new payments
+        }
+      });
+      return newOpenRows;
+    });
+  }, [payments]);
 
   const handleToggle = (formId: string) => {
     setOpenRows((prevOpenRows) => ({

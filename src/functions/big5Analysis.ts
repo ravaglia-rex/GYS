@@ -1,4 +1,4 @@
-import { getPhase2ExamResponse, saveBig5Analysis } from '../db/phase2ExamResponsesCollection';
+import { getPhase2ExamResponse } from '../db/phase2ExamResponsesCollection';
 
 export interface Big5Question {
   questionId: string;
@@ -68,8 +68,8 @@ export const generateBig5Analysis = async (studentId: string): Promise<string> =
     // Generate analysis using LLM
     const analysis = await callLLMForBig5Analysis(big5Questions);
     
-    // Save the analysis to Firebase
-    await saveBig5Analysis(response.submissionId, analysis);
+    // Remove this line - don't save to exam_responses anymore
+    // await saveBig5Analysis(response.submissionId, analysis);
     
     return analysis;
   } catch (error) {

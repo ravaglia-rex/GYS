@@ -4,10 +4,11 @@ import { Box, Typography, Tabs, Tab, Paper, Avatar } from '@mui/material';
 import { BookOpen } from 'lucide-react';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import EnhancedExamCardsGroup from '../../components/dashboard/EnhancedExamCardsGroup';
-import Big5AnalysisSection from '../../components/dashboard/Big5AnalysisSection';
+import AnalysisSection from '../../components/dashboard/AnalysisSection';
 import { auth } from '../../firebase/firebase';
 import { getPhase2ExamResponse } from '../../db/phase2ExamResponsesCollection';
 import * as Sentry from '@sentry/react';
+
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -225,7 +226,7 @@ const ExamsPage: React.FC = () => {
                   </Typography>
                 </Box>
               ) : hasPhase2Exam ? (
-                <Big5AnalysisSection studentId={uid} />
+                <AnalysisSection studentId={uid} />
               ) : (
                 <Box>
                   <Typography variant="h5" sx={{ color: 'white', fontWeight: 600, mb: 3 }}>
@@ -249,7 +250,7 @@ const ExamsPage: React.FC = () => {
                       You need to complete a Phase 2 exam to access detailed personality analysis.
                     </Typography>
                     <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-                      Once you complete a Phase 2 exam, you'll be able to view your personalized Big Five personality analysis here.
+                      Once you complete a Phase 2 exam, you'll be able to view your comprehensive analysis here.
                     </Typography>
                   </Box>
                 </Box>
