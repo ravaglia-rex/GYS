@@ -4,14 +4,12 @@ import {
   Box, 
   Typography, 
   CircularProgress, 
-  Alert, 
   Paper, 
   Accordion, 
   AccordionSummary, 
   AccordionDetails,
   Chip,
-  LinearProgress,
-  Grid
+  LinearProgress
 } from '@mui/material';
 import { 
   ExpandMore as ExpandMoreIcon,
@@ -25,8 +23,7 @@ import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Responsi
 import { generateBig5Analysis } from '../../functions/big5Analysis';
 import { computeSectionAnalysis } from '../../functions/sectionAnalysis';
 import { getPhase2ExamResponse } from '../../db/phase2ExamResponsesCollection';
-import { getPhase2Analysis, createPhase2Analysis, updatePhase2Analysis } from '../../db/phase2AnalysisCollection';
-import { auth } from '../../firebase/firebase';
+import { getPhase2Analysis, createPhase2Analysis } from '../../db/phase2AnalysisCollection';
 
 interface AnalysisSectionProps {
   studentId: string;
@@ -40,38 +37,6 @@ interface OCEANScores {
   Neuroticism: number;
 }
 
-interface Phase2ExamResponse {
-  submissionId: string;
-  studentId: string;
-  responseData: {
-    [questionId: string]: {
-      key: string;
-      label: string;
-      options: Array<{
-        id: string;
-        text: string;
-      }>;
-      type: string;
-      value: string[];
-    };
-  };
-  big5analysis?: string;
-  typeTotals?: {
-    big5?: {
-      openness: number;
-      conscientiousness: number;
-      extraversion: number;
-      agreeableness: number;
-      neuroticism: number;
-    };
-    logic?: number;
-    math?: number;
-    reading?: number;
-    writing?: number;
-    [key: string]: any;
-  };
-  createdAt?: any;
-}
 
 const sectionIcons = {
   big5: <PsychologyIcon />,
@@ -274,7 +239,7 @@ const AnalysisSection: React.FC<AnalysisSectionProps> = ({ studentId }) => {
 
   useEffect(() => {
     loadAnalysis();
-  }, [studentId]);
+  }, [studentId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSectionToggle = (section: string) => {
     setExpandedSections(prev => ({
@@ -292,28 +257,37 @@ const AnalysisSection: React.FC<AnalysisSectionProps> = ({ studentId }) => {
       );
     }
 
-    const getPerformanceText = (accuracy: number, sectionKey: string) => {
-      if (accuracy >= 90) {
-        return `Excellent performance in ${sectionKey}! You demonstrate strong mastery of the concepts.`;
-      } else if (accuracy >= 80) {
-        return `Very good performance in ${sectionKey}. You show solid understanding with room for continued improvement.`;
-      } else if (accuracy >= 70) {
-        return `Good performance in ${sectionKey}. You have a decent grasp of the material and can build upon this foundation.`;
-      } else if (accuracy >= 60) {
-        return `Satisfactory performance in ${sectionKey}. Focus on reviewing challenging topics to strengthen your skills.`;
-      } else {
-        return `This ${sectionKey} section requires attention. Consider additional study and practice in these areas.`;
-      }
-    };
+  // const getPerformanceText = (accuracy: number, sectionKey: string) => {
+  //   if (accuracy >= 90) {
+  //     return `Excellent performance in ${sectionKey}! You demonstrate strong mastery of the concepts.`;
+  //   } else if (accuracy >= 80) {
+  //     return `Very good performance in ${sectionKey}. You show solid understanding with room for continued improvement.`;
+  //   } else if (accuracy >= 70) {
+  //     return `Good performance in ${sectionKey}. You have a decent grasp of the material and can build upon this foundation.`;
+  //   } else if (accuracy >= 60) {
+  //     return `Satisfactory performance in ${sectionKey}.`;
+  //   } else {
+  //     return `Keep working on improving your skills in ${sectionKey}.`;
+  //   }
+  // };
 
     return (
       <Box>
+        {/* Section Text Analysis */}
+        {sectionData.text && (
+          <Box sx={{ mb: 3, p: 2, backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: 1 }}>
+            <Typography variant="body1" sx={{ color: 'white', lineHeight: 1.6 }}>
+              {sectionData.text}
+            </Typography>
+          </Box>
+        )}
+
         {/* Overall Performance Text */}
-        <Box sx={{ mb: 3, p: 2, backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: 1 }}>
+        {/* <Box sx={{ mb: 3, p: 2, backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: 1 }}>
           <Typography variant="body1" sx={{ color: 'white', lineHeight: 1.6 }}>
             {getPerformanceText(sectionData.accuracy, sectionKey)}
           </Typography>
-        </Box>
+        </Box> */}
 
         {/* Overall Performance Stats */}
         <Box sx={{ mb: 3 }}>

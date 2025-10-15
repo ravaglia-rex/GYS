@@ -38,7 +38,9 @@ import {
   Shield as ShieldIcon
 } from 'lucide-react';
 import { 
-  updatePassword
+  updatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider
 } from 'firebase/auth';
 import { auth } from '../../firebase/firebase';
 
@@ -102,12 +104,16 @@ const SecuritySettings: React.FC = () => {
     setShowError(false);
     setShowSuccess(false);
 
-    try {
-      const user = auth.currentUser;
-      if (!user) {
-        throw new Error('No user is currently signed in');
-      }
+    const user = auth.currentUser;
+    if (!user) {
+      setErrorMessage('No user is currently signed in');
+      setShowError(true);
+      setTimeout(() => setShowError(false), 5000);
+      setIsSaving(false);
+      return;
+    }
 
+    try {
       // Update password directly
       await updatePassword(user, passwordData.newPassword);
 
@@ -124,7 +130,30 @@ const SecuritySettings: React.FC = () => {
       if (error.code === 'auth/weak-password') {
         errorMessage = 'Password is too weak. Please choose a stronger password.';
       } else if (error.code === 'auth/requires-recent-login') {
-        errorMessage = 'Please sign out and sign in again before changing your password.';
+        // Instead of asking user to logout, prompt for current password for re-authentication
+        const currentPassword = prompt('Please enter your current password to continue:');
+        if (currentPassword) {
+          try {
+            // Re-authenticate the user
+            const credential = EmailAuthProvider.credential(user.email!, currentPassword);
+            await reauthenticateWithCredential(user, credential);
+            
+            // Now try to update password again
+            await updatePassword(user, passwordData.newPassword);
+            
+            // Clear form and show success
+            setPasswordData({ newPassword: '', confirmPassword: '' });
+            setShowSuccess(true);
+            setTimeout(() => setShowSuccess(false), 5000);
+            return;
+          } catch (reauthError: any) {
+            errorMessage = reauthError.code === 'auth/wrong-password' 
+              ? 'Incorrect current password. Please try again.'
+              : 'Re-authentication failed. Please try again.';
+          }
+        } else {
+          errorMessage = 'Password change cancelled.';
+        }
       } else if (error.message) {
         errorMessage = error.message;
       }
