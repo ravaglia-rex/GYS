@@ -25,7 +25,9 @@ import * as Sentry from "@sentry/react";
 import { 
   updatePassword, 
   reauthenticateWithCredential, 
-  EmailAuthProvider 
+  EmailAuthProvider,
+  sendPasswordResetEmail,
+  ActionCodeSettings
 } from 'firebase/auth';
 
 interface PasswordResetProps {
@@ -56,6 +58,21 @@ const NewPasswordForm: React.FC<PasswordResetProps> = ({ actionCode }) => {
         try {
             setSubmitted(true);
             await confirmPasswordReset(auth, actionCode, data.password);
+
+            // Check if this is a school admin and update verified status
+            const email = auth.currentUser?.email;
+            if (email) {
+                const { checkSchoolEmail, verifySchoolEmail } = await import('../../db/schoolAdminCollection');
+                const schoolInfo = await checkSchoolEmail(email);
+                if (schoolInfo && !schoolInfo.verified) {
+                    const authToken = await auth.currentUser!.getIdToken();
+                    const { default: authTokenHandler } = await import('../../functions/auth_token/auth_token_handler');
+                    authTokenHandler.setAuthToken(authToken);
+                    
+                    // This sets verified: true in schools collection
+                    await verifySchoolEmail(email);
+                }
+            }
             toast({
                 variant: 'default',
                 title: 'Password Reset Successful',

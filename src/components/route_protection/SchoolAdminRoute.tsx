@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../firebase/firebase';
 import BigSpinner from '../ui/BigSpinner';
-import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '../../state_data/reducer';
+import { useDispatch } from 'react-redux';
 import { checkUserRole, setUser } from '../../state_data/authSlice';
 import { AppDispatch } from '../../state_data/reducer';
 
@@ -16,7 +15,8 @@ const SchoolAdminRoute: React.FC<SchoolAdminRouteProps> = ({ children }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
   const [loading, setLoading] = useState(true);
-  const { user, role, loading: authLoading } = useSelector((state: RootState) => state.auth);
+  // User, role, and authLoading are managed by Redux but not needed directly here
+  // since we use onAuthStateChanged to handle auth state
 
   const isLocalStorageAvailable = () => {
     try {
@@ -30,10 +30,31 @@ const SchoolAdminRoute: React.FC<SchoolAdminRouteProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    // Special case: if we're accessing school admin routes directly, bypass auth
-    // This allows direct access to school admin dashboard without authentication
-    setLoading(false);
-  }, []);
+    // Set up auth state listener to populate user in Redux
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        // Set user in Redux
+        dispatch(setUser({
+          uid: firebaseUser.uid,
+          email: firebaseUser.email || '',
+          displayName: firebaseUser.displayName || undefined,
+          photoURL: firebaseUser.photoURL || undefined,
+        }));
+        
+        // Check user role if not already set
+        if (firebaseUser.email) {
+          await dispatch(checkUserRole(firebaseUser.email));
+        }
+        
+        setLoading(false);
+      } else {
+        // No user, redirect to home
+        navigate('/');
+      }
+    });
+
+    return () => unsubscribe();
+  }, [dispatch, navigate]);
 
   useEffect(() => {
     if (!isLocalStorageAvailable()) {

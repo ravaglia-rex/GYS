@@ -33,7 +33,6 @@ export const RAZORPAY_ORDER_EXAM='/orderExam';
 // FIREBASE FUNCTIONS PATH
 export const SCHOOLS_APIS = '/schools';
 export const STUDENTS_APIS = '/students';
-export const SCHOOL_ADMIN_APIS = '/schooladmins';
 export const PHASE_1_QUERIES_APIS = '/phase1Queries';
 export const EXAM_DETAILS_APIS = '/examDetails';
 export const EXAM_RESPONSES_APIS = '/examResponses';
@@ -69,3 +68,8 @@ export const CREATE_RAZORPAY_ORDER='/createOrder';
 export const GET_RAZORPAY_PAYEES='/getPayeeDetails';
 export const MARK_PAYMENT_PENDING='/markPaymentPending';
 export const DEV_MODE_PAYMENT='/devModePayment';
+
+export const CHECK_SCHOOL_EMAIL = '/checkSchoolEmail';
+export const CREATE_SCHOOL_ADMIN = '/createSchoolAdmin';
+export const VERIFY_SCHOOL_EMAIL = '/verifySchoolEmail';
+export const VERIFY_SCHOOL_ADMIN_AND_SEND_PASSWORD_SETUP = '/verifySchoolAdminAndSendPasswordSetup';

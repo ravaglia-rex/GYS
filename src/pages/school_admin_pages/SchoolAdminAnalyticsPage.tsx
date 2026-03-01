@@ -55,6 +55,8 @@ import {
   FunnelChart,
   Funnel
 } from 'recharts';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../../firebase/firebase';
 
 interface AnalyticsData {
   scoreDistribution: Array<{
@@ -116,54 +118,258 @@ interface PerformanceComparisonData {
   target: number;
 }
 
+const PHASE2_FORM_IDS = ['mOGkN8', 'mVy95J'];
+
 const SchoolAdminAnalyticsPage: React.FC = () => {
-  // Mock school admin data for testing
-  const mockSchoolAdmin = {
-    email: 'srishti2k1@gmail.com',
-    schoolId: '018WuXO6zOabXh4ZXmcq',
-    role: 'schooladmin'
-  };
+  const { schoolAdmin } = useSelector((state: RootState) => state.auth);
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [timeRange, setTimeRange] = useState('last_30_days');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // TODO: Fetch actual analytics data from backend
-    // For now, using mock data
-    setAnalyticsData({
-      scoreDistribution: [
-        { range: '90-100', count: 25, percentage: 16 },
-        { range: '80-89', count: 42, percentage: 27 },
-        { range: '70-79', count: 38, percentage: 24 },
-        { range: '60-69', count: 28, percentage: 18 },
-        { range: '50-59', count: 15, percentage: 10 },
-        { range: 'Below 50', count: 8, percentage: 5 }
-      ],
-      gradeDistribution: [
-        { grade: 9, count: 35, percentage: 22 },
-        { grade: 10, count: 45, percentage: 29 },
-        { grade: 11, count: 52, percentage: 33 },
-        { grade: 12, count: 24, percentage: 16 }
-      ],
-      qualificationStats: {
-        qualified: 105,
-        notQualified: 28,
-        pending: 23,
-        total: 156
-      },
-      monthlyTrends: [
-        { month: 'Oct', averageScore: 75.2, examsCompleted: 45, qualifications: 12 },
-        { month: 'Nov', averageScore: 78.1, examsCompleted: 52, qualifications: 18 },
-        { month: 'Dec', averageScore: 76.8, examsCompleted: 38, qualifications: 15 },
-        { month: 'Jan', averageScore: 82.3, examsCompleted: 67, qualifications: 25 }
-      ],
-      subjectPerformance: [
-        { subject: 'Mathematics', averageScore: 85.2, totalStudents: 156, qualifiedStudents: 98 },
-        { subject: 'Science', averageScore: 78.9, totalStudents: 142, qualifiedStudents: 87 },
-        { subject: 'English', averageScore: 82.1, totalStudents: 134, qualifiedStudents: 92 },
-        { subject: 'History', averageScore: 76.5, totalStudents: 128, qualifiedStudents: 78 }
-      ]
-    });
-  }, []);
+    const fetchAnalyticsData = async () => {
+      if (!schoolAdmin?.schoolId) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const schoolId = schoolAdmin.schoolId;
+
+        // Fetch all students
+        const studentsQuery = query(
+          collection(db, 'students'),
+          where('school_id', '==', schoolId)
+        );
+        const studentsSnapshot = await getDocs(studentsQuery);
+        const students = studentsSnapshot.docs.map(doc => ({
+          uid: doc.id,
+          ...doc.data()
+        }));
+
+        // Fetch all submissions and responses
+        const allSubmissions: any[] = [];
+        const allResponses: any[] = [];
+        const studentScores: number[] = [];
+
+        for (const student of students) {
+          const submissionsQuery = query(
+            collection(db, 'student_submission_mappings'),
+            where('student_uid', '==', student.uid)
+          );
+          const submissionsSnapshot = await getDocs(submissionsQuery);
+          
+          submissionsSnapshot.forEach(subDoc => {
+            const subData = subDoc.data();
+            allSubmissions.push({
+              student_uid: student.uid,
+              ...subData
+            });
+
+            if (subData.submission_id) {
+              // Fetch phase 2 responses
+              const responsesQuery = query(
+                collection(db, 'phase_2_exam_responses'),
+                where('submissionId', '==', subData.submission_id)
+              );
+              getDocs(responsesQuery).then(responsesSnapshot => {
+                responsesSnapshot.forEach(respDoc => {
+                  const respData = respDoc.data();
+                  if (respData.overallTotal) {
+                    allResponses.push(respData);
+                    studentScores.push(respData.overallTotal);
+                  }
+                });
+              });
+            }
+          });
+        }
+
+        // Wait for all responses to be fetched
+        await Promise.all(
+          students.map(async (student) => {
+            const submissionsQuery = query(
+              collection(db, 'student_submission_mappings'),
+              where('student_uid', '==', student.uid)
+            );
+            const submissionsSnapshot = await getDocs(submissionsQuery);
+            
+            for (const subDoc of submissionsSnapshot.docs) {
+              const subData = subDoc.data();
+              if (subData.submission_id) {
+                const responsesQuery = query(
+                  collection(db, 'phase_2_exam_responses'),
+                  where('submissionId', '==', subData.submission_id)
+                );
+                const responsesSnapshot = await getDocs(responsesQuery);
+                responsesSnapshot.forEach(respDoc => {
+                  const respData = respDoc.data();
+                  if (respData.overallTotal) {
+                    allResponses.push(respData);
+                    studentScores.push(respData.overallTotal);
+                  }
+                });
+              }
+            }
+          })
+        );
+
+        // Calculate score distribution
+        const scoreRanges = {
+          '90-100': 0,
+          '80-89': 0,
+          '70-79': 0,
+          '60-69': 0,
+          '50-59': 0,
+          'Below 50': 0
+        };
+
+        studentScores.forEach(score => {
+          if (score >= 90) scoreRanges['90-100']++;
+          else if (score >= 80) scoreRanges['80-89']++;
+          else if (score >= 70) scoreRanges['70-79']++;
+          else if (score >= 60) scoreRanges['60-69']++;
+          else if (score >= 50) scoreRanges['50-59']++;
+          else scoreRanges['Below 50']++;
+        });
+
+        const totalScores = studentScores.length;
+        const scoreDistribution = Object.entries(scoreRanges).map(([range, count]) => ({
+          range,
+          count,
+          percentage: totalScores > 0 ? Math.round((count / totalScores) * 100) : 0
+        }));
+
+        // Calculate grade distribution
+        const gradeCounts: Record<number, number> = {};
+        students.forEach(student => {
+          let grade = 0;
+          if ('grade' in student && typeof student['grade'] === 'number') {
+            grade = student['grade'] as number;
+          } else if ('class' in student && typeof student['class'] === 'number') {
+            grade = student['class'] as number;
+          }
+          if (grade > 0) {
+            gradeCounts[grade] = (gradeCounts[grade] || 0) + 1;
+          }
+        });
+
+        const totalStudents = students.length;
+        const gradeDistribution = Object.entries(gradeCounts)
+          .map(([grade, count]) => ({
+            grade: parseInt(grade),
+            count,
+            percentage: totalStudents > 0 ? Math.round((count / totalStudents) * 100) : 0
+          }))
+          .sort((a, b) => a.grade - b.grade);
+
+        // Calculate qualification stats
+        let qualified = 0;
+        let notQualified = 0;
+        let pending = 0;
+
+        for (const student of students) {
+          const examMappingsQuery = query(
+            collection(db, 'student_exam_mappings'),
+            where('uid', '==', student.uid)
+          );
+          const examMappingsSnapshot = await getDocs(examMappingsQuery);
+          
+          let isQualified = false;
+          examMappingsSnapshot.forEach(doc => {
+            const data = doc.data();
+            if (PHASE2_FORM_IDS.includes(data.form_link)) {
+              isQualified = true;
+            }
+          });
+
+          if (isQualified) {
+            qualified++;
+          } else {
+            notQualified++;
+          }
+        }
+
+        // Calculate monthly trends (last 6 months)
+        const monthlyStats: Record<string, { scores: number[]; exams: number; qualifications: number }> = {};
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const now = new Date();
+        
+        for (let i = 5; i >= 0; i--) {
+          const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          const monthKey = months[date.getMonth()];
+          monthlyStats[monthKey] = { scores: [], exams: 0, qualifications: 0 };
+        }
+
+        allSubmissions.forEach(submission => {
+          if (submission.submission_time) {
+            const date = submission.submission_time.seconds
+              ? new Date(submission.submission_time.seconds * 1000)
+              : new Date(submission.submission_time);
+            const monthKey = months[date.getMonth()];
+            if (monthlyStats[monthKey]) {
+              monthlyStats[monthKey].exams++;
+            }
+          }
+        });
+
+        allResponses.forEach(response => {
+          if (response.createdAt) {
+            const date = response.createdAt.seconds
+              ? new Date(response.createdAt.seconds * 1000)
+              : new Date(response.createdAt);
+            const monthKey = months[date.getMonth()];
+            if (monthlyStats[monthKey] && response.overallTotal) {
+              monthlyStats[monthKey].scores.push(response.overallTotal);
+            }
+          }
+        });
+
+        const monthlyTrends = Object.entries(monthlyStats).map(([month, stats]) => ({
+          month,
+          averageScore: stats.scores.length > 0
+            ? Math.round((stats.scores.reduce((a, b) => a + b, 0) / stats.scores.length) * 10) / 10
+            : 0,
+          examsCompleted: stats.exams,
+          qualifications: stats.qualifications
+        }));
+
+        // Subject performance (simplified - using overall)
+        const averageScore = studentScores.length > 0
+          ? Math.round((studentScores.reduce((a, b) => a + b, 0) / studentScores.length) * 10) / 10
+          : 0;
+
+        const subjectPerformance = [
+          {
+            subject: 'Overall',
+            averageScore,
+            totalStudents,
+            qualifiedStudents: qualified
+          }
+        ];
+
+        setAnalyticsData({
+          scoreDistribution,
+          gradeDistribution,
+          qualificationStats: {
+            qualified,
+            notQualified,
+            pending,
+            total: totalStudents
+          },
+          monthlyTrends,
+          subjectPerformance
+        });
+      } catch (error) {
+        console.error('Error fetching analytics data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAnalyticsData();
+  }, [schoolAdmin, timeRange]);
 
   // Additional chart data
   const studentProgressData: StudentProgressData[] = [
@@ -214,6 +420,16 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
     if (!analyticsData) return 0;
     return (analyticsData.qualificationStats[type] / analyticsData.qualificationStats.total) * 100;
   };
+
+  if (loading) {
+    return (
+      <Box sx={{ maxWidth: '100%', mx: 'auto', p: 4 }}>
+        <Typography variant="h6" sx={{ color: '#ffffff' }}>
+          Loading analytics...
+        </Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ maxWidth: '100%', mx: 'auto' }}>
@@ -429,9 +645,8 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                         <Box sx={{ 
                           width: '100%', 
                           height: 8, 
-                          bgcolor: '#334155', 
-                          borderRadius: 4,
-                          overflow: 'hidden'
+                          bgcolor: '#3b82f6',
+                          borderRadius: 4
                         }}>
                           <Box sx={{ 
                             width: `${item.percentage}%`, 

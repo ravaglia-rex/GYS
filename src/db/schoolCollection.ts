@@ -21,15 +21,31 @@ export const createExpeditedSchool = async (school: expeditedSchool) => {
     }
 }
 
+// Add caching
+let cachedSchools: { id: string; name: string }[] | null = null;
+let cacheTimestamp: number = 0;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
 // FETCH ALL SCHOOL NAMES AND IDs
-export const fetchSchoolNamesAndIds = async () => {
-    try {
-        const response = await axios.get(`${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOLS_APIS}${FETCH_SCHOOL_NAMES_AND_IDS}`);
-        const data = await response.data;
-        return data;
-    } catch (e) {
-        throw new Error(`Error fetching schools. Please contact talentsearch@argus.ai`);
+export const fetchSchoolNamesAndIds = async (): Promise<{ id: string; name: string }[]> => {
+  try {
+    // Check cache
+    const now = Date.now();
+    if (cachedSchools && (now - cacheTimestamp) < CACHE_DURATION) {
+      return cachedSchools;
     }
+
+    const response = await axios.get(`${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOLS_APIS}${FETCH_SCHOOL_NAMES_AND_IDS}`);
+    const data = await response.data;
+    
+    // Update cache
+    cachedSchools = data;
+    cacheTimestamp = now;
+    
+    return data;
+  } catch (e) {
+    throw new Error(`Error fetching schools. Please contact talentsearch@argus.ai`);
+  }
 };
 
 // FETCH SCHOOL NAME

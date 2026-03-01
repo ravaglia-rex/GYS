@@ -1,20 +1,18 @@
 import React, { useState } from 'react';
-import { 
-  Box, 
-  Drawer, 
-  AppBar, 
-  Toolbar, 
-  Typography, 
+import {
+  Box,
+  Drawer,
+  AppBar,
+  Toolbar,
+  Typography,
   IconButton,
   useTheme,
   useMediaQuery,
   Avatar,
-  Badge,
   Divider
 } from '@mui/material';
-import { 
+import {
   Menu as MenuIcon,
-  // COMMENTED OUT - Notifications as NotificationsIcon,
   School as SchoolIcon,
   Dashboard as DashboardIcon,
   People as PeopleIcon,
@@ -27,6 +25,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { useSelector } from 'react-redux';
 import { RootState } from '../state_data/reducer';
+import authTokenHandler from '../functions/auth_token/auth_token_handler';
 // COMMENTED OUT - import NotificationsDialog from '../components/dashboard/NotificationsDialog';
 
 const DRAWER_WIDTH = 280;
@@ -75,13 +74,9 @@ export default function SchoolAdminLayout({ children }: SchoolAdminLayoutProps) 
   const navigate = useNavigate();
   const location = useLocation();
   const { schoolAdmin } = useSelector((state: RootState) => state.auth);
-  
-  // Mock school admin data for testing
-  const mockSchoolAdmin = {
-    email: 'srishti2k1@gmail.com',
-    schoolId: '018WuXO6zOabXh4ZXmcq',
-    role: 'schooladmin'
-  };
+
+  const displayEmail = currentUser?.email ?? schoolAdmin?.email ?? '';
+  const avatarInitial = displayEmail ? displayEmail.charAt(0).toUpperCase() : '?';
 
   const handleDrawerToggle = () => {
     setSidebarOpen(!sidebarOpen);
@@ -102,10 +97,12 @@ export default function SchoolAdminLayout({ children }: SchoolAdminLayoutProps) 
 
   const handleLogout = async () => {
     try {
-      // For testing, just navigate to home page
+      await signOut(auth);
+      authTokenHandler.clearToken();
       navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);
+      navigate('/');
     }
   };
 
@@ -176,7 +173,7 @@ export default function SchoolAdminLayout({ children }: SchoolAdminLayoutProps) 
                   fontWeight: 600
                 }}
               >
-                {mockSchoolAdmin.email.charAt(0).toUpperCase()}
+                {avatarInitial}
               </Avatar>
             </IconButton>
 
@@ -237,20 +234,11 @@ export default function SchoolAdminLayout({ children }: SchoolAdminLayoutProps) 
 
         <Divider sx={{ borderColor: 'rgba(59, 130, 246, 0.2)' }} />
 
-        <Box sx={{ p: 2 }}>
-          <Box sx={{ mb: 3, p: 2, bgcolor: 'rgba(59, 130, 246, 0.1)', borderRadius: 2, border: '1px solid rgba(59, 130, 246, 0.2)' }}>
-            <Typography variant="caption" sx={{ color: '#3b82f6', fontWeight: 600 }}>
-              School ID: {mockSchoolAdmin.schoolId}
-            </Typography>
-          </Box>
-        </Box>
-
         <Box sx={{ flexGrow: 1 }}>
           {navItems.map((item) => (
             <Box
               key={item.path}
               sx={{
-                mx: 1,
                 mb: 0.5,
                 borderRadius: 1,
                 bgcolor: isActive(item.path) ? 'rgba(59, 130, 246, 0.2)' : 'transparent',

@@ -1,24 +1,23 @@
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 import * as fs from 'fs';
 import * as path from 'path';
 
 // Initialize Firebase Admin SDK
-if (!admin.apps.length) {
+if (!admin.apps || admin.apps.length === 0) {
   admin.initializeApp({
     credential: admin.credential.cert('/Users/srishtilodha/Desktop/Argus/Argus_India/argus-frontend/argus-talent-search-12b4f493ad6d.json'),
   });
 }
-
 const db = admin.firestore();
 
 // Configuration
 const SCHOOL_ID = 't113qJrvxEm1ASdrbftA';
-const OUTPUT_DIR = path.join(__dirname, '../../school_analysis_output');
+const OUTPUT_DIR = path.join(process.cwd(), 'school_analysis_output');
 
 // Phase 1 form IDs (based on grade)
 const PHASE1_FORM_IDS = ['wzdOWZ', 'mRjg8v', 'mOEg8k', '3E6g8A'];
-// Phase 2 form IDs
-const PHASE2_FORM_IDS = ['mOGkN8', 'mVy95J'];
+// Phase 2 form ID
+const PHASE2_FORM_ID = 'mOGkN8';
 // Past exam result form ID
 const PAST_EXAM_FORM_ID = 'npByEB';
 
@@ -66,9 +65,27 @@ interface Phase2ExamResponse {
   [key: string]: any;
 }
 
+interface ExamResponse {
+  submissionId: string;
+  formId: string;
+  overallTotal: number;
+  typeTotals: Record<string, number>;
+  createdAt?: any;
+  [key: string]: any;
+}
+
+interface Phase1Performance {
+  submissionId: string;
+  formId: string;
+  overallTotal?: number;
+  typeTotals?: Record<string, number>;
+  hasResponse?: boolean;
+}
+
 interface StudentAnalysis {
   student: Student;
   phase1Submissions: SubmissionMapping[];
+  phase1Performance?: Phase1Performance;
   phase2Qualified: boolean;
   phase2QualifiedReason: string;
   phase2Paid: boolean;
@@ -122,9 +139,10 @@ async function processInBatches<T>(
  * COLLECTION REFERENCES:
  * 1. students - Query by school_id to get all students
  * 2. student_submission_mappings - Check phase 1 submissions (form_id in PHASE1_FORM_IDS) and phase 2 (form_id = PHASE2_FORM_ID)
- * 3. student_exam_mappings - Check qualification (form_link = PHASE2_FORM_ID or form_link = PAST_EXAM_FORM_ID with result = true)
- * 4. student_payment_mappings - Check payments (form_id = PHASE2_FORM_ID)
- * 5. phase_2_exam_responses - Check if students took phase 2 exam
+ * 3. exam_responses - Phase 1 subject performance (linked via submissionId)
+ * 4. student_exam_mappings - Check qualification (form_link = PHASE2_FORM_ID or form_link = PAST_EXAM_FORM_ID with result = true)
+ * 5. student_payment_mappings - Check payments (form_id = PHASE2_FORM_ID)
+ * 6. phase_2_exam_responses - Check if students took phase 2 exam
  */
 export const analyzeSchoolStudents = async () => {
   try {
@@ -222,16 +240,82 @@ export const analyzeSchoolStudents = async () => {
     }
     console.log('═══════════════════════════════════════\n');
 
-    // Step 5: Check phase 2 qualification and completion (student_exam_mappings)
-    console.log('4️⃣  Checking student_exam_mappings for phase 2 qualification and completion...');
+    // Step 4.5: Get phase 1 exam responses for subject performance
+    console.log('4️⃣  Querying exam_responses for phase 1 subject performance...');
+    const phase1Performance: Record<string, Phase1Performance> = {};
+
+    // Get all submission IDs from phase 1 submissions
+    const phase1SubmissionIds = allSubmissions.map(sub => sub.submission_id);
+    
+    if (phase1SubmissionIds.length > 0) {
+      // Query exam_responses in batches
+      for (let i = 0; i < phase1SubmissionIds.length; i += 10) {
+        const batch = phase1SubmissionIds.slice(i, i + 10);
+        const promises = batch.map(submissionId =>
+          db.collection('exam_responses')
+            .where('submissionId', '==', submissionId)
+            .where('formId', 'in', PHASE1_FORM_IDS)
+            .get()
+        );
+
+        const results = await Promise.all(promises);
+        results.forEach((snapshot, index) => {
+          const submissionId = batch[index];
+          if (!snapshot.empty) {
+            const response = snapshot.docs[0].data() as ExamResponse;
+            // Find the student UID for this submission
+            const submission = allSubmissions.find(sub => sub.submission_id === submissionId);
+            if (submission) {
+              phase1Performance[submission.student_uid] = {
+                submissionId: response.submissionId,
+                formId: response.formId,
+                overallTotal: response.overallTotal,
+                typeTotals: response.typeTotals || {},
+                hasResponse: true
+              };
+            }
+          }
+        });
+      }
+    }
+
+    console.log(`✅ Found performance data for ${Object.keys(phase1Performance).length} students`);
+    console.log('\n═══════════════════════════════════════');
+    console.log('   PHASE 1 PERFORMANCE STATISTICS');
+    console.log('═══════════════════════════════════════');
+    
+    // Calculate average scores by subject
+    const studentsWithScores = Object.values(phase1Performance).filter(p => p.hasResponse && p.typeTotals);
+    if (studentsWithScores.length > 0) {
+      // Collect all subject keys from typeTotals
+      const allSubjects = new Set<string>();
+      studentsWithScores.forEach(perf => {
+        if (perf.typeTotals) {
+          const typeTotals = perf.typeTotals;
+          Object.keys(typeTotals).forEach(subject => allSubjects.add(subject));
+        }
+      });
+
+      console.log(`   Students with performance data: ${studentsWithScores.length}`);
+      console.log(`   Overall Average Score: ${(studentsWithScores.reduce((sum, p) => sum + (p.overallTotal || 0), 0) / studentsWithScores.length).toFixed(2)}`);
+      
+      // Calculate averages for each subject
+      allSubjects.forEach(subject => {
+        const subjectScores = studentsWithScores
+          .map(p => p.typeTotals?.[subject] || 0)
+          .filter(score => score > 0);
+        if (subjectScores.length > 0) {
+          const avg = subjectScores.reduce((sum, score) => sum + score, 0) / subjectScores.length;
+          console.log(`   Average ${subject} Score: ${avg.toFixed(2)}`);
+        }
+      });
+    }
+    console.log('═══════════════════════════════════════\n');
+
+    // Step 5: Check phase 2 qualification (student_exam_mappings)
+    console.log('5️⃣  Checking student_exam_mappings for phase 2 qualification...');
     const qualifiedStudents: string[] = [];
-    const qualificationDetails: Record<string, { 
-      qualified: boolean; 
-      reason: string;
-      completed: boolean;
-      phase2ExamMapping?: ExamMapping;
-      phase2FormId?: string;
-    }> = {};
+    const qualificationDetails: Record<string, { qualified: boolean; reason: string }> = {};
     const examMappingsByStudent: Record<string, ExamMapping[]> = {};
     
     // Query exam mappings for each student
@@ -255,43 +339,26 @@ export const analyzeSchoolStudents = async () => {
       });
     }
 
-    // Check qualification: has mOGkN8 or mVy95J (phase 2 form) in student_exam_mappings
-    // Also check completion status from the same mapping
+    // Check qualification: either has mOGkN8 (phase 2 form) OR npByEB with result = true
     students.forEach(student => {
       const mappings = examMappingsByStudent[student.uid] || [];
       let qualified = false;
-      let completed = false;
       let reason = 'Not qualified';
-      let phase2ExamMapping: ExamMapping | undefined;
-      let phase2FormId: string | undefined;
 
-      // Check for phase 2 form links (mOGkN8 or mVy95J)
-      const phase2Mapping = mappings.find(m => PHASE2_FORM_IDS.includes(m.form_link));
-      
-      if (phase2Mapping) {
+      // Check for phase 2 form link
+      const hasPhase2Form = mappings.some(m => m.form_link === PHASE2_FORM_ID);
+      // Check for past exam result showing qualification
+      const pastExamResult = mappings.find(m => m.form_link === PAST_EXAM_FORM_ID && m.result === true);
+
+      if (hasPhase2Form) {
         qualified = true;
-        completed = phase2Mapping.completed || false;
-        phase2ExamMapping = phase2Mapping;
-        phase2FormId = phase2Mapping.form_link;
-        reason = completed 
-          ? `Has phase 2 exam form (${phase2Mapping.form_link}) - Exam completed`
-          : `Has phase 2 exam form (${phase2Mapping.form_link}) - Exam not completed`;
-      } else {
-        // Check for past exam result showing qualification (fallback)
-        const pastExamResult = mappings.find(m => m.form_link === PAST_EXAM_FORM_ID && m.result === true);
-        if (pastExamResult) {
-          qualified = true;
-          reason = 'Qualified based on past exam result (npByEB with result=true) but no phase 2 exam mapping found';
-        }
+        reason = 'Has phase 2 exam form (mOGkN8)';
+      } else if (pastExamResult) {
+        qualified = true;
+        reason = 'Qualified based on past exam result (npByEB with result=true)';
       }
 
-      qualificationDetails[student.uid] = { 
-        qualified, 
-        reason,
-        completed,
-        phase2ExamMapping,
-        phase2FormId
-      };
+      qualificationDetails[student.uid] = { qualified, reason };
       if (qualified) {
         qualifiedStudents.push(student.uid);
       }
@@ -314,7 +381,7 @@ export const analyzeSchoolStudents = async () => {
     console.log('═══════════════════════════════════════\n');
 
     // Step 6: Check payments (student_payment_mappings)
-    console.log('5️⃣  Checking student_payment_mappings for phase 2 payments...');
+    console.log('6️⃣  Checking student_payment_mappings for phase 2 payments...');
     const paymentDetails: Record<string, PaymentMapping[]> = {};
     const paidStudents: string[] = [];
 
@@ -324,7 +391,7 @@ export const analyzeSchoolStudents = async () => {
         const promises = batch.map(uid =>
           db.collection('student_payment_mappings')
             .where('uid', '==', uid)
-            .where('form_id', 'in', PHASE2_FORM_IDS) // Use array for 'in' query
+            .where('form_id', '==', PHASE2_FORM_ID)
             .get()
         );
 
@@ -362,52 +429,49 @@ export const analyzeSchoolStudents = async () => {
     }
     console.log('═══════════════════════════════════════\n');
 
-    // Step 7: Check phase 2 exam submissions (using student_exam_mappings completion status)
-    console.log('6️⃣  Checking phase 2 exam completion status from student_exam_mappings...');
+    // Step 7: Check phase 2 exam submissions
+    console.log('7️⃣  Checking phase 2 exam submissions...');
+    const phase2Submissions: Record<string, Phase2ExamResponse> = {};
     const phase2ExamTakenStudents: string[] = [];
-    const phase2CompletionDetails: Record<string, { completed: boolean; examMapping?: ExamMapping }> = {};
 
-    // Use the qualification details which already have completion status
-    qualifiedStudents.forEach(uid => {
-      const details = qualificationDetails[uid];
-      if (details.completed && details.phase2ExamMapping) {
-        phase2ExamTakenStudents.push(uid);
-        phase2CompletionDetails[uid] = {
-          completed: true,
-          examMapping: details.phase2ExamMapping
-        };
-      }
-    });
-
-    // Also check student_submission_mappings for submission_id (for additional details)
-    const phase2Submissions: Record<string, { submissionId?: string; examMapping?: ExamMapping; formId?: string }> = {};
-    
-    if (phase2ExamTakenStudents.length > 0) {
-      for (let i = 0; i < phase2ExamTakenStudents.length; i += 10) {
-        const batch = phase2ExamTakenStudents.slice(i, i + 10);
+    // Check in student_submission_mappings for form_id = mOGkN8
+    if (qualifiedStudents.length > 0) {
+      for (let i = 0; i < qualifiedStudents.length; i += 10) {
+        const batch = qualifiedStudents.slice(i, i + 10);
         const promises = batch.map(uid =>
           db.collection('student_submission_mappings')
             .where('student_uid', '==', uid)
-            .where('form_id', 'in', PHASE2_FORM_IDS) // Use array for 'in' query
+            .where('form_id', '==', PHASE2_FORM_ID)
             .get()
         );
 
         const results = await Promise.all(promises);
         results.forEach((snapshot, index) => {
           const uid = batch[index];
-          if (!phase2Submissions[uid]) {
-            phase2Submissions[uid] = {};
-          }
           if (!snapshot.empty) {
             const submission = snapshot.docs[0].data() as SubmissionMapping;
-            phase2Submissions[uid].submissionId = submission.submission_id;
-            phase2Submissions[uid].formId = submission.form_id;
+            phase2ExamTakenStudents.push(uid);
+            phase2Submissions[uid] = {
+              submissionId: submission.submission_id,
+              studentId: uid
+            };
           }
-          // Add exam mapping details
-          phase2Submissions[uid].examMapping = phase2CompletionDetails[uid]?.examMapping;
         });
       }
     }
+
+    // Also check phase_2_exam_responses collection
+    console.log('   Checking phase_2_exam_responses collection...');
+    const phase2ResponsesSnapshot = await db.collection('phase_2_exam_responses').get();
+    phase2ResponsesSnapshot.forEach(doc => {
+      const response = doc.data() as Phase2ExamResponse;
+      if (qualifiedStudents.includes(response.studentId)) {
+        if (!phase2ExamTakenStudents.includes(response.studentId)) {
+          phase2ExamTakenStudents.push(response.studentId);
+        }
+        phase2Submissions[response.studentId] = response;
+      }
+    });
 
     console.log(`✅ Found ${phase2ExamTakenStudents.length} students who took phase 2 exam`);
     console.log('\n═══════════════════════════════════════');
@@ -426,17 +490,19 @@ export const analyzeSchoolStudents = async () => {
     console.log('═══════════════════════════════════════\n');
 
     // Step 8: Compile comprehensive analysis
-    console.log('7️⃣  Compiling comprehensive analysis...');
+    console.log('8️⃣  Compiling comprehensive analysis...');
     const analysis: StudentAnalysis[] = students.map(student => {
       const phase1Subs = submissionsByStudent[student.uid] || [];
       const qualified = qualificationDetails[student.uid]?.qualified || false;
       const payments = paymentDetails[student.uid] || [];
       const phase2Taken = phase2ExamTakenStudents.includes(student.uid);
       const phase2Submission = phase2Submissions[student.uid];
+      const performance = phase1Performance[student.uid];
 
       return {
         student,
         phase1Submissions: phase1Subs,
+        phase1Performance: performance,
         phase2Qualified: qualified,
         phase2QualifiedReason: qualificationDetails[student.uid]?.reason || 'Not qualified',
         phase2Paid: payments.length > 0,
@@ -448,7 +514,7 @@ export const analyzeSchoolStudents = async () => {
     });
 
     // Step 9: Generate CSV files
-    console.log('\n8️⃣  Generating CSV files...');
+    console.log('\n9️⃣  Generating CSV files...');
 
     // CSV 1: All students with basic info
     const allStudentsCSV = convertToCSV(students, [
@@ -464,6 +530,48 @@ export const analyzeSchoolStudents = async () => {
     ]);
     fs.writeFileSync(path.join(OUTPUT_DIR, 'phase1_submissions.csv'), phase1SubmissionsCSV);
     console.log('   ✅ Created phase1_submissions.csv');
+
+    // CSV 2.5: Phase 1 performance data
+    if (Object.keys(phase1Performance).length > 0) {
+      const performanceData: any[] = [];
+      Object.keys(phase1Performance).forEach(uid => {
+        const student = students.find(s => s.uid === uid);
+        const perf = phase1Performance[uid];
+        if (perf.typeTotals) {
+          // Create a row with all subject scores
+          const row: any = {
+            uid,
+            first_name: student?.first_name,
+            last_name: student?.last_name,
+            grade: student?.grade,
+            submission_id: perf.submissionId,
+            form_id: perf.formId,
+            overall_total: perf.overallTotal
+          };
+          // Add each subject score as a column
+          const typeTotals = perf.typeTotals;
+          Object.keys(typeTotals).forEach(subject => {
+            row[`${subject}_score`] = typeTotals[subject];
+          });
+          performanceData.push(row);
+        }
+      });
+
+      // Get all unique subject names for CSV headers
+      const allSubjects = new Set<string>();
+      performanceData.forEach(row => {
+        Object.keys(row).forEach(key => {
+          if (key.endsWith('_score')) {
+            allSubjects.add(key);
+          }
+        });
+      });
+
+      const headers = ['uid', 'first_name', 'last_name', 'grade', 'submission_id', 'form_id', 'overall_total', ...Array.from(allSubjects).sort()];
+      const performanceCSV = convertToCSV(performanceData, headers);
+      fs.writeFileSync(path.join(OUTPUT_DIR, 'phase1_performance.csv'), performanceCSV);
+      console.log('   ✅ Created phase1_performance.csv');
+    }
 
     // CSV 3: Students with multiple submissions
     if (Object.keys(multipleSubmissions).length > 0) {
@@ -540,51 +648,73 @@ export const analyzeSchoolStudents = async () => {
       console.log('   ✅ Created phase2_payments.csv');
     }
 
-    // CSV 6: Phase 2 exam takers (completed students)
+    // CSV 6: Phase 2 exam takers
     if (phase2ExamTakenStudents.length > 0) {
       const phase2TakersData = phase2ExamTakenStudents.map(uid => {
         const student = students.find(s => s.uid === uid);
         const submission = phase2Submissions[uid];
-        const examMapping = qualificationDetails[uid]?.phase2ExamMapping;
         return {
           uid,
           first_name: student?.first_name,
           last_name: student?.last_name,
           grade: student?.grade,
-          form_id: submission?.formId || qualificationDetails[uid]?.phase2FormId || '',
-          submission_id: submission?.submissionId || '',
-          eligibility_at: examMapping?.eligibility_at || '',
-          completed: true
+          submission_id: submission?.submissionId
         };
       });
       const phase2TakersCSV = convertToCSV(phase2TakersData, [
-        'uid', 'first_name', 'last_name', 'grade', 'form_id', 'submission_id', 'eligibility_at', 'completed'
+        'uid', 'first_name', 'last_name', 'grade', 'submission_id'
       ]);
       fs.writeFileSync(path.join(OUTPUT_DIR, 'phase2_exam_takers.csv'), phase2TakersCSV);
       console.log('   ✅ Created phase2_exam_takers.csv');
     }
 
     // CSV 7: Comprehensive analysis
-    const comprehensiveData = analysis.map(a => ({
-      uid: a.student.uid,
-      first_name: a.student.first_name,
-      last_name: a.student.last_name,
-      grade: a.student.grade,
-      parent_email: a.student.parent_email,
-      phase1_submission_count: a.phase1Submissions.length,
-      multiple_submissions: a.multipleSubmissions,
-      phase2_qualified: a.phase2Qualified,
-      phase2_qualified_reason: a.phase2QualifiedReason,
-      phase2_completed: a.phase2ExamTaken,
-      phase2_paid: a.phase2Paid,
-      phase2_submission_id: a.phase2SubmissionId
-    }));
-    const comprehensiveCSV = convertToCSV(comprehensiveData, [
+    const comprehensiveData = analysis.map(a => {
+      const baseRow: any = {
+        uid: a.student.uid,
+        first_name: a.student.first_name,
+        last_name: a.student.last_name,
+        grade: a.student.grade,
+        parent_email: a.student.parent_email,
+        phase1_submission_count: a.phase1Submissions.length,
+        multiple_submissions: a.multipleSubmissions,
+        phase1_overall_total: a.phase1Performance?.overallTotal,
+        phase2_qualified: a.phase2Qualified,
+        phase2_qualified_reason: a.phase2QualifiedReason,
+        phase2_paid: a.phase2Paid,
+        phase2_exam_taken: a.phase2ExamTaken,
+        phase2_submission_id: a.phase2SubmissionId
+      };
+
+      // Add subject scores from typeTotals
+      if (a.phase1Performance?.typeTotals) {
+        Object.keys(a.phase1Performance.typeTotals).forEach(subject => {
+          baseRow[`phase1_${subject}_score`] = a.phase1Performance?.typeTotals?.[subject];
+        });
+      }
+
+      return baseRow;
+    });
+
+    // Get all unique subject columns for headers
+    const allSubjectColumns = new Set<string>();
+    comprehensiveData.forEach(row => {
+      Object.keys(row).forEach(key => {
+        if (key.startsWith('phase1_') && key.endsWith('_score')) {
+          allSubjectColumns.add(key);
+        }
+      });
+    });
+
+    const headers = [
       'uid', 'first_name', 'last_name', 'grade', 'parent_email',
       'phase1_submission_count', 'multiple_submissions',
-      'phase2_qualified', 'phase2_qualified_reason', 'phase2_completed',
-      'phase2_paid', 'phase2_submission_id'
-    ]);
+      'phase1_overall_total',
+      ...Array.from(allSubjectColumns).sort(),
+      'phase2_qualified', 'phase2_qualified_reason',
+      'phase2_paid', 'phase2_exam_taken', 'phase2_submission_id'
+    ];
+    const comprehensiveCSV = convertToCSV(comprehensiveData, headers);
     fs.writeFileSync(path.join(OUTPUT_DIR, 'comprehensive_analysis.csv'), comprehensiveCSV);
     console.log('   ✅ Created comprehensive_analysis.csv');
 
@@ -601,6 +731,7 @@ export const analyzeSchoolStudents = async () => {
     console.log(`      Students who gave phase 1 exam: ${Object.keys(submissionsByStudent).length}`);
     console.log(`      Total phase 1 submissions: ${allSubmissions.length}`);
     console.log(`      Students with multiple submissions: ${Object.keys(multipleSubmissions).length}`);
+    console.log(`      Students with performance data: ${Object.keys(phase1Performance).length}`);
     console.log(`\n   Phase 2 Qualification:`);
     console.log(`      Qualified students: ${qualifiedStudents.length}`);
     console.log(`      Paid students: ${paidStudents.length}`);
@@ -611,9 +742,10 @@ export const analyzeSchoolStudents = async () => {
     console.log(`\n📁 Collection References Used:`);
     console.log(`   1. students - Query by school_id`);
     console.log(`   2. student_submission_mappings - Phase 1 & Phase 2 submissions`);
-    console.log(`   3. student_exam_mappings - Phase 2 qualification`);
-    console.log(`   4. student_payment_mappings - Phase 2 payments`);
-    console.log(`   5. phase_2_exam_responses - Phase 2 exam responses`);
+    console.log(`   3. exam_responses - Phase 1 subject performance`);
+    console.log(`   4. student_exam_mappings - Phase 2 qualification`);
+    console.log(`   5. student_payment_mappings - Phase 2 payments`);
+    console.log(`   6. phase_2_exam_responses - Phase 2 exam responses`);
 
   } catch (error) {
     console.error('❌ Error during analysis:', error);
@@ -621,15 +753,13 @@ export const analyzeSchoolStudents = async () => {
   }
 };
 
-// Run the script if executed directly
-if (require.main === module) {
-  analyzeSchoolStudents()
-    .then(() => {
-      console.log('\n✅ Script completed successfully!');
-      process.exit(0);
-    })
-    .catch((error) => {
-      console.error('❌ Script failed:', error);
-      process.exit(1);
-    });
-}
+// Run the script
+analyzeSchoolStudents()
+  .then(() => {
+    console.log('\n✅ Script completed successfully!');
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error('❌ Script failed:', error);
+    process.exit(1);
+  });

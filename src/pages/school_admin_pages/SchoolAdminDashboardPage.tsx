@@ -48,6 +48,8 @@ import {
   Radar,
   ComposedChart
 } from 'recharts';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../../firebase/firebase';
 
 interface DashboardStats {
   totalStudents: number;
@@ -90,13 +92,11 @@ interface PerformanceData {
   fullMark: number;
 }
 
+// Phase 2 form IDs for qualification check
+const PHASE2_FORM_IDS = ['mOGkN8', 'mVy95J'];
+
 const SchoolAdminDashboardPage: React.FC = () => {
-  // Mock school admin data for testing
-  const mockSchoolAdmin = {
-    email: 'srishti2k1@gmail.com',
-    schoolId: '018WuXO6zOabXh4ZXmcq',
-    role: 'schooladmin'
-  };
+  const { schoolAdmin } = useSelector((state: RootState) => state.auth);
   const [stats, setStats] = useState<DashboardStats>({
     totalStudents: 0,
     activeStudents: 0,
@@ -105,78 +105,197 @@ const SchoolAdminDashboardPage: React.FC = () => {
     qualificationRate: 0,
     recentActivity: []
   });
-
-  // Chart data
-  const monthlyData: MonthlyData[] = [
-    { month: 'Jan', students: 120, exams: 45, score: 75 },
-    { month: 'Feb', students: 135, exams: 52, score: 78 },
-    { month: 'Mar', students: 142, exams: 67, score: 82 },
-    { month: 'Apr', students: 156, exams: 89, score: 79 },
-    { month: 'May', students: 148, exams: 76, score: 81 },
-    { month: 'Jun', students: 162, exams: 95, score: 84 }
-  ];
-
-  const subjectData: SubjectData[] = [
-    { subject: 'Math', students: 156, averageScore: 85, qualified: 98 },
-    { subject: 'Science', students: 142, averageScore: 79, qualified: 87 },
-    { subject: 'English', students: 134, averageScore: 82, qualified: 92 },
-    { subject: 'History', students: 128, averageScore: 77, qualified: 78 }
-  ];
-
-  const gradeDistribution: GradeDistribution[] = [
-    { grade: 9, students: 35, percentage: 22 },
-    { grade: 10, students: 45, percentage: 29 },
-    { grade: 11, students: 52, percentage: 33 },
-    { grade: 12, students: 24, percentage: 16 }
-  ];
-
-  const performanceData: PerformanceData[] = [
-    { category: 'Mathematics', value: 85, fullMark: 100 },
-    { category: 'Science', value: 79, fullMark: 100 },
-    { category: 'English', value: 82, fullMark: 100 },
-    { category: 'History', value: 77, fullMark: 100 },
-    { category: 'Geography', value: 80, fullMark: 100 }
-  ];
+  const [loading, setLoading] = useState(true);
+  const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
+  const [subjectData, setSubjectData] = useState<SubjectData[]>([]);
+  const [gradeDistribution, setGradeDistribution] = useState<GradeDistribution[]>([]);
+  const [performanceData, setPerformanceData] = useState<PerformanceData[]>([]);
 
   const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
   useEffect(() => {
-    // TODO: Fetch actual data from backend
-    // For now, using mock data
-    setStats({
-      totalStudents: 156,
-      activeStudents: 142,
-      completedExams: 89,
-      averageScore: 78.5,
-      qualificationRate: 67.2,
-      recentActivity: [
-        {
-          id: '1',
-          type: 'exam_completed',
-          message: 'Sarah Johnson completed Mathematics Assessment',
-          timestamp: '2 hours ago'
-        },
-        {
-          id: '2',
-          type: 'student_registered',
-          message: 'New student registered: Michael Chen',
-          timestamp: '4 hours ago'
-        },
-        {
-          id: '3',
-          type: 'qualification_achieved',
-          message: 'Emma Davis qualified for Advanced Program',
-          timestamp: '1 day ago'
-        },
-        {
-          id: '4',
-          type: 'exam_completed',
-          message: 'Alex Thompson completed Science Assessment',
-          timestamp: '1 day ago'
+    const fetchDashboardData = async () => {
+      if (!schoolAdmin?.schoolId) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const schoolId = schoolAdmin.schoolId;
+
+        // 1. Fetch all students for this school
+        const studentsQuery = query(
+          collection(db, 'students'),
+          where('school_id', '==', schoolId)
+        );
+        const studentsSnapshot = await getDocs(studentsQuery);
+        const students = studentsSnapshot.docs.map(doc => ({
+          uid: doc.id,
+          ...doc.data()
+        }));
+
+        const totalStudents = students.length;
+        const studentUids = students.map(s => s.uid);
+
+        // 2. Fetch all exam submissions for these students
+        const allSubmissions: any[] = [];
+        for (const uid of studentUids) {
+          const submissionsQuery = query(
+            collection(db, 'student_submission_mappings'),
+            where('student_uid', '==', uid)
+          );
+          const submissionsSnapshot = await getDocs(submissionsQuery);
+          submissionsSnapshot.forEach(doc => {
+            allSubmissions.push({
+              student_uid: uid,
+              ...doc.data()
+            });
+          });
         }
-      ]
-    });
-  }, []);
+
+        const completedExams = allSubmissions.length;
+
+        // 3. Fetch phase 2 exam responses to calculate average scores
+        const allPhase2Responses: any[] = [];
+        for (const submission of allSubmissions) {
+          if (submission.submission_id) {
+            const responsesQuery = query(
+              collection(db, 'phase_2_exam_responses'),
+              where('submissionId', '==', submission.submission_id)
+            );
+            const responsesSnapshot = await getDocs(responsesQuery);
+            responsesSnapshot.forEach(doc => {
+              allPhase2Responses.push(doc.data());
+            });
+          }
+        }
+
+        // Calculate average score from phase 2 responses
+        let averageScore = 0;
+        if (allPhase2Responses.length > 0) {
+          const totalScore = allPhase2Responses.reduce((sum, response) => {
+            return sum + (response.overallTotal || 0);
+          }, 0);
+          averageScore = totalScore / allPhase2Responses.length;
+        }
+
+        // 4. Check qualifications from student_exam_mappings
+        let qualifiedCount = 0;
+        for (const uid of studentUids) {
+          const examMappingsQuery = query(
+            collection(db, 'student_exam_mappings'),
+            where('uid', '==', uid)
+          );
+          const examMappingsSnapshot = await getDocs(examMappingsQuery);
+          let isQualified = false;
+          examMappingsSnapshot.forEach(doc => {
+            const data = doc.data();
+            if (PHASE2_FORM_IDS.includes(data.form_link)) {
+              isQualified = true;
+            }
+          });
+          if (isQualified) qualifiedCount++;
+        }
+
+        const qualificationRate = totalStudents > 0 
+          ? (qualifiedCount / totalStudents) * 100 
+          : 0;
+
+        // 5. Calculate grade distribution
+        // Fix: Avoid accessing properties that may not exist on type, and make this robust
+        const gradeCounts: Record<number, number> = {};
+        students.forEach(student => {
+          // Try to extract grade information safely from student object
+          // Accept keys likely to be used for grade/class indicators
+          let grade: number = 0;
+          if ('grade' in student && typeof student['grade'] === 'number') {
+            grade = student['grade'] as number;
+          } else if ('class' in student && typeof student['class'] === 'number') {
+            grade = student['class'] as number;
+          }
+          gradeCounts[grade] = (gradeCounts[grade] || 0) + 1;
+        });
+
+        const gradeDist = Object.entries(gradeCounts)
+          .map(([grade, count]) => ({
+            grade: parseInt(grade),
+            students: count,
+            percentage: totalStudents > 0 ? Math.round((count / totalStudents) * 100) : 0
+          }))
+          .sort((a, b) => a.grade - b.grade);
+
+        // 6. Generate monthly data (last 6 months)
+        const monthlyStats: Record<string, { exams: number; scores: number[] }> = {};
+        allSubmissions.forEach(submission => {
+          if (submission.submission_time) {
+            const date = new Date(submission.submission_time.seconds * 1000 || submission.submission_time);
+            const monthKey = date.toLocaleDateString('en-US', { month: 'short' });
+            if (!monthlyStats[monthKey]) {
+              monthlyStats[monthKey] = { exams: 0, scores: [] };
+            }
+            monthlyStats[monthKey].exams++;
+          }
+        });
+
+        // Add scores to monthly stats
+        allPhase2Responses.forEach(response => {
+          if (response.createdAt) {
+            const date = new Date(response.createdAt.seconds * 1000 || response.createdAt);
+            const monthKey = date.toLocaleDateString('en-US', { month: 'short' });
+            if (monthlyStats[monthKey]) {
+              monthlyStats[monthKey].scores.push(response.overallTotal || 0);
+            }
+          }
+        });
+
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const last6Months = months.slice(-6);
+        const monthlyDataArray = last6Months.map(month => {
+          const stats = monthlyStats[month] || { exams: 0, scores: [] };
+          const avgScore = stats.scores.length > 0
+            ? stats.scores.reduce((a, b) => a + b, 0) / stats.scores.length
+            : 0;
+          return {
+            month,
+            students: 0, // Could calculate this if needed
+            exams: stats.exams,
+            score: Math.round(avgScore)
+          };
+        });
+
+        // 7. Set subject data (placeholder for now - could be enhanced with actual subject breakdown)
+        const subjectDataArray: SubjectData[] = [
+          { subject: 'Overall', students: totalStudents, averageScore: Math.round(averageScore), qualified: qualifiedCount }
+        ];
+
+        // 8. Set performance data (placeholder - could be enhanced)
+        const performanceDataArray: PerformanceData[] = [
+          { category: 'Overall Performance', value: Math.round(averageScore), fullMark: 100 }
+        ];
+
+        setStats({
+          totalStudents,
+          activeStudents: totalStudents, // Could calculate based on recent activity
+          completedExams,
+          averageScore: Math.round(averageScore * 10) / 10,
+          qualificationRate: Math.round(qualificationRate * 10) / 10,
+          recentActivity: [] // Could be populated with actual recent activity
+        });
+
+        setMonthlyData(monthlyDataArray);
+        setSubjectData(subjectDataArray);
+        setGradeDistribution(gradeDist);
+        setPerformanceData(performanceDataArray);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [schoolAdmin]);
 
   const getActivityIcon = (type: string) => {
     switch (type) {
@@ -203,6 +322,16 @@ const SchoolAdminDashboardPage: React.FC = () => {
         return '#6b7280';
     }
   };
+
+  if (loading) {
+    return (
+      <Box sx={{ maxWidth: '100%', mx: 'auto', p: 4 }}>
+        <Typography variant="h6" sx={{ color: '#ffffff' }}>
+          Loading dashboard data...
+        </Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ maxWidth: '100%', mx: 'auto' }}>
@@ -243,7 +372,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
               </Box>
               <LinearProgress 
                 variant="determinate" 
-                value={(stats.activeStudents / stats.totalStudents) * 100}
+                value={stats.totalStudents > 0 ? (stats.activeStudents / stats.totalStudents) * 100 : 0}
                 sx={{ 
                   height: 6, 
                   borderRadius: 3,
@@ -279,12 +408,12 @@ const SchoolAdminDashboardPage: React.FC = () => {
                     {stats.completedExams}
                   </Typography>
                   <Typography variant="body2" sx={{ color: '#94a3b8' }}>
-                    Exams Completed
+                    Total Exams Completed
                   </Typography>
                 </Box>
               </Box>
               <Chip 
-                label="This Month" 
+                label="All Time" 
                 size="small" 
                 sx={{ 
                   bgcolor: '#3b82f6', 
@@ -322,7 +451,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <TrendingUpIcon sx={{ color: '#3b82f6', mr: 0.5, fontSize: '1rem' }} />
                 <Typography variant="caption" sx={{ color: '#3b82f6' }}>
-                  +5.2% from last month
+                  Based on phase 2 exams
                 </Typography>
               </Box>
             </CardContent>
@@ -348,7 +477,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
                     {stats.qualificationRate}%
                   </Typography>
                   <Typography variant="body2" sx={{ color: '#94a3b8' }}>
-                    Qualification Rate
+                    Qualifying Exam Qualification Rate
                   </Typography>
                 </Box>
               </Box>
@@ -433,7 +562,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                 <BarChartIcon sx={{ color: '#3b82f6', mr: 2 }} />
                 <Typography variant="h6" sx={{ fontWeight: 600, color: '#ffffff' }}>
-                  Subject Performance
+                  Overall Performance
                 </Typography>
               </Box>
               <ResponsiveContainer width="100%" height={300}>
@@ -476,31 +605,37 @@ const SchoolAdminDashboardPage: React.FC = () => {
                   Grade Distribution
                 </Typography>
               </Box>
-              <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
-                  <Pie
-                    data={gradeDistribution}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ grade, percentage }) => `Grade ${grade}: ${percentage}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="students"
-                  >
-                    {gradeDistribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#1e293b', 
-                      border: '1px solid #334155',
-                      color: '#ffffff'
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              {gradeDistribution.length > 0 ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie
+                      data={gradeDistribution}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ grade, percentage }) => `Grade ${grade}: ${percentage}%`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="students"
+                    >
+                      {gradeDistribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#1e293b', 
+                        border: '1px solid #334155',
+                        color: '#ffffff'
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <Typography variant="body2" sx={{ color: '#94a3b8', textAlign: 'center', py: 4 }}>
+                  No grade data available
+                </Typography>
+              )}
             </CardContent>
           </Card>
         </Box>
@@ -518,35 +653,39 @@ const SchoolAdminDashboardPage: React.FC = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                 <ShowChartIcon sx={{ color: '#3b82f6', mr: 2 }} />
                 <Typography variant="h6" sx={{ fontWeight: 600, color: '#ffffff' }}>
-                  Subject Performance Radar
+                  Overall Performance
                 </Typography>
               </Box>
-              <ResponsiveContainer width="100%" height={250}>
-                <RadarChart data={performanceData}>
-                  <PolarGrid stroke="#334155" />
-                  <PolarAngleAxis dataKey="category" tick={{ fill: '#94a3b8' }} />
-                  <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: '#94a3b8' }} />
-                  <Radar
-                    name="Performance"
-                    dataKey="value"
-                    stroke="#3b82f6"
-                    fill="#3b82f6"
-                    fillOpacity={0.3}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#1e293b', 
-                      border: '1px solid #334155',
-                      color: '#ffffff'
-                    }}
-                  />
-                </RadarChart>
-              </ResponsiveContainer>
+              {performanceData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <RadarChart data={performanceData}>
+                    <PolarGrid stroke="#334155" />
+                    <PolarAngleAxis dataKey="category" tick={{ fill: '#94a3b8' }} />
+                    <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: '#94a3b8' }} />
+                    <Radar
+                      name="Performance"
+                      dataKey="value"
+                      stroke="#3b82f6"
+                      fill="#3b82f6"
+                      fillOpacity={0.3}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#1e293b', 
+                        border: '1px solid #334155',
+                        color: '#ffffff'
+                      }}
+                    />
+                  </RadarChart>
+                </ResponsiveContainer>
+              ) : (
+                <Typography variant="body2" sx={{ color: '#94a3b8', textAlign: 'center', py: 4 }}>
+                  No performance data available
+                </Typography>
+              )}
             </CardContent>
           </Card>
         </Box>
-
-
       </Box>
 
       {/* Recent Activity */}
@@ -565,31 +704,37 @@ const SchoolAdminDashboardPage: React.FC = () => {
                 Recent Activity
               </Typography>
               <Box>
-                {stats.recentActivity.map((activity, index) => (
-                  <Box key={activity.id}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', py: 2 }}>
-                      <Avatar sx={{ 
-                        bgcolor: getActivityColor(activity.type), 
-                        mr: 2,
-                        width: 40,
-                        height: 40
-                      }}>
-                        {getActivityIcon(activity.type)}
-                      </Avatar>
-                                             <Box sx={{ flexGrow: 1 }}>
-                         <Typography variant="body2" sx={{ color: '#ffffff', fontWeight: 500 }}>
-                           {activity.message}
-                         </Typography>
-                         <Typography variant="caption" sx={{ color: '#94a3b8' }}>
-                           {activity.timestamp}
-                         </Typography>
-                       </Box>
+                {stats.recentActivity.length > 0 ? (
+                  stats.recentActivity.map((activity, index) => (
+                    <Box key={activity.id}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', py: 2 }}>
+                        <Avatar sx={{ 
+                          bgcolor: getActivityColor(activity.type), 
+                          mr: 2,
+                          width: 40,
+                          height: 40
+                        }}>
+                          {getActivityIcon(activity.type)}
+                        </Avatar>
+                        <Box sx={{ flexGrow: 1 }}>
+                          <Typography variant="body2" sx={{ color: '#ffffff', fontWeight: 500 }}>
+                            {activity.message}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: '#94a3b8' }}>
+                            {activity.timestamp}
+                          </Typography>
+                        </Box>
+                      </Box>
+                      {index < stats.recentActivity.length - 1 && (
+                        <Divider sx={{ borderColor: '#334155' }} />
+                      )}
                     </Box>
-                                         {index < stats.recentActivity.length - 1 && (
-                       <Divider sx={{ borderColor: '#334155' }} />
-                     )}
-                  </Box>
-                ))}
+                  ))
+                ) : (
+                  <Typography variant="body2" sx={{ color: '#94a3b8', textAlign: 'center', py: 4 }}>
+                    No recent activity
+                  </Typography>
+                )}
               </Box>
             </CardContent>
           </Card>

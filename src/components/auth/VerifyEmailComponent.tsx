@@ -4,6 +4,7 @@ import { applyActionCode } from "firebase/auth";
 import { auth } from "../../firebase/firebase";
 import { useToast } from "../../components/ui/use-toast";
 import * as Sentry from "@sentry/react";
+import { checkSchoolEmail, verifySchoolEmail } from '../../db/schoolAdminCollection';
 
 interface VerifyEmailProps {
     actionCode: string;
@@ -16,18 +17,32 @@ const VerifyEmail: React.FC<VerifyEmailProps> = ({ actionCode }) => {
 
     useEffect(() => {
         applyActionCode(auth, actionCode)
-            .then(() => {
-                setIsVerified(true);
-                toast({
+                .then(async () => {
+                    setIsVerified(true);
+                    
+                    // Check if this is a school admin and update verified status
+                    const user = auth.currentUser;
+                    if (user?.email) {
+                    try {
+                        const schoolInfo = await checkSchoolEmail(user.email);
+                        if (schoolInfo && !schoolInfo.verified) {
+                        await verifySchoolEmail(user.email);
+                        }
+                    } catch (error) {
+                        console.error('Error verifying school email:', error);
+                    }
+                    }
+                    
+                    toast({
                     variant: 'default',
                     title: 'Email Verified',
                     description: 'You have successfully verified your email address. Redirecting to login...'
-                });
-                setTimeout(() => {
+                    });
+                    setTimeout(() => {
                     navigate('/');
-                }, 2000);
-            })
-            .catch((error) => {
+                    }, 2000);
+                })            
+                .catch((error: any) => {
                 Sentry.withScope((scope) => {
                     scope.setTag('location', 'VerifyEmail.applyActionCode');
                     Sentry.captureException(error);

@@ -22,18 +22,24 @@ import {
   DialogContent,
   DialogActions,
   Grid,
-  Divider
+  Divider,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
+  OutlinedInput
 } from '@mui/material';
 import {
   Search as SearchIcon,
   Visibility as VisibilityIcon,
   Edit as EditIcon,
   FilterList as FilterListIcon,
-  Download as DownloadIcon,
-  Add as AddIcon
+  Clear as ClearIcon
 } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../state_data/reducer';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../../firebase/firebase';
 
 interface Student {
   id: string;
@@ -48,96 +54,181 @@ interface Student {
   qualificationStatus: 'qualified' | 'not_qualified' | 'pending';
 }
 
+const PHASE2_FORM_IDS = ['mOGkN8', 'mVy95J'];
+
 const SchoolAdminStudentsPage: React.FC = () => {
-  // Mock school admin data for testing
-  const mockSchoolAdmin = {
-    email: 'srishti2k1@gmail.com',
-    schoolId: '018WuXO6zOabXh4ZXmcq',
-    role: 'schooladmin'
-  };
+  const { schoolAdmin } = useSelector((state: RootState) => state.auth);
   const [students, setStudents] = useState<Student[]>([]);
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  
+  // Filter states
+  const [gradeFilter, setGradeFilter] = useState<number | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [qualificationFilter, setQualificationFilter] = useState<string>('all');
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
-    // TODO: Fetch actual students from backend based on schoolAdmin.schoolId
-    // For now, using mock data
-    const mockStudents: Student[] = [
-      {
-        id: '1',
-        firstName: 'Sarah',
-        lastName: 'Johnson',
-        email: 'sarah.johnson@school.com',
-        grade: 10,
-        status: 'active',
-        lastExamDate: '2024-01-15',
-        averageScore: 85.5,
-        examsCompleted: 3,
-        qualificationStatus: 'qualified'
-      },
-      {
-        id: '2',
-        firstName: 'Michael',
-        lastName: 'Chen',
-        email: 'michael.chen@school.com',
-        grade: 11,
-        status: 'active',
-        lastExamDate: '2024-01-10',
-        averageScore: 78.2,
-        examsCompleted: 2,
-        qualificationStatus: 'pending'
-      },
-      {
-        id: '3',
-        firstName: 'Emma',
-        lastName: 'Davis',
-        email: 'emma.davis@school.com',
-        grade: 9,
-        status: 'active',
-        lastExamDate: '2024-01-12',
-        averageScore: 92.1,
-        examsCompleted: 4,
-        qualificationStatus: 'qualified'
-      },
-      {
-        id: '4',
-        firstName: 'Alex',
-        lastName: 'Thompson',
-        email: 'alex.thompson@school.com',
-        grade: 10,
-        status: 'inactive',
-        lastExamDate: '2023-12-20',
-        averageScore: 65.8,
-        examsCompleted: 1,
-        qualificationStatus: 'not_qualified'
-      },
-      {
-        id: '5',
-        firstName: 'Priya',
-        lastName: 'Patel',
-        email: 'priya.patel@school.com',
-        grade: 11,
-        status: 'active',
-        lastExamDate: '2024-01-14',
-        averageScore: 88.9,
-        examsCompleted: 3,
-        qualificationStatus: 'qualified'
+    const fetchStudents = async () => {
+      if (!schoolAdmin?.schoolId) {
+        setLoading(false);
+        return;
       }
-    ];
-    setStudents(mockStudents);
-    setFilteredStudents(mockStudents);
-  }, []);
+
+      try {
+        setLoading(true);
+        const schoolId = schoolAdmin.schoolId;
+
+        // Fetch all students for this school
+        const studentsQuery = query(
+          collection(db, 'students'),
+          where('school_id', '==', schoolId)
+        );
+        const studentsSnapshot = await getDocs(studentsQuery);
+        
+        const studentsData: Student[] = [];
+
+        for (const studentDoc of studentsSnapshot.docs) {
+          const studentData = studentDoc.data();
+          const uid = studentDoc.id;
+
+          // Extract name
+          const firstName = studentData.first_name || '';
+          const lastName = studentData.last_name || '';
+          const email = studentData.email || '';
+          
+          // Extract grade safely
+          let grade = 0;
+          if ('grade' in studentData && typeof studentData['grade'] === 'number') {
+            grade = studentData['grade'] as number;
+          } else if ('class' in studentData && typeof studentData['class'] === 'number') {
+            grade = studentData['class'] as number;
+          }
+
+          // Fetch exam submissions
+          const submissionsQuery = query(
+            collection(db, 'student_submission_mappings'),
+            where('student_uid', '==', uid)
+          );
+          const submissionsSnapshot = await getDocs(submissionsQuery);
+          const examsCompleted = submissionsSnapshot.size;
+
+          // Calculate average score from phase 2 responses
+          let totalScore = 0;
+          let scoreCount = 0;
+          let lastExamDate: string | undefined;
+
+          for (const submissionDoc of submissionsSnapshot.docs) {
+            const submissionData = submissionDoc.data();
+            const submissionId = submissionData.submission_id;
+            
+            if (submissionId) {
+              const responsesQuery = query(
+                collection(db, 'phase_2_exam_responses'),
+                where('submissionId', '==', submissionId)
+              );
+              const responsesSnapshot = await getDocs(responsesQuery);
+              
+              responsesSnapshot.forEach(responseDoc => {
+                const responseData = responseDoc.data();
+                if (responseData.overallTotal) {
+                  totalScore += responseData.overallTotal;
+                  scoreCount++;
+                }
+                if (responseData.createdAt) {
+                  const date = responseData.createdAt.seconds 
+                    ? new Date(responseData.createdAt.seconds * 1000).toISOString()
+                    : new Date(responseData.createdAt).toISOString();
+                  if (!lastExamDate || date > lastExamDate) {
+                    lastExamDate = date;
+                  }
+                }
+              });
+            }
+
+            // Also check submission_time
+            if (submissionData.submission_time) {
+              const date = submissionData.submission_time.seconds
+                ? new Date(submissionData.submission_time.seconds * 1000).toISOString()
+                : new Date(submissionData.submission_time).toISOString();
+              if (!lastExamDate || date > lastExamDate) {
+                lastExamDate = date;
+              }
+            }
+          }
+
+          const averageScore = scoreCount > 0 ? Math.round((totalScore / scoreCount) * 10) / 10 : undefined;
+
+          // Check qualification status
+          const examMappingsQuery = query(
+            collection(db, 'student_exam_mappings'),
+            where('uid', '==', uid)
+          );
+          const examMappingsSnapshot = await getDocs(examMappingsQuery);
+          
+          let qualificationStatus: 'qualified' | 'not_qualified' | 'pending' = 'not_qualified';
+          examMappingsSnapshot.forEach(doc => {
+            const data = doc.data();
+            if (PHASE2_FORM_IDS.includes(data.form_link)) {
+              qualificationStatus = 'qualified';
+            }
+          });
+
+          // Determine status based on activity
+          const status: 'active' | 'inactive' | 'completed' = 
+            examsCompleted > 0 ? 'active' : 'inactive';
+
+          studentsData.push({
+            id: uid,
+            firstName,
+            lastName,
+            email,
+            grade,
+            status,
+            lastExamDate,
+            averageScore,
+            examsCompleted,
+            qualificationStatus
+          });
+        }
+
+        setStudents(studentsData);
+        setFilteredStudents(studentsData);
+      } catch (error) {
+        console.error('Error fetching students:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStudents();
+  }, [schoolAdmin]);
 
   useEffect(() => {
-    const filtered = students.filter(student =>
-      student.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.email.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    let filtered = students.filter(student => {
+      // Search filter
+      const matchesSearch = 
+        student.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.email.toLowerCase().includes(searchTerm.toLowerCase());
+
+      // Grade filter
+      const matchesGrade = gradeFilter === 'all' || student.grade === gradeFilter;
+
+      // Status filter
+      const matchesStatus = statusFilter === 'all' || student.status === statusFilter;
+
+      // Qualification filter
+      const matchesQualification = qualificationFilter === 'all' || student.qualificationStatus === qualificationFilter;
+
+      return matchesSearch && matchesGrade && matchesStatus && matchesQualification;
+    });
+    
     setFilteredStudents(filtered);
-  }, [searchTerm, students]);
+  }, [searchTerm, students, gradeFilter, statusFilter, qualificationFilter]);
 
   const handleViewStudent = (student: Student) => {
     setSelectedStudent(student);
@@ -147,6 +238,13 @@ const SchoolAdminStudentsPage: React.FC = () => {
   const handleCloseDialog = () => {
     setViewDialogOpen(false);
     setSelectedStudent(null);
+  };
+
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setGradeFilter('all');
+    setStatusFilter('all');
+    setQualificationFilter('all');
   };
 
   const getStatusColor = (status: string) => {
@@ -188,6 +286,21 @@ const SchoolAdminStudentsPage: React.FC = () => {
     }
   };
 
+  // Get unique grades for filter dropdown
+  const uniqueGrades = Array.from(new Set(students.map(s => s.grade).filter(g => g > 0))).sort((a, b) => a - b);
+
+  const hasActiveFilters = searchTerm || gradeFilter !== 'all' || statusFilter !== 'all' || qualificationFilter !== 'all';
+
+  if (loading) {
+    return (
+      <Box sx={{ maxWidth: '100%', mx: 'auto', p: 4 }}>
+        <Typography variant="h6" sx={{ color: '#ffffff' }}>
+          Loading students...
+        </Typography>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ maxWidth: '100%', mx: 'auto' }}>
       {/* Header */}
@@ -200,7 +313,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
         </Typography>
       </Box>
 
-      {/* Search and Actions */}
+      {/* Search and Filters */}
       <Card sx={{ 
         bgcolor: '#1e293b', 
         boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
@@ -208,10 +321,9 @@ const SchoolAdminStudentsPage: React.FC = () => {
         mb: 3
       }}>
         <CardContent>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 4 }}>
-            <Box sx={{ 
-                width: { xs: '100%', sm: '50%', md: '50%' } 
-            }}>
+          {/* Search Box and Filter Button - Side by Side */}
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2, mb: showFilters ? 2 : 0 }}>
+            <Box sx={{ width: { xs: '100%', sm: '80%', md: '60%' } }}>
               <TextField
                 fullWidth
                 placeholder="Search students by name or email..."
@@ -232,38 +344,195 @@ const SchoolAdminStudentsPage: React.FC = () => {
                     '&:hover fieldset': {
                       borderColor: '#3b82f6',
                     },
+                    '&.Mui-focused fieldset': {
+                      borderColor: '#3b82f6',
+                    },
+                  },
+                  '& .MuiInputBase-input': {
+                    color: '#ffffff',
                   },
                 }}
               />
             </Box>
-            <Box sx={{ 
-                width: { xs: '100%', sm: '50%', md: '50%' } 
-            }}>
-              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                <Button
-                  variant="outlined"
-                  startIcon={<FilterListIcon />}
-                  sx={{ borderColor: '#334155', color: '#94a3b8' }}
-                >
-                  Filter
-                </Button>
-                <Button
-                  variant="outlined"
-                  startIcon={<DownloadIcon />}
-                  sx={{ borderColor: '#334155', color: '#94a3b8' }}
-                >
-                  Export
-                </Button>
-                <Button
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  sx={{ bgcolor: '#3b82f6', '&:hover': { bgcolor: '#2563eb' } }}
-                >
-                  Add Student
-                </Button>
-              </Box>
-            </Box>
+            <Button
+              variant="outlined"
+              startIcon={<FilterListIcon />}
+              onClick={() => setShowFilters(!showFilters)}
+              sx={{ 
+                borderColor: '#334155', 
+                color: '#94a3b8',
+                whiteSpace: 'nowrap',
+                '&:hover': {
+                  borderColor: '#3b82f6',
+                  color: '#3b82f6',
+                }
+              }}
+            >
+              {showFilters ? 'Hide Filters' : 'Show Filters'}
+            </Button>
           </Box>
+
+          {/* Filter Options */}
+          {showFilters && (
+            <Box sx={{ 
+              display: 'flex', 
+              flexWrap: 'wrap', 
+              gap: 2, 
+              justifyContent: 'center',
+              pt: 2,
+              borderTop: '1px solid #334155'
+            }}>
+              {/* Grade Filter */}
+              <FormControl sx={{ minWidth: { xs: '100%', sm: '150px' } }}>
+                <InputLabel sx={{ color: '#94a3b8' }}>Grade</InputLabel>
+                <Select
+                  value={gradeFilter}
+                  onChange={(e) => setGradeFilter(e.target.value as number | 'all')}
+                  input={<OutlinedInput label="Grade" sx={{ color: '#ffffff' }} />}
+                  sx={{
+                    color: '#ffffff',
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#334155',
+                    },
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#3b82f6',
+                    },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#3b82f6',
+                    },
+                    '& .MuiSvgIcon-root': {
+                      color: '#94a3b8',
+                    },
+                  }}
+                >
+                  <MenuItem value="all">All Grades</MenuItem>
+                  {uniqueGrades.map((grade) => (
+                    <MenuItem key={grade} value={grade}>
+                      Grade {grade}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {/* Status Filter */}
+              <FormControl sx={{ minWidth: { xs: '100%', sm: '150px' } }}>
+                <InputLabel sx={{ color: '#94a3b8' }}>Status</InputLabel>
+                <Select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  input={<OutlinedInput label="Status" sx={{ color: '#ffffff' }} />}
+                  sx={{
+                    color: '#ffffff',
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#334155',
+                    },
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#3b82f6',
+                    },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#3b82f6',
+                    },
+                    '& .MuiSvgIcon-root': {
+                      color: '#94a3b8',
+                    },
+                  }}
+                >
+                  <MenuItem value="all">All Status</MenuItem>
+                  <MenuItem value="active">Active</MenuItem>
+                  <MenuItem value="inactive">Inactive</MenuItem>
+                  <MenuItem value="completed">Completed</MenuItem>
+                </Select>
+              </FormControl>
+
+              {/* Qualification Filter */}
+              <FormControl sx={{ minWidth: { xs: '100%', sm: '150px' } }}>
+                <InputLabel sx={{ color: '#94a3b8' }}>Qualification</InputLabel>
+                <Select
+                  value={qualificationFilter}
+                  onChange={(e) => setQualificationFilter(e.target.value)}
+                  input={<OutlinedInput label="Qualification" sx={{ color: '#ffffff' }} />}
+                  sx={{
+                    color: '#ffffff',
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#334155',
+                    },
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#3b82f6',
+                    },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#3b82f6',
+                    },
+                    '& .MuiSvgIcon-root': {
+                      color: '#94a3b8',
+                    },
+                  }}
+                >
+                  <MenuItem value="all">All</MenuItem>
+                  <MenuItem value="qualified">Qualified</MenuItem>
+                  <MenuItem value="not_qualified">Not Qualified</MenuItem>
+                  <MenuItem value="pending">Pending</MenuItem>
+                </Select>
+              </FormControl>
+
+              {/* Clear Filters Button */}
+              {hasActiveFilters && (
+                <Button
+                  variant="outlined"
+                  startIcon={<ClearIcon />}
+                  onClick={handleClearFilters}
+                  sx={{ 
+                    borderColor: '#ef4444', 
+                    color: '#ef4444',
+                    whiteSpace: 'nowrap',
+                    '&:hover': {
+                      borderColor: '#dc2626',
+                      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    }
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              )}
+            </Box>
+          )}
+
+          {/* Active Filters Summary */}
+          {hasActiveFilters && !showFilters && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, flexWrap: 'wrap', gap: 1 }}>
+              {searchTerm && (
+                <Chip
+                  label={`Search: "${searchTerm}"`}
+                  onDelete={() => setSearchTerm('')}
+                  size="small"
+                  sx={{ bgcolor: '#334155', color: '#ffffff' }}
+                />
+              )}
+              {gradeFilter !== 'all' && (
+                <Chip
+                  label={`Grade: ${gradeFilter}`}
+                  onDelete={() => setGradeFilter('all')}
+                  size="small"
+                  sx={{ bgcolor: '#334155', color: '#ffffff' }}
+                />
+              )}
+              {statusFilter !== 'all' && (
+                <Chip
+                  label={`Status: ${statusFilter}`}
+                  onDelete={() => setStatusFilter('all')}
+                  size="small"
+                  sx={{ bgcolor: '#334155', color: '#ffffff' }}
+                />
+              )}
+              {qualificationFilter !== 'all' && (
+                <Chip
+                  label={`Qualification: ${qualificationFilter}`}
+                  onDelete={() => setQualificationFilter('all')}
+                  size="small"
+                  sx={{ bgcolor: '#334155', color: '#ffffff' }}
+                />
+              )}
+            </Box>
+          )}
         </CardContent>
       </Card>
 
@@ -274,6 +543,11 @@ const SchoolAdminStudentsPage: React.FC = () => {
         border: '1px solid #334155'
       }}>
         <CardContent>
+          <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="body2" sx={{ color: '#94a3b8' }}>
+              Showing {filteredStudents.length} of {students.length} students
+            </Typography>
+          </Box>
           <TableContainer component={Paper} sx={{ boxShadow: 'none' }}>
             <Table>
               <TableHead>
@@ -289,84 +563,94 @@ const SchoolAdminStudentsPage: React.FC = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredStudents.map((student) => (
-                  <TableRow key={student.id} sx={{ '&:hover': { bgcolor: '#475569' } }}>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Avatar sx={{ mr: 2, bgcolor: '#3b82f6', width: 40, height: 40 }}>
-                          {student.firstName.charAt(0)}{student.lastName.charAt(0)}
-                        </Avatar>
-                        <Box>
-                          <Typography variant="body2" sx={{ fontWeight: 500, color: '#ffffff' }}>
-                            {student.firstName} {student.lastName}
-                          </Typography>
-                          <Typography variant="caption" sx={{ color: '#94a3b8' }}>
-                            {student.email}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ color: '#ffffff' }}>
-                        Grade {student.grade}
+                {filteredStudents.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} sx={{ textAlign: 'center', py: 4 }}>
+                      <Typography variant="body2" sx={{ color: '#94a3b8' }}>
+                        No students found matching your filters
                       </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={student.status.charAt(0).toUpperCase() + student.status.slice(1)}
-                        size="small"
-                        sx={{
-                          bgcolor: getStatusColor(student.status),
-                          color: 'white',
-                          fontSize: '0.75rem'
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ color: '#ffffff' }}>
-                        {student.examsCompleted}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ color: '#ffffff' }}>
-                        {student.averageScore ? `${student.averageScore}%` : 'N/A'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={getQualificationLabel(student.qualificationStatus)}
-                        size="small"
-                        sx={{
-                          bgcolor: getQualificationColor(student.qualificationStatus),
-                          color: 'white',
-                          fontSize: '0.75rem'
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ color: '#ffffff' }}>
-                        {student.lastExamDate ? new Date(student.lastExamDate).toLocaleDateString() : 'N/A'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', gap: 1 }}>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleViewStudent(student)}
-                          sx={{ color: '#3b82f6' }}
-                        >
-                          <VisibilityIcon />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          sx={{ color: '#94a3b8' }}
-                        >
-                          <EditIcon />
-                        </IconButton>
-                      </Box>
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  filteredStudents.map((student) => (
+                    <TableRow key={student.id} sx={{ '&:hover': { bgcolor: '#475569' } }}>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Avatar sx={{ mr: 2, bgcolor: '#3b82f6', width: 40, height: 40 }}>
+                            {student.firstName.charAt(0)}{student.lastName.charAt(0)}
+                          </Avatar>
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 500, color: '#ffffff' }}>
+                              {student.firstName} {student.lastName}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: '#94a3b8' }}>
+                              {student.email}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ color: '#ffffff' }}>
+                          {student.grade > 0 ? `Grade ${student.grade}` : 'N/A'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={student.status.charAt(0).toUpperCase() + student.status.slice(1)}
+                          size="small"
+                          sx={{
+                            bgcolor: getStatusColor(student.status),
+                            color: 'white',
+                            fontSize: '0.75rem'
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ color: '#ffffff' }}>
+                          {student.examsCompleted}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ color: '#ffffff' }}>
+                          {student.averageScore ? `${student.averageScore}%` : 'N/A'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={getQualificationLabel(student.qualificationStatus)}
+                          size="small"
+                          sx={{
+                            bgcolor: getQualificationColor(student.qualificationStatus),
+                            color: 'white',
+                            fontSize: '0.75rem'
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ color: '#ffffff' }}>
+                          {student.lastExamDate ? new Date(student.lastExamDate).toLocaleDateString() : 'N/A'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleViewStudent(student)}
+                            sx={{ color: '#3b82f6' }}
+                          >
+                            <VisibilityIcon />
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            sx={{ color: '#94a3b8' }}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </TableContainer>
@@ -410,7 +694,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
                       Grade
                     </Typography>
                     <Typography variant="body1" sx={{ color: '#ffffff' }}>
-                      Grade {selectedStudent.grade}
+                      {selectedStudent.grade > 0 ? `Grade ${selectedStudent.grade}` : 'N/A'}
                     </Typography>
                   </Box>
                   <Box>
@@ -494,3 +778,4 @@ const SchoolAdminStudentsPage: React.FC = () => {
 };
 
 export default SchoolAdminStudentsPage;
+export { SchoolAdminStudentsPage };
