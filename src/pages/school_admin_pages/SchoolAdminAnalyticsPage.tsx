@@ -57,6 +57,7 @@ import {
 } from 'recharts';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase/firebase';
+import { getSchoolQualificationBySchool } from '../../db/schoolAdminCollection';
 
 interface AnalyticsData {
   scoreDistribution: Array<{
@@ -269,26 +270,17 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
         let notQualified = 0;
         let pending = 0;
 
-        for (const student of students) {
-          const examMappingsQuery = query(
-            collection(db, 'student_exam_mappings'),
-            where('uid', '==', student.uid)
-          );
-          const examMappingsSnapshot = await getDocs(examMappingsQuery);
-          
-          let isQualified = false;
-          examMappingsSnapshot.forEach(doc => {
-            const data = doc.data();
-            if (PHASE2_FORM_IDS.includes(data.form_link)) {
-              isQualified = true;
-            }
+        try {
+          const q = await getSchoolQualificationBySchool(String(schoolId ?? '').trim());
+          const byStudent = q?.byStudent || {};
+          Object.values(byStudent).forEach((status: any) => {
+            if (status === 'qualified') qualified++;
+            else if (status === 'not_qualified') notQualified++;
+            else pending++;
           });
-
-          if (isQualified) {
-            qualified++;
-          } else {
-            notQualified++;
-          }
+        } catch {
+          // Fall back to treating all as pending if the backend call fails
+          pending = totalStudents;
         }
 
         // Calculate monthly trends (last 6 months)

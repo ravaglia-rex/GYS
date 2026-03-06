@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { confirmPasswordReset } from "firebase/auth";
+import { checkActionCode, confirmPasswordReset, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { auth } from "../../firebase/firebase";
 import { useToast } from "../ui/use-toast";
 
@@ -57,22 +57,43 @@ const NewPasswordForm: React.FC<PasswordResetProps> = ({ actionCode }) => {
     const onSubmit = async (data: { password: string, confirm_password: string }) => {
         try {
             setSubmitted(true);
+
+            // Get email from action code (confirmPasswordReset does not sign the user in)
+            const actionCodeInfo = await checkActionCode(auth, actionCode);
+            const email = actionCodeInfo.data?.email;
+            if (!email) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Error',
+                    description: 'Could not determine email from link. Please use the link from your email again.',
+                });
+                setSubmitted(false);
+                return;
+            }
+
             await confirmPasswordReset(auth, actionCode, data.password);
 
-            // Check if this is a school admin and update verified status
-            const email = auth.currentUser?.email;
-            if (email) {
+            // Sign in so we have a token to call verifySchoolEmail for school admins
+            const { user } = await signInWithEmailAndPassword(auth, email, data.password);
+            try {
                 const { checkSchoolEmail, verifySchoolEmail } = await import('../../db/schoolAdminCollection');
-                const schoolInfo = await checkSchoolEmail(email);
+                const schoolInfo = await checkSchoolEmail(user.email!);
                 if (schoolInfo && !schoolInfo.verified) {
-                    const authToken = await auth.currentUser!.getIdToken();
+                    const authToken = await user.getIdToken();
                     const { default: authTokenHandler } = await import('../../functions/auth_token/auth_token_handler');
                     authTokenHandler.setAuthToken(authToken);
-                    
-                    // This sets verified: true in schools collection
-                    await verifySchoolEmail(email);
+                    await verifySchoolEmail(user.email!);
                 }
+            } catch (err: any) {
+                console.error('Error verifying school email:', err);
+                toast({
+                    variant: 'destructive',
+                    title: 'Verification update failed',
+                    description: err.response?.data?.error ?? err.message ?? 'Could not mark school as verified.',
+                });
             }
+
+            await signOut(auth);
             toast({
                 variant: 'default',
                 title: 'Password Reset Successful',

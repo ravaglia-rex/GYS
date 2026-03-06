@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { getSchoolAdmin, SchoolAdmin } from '../db/schoolAdminCollection';
+import { getSchoolAdmin, checkSchoolEmail, SchoolAdmin } from '../db/schoolAdminCollection';
 
 export interface User {
     uid: string;
@@ -28,7 +28,18 @@ export const checkUserRole = createAsyncThunk(
     'auth/checkUserRole',
     async (email: string) => {
         try {
-            const schoolAdmin = await getSchoolAdmin(email);
+            let schoolAdmin = await getSchoolAdmin(email);
+            // If not in schooladmins collection, check if they're a verified school official (schools collection poc_email)
+            if (!schoolAdmin) {
+                const schoolCheck = await checkSchoolEmail(email);
+                if (schoolCheck?.verified) {
+                    schoolAdmin = {
+                        email,
+                        schoolId: schoolCheck.schoolId,
+                        role: 'schooladmin'
+                    };
+                }
+            }
             if (schoolAdmin) {
                 return { role: 'schooladmin' as const, schoolAdmin };
             }

@@ -1,5 +1,5 @@
 import axios from "axios";
-import { FETCH_SCHOOL_ADMIN_DATA, SCHOOLS_APIS } from "../constants/constants";
+import { FETCH_SCHOOL_ADMIN_DATA, FETCH_SCHOOL_QUALIFICATION_BY_SCHOOL, SCHOOL_ADMINS_APIS, SCHOOLS_APIS } from "../constants/constants";
 import authTokenHandler from "../functions/auth_token/auth_token_handler";
 
 export interface SchoolAdmin {
@@ -15,13 +15,23 @@ export interface SchoolEmailCheck {
   email: string;
 }
 
+export type QualificationStatus = 'qualified' | 'not_qualified' | 'pending';
+
+export interface SchoolQualificationByStudentResponse {
+  schoolId: string;
+  totalStudents: number;
+  qualifiedCount: number;
+  qualificationRate: number; // percentage (0-100)
+  byStudent: Record<string, QualificationStatus>;
+}
+
 export const getSchoolAdmin = async (email: string): Promise<SchoolAdmin | null> => {
   try {
     const authToken = await authTokenHandler.getAuthToken();
     const encodedEmail = encodeURIComponent(email);
     const config = {
       method: 'get',
-      url: `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOLS_APIS}${FETCH_SCHOOL_ADMIN_DATA}/${encodedEmail}`,
+      url: `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${FETCH_SCHOOL_ADMIN_DATA}/${encodedEmail}`,
       headers: {
         'Authorization': `Bearer ${authToken}`
       }
@@ -34,6 +44,24 @@ export const getSchoolAdmin = async (email: string): Promise<SchoolAdmin | null>
       return null;
     }
     throw new Error(`Error fetching school admin for email ${email}. Please contact talentsearch@argus.ai`);
+  }
+};
+
+export const getSchoolQualificationBySchool = async (schoolId: string): Promise<SchoolQualificationByStudentResponse> => {
+  try {
+    const authToken = await authTokenHandler.getAuthToken();
+    const encodedSchoolId = encodeURIComponent(String(schoolId ?? '').trim());
+    const config = {
+      method: 'get',
+      url: `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${FETCH_SCHOOL_QUALIFICATION_BY_SCHOOL}/${encodedSchoolId}`,
+      headers: {
+        'Authorization': `Bearer ${authToken}`
+      }
+    };
+    const response = await axios.request(config);
+    return response.data;
+  } catch (error) {
+    throw new Error(`Error fetching qualification data for school. Please contact talentsearch@argus.ai`);
   }
 };
 
@@ -91,8 +119,11 @@ export const verifySchoolEmail = async (email: string) => {
       }
     );
     return response.data;
-  } catch (error) {
-    throw new Error(`Error verifying school email. Please contact talentsearch@argus.ai`);
+  } catch (error: any) {
+    const msg = axios.isAxiosError(error) && error.response?.data?.error
+      ? error.response.data.error
+      : error.message ?? 'Error verifying school email.';
+    throw new Error(msg);
   }
 };
 

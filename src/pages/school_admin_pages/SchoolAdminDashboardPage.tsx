@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   Box,
-  Grid,
   Card,
   CardContent,
   Typography,
@@ -18,11 +17,11 @@ import {
   Assessment as AssessmentIcon,
   Grade as GradeIcon,
   CheckCircle as CheckCircleIcon,
-  Warning as WarningIcon,
   BarChart as BarChartIcon,
   PieChart as PieChartIcon,
   ShowChart as ShowChartIcon
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../state_data/reducer';
 import {
@@ -39,17 +38,16 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  AreaChart,
-  Area,
   RadarChart,
   PolarGrid,
   PolarAngleAxis,
   PolarRadiusAxis,
-  Radar,
-  ComposedChart
+  Radar
 } from 'recharts';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, doc, getDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase/firebase';
+import { LoadingSpinner } from '../../components/ui/spinner';
+import { getSchoolQualificationBySchool } from '../../db/schoolAdminCollection';
 
 interface DashboardStats {
   totalStudents: number;
@@ -92,11 +90,10 @@ interface PerformanceData {
   fullMark: number;
 }
 
-// Phase 2 form IDs for qualification check
-const PHASE2_FORM_IDS = ['mOGkN8', 'mVy95J'];
-
 const SchoolAdminDashboardPage: React.FC = () => {
+  const navigate = useNavigate();
   const { schoolAdmin } = useSelector((state: RootState) => state.auth);
+  const [schoolName, setSchoolName] = useState('');
   const [stats, setStats] = useState<DashboardStats>({
     totalStudents: 0,
     activeStudents: 0,
@@ -122,85 +119,114 @@ const SchoolAdminDashboardPage: React.FC = () => {
 
       try {
         setLoading(true);
-        const schoolId = schoolAdmin.schoolId;
+        const schoolId = String(schoolAdmin.schoolId ?? '').trim();
+        if (!schoolId) {
+          setLoading(false);
+          return;
+        }
 
-        // 1. Fetch all students for this school
-        const studentsQuery = query(
-          collection(db, 'students'),
-          where('school_id', '==', schoolId)
-        );
-        const studentsSnapshot = await getDocs(studentsQuery);
-        const students = studentsSnapshot.docs.map(doc => ({
-          uid: doc.id,
-          ...doc.data()
+        // What we fetch (in order):
+        // 1. schools/{schoolId} — school name for header
+        // 2. students — where school_id == schoolId (totalStudents, list for all downstream data)
+        // 3. student_submission_mappings — per student_uid (completed exams, recent activity)
+        // 4. phase_2_exam_responses — per submissionId (average score, monthly stats)
+        // 5. student_exam_mappings — per student uid (qualification count)
+
+        const [schoolDocSnap, studentsSnapshotBySchoolId] = await Promise.all([
+          getDoc(doc(db, 'schools', schoolId)),
+          getDocs(query(collection(db, 'students'), where('school_id', '==', schoolId)))
+        ]);
+        setSchoolName(schoolDocSnap.data()?.school_name ?? '');
+        // Fallback: some data may use camelCase field "schoolId" instead of "school_id"
+        let studentsSnapshot = studentsSnapshotBySchoolId;
+        if (studentsSnapshot.empty) {
+          const byCamel = await getDocs(query(collection(db, 'students'), where('schoolId', '==', schoolId)));
+          if (!byCamel.empty) studentsSnapshot = byCamel;
+        }
+        const students = studentsSnapshot.docs.map(d => ({
+          uid: d.id,
+          ...d.data()
         }));
-
         const totalStudents = students.length;
         const studentUids = students.map(s => s.uid);
 
-        // 2. Fetch all exam submissions for these students
-        const allSubmissions: any[] = [];
-        for (const uid of studentUids) {
-          const submissionsQuery = query(
-            collection(db, 'student_submission_mappings'),
-            where('student_uid', '==', uid)
-          );
-          const submissionsSnapshot = await getDocs(submissionsQuery);
-          submissionsSnapshot.forEach(doc => {
-            allSubmissions.push({
-              student_uid: uid,
-              ...doc.data()
-            });
-          });
+        // To keep the dashboard fast for schools with many students,
+        // we compute exam-based metrics from a capped sample of students.
+        const MAX_STUDENTS_FOR_METRICS = 50;
+        const metricStudentUids = studentUids.slice(0, MAX_STUDENTS_FOR_METRICS);
+
+        if (process.env.NODE_ENV === 'development') {
+          const which = studentsSnapshotBySchoolId.empty && !studentsSnapshot.empty ? 'schoolId (camelCase)' : 'school_id';
+          console.log('[Dashboard] schoolId:', JSON.stringify(schoolId), '| field used:', which, '| students found:', totalStudents);
         }
 
+        if (totalStudents === 0) {
+          setStats({
+            totalStudents: 0,
+            activeStudents: 0,
+            completedExams: 0,
+            averageScore: 0,
+            qualificationRate: 0,
+            recentActivity: []
+          });
+          setMonthlyData([]);
+          setSubjectData([]);
+          setGradeDistribution([]);
+          setPerformanceData([]);
+          setLoading(false);
+          return;
+        }
+
+        // 2. Fetch exam submissions for sampled students in parallel (one query per student)
+        const submissionSnapshots = await Promise.all(
+          metricStudentUids.map(uid =>
+            getDocs(query(
+              collection(db, 'student_submission_mappings'),
+              where('student_uid', '==', uid)
+            ))
+          )
+        );
+        const allSubmissions: any[] = [];
+        submissionSnapshots.forEach((snap, i) => {
+          snap.forEach(d => {
+            allSubmissions.push({ student_uid: metricStudentUids[i], ...d.data() });
+          });
+        });
         const completedExams = allSubmissions.length;
 
-        // 3. Fetch phase 2 exam responses to calculate average scores
-        const allPhase2Responses: any[] = [];
-        for (const submission of allSubmissions) {
-          if (submission.submission_id) {
-            const responsesQuery = query(
+        // 3. Fetch phase 2 exam responses in parallel (one query per submission that has submission_id)
+        const submissionsWithId = allSubmissions.filter(s => s.submission_id);
+        const uniqueSubmissionIds = Array.from(new Set(submissionsWithId.map((s: any) => s.submission_id)));
+        const phase2Snapshots = await Promise.all(
+          uniqueSubmissionIds.map(subId =>
+            getDocs(query(
               collection(db, 'phase_2_exam_responses'),
-              where('submissionId', '==', submission.submission_id)
-            );
-            const responsesSnapshot = await getDocs(responsesQuery);
-            responsesSnapshot.forEach(doc => {
-              allPhase2Responses.push(doc.data());
-            });
-          }
-        }
+              where('submissionId', '==', subId)
+            ))
+          )
+        );
+        const allPhase2Responses: any[] = [];
+        phase2Snapshots.forEach(snap => snap.forEach(d => allPhase2Responses.push(d.data())));
 
-        // Calculate average score from phase 2 responses
         let averageScore = 0;
         if (allPhase2Responses.length > 0) {
-          const totalScore = allPhase2Responses.reduce((sum, response) => {
-            return sum + (response.overallTotal || 0);
-          }, 0);
+          const totalScore = allPhase2Responses.reduce((sum, response) => sum + (response.overallTotal || 0), 0);
           averageScore = totalScore / allPhase2Responses.length;
         }
 
-        // 4. Check qualifications from student_exam_mappings
+        // 4. Qualification rate
+        // Compute qualification via backend (Admin SDK), so we don't weaken Firestore rules.
         let qualifiedCount = 0;
-        for (const uid of studentUids) {
-          const examMappingsQuery = query(
-            collection(db, 'student_exam_mappings'),
-            where('uid', '==', uid)
-          );
-          const examMappingsSnapshot = await getDocs(examMappingsQuery);
-          let isQualified = false;
-          examMappingsSnapshot.forEach(doc => {
-            const data = doc.data();
-            if (PHASE2_FORM_IDS.includes(data.form_link)) {
-              isQualified = true;
-            }
-          });
-          if (isQualified) qualifiedCount++;
+        let qualificationRate = 0;
+        try {
+          const q = await getSchoolQualificationBySchool(schoolId);
+          qualifiedCount = q.qualifiedCount || 0;
+          qualificationRate = q.qualificationRate || 0;
+        } catch (e) {
+          // If this fails (network/auth), keep dashboard usable with score metrics.
+          qualifiedCount = 0;
+          qualificationRate = 0;
         }
-
-        const qualificationRate = totalStudents > 0 
-          ? (qualifiedCount / totalStudents) * 100 
-          : 0;
 
         // 5. Calculate grade distribution
         // Fix: Avoid accessing properties that may not exist on type, and make this robust
@@ -274,13 +300,45 @@ const SchoolAdminDashboardPage: React.FC = () => {
           { category: 'Overall Performance', value: Math.round(averageScore), fullMark: 100 }
         ];
 
+        // 9. Build recent activity from submissions (exam completed) and student names
+        const studentByName: Record<string, { first_name?: string; last_name?: string }> = {};
+        students.forEach((s: any) => {
+          studentByName[s.uid] = {
+            first_name: s.first_name,
+            last_name: s.last_name
+          };
+        });
+        const submissionsWithTime = allSubmissions
+          .filter((s: any) => s.submission_time)
+          .sort((a: any, b: any) => {
+            const aMs = a.submission_time?.seconds ? a.submission_time.seconds * 1000 : new Date(a.submission_time).getTime();
+            const bMs = b.submission_time?.seconds ? b.submission_time.seconds * 1000 : new Date(b.submission_time).getTime();
+            return bMs - aMs;
+          })
+          .slice(0, 10);
+        const recentActivityItems: DashboardStats['recentActivity'] = submissionsWithTime.map((s: any, idx: number) => {
+          const ts = s.submission_time?.seconds
+            ? new Date(s.submission_time.seconds * 1000)
+            : new Date(s.submission_time);
+          const name = studentByName[s.student_uid];
+          const displayName = name
+            ? [name.first_name, name.last_name].filter(Boolean).join(' ') || 'Student'
+            : 'Student';
+          return {
+            id: `exam-${s.student_uid}-${idx}-${ts.getTime()}`,
+            type: 'exam_completed' as const,
+            message: `${displayName} completed an exam`,
+            timestamp: ts.toLocaleDateString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+          };
+        });
+
         setStats({
           totalStudents,
-          activeStudents: totalStudents, // Could calculate based on recent activity
+          activeStudents: totalStudents,
           completedExams,
           averageScore: Math.round(averageScore * 10) / 10,
           qualificationRate: Math.round(qualificationRate * 10) / 10,
-          recentActivity: [] // Could be populated with actual recent activity
+          recentActivity: recentActivityItems
         });
 
         setMonthlyData(monthlyDataArray);
@@ -325,8 +383,24 @@ const SchoolAdminDashboardPage: React.FC = () => {
 
   if (loading) {
     return (
-      <Box sx={{ maxWidth: '100%', mx: 'auto', p: 4 }}>
-        <Typography variant="h6" sx={{ color: '#ffffff' }}>
+      <Box
+        sx={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'column',
+          gap: 3,
+          backgroundColor: 'rgba(15, 23, 42, 0.75)',
+          backdropFilter: 'blur(10px)',
+        }}
+      >
+        <Box sx={{ color: '#93c5fd' }}>
+          <LoadingSpinner size={48} className="loading-spinner" />
+        </Box>
+        <Typography variant="h6" sx={{ color: '#e2e8f0', fontWeight: 500 }}>
           Loading dashboard data...
         </Typography>
       </Box>
@@ -338,10 +412,10 @@ const SchoolAdminDashboardPage: React.FC = () => {
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" sx={{ fontWeight: 600, color: '#ffffff', mb: 1 }}>
-          School Dashboard
+          {schoolName ? `${schoolName}` : 'School Dashboard'}
         </Typography>
         <Typography variant="body1" sx={{ color: '#94a3b8' }}>
-          Overview of your school's performance and student activity
+          Overview of your school&apos;s performance and student activity
         </Typography>
       </Box>
 
@@ -754,9 +828,10 @@ const SchoolAdminDashboardPage: React.FC = () => {
                 Quick Actions
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Paper 
-                  sx={{ 
-                    p: 2, 
+                <Paper
+                  onClick={() => navigate('/school-admin/students')}
+                  sx={{
+                    p: 2,
                     cursor: 'pointer',
                     border: '1px solid #334155',
                     bgcolor: '#334155',
@@ -773,9 +848,10 @@ const SchoolAdminDashboardPage: React.FC = () => {
                     Manage student profiles and data
                   </Typography>
                 </Paper>
-                <Paper 
-                  sx={{ 
-                    p: 2, 
+                <Paper
+                  onClick={() => navigate('/school-admin/analytics')}
+                  sx={{
+                    p: 2,
                     cursor: 'pointer',
                     border: '1px solid #334155',
                     bgcolor: '#334155',
@@ -786,15 +862,16 @@ const SchoolAdminDashboardPage: React.FC = () => {
                   }}
                 >
                   <Typography variant="body2" sx={{ fontWeight: 500, color: '#ffffff' }}>
-                    Generate Reports
+                    View Analytics
                   </Typography>
                   <Typography variant="caption" sx={{ color: '#94a3b8' }}>
-                    Export performance analytics
+                    Performance analytics and reports
                   </Typography>
                 </Paper>
-                <Paper 
-                  sx={{ 
-                    p: 2, 
+                <Paper
+                  onClick={() => navigate('/school-admin/settings')}
+                  sx={{
+                    p: 2,
                     cursor: 'pointer',
                     border: '1px solid #334155',
                     bgcolor: '#334155',

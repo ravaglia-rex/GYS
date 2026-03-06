@@ -32,14 +32,16 @@ import {
 import {
   Search as SearchIcon,
   Visibility as VisibilityIcon,
-  Edit as EditIcon,
   FilterList as FilterListIcon,
-  Clear as ClearIcon
+  Clear as ClearIcon,
+  ArrowUpward as ArrowUpwardIcon,
+  ArrowDownward as ArrowDownwardIcon
 } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../state_data/reducer';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, getDoc, doc } from 'firebase/firestore';
 import { db } from '../../firebase/firebase';
+import { getSchoolQualificationBySchool } from '../../db/schoolAdminCollection';
 
 interface Student {
   id: string;
@@ -47,14 +49,16 @@ interface Student {
   lastName: string;
   email: string;
   grade: number;
-  status: 'active' | 'inactive' | 'completed';
   lastExamDate?: string;
-  averageScore?: number;
   examsCompleted: number;
   qualificationStatus: 'qualified' | 'not_qualified' | 'pending';
 }
 
 const PHASE2_FORM_IDS = ['mOGkN8', 'mVy95J'];
+
+type ExamsCompletedFilter = 'all' | '0' | '1' | '2' | '3_plus';
+type SortField = 'firstName' | 'lastName' | 'grade' | 'examsCompleted' | 'latestExam';
+type SortDirection = 'asc' | 'desc';
 
 const SchoolAdminStudentsPage: React.FC = () => {
   const { schoolAdmin } = useSelector((state: RootState) => state.auth);
@@ -67,9 +71,12 @@ const SchoolAdminStudentsPage: React.FC = () => {
   
   // Filter states
   const [gradeFilter, setGradeFilter] = useState<number | 'all'>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [qualificationFilter, setQualificationFilter] = useState<string>('all');
+  const [examsCompletedFilter, setExamsCompletedFilter] = useState<ExamsCompletedFilter>('all');
   const [showFilters, setShowFilters] = useState(false);
+
+  const [sortField, setSortField] = useState<SortField>('firstName');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
   useEffect(() => {
     const fetchStudents = async () => {
@@ -88,60 +95,130 @@ const SchoolAdminStudentsPage: React.FC = () => {
           where('school_id', '==', schoolId)
         );
         const studentsSnapshot = await getDocs(studentsQuery);
-        
-        const studentsData: Student[] = [];
 
-        for (const studentDoc of studentsSnapshot.docs) {
-          const studentData = studentDoc.data();
-          const uid = studentDoc.id;
+        const studentDocs = studentsSnapshot.docs;
+        const MAX_STUDENTS_WITH_EXAM_DETAILS = 50;
 
-          // Extract name
-          const firstName = studentData.first_name || '';
-          const lastName = studentData.last_name || '';
-          const email = studentData.email || '';
-          
-          // Extract grade safely
+        // Qualification status for *all* students (computed server-side with Admin SDK)
+        let qualificationByUid: Record<string, Student['qualificationStatus']> = {};
+        try {
+          const q = await getSchoolQualificationBySchool(String(schoolId ?? '').trim());
+          qualificationByUid = (q?.byStudent as any) || {};
+        } catch {
+          qualificationByUid = {};
+        }
+
+        // Base student info from all docs (no extra queries)
+        const baseStudents = studentDocs.map(doc => {
+          const data = doc.data();
+          const uid = doc.id;
+
+          const firstName = data.first_name || '';
+          const lastName = data.last_name || '';
+
           let grade = 0;
-          if ('grade' in studentData && typeof studentData['grade'] === 'number') {
-            grade = studentData['grade'] as number;
-          } else if ('class' in studentData && typeof studentData['class'] === 'number') {
-            grade = studentData['class'] as number;
+          if ('grade' in data && typeof data['grade'] === 'number') {
+            grade = data['grade'] as number;
+          } else if ('class' in data && typeof data['class'] === 'number') {
+            grade = data['class'] as number;
           }
 
-          // Fetch exam submissions
-          const submissionsQuery = query(
-            collection(db, 'student_submission_mappings'),
-            where('student_uid', '==', uid)
-          );
-          const submissionsSnapshot = await getDocs(submissionsQuery);
-          const examsCompleted = submissionsSnapshot.size;
+          return {
+            id: uid,
+            firstName,
+            lastName,
+            email: '',
+            grade,
+          };
+        });
 
-          // Calculate average score from phase 2 responses
-          let totalScore = 0;
-          let scoreCount = 0;
+        // Limit heavy exam lookups to a subset of students to keep the page responsive
+        const docsForDetails = studentDocs.slice(0, MAX_STUDENTS_WITH_EXAM_DETAILS);
+        const uidsForDetails = docsForDetails.map(d => d.id);
+
+        // Fetch emails for sampled students in parallel (student_email_mappings/{uid} -> { email })
+        const emailDocs = await Promise.all(
+          uidsForDetails.map(async (uid) => {
+            try {
+              const snap = await getDoc(doc(db, 'student_email_mappings', uid));
+              return { uid, email: (snap.exists() ? (snap.data() as any)?.email : '') || '' };
+            } catch {
+              return { uid, email: '' };
+            }
+          })
+        );
+        const emailByUid: Record<string, string> = {};
+        emailDocs.forEach(({ uid, email }) => {
+          if (email) emailByUid[uid] = email;
+        });
+
+        // Fetch submissions in parallel for sampled students
+        const submissionsSnapshots = await Promise.all(
+          uidsForDetails.map(uid =>
+            getDocs(
+              query(
+                collection(db, 'student_submission_mappings'),
+                where('student_uid', '==', uid)
+              )
+            )
+          )
+        );
+
+        const submissionsByUid: Record<string, any[]> = {};
+        const submissionIds: string[] = [];
+
+        submissionsSnapshots.forEach((snap, index) => {
+          const uid = uidsForDetails[index];
+          submissionsByUid[uid] = [];
+          snap.forEach(subDoc => {
+            const subData = subDoc.data();
+            submissionsByUid[uid].push(subData);
+            if (subData.submission_id) {
+              submissionIds.push(subData.submission_id);
+            }
+          });
+        });
+
+        // Fetch phase 2 responses in parallel, once per unique submissionId
+        const uniqueSubmissionIds = Array.from(new Set(submissionIds));
+        const phase2Snapshots = await Promise.all(
+          uniqueSubmissionIds.map(subId =>
+            getDocs(
+              query(
+                collection(db, 'phase_2_exam_responses'),
+                where('submissionId', '==', subId)
+              )
+            )
+          )
+        );
+
+        const responsesBySubmissionId: Record<string, any[]> = {};
+        phase2Snapshots.forEach((snap, index) => {
+          const subId = uniqueSubmissionIds[index];
+          responsesBySubmissionId[subId] = [];
+          snap.forEach(respDoc => {
+            responsesBySubmissionId[subId].push(respDoc.data());
+          });
+        });
+
+        // Build final students array with metrics
+        const studentsData: Student[] = baseStudents.map(base => {
+          const submissions = submissionsByUid[base.id] || [];
+
+          let examsCompleted = submissions.length;
           let lastExamDate: string | undefined;
 
-          for (const submissionDoc of submissionsSnapshot.docs) {
-            const submissionData = submissionDoc.data();
-            const submissionId = submissionData.submission_id;
-            
-            if (submissionId) {
-              const responsesQuery = query(
-                collection(db, 'phase_2_exam_responses'),
-                where('submissionId', '==', submissionId)
-              );
-              const responsesSnapshot = await getDocs(responsesQuery);
-              
-              responsesSnapshot.forEach(responseDoc => {
-                const responseData = responseDoc.data();
-                if (responseData.overallTotal) {
-                  totalScore += responseData.overallTotal;
-                  scoreCount++;
-                }
-                if (responseData.createdAt) {
-                  const date = responseData.createdAt.seconds 
-                    ? new Date(responseData.createdAt.seconds * 1000).toISOString()
-                    : new Date(responseData.createdAt).toISOString();
+          submissions.forEach(sub => {
+            const submissionId = sub.submission_id;
+
+            // Phase 2 responses for this submission
+            if (submissionId && responsesBySubmissionId[submissionId]) {
+              responsesBySubmissionId[submissionId].forEach(resp => {
+                if (resp.createdAt) {
+                  const date =
+                    resp.createdAt.seconds
+                      ? new Date(resp.createdAt.seconds * 1000).toISOString()
+                      : new Date(resp.createdAt).toISOString();
                   if (!lastExamDate || date > lastExamDate) {
                     lastExamDate = date;
                   }
@@ -149,51 +226,32 @@ const SchoolAdminStudentsPage: React.FC = () => {
               });
             }
 
-            // Also check submission_time
-            if (submissionData.submission_time) {
-              const date = submissionData.submission_time.seconds
-                ? new Date(submissionData.submission_time.seconds * 1000).toISOString()
-                : new Date(submissionData.submission_time).toISOString();
+            // Also check submission_time on the mapping
+            if (sub.submission_time) {
+              const date =
+                sub.submission_time.seconds
+                  ? new Date(sub.submission_time.seconds * 1000).toISOString()
+                  : new Date(sub.submission_time).toISOString();
               if (!lastExamDate || date > lastExamDate) {
                 lastExamDate = date;
               }
             }
-          }
-
-          const averageScore = scoreCount > 0 ? Math.round((totalScore / scoreCount) * 10) / 10 : undefined;
-
-          // Check qualification status
-          const examMappingsQuery = query(
-            collection(db, 'student_exam_mappings'),
-            where('uid', '==', uid)
-          );
-          const examMappingsSnapshot = await getDocs(examMappingsQuery);
-          
-          let qualificationStatus: 'qualified' | 'not_qualified' | 'pending' = 'not_qualified';
-          examMappingsSnapshot.forEach(doc => {
-            const data = doc.data();
-            if (PHASE2_FORM_IDS.includes(data.form_link)) {
-              qualificationStatus = 'qualified';
-            }
           });
 
-          // Determine status based on activity
-          const status: 'active' | 'inactive' | 'completed' = 
-            examsCompleted > 0 ? 'active' : 'inactive';
+          const qualificationStatus: 'qualified' | 'not_qualified' | 'pending' =
+            qualificationByUid[base.id] || 'pending';
 
-          studentsData.push({
-            id: uid,
-            firstName,
-            lastName,
-            email,
-            grade,
-            status,
+          return {
+            id: base.id,
+            firstName: base.firstName,
+            lastName: base.lastName,
+            email: emailByUid[base.id] || base.email || '',
+            grade: base.grade,
             lastExamDate,
-            averageScore,
             examsCompleted,
-            qualificationStatus
-          });
-        }
+            qualificationStatus,
+          };
+        });
 
         setStudents(studentsData);
         setFilteredStudents(studentsData);
@@ -218,21 +276,80 @@ const SchoolAdminStudentsPage: React.FC = () => {
       // Grade filter
       const matchesGrade = gradeFilter === 'all' || student.grade === gradeFilter;
 
-      // Status filter
-      const matchesStatus = statusFilter === 'all' || student.status === statusFilter;
-
       // Qualification filter
       const matchesQualification = qualificationFilter === 'all' || student.qualificationStatus === qualificationFilter;
 
-      return matchesSearch && matchesGrade && matchesStatus && matchesQualification;
+      // Exams completed filter
+      const matchesExamsCompleted =
+        examsCompletedFilter === 'all' ||
+        (examsCompletedFilter === '0' && student.examsCompleted === 0) ||
+        (examsCompletedFilter === '1' && student.examsCompleted === 1) ||
+        (examsCompletedFilter === '2' && student.examsCompleted === 2) ||
+        (examsCompletedFilter === '3_plus' && student.examsCompleted >= 3);
+
+      return matchesSearch && matchesGrade && matchesQualification && matchesExamsCompleted;
+    });
+
+    const getLastExamMs = (s: Student) => {
+      if (!s.lastExamDate) return -Infinity;
+      const ms = Date.parse(s.lastExamDate);
+      return Number.isFinite(ms) ? ms : -Infinity;
+    };
+
+    filtered = [...filtered].sort((a, b) => {
+      let cmp = 0;
+      switch (sortField) {
+        case 'firstName':
+          cmp = (a.firstName || '').localeCompare((b.firstName || ''), undefined, { sensitivity: 'base' });
+          break;
+        case 'lastName':
+          cmp = (a.lastName || '').localeCompare((b.lastName || ''), undefined, { sensitivity: 'base' });
+          break;
+        case 'grade':
+          cmp = (a.grade || 0) - (b.grade || 0);
+          break;
+        case 'examsCompleted':
+          cmp = (a.examsCompleted || 0) - (b.examsCompleted || 0);
+          break;
+        case 'latestExam':
+          cmp = getLastExamMs(a) - getLastExamMs(b);
+          break;
+        default:
+          cmp = 0;
+      }
+
+      if (cmp === 0) {
+        // Tie-breaker: stable-ish ordering by name
+        cmp = (a.firstName || '').localeCompare((b.firstName || ''), undefined, { sensitivity: 'base' });
+        if (cmp === 0) cmp = (a.lastName || '').localeCompare((b.lastName || ''), undefined, { sensitivity: 'base' });
+      }
+
+      return sortDirection === 'asc' ? cmp : -cmp;
     });
     
     setFilteredStudents(filtered);
-  }, [searchTerm, students, gradeFilter, statusFilter, qualificationFilter]);
+  }, [searchTerm, students, gradeFilter, qualificationFilter, examsCompletedFilter, sortField, sortDirection]);
 
   const handleViewStudent = (student: Student) => {
     setSelectedStudent(student);
     setViewDialogOpen(true);
+
+    // Lazy-load email for the selected student (single doc read), if not already present.
+    if (!student.email) {
+      (async () => {
+        try {
+          const snap = await getDoc(doc(db, 'student_email_mappings', student.id));
+          const email = (snap.exists() ? (snap.data() as any)?.email : '') || '';
+          if (!email) return;
+
+          setSelectedStudent(prev => (prev && prev.id === student.id ? { ...prev, email } : prev));
+          setStudents(prev => prev.map(s => (s.id === student.id ? { ...s, email } : s)));
+          setFilteredStudents(prev => prev.map(s => (s.id === student.id ? { ...s, email } : s)));
+        } catch {
+          // ignore
+        }
+      })();
+    }
   };
 
   const handleCloseDialog = () => {
@@ -243,21 +360,8 @@ const SchoolAdminStudentsPage: React.FC = () => {
   const handleClearFilters = () => {
     setSearchTerm('');
     setGradeFilter('all');
-    setStatusFilter('all');
     setQualificationFilter('all');
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return '#10b981';
-      case 'inactive':
-        return '#6b7280';
-      case 'completed':
-        return '#3b82f6';
-      default:
-        return '#6b7280';
-    }
+    setExamsCompletedFilter('all');
   };
 
   const getQualificationColor = (status: string) => {
@@ -289,7 +393,11 @@ const SchoolAdminStudentsPage: React.FC = () => {
   // Get unique grades for filter dropdown
   const uniqueGrades = Array.from(new Set(students.map(s => s.grade).filter(g => g > 0))).sort((a, b) => a - b);
 
-  const hasActiveFilters = searchTerm || gradeFilter !== 'all' || statusFilter !== 'all' || qualificationFilter !== 'all';
+  const hasActiveFilters =
+    !!searchTerm ||
+    gradeFilter !== 'all' ||
+    qualificationFilter !== 'all' ||
+    examsCompletedFilter !== 'all';
 
   if (loading) {
     return (
@@ -354,6 +462,56 @@ const SchoolAdminStudentsPage: React.FC = () => {
                 }}
               />
             </Box>
+
+            {/* Sort */}
+            <FormControl sx={{ minWidth: { xs: '160px', sm: '190px' } }}>
+              <InputLabel sx={{ color: '#94a3b8' }}>Sort by</InputLabel>
+              <Select
+                value={sortField}
+                onChange={(e) => {
+                  const next = e.target.value as SortField;
+                  setSortField(next);
+                  // Default "Latest exam" to newest-first
+                  if (next === 'latestExam') setSortDirection('desc');
+                }}
+                input={<OutlinedInput label="Sort by" sx={{ color: '#ffffff' }} />}
+                sx={{
+                  color: '#ffffff',
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#334155',
+                  },
+                  '&:hover .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#3b82f6',
+                  },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#3b82f6',
+                  },
+                  '& .MuiSvgIcon-root': {
+                    color: '#94a3b8',
+                  },
+                }}
+              >
+                <MenuItem value="firstName">First name</MenuItem>
+                <MenuItem value="lastName">Last name</MenuItem>
+                <MenuItem value="grade">Grade</MenuItem>
+                <MenuItem value="examsCompleted">Exams completed</MenuItem>
+                <MenuItem value="latestExam">Latest exam</MenuItem>
+              </Select>
+            </FormControl>
+
+            <IconButton
+              onClick={() => setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'))}
+              sx={{
+                color: '#94a3b8',
+                border: '1px solid #334155',
+                borderRadius: 2,
+                '&:hover': { borderColor: '#3b82f6', color: '#3b82f6' },
+              }}
+              aria-label="Toggle sort direction"
+            >
+              {sortDirection === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />}
+            </IconButton>
+
             <Button
               variant="outlined"
               startIcon={<FilterListIcon />}
@@ -414,13 +572,13 @@ const SchoolAdminStudentsPage: React.FC = () => {
                 </Select>
               </FormControl>
 
-              {/* Status Filter */}
-              <FormControl sx={{ minWidth: { xs: '100%', sm: '150px' } }}>
-                <InputLabel sx={{ color: '#94a3b8' }}>Status</InputLabel>
+              {/* Exams Completed Filter */}
+              <FormControl sx={{ minWidth: { xs: '100%', sm: '180px' } }}>
+                <InputLabel sx={{ color: '#94a3b8' }}>Exams completed</InputLabel>
                 <Select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  input={<OutlinedInput label="Status" sx={{ color: '#ffffff' }} />}
+                  value={examsCompletedFilter}
+                  onChange={(e) => setExamsCompletedFilter(e.target.value as ExamsCompletedFilter)}
+                  input={<OutlinedInput label="Exams completed" sx={{ color: '#ffffff' }} />}
                   sx={{
                     color: '#ffffff',
                     '& .MuiOutlinedInput-notchedOutline': {
@@ -437,10 +595,11 @@ const SchoolAdminStudentsPage: React.FC = () => {
                     },
                   }}
                 >
-                  <MenuItem value="all">All Status</MenuItem>
-                  <MenuItem value="active">Active</MenuItem>
-                  <MenuItem value="inactive">Inactive</MenuItem>
-                  <MenuItem value="completed">Completed</MenuItem>
+                  <MenuItem value="all">All</MenuItem>
+                  <MenuItem value="0">0</MenuItem>
+                  <MenuItem value="1">1</MenuItem>
+                  <MenuItem value="2">2</MenuItem>
+                  <MenuItem value="3_plus">3+</MenuItem>
                 </Select>
               </FormControl>
 
@@ -515,10 +674,18 @@ const SchoolAdminStudentsPage: React.FC = () => {
                   sx={{ bgcolor: '#334155', color: '#ffffff' }}
                 />
               )}
-              {statusFilter !== 'all' && (
+              {examsCompletedFilter !== 'all' && (
                 <Chip
-                  label={`Status: ${statusFilter}`}
-                  onDelete={() => setStatusFilter('all')}
+                  label={`Exams: ${
+                    examsCompletedFilter === '0'
+                      ? '0'
+                      : examsCompletedFilter === '1'
+                        ? '1'
+                        : examsCompletedFilter === '2'
+                          ? '2'
+                          : '3+'
+                  }`}
+                  onDelete={() => setExamsCompletedFilter('all')}
                   size="small"
                   sx={{ bgcolor: '#334155', color: '#ffffff' }}
                 />
@@ -554,9 +721,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
                 <TableRow sx={{ bgcolor: '#334155' }}>
                   <TableCell sx={{ fontWeight: 600, color: '#ffffff' }}>Student</TableCell>
                   <TableCell sx={{ fontWeight: 600, color: '#ffffff' }}>Grade</TableCell>
-                  <TableCell sx={{ fontWeight: 600, color: '#ffffff' }}>Status</TableCell>
                   <TableCell sx={{ fontWeight: 600, color: '#ffffff' }}>Exams Completed</TableCell>
-                  <TableCell sx={{ fontWeight: 600, color: '#ffffff' }}>Average Score</TableCell>
                   <TableCell sx={{ fontWeight: 600, color: '#ffffff' }}>Qualification</TableCell>
                   <TableCell sx={{ fontWeight: 600, color: '#ffffff' }}>Last Exam</TableCell>
                   <TableCell sx={{ fontWeight: 600, color: '#ffffff' }}>Actions</TableCell>
@@ -565,7 +730,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
               <TableBody>
                 {filteredStudents.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} sx={{ textAlign: 'center', py: 4 }}>
+                    <TableCell colSpan={6} sx={{ textAlign: 'center', py: 4 }}>
                       <Typography variant="body2" sx={{ color: '#94a3b8' }}>
                         No students found matching your filters
                       </Typography>
@@ -595,24 +760,8 @@ const SchoolAdminStudentsPage: React.FC = () => {
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Chip
-                          label={student.status.charAt(0).toUpperCase() + student.status.slice(1)}
-                          size="small"
-                          sx={{
-                            bgcolor: getStatusColor(student.status),
-                            color: 'white',
-                            fontSize: '0.75rem'
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell>
                         <Typography variant="body2" sx={{ color: '#ffffff' }}>
                           {student.examsCompleted}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ color: '#ffffff' }}>
-                          {student.averageScore ? `${student.averageScore}%` : 'N/A'}
                         </Typography>
                       </TableCell>
                       <TableCell>
@@ -639,12 +788,6 @@ const SchoolAdminStudentsPage: React.FC = () => {
                             sx={{ color: '#3b82f6' }}
                           >
                             <VisibilityIcon />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            sx={{ color: '#94a3b8' }}
-                          >
-                            <EditIcon />
                           </IconButton>
                         </Box>
                       </TableCell>
@@ -691,24 +834,19 @@ const SchoolAdminStudentsPage: React.FC = () => {
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <Box>
                     <Typography variant="body2" sx={{ color: '#94a3b8', mb: 0.5 }}>
+                      Email
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: '#ffffff' }}>
+                      {selectedStudent.email || 'N/A'}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" sx={{ color: '#94a3b8', mb: 0.5 }}>
                       Grade
                     </Typography>
                     <Typography variant="body1" sx={{ color: '#ffffff' }}>
                       {selectedStudent.grade > 0 ? `Grade ${selectedStudent.grade}` : 'N/A'}
                     </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="body2" sx={{ color: '#94a3b8', mb: 0.5 }}>
-                      Status
-                    </Typography>
-                    <Chip
-                      label={selectedStudent.status.charAt(0).toUpperCase() + selectedStudent.status.slice(1)}
-                      size="small"
-                      sx={{
-                        bgcolor: getStatusColor(selectedStudent.status),
-                        color: 'white'
-                      }}
-                    />
                   </Box>
                   <Box>
                     <Typography variant="body2" sx={{ color: '#94a3b8', mb: 0.5 }}>
@@ -742,14 +880,6 @@ const SchoolAdminStudentsPage: React.FC = () => {
                   </Box>
                   <Box>
                     <Typography variant="body2" sx={{ color: '#94a3b8', mb: 0.5 }}>
-                      Average Score
-                    </Typography>
-                    <Typography variant="body1" sx={{ color: '#ffffff' }}>
-                      {selectedStudent.averageScore ? `${selectedStudent.averageScore}%` : 'N/A'}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="body2" sx={{ color: '#94a3b8', mb: 0.5 }}>
                       Last Exam Date
                     </Typography>
                     <Typography variant="body1" sx={{ color: '#ffffff' }}>
@@ -764,12 +894,6 @@ const SchoolAdminStudentsPage: React.FC = () => {
         <DialogActions sx={{ p: 3, bgcolor: '#334155', borderTop: '1px solid #475569' }}>
           <Button onClick={handleCloseDialog} sx={{ color: '#94a3b8' }}>
             Close
-          </Button>
-          <Button
-            variant="contained"
-            sx={{ bgcolor: '#3b82f6', '&:hover': { bgcolor: '#2563eb' } }}
-          >
-            Edit Student
           </Button>
         </DialogActions>
       </Dialog>

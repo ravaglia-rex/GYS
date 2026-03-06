@@ -7,7 +7,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { LoadingSpinner as Spinner } from '../ui/spinner';
 import { useToast } from '../ui/use-toast';
-import { confirmPasswordReset } from 'firebase/auth';
+import { checkActionCode, confirmPasswordReset, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { auth } from '../../firebase/firebase';
 import * as Sentry from '@sentry/react';
 import { useNavigate } from 'react-router-dom';
@@ -43,23 +43,39 @@ const SchoolAdminPasswordSetupFromLink: React.FC<SchoolAdminPasswordSetupFromLin
     try {
       setIsSubmitted(true);
 
-      // Confirm password reset (this sets the password)
+      // Get email from the action code (before it's consumed)
+      const actionCodeInfo = await checkActionCode(auth, actionCode);
+      const email = actionCodeInfo.data?.email;
+      if (!email) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Could not determine email from link. Please use the link from your email again.',
+        });
+        setIsSubmitted(false);
+        return;
+      }
+
+      // Confirm password reset (this sets the password; does NOT sign the user in)
       await confirmPasswordReset(auth, actionCode, data.password);
 
-      // After password is set, check if this is a school admin and update verified status
-      // Note: After confirmPasswordReset, the user is automatically signed in
-      const user = auth.currentUser;
-      if (user?.email) {
-        try {
-          const schoolInfo = await checkSchoolEmail(user.email);
-          if (schoolInfo && !schoolInfo.verified) {
-            const authToken = await user.getIdToken();
-            authTokenHandler.setAuthToken(authToken);
-            await verifySchoolEmail(user.email);
-          }
-        } catch (error) {
-          console.error('Error verifying school email:', error);
+      // Sign in with the new password so we have a token to call verifySchoolEmail
+      const { user } = await signInWithEmailAndPassword(auth, email, data.password);
+      try {
+        const schoolInfo = await checkSchoolEmail(user.email!);
+        if (schoolInfo && !schoolInfo.verified) {
+          const authToken = await user.getIdToken();
+          authTokenHandler.setAuthToken(authToken);
+          await verifySchoolEmail(user.email!);
         }
+      } catch (error: any) {
+        console.error('Error verifying school email:', error);
+        const msg = error.response?.data?.error ?? error.message ?? 'Could not mark school as verified.';
+        toast({
+          variant: 'destructive',
+          title: 'Verification update failed',
+          description: msg,
+        });
       }
 
       toast({
@@ -68,8 +84,7 @@ const SchoolAdminPasswordSetupFromLink: React.FC<SchoolAdminPasswordSetupFromLin
         description: 'Your account has been created. Redirecting to login...',
       });
 
-      // Sign out and redirect to login
-      await auth.signOut();
+      await signOut(auth);
       setTimeout(() => {
         navigate('/');
       }, 2000);
