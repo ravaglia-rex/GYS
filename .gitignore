@@ -26,3 +26,8 @@ yarn-error.log*
 # Sentry Config File
 .sentryclirc
 firestore-debug.log
+
+argus-talent-search-firebase-adminsdk-fbsvc-12b4f493ad6d.json
+argus-talent-search-12b4f493ad6d.json
+argus-india-v2-firebase-adminsdk-fbsvc-cc980e26ea.json
+argus-india-v2-cc980e26ea.json
