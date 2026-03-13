@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -55,6 +57,8 @@
     @apply border-border;
   }
   body {
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+      sans-serif;
     @apply bg-background text-foreground;
   }
 }
@@ -102,4 +106,71 @@
   animation: blinkHighlight 1.5s ease-in-out 3; /* Faster animation */
   border: 2px solid #8b5cf6;
   border-radius: 8px;
+}
+
+@keyframes heroOrbDriftA {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(18px, 10px, 0) scale(1.05);
+  }
+  100% {
+    transform: translate3d(32px, 24px, 0) scale(1.1);
+  }
+}
+
+@keyframes heroOrbDriftB {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-16px, -12px, 0) scale(1.06);
+  }
+  100% {
+    transform: translate3d(-28px, -24px, 0) scale(1.12);
+  }
+}
+
+@keyframes heroOrbDriftC {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, 10px, 0) scale(1.04);
+  }
+  100% {
+    transform: translate3d(0, 18px, 0) scale(1.08);
+  }
+}
+
+.hero-orb-a {
+  animation: heroOrbDriftA 24s ease-in-out infinite alternate;
+}
+
+.hero-orb-b {
+  animation: heroOrbDriftB 28s ease-in-out infinite alternate;
+}
+
+.hero-orb-c {
+  animation: heroOrbDriftC 30s ease-in-out infinite alternate;
+}
+
+@keyframes ctaPulse {
+  0% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  }
+  50% {
+    transform: translateY(-1px) scale(1.02);
+    box-shadow: 0 16px 35px rgba(0, 0, 0, 0.32);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  }
+}
+
+.cta-pulse {
+  animation: ctaPulse 2800ms ease-in-out infinite;
 }

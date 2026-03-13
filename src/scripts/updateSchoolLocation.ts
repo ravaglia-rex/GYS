@@ -3,7 +3,7 @@ import * as fs from 'fs';
 
 // Initialize Firebase Admin SDK
 if (!admin.apps || admin.apps.length === 0) {
-  const serviceAccountPath = '/Users/srishtilodha/Desktop/Argus/Argus_India/argus-frontend/argus-talent-search-12b4f493ad6d.json';
+  const serviceAccountPath = '/Users/srishtilodha/Desktop/Argus/Argus_India/argus-frontend/argus-india-v2-firebase-adminsdk-fbsvc-cc980e26ea.json';
   const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
   
   admin.initializeApp({

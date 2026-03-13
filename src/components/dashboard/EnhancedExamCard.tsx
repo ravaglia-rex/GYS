@@ -11,7 +11,7 @@ import {
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { RootState } from '../../state_data/reducer';
-import { fetchResultTotals, fetchPhase1ResultTotals, fetchPhase2ResultTotals } from '../../db/examResponsesCollection';
+import { fetchResultTotals, fetchPhase2ResultTotals } from '../../db/examResponsesCollection';
 import { getCurrentExamResult } from '../../db/studentExamMappings';
 import { getStudent } from '../../db/studentCollection';
 
@@ -184,14 +184,11 @@ const EnhancedExamCard: React.FC<{
       if (exam.completed && exam.id && uid) {
         try {
           let results;
-          if (exam.id === 'npByEB') {
-            // Phase 1 exam
-            results = await fetchPhase1ResultTotals(uid);
-          } else if (isPhase2Exam()) {
+          if (isPhase2Exam()) {
             // Phase 2 exam
             results = await fetchPhase2ResultTotals(uid, exam.id);
           } else {
-            // Other exams
+            // Phase 1 and other exams use exam_responses
             results = await fetchResultTotals(uid, exam.id);
           }
           

@@ -41,16 +41,6 @@ service cloud.firestore {
       allow write: if true;
     }
     
-    match /phase_1_uids/{document=**} {
-      allow read: if true;
-      allow write: if true;
-    }
-    
-    match /phase_1_exam_responses/{document=**} {
-    	allow read: if true;
-      allow write: if hasAnyRole(["ADMIN", "OWNER"]);
-    }
-    
     match /phase_2_exam_responses/{document=**} {
       allow read: if true;
       allow write: if request.auth != null 

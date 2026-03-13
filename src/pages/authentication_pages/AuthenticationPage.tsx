@@ -34,7 +34,7 @@ const AuthenticationPage: React.FC = () => {
                             <div className="mt-1">
                                 <h1 className="text-3xl font-semibold leading-snug">Unlock Opportunities. Earn Recognition.</h1>
                                 <p className="mt-2 text-gray-300 text-sm">
-                                Join a global community of young scholars and take the Talent Search to showcase your strengths, earn scholarships, and unlock opportunities—through a globally recognized exam.
+                                Join a global community of young scholars and take the Talent Search to showcase your strengths, earn scholarships, and unlock opportunities-through a globally recognized exam.
 
                                 </p>
                             </div>

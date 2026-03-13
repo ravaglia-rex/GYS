@@ -4,7 +4,7 @@ import admin from 'firebase-admin';
 if (!admin.apps || admin.apps.length === 0) {
   try {
     admin.initializeApp({
-      credential: admin.credential.cert('/Users/srishtilodha/Desktop/Argus/Argus_India/argus-frontend/argus-talent-search-12b4f493ad6d.json'),
+      credential: admin.credential.cert('/Users/srishtilodha/Desktop/Argus/Argus_India/argus-frontend/argus-india-v2-firebase-adminsdk-fbsvc-cc980e26ea.json'),
     });
     console.log('✅ Firebase Admin initialized successfully');
   } catch (error) {

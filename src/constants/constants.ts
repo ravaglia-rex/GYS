@@ -34,7 +34,6 @@ export const RAZORPAY_ORDER_EXAM='/orderExam';
 export const SCHOOLS_APIS = '/schools';
 export const SCHOOL_ADMINS_APIS = '/schooladmins';
 export const STUDENTS_APIS = '/students';
-export const PHASE_1_QUERIES_APIS = '/phase1Queries';
 export const EXAM_DETAILS_APIS = '/examDetails';
 export const EXAM_RESPONSES_APIS = '/examResponses';
 export const RAZORPAY_APIS = '/razorpay';
@@ -48,9 +47,6 @@ export const FETCH_PAYMENTS='/getPayments';
 export const FETCH_EXAM_IDS='/getExamIds';
 export const GET_CURRENT_EXAM_RESULT='/getCurrentExamResult';
 
-export const CHECK_EXAM_ID_USED='/checkExamIDUsed';
-export const CHECK_PHASE_1_ELIBIGILITY='/getPhase1Eligibility';
-
 export const FETCH_EXAM_DETAILS='/getExamDetails';
 export const EXAM_SUBMISSION_TRANSACTION='/submitExam';
 export const PHASE_2_SUBMISSION_TRANSACTION='/submitPhase2Exam';
@@ -62,7 +58,6 @@ export const FETCH_SCHOOL_ADMIN_DATA='/getSchoolAdminDetails';
 export const FETCH_SCHOOL_QUALIFICATION_BY_SCHOOL='/getQualificationBySchool';
 
 export const FETCH_RESULT_TOTALS='/getResultTotals';
-export const FETCH_PHASE_1_RESULT_TOTALS='/getPhase1Results';
 export const FETCH_PHASE_2_RESULT_TOTALS='/getPhase2Results';
 
 export const CREATE_RAZORPAY_CUSTOMER='/createCustomer';

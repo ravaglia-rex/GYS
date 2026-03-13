@@ -24,7 +24,7 @@ In your project directory, you can execute the following commands:
 
 ### `npm run eject`
 
-- **Caution:** This is a one-way operation — once you `eject`, there's no going back!
+- **Caution:** This is a one-way operation - once you `eject`, there's no going back!
 - **Why use it:** If you want more control over the build tools and configurations, `eject` will transfer all the configuration files and dependencies into your project directory, allowing you full customization.
 - **Note:** Post-ejection, all commands will still operate, but they will now reference the copied scripts which you can tweak to your preference. This command is ideal for those who are prepared to manage their configuration independently.
 

@@ -5,7 +5,7 @@ import * as path from 'path';
 // Initialize Firebase Admin SDK
 if (!admin.apps || admin.apps.length === 0) {
   admin.initializeApp({
-    credential: admin.credential.cert('/Users/srishtilodha/Desktop/Argus/Argus_India/argus-frontend/argus-talent-search-12b4f493ad6d.json'),
+    credential: admin.credential.cert('/Users/srishtilodha/Desktop/Argus/Argus_India/argus-frontend/argus-india-v2-firebase-adminsdk-fbsvc-cc980e26ea.json'),
   });
 }
 const db = admin.firestore();

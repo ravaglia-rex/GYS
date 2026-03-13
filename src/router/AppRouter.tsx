@@ -6,10 +6,25 @@ import SchoolAdminRoute from '../components/route_protection/SchoolAdminRoute';
 import NotFoundPage from '../pages/NotFoundPage';
 import BigSpinner from '../components/ui/BigSpinner';
 
-/* 
+/*
+LANDING AND PUBLIC PAGES
+*/
+const LandingPage = React.lazy(() => import('../pages/landing/LandingPage'));
+const ForSchoolsPage = React.lazy(() => import('../pages/landing/ForSchoolsPage'));
+const InstitutionDemoRequestPage = React.lazy(
+  () => import('../pages/landing/InstitutionDemoRequestPage')
+);
+const StudentPathPage = React.lazy(() => import('../pages/landing/StudentPathPage'));
+
+/*
 AUTHENTICATION PAGES: These are the pages that are used for the signup and login process
 */
-const AuthenticationPage = React.lazy(() => import('../pages/authentication_pages/AuthenticationPage'));
+const LoginPage = React.lazy(() => import('../pages/authentication_pages/LoginPage'));
+const StudentRegistrationPage = React.lazy(() => import('../pages/authentication_pages/StudentRegistrationPage'));
+const StudentSchoolStepPage = React.lazy(() => import('../pages/authentication_pages/StudentSchoolStepPage'));
+const StudentMembershipStepPage = React.lazy(() => import('../pages/authentication_pages/StudentMembershipStepPage'));
+const StudentPaymentPage = React.lazy(() => import('../pages/authentication_pages/StudentPaymentPage'));
+const StudentWelcomePage = React.lazy(() => import('../pages/authentication_pages/StudentWelcomePage'));
 const AuthActionPage = React.lazy(() => import('../pages/authentication_pages/AuthActionPage'));
 const VerifyEmailErrorPage = React.lazy(() => import('../pages/authentication_pages/VerifyEmailErrorPage'));
 const ResetPasswordPage = React.lazy(() => import('../pages/authentication_pages/ResetPasswordPage'));
@@ -61,7 +76,88 @@ const AppRouter: React.FC = () => {
           path="/"
           element={
             <Suspense fallback={<BigSpinner/>}>
-              <AuthenticationPage />
+              <LandingPage />
+            </Suspense>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        <Route
+          path="/students"
+          element={
+            <Suspense fallback={<BigSpinner/>}>
+              <StudentPathPage />
+            </Suspense>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        <Route
+          path="/login"
+          element={
+            <Suspense fallback={<BigSpinner/>}>
+              <LoginPage />
+            </Suspense>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        <Route
+          path="/students/register"
+          element={
+            <Suspense fallback={<BigSpinner/>}>
+              <StudentRegistrationPage />
+            </Suspense>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        <Route
+          path="/students/register/school"
+          element={
+            <Suspense fallback={<BigSpinner/>}>
+              <StudentSchoolStepPage />
+            </Suspense>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        <Route
+          path="/students/register/membership"
+          element={
+            <Suspense fallback={<BigSpinner/>}>
+              <StudentMembershipStepPage />
+            </Suspense>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        <Route
+          path="/students/register/payment"
+          element={
+            <Suspense fallback={<BigSpinner/>}>
+              <StudentPaymentPage />
+            </Suspense>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        <Route
+          path="/students/register/welcome"
+          element={
+            <Suspense fallback={<BigSpinner/>}>
+              <StudentWelcomePage />
+            </Suspense>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        <Route
+          path="/for-schools"
+          element={
+            <Suspense fallback={<BigSpinner/>}>
+              <ForSchoolsPage />
+            </Suspense>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        <Route
+          path="/for-schools/demo-request"
+          element={
+            <Suspense fallback={<BigSpinner/>}>
+              <InstitutionDemoRequestPage />
             </Suspense>
           }
           errorElement={<NotFoundPage />}

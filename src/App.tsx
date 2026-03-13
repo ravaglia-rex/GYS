@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import './styles/index.css';
 import './sentry/sentry';
 import * as Sentry from '@sentry/react';
@@ -7,13 +7,10 @@ import { persistor, store } from './state_data/reducer';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { Toaster } from './components/ui/toaster';
-import MinimumWidthPage from './pages/MinimumWidthPage';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 
 function App() {
-  const [isMobileDevice, setIsMobileDevice] = useState(false);
-
   // Create dark theme for Material-UI
   const darkTheme = createTheme({
     palette: {
@@ -79,28 +76,6 @@ function App() {
       },
     },
   });
-
-  useEffect(() => {
-    const handleResize = () => {
-      const mobileWidthThreshold = 768;
-      if (window.innerWidth < mobileWidthThreshold) {
-        setIsMobileDevice(true);
-      } else {
-        setIsMobileDevice(false);
-      }
-    };
-
-    handleResize();
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
-
-  if (isMobileDevice) {
-    return <MinimumWidthPage />;
-  }
 
   return (
     <Provider store={store}>

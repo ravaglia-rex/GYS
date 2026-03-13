@@ -25,8 +25,38 @@ import SchoolAdminSignUpForm from './SchoolAdminSignUpForm';
 import SchoolAdminSchoolSelect from './SchoolAdminSchoolSelect';
 import SchoolAdminPasswordSetup from './SchoolAdminPasswordSetup';
 
+const PERSONAL_EMAIL_DOMAINS = new Set([
+  'gmail.com',
+  'googlemail.com',
+  'yahoo.com',
+  'yahoo.co.in',
+  'yahoo.in',
+  'outlook.com',
+  'hotmail.com',
+  'live.com',
+  'msn.com',
+  'icloud.com',
+  'me.com',
+  'aol.com',
+  'proton.me',
+  'protonmail.com',
+  'zoho.com',
+]);
+
+const getEmailDomain = (email: string) => {
+  const at = email.lastIndexOf('@');
+  if (at === -1) return '';
+  return email.slice(at + 1).trim().toLowerCase();
+};
+
 const EmailSchema = z.object({
-  email: z.string().email().min(1, 'Email is required'),
+  email: z
+    .string()
+    .email()
+    .min(1, 'Email is required')
+    .refine((value) => !PERSONAL_EMAIL_DOMAINS.has(getEmailDomain(value)), {
+      message: 'Please use your school email address (not Gmail/Yahoo/etc.).',
+    }),
   isSchoolOfficial: z.boolean().optional(),
 });
 
@@ -103,8 +133,9 @@ const [selectedSchoolId, setSelectedSchoolId] = useState<string | null>(null);
       // Normal student flow - reset school official state
       setIsSchoolOfficial(false);
 
-      const exists = await checkEmailExists(data.email.toLowerCase());
-      setEmail(data.email.toLowerCase());
+      const normalizedEmail = data.email.toLowerCase().trim();
+      const exists = await checkEmailExists(normalizedEmail);
+      setEmail(normalizedEmail);
       setEmailExists(exists);
   
       if (!exists) {
@@ -176,7 +207,7 @@ if (emailExists === false) {
                   />
                 </FormControl>
                 <FormDescription className="text-xs text-gray-500">
-                  We'll never share your email.
+                  Students should use their <span className="font-semibold">school email address</span> (not Gmail/Yahoo/etc.).
                 </FormDescription>
                 <FormMessage className="text-red-400">{form.formState.errors.email?.message}</FormMessage>
               </FormItem>

@@ -126,11 +126,11 @@ const SchoolAdminDashboardPage: React.FC = () => {
         }
 
         // What we fetch (in order):
-        // 1. schools/{schoolId} — school name for header
-        // 2. students — where school_id == schoolId (totalStudents, list for all downstream data)
-        // 3. student_submission_mappings — per student_uid (completed exams, recent activity)
-        // 4. phase_2_exam_responses — per submissionId (average score, monthly stats)
-        // 5. student_exam_mappings — per student uid (qualification count)
+        // 1. schools/{schoolId} - school name for header
+        // 2. students - where school_id == schoolId (totalStudents, list for all downstream data)
+        // 3. student_submission_mappings - per student_uid (completed exams, recent activity)
+        // 4. phase_2_exam_responses - per submissionId (average score, monthly stats)
+        // 5. student_exam_mappings - per student uid (qualification count)
 
         const [schoolDocSnap, studentsSnapshotBySchoolId] = await Promise.all([
           getDoc(doc(db, 'schools', schoolId)),
