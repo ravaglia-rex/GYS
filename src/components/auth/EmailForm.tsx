@@ -185,10 +185,10 @@ if (emailExists === false) {
 }
   // Default: show email entry form
   return (
-    <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-gray-900/60 to-gray-900/40 backdrop-blur-xl p-8 shadow-2xl">
+    <div className="rounded-2xl border border-slate-200 bg-white px-6 py-7 shadow-lg sm:px-7 sm:py-8">
       <div className="mb-6">
-        <h2 className="text-2xl font-semibold">Welcome to Argus</h2>
-        <p className="mt-1 text-sm text-gray-400">Sign in to continue to your exam portal</p>
+        <h2 className="text-2xl font-semibold text-slate-900">Welcome to Argus</h2>
+        <p className="mt-1 text-sm text-slate-600">Sign in to continue to your exam portal</p>
       </div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -197,19 +197,19 @@ if (emailExists === false) {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-sm text-gray-300">Email address</FormLabel>
+                <FormLabel className="text-sm text-slate-900">Email address</FormLabel>
                 <FormControl>
                   <Input
-                    className="bg-gray-900/60 border-white/10 focus-visible:ring-purple-600 placeholder:text-gray-500 text-white"
+                    className="bg-white border-slate-300 focus-visible:ring-blue-600 placeholder:text-slate-400 text-slate-900"
                     type="email"
                     placeholder="you@school.edu"
                     {...field}
                   />
                 </FormControl>
-                <FormDescription className="text-xs text-gray-500">
+                <FormDescription className="text-xs text-slate-500">
                   Students should use their <span className="font-semibold">school email address</span> (not Gmail/Yahoo/etc.).
                 </FormDescription>
-                <FormMessage className="text-red-400">{form.formState.errors.email?.message}</FormMessage>
+                <FormMessage className="text-red-500">{form.formState.errors.email?.message}</FormMessage>
               </FormItem>
             )}
           />
@@ -222,11 +222,11 @@ if (emailExists === false) {
                   <Checkbox
                     checked={field.value}
                     onCheckedChange={field.onChange}
-                    className="border-white/10"
+                    className="border-slate-300"
                   />
                 </FormControl>
                 <div className="space-y-1 leading-none">
-                  <FormLabel className="text-sm text-gray-300 cursor-pointer">
+                  <FormLabel className="text-sm text-slate-800 cursor-pointer">
                     I am a school official logging into the school dashboard
                   </FormLabel>
                 </div>
@@ -236,7 +236,7 @@ if (emailExists === false) {
           <Button 
             type="submit" 
             disabled={isSubmitted} 
-            className="w-full py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-md font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25"
+            className="w-full py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-md font-semibold transition-all duration-300"
           >
             {isSubmitted ? <Spinner /> : 'Continue'}
           </Button>

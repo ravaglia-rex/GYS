@@ -28,7 +28,7 @@ const SignUpForm: React.FC<SignUpProps> = ({ email, setEmailExists }) => {
     ];
 
     return (
-        <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-gray-900/60 to-gray-900/40 backdrop-blur-xl p-6 sm:p-8 shadow-2xl">
+        <div className="rounded-2xl border border-slate-200 bg-white px-6 py-6 shadow-lg sm:px-7 sm:py-7">
             <Stepper variant="circle-alt" initialStep={0} steps={steps}>
                 {steps.map((step, index) => {
                         let stepContent;

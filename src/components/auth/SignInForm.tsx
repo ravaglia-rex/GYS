@@ -120,8 +120,8 @@ const SignInForm: React.FC<SignInFormProps> = ({ email, isSchoolAdmin, schoolInf
     };
 
     return (
-        <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-gray-900/60 to-gray-900/40 backdrop-blur-xl p-8 shadow-2xl">
-            <h2 className="text-2xl font-semibold text-center mb-6">Sign in to Argus</h2>
+        <div className="rounded-2xl border border-slate-200 bg-white px-6 py-7 shadow-lg sm:px-7 sm:py-8">
+            <h2 className="text-2xl font-semibold text-center mb-6 text-slate-900">Sign in to Argus</h2>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(signIn)} className="space-y-6">
                     <FormField
@@ -129,19 +129,19 @@ const SignInForm: React.FC<SignInFormProps> = ({ email, isSchoolAdmin, schoolInf
                         name="password"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="text-sm text-gray-300">Password</FormLabel>
+                                <FormLabel className="text-sm text-slate-900">Password</FormLabel>
                                 <FormControl>
-                                    <Input className="bg-gray-900/60 border-white/10 focus-visible:ring-purple-600 placeholder:text-gray-500 text-white" type="password" placeholder="••••••••" {...field} />
+                                    <Input className="bg-white border-slate-300 focus-visible:ring-blue-600 placeholder:text-slate-400 text-slate-900" type="password" placeholder="••••••••" {...field} />
                                 </FormControl>
-                                <FormDescription className="text-xs text-gray-500">Minimum of 6 characters</FormDescription>
-                                <FormMessage className="text-red-400">{form.formState.errors.password?.message}</FormMessage>
+                                <FormDescription className="text-xs text-slate-500">Minimum of 6 characters</FormDescription>
+                                <FormMessage className="text-red-500">{form.formState.errors.password?.message}</FormMessage>
                             </FormItem>
                         )}
                     />
                     <Button 
                         type="submit" 
                         disabled={isSubmitted} 
-                        className="w-full py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-md font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25"
+                        className="w-full py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-md font-semibold transition-all duration-300"
                     >
                         {isSubmitted ? <Spinner /> : 'Sign In'}
                     </Button>
@@ -150,7 +150,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ email, isSchoolAdmin, schoolInf
             
             <div className='text-center mt-4'>
                 {loadResendVerification && <ResendVerificationButton userCredential={userCred}/>}
-                <Link to='/reset-password' className='text-sm text-purple-400 hover:text-purple-300 hover:underline transition-colors duration-300'>
+                <Link to='/reset-password' className='text-sm text-blue-600 hover:text-blue-700 hover:underline transition-colors duration-300'>
                     Forgot password?
                 </Link>
             </div>
