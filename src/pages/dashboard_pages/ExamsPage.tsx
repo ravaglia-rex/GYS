@@ -4,9 +4,7 @@ import { Box, Typography, Tabs, Tab, Paper, Avatar } from '@mui/material';
 import { BookOpen } from 'lucide-react';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import EnhancedExamCardsGroup from '../../components/dashboard/EnhancedExamCardsGroup';
-import AnalysisSection from '../../components/dashboard/AnalysisSection';
 import { auth } from '../../firebase/firebase';
-import { getPhase2ExamResponse } from '../../db/phase2ExamResponsesCollection';
 import * as Sentry from '@sentry/react';
 
 
@@ -48,32 +46,6 @@ const ExamsPage: React.FC = () => {
   const navigate = useNavigate();
   const uid = auth.currentUser?.uid || '';
   const [activeTab, setActiveTab] = useState(0);
-  const [hasPhase2Exam, setHasPhase2Exam] = useState(false);
-  const [loadingPhase2Check, setLoadingPhase2Check] = useState(true);
-
-  // Debug logging
-
-  // Check if student has Phase 2 exam data
-  useEffect(() => {
-    const checkPhase2Exam = async () => {
-      if (!uid) {
-        setLoadingPhase2Check(false);
-        return;
-      }
-      
-      try {
-        const phase2Response = await getPhase2ExamResponse(uid);
-        setHasPhase2Exam(!!phase2Response);
-      } catch (error) {
-        console.error('Error checking Phase 2 exam:', error);
-        setHasPhase2Exam(false);
-      } finally {
-        setLoadingPhase2Check(false);
-      }
-    };
-
-    checkPhase2Exam();
-  }, [uid]);
 
   // Determine active tab based on current route
   useEffect(() => {
@@ -81,8 +53,6 @@ const ExamsPage: React.FC = () => {
       setActiveTab(0);
     } else if (pathname.includes('/completed')) {
       setActiveTab(1);
-    } else if (pathname.includes('/analysis')) {
-      setActiveTab(2);
     } else {
       setActiveTab(0); // Default to available
     }
@@ -90,17 +60,13 @@ const ExamsPage: React.FC = () => {
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
-    
-    // Navigate to the corresponding route
+
     switch (newValue) {
       case 0:
         navigate('/exams/available');
         break;
       case 1:
         navigate('/exams/completed');
-        break;
-      case 2:
-        navigate('/exams/analysis');
         break;
       default:
         navigate('/exams/available');
@@ -169,7 +135,6 @@ const ExamsPage: React.FC = () => {
             >
               <Tab label="Available" {...a11yProps(0)} />
               <Tab label="Completed & Results" {...a11yProps(1)} />
-              <Tab label="Analysis" {...a11yProps(2)} />
             </Tabs>
           </Paper>
 
@@ -206,57 +171,6 @@ const ExamsPage: React.FC = () => {
             </Box>
           </TabPanel>
 
-          <TabPanel value={activeTab} index={2}>
-            <Box sx={{ 
-              backgroundColor: 'rgba(30, 41, 59, 0.5)', 
-              borderRadius: 2, 
-              p: 3,
-              border: '1px solid rgba(255, 255, 255, 0.1)'
-            }}>
-              {loadingPhase2Check ? (
-                <Box sx={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  alignItems: 'center', 
-                  gap: 2,
-                  py: 4
-                }}>
-                  <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
-                    Checking for analysis data...
-                  </Typography>
-                </Box>
-              ) : hasPhase2Exam ? (
-                <AnalysisSection studentId={uid} />
-              ) : (
-                <Box>
-                  <Typography variant="h5" sx={{ color: 'white', fontWeight: 600, mb: 3 }}>
-                    Detailed Exam Analysis
-                  </Typography>
-                  <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.8)', mb: 3 }}>
-                    Get comprehensive insights and detailed analysis of your Phase 2 exam performance.
-                  </Typography>
-                  
-                  <Box sx={{ 
-                    background: 'rgba(59, 130, 246, 0.1)', 
-                    border: '1px solid rgba(59, 130, 246, 0.3)',
-                    borderRadius: 2,
-                    p: 3,
-                    textAlign: 'center'
-                  }}>
-                    <Typography variant="h6" sx={{ color: '#3b82f6', fontWeight: 600, mb: 2 }}>
-                      No Phase 2 Exam Data Found
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 2 }}>
-                      You need to complete a Phase 2 exam to access detailed personality analysis.
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-                      Once you complete a Phase 2 exam, you'll be able to view your comprehensive analysis here.
-                    </Typography>
-                  </Box>
-                </Box>
-              )}
-            </Box>
-          </TabPanel>
         </Box>
       </DashboardLayout>
     </Sentry.ErrorBoundary>

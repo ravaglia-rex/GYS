@@ -52,6 +52,7 @@ const ProfilePage = React.lazy(() => import('../pages/dashboard_pages/ProfilePag
 const SettingsPage = React.lazy(() => import('../pages/dashboard_pages/SettingsPage'));
 const ExamsPage = React.lazy(() => import('../pages/dashboard_pages/ExamsPage'));
 const BillingPage = React.lazy(() => import('../pages/dashboard_pages/BillingPage'));
+const ReportsPage = React.lazy(() => import('../pages/dashboard_pages/ReportsPage'));
 
 /*
 SCHOOL ADMIN PAGES: These are the pages for school administrators
@@ -61,6 +62,10 @@ const SchoolAdminDashboardPage = React.lazy(() => import('../pages/school_admin_
 const SchoolAdminStudentsPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminStudentsPage'));
 const SchoolAdminAnalyticsPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminAnalyticsPage'));
 const SchoolAdminSettingsPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminSettingsPage'));
+const SchoolAdminReportsPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminReportsPage'));
+const SchoolAdminInvitationsPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminInvitationsPage'));
+const SchoolAdminAlertsPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminAlertsPage'));
+const SchoolAdminSubscriptionPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminSubscriptionPage'));
 
 /*
 CAMERA AND MICROPHONE ACCESS PAGE: This page is used to check if the camera and microphone are working
@@ -244,18 +249,19 @@ const AppRouter: React.FC = () => {
           errorElement={<NotFoundPage />}
         />
         
+        {/* Reports Route */}
         <Route
-          path="/exams/analysis"
+          path="/reports"
           element={
             <Protected>
               <Suspense fallback={<BigSpinner/>}>
-                <ExamsPage />
+                <ReportsPage />
               </Suspense>
             </Protected>
           }
           errorElement={<NotFoundPage />}
         />
-        
+
         {/* Payment Routes */}
         <Route
           path="/payments"
@@ -484,6 +490,62 @@ const AppRouter: React.FC = () => {
               <Suspense fallback={<BigSpinner/>}>
                 <SchoolAdminPageWrapper>
                   <SchoolAdminSettingsPage />
+                </SchoolAdminPageWrapper>
+              </Suspense>
+            </SchoolAdminRoute>
+          }
+          errorElement={<NotFoundPage />}
+        />
+
+        <Route 
+          path="/school-admin/reports" 
+          element={
+            <SchoolAdminRoute>
+              <Suspense fallback={<BigSpinner/>}>
+                <SchoolAdminPageWrapper>
+                  <SchoolAdminReportsPage />
+                </SchoolAdminPageWrapper>
+              </Suspense>
+            </SchoolAdminRoute>
+          }
+          errorElement={<NotFoundPage />}
+        />
+
+        <Route 
+          path="/school-admin/invitations" 
+          element={
+            <SchoolAdminRoute>
+              <Suspense fallback={<BigSpinner/>}>
+                <SchoolAdminPageWrapper>
+                  <SchoolAdminInvitationsPage />
+                </SchoolAdminPageWrapper>
+              </Suspense>
+            </SchoolAdminRoute>
+          }
+          errorElement={<NotFoundPage />}
+        />
+
+        <Route 
+          path="/school-admin/alerts" 
+          element={
+            <SchoolAdminRoute>
+              <Suspense fallback={<BigSpinner/>}>
+                <SchoolAdminPageWrapper>
+                  <SchoolAdminAlertsPage />
+                </SchoolAdminPageWrapper>
+              </Suspense>
+            </SchoolAdminRoute>
+          }
+          errorElement={<NotFoundPage />}
+        />
+
+        <Route 
+          path="/school-admin/subscription" 
+          element={
+            <SchoolAdminRoute>
+              <Suspense fallback={<BigSpinner/>}>
+                <SchoolAdminPageWrapper>
+                  <SchoolAdminSubscriptionPage />
                 </SchoolAdminPageWrapper>
               </Suspense>
             </SchoolAdminRoute>

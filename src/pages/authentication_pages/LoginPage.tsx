@@ -14,7 +14,7 @@ const LoginPage: React.FC = () => {
         scope.setTag('location', 'LoginPage');
       }}
     >
-      <div className="h-screen flex flex-col bg-slate-50 text-slate-900 overflow-hidden">
+      <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
         {/* Top nav – match LandingPage */}
         <header className="bg-white/90 border-b border-gray-200 backdrop-blur">
           <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-3 sm:gap-6">
@@ -49,8 +49,18 @@ const LoginPage: React.FC = () => {
         <main className="flex-1 flex items-center">
           <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-8 w-full">
             <div className="w-full grid gap-8 sm:grid-cols-2 sm:items-start lg:gap-14">
-              {/* Left hero copy */}
-              <section className="flex flex-col justify-center">
+              {/* Auth card – appears first on mobile, second on desktop */}
+              <section className="flex items-start justify-center order-first sm:order-last">
+                <div className="w-full max-w-md">
+                  <EmailEntryForm />
+                  <p className="mt-4 text-center text-[11px] text-slate-500">
+                    By continuing, you agree to the exam rules and honor code shared with your school.
+                  </p>
+                </div>
+              </section>
+
+              {/* Hero copy – appears second on mobile, first on desktop */}
+              <section className="flex flex-col justify-center order-last sm:order-first">
                 <div className="space-y-4 sm:space-y-5">
                   <h1 className="text-3xl sm:text-4xl font-bold tracking-tight leading-snug text-slate-900">
                     Sign in to continue your{' '}
@@ -79,16 +89,6 @@ const LoginPage: React.FC = () => {
                       </p>
                     </div>
                   </div>
-                </div>
-              </section>
-
-              {/* Right auth card */}
-              <section className="flex items-start justify-center">
-                <div className="w-full max-w-md">
-                  <EmailEntryForm />
-                  <p className="mt-4 text-center text-[11px] text-slate-500">
-                    By continuing, you agree to the exam rules and honor code shared with your school.
-                  </p>
                 </div>
               </section>
             </div>

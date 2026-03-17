@@ -83,18 +83,18 @@ const StudentWelcomePage: React.FC = () => {
 
           <button
             type="button"
-            onClick={() => navigate('/exams/available')}
+            onClick={() => navigate('/dashboard')}
             className="mt-6 inline-flex w-full items-center justify-center rounded-2xl bg-amber-400 px-4 py-3 text-sm sm:text-base font-semibold text-slate-900 shadow-md hover:bg-amber-500 transition-colors duration-200"
           >
-            Start Your First Assessment →
+            Go to Dashboard →
           </button>
 
           <button
             type="button"
-            onClick={() => navigate('/dashboard')}
-            className="mt-3 inline-flex w-full items-center justify-center rounded-2xl bg-white px-4 py-3 text-sm sm:text-base font-semibold text-blue-700 hover:bg-slate-50"
+            onClick={() => navigate('/')}
+            className="mt-3 inline-flex w-full items-center justify-center rounded-2xl bg-white px-4 py-3 text-sm sm:text-base font-semibold text-slate-500 hover:bg-slate-50"
           >
-            Go to Dashboard
+            Back to Home
           </button>
         </section>
       </main>

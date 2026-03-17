@@ -22,6 +22,7 @@ import {
   ExpandMore,
   ChevronLeft as ChevronLeftIcon,
   BarChart as BarChartIcon,
+  Assignment as AssignmentIcon,
   Logout as LogoutIcon
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -45,27 +46,31 @@ const navItems: NavItem[] = [
   {
     title: 'Dashboard',
     path: '/dashboard',
-    icon: <DashboardIcon />,
+    icon: <DashboardIcon sx={{ color: '#8b5cf6' }} />,
   },
   {
     title: 'Exams',
     path: '/exams',
-    icon: <AssessmentIcon />,
+    icon: <AssessmentIcon sx={{ color: '#3b82f6' }} />,
     children: [
-      { title: 'Available', path: '/exams/available', icon: <SchoolIcon /> },
-      { title: 'Completed & Results', path: '/exams/completed', icon: <BarChartIcon /> },
-      { title: 'Analysis', path: '/exams/analysis', icon: <BarChartIcon /> },
+      { title: 'Available', path: '/exams/available', icon: <SchoolIcon sx={{ color: '#10b981' }} /> },
+      { title: 'Completed & Results', path: '/exams/completed', icon: <BarChartIcon sx={{ color: '#06b6d4' }} /> },
     ],
+  },
+  {
+    title: 'Reports',
+    path: '/reports',
+    icon: <AssignmentIcon sx={{ color: '#f59e0b' }} />,
   },
   {
     title: 'Billing & Payments',
     path: '/payments',
-    icon: <PaymentIcon />,
+    icon: <PaymentIcon sx={{ color: '#22c55e' }} />,
   },
   {
     title: 'Settings',
     path: '/settings',
-    icon: <SettingsIcon />,
+    icon: <SettingsIcon sx={{ color: '#94a3b8' }} />,
   },
 ];
 
@@ -150,7 +155,6 @@ export default function SidebarNavigation({ collapsed, onCollapse, onClose }: Si
                   minWidth: 0,
                   mr: collapsed ? 0 : 3,
                   justifyContent: 'center',
-                  color: 'inherit',
                 }}
               >
                 {item.icon}

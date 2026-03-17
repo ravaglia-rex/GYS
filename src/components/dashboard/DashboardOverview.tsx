@@ -12,6 +12,8 @@ import {
 import { Notifications as NotificationsIcon } from '@mui/icons-material';
 import { auth } from '../../firebase/firebase';
 import { getStudent } from '../../db/studentCollection';
+import { getSchoolDetails } from '../../db/schoolCollection';
+import { getPayments } from '../../db/studentPaymentMappings';
 import { getPhase2ExamResponse } from '../../db/phase2ExamResponsesCollection';
 
 const ColumnChart: React.FC<{ data: { subject: string; score: number }[]; isPhase2?: boolean }> = ({ data, isPhase2 }) => {
@@ -347,6 +349,10 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExam
   const [isNavigating, setIsNavigating] = useState(false);
   const [userName, setUserName] = useState<string>('Student');
   const [loading, setLoading] = useState<boolean>(true);
+  const [studentGrade, setStudentGrade] = useState<number | null>(null);
+  const [schoolName, setSchoolName] = useState<string | null>(null);
+  const [membershipLevel, setMembershipLevel] = useState<string | null>(null);
+  const [membershipExpiry, setMembershipExpiry] = useState<string | null>(null);
   const [phase2Results, setPhase2Results] = useState<{ subject: string; score: number }[]>([]);
   const [hasPhase2Results, setHasPhase2Results] = useState<boolean>(false);
   const [isLoadingPhase2, setIsLoadingPhase2] = useState<boolean>(true);
@@ -361,6 +367,66 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExam
           const userData = await getStudent(auth.currentUser.uid);
           if (userData?.first_name) {
             setUserName(userData.first_name.charAt(0).toUpperCase() + userData.first_name.slice(1).toLowerCase());
+          }
+          if (userData?.grade) {
+            setStudentGrade(userData.grade);
+          }
+          if (userData?.school_id) {
+            try {
+              const name = await getSchoolDetails(userData.school_id);
+              if (name && typeof name === 'string') setSchoolName(name);
+            } catch {}
+          }
+
+          // Derive membership level + expiry from payments, fall back to account creation date
+          const levelMap: Record<string, string> = {
+            LEVEL_1: 'Level 1 — Explore',
+            LEVEL_2: 'Level 2 — Engage',
+            LEVEL_3: 'Level 3 — Excel',
+          };
+          const levelFromStudent = userData?.membership_level ?? userData?.plan_level ?? null;
+
+          const resolveExpiry = (baseDate: Date) => {
+            baseDate.setFullYear(baseDate.getFullYear() + 1);
+            return baseDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+          };
+
+          const creationExpiry = () => {
+            const t = auth.currentUser?.metadata?.creationTime;
+            return t ? resolveExpiry(new Date(t)) : null;
+          };
+
+          try {
+            const payments = await getPayments(auth.currentUser.uid);
+            // Use any payment regardless of status — take the most recent by paid_on
+            const sorted = [...payments].sort(
+              (a, b) => new Date(b.paid_on).getTime() - new Date(a.paid_on).getTime()
+            );
+
+            if (sorted.length > 0) {
+              const latest = sorted[0];
+              // Determine level: student doc field > amount heuristic
+              if (levelFromStudent) {
+                setMembershipLevel(levelMap[levelFromStudent] ?? levelFromStudent);
+              } else if (latest.amount < 2000) {
+                setMembershipLevel('Level 1 — Explore');
+              } else if (latest.amount < 7000) {
+                setMembershipLevel('Level 2 — Engage');
+              } else {
+                setMembershipLevel('Level 3 — Excel');
+              }
+              const baseDate = new Date(latest.paid_on);
+              setMembershipExpiry(
+                !isNaN(baseDate.getTime()) ? resolveExpiry(baseDate) : creationExpiry()
+              );
+            } else {
+              // No payments — use student doc level or default, expiry from account creation
+              setMembershipLevel(levelFromStudent ? (levelMap[levelFromStudent] ?? levelFromStudent) : 'Level 2 — Engage');
+              setMembershipExpiry(creationExpiry());
+            }
+          } catch {
+            setMembershipLevel(levelFromStudent ? (levelMap[levelFromStudent] ?? levelFromStudent) : 'Level 2 — Engage');
+            setMembershipExpiry(creationExpiry());
           }
         } catch (error) {
           console.error('Error fetching user data:', error);
@@ -467,6 +533,49 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExam
         }}>
           👋 Welcome to Your Dashboard, {loading ? 'Student' : userName}!
         </Typography>
+
+        {/* Student info row */}
+        {!loading && (studentGrade || schoolName || membershipLevel || membershipExpiry) && (
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1.5, mt: 0.5 }}>
+            {(studentGrade || schoolName) && (
+              <Box sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                borderRadius: '20px',
+                px: 1.5,
+                py: 0.5,
+              }}>
+                <Typography sx={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: '0.82rem', fontWeight: 500 }}>
+                  {[
+                    studentGrade ? `Grade ${studentGrade}` : null,
+                    schoolName ?? null,
+                  ].filter(Boolean).join(' • ')}
+                </Typography>
+              </Box>
+            )}
+            {(membershipLevel || membershipExpiry) && (
+              <Box sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                background: 'rgba(251, 191, 36, 0.12)',
+                border: '1px solid rgba(251, 191, 36, 0.3)',
+                borderRadius: '20px',
+                px: 1.5,
+                py: 0.5,
+              }}>
+                <Typography sx={{ color: '#fbbf24', fontSize: '0.82rem', fontWeight: 500 }}>
+                  {[
+                    membershipLevel ?? null,
+                    membershipExpiry ? `Active until ${membershipExpiry}` : null,
+                  ].filter(Boolean).join(' • ')}
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        )}
+
         <Typography variant="h6" sx={{ color: 'rgba(255, 255, 255, 0.9)', fontWeight: 400, fontSize: '1.2rem' }}>
           Track your progress, manage exams, and achieve your goals
         </Typography>

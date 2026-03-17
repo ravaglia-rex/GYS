@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { UserCredential, createUserWithEmailAndPassword, sendEmailVerification, signOut } from 'firebase/auth';
+import { UserCredential, createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import { fetchSchoolNamesAndIds } from '../../db/schoolCollection';
 import SchoolsInput from '../../components/autocomplete/SchoolsInput';
 import * as Sentry from '@sentry/react';
@@ -137,9 +137,6 @@ const StudentSchoolStepPage: React.FC = () => {
         aspiration,
         heardFrom,
       });
-
-      // Step 6: Sign out and move to membership selection
-      await signOut(auth);
 
       toast({
         variant: 'default',
