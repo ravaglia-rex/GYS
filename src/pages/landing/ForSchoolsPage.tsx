@@ -394,21 +394,22 @@ const ForSchoolsPage: React.FC = () => {
             <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
               <button
                 type="button"
-              onClick={() => navigate('/for-schools/demo-request')}
+                onClick={() => navigate('/for-schools/demo-request')}
                 className="flex w-full items-center justify-center rounded-2xl bg-[#fbbf24] px-4 py-3 text-sm font-semibold text-slate-900 shadow-md hover:shadow-lg hover:-translate-y-0.5 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 sm:text-base"
               >
                 Request a Demo →
               </button>
               <button
                 type="button"
-                onClick={() => window.open('#', '_blank')}
+                onClick={() => navigate('/for-schools/register')}
                 className="flex w-full items-center justify-center rounded-2xl border-2 border-[#1e3a8a] bg-white px-4 py-3 text-sm font-semibold text-[#1e3a8a] shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:scale-[1.02] hover:bg-[#f8fafc] active:scale-[0.98] transition-all duration-200 sm:text-base"
               >
-                Download the School Brochure
+                Register Your School →
               </button>
             </div>
             <p className="pt-4 text-center text-xs text-slate-500 sm:text-sm">
-              We&apos;ll schedule a 20-minute walkthrough with your leadership team.
+              Already registered? School administrators can log in using the invitation link sent to
+              their email.
             </p>
           </section>
         </div>

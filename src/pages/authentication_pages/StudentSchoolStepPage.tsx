@@ -30,8 +30,6 @@ const StudentSchoolStepPage: React.FC = () => {
 
   const [schools, setSchools] = useState<{ id: string; name: string }[]>([]);
   const [selectedSchoolId, setSelectedSchoolId] = useState('');
-  const [udiseCode, setUdiseCode] = useState('');
-  const [board, setBoard] = useState('');
   const [homeLanguage, setHomeLanguage] = useState('');
   const [aspiration, setAspiration] = useState('');
   const [heardFrom, setHeardFrom] = useState('');
@@ -132,7 +130,6 @@ const StudentSchoolStepPage: React.FC = () => {
         last_name: lastName,
         school_id: selectedSchoolId,
         grade: numericGrade,
-        board,
         homeLanguage,
         aspiration,
         heardFrom,
@@ -153,8 +150,6 @@ const StudentSchoolStepPage: React.FC = () => {
           dob,
           cityState,
           schoolId: selectedSchoolId,
-          udiseCode,
-          board,
           homeLanguage,
           aspiration,
           heardFrom,
@@ -254,10 +249,10 @@ const StudentSchoolStepPage: React.FC = () => {
 
         <section className="mt-2 rounded-2xl bg-white p-5 sm:p-7 shadow-md ring-1 ring-slate-100">
           <h1 className="text-xl sm:text-2xl font-semibold text-slate-900">
-            Tell Us About your School
+             Tell us more about you 
           </h1>
           <p className="mt-2 text-xs sm:text-sm text-slate-600">
-            This helps us calibrate assessments and personalize reports.
+            {/* This helps us calibrate assessments and personalize reports. */}
           </p>
 
           <form onSubmit={handleSubmit} className="mt-5 space-y-4 sm:space-y-5">
@@ -271,42 +266,6 @@ const StudentSchoolStepPage: React.FC = () => {
                 className="mt-1.5 bg-white border border-slate-200 focus-visible:ring-slate-500 rounded-lg w-full text-slate-900"
                 loading={isLoading}
               />
-            </div>
-
-            <div>
-              <label className="block text-xs sm:text-sm font-bold text-slate-700">
-                School UDISE Code
-              </label>
-              <input
-                type="text"
-                value={udiseCode}
-                onChange={(event) => setUdiseCode(event.target.value)}
-                className="mt-1.5 w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm sm:text-base text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
-                placeholder="e.g. 29140203501"
-              />
-              <p className="mt-1 text-[11px] sm:text-xs text-slate-500">
-                Your school&apos;s universal ID. Find it on your school&apos;s website or at udisepIus.gov.in.
-                Leave blank if unsure.
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-xs sm:text-sm font-bold text-slate-700">
-                Board / Curriculum
-              </label>
-              <select
-                value={board}
-                onChange={(event) => setBoard(event.target.value)}
-                className="mt-1.5 w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm sm:text-base text-slate-900 bg-white focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
-              >
-                <option value="">Select Board</option>
-                <option value="CBSE">CBSE</option>
-                <option value="ICSE_ISC">ICSE / ISC</option>
-                <option value="STATE">State Board</option>
-                <option value="IB">IB (International Baccalaureate)</option>
-                <option value="CAMBRIDGE">Cambridge (IGCSE / A-Level)</option>
-                <option value="OTHER">Other</option>
-              </select>
             </div>
 
             <div>

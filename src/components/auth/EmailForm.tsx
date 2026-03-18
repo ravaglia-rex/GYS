@@ -28,10 +28,7 @@ import * as Sentry from '@sentry/react';
 import analytics from '../../segment/segment';
 
 import SignInForm from './SignInForm';
-import SignUpForm from './SignUpForm';
-import SchoolAdminSignUpForm from './SchoolAdminSignUpForm';
 import SchoolAdminSchoolSelect from './SchoolAdminSchoolSelect';
-import SchoolAdminPasswordSetup from './SchoolAdminPasswordSetup';
 
 const PERSONAL_EMAIL_DOMAINS = new Set([
   'gmail.com',

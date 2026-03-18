@@ -365,47 +365,48 @@ const LandingPage: React.FC = () => {
         id="for-schools"
         className="bg-slate-100 border-t border-gray-200 pb-10 md:pb-12 pt-6 md:pt-10 scroll-mt-20"
       >
-        <div className="max-w-5xl mx-auto px-6">
-          <div className="grid gap-10 md:grid-cols-2 md:items-start">
-            <div className="text-center md:text-left">
-              <p className="text-sm text-gray-500 uppercase tracking-wider">Presented by</p>
-              <div className="mt-4 rounded-2xl bg-[#e0edff] px-5 py-4 shadow-sm sm:px-6 sm:py-5">
-                <div className="flex items-center gap-4">
-                  <div
-                    className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl px-2 text-[11px] font-semibold leading-tight text-white sm:h-20 sm:w-20 sm:text-xs"
-                    style={{ backgroundColor: 'rgba(30, 58, 138, 0.8)' }}
-                  >
-                    Education
+        <div className="max-w-5xl mx-auto px-6 space-y-6">
+          {/* EducationWorld — full-width card */}
+          <div>
+           
+            <div className="rounded-2xl bg-[#e0edff] px-6 py-5 shadow-sm sm:px-8 sm:py-6">
+              <div className="flex items-center gap-5">
+                <div
+                  className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl px-2 text-[11px] font-semibold leading-tight text-white sm:h-20 sm:w-20 sm:text-xs"
+                  style={{ backgroundColor: 'rgba(30, 58, 138, 0.9)' }}
+                >
+                  Education
+                  <br />
+                  World
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-semibold text-slate-900 sm:text-base">
+                    Presented by EducationWorld
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-700 sm:text-sm sm:leading-relaxed">
+                    India&apos;s #1 education media platform.
                     <br />
-                    World
-                  </div>
-                  <div className="text-left">
-                    <p className="text-xs font-semibold text-slate-900 sm:text-sm">
-                      Presented by EducationWorld
-                    </p>
-                    <p className="mt-1 text-xs leading-relaxed text-slate-800 sm:text-sm sm:leading-relaxed">
-                      India&apos;s #1 education media platform.
-                      <br />
-                      Trusted by 500+ schools and millions of parents nationwide.
-                    </p>
-                  </div>
+                    Trusted by 500+ schools and millions of parents nationwide.
+                  </p>
                 </div>
               </div>
             </div>
-            <div className="text-center md:text-left md:flex md:flex-col md:justify-center">
-              <p className="text-xs text-gray-500 uppercase tracking-wider">
-                In partnership with
-              </p>
-              <div className="mt-4 flex flex-wrap justify-center md:justify-start gap-3">
-                {['Access USA', 'Argus'].map((partner) => (
-                  <span
-                    key={partner}
-                    className="px-5 py-2.5 rounded-lg bg-white text-gray-700 text-sm font-medium shadow-sm hover:shadow-md transition-shadow duration-150"
-                  >
-                    {partner}
-                  </span>
-                ))}
-              </div>
+          </div>
+
+          {/* In Partnership With — below, full-width */}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-400 mb-3 text-center">
+              In partnership with
+            </p>
+            <div className="flex flex-wrap justify-center gap-3">
+              {['Access USA', 'Argus'].map((partner) => (
+                <span
+                  key={partner}
+                  className="px-6 py-3 rounded-xl bg-white text-slate-700 text-sm font-semibold shadow-sm ring-1 ring-slate-100 hover:shadow-md hover:ring-slate-200 transition-all duration-150"
+                >
+                  {partner}
+                </span>
+              ))}
             </div>
           </div>
         </div>
