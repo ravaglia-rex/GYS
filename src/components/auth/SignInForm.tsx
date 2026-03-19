@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import ResendVerificationButton from './ResendVerificationButton';
 import { UserCredential, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { useNavigate, Link } from 'react-router-dom';
@@ -7,8 +7,6 @@ import { auth } from '../../firebase/firebase';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { fetchSchoolNamesAndIds } from '../../db/schoolCollection';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { checkUserRole } from '../../state_data/authSlice';
 import { useDispatch } from 'react-redux';
 import { AppDispatch } from '../../state_data/reducer';
@@ -30,8 +28,6 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { LoadingSpinner as Spinner } from '../ui/spinner';
 import { useToast } from '../ui/use-toast';
-import { getExamIds } from '../../db/studentExamMappings';
-import analytics from '../../segment/segment';
 
 const signinSchema = z.object({
     password: z.string().min(6, 'Password must be at least 6 characters'),

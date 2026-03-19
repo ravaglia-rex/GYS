@@ -1,10 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { useToast } from '../ui/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { resetPayments } from '../../state_data/studentPaymentsSlice';
 import { markPaymentPending } from '../../functions/payment_handling/razorpay_functions';
 
-import { useDispatch } from 'react-redux';
 import * as Sentry from '@sentry/react';
 
 const loadScript = (src: string): Promise<boolean> =>
@@ -62,7 +60,6 @@ const RenderRazorpay: React.FC<RenderRazorpayProps> = ({
   const paymentId = useRef<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const dispatch = useDispatch();
 
   const displayRazorpay = async (options: any) => {
     const res = await loadScript('https://checkout.razorpay.com/v1/checkout.js');

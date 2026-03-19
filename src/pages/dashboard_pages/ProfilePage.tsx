@@ -3,11 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import { Box, Typography, Button, Avatar } from '@mui/material';
 import { User, Settings } from 'lucide-react';
-import { auth } from '../../firebase/firebase';
 
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
-  const currentUser = auth.currentUser;
 
   useEffect(() => {
     // Redirect to settings page

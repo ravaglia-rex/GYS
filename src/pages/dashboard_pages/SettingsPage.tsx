@@ -7,15 +7,10 @@ import {
   Tabs, 
   Tab, 
   Avatar,
-  Divider,
-  Alert
 } from '@mui/material';
 import { 
   User, 
-  // COMMENTED OUT - Bell, 
   Shield, 
-  CreditCard, 
-  Globe,
   Settings as SettingsIcon
 } from 'lucide-react';
 import DashboardLayout from '../../layouts/DashboardLayout';

@@ -22,13 +22,6 @@ import { Input } from '../ui/input';
 import { LoadingSpinner as Spinner } from "../ui/spinner";
 
 import * as Sentry from "@sentry/react";
-import { 
-  updatePassword, 
-  reauthenticateWithCredential, 
-  EmailAuthProvider,
-  sendPasswordResetEmail,
-  ActionCodeSettings
-} from 'firebase/auth';
 
 interface PasswordResetProps {
     actionCode: string;

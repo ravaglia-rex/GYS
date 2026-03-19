@@ -4,7 +4,6 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase/firebase';
 
 const GYS_BLUE = '#1e3a8a';
-const GYS_GOLD = '#fbbf24';
 
 interface FormState {
   name: string;

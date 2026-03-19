@@ -34,7 +34,6 @@ const EnhancedExamCardsGroup: React.FC<EnhancedExamCardsGroupProps> = ({
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const examDetailsState = useSelector((state: RootState) => state.examDetails.examDetails);
-  const examDetailsLoaded = useSelector((state: RootState) => state.examDetails.examDetailsLoaded);
   const paymentsState = useSelector((state: RootState) => state.studentPayments.payments);
   const paymentsLoaded = useSelector((state: RootState) => state.studentPayments.paymentsLoaded);
   const [loading, setLoading] = useState(false);
@@ -445,19 +444,6 @@ const EnhancedExamCardsGroup: React.FC<EnhancedExamCardsGroupProps> = ({
         return 'Exam Results';
       default:
         return 'Your Exams';
-    }
-  };
-
-  const getSectionDescription = () => {
-    switch (filterType) {
-      case 'available':
-        return 'Exams that are currently available for you to take';
-      case 'completed':
-        return 'View your completed exams and their results';
-      case 'results':
-        return 'View your exam results and performance analytics';
-      default:
-        return 'Manage all your exams in one place';
     }
   };
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Card, CardContent, Typography, Avatar, IconButton, Badge } from '@mui/material';
+import { Box, Card, CardContent, Typography, Avatar, Badge } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { 
   TrendingUp, 
@@ -346,7 +346,7 @@ const generateDynamicNotifications = (
 
 const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExamResults = [] }) => {
   const navigate = useNavigate();
-  const [isNavigating, setIsNavigating] = useState(false);
+  const [, setIsNavigating] = useState(false);
   const [userName, setUserName] = useState<string>('Student');
   const [loading, setLoading] = useState<boolean>(true);
   const [studentGrade, setStudentGrade] = useState<number | null>(null);

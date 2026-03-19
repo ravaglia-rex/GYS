@@ -1,6 +1,6 @@
 // argus-frontend/src/db/phase2AnalysisCollection.ts
 import { db } from '../firebase/firebase';
-import { collection, query, where, getDocs, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, setDoc, updateDoc } from 'firebase/firestore';
 
 export interface Phase2Analysis {
   studentId: string;

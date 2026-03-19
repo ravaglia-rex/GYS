@@ -4,17 +4,12 @@ import {
   Drawer, 
   AppBar, 
   Toolbar, 
-  Typography, 
   IconButton,
   useTheme,
   useMediaQuery,
   Avatar,
-  Badge
 } from '@mui/material';
-import { 
-  Menu as MenuIcon,
-  Notifications as NotificationsIcon
-} from '@mui/icons-material';
+import { Menu as MenuIcon } from '@mui/icons-material';
 import { auth } from '../firebase/firebase';
 import { useNavigate } from 'react-router-dom';
 import SidebarNavigation from '../layouts/SidebarNavigation';
@@ -57,22 +52,8 @@ export default function DashboardLayout({
     setSidebarCollapsed(!sidebarCollapsed);
   };
 
-  // Notification handlers
-  const handleNotificationsOpen = () => {
-    setNotificationsOpen(true);
-  };
-
   const handleNotificationsClose = () => {
     setNotificationsOpen(false);
-  };
-
-  const handleLogout = async () => {
-    try {
-      await auth.signOut();
-      navigate('/');
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
   };
 
   const handleProfileNavigation = () => {

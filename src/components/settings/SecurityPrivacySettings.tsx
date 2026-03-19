@@ -7,10 +7,8 @@ import {
   TextField, 
   Button, 
   Switch,
-  FormControlLabel,
   Divider,
   Alert,
-  Grid,
   Avatar,
   IconButton,
   InputAdornment,
@@ -20,7 +18,6 @@ import {
   ListItemIcon,
   ListItemText,
   ListItemSecondaryAction,
-  Slider,
   FormControl,
   Select,
   MenuItem
@@ -35,13 +32,10 @@ import {
   Key,
   CheckCircle,
   AlertTriangle,
-  Save,
   Users,
   Database,
   Bell,
   Globe,
-  Eye as EyeIcon,
-  EyeOff as EyeOffIcon
 } from 'lucide-react';
 import { updatePassword, signOut } from 'firebase/auth';
 import { auth } from '../../firebase/firebase';
@@ -99,6 +93,7 @@ const SecurityPrivacySettings: React.FC = () => {
     }));
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleSecuritySettingChange = (key: string, value: boolean | number) => {
     setSecuritySettings(prev => ({
       ...prev,
@@ -184,6 +179,7 @@ const SecurityPrivacySettings: React.FC = () => {
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleSaveSettings = async () => {
     setIsSaving(true);
     try {
@@ -257,6 +253,7 @@ const SecurityPrivacySettings: React.FC = () => {
     }
   ];
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const privacyCategories = [
     {
       title: 'Profile Privacy',
@@ -372,6 +369,7 @@ const SecurityPrivacySettings: React.FC = () => {
     }
   ];
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const renderPrivacySettingControl = (setting: any) => {
     switch (setting.type) {
       case 'switch':

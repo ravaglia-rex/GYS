@@ -6,27 +6,15 @@ import {
   Typography, 
   TextField, 
   Button, 
-  Avatar,
-  Grid,
-  Switch,
-  FormControlLabel,
-  Divider,
   Alert,
-  IconButton,
   InputAdornment,
-  Select,
   MenuItem,
-  FormControl,
-  InputLabel
 } from '@mui/material';
 import { 
   User, 
   Mail, 
   Phone, 
-  MapPin, 
   School, 
-  Calendar,
-  Camera,
   Save,
   Edit
 } from 'lucide-react';
@@ -170,12 +158,6 @@ const ProfileSettings: React.FC = () => {
     }
   };
 
-  const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // Handle avatar upload logic here
-    }
-  };
 
   return (
     <Box>

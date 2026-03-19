@@ -6,7 +6,6 @@ import {
   CheckCircle as CheckIcon,
   WorkspacePremium as PremiumIcon,
   School as StandardIcon,
-  Rocket as RocketIcon,
   ArrowForward as ArrowIcon,
 } from '@mui/icons-material';
 

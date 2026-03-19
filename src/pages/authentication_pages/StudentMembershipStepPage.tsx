@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const GYS_BLUE = '#1e3a8a';
-const GYS_GOLD = '#fbbf24';
 
 type MembershipLevel = 'LEVEL_1' | 'LEVEL_2' | 'LEVEL_3';
 

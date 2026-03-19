@@ -2,7 +2,6 @@ import React from 'react';
 import { Box, Typography, Paper, Divider, Avatar } from '@mui/material';
 import { CreditCard } from 'lucide-react';
 import DashboardLayout from '../../layouts/DashboardLayout';
-import PaymentHistory from './PaymentHistory';
 import PaymentsTabs from '../../components/dashboard/PaymentsTabs';
 import { auth } from '../../firebase/firebase';
 import * as Sentry from '@sentry/react';

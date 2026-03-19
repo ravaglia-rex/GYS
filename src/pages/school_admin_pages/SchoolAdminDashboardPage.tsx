@@ -4,9 +4,7 @@ import {
   Card,
   CardContent,
   Typography,
-  Avatar,
   Chip,
-  Divider,
   Button,
   Table,
   TableBody,
@@ -15,8 +13,6 @@ import {
   TableHead,
   TableRow,
   Paper,
-  LinearProgress,
-  IconButton,
   Tooltip,
 } from '@mui/material';
 import {
@@ -24,8 +20,6 @@ import {
   TrendingUp as TrendingUpIcon,
   TrendingDown as TrendingDownIcon,
   Assessment as AssessmentIcon,
-  CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon,
   Send as SendIcon,
   FileDownload as FileDownloadIcon,
   QrCode as QrCodeIcon,
@@ -178,7 +172,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
 
   const [schoolName, setSchoolName] = useState('');
   const [schoolCity, setSchoolCity] = useState('');
-  const [schoolBoard, setSchoolBoard] = useState('');
+  const [, setSchoolBoard] = useState('');
   const [schoolUDISE, setSchoolUDISE] = useState('');
   const [schoolTier, setSchoolTier] = useState('gold');
   const [subscriptionPlan, setSubscriptionPlan] = useState('Standard Subscription');
@@ -312,10 +306,8 @@ const SchoolAdminDashboardPage: React.FC = () => {
         }).length;
 
         let completionRate = 0;
-        let qualificationRate = 0;
         try {
           const q = await getSchoolQualificationBySchool(schoolId);
-          qualificationRate = q.qualificationRate ?? 0;
           completionRate = (q as any).completionRate ?? q.qualificationRate ?? 0;
         } catch (_) {}
 

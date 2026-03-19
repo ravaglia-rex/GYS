@@ -18,7 +18,6 @@ const Dashboard: React.FC = () => {
   const dispatch = useDispatch();
   const examDetailsState = useSelector((state: RootState) => state.examDetails.examDetails);
   const examDetailsLoaded = useSelector((state: RootState) => state.examDetails.examDetailsLoaded);
-  const paymentsLoaded = useSelector((state: RootState) => state.studentPayments.paymentsLoaded);
   const [previousUid, setPreviousUid] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [latestExamResults, setLatestExamResults] = useState<{ subject: string; score: number }[]>([]);
@@ -129,10 +128,9 @@ const Dashboard: React.FC = () => {
   };
 
   // Load data when component mounts or uid changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (uid) {
-      // Always load data when component mounts, regardless of previous state
-      // This ensures data is available even after navigation
       loadExamData();
     }
   }, [uid]);
@@ -172,13 +170,6 @@ const Dashboard: React.FC = () => {
     const availableExams = examDetailsState.filter(exam => 
       !exam.completed && 
       (!exam.eligibility_at || new Date() >= new Date(exam.eligibility_at))
-    ).length;
-    
-    // Upcoming exams are those that are not completed and not yet eligible
-    const upcomingExams = examDetailsState.filter(exam => 
-      !exam.completed && 
-      exam.eligibility_at && 
-      new Date() < new Date(exam.eligibility_at)
     ).length;
     
     // Calculate average score from completed exams

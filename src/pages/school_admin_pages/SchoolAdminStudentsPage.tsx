@@ -21,8 +21,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Grid,
-  Divider,
   MenuItem,
   Select,
   FormControl,
@@ -53,8 +51,6 @@ interface Student {
   examsCompleted: number;
   qualificationStatus: 'qualified' | 'not_qualified' | 'pending';
 }
-
-const PHASE2_FORM_IDS = ['mOGkN8', 'mVy95J'];
 
 type ExamsCompletedFilter = 'all' | '0' | '1' | '2' | '3_plus';
 type SortField = 'firstName' | 'lastName' | 'grade' | 'examsCompleted' | 'latestExam';

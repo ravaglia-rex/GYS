@@ -72,8 +72,7 @@ const EmailEntryForm: React.FC = () => {
   const [emailExists, setEmailExists] = useState<boolean|null>(null);
   const [isSchoolOfficial, setIsSchoolOfficial] = useState(false);
   const [schoolInfo, setSchoolInfo] = useState<SchoolEmailCheck | null>(null);
-  const [checkingSchool, setCheckingSchool] = useState(false);
-  const [selectedSchoolId, setSelectedSchoolId] = useState<string | null>(null);
+  const [, setCheckingSchool] = useState(false);
   const [showNoAccountDialog, setShowNoAccountDialog] = useState(false);
 
 

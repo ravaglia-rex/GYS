@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import {
   Box,
-  Grid,
   Card,
   CardContent,
   Typography,
   Paper,
-  Divider,
   Chip,
   Select,
   MenuItem,
@@ -19,7 +17,6 @@ import {
   TrendingDown as TrendingDownIcon,
   Assessment as AssessmentIcon,
   People as PeopleIcon,
-  Grade as GradeIcon,
   CheckCircle as CheckCircleIcon,
   BarChart as BarChartIcon,
   PieChart as PieChartIcon,
@@ -29,7 +26,6 @@ import {
 import { useSelector } from 'react-redux';
 import { RootState } from '../../state_data/reducer';
 import {
-  LineChart,
   Line,
   BarChart,
   Bar,
@@ -44,16 +40,9 @@ import {
   ResponsiveContainer,
   AreaChart,
   Area,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
   ComposedChart,
   ScatterChart,
   Scatter,
-  FunnelChart,
-  Funnel
 } from 'recharts';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase/firebase';
@@ -118,8 +107,6 @@ interface PerformanceComparisonData {
   previous: number;
   target: number;
 }
-
-const PHASE2_FORM_IDS = ['mOGkN8', 'mVy95J'];
 
 const SchoolAdminAnalyticsPage: React.FC = () => {
   const { schoolAdmin } = useSelector((state: RootState) => state.auth);

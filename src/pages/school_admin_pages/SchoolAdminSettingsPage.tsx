@@ -15,7 +15,6 @@ import {
 import {
   Security as SecurityIcon,
   School as SchoolIcon,
-  Person as PersonIcon,
   Save as SaveIcon,
   Cancel as CancelIcon,
   Email as EmailIcon,
@@ -23,7 +22,6 @@ import {
 } from '@mui/icons-material';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../../state_data/reducer';
-import { getSchoolDetails } from '../../db/schoolCollection';
 import { doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../../firebase/firebase';
 import { checkUserRole } from '../../state_data/authSlice';

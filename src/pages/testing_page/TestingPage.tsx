@@ -20,7 +20,6 @@ const TestingPage: React.FC = () => {
   const urlParams = new URLSearchParams(window.location.search);
   const storedIsProctored = localStorage.getItem('isProctored') || urlParams.get('isProctored');
   const storedExamDuration = localStorage.getItem('examDuration') || urlParams.get('examDuration');
-  const storedFormId = localStorage.getItem('currentFormId') || urlParams.get('formId');
   
   const [isProctored, setIsProctored] = useState<boolean>(false);
   const [examDuration, setExamDuration] = useState<number>(0);
@@ -47,6 +46,7 @@ const TestingPage: React.FC = () => {
       setExamDuration(parseExamDuration);
     }
     setIsBuffering(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storedIsProctored, storedExamDuration]);
 
   useEffect(() => {

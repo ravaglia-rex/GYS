@@ -5,7 +5,6 @@ import { checkEmailExists } from '../../db/emailMappingCollection';
 import { auth } from '../../firebase/firebase';
 
 const GYS_BLUE = '#1e3a8a';
-const GYS_GOLD = '#fbbf24';
 
 const StudentRegistrationPage: React.FC = () => {
   const navigate = useNavigate();

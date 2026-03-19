@@ -1,5 +1,5 @@
 import { db } from '../firebase/firebase';
-import { collection, query, where, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 
 export interface Phase2ExamResponse {
   submissionId: string;
