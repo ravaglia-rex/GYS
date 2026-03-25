@@ -139,14 +139,14 @@ const EmailEntryForm: React.FC = () => {
       setIsSchoolOfficial(false);
 
       const normalizedEmail = data.email.toLowerCase().trim();
-      const exists = await checkEmailExists(normalizedEmail);
+      const result = await checkEmailExists(normalizedEmail);
       setEmail(normalizedEmail);
   
-      if (!exists) {
+      if (!result.exists) {
         analytics.track('[DIRECT] New User Flow', { email: data.email });
         setShowNoAccountDialog(true);
       } else {
-        setEmailExists(exists);
+        setEmailExists(result.exists);
       }
     } catch (error) {
       Sentry.withScope((scope) => {

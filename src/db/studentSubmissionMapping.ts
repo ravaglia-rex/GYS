@@ -1,57 +1,20 @@
-import axios from "axios";
-import { EXAM_DETAILS_APIS, EXAM_SUBMISSION_TRANSACTION, PHASE_2_SUBMISSION_TRANSACTION } from "../constants/constants";
-import authTokenHandler from "../functions/auth_token/auth_token_handler";
+// Legacy file — Typeform submission mappings no longer exist.
+// Exam completion is handled by completeExam in assessmentCollection.ts.
 
-export const runExamSubmissionTransaction = async (student_uid: string, submission_id: string, form_id: string, submission_time: string) => {
-    try {
-        const authToken = await authTokenHandler.getAuthToken();
-        const config = {
-            method: 'post',
-            url: `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${EXAM_DETAILS_APIS}${EXAM_SUBMISSION_TRANSACTION}`,
-            headers: {
-                'Authorization': `Bearer ${authToken}`
-            },
-            data: {
-                student_uid,
-                submission_id,
-                form_id,
-                submission_time,
-            }
-        };
-        const response = await axios.request(config);
-        return response.data;
-    } catch (error) {
-        throw new Error(`Error submitting exam. Please contact talentsearch@argus.ai on PRIORITY with your registered email`);
-    }
+export const runExamSubmissionTransaction = async (
+  _student_uid: string,
+  _submission_id: string,
+  _form_id: string,
+  _submission_time: string
+): Promise<void> => {
+  console.warn('runExamSubmissionTransaction is deprecated. Use completeExam from assessmentCollection.ts.');
 };
 
-export const runPhase2ExamSubmissionTransaction = async (student_uid: string, submission_id: string, form_id: string, submission_time: string) => {
-    
-    try {
-        const authToken = await authTokenHandler.getAuthToken();
-        
-        const apiUrl = `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${EXAM_DETAILS_APIS}${PHASE_2_SUBMISSION_TRANSACTION}`;
-        
-        const config = {
-            method: 'post',
-            url: apiUrl,
-            headers: {
-                'Authorization': `Bearer ${authToken}`
-            },
-            data: {
-                student_uid,
-                submission_id,
-                form_id,
-                submission_time,
-            }
-        };
-        
-        const response = await axios.request(config);
-        
-        
-        return response.data;
-    } catch (error) {
-        
-        throw new Error(`Error submitting phase 2 exam. Please contact talentsearch@argus.ai on PRIORITY with your registered email`);
-    }
+export const runPhase2ExamSubmissionTransaction = async (
+  _student_uid: string,
+  _submission_id: string,
+  _form_id: string,
+  _submission_time: string
+): Promise<void> => {
+  console.warn('runPhase2ExamSubmissionTransaction is deprecated.');
 };

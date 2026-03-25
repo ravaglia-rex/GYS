@@ -37,7 +37,7 @@ const CommonHeader: React.FC = () => {
                         fontWeight: 600,
                         mb: 0.5
                     }}>
-                        Exam Dashboard
+                        Assessment Dashboard
                     </Typography>
                     <Typography variant="body2" sx={{ 
                         color: 'rgba(255, 255, 255, 0.7)',

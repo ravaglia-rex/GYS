@@ -34,39 +34,42 @@ export const RAZORPAY_ORDER_EXAM='/orderExam';
 export const SCHOOLS_APIS = '/schools';
 export const SCHOOL_ADMINS_APIS = '/schooladmins';
 export const STUDENTS_APIS = '/students';
-export const EXAM_DETAILS_APIS = '/examDetails';
-export const EXAM_RESPONSES_APIS = '/examResponses';
+export const ASSESSMENTS_APIS = '/assessments';
 export const RAZORPAY_APIS = '/razorpay';
+export const EMAIL_CHECK_APIS = '/emailCheck';
 
+// Schools
 export const CREATE_EXPEDITED_SCHOOL='/createExpeditedSchool';
 export const FETCH_SCHOOL_NAMES_AND_IDS='/fetchSchoolNamesAndIds';
 export const FETCH_SCHOOL_NAME='/getSchoolDetails';
+export const CHECK_SCHOOL_EMAIL = '/checkSchoolEmail';
+export const VERIFY_SCHOOL_EMAIL = '/verifySchoolEmail';
+export const VERIFY_SCHOOL_ADMIN_AND_SEND_PASSWORD_SETUP = '/verifySchoolAdminAndSendPasswordSetup';
+export const RESOLVE_REGISTRATION_SCHOOL = '/resolveRegistrationSchool';
 
+// Students
 export const SIGN_UP_TRANSACTION='/runSignUpTransaction';
-export const FETCH_PAYMENTS='/getPayments';
-export const FETCH_EXAM_IDS='/getExamIds';
-export const GET_CURRENT_EXAM_RESULT='/getCurrentExamResult';
-
-export const FETCH_EXAM_DETAILS='/getExamDetails';
-export const EXAM_SUBMISSION_TRANSACTION='/submitExam';
-export const PHASE_2_SUBMISSION_TRANSACTION='/submitPhase2Exam';
-
 export const FETCH_STUDENT_DATA='/getStudentDetails';
 export const UPDATE_STUDENT_DATA='/updateStudentDetails';
+export const FETCH_PAYMENTS='/getPayments';
+export const FETCH_PAYEE_DETAILS='/getPayeeDetails';
 
+// School admins
 export const FETCH_SCHOOL_ADMIN_DATA='/getSchoolAdminDetails';
-export const FETCH_SCHOOL_QUALIFICATION_BY_SCHOOL='/getQualificationBySchool';
+export const FETCH_SCHOOL_DASHBOARD='/getSchoolDashboard';
 
-export const FETCH_RESULT_TOTALS='/getResultTotals';
-export const FETCH_PHASE_2_RESULT_TOTALS='/getPhase2Results';
+// Assessments
+export const GET_ASSESSMENT_CONFIG='/getAssessmentConfig';
+export const GET_STUDENT_ASSESSMENTS='/getStudentAssessments';
+export const INITIALIZE_EXAM='/initializeExam';
+export const RECORD_ANSWER='/recordAnswer';
+export const COMPLETE_EXAM='/completeExam';
 
+// Razorpay
 export const CREATE_RAZORPAY_CUSTOMER='/createCustomer';
 export const CREATE_RAZORPAY_ORDER='/createOrder';
-export const GET_RAZORPAY_PAYEES='/getPayeeDetails';
 export const MARK_PAYMENT_PENDING='/markPaymentPending';
 export const DEV_MODE_PAYMENT='/devModePayment';
 
-export const CHECK_SCHOOL_EMAIL = '/checkSchoolEmail';
-export const CREATE_SCHOOL_ADMIN = '/createSchoolAdmin';
-export const VERIFY_SCHOOL_EMAIL = '/verifySchoolEmail';
-export const VERIFY_SCHOOL_ADMIN_AND_SEND_PASSWORD_SETUP = '/verifySchoolAdminAndSendPasswordSetup';
+// Email check
+export const CHECK_EMAIL_EXISTS='/checkEmailExists';

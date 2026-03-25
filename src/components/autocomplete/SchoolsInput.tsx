@@ -26,6 +26,8 @@ interface SchoolsInputProps {
   onSelect: (schoolId: string, schoolName?: string) => void;
   className?: string;
   loading: boolean;
+  /** When set, school is fixed (e.g. email matched a school allowlist). */
+  lockedSelection?: { id: string; name: string } | null;
 }
 
 const SchoolsInput: React.FC<SchoolsInputProps> = ({
@@ -33,10 +35,20 @@ const SchoolsInput: React.FC<SchoolsInputProps> = ({
   onSelect,
   className,
   loading,
+  lockedSelection,
 }) => {
   const [open, setOpen] = React.useState(false);
   const [inputValue, setInputValue] = React.useState("");
   const [selectedValue, setSelectedValue] = React.useState("");
+
+  const isLocked = Boolean(lockedSelection?.id);
+
+  React.useEffect(() => {
+    if (lockedSelection?.name) {
+      setSelectedValue(lockedSelection.name);
+      setInputValue(lockedSelection.name);
+    }
+  }, [lockedSelection?.id, lockedSelection?.name]);
 
   const fuse = React.useMemo(() => {
     return new Fuse(schools, {
@@ -65,18 +77,21 @@ const SchoolsInput: React.FC<SchoolsInputProps> = ({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={isLocked ? false : open} onOpenChange={isLocked ? undefined : setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          disabled={isLocked}
           className={cn("w-[200px] justify-between", className)}
         >
           <span className="truncate max-w-full">
             {selectedValue || "Select school..."}
           </span>
-          <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          {!isLocked && (
+            <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          )}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[200px] p-0">

@@ -259,7 +259,7 @@ const LandingPage: React.FC = () => {
               </div>
               <h4 className="font-bold text-lg text-gray-900 mt-4">Take Assessments</h4>
               <p className="text-gray-600 mt-2 text-sm leading-relaxed">
-                World-class reasoning, personality, and English fluency exams - online,
+                World-class reasoning, personality, and English fluency assessments - online,
                 proctored, on your schedule.
               </p>
             </div>

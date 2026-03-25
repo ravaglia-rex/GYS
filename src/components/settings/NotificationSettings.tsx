@@ -31,7 +31,7 @@ const NotificationSettings: React.FC = () => {
   const [showSuccess, setShowSuccess] = useState(false);
 
   const [notifications, setNotifications] = useState({
-    // Exam Related
+    // Assessment-related toggles (keys kept for backward compatibility)
     examReminders: true,
     examResults: true,
     examSchedule: true,
@@ -87,15 +87,15 @@ const NotificationSettings: React.FC = () => {
 
   const notificationCategories = [
     {
-      title: 'Exam Notifications',
-      description: 'Stay updated with your exam schedule and results',
+      title: 'Assessment Notifications',
+      description: 'Stay updated with your assessment schedule and results',
       icon: <BookOpen size={24} />,
       color: '#8b5cf6',
       items: [
-        { key: 'examReminders', label: 'Exam Reminders', description: 'Get notified before exams' },
+        { key: 'examReminders', label: 'Assessment Reminders', description: 'Get notified before assessments' },
         { key: 'examResults', label: 'Results Available', description: 'When your results are ready' },
-        { key: 'examSchedule', label: 'Schedule Changes', description: 'Updates to exam timing' },
-        { key: 'examUpdates', label: 'Exam Updates', description: 'Important exam announcements' }
+        { key: 'examSchedule', label: 'Schedule Changes', description: 'Updates to assessment timing' },
+        { key: 'examUpdates', label: 'Assessment Updates', description: 'Important assessment announcements' }
       ]
     },
     {
@@ -281,7 +281,7 @@ const NotificationSettings: React.FC = () => {
       {/* Additional Info */}
       <Box sx={{ mt: 4, p: 3, borderRadius: 2, backgroundColor: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(139, 92, 246, 0.3)' }}>
         <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)', textAlign: 'center' }}>
-          💡 <strong>Pro Tip:</strong> You can always change these settings later. Critical notifications like security alerts and exam results will still be sent even if disabled.
+          💡 <strong>Pro Tip:</strong> You can always change these settings later. Critical notifications like security alerts and assessment results will still be sent even if disabled.
         </Typography>
       </Box>
     </Box>

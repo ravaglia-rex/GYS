@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Card, CardContent, Typography, Avatar, Badge } from '@mui/material';
+import { Box, Card, CardContent, Typography, Avatar, Badge, Chip } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { 
   TrendingUp, 
@@ -15,6 +15,7 @@ import { getStudent } from '../../db/studentCollection';
 import { getSchoolDetails } from '../../db/schoolCollection';
 import { getPayments } from '../../db/studentPaymentMappings';
 import { getPhase2ExamResponse } from '../../db/phase2ExamResponsesCollection';
+import { normalizeMembershipLevel } from '../../utils/assessmentGating';
 
 const ColumnChart: React.FC<{ data: { subject: string; score: number }[]; isPhase2?: boolean }> = ({ data, isPhase2 }) => {
   // Load student grade to pick Phase 1 caps
@@ -40,7 +41,7 @@ const ColumnChart: React.FC<{ data: { subject: string; score: number }[]; isPhas
     return (
       <Box sx={{ textAlign: 'center', py: 4 }}>
         <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-          No exam results available yet
+          No assessment results available yet
         </Typography>
       </Box>
     );
@@ -60,7 +61,7 @@ const ColumnChart: React.FC<{ data: { subject: string; score: number }[]; isPhas
   return (
     <Box sx={{ p: 2 }}>
       <Typography variant="h6" sx={{ color: 'white', mb: 3, textAlign: 'center' }}>
-        Latest Exam Results (%)
+        Latest Assessment Results (%)
       </Typography>
       <Box sx={{ 
         display: 'flex', 
@@ -207,15 +208,17 @@ const ColumnChart: React.FC<{ data: { subject: string; score: number }[]; isPhas
 
 interface DashboardOverviewProps {
   stats: {
-    totalExams: number;
-    completedExams: number;
+    totalAssessments: number;
+    completedAssessments: number;
     averageScore: number;
-    availableExams: number;
+    availableAssessments: number;
   };
-  latestExamResults?: {
+  latestAssessmentResults?: {
     subject: string;
     score: number;
   }[];
+  /** When true, show default Entry tier chip (Tier 1) for new students */
+  defaultEntryTier?: boolean;
 }
 
 const StatCard: React.FC<{
@@ -288,19 +291,19 @@ const StatCard: React.FC<{
 
 // Function to generate dynamic notifications based on the rules
 const generateDynamicNotifications = (
-  availableExamsCount: number,
+  availableAssessmentsCount: number,
   resultsAvailableCount: number
 ) => {
   const notifications = [];
   const now = new Date();
 
-  // Rule 1: If number of exams available is not 0, show "New Exam Available"
-  if (availableExamsCount > 0) {
+  // Rule 1: If number of assessments available is not 0, show "New Assessment Available"
+  if (availableAssessmentsCount > 0) {
     notifications.push({
-      id: 'new-exam-available',
+      id: 'new-assessment-available',
       type: 'info',
-      title: 'New Exam Available',
-      message: `You have ${availableExamsCount} new exam${availableExamsCount > 1 ? 's' : ''} available to take. Check the exams section to get started.`,
+      title: 'New Assessment Available',
+      message: `You have ${availableAssessmentsCount} new assessment${availableAssessmentsCount > 1 ? 's' : ''} available to take. Check the assessments section to get started.`,
       timestamp: new Date(now.getTime() - 30 * 60 * 1000), // 30 minutes ago
       color: '#8b5cf6'
     });
@@ -308,34 +311,31 @@ const generateDynamicNotifications = (
 
   // Rule 2: If number of results available is 2, show 2 different notifications
   if (resultsAvailableCount === 2) {
-    // First notification: Challenge exam evaluated and result available
     notifications.push({
-      id: 'challenge-exam-result',
+      id: 'challenge-assessment-result',
       type: 'success',
-      title: 'Challenge Exam Evaluated',
-      message: 'Your challenge exam has been evaluated and results are now available. Check your performance analysis.',
+      title: 'Challenge Assessment Evaluated',
+      message: 'Your challenge assessment has been evaluated and results are now available. Check your performance analysis.',
       timestamp: new Date(now.getTime() - 2 * 60 * 60 * 1000), // 2 hours ago
       color: '#10b981'
     });
 
-    // Second notification: Check your exam analysis now
     notifications.push({
-      id: 'exam-analysis-ready',
+      id: 'assessment-analysis-ready',
       type: 'info',
       title: 'Analysis Complete',
-      message: 'Your detailed exam analysis is ready for review. Discover your strengths and areas for improvement.',
+      message: 'Your detailed assessment analysis is ready for review. Discover your strengths and areas for improvement.',
       timestamp: new Date(now.getTime() - 1 * 60 * 60 * 1000), // 1 hour ago
       color: '#3b82f6'
     });
   }
 
-  // Rule 3: If number of results available is 1, show qualifying exam result notification
   if (resultsAvailableCount === 1) {
     notifications.push({
-      id: 'qualifying-exam-result',
+      id: 'qualifying-assessment-result',
       type: 'success',
-      title: 'Qualifying Exam Result Available',
-      message: 'Your qualifying exam has been evaluated and results are now available. View your performance and next steps.',
+      title: 'Qualifying Assessment Result Available',
+      message: 'Your qualifying assessment has been evaluated and results are now available. View your performance and next steps.',
       timestamp: new Date(now.getTime() - 3 * 60 * 60 * 1000), // 3 hours ago
       color: '#10b981'
     });
@@ -344,7 +344,11 @@ const generateDynamicNotifications = (
   return notifications;
 };
 
-const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExamResults = [] }) => {
+const DashboardOverview: React.FC<DashboardOverviewProps> = ({
+  stats,
+  latestAssessmentResults = [],
+  defaultEntryTier = true,
+}) => {
   const navigate = useNavigate();
   const [, setIsNavigating] = useState(false);
   const [userName, setUserName] = useState<string>('Student');
@@ -358,7 +362,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExam
   const [isLoadingPhase2, setIsLoadingPhase2] = useState<boolean>(true);
 
   // Generate notifications based on stats
-  const notifications = generateDynamicNotifications(stats.availableExams, stats.completedExams);
+  const notifications = generateDynamicNotifications(stats.availableAssessments, stats.completedAssessments);
 
   useEffect(() => {
     const fetchUserName = async () => {
@@ -384,7 +388,15 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExam
             LEVEL_2: 'Level 2 — Engage',
             LEVEL_3: 'Level 3 — Excel',
           };
-          const levelFromStudent = userData?.membership_level ?? userData?.plan_level ?? null;
+          const rawLevel = userData?.membership_level ?? userData?.plan_level ?? null;
+          const levelFromStudent: string | number | null =
+            typeof rawLevel === 'number' ? normalizeMembershipLevel(rawLevel) : rawLevel;
+          const levelNum =
+            typeof levelFromStudent === 'number'
+              ? levelFromStudent
+              : typeof levelFromStudent === 'string' && /^LEVEL_[123]$/.test(levelFromStudent)
+                ? Number(levelFromStudent.replace('LEVEL_', ''))
+                : null;
 
           const resolveExpiry = (baseDate: Date) => {
             baseDate.setFullYear(baseDate.getFullYear() + 1);
@@ -406,8 +418,12 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExam
             if (sorted.length > 0) {
               const latest = sorted[0];
               // Determine level: student doc field > amount heuristic
-              if (levelFromStudent) {
-                setMembershipLevel(levelMap[levelFromStudent] ?? levelFromStudent);
+              if (levelFromStudent != null && levelFromStudent !== '') {
+                if (typeof levelFromStudent === 'number' && levelFromStudent >= 1 && levelFromStudent <= 3) {
+                  setMembershipLevel(levelMap[`LEVEL_${levelFromStudent}` as 'LEVEL_1'] ?? `Level ${levelFromStudent}`);
+                } else {
+                  setMembershipLevel(levelMap[levelFromStudent as keyof typeof levelMap] ?? String(levelFromStudent));
+                }
               } else if (latest.amount < 2000) {
                 setMembershipLevel('Level 1 — Explore');
               } else if (latest.amount < 7000) {
@@ -420,12 +436,32 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExam
                 !isNaN(baseDate.getTime()) ? resolveExpiry(baseDate) : creationExpiry()
               );
             } else {
-              // No payments — use student doc level or default, expiry from account creation
-              setMembershipLevel(levelFromStudent ? (levelMap[levelFromStudent] ?? levelFromStudent) : 'Level 2 — Engage');
+              // No payments — default new students to Level 1; respect explicit level on student doc
+              if (levelFromStudent != null && levelFromStudent !== '') {
+                if (typeof levelFromStudent === 'number' && levelFromStudent >= 1 && levelFromStudent <= 3) {
+                  setMembershipLevel(levelMap[`LEVEL_${levelFromStudent}` as 'LEVEL_1'] ?? `Level ${levelFromStudent}`);
+                } else {
+                  setMembershipLevel(levelMap[levelFromStudent as keyof typeof levelMap] ?? String(levelFromStudent));
+                }
+              } else if (levelNum != null && levelNum >= 1 && levelNum <= 3) {
+                setMembershipLevel(levelMap[`LEVEL_${levelNum}` as 'LEVEL_1']);
+              } else {
+                setMembershipLevel('Level 1 — Explore');
+              }
               setMembershipExpiry(creationExpiry());
             }
           } catch {
-            setMembershipLevel(levelFromStudent ? (levelMap[levelFromStudent] ?? levelFromStudent) : 'Level 2 — Engage');
+            if (levelFromStudent != null && levelFromStudent !== '') {
+              if (typeof levelFromStudent === 'number' && levelFromStudent >= 1 && levelFromStudent <= 3) {
+                setMembershipLevel(levelMap[`LEVEL_${levelFromStudent}` as 'LEVEL_1'] ?? `Level ${levelFromStudent}`);
+              } else {
+                setMembershipLevel(levelMap[levelFromStudent as keyof typeof levelMap] ?? String(levelFromStudent));
+              }
+            } else if (levelNum != null && levelNum >= 1 && levelNum <= 3) {
+              setMembershipLevel(levelMap[`LEVEL_${levelNum}` as 'LEVEL_1']);
+            } else {
+              setMembershipLevel('Level 1 — Explore');
+            }
             setMembershipExpiry(creationExpiry());
           }
         } catch (error) {
@@ -441,7 +477,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExam
     fetchUserName();
   }, []);
 
-  // Check for phase 2 exam responses
+  // Check for phase 2 assessment responses
   useEffect(() => {
     const checkPhase2Results = async () => {
       if (!auth.currentUser?.uid) {
@@ -508,8 +544,8 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExam
       return { data: phase2Results, isLoading: false, isPhase2: true };
     }
     
-    if (latestExamResults.length > 0) {
-      return { data: latestExamResults, isLoading: false, isPhase2: false };
+    if (latestAssessmentResults.length > 0) {
+      return { data: latestAssessmentResults, isLoading: false, isPhase2: false };
     }
     
     return { data: [], isLoading: false };
@@ -536,7 +572,20 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExam
 
         {/* Student info row */}
         {!loading && (studentGrade || schoolName || membershipLevel || membershipExpiry) && (
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1.5, mt: 0.5 }}>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1.5, mt: 0.5, alignItems: 'center' }}>
+            {defaultEntryTier && stats.completedAssessments === 0 && (
+              <Chip
+                label="Tier 1 — Entry"
+                size="small"
+                sx={{
+                  bgcolor: 'rgba(251, 191, 36, 0.12)',
+                  border: '1px solid rgba(251, 191, 36, 0.35)',
+                  color: '#fbbf24',
+                  fontWeight: 600,
+                  fontSize: '0.78rem',
+                }}
+              />
+            )}
             {(studentGrade || schoolName) && (
               <Box sx={{
                 display: 'inline-flex',
@@ -577,7 +626,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExam
         )}
 
         <Typography variant="h6" sx={{ color: 'rgba(255, 255, 255, 0.9)', fontWeight: 400, fontSize: '1.2rem' }}>
-          Track your progress, manage exams, and achieve your goals
+          Track your progress, manage assessments, and achieve your goals
         </Typography>
       </Box>
 
@@ -589,25 +638,25 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExam
         mb: 4 
       }}>
         <StatCard
-          title="Total Exams"
-          value={stats.totalExams}
+          title="Total Assessments"
+          value={stats.totalAssessments}
           icon={<School size={24} />}
           color="#3b82f6"
         />
         
         <StatCard
           title="Results Available"
-          value={stats.completedExams}
+          value={stats.completedAssessments}
           icon={<CheckCircle size={24} />}
           color="#10b981"
-          onClick={() => handleNavigation('/exams/completed')}
+          onClick={() => handleNavigation('/assessments/completed')}
         />
          <StatCard
-          title="Exams Available"
-          value={stats.availableExams}
+          title="Assessments Available"
+          value={stats.availableAssessments}
           icon={<Clock size={24} />}
           color="#8b5cf6"
-          onClick={() => handleNavigation('/exams/available')}
+          onClick={() => handleNavigation('/assessments/available')}
         />
         
         <StatCard
@@ -649,15 +698,15 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExam
                 <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '1rem' }}>
                   {displayResults.data.length > 0 
                     ? (displayResults.isPhase2 
-                        ? 'Your Phase 2 exam performance across different subjects'
-                        : 'Your latest exam performance across different subjects')
-                    : 'Performance data will appear here once your exams are evaluated'
+                        ? 'Your Phase 2 assessment performance across different subjects'
+                        : 'Your latest assessment performance across different subjects')
+                    : 'Performance data will appear here once your assessments are evaluated'
                   }
                 </Typography>
               </Box>
             </Box>
 
-            {/* Content based on whether there are exam results */}
+            {/* Content based on whether there are assessment results */}
             {displayResults.isLoading ? (
               // Show loading state
               <Box sx={{ 
@@ -685,7 +734,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExam
                   Loading Results...
                 </Typography>
                 <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', maxWidth: 400 }}>
-                  Checking for your latest exam results and performance data.
+                  Checking for your latest assessment results and performance data.
                 </Typography>
               </Box>
             ) : displayResults.data.length > 0 ? (
@@ -719,7 +768,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({ stats, latestExam
                   No Results Available Yet
                 </Typography>
                 <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', maxWidth: 400 }}>
-                  Complete your first exam or wait for your completed exams to be evaluated to see your performance breakdown and track your progress across different subjects.
+                  Complete your first assessment or wait for your completed assessments to be evaluated to see your performance breakdown and track your progress across different subjects.
                 </Typography>
               </Box>
             )}

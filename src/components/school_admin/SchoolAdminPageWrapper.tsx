@@ -1,5 +1,6 @@
 import React from 'react';
 import SchoolAdminLayout from '../../layouts/SchoolAdminLayout';
+import { SchoolAdminBelowNavProvider } from '../../layouts/schoolAdminBelowNavContext';
 
 interface SchoolAdminPageWrapperProps {
   children: React.ReactNode;
@@ -7,9 +8,9 @@ interface SchoolAdminPageWrapperProps {
 
 const SchoolAdminPageWrapper: React.FC<SchoolAdminPageWrapperProps> = ({ children }) => {
   return (
-    <SchoolAdminLayout>
-      {children}
-    </SchoolAdminLayout>
+    <SchoolAdminBelowNavProvider>
+      <SchoolAdminLayout>{children}</SchoolAdminLayout>
+    </SchoolAdminBelowNavProvider>
   );
 };
 

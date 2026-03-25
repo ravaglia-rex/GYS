@@ -70,9 +70,9 @@ const PLANS = [
     price: '₹2,00,000',
     priceNum: 200000,
     period: '/yr',
-    tagline: 'Core benchmarking for one exam',
+    tagline: 'Core benchmarking for one assessment',
     features: [
-      'Exam 1 (Symbolic Reasoning)',
+      'Assessment 1 (Symbolic Reasoning)',
       'Headline performance report',
       'Tier distribution analysis',
       'Path to next tier',
@@ -87,7 +87,7 @@ const PLANS = [
     period: '/yr',
     tagline: 'Full reasoning triad with deep analytics',
     features: [
-      'Exams 1–3 (reasoning triad)',
+      'Assessments 1–3 (reasoning triad)',
       'Full analytics & subscore breakdowns',
       'Grade-level analysis',
       'Comparative benchmarks (national, regional)',

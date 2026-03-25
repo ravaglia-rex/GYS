@@ -1,231 +1,192 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Typography } from '@mui/material';
 import DashboardLayout from '../../layouts/DashboardLayout';
-import DashboardOverview from '../../components/dashboard/DashboardOverview';
 import { auth } from '../../firebase/firebase';
-import { useSelector, useDispatch } from 'react-redux';
-import { RootState } from '../../state_data/reducer';
-import { setExamDetails } from '../../state_data/examDetailsSlice';
-import { setPayments } from '../../state_data/studentPaymentsSlice';
-import { getExamIds } from '../../db/studentExamMappings';
-import { getExamDetails } from '../../db/examDetailsCollection';
-import { getPayments } from '../../db/studentPaymentMappings';
-import { setPayments as setPaymentsAction } from '../../state_data/studentPaymentsSlice';
+import { getStudent } from '../../db/studentCollection';
+import { getAssessmentConfig } from '../../db/assessmentCollection';
 import * as Sentry from '@sentry/react';
+import DashboardOverview from '../../components/dashboard/DashboardOverview';
+import { EnhancedAssessmentCardsGroup } from '../../components/dashboard/EnhancedAssessmentCardsGroup';
+import {
+  ASSESSMENT_ORDER,
+  MEMBERSHIP_ALLOWED,
+  computeGate,
+  normalizeMembershipLevel,
+  defaultAssessmentProgress,
+  isAssessmentFullyComplete,
+} from '../../utils/assessmentGating';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface AssessmentProgress {
+  proficiency_tier: number;
+  status: 'locked' | 'available' | 'tier_advanced';
+  best_score: number | null;
+  attempts_count: number;
+}
+
+interface DashboardStats {
+  totalAssessments: number;
+  tiersCompleted: number;
+  averageScore: number;
+  availableAssessments: number;
+}
+
+// Assessments 1–7 (canonical program count)
+const TOTAL_ASSESSMENT_TYPES = 7;
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 const Dashboard: React.FC = () => {
-  const uid = auth.currentUser?.uid || '';
-  const dispatch = useDispatch();
-  const examDetailsState = useSelector((state: RootState) => state.examDetails.examDetails);
-  const examDetailsLoaded = useSelector((state: RootState) => state.examDetails.examDetailsLoaded);
-  const [previousUid, setPreviousUid] = useState<string>('');
+  const uid = auth.currentUser?.uid ?? '';
   const [loading, setLoading] = useState(false);
-  const [latestExamResults, setLatestExamResults] = useState<{ subject: string; score: number }[]>([]);
+  const [stats, setStats] = useState<DashboardStats>({
+    totalAssessments: TOTAL_ASSESSMENT_TYPES,
+    tiersCompleted: 0,
+    averageScore: 0,
+    availableAssessments: 0,
+  });
+  const [scoresByAssessment, setScoresByAssessment] = useState<{ subject: string; score: number }[]>([]);
+  const [assessmentScopeLine, setAssessmentScopeLine] = useState<string>('');
 
-  // Load exam data for dashboard stats
-  const loadExamData = async () => {
-    if (!uid || loading) return;
-    
-    try {
-      setLoading(true);
-      
-      // Load exam IDs and details
-      const { formLinks, completed, eligibility_at, result } = await getExamIds(uid);
-      
-      if (formLinks && formLinks.length > 0) {
-        const details = await getExamDetails(formLinks);
-        
-        const validDetails = details
-          .filter((detail: any): detail is any => detail !== null && typeof detail === 'object')
-          .map((detail: any, index) => ({
-            formId: formLinks[index],
-            additionalInstructions: detail.additional_instructions,
-            examDetails: detail.exam_details,
-            duration: detail.duration,
-            cardTitle: detail.card_title,
-            cardDescription: detail.card_description,
-            paymentNeeded: detail.payment_needed,
-            completed: completed[index],
-            cost: detail.cost,
-            currency: detail.currency,
-            isProctored: detail.is_proctored,
-            eligibility_at: eligibility_at[index],
-            result: result[index],
-            type_questions: detail.type_questions ? JSON.parse(detail.type_questions) : {},
-          }));
-
-        dispatch(setExamDetails({ examDetails: validDetails, examDetailsLoaded: true }));
-        
-        // Fetch latest exam results for spider chart
-        await loadLatestExamResults(validDetails);
-      } else {
-        dispatch(setExamDetails({ examDetails: [], examDetailsLoaded: true }));
-        setLatestExamResults([]);
-      }
-
-      // Load payments
-      const paymentsData = await getPayments(uid);
-      
-      // Transform payment data to match the expected interface
-      const transformedPayments = (paymentsData || []).map((payment: any) => ({
-        paidOn: new Date(payment.paid_on),
-        paymentMethod: payment.payment_method,
-        paymentStatus: payment.payment_status,
-        transactionId: payment.transaction_id,
-        uid: payment.uid,
-        formId: payment.form_id,
-        amount: payment.amount,
-      }));
-      
-      dispatch(setPaymentsAction(transformedPayments));
-      
-    } catch (error) {
-      Sentry.withScope((scope) => {
-        scope.setTag('location', 'Dashboard.loadExamData');
-        scope.setExtra('uid', uid);
-        scope.captureException(error);
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Load latest exam results for spider chart
-  const loadLatestExamResults = async (examDetails: any[]) => {
-    try {
-      // Find the most recent completed exam with available results (not under evaluation)
-      const completedExamsWithResults = examDetails.filter(exam => 
-        exam.completed && exam.result !== null && exam.result !== undefined
-      );
-      
-      if (completedExamsWithResults.length === 0) {
-        setLatestExamResults([]);
-        return;
-      }
-
-      // Get the first completed exam with results (assuming they're already sorted by completion date)
-      const latestExam = completedExamsWithResults[0];
-      
-      // Import the function to fetch result totals
-      const { fetchResultTotals } = await import('../../db/examResponsesCollection');
-      
-      // Fetch the actual result totals for this exam
-      const resultTotals = await fetchResultTotals(uid, latestExam.formId);
-      
-      if (resultTotals && resultTotals.typeTotals) {
-        // Convert typeTotals to simple score data for bar chart
-        const chartData = Object.entries(resultTotals.typeTotals).map(([subject, score]) => ({
-          subject: subject.charAt(0).toUpperCase() + subject.slice(1), // Capitalize first letter
-          score: score as number
-        }));
-        setLatestExamResults(chartData);
-      } else {
-        setLatestExamResults([]);
-      }
-    } catch (error) {
-      setLatestExamResults([]);
-    }
-  };
-
-  // Load data when component mounts or uid changes
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (uid) {
-      loadExamData();
-    }
+    if (!uid) return;
+
+    const load = async () => {
+      try {
+        setLoading(true);
+        const [student, configFromBackend] = await Promise.all([getStudent(uid), getAssessmentConfig()]);
+        const progress: Record<string, AssessmentProgress> = student?.assessment_progress ?? {};
+        const membershipLevel = normalizeMembershipLevel(student?.membership_level);
+
+        const sorted = [...configFromBackend].sort((a, b) => {
+          const ia = ASSESSMENT_ORDER.indexOf(a.id as (typeof ASSESSMENT_ORDER)[number]);
+          const ib = ASSESSMENT_ORDER.indexOf(b.id as (typeof ASSESSMENT_ORDER)[number]);
+          return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+        });
+
+        const inScopeIds = MEMBERSHIP_ALLOWED[membershipLevel] ?? [];
+        let availableAssessments = 0;
+        let tiersCompleted = 0;
+        let scopeCompleted = 0;
+
+        for (const a of sorted) {
+          const p = progress[a.id] ?? defaultAssessmentProgress;
+          const gate = computeGate(a.id, membershipLevel, progress);
+          const done =
+            p.status === 'tier_advanced' || isAssessmentFullyComplete(a, p);
+          if (done) tiersCompleted++;
+          if (inScopeIds.includes(a.id) && done) scopeCompleted++;
+          if (!gate.locked && !isAssessmentFullyComplete(a, p)) availableAssessments++;
+        }
+
+        const scopeTotal = inScopeIds.length;
+        setAssessmentScopeLine(
+          `${scopeCompleted} of ${scopeTotal} complete (Level ${membershipLevel})`
+        );
+
+        // Average score across all assessments that have a best score
+        const scoresWithValues = Object.values(progress).filter((p) => p.best_score !== null);
+        const avgScore =
+          scoresWithValues.length > 0
+            ? Math.round(
+                scoresWithValues.reduce((sum, p) => sum + (p.best_score ?? 0), 0) /
+                  scoresWithValues.length *
+                  100
+              )
+            : 0;
+
+        setStats({
+          totalAssessments: sorted.length || TOTAL_ASSESSMENT_TYPES,
+          tiersCompleted,
+          averageScore: avgScore,
+          availableAssessments,
+        });
+
+        // Chart data: one bar per assessment that has been attempted
+        const DISPLAY_NAMES: Record<string, string> = {
+          symbolic_reasoning: 'Symbolic',
+          verbal_reasoning: 'Verbal',
+          mathematical_reasoning: 'Math',
+          personality_assessment: 'Personality',
+          english_proficiency: 'English',
+          ai_literacy: 'AI Literacy',
+          comprehensive_personality: 'Comp. Personality',
+        };
+        const chartData = Object.entries(progress)
+          .filter(([, p]) => p.best_score !== null && p.attempts_count > 0)
+          .map(([id, p]) => ({
+            subject: DISPLAY_NAMES[id] ?? id,
+            score: Math.round((p.best_score ?? 0) * 100),
+          }));
+        setScoresByAssessment(chartData);
+      } catch (err) {
+        Sentry.withScope((scope) => {
+          scope.setTag('location', 'DashboardPage.load');
+          scope.setExtra('uid', uid);
+          scope.captureException(err);
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
   }, [uid]);
 
-  // Clear Redux state only when uid actually changes (user switches accounts)
-  useEffect(() => {
-    
-    // Only clear state if this is a different user (uid actually changed)
-    if (uid && uid !== previousUid) {
-      dispatch(setExamDetails({ examDetails: [], examDetailsLoaded: false }));
-      dispatch(setPayments([]));
-      setPreviousUid(uid);
-    } else if (uid && uid === previousUid) {
-    }
-  }, [uid, dispatch, previousUid]);
-
-  // Log Redux state changes for debugging (separate useEffect to avoid infinite loops)
-  useEffect(() => {
-  }, [examDetailsState, examDetailsLoaded]);
-
-  // Calculate real stats from exam data
-  const calculateStats = () => {
-    
-    if (!examDetailsState || examDetailsState.length === 0) {
-      return {
-        totalExams: 0,
-        completedExams: 0,
-        averageScore: 0,
-        availableExams: 0
-      };
-    }
-
-    const totalExams = examDetailsState.length;
-    const completedExams = examDetailsState.filter(exam => exam.completed).length;
-    
-    // Available exams are those that are not completed and are eligible
-    const availableExams = examDetailsState.filter(exam => 
-      !exam.completed && 
-      (!exam.eligibility_at || new Date() >= new Date(exam.eligibility_at))
-    ).length;
-    
-    // Calculate average score from completed exams
-    const completedExamsWithScores = examDetailsState.filter(
-      exam => exam.completed && typeof exam.result === 'number' && !isNaN(exam.result)
-    );
-    const totalScore = completedExamsWithScores.reduce(
-      (sum, exam) => sum + (typeof exam.result === 'number' ? exam.result : 0),
-      0
-    );
-    const averageScore =
-      completedExamsWithScores.length > 0
-        ? Math.round(totalScore / completedExamsWithScores.length)
-        : 0;
-
-    const stats = {
-      totalExams,
-      completedExams,
-      availableExams, // Changed from upcomingExams to availableExams
-      averageScore
-    };
-    
-    return stats;
-  };
-
-  const stats = calculateStats();
-
   return (
-    <DashboardLayout 
-      availableExamsCount={stats.availableExams}
-      resultsAvailableCount={stats.completedExams}
-    >
-      <Box sx={{ p: 0 }}>
-        {loading ? (
-          <Box sx={{ 
-            textAlign: 'center', 
-            py: 8,
-            background: 'rgba(30, 41, 59, 0.5)',
-            borderRadius: 3,
-            border: '1px solid rgba(255, 255, 255, 0.1)'
-          }}>
-            <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
-              Loading Dashboard Data...
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-              Fetching your exam information and statistics
-            </Typography>
-          </Box>
-        ) : (
-          <DashboardOverview
-            stats={stats}
-            latestExamResults={latestExamResults}
-          />
-        )}
-      </Box>
-    </DashboardLayout>
+    <Sentry.ErrorBoundary beforeCapture={(s) => s.setTag('location', 'DashboardPage')}>
+      <DashboardLayout
+        availableAssessmentsCount={stats.availableAssessments}
+        resultsAvailableCount={stats.tiersCompleted}
+      >
+        <Box sx={{ p: 0 }}>
+          {loading ? (
+            <Box sx={{
+              textAlign: 'center', py: 8,
+              background: 'rgba(30, 41, 59, 0.5)',
+              borderRadius: 3,
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+            }}>
+              <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
+                Loading Dashboard…
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                Fetching your assessment progress
+              </Typography>
+            </Box>
+          ) : (
+            <>
+              <DashboardOverview
+                stats={{
+                  totalAssessments: stats.totalAssessments,
+                  completedAssessments: stats.tiersCompleted,
+                  averageScore: stats.averageScore,
+                  availableAssessments: stats.availableAssessments,
+                }}
+                latestAssessmentResults={scoresByAssessment}
+              />
+              <Box sx={{ mt: 4, ml: 1 }}>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', gap: 1, mb: 2 }}>
+                  <Typography variant="h5" sx={{ color: 'white', fontWeight: 700 }}>
+                    Your Assessments
+                  </Typography>
+                  {assessmentScopeLine && (
+                    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+                      {assessmentScopeLine}
+                    </Typography>
+                  )}
+                </Box>
+                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.65)', mb: 2, maxWidth: 720 }}>
+                  All assessments are listed below. Complete them in sequence where your membership allows — upgrade to unlock the full reasoning triad and Level 3 reports.
+                </Typography>
+                <EnhancedAssessmentCardsGroup uid={uid} filterType="all" />
+              </Box>
+            </>
+          )}
+        </Box>
+      </DashboardLayout>
+    </Sentry.ErrorBoundary>
   );
 };
 

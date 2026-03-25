@@ -107,7 +107,7 @@ const StartExamButton: React.FC<StartExamButtonProps> = ({ formId, paymentNeeded
         onClick={handleStartExam} 
         disabled={loading}
       >
-        {loading ? <Spinner className="mr-2 h-4 w-4" /> : <Check className="mr-2 h-4 w-4" />} Start Exam
+        {loading ? <Spinner className="mr-2 h-4 w-4" /> : <Check className="mr-2 h-4 w-4" />} Start Assessment
       </Button>
       
       <Dialog open={dialogOpen} onOpenChange={handleDialogStateChange}>
@@ -116,12 +116,12 @@ const StartExamButton: React.FC<StartExamButtonProps> = ({ formId, paymentNeeded
             <DialogTitle>Are you sure?</DialogTitle>
           </DialogHeader>
           <DialogDescription>
-            You have to complete this exam in one sitting.
+            You have to complete this assessment in one sitting.
               <ul className='mt-2 ml-4 list-disc'>
-                {isProctored && <li>This is a proctored exam. You need to enable camera and microphone access for the duration of the exam.</li>}
+                {isProctored && <li>This is a proctored assessment. You need to enable camera and microphone access for the duration of the assessment.</li>}
                 <li>Make sure you have a stable internet connection</li>
                 <li>Refrain from refreshing or pressing the back button</li>
-                {paymentNeeded && <li>There's a fee for the exam, and you will be billed prior to receiving the score report (If you've already paid there are no other payments to be made).</li>}
+                {paymentNeeded && <li>There's a fee for the assessment, and you will be billed prior to receiving the score report (If you've already paid there are no other payments to be made).</li>}
               </ul>
             <label className="flex items-center mt-2">
               <input
@@ -130,7 +130,7 @@ const StartExamButton: React.FC<StartExamButtonProps> = ({ formId, paymentNeeded
                 checked={paymentConfirmed}
                 onChange={() => setPaymentConfirmed(!paymentConfirmed)}
               />
-              <span className="ml-2">By checking this box, I agree to the terms and conditions for the exam</span>
+              <span className="ml-2">By checking this box, I agree to the terms and conditions for the assessment</span>
             </label>
           </DialogDescription>
           <DialogFooter>
@@ -145,7 +145,7 @@ const StartExamButton: React.FC<StartExamButtonProps> = ({ formId, paymentNeeded
               className={`bg-green-500 text-white hover:bg-green-600 ${!paymentConfirmed && 'opacity-50 cursor-not-allowed'}`}
               disabled={!paymentConfirmed}
             >
-              <Check className="mr-2 h-4 w-4" /> Yes, Start Exam
+              <Check className="mr-2 h-4 w-4" /> Yes, Start Assessment
             </Button>
           </DialogFooter>
           <DialogDescription>

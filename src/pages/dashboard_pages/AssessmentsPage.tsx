@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Box, Typography, Tabs, Tab, Paper, Avatar } from '@mui/material';
 import { BookOpen } from 'lucide-react';
 import DashboardLayout from '../../layouts/DashboardLayout';
-import EnhancedExamCardsGroup from '../../components/dashboard/EnhancedExamCardsGroup';
+import { EnhancedAssessmentCardsGroup } from '../../components/dashboard/EnhancedAssessmentCardsGroup';
 import { auth } from '../../firebase/firebase';
 import * as Sentry from '@sentry/react';
 
@@ -21,8 +21,8 @@ function TabPanel(props: TabPanelProps) {
     <div
       role="tabpanel"
       hidden={value !== index}
-      id={`exam-tabpanel-${index}`}
-      aria-labelledby={`exam-tab-${index}`}
+      id={`assessment-tabpanel-${index}`}
+      aria-labelledby={`assessment-tab-${index}`}
       {...other}
     >
       {value === index && (
@@ -36,12 +36,12 @@ function TabPanel(props: TabPanelProps) {
 
 function a11yProps(index: number) {
   return {
-    id: `exam-tab-${index}`,
-    'aria-controls': `exam-tabpanel-${index}`,
+    id: `assessment-tab-${index}`,
+    'aria-controls': `assessment-tabpanel-${index}`,
   };
 }
 
-const ExamsPage: React.FC = () => {
+const AssessmentsPage: React.FC = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const uid = auth.currentUser?.uid || '';
@@ -63,20 +63,20 @@ const ExamsPage: React.FC = () => {
 
     switch (newValue) {
       case 0:
-        navigate('/exams/available');
+        navigate('/assessments/available');
         break;
       case 1:
-        navigate('/exams/completed');
+        navigate('/assessments/completed');
         break;
       default:
-        navigate('/exams/available');
+        navigate('/assessments/available');
     }
   };
 
   return (
     <Sentry.ErrorBoundary
       beforeCapture={(scope) => {
-        scope.setTag('location', 'ExamsPage');
+        scope.setTag('location', 'AssessmentsPage');
       }}
     >
       <DashboardLayout>
@@ -101,10 +101,10 @@ const ExamsPage: React.FC = () => {
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent'
                 }}>
-                  Exams & Assessments
+                  Assessments
                 </Typography>
                 <Typography variant="h6" sx={{ color: 'rgba(255, 255, 255, 0.8)', fontWeight: 400 }}>
-                  Take exams, view results, and track your progress
+                  Take assessments, view results, and track your progress
                 </Typography>
               </Box>
             </Box>
@@ -120,7 +120,7 @@ const ExamsPage: React.FC = () => {
             <Tabs
               value={activeTab}
               onChange={handleTabChange}
-              aria-label="exam tabs"
+              aria-label="assessment tabs"
               sx={{
                 '& .MuiTab-root': {
                   color: 'rgba(255, 255, 255, 0.7)',
@@ -146,11 +146,11 @@ const ExamsPage: React.FC = () => {
               p: 3,
               border: '1px solid rgba(255, 255, 255, 0.1)'
             }}>
-              <EnhancedExamCardsGroup 
+              <EnhancedAssessmentCardsGroup 
                 uid={uid} 
                 filterType="available" 
                 showDashboardOverview={false}
-                description="These are the exams currently available for you to take. Make sure your device meets all requirements before starting."
+                description="These are the assessments currently available for you to take. Make sure your device meets all requirements before starting."
               />
             </Box>
           </TabPanel>
@@ -162,11 +162,11 @@ const ExamsPage: React.FC = () => {
               p: 3,
               border: '1px solid rgba(255, 255, 255, 0.1)'
             }}>
-              <EnhancedExamCardsGroup 
+              <EnhancedAssessmentCardsGroup 
                 uid={uid} 
                 filterType="completed" 
                 showDashboardOverview={false}
-                description="View your completed exams and their results. All exam outcomes and performance analytics are displayed here."
+                description="View your completed assessments and their results. All assessment outcomes and performance analytics are displayed here."
               />
             </Box>
           </TabPanel>
@@ -177,4 +177,4 @@ const ExamsPage: React.FC = () => {
   );
 };
 
-export default ExamsPage;
+export default AssessmentsPage;

@@ -118,7 +118,7 @@ const PaymentsTabs: React.FC<PaymentsTabsProps> = ({ uid, highlightPaymentsEntry
       } finally {
         const endTime = performance.now();
         const fetchTime = endTime - startTime;
-        segment.track('Fetch Exam Details Data Time', {
+        segment.track('Fetch Assessment Details Data Time', {
           fetchTime: fetchTime,
           email: auth.currentUser?.email,
           url: window.location.href

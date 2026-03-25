@@ -9,6 +9,7 @@ import {
   CheckCircle as ReadIcon,
   Close as DismissIcon,
 } from '@mui/icons-material';
+import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 
 interface Alert {
   id: string;
@@ -59,17 +60,17 @@ const SchoolAdminAlertsPage: React.FC = () => {
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 4, flexWrap: 'wrap', gap: 1 }}>
         <Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
-            <Typography variant="h4" sx={{ color: '#ffffff', fontWeight: 700 }}>Alerts</Typography>
+            <Typography variant="h4" sx={{ color: ip.heading, fontWeight: 700 }}>Alerts</Typography>
             {unreadCount > 0 && (
               <Chip label={`${unreadCount} new`} size="small" sx={{ bgcolor: 'rgba(239,68,68,0.15)', color: '#ef4444', fontWeight: 700, fontSize: '0.7rem' }} />
             )}
           </Box>
-          <Typography variant="body2" sx={{ color: '#94a3b8' }}>
+          <Typography variant="body2" sx={{ color: ip.subtext }}>
             Student connection requests, report notifications, and system updates
           </Typography>
         </Box>
         {unreadCount > 0 && (
-          <Button onClick={markAllRead} sx={{ color: '#3b82f6', fontWeight: 600, fontSize: '0.8rem' }}>
+          <Button onClick={markAllRead} sx={{ color: ip.statBlue, fontWeight: 600, fontSize: '0.8rem' }}>
             Mark all as read
           </Button>
         )}
@@ -77,17 +78,17 @@ const SchoolAdminAlertsPage: React.FC = () => {
 
       {/* Alerts list */}
       {alerts.length > 0 ? (
-        <Card sx={{ bgcolor: '#1e293b', border: '1px solid #334155' }}>
+        <Card sx={{ bgcolor: '#fff', border: `1px solid ${ip.cardBorder}`, borderRadius: 2, boxShadow: 'none' }}>
           <CardContent sx={{ p: '0 !important' }}>
             {alerts.map((alert, idx) => {
-              const color = ALERT_COLOR[alert.type] ?? '#94a3b8';
+              const color = ALERT_COLOR[alert.type] ?? ip.subtext;
               return (
                 <React.Fragment key={alert.id}>
                   <Box sx={{
                     display: 'flex', alignItems: 'flex-start', gap: 2, px: 3, py: 2.5,
-                    bgcolor: alert.read ? 'transparent' : 'rgba(59,130,246,0.04)',
+                    bgcolor: alert.read ? 'transparent' : ip.pendingBg,
                     transition: 'background 0.15s',
-                    '&:hover': { bgcolor: 'rgba(255,255,255,0.02)' },
+                    '&:hover': { bgcolor: ip.cardMutedBg },
                   }}>
                     <Box sx={{
                       width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
@@ -97,17 +98,17 @@ const SchoolAdminAlertsPage: React.FC = () => {
                     </Box>
                     <Box sx={{ flex: 1 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.4 }}>
-                        <Typography variant="body2" sx={{ color: '#ffffff', fontWeight: alert.read ? 400 : 700 }}>
+                        <Typography variant="body2" sx={{ color: ip.heading, fontWeight: alert.read ? 400 : 700 }}>
                           {alert.title}
                         </Typography>
                         {!alert.read && (
-                          <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#3b82f6', flexShrink: 0 }} />
+                          <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: ip.statBlue, flexShrink: 0 }} />
                         )}
                       </Box>
-                      <Typography variant="body2" sx={{ color: '#94a3b8', mb: 0.8, lineHeight: 1.5 }}>
+                      <Typography variant="body2" sx={{ color: ip.subtext, mb: 0.8, lineHeight: 1.5 }}>
                         {alert.body}
                       </Typography>
-                      <Typography variant="caption" sx={{ color: '#64748b' }}>{alert.time}</Typography>
+                      <Typography variant="caption" sx={{ color: ip.subtext }}>{alert.time}</Typography>
                     </Box>
                     <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
                       {!alert.read && (
@@ -120,7 +121,7 @@ const SchoolAdminAlertsPage: React.FC = () => {
                       </IconButton>
                     </Box>
                   </Box>
-                  {idx < alerts.length - 1 && <Divider sx={{ borderColor: '#1e293b' }} />}
+                  {idx < alerts.length - 1 && <Divider sx={{ borderColor: ip.cardBorder }} />}
                 </React.Fragment>
               );
             })}
@@ -128,9 +129,9 @@ const SchoolAdminAlertsPage: React.FC = () => {
         </Card>
       ) : (
         <Box sx={{ textAlign: 'center', py: 8 }}>
-          <AlertIcon sx={{ color: '#334155', fontSize: '3rem', mb: 1.5 }} />
-          <Typography variant="body1" sx={{ color: '#64748b' }}>No alerts</Typography>
-          <Typography variant="caption" sx={{ color: '#475569' }}>
+          <AlertIcon sx={{ color: ip.cardBorder, fontSize: '3rem', mb: 1.5 }} />
+          <Typography variant="body1" sx={{ color: ip.subtext }}>No alerts</Typography>
+          <Typography variant="caption" sx={{ color: ip.subtext }}>
             You're all caught up. New student requests and report notifications will appear here.
           </Typography>
         </Box>

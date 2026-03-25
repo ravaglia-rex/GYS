@@ -167,10 +167,10 @@ const AnalysisSection: React.FC<AnalysisSectionProps> = ({ studentId }) => {
     setError(null);
     
     try {
-      // Always get the fresh Phase 2 exam response first to get current scores
+      // Always get the fresh Phase 2 assessment response first to get current scores
       const response = await getPhase2ExamResponse(studentId);
       if (!response) {
-        throw new Error('No Phase 2 exam response found');
+        throw new Error('No Phase 2 assessment response found');
       }
       
       // Extract OCEAN scores from typeTotals (this is the source of truth)
@@ -218,7 +218,7 @@ const AnalysisSection: React.FC<AnalysisSectionProps> = ({ studentId }) => {
         const existingAnalysisCheck = await getPhase2Analysis(studentId);
         if (!existingAnalysisCheck) {
           // Create analysis record with all data at once
-          analysisData = await createPhase2Analysis(studentId, response.submissionId, computedAnalysis);
+          analysisData = await createPhase2Analysis(studentId, response.submissionId, computedAnalysis) as any;
         } else {
           analysisData = existingAnalysisCheck;
         }
@@ -531,7 +531,7 @@ const AnalysisSection: React.FC<AnalysisSectionProps> = ({ studentId }) => {
         <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
           {isFirstTime === true 
             ? 'Getting analysis, please wait 1-2 minutes...' 
-            : 'Analyzing your exam performance...'
+            : 'Analyzing your assessment performance...'
           }
         </Typography>
         <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)', textAlign: 'center', maxWidth: 400 }}>
@@ -573,7 +573,7 @@ const AnalysisSection: React.FC<AnalysisSectionProps> = ({ studentId }) => {
           No Analysis Available
         </Typography>
         <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-          We couldn't find any analysis for your Phase 2 exam responses.
+          We couldn't find any analysis for your Phase 2 assessment responses.
         </Typography>
       </Box>
     );
@@ -592,10 +592,10 @@ const AnalysisSection: React.FC<AnalysisSectionProps> = ({ studentId }) => {
       {/* Header */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h5" sx={{ color: 'white', fontWeight: 600, mb: 1 }}>
-          Comprehensive Exam Analysis
+          Comprehensive Assessment Analysis
         </Typography>
         <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-          Detailed insights into your performance across all exam sections
+          Detailed insights into your performance across all assessment sections
         </Typography>
       </Box>
 

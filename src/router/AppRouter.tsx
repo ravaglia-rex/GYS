@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Outlet, Navigate } from 'react-router-dom';
 import Protected from '../components/route_protection/Protected';
 import SuperProtected from '../components/route_protection/SuperProtected';
 import SchoolAdminRoute from '../components/route_protection/SchoolAdminRoute';
@@ -19,6 +19,18 @@ const SchoolRegistrationPage = React.lazy(
 );
 const StudentPathPage = React.lazy(() => import('../pages/landing/StudentPathPage'));
 
+const SchoolPreviewLayout = React.lazy(() => import('../layouts/SchoolPreviewLayout'));
+const SchoolPreviewHubPage = React.lazy(() => import('../pages/landing/preview/SchoolPreviewHubPage'));
+const SchoolPreviewDashboardPage = React.lazy(
+  () => import('../pages/landing/preview/SchoolPreviewDashboardPage')
+);
+const SchoolPreviewReportsPage = React.lazy(
+  () => import('../pages/landing/preview/SchoolPreviewReportsPage')
+);
+const SchoolPreviewAssessmentPage = React.lazy(
+  () => import('../pages/landing/preview/SchoolPreviewAssessmentPage')
+);
+
 /*
 AUTHENTICATION PAGES: These are the pages that are used for the signup and login process
 */
@@ -33,7 +45,7 @@ const VerifyEmailErrorPage = React.lazy(() => import('../pages/authentication_pa
 const ResetPasswordPage = React.lazy(() => import('../pages/authentication_pages/ResetPasswordPage'));
 
 /*
-TESTING PAGES: These are the pages for serving the exam
+TESTING PAGES: These are the pages for serving assessments
 */
 const TestingPage = React.lazy(() => import('../pages/testing_page/TestingPage'));
 const TestingPhase2Page = React.lazy(() => import('../pages/testing_page/TestingPhase2Page'));
@@ -53,9 +65,13 @@ DASHBOARD PAGES: These are the pages that are used for the dashboard
 const DashboardPage = React.lazy(() => import('../pages/dashboard_pages/DashboardPage'));
 const ProfilePage = React.lazy(() => import('../pages/dashboard_pages/ProfilePage'));
 const SettingsPage = React.lazy(() => import('../pages/dashboard_pages/SettingsPage'));
-const ExamsPage = React.lazy(() => import('../pages/dashboard_pages/ExamsPage'));
+const AssessmentsPage = React.lazy(() => import('../pages/dashboard_pages/AssessmentsPage'));
 const BillingPage = React.lazy(() => import('../pages/dashboard_pages/BillingPage'));
 const ReportsPage = React.lazy(() => import('../pages/dashboard_pages/ReportsPage'));
+const AssessmentTakePage = React.lazy(() => import('../pages/dashboard_pages/AssessmentTakePage'));
+const AssessmentResultPage = React.lazy(() => import('../pages/dashboard_pages/AssessmentResultPage'));
+const AssessmentDetailPage = React.lazy(() => import('../pages/dashboard_pages/AssessmentDetailPage'));
+const AssessmentResultDetailPage = React.lazy(() => import('../pages/dashboard_pages/AssessmentResultDetailPage'));
 
 /*
 SCHOOL ADMIN PAGES: These are the pages for school administrators
@@ -66,9 +82,9 @@ const SchoolAdminStudentsPage = React.lazy(() => import('../pages/school_admin_p
 const SchoolAdminAnalyticsPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminAnalyticsPage'));
 const SchoolAdminSettingsPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminSettingsPage'));
 const SchoolAdminReportsPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminReportsPage'));
-const SchoolAdminInvitationsPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminInvitationsPage'));
 const SchoolAdminAlertsPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminAlertsPage'));
 const SchoolAdminSubscriptionPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminSubscriptionPage'));
+const SchoolAdminInvitationsPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminInvitationsPage'));
 
 /*
 CAMERA AND MICROPHONE ACCESS PAGE: This page is used to check if the camera and microphone are working
@@ -180,6 +196,51 @@ const AppRouter: React.FC = () => {
           errorElement={<NotFoundPage />}
         />
 
+        {/* Hub has no sidebar; workspace routes use SchoolPreviewLayout */}
+        <Route path="/for-schools/preview" element={<Outlet />} errorElement={<NotFoundPage />}>
+          <Route
+            index
+            element={
+              <Suspense fallback={<BigSpinner/>}>
+                <SchoolPreviewHubPage />
+              </Suspense>
+            }
+          />
+          <Route
+            element={
+              <Suspense fallback={<BigSpinner/>}>
+                <SchoolPreviewLayout />
+              </Suspense>
+            }
+          >
+            <Route
+              path="dashboard"
+              element={
+                <Suspense fallback={<BigSpinner/>}>
+                  <SchoolPreviewDashboardPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="reports"
+              element={
+                <Suspense fallback={<BigSpinner/>}>
+                  <SchoolPreviewReportsPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="assessment"
+              element={
+                <Suspense fallback={<BigSpinner/>}>
+                  <SchoolPreviewAssessmentPage />
+                </Suspense>
+              }
+            />
+            <Route path="exam" element={<Navigate to="/for-schools/preview/assessment" replace />} />
+          </Route>
+        </Route>
+
         <Route 
           path='/reset-password'
           element={
@@ -224,13 +285,13 @@ const AppRouter: React.FC = () => {
           errorElement={<NotFoundPage />}
         />
         
-        {/* Exam Routes */}
+        {/* Assessment list routes */}
         <Route
-          path="/exams"
+          path="/assessments"
           element={
             <Protected>
               <Suspense fallback={<BigSpinner/>}>
-                <ExamsPage />
+                <AssessmentsPage />
               </Suspense>
             </Protected>
           }
@@ -238,11 +299,11 @@ const AppRouter: React.FC = () => {
         />
         
         <Route
-          path="/exams/available"
+          path="/assessments/available"
           element={
             <Protected>
               <Suspense fallback={<BigSpinner/>}>
-                <ExamsPage />
+                <AssessmentsPage />
               </Suspense>
             </Protected>
           }
@@ -250,17 +311,69 @@ const AppRouter: React.FC = () => {
         />
         
         <Route
-          path="/exams/completed"
+          path="/assessments/completed"
           element={
             <Protected>
               <Suspense fallback={<BigSpinner/>}>
-                <ExamsPage />
+                <AssessmentsPage />
               </Suspense>
             </Protected>
           }
           errorElement={<NotFoundPage />}
         />
+        <Route path="/exams" element={<Navigate to="/assessments/available" replace />} />
+        <Route path="/exams/available" element={<Navigate to="/assessments/available" replace />} />
+        <Route path="/exams/completed" element={<Navigate to="/assessments/completed" replace />} />
         
+        {/* Assessment Routes */}
+        <Route
+          path="/assessments/:assessmentId/tier/:tierNumber/detail"
+          element={
+            <Protected>
+              <Suspense fallback={<BigSpinner/>}>
+                <AssessmentDetailPage />
+              </Suspense>
+            </Protected>
+          }
+          errorElement={<NotFoundPage />}
+        />
+
+        <Route
+          path="/assessments/:assessmentId/tier/:tierNumber/take"
+          element={
+            <Protected>
+              <Suspense fallback={<BigSpinner/>}>
+                <AssessmentTakePage />
+              </Suspense>
+            </Protected>
+          }
+          errorElement={<NotFoundPage />}
+        />
+
+        <Route
+          path="/assessments/:assessmentId/result"
+          element={
+            <Protected>
+              <Suspense fallback={<BigSpinner/>}>
+                <AssessmentResultPage />
+              </Suspense>
+            </Protected>
+          }
+          errorElement={<NotFoundPage />}
+        />
+
+        <Route
+          path="/assessments/:assessmentId/result/details"
+          element={
+            <Protected>
+              <Suspense fallback={<BigSpinner/>}>
+                <AssessmentResultDetailPage />
+              </Suspense>
+            </Protected>
+          }
+          errorElement={<NotFoundPage />}
+        />
+
         {/* Reports Route */}
         <Route
           path="/reports"
@@ -494,6 +607,20 @@ const AppRouter: React.FC = () => {
           }
           errorElement={<NotFoundPage />}
         />
+
+        <Route
+          path="/school-admin/invitations"
+          element={
+            <SchoolAdminRoute>
+              <Suspense fallback={<BigSpinner/>}>
+                <SchoolAdminPageWrapper>
+                  <SchoolAdminInvitationsPage />
+                </SchoolAdminPageWrapper>
+              </Suspense>
+            </SchoolAdminRoute>
+          }
+          errorElement={<NotFoundPage />}
+        />
         
         <Route 
           path="/school-admin/settings" 
@@ -516,20 +643,6 @@ const AppRouter: React.FC = () => {
               <Suspense fallback={<BigSpinner/>}>
                 <SchoolAdminPageWrapper>
                   <SchoolAdminReportsPage />
-                </SchoolAdminPageWrapper>
-              </Suspense>
-            </SchoolAdminRoute>
-          }
-          errorElement={<NotFoundPage />}
-        />
-
-        <Route 
-          path="/school-admin/invitations" 
-          element={
-            <SchoolAdminRoute>
-              <Suspense fallback={<BigSpinner/>}>
-                <SchoolAdminPageWrapper>
-                  <SchoolAdminInvitationsPage />
                 </SchoolAdminPageWrapper>
               </Suspense>
             </SchoolAdminRoute>

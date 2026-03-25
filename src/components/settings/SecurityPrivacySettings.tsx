@@ -318,8 +318,8 @@ const SecurityPrivacySettings: React.FC = () => {
         },
         {
           key: 'shareExamResults',
-          label: 'Share Exam Results',
-          description: 'Who can see your exam results',
+          label: 'Share Assessment Results',
+          description: 'Who can see your assessment results',
           type: 'select',
           options: [
             { value: 'public', label: 'Public' },

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { UserCredential, createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
-import { fetchSchoolNamesAndIds } from '../../db/schoolCollection';
+import { fetchSchoolNamesAndIds, resolveRegistrationSchool } from '../../db/schoolCollection';
 import SchoolsInput from '../../components/autocomplete/SchoolsInput';
 import * as Sentry from '@sentry/react';
 import { auth } from '../../firebase/firebase';
@@ -30,6 +30,7 @@ const StudentSchoolStepPage: React.FC = () => {
 
   const [schools, setSchools] = useState<{ id: string; name: string }[]>([]);
   const [selectedSchoolId, setSelectedSchoolId] = useState('');
+  const [lockedSchool, setLockedSchool] = useState<{ id: string; name: string } | null>(null);
   const [homeLanguage, setHomeLanguage] = useState('');
   const [aspiration, setAspiration] = useState('');
   const [heardFrom, setHeardFrom] = useState('');
@@ -40,9 +41,21 @@ const StudentSchoolStepPage: React.FC = () => {
 
   useEffect(() => {
     const loadSchools = async () => {
+      const email = (state.email ?? '').trim();
+      if (!email) {
+        setIsLoading(false);
+        return;
+      }
       try {
-        const data = await fetchSchoolNamesAndIds();
+        const [data, resolved] = await Promise.all([
+          fetchSchoolNamesAndIds(),
+          resolveRegistrationSchool(email).catch(() => ({ schoolId: null as string | null, schoolName: null as string | null })),
+        ]);
         setSchools(data);
+        if (resolved.schoolId && resolved.schoolName) {
+          setLockedSchool({ id: resolved.schoolId, name: resolved.schoolName });
+          setSelectedSchoolId(resolved.schoolId);
+        }
       } catch (error: any) {
         Sentry.withScope((scope) => {
           scope.setTag('location', 'StudentSchoolStepPage.loadSchools');
@@ -54,7 +67,7 @@ const StudentSchoolStepPage: React.FC = () => {
     };
 
     loadSchools();
-  }, []);
+  }, [state.email]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -106,7 +119,7 @@ const StudentSchoolStepPage: React.FC = () => {
       };
 
       // Step 3: Run the signup transaction
-      await runSignUpTransaction(newStudent, normalizedEmail, '', null, '');
+      await runSignUpTransaction({ ...newStudent, email: normalizedEmail });
 
       // Step 3a: Add email mapping (used for uniqueness checks & admin tools)
       try {
@@ -263,10 +276,16 @@ const StudentSchoolStepPage: React.FC = () => {
               <SchoolsInput
                 schools={schools}
                 onSelect={(id) => setSelectedSchoolId(id)}
+                lockedSelection={lockedSchool}
                 className="mt-1.5 bg-white border border-slate-200 focus-visible:ring-slate-500 rounded-lg w-full text-slate-900"
                 loading={isLoading}
               />
             </div>
+            {lockedSchool && (
+              <p className="text-xs text-slate-600">
+                Your email is on this school&apos;s registration list, so your school is set automatically.
+              </p>
+            )}
 
             <div>
               <label className="block text-xs sm:text-sm font-bold text-slate-700">

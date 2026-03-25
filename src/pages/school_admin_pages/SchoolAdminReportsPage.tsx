@@ -9,6 +9,7 @@ import {
   Assessment as AssessmentIcon,
   TableChart as TableChartIcon,
 } from '@mui/icons-material';
+import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 
 interface ReportItem {
   id: string;
@@ -28,8 +29,8 @@ const reports: ReportItem[] = [
     description: 'Comprehensive overview of all student assessments for Q2, including tier distribution, subject breakdowns, and grade-wise performance.',
     generated: '1 Mar 2027',
     type: '.docx',
-    icon: <BarChartIcon sx={{ color: '#3b82f6', fontSize: '2rem' }} />,
-    accent: '#3b82f6',
+    icon: <BarChartIcon sx={{ color: ip.statBlue, fontSize: '2rem' }} />,
+    accent: ip.statBlue,
     tag: 'Latest',
   },
   {
@@ -44,7 +45,7 @@ const reports: ReportItem[] = [
   {
     id: 'grade-breakdown',
     title: 'Grade-Level Breakdown',
-    description: 'Detailed performance data segmented by grade (6–12), including averages, tier distributions, and exam completion rates per grade.',
+    description: 'Detailed performance data segmented by grade (6–12), including averages, tier distributions, and assessment completion rates per grade.',
     generated: '1 Mar 2027',
     type: '.docx',
     icon: <AssessmentIcon sx={{ color: '#8b5cf6', fontSize: '2rem' }} />,
@@ -66,10 +67,10 @@ const SchoolAdminReportsPage: React.FC = () => {
     <Box sx={{ maxWidth: 900, mx: 'auto', pb: 6 }}>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ color: '#ffffff', fontWeight: 700, mb: 0.5 }}>
+        <Typography variant="h4" sx={{ color: ip.heading, fontWeight: 700, mb: 0.5 }}>
           Institutional Reports
         </Typography>
-        <Typography variant="body2" sx={{ color: '#94a3b8' }}>
+        <Typography variant="body2" sx={{ color: ip.subtext }}>
           Downloadable performance reports for board meetings and parent communications
         </Typography>
       </Box>
@@ -77,24 +78,24 @@ const SchoolAdminReportsPage: React.FC = () => {
       {/* Reports grid */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {reports.map(report => (
-          <Card key={report.id} sx={{ bgcolor: '#1e293b', border: '1px solid #334155', transition: 'border-color 0.15s', '&:hover': { borderColor: `${report.accent}40` } }}>
+          <Card key={report.id} sx={{ bgcolor: '#fff', border: `1px solid ${ip.cardBorder}`, borderRadius: 2, boxShadow: 'none', transition: 'border-color 0.15s', '&:hover': { borderColor: report.accent } }}>
             <CardContent sx={{ p: '24px !important' }}>
               <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
                 <Box sx={{ display: 'flex', gap: 2, flex: 1 }}>
                   <Box sx={{ mt: 0.3, flexShrink: 0 }}>{report.icon}</Box>
                   <Box>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                      <Typography variant="body1" sx={{ color: '#ffffff', fontWeight: 700 }}>
+                      <Typography variant="body1" sx={{ color: ip.heading, fontWeight: 700 }}>
                         {report.title}
                       </Typography>
                       {report.tag && (
                         <Chip label={report.tag} size="small" sx={{ bgcolor: `${report.accent}20`, color: report.accent, fontSize: '0.62rem', height: 18, fontWeight: 700 }} />
                       )}
                     </Box>
-                    <Typography variant="body2" sx={{ color: '#94a3b8', mb: 1 }}>
+                    <Typography variant="body2" sx={{ color: ip.subtext, mb: 1 }}>
                       {report.description}
                     </Typography>
-                    <Typography variant="caption" sx={{ color: '#64748b' }}>
+                    <Typography variant="caption" sx={{ color: ip.subtext }}>
                       Generated {report.generated}
                     </Typography>
                   </Box>
@@ -117,8 +118,8 @@ const SchoolAdminReportsPage: React.FC = () => {
       </Box>
 
       {/* Empty state note */}
-      <Box sx={{ mt: 4, p: 3, bgcolor: '#1e293b', border: '1px dashed #334155', borderRadius: 2, textAlign: 'center' }}>
-        <Typography variant="body2" sx={{ color: '#64748b' }}>
+      <Box sx={{ mt: 4, p: 3, bgcolor: ip.cardMutedBg, border: `1px dashed ${ip.cardBorder}`, borderRadius: 2, textAlign: 'center' }}>
+        <Typography variant="body2" sx={{ color: ip.subtext }}>
           Reports are generated automatically after each assessment cycle. New reports appear here within 24 hours of cycle close.
         </Typography>
       </Box>

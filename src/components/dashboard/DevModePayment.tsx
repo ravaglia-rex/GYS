@@ -11,8 +11,7 @@ interface DevModePaymentProps {
   city: string;
   currency: string;
   email: string;
-  title: string; // This will be passed as exam_title to the function
-  form_id: string;
+  membership_level?: number;
   payee_email: string;
   payee_name: string;
   state: string;
@@ -27,8 +26,7 @@ const DevModePayment: React.FC<DevModePaymentProps> = ({
   city,
   currency,
   email,
-  title,
-  form_id,
+  membership_level = 1,
   payee_email,
   payee_name,
   state,
@@ -55,18 +53,17 @@ const DevModePayment: React.FC<DevModePaymentProps> = ({
 
         // Call dev mode payment function
         const result = await devModePayment(
+          uid,
           address_line_1,
           amount / 100, // Convert from paise to rupees
           city,
           currency,
           email,
-          title, // This will be passed as exam_title to the function
-          form_id,
+          membership_level,
           payee_email,
           payee_name,
           state,
           student_name,
-          uid,
           zipcode
         );
 
@@ -89,7 +86,7 @@ const DevModePayment: React.FC<DevModePaymentProps> = ({
         Sentry.withScope((scope) => {
           scope.setTag('location', 'DevModePayment.processDevPayment');
           scope.setExtra('paymentData', {
-            amount, currency, title, form_id, uid, payee_name, payee_email
+            amount, currency, membership_level, uid, payee_name, payee_email
           });
           Sentry.captureException(error);
         });
@@ -112,7 +109,7 @@ const DevModePayment: React.FC<DevModePaymentProps> = ({
 
     processDevPayment();
   }, [
-    address_line_1, amount, city, currency, email, title, form_id,
+    address_line_1, amount, city, currency, email, membership_level,
     payee_email, payee_name, state, student_name, uid, zipcode,
     toast, navigate, dispatch
   ]);

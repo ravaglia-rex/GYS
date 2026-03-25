@@ -48,7 +48,8 @@ const StudentRegistrationPage: React.FC = () => {
     // Check our email mapping collections as well
     if (!exists) {
       try {
-        exists = await checkEmailExists(normalizedEmail);
+        const emailCheck = await checkEmailExists(normalizedEmail);
+        exists = emailCheck.exists;
       } catch (error) {
         // On error, be conservative and treat as "exists" so we don't create duplicates silently
         exists = true;

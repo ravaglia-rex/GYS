@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, Typography, Button, Box } from '@mui/material';
 
 interface WelcomeCardProps {
@@ -6,6 +7,7 @@ interface WelcomeCardProps {
 }
 
 const WelcomeCard: React.FC<WelcomeCardProps> = ({ userName = 'Student' }) => {
+  const navigate = useNavigate();
   return (
     <Card 
       sx={{ 
@@ -50,14 +52,15 @@ const WelcomeCard: React.FC<WelcomeCardProps> = ({ userName = 'Student' }) => {
                 lineHeight: 1.6
               }}
             >
-              Ready to take your next exam? View available assessments, track your progress, 
-              and manage your exam schedule all in one place.
+              Ready to take your next assessment? View available assessments, track your progress, 
+              and manage your schedule all in one place.
             </Typography>
           </Box>
           <Box sx={{ ml: 3 }}>
             <Button 
               variant="contained" 
               size="large"
+              onClick={() => navigate('/assessments/available')}
               sx={{ 
                 background: 'linear-gradient(45deg, #10b981, #3b82f6)',
                 color: 'white',
@@ -73,7 +76,7 @@ const WelcomeCard: React.FC<WelcomeCardProps> = ({ userName = 'Student' }) => {
                 transition: 'all 0.3s ease'
               }}
             >
-              View Exams
+              View Assessments
             </Button>
           </Box>
         </Box>

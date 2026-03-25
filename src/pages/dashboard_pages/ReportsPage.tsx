@@ -23,7 +23,7 @@ const ReportsPage: React.FC = () => {
         const phase2Response = await getPhase2ExamResponse(uid);
         setHasPhase2Exam(!!phase2Response);
       } catch (error) {
-        console.error('Error checking Phase 2 exam:', error);
+        console.error('Error checking Phase 2 assessment:', error);
         setHasPhase2Exam(false);
       } finally {
         setLoadingPhase2Check(false);
@@ -64,7 +64,7 @@ const ReportsPage: React.FC = () => {
                   Reports
                 </Typography>
                 <Typography variant="h6" sx={{ color: 'rgba(255, 255, 255, 0.8)', fontWeight: 400 }}>
-                  Detailed analysis and insights from your exam performance
+                  Detailed analysis and insights from your assessment performance
                 </Typography>
               </Box>
             </Box>
@@ -94,10 +94,10 @@ const ReportsPage: React.FC = () => {
             ) : (
               <Box>
                 <Typography variant="h5" sx={{ color: 'white', fontWeight: 600, mb: 3 }}>
-                  Detailed Exam Analysis
+                  Detailed Assessment Analysis
                 </Typography>
                 <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.8)', mb: 3 }}>
-                  Get comprehensive insights and detailed analysis of your Phase 2 exam performance.
+                  Get comprehensive insights and detailed analysis of your Phase 2 assessment performance.
                 </Typography>
 
                 <Box sx={{
@@ -108,13 +108,13 @@ const ReportsPage: React.FC = () => {
                   textAlign: 'center'
                 }}>
                   <Typography variant="h6" sx={{ color: '#3b82f6', fontWeight: 600, mb: 2 }}>
-                    No Phase 2 Exam Data Found
+                    No Phase 2 Assessment Data Found
                   </Typography>
                   <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 2 }}>
-                    You need to complete a Phase 2 exam to access detailed personality analysis.
+                    You need to complete a Phase 2 assessment to access detailed personality analysis.
                   </Typography>
                   <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-                    Once you complete a Phase 2 exam, you'll be able to view your comprehensive analysis here.
+                    Once you complete a Phase 2 assessment, you'll be able to view your comprehensive analysis here.
                   </Typography>
                 </Box>
               </Box>

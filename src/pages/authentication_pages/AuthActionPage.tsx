@@ -43,7 +43,7 @@ const AuthActionPage: React.FC = () => {
                         <div className="relative z-10 p-10">
                             <div className="flex items-center gap-3">
                                 <img src="/argus_A_logo.png" alt="Argus" className="h-8 w-8" />
-                                <span className="text-xl font-semibold tracking-wide">Argus Exam Portal</span>
+                                <span className="text-xl font-semibold tracking-wide">Argus Assessment Portal</span>
                             </div>
                         </div>
                     </div>
@@ -83,7 +83,7 @@ const AuthActionPage: React.FC = () => {
                         <div className="relative z-10 p-10">
                             <div className="flex items-center gap-3">
                                 <img src="/argus_A_logo.png" alt="Argus" className="h-8 w-8" />
-                                <span className="text-xl font-semibold tracking-wide">Argus Exam Portal</span>
+                                <span className="text-xl font-semibold tracking-wide">Argus Assessment Portal</span>
                             </div>
                         </div>
                     </div>

@@ -24,8 +24,7 @@ interface RenderRazorpayProps {
   order_id: string;
   currency: string;
   amount: number;
-  form_id: string;
-  title: string;
+  membership_level?: number;
   payee_name: string;
   payee_email: string;
   payee_contact: string;
@@ -44,8 +43,7 @@ const RenderRazorpay: React.FC<RenderRazorpayProps> = ({
   order_id,
   currency,
   amount,
-  form_id,
-  title,
+  membership_level = 1,
   payee_name,
   payee_email,
   payee_contact,
@@ -91,19 +89,18 @@ const RenderRazorpay: React.FC<RenderRazorpayProps> = ({
       try {
         // Record the payment in the backend
         await markPaymentPending(
+          uid,
           address_line_1,
           amount / 100, // Convert from paise to rupees
           city,
           currency,
           email,
-          title,
-          form_id,
+          membership_level,
           payee_email,
           payee_name,
           state,
           payee_name, // student_name
-          order_id, // transaction_id
-          uid,
+          order_id,   // transaction_id
           zipcode
         );
 
@@ -146,7 +143,7 @@ const RenderRazorpay: React.FC<RenderRazorpayProps> = ({
     order_id: order_id,
     customer_id: id,
     name: 'Argus',
-    description: `Payment for exam: ${title}`,
+    description: `Argus Membership`,
     image: 'https://argus-s3-bucket.s3.us-east-1.amazonaws.com/logos/argus.png',
     handler: async (response: any) => {
       if (response.razorpay_payment_id) {
@@ -169,7 +166,7 @@ const RenderRazorpay: React.FC<RenderRazorpayProps> = ({
       state: state,
       country: country,
       zipcode: zipcode,
-      form_id: form_id,
+      membership_level: membership_level,
       payee_name: payee_name,
       payee_email: payee_email,
     },

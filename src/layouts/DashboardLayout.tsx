@@ -20,13 +20,13 @@ const DRAWER_WIDTH_MINI = 88;
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
-  availableExamsCount?: number;
+  availableAssessmentsCount?: number;
   resultsAvailableCount?: number;
 }
 
 export default function DashboardLayout({ 
   children, 
-  availableExamsCount = 0, 
+  availableAssessmentsCount = 0, 
   resultsAvailableCount = 0 
 }: DashboardLayoutProps) {
   const theme = useTheme();
@@ -156,7 +156,7 @@ export default function DashboardLayout({
       <NotificationsDialog
         open={notificationsOpen}
         onClose={handleNotificationsClose}
-        availableExamsCount={availableExamsCount}
+        availableAssessmentsCount={availableAssessmentsCount}
         resultsAvailableCount={resultsAvailableCount}
       />
     </Box>

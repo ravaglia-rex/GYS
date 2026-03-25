@@ -8,6 +8,7 @@ import {
   School as StandardIcon,
   ArrowForward as ArrowIcon,
 } from '@mui/icons-material';
+import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 
 interface PlanFeature {
   text: string;
@@ -34,8 +35,8 @@ const PLANS: Plan[] = [
     price: '₹2,00,000',
     per: '/year',
     description: 'Core institutional access for schools getting started with GYS assessments.',
-    accent: '#3b82f6',
-    icon: <StandardIcon sx={{ fontSize: '1.6rem', color: '#3b82f6' }} />,
+    accent: ip.statBlue,
+    icon: <StandardIcon sx={{ fontSize: '1.6rem', color: ip.statBlue }} />,
     current: true,
     features: [
       { text: 'Unlimited student connections', included: true },
@@ -77,39 +78,39 @@ const SchoolAdminSubscriptionPage: React.FC = () => {
     <Box sx={{ maxWidth: 960, mx: 'auto', pb: 6 }}>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ color: '#ffffff', fontWeight: 700, mb: 0.5 }}>
+        <Typography variant="h4" sx={{ color: ip.heading, fontWeight: 700, mb: 0.5 }}>
           Subscription
         </Typography>
-        <Typography variant="body2" sx={{ color: '#94a3b8' }}>
+        <Typography variant="body2" sx={{ color: ip.subtext }}>
           Manage your institutional subscription and explore upgrade options
         </Typography>
       </Box>
 
       {/* Current plan banner */}
       <Box sx={{
-        background: 'linear-gradient(135deg, rgba(59,130,246,0.1), rgba(30,41,59,0.9))',
-        border: '1px solid rgba(59,130,246,0.3)',
+        bgcolor: ip.cardMutedBg,
+        border: `1px solid ${ip.cardBorder}`,
         borderRadius: 2.5, p: 3, mb: 4,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2,
       }}>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-          <Box sx={{ bgcolor: 'rgba(59,130,246,0.15)', borderRadius: 1.5, p: 1.2, display: 'flex' }}>
-            <StandardIcon sx={{ color: '#3b82f6', fontSize: '1.5rem' }} />
+          <Box sx={{ bgcolor: 'rgba(37,99,235,0.1)', borderRadius: 1.5, p: 1.2, display: 'flex' }}>
+            <StandardIcon sx={{ color: ip.statBlue, fontSize: '1.5rem' }} />
           </Box>
           <Box>
-            <Typography variant="body1" sx={{ color: '#ffffff', fontWeight: 700 }}>
+            <Typography variant="body1" sx={{ color: ip.heading, fontWeight: 700 }}>
               Standard Subscription
             </Typography>
-            <Typography variant="body2" sx={{ color: '#94a3b8' }}>
+            <Typography variant="body2" sx={{ color: ip.subtext }}>
               Renews annually · ₹2,00,000/yr · Next renewal: 1 Jan 2028
             </Typography>
           </Box>
         </Box>
-        <Chip label="Active" sx={{ bgcolor: 'rgba(16,185,129,0.15)', color: '#10b981', fontWeight: 700 }} />
+        <Chip label="Active" sx={{ bgcolor: 'rgba(34,197,94,0.15)', color: '#16a34a', fontWeight: 700 }} />
       </Box>
 
       {/* Plans */}
-      <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 700, mb: 2 }}>
+      <Typography variant="h6" sx={{ color: ip.heading, fontWeight: 700, mb: 2 }}>
         Available Plans
       </Typography>
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2.5, mb: 4 }}>
@@ -117,8 +118,9 @@ const SchoolAdminSubscriptionPage: React.FC = () => {
           <Card
             key={plan.id}
             sx={{
-              bgcolor: '#1e293b',
-              border: plan.current ? `2px solid ${plan.accent}` : `1px solid #334155`,
+              bgcolor: '#fff',
+              boxShadow: 'none',
+              border: plan.current ? `2px solid ${plan.accent}` : `1px solid ${ip.cardBorder}`,
               borderRadius: 2.5,
               position: 'relative',
               transition: 'all 0.18s',
@@ -134,19 +136,19 @@ const SchoolAdminSubscriptionPage: React.FC = () => {
             <CardContent sx={{ p: '28px !important' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
                 {plan.icon}
-                <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 700 }}>{plan.name}</Typography>
+                <Typography variant="h6" sx={{ color: ip.heading, fontWeight: 700 }}>{plan.name}</Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5, mb: 1 }}>
                 <Typography variant="h4" sx={{ color: plan.accent, fontWeight: 800 }}>{plan.price}</Typography>
-                <Typography variant="body2" sx={{ color: '#64748b' }}>{plan.per}</Typography>
+                <Typography variant="body2" sx={{ color: ip.subtext }}>{plan.per}</Typography>
               </Box>
-              <Typography variant="body2" sx={{ color: '#94a3b8', mb: 2.5 }}>{plan.description}</Typography>
-              <Divider sx={{ borderColor: '#334155', mb: 2 }} />
+              <Typography variant="body2" sx={{ color: ip.subtext, mb: 2.5 }}>{plan.description}</Typography>
+              <Divider sx={{ borderColor: ip.cardBorder, mb: 2 }} />
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 3 }}>
                 {plan.features.map(f => (
                   <Box key={f.text} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <CheckIcon sx={{ fontSize: '0.9rem', color: f.included ? '#10b981' : '#334155' }} />
-                    <Typography variant="body2" sx={{ color: f.included ? '#e2e8f0' : '#475569', fontSize: '0.82rem' }}>
+                    <CheckIcon sx={{ fontSize: '0.9rem', color: f.included ? '#16a34a' : ip.cardBorder }} />
+                    <Typography variant="body2" sx={{ color: f.included ? ip.heading : ip.subtext, fontSize: '0.82rem' }}>
                       {f.text}
                     </Typography>
                   </Box>
@@ -157,7 +159,7 @@ const SchoolAdminSubscriptionPage: React.FC = () => {
                   fullWidth
                   variant="outlined"
                   disabled
-                  sx={{ borderColor: '#334155', color: '#64748b', borderRadius: 1.5, fontWeight: 600 }}
+                  sx={{ borderColor: ip.cardBorder, color: ip.subtext, borderRadius: 1.5, fontWeight: 600 }}
                 >
                   Current Plan
                 </Button>
@@ -177,9 +179,9 @@ const SchoolAdminSubscriptionPage: React.FC = () => {
       </Box>
 
       {/* Billing info */}
-      <Card sx={{ bgcolor: '#1e293b', border: '1px solid #334155' }}>
+      <Card sx={{ bgcolor: '#fff', border: `1px solid ${ip.cardBorder}`, borderRadius: 2, boxShadow: 'none' }}>
         <CardContent sx={{ p: '24px !important' }}>
-          <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 700, mb: 2 }}>Billing Information</Typography>
+          <Typography variant="h6" sx={{ color: ip.heading, fontWeight: 700, mb: 2 }}>Billing Information</Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
             {[
               { label: 'Billing Contact', value: 'Principal / Academic Director' },
@@ -188,24 +190,24 @@ const SchoolAdminSubscriptionPage: React.FC = () => {
               { label: 'Next Renewal', value: '1 January 2028' },
             ].map(item => (
               <Box key={item.label} sx={{ flex: 1, minWidth: 180 }}>
-                <Typography variant="caption" sx={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: 0.5 }}>
+                <Typography variant="caption" sx={{ color: ip.subtext, textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: 0.5 }}>
                   {item.label}
                 </Typography>
-                <Typography variant="body2" sx={{ color: '#e2e8f0', fontWeight: 500, mt: 0.3 }}>
+                <Typography variant="body2" sx={{ color: ip.heading, fontWeight: 500, mt: 0.3 }}>
                   {item.value}
                 </Typography>
               </Box>
             ))}
           </Box>
-          <Divider sx={{ borderColor: '#334155', my: 2 }} />
+          <Divider sx={{ borderColor: ip.cardBorder, my: 2 }} />
           <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
-            <Button variant="outlined" size="small" sx={{ borderColor: '#334155', color: '#94a3b8', '&:hover': { bgcolor: 'rgba(255,255,255,0.04)' }, borderRadius: 1.5 }}>
+            <Button variant="outlined" size="small" sx={{ borderColor: ip.cardBorder, color: ip.subtext, '&:hover': { bgcolor: ip.cardMutedBg }, borderRadius: 1.5 }}>
               Download Invoice
             </Button>
-            <Button variant="outlined" size="small" sx={{ borderColor: '#334155', color: '#94a3b8', '&:hover': { bgcolor: 'rgba(255,255,255,0.04)' }, borderRadius: 1.5 }}>
+            <Button variant="outlined" size="small" sx={{ borderColor: ip.cardBorder, color: ip.subtext, '&:hover': { bgcolor: ip.cardMutedBg }, borderRadius: 1.5 }}>
               Update Billing Details
             </Button>
-            <Button variant="text" size="small" sx={{ color: '#3b82f6', fontWeight: 600, fontSize: '0.8rem' }}>
+            <Button variant="text" size="small" sx={{ color: ip.statBlue, fontWeight: 600, fontSize: '0.8rem' }}>
               Contact Sales for Custom Pricing →
             </Button>
           </Box>

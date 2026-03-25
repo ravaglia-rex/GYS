@@ -46,7 +46,8 @@ import {
 } from 'recharts';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase/firebase';
-import { getSchoolQualificationBySchool } from '../../db/schoolAdminCollection';
+import { getSchoolDashboard } from '../../db/schoolAdminCollection';
+import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 
 interface AnalyticsData {
   scoreDistribution: Array<{
@@ -68,7 +69,7 @@ interface AnalyticsData {
   monthlyTrends: Array<{
     month: string;
     averageScore: number;
-    examsCompleted: number;
+    assessmentsCompleted: number;
     qualifications: number;
   }>;
   subjectPerformance: Array<{
@@ -88,7 +89,7 @@ interface StudentProgressData {
   history: number;
 }
 
-interface ExamDifficultyData {
+interface AssessmentDifficultyData {
   difficulty: string;
   count: number;
   averageScore: number;
@@ -97,7 +98,7 @@ interface ExamDifficultyData {
 
 interface TimeAnalysisData {
   hour: number;
-  exams: number;
+  assessments: number;
   averageScore: number;
 }
 
@@ -258,11 +259,12 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
         let pending = 0;
 
         try {
-          const q = await getSchoolQualificationBySchool(String(schoolId ?? '').trim());
-          const byStudent = q?.byStudent || {};
-          Object.values(byStudent).forEach((status: any) => {
-            if (status === 'qualified') qualified++;
-            else if (status === 'not_qualified') notQualified++;
+          const q = await getSchoolDashboard(String(schoolId ?? '').trim());
+          // byStudent replaced by students array in new API
+          (q?.students ?? []).forEach((s: any) => {
+            const status = s.approval_status;
+            if (status === 'approved') qualified++;
+            else if (status === 'declined') notQualified++;
             else pending++;
           });
         } catch {
@@ -271,14 +273,14 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
         }
 
         // Calculate monthly trends (last 6 months)
-        const monthlyStats: Record<string, { scores: number[]; exams: number; qualifications: number }> = {};
+        const monthlyStats: Record<string, { scores: number[]; assessments: number; qualifications: number }> = {};
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         const now = new Date();
         
         for (let i = 5; i >= 0; i--) {
           const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
           const monthKey = months[date.getMonth()];
-          monthlyStats[monthKey] = { scores: [], exams: 0, qualifications: 0 };
+          monthlyStats[monthKey] = { scores: [], assessments: 0, qualifications: 0 };
         }
 
         allSubmissions.forEach(submission => {
@@ -288,7 +290,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
               : new Date(submission.submission_time);
             const monthKey = months[date.getMonth()];
             if (monthlyStats[monthKey]) {
-              monthlyStats[monthKey].exams++;
+              monthlyStats[monthKey].assessments++;
             }
           }
         });
@@ -310,7 +312,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
           averageScore: stats.scores.length > 0
             ? Math.round((stats.scores.reduce((a, b) => a + b, 0) / stats.scores.length) * 10) / 10
             : 0,
-          examsCompleted: stats.exams,
+          assessmentsCompleted: stats.assessments,
           qualifications: stats.qualifications
         }));
 
@@ -359,7 +361,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
     { student: 'Priya P.', math: 95, science: 88, english: 90, history: 92 }
   ];
 
-  const examDifficultyData: ExamDifficultyData[] = [
+  const assessmentDifficultyData: AssessmentDifficultyData[] = [
     { difficulty: 'Easy', count: 45, averageScore: 88, passRate: 95 },
     { difficulty: 'Medium', count: 67, averageScore: 76, passRate: 82 },
     { difficulty: 'Hard', count: 23, averageScore: 65, passRate: 58 },
@@ -367,14 +369,14 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
   ];
 
   const timeAnalysisData: TimeAnalysisData[] = [
-    { hour: 9, exams: 15, averageScore: 78 },
-    { hour: 10, exams: 22, averageScore: 82 },
-    { hour: 11, exams: 18, averageScore: 79 },
-    { hour: 12, exams: 12, averageScore: 75 },
-    { hour: 13, exams: 8, averageScore: 73 },
-    { hour: 14, exams: 25, averageScore: 85 },
-    { hour: 15, exams: 30, averageScore: 88 },
-    { hour: 16, exams: 20, averageScore: 81 }
+    { hour: 9, assessments: 15, averageScore: 78 },
+    { hour: 10, assessments: 22, averageScore: 82 },
+    { hour: 11, assessments: 18, averageScore: 79 },
+    { hour: 12, assessments: 12, averageScore: 75 },
+    { hour: 13, assessments: 8, averageScore: 73 },
+    { hour: 14, assessments: 25, averageScore: 85 },
+    { hour: 15, assessments: 30, averageScore: 88 },
+    { hour: 16, assessments: 20, averageScore: 81 }
   ];
 
   const performanceComparisonData: PerformanceComparisonData[] = [
@@ -403,7 +405,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
   if (loading) {
     return (
       <Box sx={{ maxWidth: '100%', mx: 'auto', p: 4 }}>
-        <Typography variant="h6" sx={{ color: '#ffffff' }}>
+        <Typography variant="h6" sx={{ color: '#1E293B' }}>
           Loading analytics...
         </Typography>
       </Box>
@@ -414,7 +416,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
     <Box sx={{ maxWidth: '100%', mx: 'auto' }}>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 600, color: '#ffffff', mb: 1 }}>
+        <Typography variant="h4" sx={{ fontWeight: 600, color: '#1E293B', mb: 1 }}>
           Analytics
         </Typography>
         <Typography variant="body1" sx={{ color: '#94a3b8' }}>
@@ -424,9 +426,9 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
 
       {/* Time Range Filter */}
       <Card sx={{ 
-        bgcolor: '#1e293b', 
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
-        border: '1px solid #334155',
+        bgcolor: '#ffffff', 
+        boxShadow: 'none',
+        border: `1px solid ${ip.cardBorder}`,
         mb: 3
       }}>
         <CardContent>
@@ -455,9 +457,9 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                 width: { xs: '100%', sm: '50%', md: '25%' } 
             }}>
               <Card sx={{ 
-                bgcolor: '#1e293b', 
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
-                border: '1px solid #334155',
+                bgcolor: '#ffffff', 
+                boxShadow: 'none',
+                border: `1px solid ${ip.cardBorder}`,
                 height: '100%'
               }}>
                 <CardContent>
@@ -466,7 +468,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                       <CheckCircleIcon />
                     </Avatar>
                     <Box>
-                      <Typography variant="h4" sx={{ fontWeight: 600, color: '#ffffff' }}>
+                      <Typography variant="h4" sx={{ fontWeight: 600, color: '#1E293B' }}>
                         {analyticsData.qualificationStats.qualified}
                       </Typography>
                       <Typography variant="body2" sx={{ color: '#94a3b8' }}>
@@ -488,9 +490,9 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                 width: { xs: '100%', sm: '50%', md: '25%' } 
             }}>
               <Card sx={{ 
-                bgcolor: '#1e293b', 
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
-                border: '1px solid #334155',
+                bgcolor: '#ffffff', 
+                boxShadow: 'none',
+                border: `1px solid ${ip.cardBorder}`,
                 height: '100%'
               }}>
                 <CardContent>
@@ -499,7 +501,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                       <AssessmentIcon />
                     </Avatar>
                     <Box>
-                      <Typography variant="h4" sx={{ fontWeight: 600, color: '#ffffff' }}>
+                      <Typography variant="h4" sx={{ fontWeight: 600, color: '#1E293B' }}>
                         {analyticsData.qualificationStats.notQualified}
                       </Typography>
                       <Typography variant="body2" sx={{ color: '#94a3b8' }}>
@@ -521,9 +523,9 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                 width: { xs: '100%', sm: '50%', md: '25%' } 
             }}>
               <Card sx={{ 
-                bgcolor: '#1e293b', 
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
-                border: '1px solid #334155',
+                bgcolor: '#ffffff', 
+                boxShadow: 'none',
+                border: `1px solid ${ip.cardBorder}`,
                 height: '100%'
               }}>
                 <CardContent>
@@ -532,7 +534,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                       <PeopleIcon />
                     </Avatar>
                     <Box>
-                      <Typography variant="h4" sx={{ fontWeight: 600, color: '#ffffff' }}>
+                      <Typography variant="h4" sx={{ fontWeight: 600, color: '#1E293B' }}>
                         {analyticsData.qualificationStats.pending}
                       </Typography>
                       <Typography variant="body2" sx={{ color: '#94a3b8' }}>
@@ -556,20 +558,20 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                 width: { xs: '100%', sm: '50%', md: '50%' } 
             }}>
               <Card sx={{ 
-                bgcolor: '#1e293b', 
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
-                border: '1px solid #334155',
+                bgcolor: '#ffffff', 
+                boxShadow: 'none',
+                border: `1px solid ${ip.cardBorder}`,
                 height: '100%'
               }}>
                 <CardContent>
-                  <Typography variant="h6" sx={{ fontWeight: 600, color: '#ffffff', mb: 3 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: '#1E293B', mb: 3 }}>
                     Score Distribution
                   </Typography>
                   <Box>
                     {analyticsData.scoreDistribution.map((item, index) => (
                       <Box key={index} sx={{ mb: 2 }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                          <Typography variant="body2" sx={{ color: '#ffffff', fontWeight: 500 }}>
+                          <Typography variant="body2" sx={{ color: '#1E293B', fontWeight: 500 }}>
                             {item.range}
                           </Typography>
                           <Typography variant="body2" sx={{ color: '#94a3b8' }}>
@@ -579,7 +581,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                         <Box sx={{ 
                           width: '100%', 
                           height: 8, 
-                          bgcolor: '#334155', 
+                          bgcolor: '#F8FAFC', 
                           borderRadius: 4,
                           overflow: 'hidden'
                         }}>
@@ -601,20 +603,20 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                 width: { xs: '100%', sm: '50%', md: '50%' } 
             }}>
               <Card sx={{ 
-                bgcolor: '#1e293b', 
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
-                border: '1px solid #334155',
+                bgcolor: '#ffffff', 
+                boxShadow: 'none',
+                border: `1px solid ${ip.cardBorder}`,
                 height: '100%'
               }}>
                 <CardContent>
-                  <Typography variant="h6" sx={{ fontWeight: 600, color: '#ffffff', mb: 3 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: '#1E293B', mb: 3 }}>
                     Grade Distribution
                   </Typography>
                   <Box>
                     {analyticsData.gradeDistribution.map((item, index) => (
                       <Box key={index} sx={{ mb: 2 }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                          <Typography variant="body2" sx={{ color: '#ffffff', fontWeight: 500 }}>
+                          <Typography variant="body2" sx={{ color: '#1E293B', fontWeight: 500 }}>
                             Grade {item.grade}
                           </Typography>
                           <Typography variant="body2" sx={{ color: '#94a3b8' }}>
@@ -644,13 +646,13 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
 
           {/* Subject Performance */}
           <Card sx={{ 
-            bgcolor: '#1e293b', 
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
-            border: '1px solid #334155',
+            bgcolor: '#ffffff', 
+            boxShadow: 'none',
+            border: `1px solid ${ip.cardBorder}`,
             mb: 4
           }}>
             <CardContent>
-              <Typography variant="h6" sx={{ fontWeight: 600, color: '#ffffff', mb: 3 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: '#1E293B', mb: 3 }}>
                 Subject Performance
               </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
@@ -658,8 +660,8 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                   <Box sx={{ 
                       width: { xs: '100%', sm: '50%', md: '20%' } 
                   }} key={index}>
-                    <Paper sx={{ p: 2, border: '1px solid #334155', bgcolor: '#334155' }}>
-                      <Typography variant="h6" sx={{ fontWeight: 600, color: '#ffffff', mb: 1 }}>
+                    <Paper sx={{ p: 2, border: `1px solid ${ip.cardBorder}`, bgcolor: '#F8FAFC' }}>
+                      <Typography variant="h6" sx={{ fontWeight: 600, color: '#1E293B', mb: 1 }}>
                         {subject.subject}
                       </Typography>
                       <Typography variant="h4" sx={{ fontWeight: 600, color: '#3b82f6', mb: 1 }}>
@@ -691,12 +693,12 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
 
           {/* Monthly Trends */}
           <Card sx={{ 
-            bgcolor: '#1e293b', 
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
-            border: '1px solid #334155'
+            bgcolor: '#ffffff', 
+            boxShadow: 'none',
+            border: `1px solid ${ip.cardBorder}`
           }}>
             <CardContent>
-              <Typography variant="h6" sx={{ fontWeight: 600, color: '#ffffff', mb: 3 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: '#1E293B', mb: 3 }}>
                 Monthly Trends
               </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
@@ -704,8 +706,8 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                   <Box sx={{ 
                       width: { xs: '100%', sm: '50%', md: '20%' } 
                   }} key={index}>
-                    <Paper sx={{ p: 2, border: '1px solid #334155', bgcolor: '#334155' }}>
-                      <Typography variant="h6" sx={{ fontWeight: 600, color: '#ffffff', mb: 2 }}>
+                    <Paper sx={{ p: 2, border: `1px solid ${ip.cardBorder}`, bgcolor: '#F8FAFC' }}>
+                      <Typography variant="h6" sx={{ fontWeight: 600, color: '#1E293B', mb: 2 }}>
                         {trend.month}
                       </Typography>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -713,23 +715,23 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                           <Typography variant="body2" sx={{ color: '#94a3b8' }}>
                             Avg Score:
                           </Typography>
-                          <Typography variant="body2" sx={{ fontWeight: 500, color: '#ffffff' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 500, color: '#1E293B' }}>
                             {trend.averageScore}%
                           </Typography>
                         </Box>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                           <Typography variant="body2" sx={{ color: '#94a3b8' }}>
-                            Exams:
+                            Assessments:
                           </Typography>
-                          <Typography variant="body2" sx={{ fontWeight: 500, color: '#ffffff' }}>
-                            {trend.examsCompleted}
+                          <Typography variant="body2" sx={{ fontWeight: 500, color: '#1E293B' }}>
+                            {trend.assessmentsCompleted}
                           </Typography>
                         </Box>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                           <Typography variant="body2" sx={{ color: '#94a3b8' }}>
                             Qualifications:
                           </Typography>
-                          <Typography variant="body2" sx={{ fontWeight: 500, color: '#ffffff' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 500, color: '#1E293B' }}>
                             {trend.qualifications}
                           </Typography>
                         </Box>
@@ -748,27 +750,27 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                 width: { xs: '100%', lg: '50%' } 
             }}>
               <Card sx={{ 
-                bgcolor: '#1e293b', 
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
-                border: '1px solid #334155'
+                bgcolor: '#ffffff', 
+                boxShadow: 'none',
+                border: `1px solid ${ip.cardBorder}`
               }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                     <BarChartIcon sx={{ color: '#3b82f6', mr: 2 }} />
-                    <Typography variant="h6" sx={{ fontWeight: 600, color: '#ffffff' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600, color: '#1E293B' }}>
                       Student Progress by Subject
                     </Typography>
                   </Box>
                   <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={studentProgressData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
                       <XAxis dataKey="student" stroke="#94a3b8" />
                       <YAxis stroke="#94a3b8" />
                       <Tooltip 
                         contentStyle={{ 
-                          backgroundColor: '#1e293b', 
-                          border: '1px solid #334155',
-                          color: '#ffffff'
+                          backgroundColor: '#ffffff', 
+                          border: `1px solid ${ip.cardBorder}`,
+                          color: '#1E293B'
                         }}
                       />
                       <Legend />
@@ -782,26 +784,26 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
               </Card>
             </Box>
 
-            {/* Exam Difficulty Analysis */}
+            {/* Assessment difficulty analysis */}
             <Box sx={{ 
                 width: { xs: '100%', lg: '50%' } 
             }}>
               <Card sx={{ 
-                bgcolor: '#1e293b', 
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
-                border: '1px solid #334155'
+                bgcolor: '#ffffff', 
+                boxShadow: 'none',
+                border: `1px solid ${ip.cardBorder}`
               }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                     <PieChartIcon sx={{ color: '#3b82f6', mr: 2 }} />
-                    <Typography variant="h6" sx={{ fontWeight: 600, color: '#ffffff' }}>
-                      Exam Difficulty Distribution
+                    <Typography variant="h6" sx={{ fontWeight: 600, color: '#1E293B' }}>
+                      Assessment Difficulty Distribution
                     </Typography>
                   </Box>
                   <ResponsiveContainer width="100%" height={300}>
                     <PieChart>
                       <Pie
-                        data={examDifficultyData}
+                        data={assessmentDifficultyData}
                         cx="50%"
                         cy="50%"
                         labelLine={false}
@@ -810,15 +812,15 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                         fill="#8884d8"
                         dataKey="count"
                       >
-                        {examDifficultyData.map((entry, index) => (
+                        {assessmentDifficultyData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
                       <Tooltip 
                         contentStyle={{ 
-                          backgroundColor: '#1e293b', 
-                          border: '1px solid #334155',
-                          color: '#ffffff'
+                          backgroundColor: '#ffffff', 
+                          border: `1px solid ${ip.cardBorder}`,
+                          color: '#1E293B'
                         }}
                       />
                     </PieChart>
@@ -835,32 +837,32 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                 width: { xs: '100%', lg: '50%' } 
             }}>
               <Card sx={{ 
-                bgcolor: '#1e293b', 
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
-                border: '1px solid #334155'
+                bgcolor: '#ffffff', 
+                boxShadow: 'none',
+                border: `1px solid ${ip.cardBorder}`
               }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                     <TimelineIcon sx={{ color: '#3b82f6', mr: 2 }} />
-                    <Typography variant="h6" sx={{ fontWeight: 600, color: '#ffffff' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600, color: '#1E293B' }}>
                       Performance by Time of Day
                     </Typography>
                   </Box>
                   <ResponsiveContainer width="100%" height={300}>
                     <ComposedChart data={timeAnalysisData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
                       <XAxis dataKey="hour" stroke="#94a3b8" />
                       <YAxis yAxisId="left" stroke="#94a3b8" />
                       <YAxis yAxisId="right" orientation="right" stroke="#94a3b8" />
                       <Tooltip 
                         contentStyle={{ 
-                          backgroundColor: '#1e293b', 
-                          border: '1px solid #334155',
-                          color: '#ffffff'
+                          backgroundColor: '#ffffff', 
+                          border: `1px solid ${ip.cardBorder}`,
+                          color: '#1E293B'
                         }}
                       />
                       <Legend />
-                      <Bar yAxisId="left" dataKey="exams" fill="#3b82f6" name="Exams Taken" />
+                      <Bar yAxisId="left" dataKey="assessments" fill="#3b82f6" name="Assessments Taken" />
                       <Line yAxisId="right" type="monotone" dataKey="averageScore" stroke="#10b981" strokeWidth={3} name="Average Score" />
                     </ComposedChart>
                   </ResponsiveContainer>
@@ -873,27 +875,27 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                 width: { xs: '100%', lg: '50%' } 
             }}>
               <Card sx={{ 
-                bgcolor: '#1e293b', 
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
-                border: '1px solid #334155'
+                bgcolor: '#ffffff', 
+                boxShadow: 'none',
+                border: `1px solid ${ip.cardBorder}`
               }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                     <ShowChartIcon sx={{ color: '#3b82f6', mr: 2 }} />
-                    <Typography variant="h6" sx={{ fontWeight: 600, color: '#ffffff' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600, color: '#1E293B' }}>
                       Performance Comparison
                     </Typography>
                   </Box>
                   <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={performanceComparisonData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
                       <XAxis dataKey="category" stroke="#94a3b8" />
                       <YAxis stroke="#94a3b8" />
                       <Tooltip 
                         contentStyle={{ 
-                          backgroundColor: '#1e293b', 
-                          border: '1px solid #334155',
-                          color: '#ffffff'
+                          backgroundColor: '#ffffff', 
+                          border: `1px solid ${ip.cardBorder}`,
+                          color: '#1E293B'
                         }}
                       />
                       <Legend />
@@ -914,27 +916,27 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                 width: { xs: '100%', lg: '50%' } 
             }}>
               <Card sx={{ 
-                bgcolor: '#1e293b', 
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
-                border: '1px solid #334155'
+                bgcolor: '#ffffff', 
+                boxShadow: 'none',
+                border: `1px solid ${ip.cardBorder}`
               }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                     <ShowChartIcon sx={{ color: '#3b82f6', mr: 2 }} />
-                    <Typography variant="h6" sx={{ fontWeight: 600, color: '#ffffff' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600, color: '#1E293B' }}>
                       Score vs Time Correlation
                     </Typography>
                   </Box>
                   <ResponsiveContainer width="100%" height={300}>
                     <ScatterChart data={timeAnalysisData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
                       <XAxis type="number" dataKey="hour" name="Hour" stroke="#94a3b8" />
                       <YAxis type="number" dataKey="averageScore" name="Score" stroke="#94a3b8" />
                       <Tooltip 
                         contentStyle={{ 
-                          backgroundColor: '#1e293b', 
-                          border: '1px solid #334155',
-                          color: '#ffffff'
+                          backgroundColor: '#ffffff', 
+                          border: `1px solid ${ip.cardBorder}`,
+                          color: '#1E293B'
                         }}
                       />
                       <Scatter name="Performance" dataKey="averageScore" fill="#3b82f6" />
@@ -949,27 +951,27 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                 width: { xs: '100%', lg: '50%' } 
             }}>
               <Card sx={{ 
-                bgcolor: '#1e293b', 
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
-                border: '1px solid #334155'
+                bgcolor: '#ffffff', 
+                boxShadow: 'none',
+                border: `1px solid ${ip.cardBorder}`
               }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                     <TrendingUpIcon sx={{ color: '#3b82f6', mr: 2 }} />
-                    <Typography variant="h6" sx={{ fontWeight: 600, color: '#ffffff' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600, color: '#1E293B' }}>
                       Cumulative Performance Trend
                     </Typography>
                   </Box>
                   <ResponsiveContainer width="100%" height={300}>
                     <AreaChart data={analyticsData.monthlyTrends}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
                       <XAxis dataKey="month" stroke="#94a3b8" />
                       <YAxis stroke="#94a3b8" />
                       <Tooltip 
                         contentStyle={{ 
-                          backgroundColor: '#1e293b', 
-                          border: '1px solid #334155',
-                          color: '#ffffff'
+                          backgroundColor: '#ffffff', 
+                          border: `1px solid ${ip.cardBorder}`,
+                          color: '#1E293B'
                         }}
                       />
                       <Area 

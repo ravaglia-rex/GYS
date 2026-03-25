@@ -248,19 +248,19 @@ const StudentPathPage: React.FC = () => {
             {[
               {
                 name: 'Level 1 - Explore',
-                desc: 'Exam 1 + basic report + tier placement',
+                desc: 'Assessment 1 + basic report + tier placement',
                 price: '₹999/yr',
                 bg: 'bg-[#e5f3ff]',
               },
               {
                 name: 'Level 2 - Engage',
-                desc: 'Exams 1–3 (reasoning triad) + cross-synthesis',
+                desc: 'Assessments 1–3 (reasoning triad) + cross-synthesis',
                 price: '₹4,999/yr',
                 bg: 'bg-[#fff7e0]',
               },
               {
                 name: 'Level 3 - Excel',
-                desc: 'All exams + personality + English + college guidance',
+                desc: 'All assessments + personality + English + college guidance',
                 price: '₹9,999/yr',
                 bg: 'bg-[#f9e8ff]',
               },

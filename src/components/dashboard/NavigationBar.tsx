@@ -22,7 +22,7 @@ const Navbar: React.FC = () => {
                         <TooltipTrigger asChild>
                             <Link
                                 to="/dashboard"
-                                className={`flex h-10 w-10 items-center justify-center rounded-xl transition-colors hover:text-white hover:bg-white/5 ${isActive('/dashboard')} exams-dashboard`}
+                                className={`flex h-10 w-10 items-center justify-center rounded-xl transition-colors hover:text-white hover:bg-white/5 ${isActive('/dashboard')} assessments-dashboard`}
                             >
                                 <Home className="h-6 w-6" />
                                 <span className="sr-only">Dashboard</span>

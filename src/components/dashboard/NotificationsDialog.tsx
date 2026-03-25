@@ -35,13 +35,13 @@ interface Notification {
   message: string;
   timestamp: Date;
   isRead: boolean;
-  category: 'exam' | 'payment' | 'system' | 'general';
+  category: 'assessment' | 'payment' | 'system' | 'general';
 }
 
 interface NotificationsDialogProps {
   open: boolean;
   onClose: () => void;
-  availableExamsCount: number;
+  availableAssessmentsCount: number;
   resultsAvailableCount: number;
 }
 
@@ -62,7 +62,7 @@ const getNotificationIcon = (type: Notification['type']) => {
 
 const getCategoryIcon = (category: Notification['category']) => {
   switch (category) {
-    case 'exam':
+    case 'assessment':
       return <AssignmentIcon />;
     case 'payment':
       return <PaymentIcon />;
@@ -75,7 +75,7 @@ const getCategoryIcon = (category: Notification['category']) => {
 
 const getCategoryColor = (category: Notification['category']) => {
   switch (category) {
-    case 'exam':
+    case 'assessment':
       return 'primary';
     case 'payment':
       return 'success';
@@ -98,60 +98,60 @@ const formatTimestamp = (timestamp: Date) => {
 
 // Function to generate dynamic notifications based on the rules
 const generateDynamicNotifications = (
-  availableExamsCount: number,
+  availableAssessmentsCount: number,
   resultsAvailableCount: number
 ): Notification[] => {
   const notifications: Notification[] = [];
   const now = new Date();
 
-  // Rule 1: If number of exams available is not 0, show "New Exam Available"
-  if (availableExamsCount > 0) {
+  // Rule 1: If number of assessments available is not 0, show "New Assessment Available"
+  if (availableAssessmentsCount > 0) {
     notifications.push({
-      id: 'new-exam-available',
+      id: 'new-assessment-available',
       type: 'info',
-      title: 'New Exam Available',
-      message: `You have ${availableExamsCount} new exam${availableExamsCount > 1 ? 's' : ''} available to take. Check the exams section to get started.`,
+      title: 'New Assessment Available',
+      message: `You have ${availableAssessmentsCount} new assessment${availableAssessmentsCount > 1 ? 's' : ''} available to take. Check the assessments section to get started.`,
       timestamp: new Date(now.getTime() - 30 * 60 * 1000), // 30 minutes ago
       isRead: false,
-      category: 'exam'
+      category: 'assessment'
     });
   }
 
   // Rule 2: If number of results available is 2, show 2 different notifications
   if (resultsAvailableCount === 2) {
-    // First notification: Challenge exam evaluated and result available
+    // First notification: Challenge assessment evaluated and result available
     notifications.push({
-      id: 'challenge-exam-result',
+      id: 'challenge-assessment-result',
       type: 'success',
-      title: 'Challenge Exam Evaluated',
-      message: 'Your challenge exam has been evaluated and results are now available. Check your performance analysis.',
+      title: 'Challenge Assessment Evaluated',
+      message: 'Your challenge assessment has been evaluated and results are now available. Check your performance analysis.',
       timestamp: new Date(now.getTime() - 2 * 60 * 60 * 1000), // 2 hours ago
       isRead: false,
-      category: 'exam'
+      category: 'assessment'
     });
 
-    // Second notification: Check your exam analysis now
+    // Second notification: Check your assessment analysis now
     notifications.push({
-      id: 'exam-analysis-ready',
+      id: 'assessment-analysis-ready',
       type: 'info',
       title: 'Analysis Complete',
-      message: 'Your detailed exam analysis is ready for review. Discover your strengths and areas for improvement.',
+      message: 'Your detailed assessment analysis is ready for review. Discover your strengths and areas for improvement.',
       timestamp: new Date(now.getTime() - 1 * 60 * 60 * 1000), // 1 hour ago
       isRead: false,
-      category: 'exam'
+      category: 'assessment'
     });
   }
 
-  // Rule 3: If number of results available is 1, show qualifying exam result notification
+  // Rule 3: If number of results available is 1, show qualifying assessment result notification
   if (resultsAvailableCount === 1) {
     notifications.push({
-      id: 'qualifying-exam-result',
+      id: 'qualifying-assessment-result',
       type: 'success',
-      title: 'Qualifying Exam Result Available',
-      message: 'Your qualifying exam has been evaluated and results are now available. View your performance and next steps.',
+      title: 'Qualifying Assessment Result Available',
+      message: 'Your qualifying assessment has been evaluated and results are now available. View your performance and next steps.',
       timestamp: new Date(now.getTime() - 3 * 60 * 60 * 1000), // 3 hours ago
       isRead: false,
-      category: 'exam'
+      category: 'assessment'
     });
   }
 
@@ -161,7 +161,7 @@ const generateDynamicNotifications = (
 export default function NotificationsDialog({ 
   open, 
   onClose, 
-  availableExamsCount, 
+  availableAssessmentsCount, 
   resultsAvailableCount 
 }: NotificationsDialogProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -169,11 +169,11 @@ export default function NotificationsDialog({
   // Generate notifications when props change
   useEffect(() => {
     const dynamicNotifications = generateDynamicNotifications(
-      availableExamsCount, 
+      availableAssessmentsCount, 
       resultsAvailableCount
     );
     setNotifications(dynamicNotifications);
-  }, [availableExamsCount, resultsAvailableCount]);
+  }, [availableAssessmentsCount, resultsAvailableCount]);
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 

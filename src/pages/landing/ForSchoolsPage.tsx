@@ -105,6 +105,27 @@ const ForSchoolsPage: React.FC = () => {
               See how your students compare worldwide. Identify gaps. Track growth.
               Demonstrate excellence to parents, boards, and accreditors.
             </p>
+            <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+              <button
+                type="button"
+                onClick={() => navigate('/for-schools/preview')}
+                className="rounded-xl border-2 border-white/80 bg-white/10 px-6 py-3 text-sm font-semibold text-white shadow-sm backdrop-blur transition hover:bg-white/20 hover:-translate-y-0.5 active:scale-[0.99]"
+              >
+                Try interactive preview
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  document
+                    .getElementById('for-schools-next-step')
+                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                }
+                className="rounded-xl px-6 py-3 text-sm font-semibold shadow-md transition hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.99]"
+                style={{ backgroundColor: GYS_GOLD, color: '#0f172a' }}
+              >
+                Interested in the next step?
+              </button>
+            </div>
           </div>
         </section>
 
@@ -240,7 +261,7 @@ const ForSchoolsPage: React.FC = () => {
                 <div className="mt-1 flex flex-col gap-1 text-xs text-slate-600 sm:text-sm">
                   <span className="flex items-start gap-1">
                     <span className="mt-[2px] text-emerald-600 text-xs">✓</span>
-                    <span>Exam 1 (Symbolic Reasoning)</span>
+                    <span>Assessment 1 (Symbolic Reasoning)</span>
                   </span>
                   <span className="flex items-start gap-1">
                     <span className="mt-[2px] text-emerald-600 text-xs">✓</span>
@@ -272,7 +293,7 @@ const ForSchoolsPage: React.FC = () => {
                 <div className="mt-1 flex flex-col gap-1 text-xs text-slate-600 sm:text-sm">
                   <span className="flex items-start gap-1">
                     <span className="mt-[2px] text-emerald-600 text-xs">✓</span>
-                    <span>Exams 1–3 (reasoning triad)</span>
+                    <span>Assessments 1–3 (reasoning triad)</span>
                   </span>
                   <span className="flex items-start gap-1">
                     <span className="mt-[2px] text-emerald-600 text-xs">✓</span>
@@ -390,7 +411,10 @@ const ForSchoolsPage: React.FC = () => {
           </section>
 
           {/* Final CTAs */}
-          <section className="mt-10 sm:mt-12">
+          <section
+            id="for-schools-next-step"
+            className="mt-10 scroll-mt-28 sm:mt-12"
+          >
             <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
               <button
                 type="button"

@@ -148,8 +148,7 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({
         selectedPayee.state,
         selectedPayee.zipcode,
         selectedPayee.country,
-        formId,
-        title,
+        1, // membership_level — updated during Phase 4 UI rewrite
         uid
       );
       setOrder_id(order.id);
@@ -262,8 +261,7 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({
             <DevModePayment
               amount={cost * 100 * 1.18}
               currency={currency}
-              form_id={formId}
-              title={title}
+              membership_level={1}
               payee_name={selectedPayee.name}
               payee_email={selectedPayee.email}
               address_line_1={selectedPayee.address_line_1}
@@ -279,8 +277,7 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({
               amount={cost * 100 * 1.18}
               currency={currency}
               order_id={order_id}
-              form_id={formId}
-              title={title}
+              membership_level={1}
               payee_name={selectedPayee.name}
               payee_email={selectedPayee.email}
               payee_contact={selectedPayee.contact}

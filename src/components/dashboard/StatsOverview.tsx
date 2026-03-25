@@ -4,17 +4,17 @@ import { BookOpen, Target, Award, Clock } from 'lucide-react';
 import MetricCard from './MetricCard';
 
 interface StatsOverviewProps {
-  totalExams?: number;
-  completedExams?: number;
+  totalAssessments?: number;
+  completedAssessments?: number;
   averageScore?: number;
-  upcomingExams?: number;
+  upcomingAssessments?: number;
 }
 
 const StatsOverview: React.FC<StatsOverviewProps> = ({
-  totalExams = 0,
-  completedExams = 0,
+  totalAssessments = 0,
+  completedAssessments = 0,
   averageScore = 0,
-  upcomingExams = 0
+  upcomingAssessments = 0
 }) => {
   return (
     <Box sx={{ mb: 4 }}>
@@ -25,21 +25,21 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
       }}>
         <Box>
           <MetricCard
-            title="Total Exams"
-            value={totalExams}
+            title="Total Assessments"
+            value={totalAssessments}
             icon={<BookOpen />}
             color="primary"
-            trend={`${totalExams > 0 ? '+' : ''}${totalExams} available`}
+            trend={`${totalAssessments > 0 ? '+' : ''}${totalAssessments} available`}
             trendType="positive"
           />
         </Box>
         <Box>
           <MetricCard
             title="Completed"
-            value={completedExams}
+            value={completedAssessments}
             icon={<Award />}
             color="success"
-            trend={`${completedExams > 0 ? '+' : ''}${completedExams} finished`}
+            trend={`${completedAssessments > 0 ? '+' : ''}${completedAssessments} finished`}
             trendType="positive"
           />
         </Box>
@@ -56,10 +56,10 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({
         <Box>
           <MetricCard
             title="Upcoming"
-            value={upcomingExams}
+            value={upcomingAssessments}
             icon={<Clock />}
             color="warning"
-            trend={`${upcomingExams > 0 ? upcomingExams : 'No'} scheduled`}
+            trend={`${upcomingAssessments > 0 ? upcomingAssessments : 'No'} scheduled`}
             trendType="neutral"
           />
         </Box>

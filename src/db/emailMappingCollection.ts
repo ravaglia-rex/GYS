@@ -1,55 +1,23 @@
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  setDoc,
-  doc,
-} from 'firebase/firestore';
-import { db } from '../firebase/firebase';
+import axios from 'axios';
+import { EMAIL_CHECK_APIS, CHECK_EMAIL_EXISTS } from '../constants/constants';
 
-export const checkEmailExists = async (email: string): Promise<boolean> => {
+// Checks both students and school admins via the backend endpoint.
+// Returns { exists: boolean, type: 'student' | 'schooladmin' | null }.
+export const checkEmailExists = async (email: string): Promise<{ exists: boolean; type: string | null }> => {
   try {
-    // First check student_email_mappings collection
-    const emailMappingRef = collection(db, 'student_email_mappings');
-    const emailQuery = query(emailMappingRef, where('email', '==', email));
-    const querySnapshot = await getDocs(emailQuery);
-
-    if (!querySnapshot.empty) {
-      return true;
-    }
-
-    // If not found in student mappings, check schools collection (email and poc_email)
-    const schoolsRef = collection(db, 'schools');
-    const schoolsByEmail = query(schoolsRef, where('email', '==', email));
-    const schoolsByPocEmail = query(schoolsRef, where('poc_email', '==', email));
-    const [emailSnapshot, pocEmailSnapshot] = await Promise.all([
-      getDocs(schoolsByEmail),
-      getDocs(schoolsByPocEmail),
-    ]);
-
-    if (!emailSnapshot.empty || !pocEmailSnapshot.empty) {
-      return true;
-    }
-
-    return false;
+    const encodedEmail = encodeURIComponent(email);
+    const response = await axios.get(
+      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${EMAIL_CHECK_APIS}${CHECK_EMAIL_EXISTS}/${encodedEmail}`
+    );
+    return response.data;
   } catch (error) {
     console.error('checkEmailExists failed:', error);
-    return false; // ✅ fail safe instead of throwing
+    return { exists: false, type: null };
   }
 };
-  
 
-export const addEmailMapping = async (uid: string, email: string) => {
-  try {
-    const emailMappingRef = collection(db, 'student_email_mappings');
-    const emailDocRef = doc(emailMappingRef, uid);
-    await setDoc(emailDocRef, {
-      email,
-    });
-  } catch (error) {
-    throw new Error(
-      `Error adding email for ${email}. Please contact us at talentsearch@argus.ai`
-    );
-  }
+// Kept as a no-op — email is now stored directly on the student document
+// during runSignUpTransaction. No separate email mapping collection exists.
+export const addEmailMapping = async (_uid: string, _email: string): Promise<void> => {
+  // No-op: email is stored on students/{uid}.email_normalized
 };

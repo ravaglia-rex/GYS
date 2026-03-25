@@ -148,6 +148,17 @@ const InstitutionDemoRequestPage: React.FC = () => {
             <p className="mt-2 text-sm sm:text-base text-slate-500">
               Tell us about your school and we&apos;ll schedule a walkthrough.
             </p>
+            <p className="mt-3 text-sm text-slate-600">
+              Prefer to explore first?{' '}
+              <button
+                type="button"
+                onClick={() => navigate('/for-schools/preview')}
+                className="font-semibold text-[#1e3a8a] underline decoration-[#1e3a8a]/40 underline-offset-2 hover:decoration-[#1e3a8a]"
+              >
+                Open the interactive preview
+              </button>
+              {' '}(no login)
+            </p>
           </div>
 
           <div className="rounded-3xl bg-white px-4 py-5 shadow-sm ring-1 ring-slate-200 sm:px-5 sm:py-6">

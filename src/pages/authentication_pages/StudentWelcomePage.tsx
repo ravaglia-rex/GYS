@@ -52,15 +52,15 @@ const StudentWelcomePage: React.FC = () => {
             <ul className="space-y-1.5 text-sm sm:text-base text-slate-800">
               <li className="flex items-center gap-2">
                 <span aria-hidden="true">🧠</span>
-                <span>Symbolic Reasoning Exam</span>
+                <span>Symbolic Reasoning Assessment</span>
               </li>
               <li className="flex items-center gap-2">
                 <span aria-hidden="true">📚</span>
-                <span>Verbal Reasoning Exam</span>
+                <span>Verbal Reasoning Assessment</span>
               </li>
               <li className="flex items-center gap-2">
                 <span aria-hidden="true">📐</span>
-                <span>Mathematical Reasoning Exam</span>
+                <span>Mathematical Reasoning Assessment</span>
               </li>
               <li className="flex items-center gap-2">
                 <span aria-hidden="true">🧩</span>

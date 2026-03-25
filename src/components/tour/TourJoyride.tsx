@@ -5,9 +5,9 @@ import CardCarousel from './CardCarousel';
 
 const steps: Step[] = [
     {
-        title: 'Exams Dashboard',
-        target: '.exams-dashboard',
-        content: 'This is the exams dashboard. Here you can view all exams assigned to you as well as appear for them.',
+        title: 'Assessments Dashboard',
+        target: '.assessments-dashboard',
+        content: 'This is the assessments dashboard. Here you can view all assessments assigned to you as well as take them.',
         disableBeacon: true,
     },
     {
@@ -16,11 +16,11 @@ const steps: Step[] = [
         content: 'This is the payments dashboard. Here you can view all your payments and their details.'
     },
     {
-        title: 'Exam Cards',
-        target: '.exam-cards-group',
+        title: 'Assessment Cards',
+        target: '.assessment-cards-group',
         content: (
             <div>
-                <p>These are the exam cards. You can hover on any card to view more details.</p>
+                <p>These are the assessment cards. You can hover on any card to view more details.</p>
                 <CardCarousel />
             </div>
         )
@@ -77,7 +77,7 @@ const TourJoyride: React.FC<TourJoyrideProps> = ({ run, setRun }) => {
 
     const filteredSteps = location.pathname === '/profile' ? uncommon_steps : steps.filter(step => {
         if (location.pathname === '/dashboard' && step.target === '.payments-tabs') return false;
-        if (location.pathname === '/payments' && step.target === '.exam-cards-group') return false;
+        if (location.pathname === '/payments' && step.target === '.assessment-cards-group') return false;
         return true;
     });
 

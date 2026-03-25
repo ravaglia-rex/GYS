@@ -36,10 +36,12 @@ import {
   ArrowDownward as ArrowDownwardIcon
 } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
+import { useSearchParams } from 'react-router-dom';
 import { RootState } from '../../state_data/reducer';
 import { collection, query, where, getDocs, getDoc, doc } from 'firebase/firestore';
 import { db } from '../../firebase/firebase';
-import { getSchoolQualificationBySchool } from '../../db/schoolAdminCollection';
+import { getSchoolDashboard } from '../../db/schoolAdminCollection';
+import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 
 interface Student {
   id: string;
@@ -47,16 +49,17 @@ interface Student {
   lastName: string;
   email: string;
   grade: number;
-  lastExamDate?: string;
-  examsCompleted: number;
+  lastAssessmentDate?: string;
+  assessmentsCompleted: number;
   qualificationStatus: 'qualified' | 'not_qualified' | 'pending';
 }
 
-type ExamsCompletedFilter = 'all' | '0' | '1' | '2' | '3_plus';
-type SortField = 'firstName' | 'lastName' | 'grade' | 'examsCompleted' | 'latestExam';
+type AssessmentsCompletedFilter = 'all' | '0' | '1' | '2' | '3_plus';
+type SortField = 'firstName' | 'lastName' | 'grade' | 'assessmentsCompleted' | 'latestAssessment';
 type SortDirection = 'asc' | 'desc';
 
 const SchoolAdminStudentsPage: React.FC = () => {
+  const [searchParams] = useSearchParams();
   const { schoolAdmin } = useSelector((state: RootState) => state.auth);
   const [students, setStudents] = useState<Student[]>([]);
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
@@ -68,7 +71,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
   // Filter states
   const [gradeFilter, setGradeFilter] = useState<number | 'all'>('all');
   const [qualificationFilter, setQualificationFilter] = useState<string>('all');
-  const [examsCompletedFilter, setExamsCompletedFilter] = useState<ExamsCompletedFilter>('all');
+  const [assessmentsCompletedFilter, setAssessmentsCompletedFilter] = useState<AssessmentsCompletedFilter>('all');
   const [showFilters, setShowFilters] = useState(false);
 
   const [sortField, setSortField] = useState<SortField>('firstName');
@@ -93,13 +96,20 @@ const SchoolAdminStudentsPage: React.FC = () => {
         const studentsSnapshot = await getDocs(studentsQuery);
 
         const studentDocs = studentsSnapshot.docs;
-        const MAX_STUDENTS_WITH_EXAM_DETAILS = 50;
+        const MAX_STUDENTS_WITH_ASSESSMENT_DETAILS = 50;
 
         // Qualification status for *all* students (computed server-side with Admin SDK)
         let qualificationByUid: Record<string, Student['qualificationStatus']> = {};
         try {
-          const q = await getSchoolQualificationBySchool(String(schoolId ?? '').trim());
-          qualificationByUid = (q?.byStudent as any) || {};
+          const q = await getSchoolDashboard(String(schoolId ?? '').trim());
+          // byStudent replaced by students array; build a uid→status map
+          qualificationByUid = (q?.students ?? []).reduce((acc: any, s: any) => {
+            const st = s.approval_status;
+            if (st === 'declined') acc[s.uid] = 'not_qualified';
+            else if (st === 'pending') acc[s.uid] = 'pending';
+            else acc[s.uid] = 'qualified';
+            return acc;
+          }, {});
         } catch {
           qualificationByUid = {};
         }
@@ -128,8 +138,8 @@ const SchoolAdminStudentsPage: React.FC = () => {
           };
         });
 
-        // Limit heavy exam lookups to a subset of students to keep the page responsive
-        const docsForDetails = studentDocs.slice(0, MAX_STUDENTS_WITH_EXAM_DETAILS);
+        // Limit heavy assessment lookups to a subset of students to keep the page responsive
+        const docsForDetails = studentDocs.slice(0, MAX_STUDENTS_WITH_ASSESSMENT_DETAILS);
         const uidsForDetails = docsForDetails.map(d => d.id);
 
         // Fetch emails for sampled students in parallel (student_email_mappings/{uid} -> { email })
@@ -201,8 +211,8 @@ const SchoolAdminStudentsPage: React.FC = () => {
         const studentsData: Student[] = baseStudents.map(base => {
           const submissions = submissionsByUid[base.id] || [];
 
-          let examsCompleted = submissions.length;
-          let lastExamDate: string | undefined;
+          let assessmentsCompleted = submissions.length;
+          let lastAssessmentDate: string | undefined;
 
           submissions.forEach(sub => {
             const submissionId = sub.submission_id;
@@ -215,8 +225,8 @@ const SchoolAdminStudentsPage: React.FC = () => {
                     resp.createdAt.seconds
                       ? new Date(resp.createdAt.seconds * 1000).toISOString()
                       : new Date(resp.createdAt).toISOString();
-                  if (!lastExamDate || date > lastExamDate) {
-                    lastExamDate = date;
+                  if (!lastAssessmentDate || date > lastAssessmentDate) {
+                    lastAssessmentDate = date;
                   }
                 }
               });
@@ -228,8 +238,8 @@ const SchoolAdminStudentsPage: React.FC = () => {
                 sub.submission_time.seconds
                   ? new Date(sub.submission_time.seconds * 1000).toISOString()
                   : new Date(sub.submission_time).toISOString();
-              if (!lastExamDate || date > lastExamDate) {
-                lastExamDate = date;
+              if (!lastAssessmentDate || date > lastAssessmentDate) {
+                lastAssessmentDate = date;
               }
             }
           });
@@ -243,8 +253,8 @@ const SchoolAdminStudentsPage: React.FC = () => {
             lastName: base.lastName,
             email: emailByUid[base.id] || base.email || '',
             grade: base.grade,
-            lastExamDate,
-            examsCompleted,
+            lastAssessmentDate,
+            assessmentsCompleted,
             qualificationStatus,
           };
         });
@@ -262,6 +272,13 @@ const SchoolAdminStudentsPage: React.FC = () => {
   }, [schoolAdmin]);
 
   useEffect(() => {
+    if (searchParams.get('pending') === '1') {
+      setQualificationFilter('pending');
+      setShowFilters(true);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
     let filtered = students.filter(student => {
       // Search filter
       const matchesSearch = 
@@ -275,20 +292,20 @@ const SchoolAdminStudentsPage: React.FC = () => {
       // Qualification filter
       const matchesQualification = qualificationFilter === 'all' || student.qualificationStatus === qualificationFilter;
 
-      // Exams completed filter
-      const matchesExamsCompleted =
-        examsCompletedFilter === 'all' ||
-        (examsCompletedFilter === '0' && student.examsCompleted === 0) ||
-        (examsCompletedFilter === '1' && student.examsCompleted === 1) ||
-        (examsCompletedFilter === '2' && student.examsCompleted === 2) ||
-        (examsCompletedFilter === '3_plus' && student.examsCompleted >= 3);
+      // Assessments completed filter
+      const matchesAssessmentsCompleted =
+        assessmentsCompletedFilter === 'all' ||
+        (assessmentsCompletedFilter === '0' && student.assessmentsCompleted === 0) ||
+        (assessmentsCompletedFilter === '1' && student.assessmentsCompleted === 1) ||
+        (assessmentsCompletedFilter === '2' && student.assessmentsCompleted === 2) ||
+        (assessmentsCompletedFilter === '3_plus' && student.assessmentsCompleted >= 3);
 
-      return matchesSearch && matchesGrade && matchesQualification && matchesExamsCompleted;
+      return matchesSearch && matchesGrade && matchesQualification && matchesAssessmentsCompleted;
     });
 
-    const getLastExamMs = (s: Student) => {
-      if (!s.lastExamDate) return -Infinity;
-      const ms = Date.parse(s.lastExamDate);
+    const getLastAssessmentMs = (s: Student) => {
+      if (!s.lastAssessmentDate) return -Infinity;
+      const ms = Date.parse(s.lastAssessmentDate);
       return Number.isFinite(ms) ? ms : -Infinity;
     };
 
@@ -304,11 +321,11 @@ const SchoolAdminStudentsPage: React.FC = () => {
         case 'grade':
           cmp = (a.grade || 0) - (b.grade || 0);
           break;
-        case 'examsCompleted':
-          cmp = (a.examsCompleted || 0) - (b.examsCompleted || 0);
+        case 'assessmentsCompleted':
+          cmp = (a.assessmentsCompleted || 0) - (b.assessmentsCompleted || 0);
           break;
-        case 'latestExam':
-          cmp = getLastExamMs(a) - getLastExamMs(b);
+        case 'latestAssessment':
+          cmp = getLastAssessmentMs(a) - getLastAssessmentMs(b);
           break;
         default:
           cmp = 0;
@@ -324,7 +341,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
     });
     
     setFilteredStudents(filtered);
-  }, [searchTerm, students, gradeFilter, qualificationFilter, examsCompletedFilter, sortField, sortDirection]);
+  }, [searchTerm, students, gradeFilter, qualificationFilter, assessmentsCompletedFilter, sortField, sortDirection]);
 
   const handleViewStudent = (student: Student) => {
     setSelectedStudent(student);
@@ -357,7 +374,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
     setSearchTerm('');
     setGradeFilter('all');
     setQualificationFilter('all');
-    setExamsCompletedFilter('all');
+    setAssessmentsCompletedFilter('all');
   };
 
   const getQualificationColor = (status: string) => {
@@ -393,12 +410,12 @@ const SchoolAdminStudentsPage: React.FC = () => {
     !!searchTerm ||
     gradeFilter !== 'all' ||
     qualificationFilter !== 'all' ||
-    examsCompletedFilter !== 'all';
+    assessmentsCompletedFilter !== 'all';
 
   if (loading) {
     return (
       <Box sx={{ maxWidth: '100%', mx: 'auto', p: 4 }}>
-        <Typography variant="h6" sx={{ color: '#ffffff' }}>
+        <Typography variant="h6" sx={{ color: ip.heading }}>
           Loading students...
         </Typography>
       </Box>
@@ -409,7 +426,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
     <Box sx={{ maxWidth: '100%', mx: 'auto' }}>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 600, color: '#ffffff', mb: 1 }}>
+        <Typography variant="h4" sx={{ fontWeight: 600, color: ip.heading, mb: 1 }}>
           Students
         </Typography>
         <Typography variant="body1" sx={{ color: '#94a3b8' }}>
@@ -419,9 +436,9 @@ const SchoolAdminStudentsPage: React.FC = () => {
 
       {/* Search and Filters */}
       <Card sx={{ 
-        bgcolor: '#1e293b', 
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
-        border: '1px solid #334155',
+        bgcolor: '#ffffff', 
+        boxShadow: 'none',
+        border: `1px solid ${ip.cardBorder}`,
         mb: 3
       }}>
         <CardContent>
@@ -443,7 +460,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '& fieldset': {
-                      borderColor: '#334155',
+                      borderColor: ip.cardBorder,
                     },
                     '&:hover fieldset': {
                       borderColor: '#3b82f6',
@@ -453,7 +470,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
                     },
                   },
                   '& .MuiInputBase-input': {
-                    color: '#ffffff',
+                    color: ip.heading,
                   },
                 }}
               />
@@ -467,14 +484,14 @@ const SchoolAdminStudentsPage: React.FC = () => {
                 onChange={(e) => {
                   const next = e.target.value as SortField;
                   setSortField(next);
-                  // Default "Latest exam" to newest-first
-                  if (next === 'latestExam') setSortDirection('desc');
+                  // Default "Latest assessment" to newest-first
+                  if (next === 'latestAssessment') setSortDirection('desc');
                 }}
-                input={<OutlinedInput label="Sort by" sx={{ color: '#ffffff' }} />}
+                input={<OutlinedInput label="Sort by" sx={{ color: ip.heading }} />}
                 sx={{
-                  color: '#ffffff',
+                  color: ip.heading,
                   '& .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#334155',
+                    borderColor: ip.cardBorder,
                   },
                   '&:hover .MuiOutlinedInput-notchedOutline': {
                     borderColor: '#3b82f6',
@@ -490,8 +507,8 @@ const SchoolAdminStudentsPage: React.FC = () => {
                 <MenuItem value="firstName">First name</MenuItem>
                 <MenuItem value="lastName">Last name</MenuItem>
                 <MenuItem value="grade">Grade</MenuItem>
-                <MenuItem value="examsCompleted">Exams completed</MenuItem>
-                <MenuItem value="latestExam">Latest exam</MenuItem>
+                <MenuItem value="assessmentsCompleted">Assessments completed</MenuItem>
+                <MenuItem value="latestAssessment">Latest assessment</MenuItem>
               </Select>
             </FormControl>
 
@@ -499,7 +516,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
               onClick={() => setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'))}
               sx={{
                 color: '#94a3b8',
-                border: '1px solid #334155',
+                border: `1px solid ${ip.cardBorder}`,
                 borderRadius: 2,
                 '&:hover': { borderColor: '#3b82f6', color: '#3b82f6' },
               }}
@@ -513,7 +530,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
               startIcon={<FilterListIcon />}
               onClick={() => setShowFilters(!showFilters)}
               sx={{ 
-                borderColor: '#334155', 
+                borderColor: ip.cardBorder, 
                 color: '#94a3b8',
                 whiteSpace: 'nowrap',
                 '&:hover': {
@@ -534,7 +551,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
               gap: 2, 
               justifyContent: 'center',
               pt: 2,
-              borderTop: '1px solid #334155'
+              borderTop: `1px solid ${ip.cardBorder}`
             }}>
               {/* Grade Filter */}
               <FormControl sx={{ minWidth: { xs: '100%', sm: '150px' } }}>
@@ -542,11 +559,11 @@ const SchoolAdminStudentsPage: React.FC = () => {
                 <Select
                   value={gradeFilter}
                   onChange={(e) => setGradeFilter(e.target.value as number | 'all')}
-                  input={<OutlinedInput label="Grade" sx={{ color: '#ffffff' }} />}
+                  input={<OutlinedInput label="Grade" sx={{ color: ip.heading }} />}
                   sx={{
-                    color: '#ffffff',
+                    color: ip.heading,
                     '& .MuiOutlinedInput-notchedOutline': {
-                      borderColor: '#334155',
+                      borderColor: ip.cardBorder,
                     },
                     '&:hover .MuiOutlinedInput-notchedOutline': {
                       borderColor: '#3b82f6',
@@ -568,17 +585,17 @@ const SchoolAdminStudentsPage: React.FC = () => {
                 </Select>
               </FormControl>
 
-              {/* Exams Completed Filter */}
+              {/* Assessments Completed Filter */}
               <FormControl sx={{ minWidth: { xs: '100%', sm: '180px' } }}>
-                <InputLabel sx={{ color: '#94a3b8' }}>Exams completed</InputLabel>
+                <InputLabel sx={{ color: '#94a3b8' }}>Assessments completed</InputLabel>
                 <Select
-                  value={examsCompletedFilter}
-                  onChange={(e) => setExamsCompletedFilter(e.target.value as ExamsCompletedFilter)}
-                  input={<OutlinedInput label="Exams completed" sx={{ color: '#ffffff' }} />}
+                  value={assessmentsCompletedFilter}
+                  onChange={(e) => setAssessmentsCompletedFilter(e.target.value as AssessmentsCompletedFilter)}
+                  input={<OutlinedInput label="Assessments completed" sx={{ color: ip.heading }} />}
                   sx={{
-                    color: '#ffffff',
+                    color: ip.heading,
                     '& .MuiOutlinedInput-notchedOutline': {
-                      borderColor: '#334155',
+                      borderColor: ip.cardBorder,
                     },
                     '&:hover .MuiOutlinedInput-notchedOutline': {
                       borderColor: '#3b82f6',
@@ -605,11 +622,11 @@ const SchoolAdminStudentsPage: React.FC = () => {
                 <Select
                   value={qualificationFilter}
                   onChange={(e) => setQualificationFilter(e.target.value)}
-                  input={<OutlinedInput label="Qualification" sx={{ color: '#ffffff' }} />}
+                  input={<OutlinedInput label="Qualification" sx={{ color: ip.heading }} />}
                   sx={{
-                    color: '#ffffff',
+                    color: ip.heading,
                     '& .MuiOutlinedInput-notchedOutline': {
-                      borderColor: '#334155',
+                      borderColor: ip.cardBorder,
                     },
                     '&:hover .MuiOutlinedInput-notchedOutline': {
                       borderColor: '#3b82f6',
@@ -659,7 +676,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
                   label={`Search: "${searchTerm}"`}
                   onDelete={() => setSearchTerm('')}
                   size="small"
-                  sx={{ bgcolor: '#334155', color: '#ffffff' }}
+                  sx={{ bgcolor: ip.cardMutedBg, color: ip.heading }}
                 />
               )}
               {gradeFilter !== 'all' && (
@@ -667,23 +684,23 @@ const SchoolAdminStudentsPage: React.FC = () => {
                   label={`Grade: ${gradeFilter}`}
                   onDelete={() => setGradeFilter('all')}
                   size="small"
-                  sx={{ bgcolor: '#334155', color: '#ffffff' }}
+                  sx={{ bgcolor: ip.cardMutedBg, color: ip.heading }}
                 />
               )}
-              {examsCompletedFilter !== 'all' && (
+              {assessmentsCompletedFilter !== 'all' && (
                 <Chip
-                  label={`Exams: ${
-                    examsCompletedFilter === '0'
+                  label={`Assessments: ${
+                    assessmentsCompletedFilter === '0'
                       ? '0'
-                      : examsCompletedFilter === '1'
+                      : assessmentsCompletedFilter === '1'
                         ? '1'
-                        : examsCompletedFilter === '2'
+                        : assessmentsCompletedFilter === '2'
                           ? '2'
                           : '3+'
                   }`}
-                  onDelete={() => setExamsCompletedFilter('all')}
+                  onDelete={() => setAssessmentsCompletedFilter('all')}
                   size="small"
-                  sx={{ bgcolor: '#334155', color: '#ffffff' }}
+                  sx={{ bgcolor: ip.cardMutedBg, color: ip.heading }}
                 />
               )}
               {qualificationFilter !== 'all' && (
@@ -691,7 +708,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
                   label={`Qualification: ${qualificationFilter}`}
                   onDelete={() => setQualificationFilter('all')}
                   size="small"
-                  sx={{ bgcolor: '#334155', color: '#ffffff' }}
+                  sx={{ bgcolor: ip.cardMutedBg, color: ip.heading }}
                 />
               )}
             </Box>
@@ -701,9 +718,9 @@ const SchoolAdminStudentsPage: React.FC = () => {
 
       {/* Students Table */}
       <Card sx={{ 
-        bgcolor: '#1e293b', 
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
-        border: '1px solid #334155'
+        bgcolor: '#ffffff', 
+        boxShadow: 'none',
+        border: `1px solid ${ip.cardBorder}`
       }}>
         <CardContent>
           <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -714,12 +731,12 @@ const SchoolAdminStudentsPage: React.FC = () => {
           <TableContainer component={Paper} sx={{ boxShadow: 'none' }}>
             <Table>
               <TableHead>
-                <TableRow sx={{ bgcolor: '#334155' }}>
+                <TableRow sx={{ bgcolor: ip.cardMutedBg }}>
                   <TableCell sx={{ fontWeight: 600, color: '#ffffff' }}>Student</TableCell>
                   <TableCell sx={{ fontWeight: 600, color: '#ffffff' }}>Grade</TableCell>
-                  <TableCell sx={{ fontWeight: 600, color: '#ffffff' }}>Exams Completed</TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: '#ffffff' }}>Assessments Completed</TableCell>
                   <TableCell sx={{ fontWeight: 600, color: '#ffffff' }}>Qualification</TableCell>
-                  <TableCell sx={{ fontWeight: 600, color: '#ffffff' }}>Last Exam</TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: '#ffffff' }}>Last Assessment</TableCell>
                   <TableCell sx={{ fontWeight: 600, color: '#ffffff' }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
@@ -734,7 +751,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
                   </TableRow>
                 ) : (
                   filteredStudents.map((student) => (
-                    <TableRow key={student.id} sx={{ '&:hover': { bgcolor: '#475569' } }}>
+                    <TableRow key={student.id} sx={{ '&:hover': { bgcolor: 'rgba(37,99,235,0.04)' } }}>
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
                           <Avatar sx={{ mr: 2, bgcolor: '#3b82f6', width: 40, height: 40 }}>
@@ -751,13 +768,13 @@ const SchoolAdminStudentsPage: React.FC = () => {
                         </Box>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" sx={{ color: '#ffffff' }}>
+                        <Typography variant="body2" sx={{ color: ip.heading }}>
                           {student.grade > 0 ? `Grade ${student.grade}` : 'N/A'}
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" sx={{ color: '#ffffff' }}>
-                          {student.examsCompleted}
+                        <Typography variant="body2" sx={{ color: ip.heading }}>
+                          {student.assessmentsCompleted}
                         </Typography>
                       </TableCell>
                       <TableCell>
@@ -772,8 +789,8 @@ const SchoolAdminStudentsPage: React.FC = () => {
                         />
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" sx={{ color: '#ffffff' }}>
-                          {student.lastExamDate ? new Date(student.lastExamDate).toLocaleDateString() : 'N/A'}
+                        <Typography variant="body2" sx={{ color: ip.heading }}>
+                          {student.lastAssessmentDate ? new Date(student.lastAssessmentDate).toLocaleDateString() : 'N/A'}
                         </Typography>
                       </TableCell>
                       <TableCell>
@@ -781,7 +798,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
                           <IconButton
                             size="small"
                             onClick={() => handleViewStudent(student)}
-                            sx={{ color: '#3b82f6' }}
+                            sx={{ color: ip.statBlue }}
                           >
                             <VisibilityIcon />
                           </IconButton>
@@ -803,7 +820,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle sx={{ bgcolor: '#334155', borderBottom: '1px solid #475569' }}>
+        <DialogTitle sx={{ bgcolor: ip.cardMutedBg, borderBottom: `1px solid ${ip.cardBorder}` }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <Avatar sx={{ mr: 2, bgcolor: '#3b82f6', width: 48, height: 48 }}>
               {selectedStudent ? `${selectedStudent.firstName.charAt(0)}${selectedStudent.lastName.charAt(0)}` : ''}
@@ -818,13 +835,13 @@ const SchoolAdminStudentsPage: React.FC = () => {
             </Box>
           </Box>
         </DialogTitle>
-        <DialogContent sx={{ p: 3, bgcolor: '#1e293b' }}>
+        <DialogContent sx={{ p: 3, bgcolor: '#ffffff' }}>
           {selectedStudent && (
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
               <Box sx={{ 
                   width: { xs: '100%', sm: '50%', md: '25%' } 
               }}>
-                <Typography variant="h6" sx={{ fontWeight: 600, color: '#ffffff', mb: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, color: ip.heading, mb: 2 }}>
                   Basic Information
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -832,7 +849,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
                     <Typography variant="body2" sx={{ color: '#94a3b8', mb: 0.5 }}>
                       Email
                     </Typography>
-                    <Typography variant="body1" sx={{ color: '#ffffff' }}>
+                    <Typography variant="body1" sx={{ color: ip.heading }}>
                       {selectedStudent.email || 'N/A'}
                     </Typography>
                   </Box>
@@ -840,7 +857,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
                     <Typography variant="body2" sx={{ color: '#94a3b8', mb: 0.5 }}>
                       Grade
                     </Typography>
-                    <Typography variant="body1" sx={{ color: '#ffffff' }}>
+                    <Typography variant="body1" sx={{ color: ip.heading }}>
                       {selectedStudent.grade > 0 ? `Grade ${selectedStudent.grade}` : 'N/A'}
                     </Typography>
                   </Box>
@@ -862,24 +879,24 @@ const SchoolAdminStudentsPage: React.FC = () => {
               <Box sx={{ 
                   width: { xs: '100%', sm: '50%', md: '25%' } 
               }}>
-                <Typography variant="h6" sx={{ fontWeight: 600, color: '#ffffff', mb: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, color: ip.heading, mb: 2 }}>
                   Performance
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <Box>
                     <Typography variant="body2" sx={{ color: '#94a3b8', mb: 0.5 }}>
-                      Exams Completed
+                      Assessments Completed
                     </Typography>
-                    <Typography variant="body1" sx={{ color: '#ffffff' }}>
-                      {selectedStudent.examsCompleted}
+                    <Typography variant="body1" sx={{ color: ip.heading }}>
+                      {selectedStudent.assessmentsCompleted}
                     </Typography>
                   </Box>
                   <Box>
                     <Typography variant="body2" sx={{ color: '#94a3b8', mb: 0.5 }}>
-                      Last Exam Date
+                      Last Assessment Date
                     </Typography>
-                    <Typography variant="body1" sx={{ color: '#ffffff' }}>
-                      {selectedStudent.lastExamDate ? new Date(selectedStudent.lastExamDate).toLocaleDateString() : 'N/A'}
+                    <Typography variant="body1" sx={{ color: ip.heading }}>
+                      {selectedStudent.lastAssessmentDate ? new Date(selectedStudent.lastAssessmentDate).toLocaleDateString() : 'N/A'}
                     </Typography>
                   </Box>
                 </Box>
@@ -887,8 +904,8 @@ const SchoolAdminStudentsPage: React.FC = () => {
             </Box>
           )}
         </DialogContent>
-        <DialogActions sx={{ p: 3, bgcolor: '#334155', borderTop: '1px solid #475569' }}>
-          <Button onClick={handleCloseDialog} sx={{ color: '#94a3b8' }}>
+        <DialogActions sx={{ p: 3, bgcolor: ip.cardMutedBg, borderTop: `1px solid ${ip.cardBorder}` }}>
+          <Button onClick={handleCloseDialog} sx={{ color: ip.subtext }}>
             Close
           </Button>
         </DialogActions>

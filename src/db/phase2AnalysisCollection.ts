@@ -1,6 +1,6 @@
-// argus-frontend/src/db/phase2AnalysisCollection.ts
-import { db } from '../firebase/firebase';
-import { collection, query, where, getDocs, doc, setDoc, updateDoc } from 'firebase/firestore';
+// Legacy file — Phase 2 analysis is no longer stored in a separate collection.
+// Assessment results live in students/{uid}/attempts/ and
+// students/{uid}/assessments/.
 
 export interface Phase2Analysis {
   studentId: string;
@@ -14,78 +14,23 @@ export interface Phase2Analysis {
   updatedAt: any;
 }
 
-export const getPhase2Analysis = async (studentId: string): Promise<Phase2Analysis | null> => {
-  try {
-    const analysisQuery = query(
-      collection(db, 'phase_2_analysis'),
-      where('studentId', '==', studentId)
-    );
-    
-    const analysisSnapshot = await getDocs(analysisQuery);
-    
-    if (analysisSnapshot.empty) {
-      return null;
-    }
-    
-    const analysisDoc = analysisSnapshot.docs[0];
-    return analysisDoc.data() as Phase2Analysis;
-  } catch (error) {
-    console.error('Error fetching phase 2 analysis:', error);
-    throw error;
-  }
+export const getPhase2Analysis = async (_studentId: string): Promise<null> => {
+  console.warn('getPhase2Analysis is deprecated. Read from assessmentCollection.ts instead.');
+  return null;
 };
 
 export const createPhase2Analysis = async (
-  studentId: string, 
-  submissionId: string,
-  computedAnalysis?: any // Add this parameter
+  _studentId: string,
+  _submissionId: string,
+  _computedAnalysis?: any
 ): Promise<Phase2Analysis> => {
-  try {
-    const newAnalysis: Phase2Analysis = {
-      studentId,
-      submissionId,
-      big5Analysis: computedAnalysis?.big5Analysis || {},
-      logicAnalysis: computedAnalysis?.logicAnalysis || {},
-      mathAnalysis: computedAnalysis?.mathAnalysis || {},
-      readingAnalysis: computedAnalysis?.readingAnalysis || {},
-      writingAnalysis: computedAnalysis?.writingAnalysis || {},
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    
-    const analysisRef = doc(collection(db, 'phase_2_analysis'));
-    await setDoc(analysisRef, newAnalysis);
-    
-    return newAnalysis;
-  } catch (error) {
-    console.error('Error creating phase 2 analysis:', error);
-    throw error;
-  }
+  console.warn('createPhase2Analysis is deprecated.');
+  throw new Error('createPhase2Analysis is deprecated. Use the new assessment system.');
 };
 
 export const updatePhase2Analysis = async (
-  studentId: string, 
-  analysisData: Partial<Phase2Analysis>
+  _studentId: string,
+  _analysisData: Partial<Phase2Analysis>
 ): Promise<void> => {
-  try {
-    const analysisQuery = query(
-      collection(db, 'phase_2_analysis'),
-      where('studentId', '==', studentId)
-    );
-    
-    const analysisSnapshot = await getDocs(analysisQuery);
-    
-    if (analysisSnapshot.empty) {
-      throw new Error('Analysis document not found');
-    }
-    
-    const analysisDoc = analysisSnapshot.docs[0];
-    await updateDoc(doc(db, 'phase_2_analysis', analysisDoc.id), {
-      ...analysisData,
-      updatedAt: new Date()
-    });
-  } catch (error) {
-    console.error('Error updating phase 2 analysis:', error);
-    throw error;
-  }
+  console.warn('updatePhase2Analysis is deprecated.');
 };

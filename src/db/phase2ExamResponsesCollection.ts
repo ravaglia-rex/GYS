@@ -1,116 +1,21 @@
-import { db } from '../firebase/firebase';
-import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
+// Legacy file — Phase 2 Typeform exam responses no longer exist.
+// Personality Profile assessment results are now stored in
+// students/{uid}/attempts/ and students/{uid}/assessments/.
 
 export interface Phase2ExamResponse {
   submissionId: string;
   studentId: string;
-  responseData: {
-    [questionId: string]: {
-      key: string;
-      label: string;
-      options: Array<{
-        id: string;
-        text: string;
-      }>;
-      type: string;
-      value: string[];
-    };
-  };
+  responseData: Record<string, any>;
   big5analysis?: string;
-  typeTotals?: {
-    big5?: {
-      openness: number;
-      conscientiousness: number;
-      extraversion: number;
-      agreeableness: number;
-      neuroticism: number;
-    };
-    logic?: number;
-    math?: number;
-    reading?: number;
-    writing?: number;
-    [key: string]: any;
-  };
+  typeTotals?: Record<string, any>;
   createdAt?: any;
 }
 
-export const getPhase2ExamResponse = async (studentId: string): Promise<Phase2ExamResponse | null> => {
-  try {
-    
-    // First, get the submission ID from student_submission_mappings
-    const submissionMappingQuery = query(
-      collection(db, 'student_submission_mappings'),
-      where('student_uid', '==', studentId)
-    );
-    
-    const submissionMappingSnapshot = await getDocs(submissionMappingQuery);
-    
-    if (submissionMappingSnapshot.empty) {
-      return null;
-    }
-    
-    const submissionMappingDoc = submissionMappingSnapshot.docs[0];
-    const submissionMappingData = submissionMappingDoc.data();
-    
-    const submissionId = submissionMappingData.submission_id;
-    
-    if (!submissionId) {
-      return null;
-    }
-    
-    // Query the collection to find document with matching submissionId field
-    const responseQuery = query(
-      collection(db, 'phase_2_exam_responses'),
-      where('submissionId', '==', submissionId)
-    );
-    
-    const responseSnapshot = await getDocs(responseQuery);
-    
-    if (responseSnapshot.empty) {
-      return null;
-    }
-    
-    const responseDoc = responseSnapshot.docs[0];
-    
-    const responseData = responseDoc.data();
-    
-    return {
-      submissionId,
-      studentId,
-      responseData: responseData?.responseData || {},
-      big5analysis: responseData?.big5analysis,
-      typeTotals: responseData?.typeTotals, // Add this line
-      createdAt: responseData?.createdAt
-    };
-  } catch (error) {
-    console.error('Error fetching phase 2 exam response:', error);
-    throw error;
-  }
+export const getPhase2ExamResponse = async (_studentId: string): Promise<Phase2ExamResponse | null> => {
+  console.warn('getPhase2ExamResponse is deprecated. Read from assessmentCollection.ts instead.');
+  return null;
 };
 
-export const saveBig5Analysis = async (submissionId: string, analysis: string): Promise<void> => {
-  try {
-    // First, find the document by submissionId
-    const responseQuery = query(
-      collection(db, 'phase_2_exam_responses'),
-      where('submissionId', '==', submissionId)
-    );
-    
-    const responseSnapshot = await getDocs(responseQuery);
-    
-    if (responseSnapshot.empty) {
-      throw new Error(`No document found with submissionId: ${submissionId}`);
-    }
-    
-    const responseDoc = responseSnapshot.docs[0];
-    
-    // Update the document using its actual document ID
-    await updateDoc(doc(db, 'phase_2_exam_responses', responseDoc.id), {
-      big5analysis: analysis,
-      analysisUpdatedAt: new Date()
-    });
-  } catch (error) {
-    console.error('Error saving Big5 analysis:', error);
-    throw error;
-  }
+export const saveBig5Analysis = async (_submissionId: string, _analysis: string): Promise<void> => {
+  console.warn('saveBig5Analysis is deprecated.');
 };

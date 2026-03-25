@@ -157,7 +157,7 @@ const Phase2FormEmbedding: React.FC<Phase2FormEmbeddingProps> = ({ setSubmitted,
             frameBorder={0}
             marginHeight={0}
             marginWidth={0}
-            title="Argus Talent Exam - Phase 2"
+            title="Argus Talent Assessment - Phase 2"
           >
           </iframe>
         </>
@@ -173,7 +173,7 @@ const Phase2FormEmbedding: React.FC<Phase2FormEmbeddingProps> = ({ setSubmitted,
       {submissionComplete && (
         <>
           <div style={{ marginTop: '20px', textAlign: 'center' }}>
-            <p>Phase 2 exam submitted successfully! You can now navigate to the dashboard.</p>
+            <p>Phase 2 assessment submitted successfully! You can now navigate to the dashboard.</p>
             <button 
               onClick={() => {
                 navigate('/dashboard');

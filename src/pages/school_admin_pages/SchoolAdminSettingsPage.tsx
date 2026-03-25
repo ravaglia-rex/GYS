@@ -25,6 +25,7 @@ import { RootState, AppDispatch } from '../../state_data/reducer';
 import { doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../../firebase/firebase';
 import { checkUserRole } from '../../state_data/authSlice';
+import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 
 const SchoolAdminSettingsPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -175,7 +176,7 @@ const SchoolAdminSettingsPage: React.FC = () => {
   if (loading) {
     return (
       <Box sx={{ maxWidth: '100%', mx: 'auto', p: 4 }}>
-        <Typography variant="h6" sx={{ color: '#ffffff' }}>
+        <Typography variant="h6" sx={{ color: ip.heading }}>
           Loading settings...
         </Typography>
       </Box>
@@ -186,11 +187,11 @@ const SchoolAdminSettingsPage: React.FC = () => {
   if (hasTriedLoading && !schoolAdmin?.schoolId) {
     return (
       <Box sx={{ maxWidth: '100%', mx: 'auto', p: 4 }}>
-        <Alert severity="error" sx={{ mb: 3, bgcolor: '#1e293b', border: '1px solid #ef4444' }}>
-          <Typography variant="h6" sx={{ color: '#ffffff', mb: 1 }}>
+        <Alert severity="error" sx={{ mb: 3 }}>
+          <Typography variant="h6" sx={{ mb: 1 }}>
             Unable to load school information
           </Typography>
-          <Typography variant="body2" sx={{ color: '#94a3b8' }}>
+          <Typography variant="body2">
             Please ensure you are logged in as a school administrator and that your account is properly configured.
           </Typography>
         </Alert>
@@ -202,7 +203,7 @@ const SchoolAdminSettingsPage: React.FC = () => {
     <Box sx={{ maxWidth: '100%', mx: 'auto' }}>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 600, color: '#ffffff', mb: 1 }}>
+        <Typography variant="h4" sx={{ fontWeight: 600, color: '#1E293B', mb: 1 }}>
           Settings
         </Typography>
         <Typography variant="body1" sx={{ color: '#94a3b8' }}>
@@ -211,7 +212,7 @@ const SchoolAdminSettingsPage: React.FC = () => {
       </Box>
 
       {showSuccess && (
-        <Alert severity="success" sx={{ mb: 3, bgcolor: '#1e293b', border: '1px solid #10b981' }}>
+        <Alert severity="success" sx={{ mb: 3 }}>
           Settings saved successfully!
         </Alert>
       )}
@@ -219,9 +220,9 @@ const SchoolAdminSettingsPage: React.FC = () => {
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         {/* School Information */}
         <Card sx={{ 
-          bgcolor: '#1e293b', 
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
-          border: '1px solid #334155'
+          bgcolor: '#ffffff', 
+          boxShadow: 'none',
+          border: `1px solid ${ip.cardBorder}`
         }}>
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
@@ -229,7 +230,7 @@ const SchoolAdminSettingsPage: React.FC = () => {
                 <SchoolIcon />
               </Avatar>
               <Box sx={{ flexGrow: 1 }}>
-                <Typography variant="h6" sx={{ fontWeight: 600, color: '#ffffff' }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, color: ip.heading }}>
                   School Information
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#94a3b8' }}>
@@ -253,7 +254,7 @@ const SchoolAdminSettingsPage: React.FC = () => {
               )}
             </Box>
 
-            <Divider sx={{ mb: 3, borderColor: '#334155' }} />
+            <Divider sx={{ mb: 3, borderColor: ip.cardBorder }} />
 
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
               <TextField
@@ -264,7 +265,7 @@ const SchoolAdminSettingsPage: React.FC = () => {
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '& fieldset': {
-                      borderColor: '#334155',
+                      borderColor: ip.cardBorder,
                     },
                     '&:hover fieldset': {
                       borderColor: '#3b82f6',
@@ -274,7 +275,7 @@ const SchoolAdminSettingsPage: React.FC = () => {
                     },
                   },
                   '& .MuiInputBase-input': {
-                    color: '#ffffff',
+                    color: '#1E293B',
                   },
                   '& .MuiInputLabel-root': {
                     color: '#94a3b8',
@@ -296,7 +297,7 @@ const SchoolAdminSettingsPage: React.FC = () => {
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '& fieldset': {
-                      borderColor: '#334155',
+                      borderColor: ip.cardBorder,
                     },
                     '&:hover fieldset': {
                       borderColor: '#3b82f6',
@@ -306,7 +307,7 @@ const SchoolAdminSettingsPage: React.FC = () => {
                     },
                   },
                   '& .MuiInputBase-input': {
-                    color: '#ffffff',
+                    color: '#1E293B',
                   },
                   '& .MuiInputLabel-root': {
                     color: '#94a3b8',
@@ -328,7 +329,7 @@ const SchoolAdminSettingsPage: React.FC = () => {
                   gridColumn: { xs: '1', md: '1 / -1' },
                   '& .MuiOutlinedInput-root': {
                     '& fieldset': {
-                      borderColor: '#334155',
+                      borderColor: ip.cardBorder,
                     },
                     '&:hover fieldset': {
                       borderColor: '#3b82f6',
@@ -338,7 +339,7 @@ const SchoolAdminSettingsPage: React.FC = () => {
                     },
                   },
                   '& .MuiInputBase-input': {
-                    color: '#ffffff',
+                    color: '#1E293B',
                   },
                   '& .MuiInputLabel-root': {
                     color: '#94a3b8',
@@ -357,7 +358,7 @@ const SchoolAdminSettingsPage: React.FC = () => {
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '& fieldset': {
-                      borderColor: '#334155',
+                      borderColor: ip.cardBorder,
                     },
                     '&:hover fieldset': {
                       borderColor: '#3b82f6',
@@ -367,7 +368,7 @@ const SchoolAdminSettingsPage: React.FC = () => {
                     },
                   },
                   '& .MuiInputBase-input': {
-                    color: '#ffffff',
+                    color: '#1E293B',
                   },
                   '& .MuiInputLabel-root': {
                     color: '#94a3b8',
@@ -386,7 +387,7 @@ const SchoolAdminSettingsPage: React.FC = () => {
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '& fieldset': {
-                      borderColor: '#334155',
+                      borderColor: ip.cardBorder,
                     },
                     '&:hover fieldset': {
                       borderColor: '#3b82f6',
@@ -396,7 +397,7 @@ const SchoolAdminSettingsPage: React.FC = () => {
                     },
                   },
                   '& .MuiInputBase-input': {
-                    color: '#ffffff',
+                    color: '#1E293B',
                   },
                   '& .MuiInputLabel-root': {
                     color: '#94a3b8',
@@ -412,9 +413,9 @@ const SchoolAdminSettingsPage: React.FC = () => {
 
         {/* Security Settings */}
         <Card sx={{ 
-          bgcolor: '#1e293b', 
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
-          border: '1px solid #334155'
+          bgcolor: '#ffffff', 
+          boxShadow: 'none',
+          border: `1px solid ${ip.cardBorder}`
         }}>
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
@@ -422,7 +423,7 @@ const SchoolAdminSettingsPage: React.FC = () => {
                 <SecurityIcon />
               </Avatar>
               <Box sx={{ flexGrow: 1 }}>
-                <Typography variant="h6" sx={{ fontWeight: 600, color: '#ffffff' }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, color: ip.heading }}>
                   Security Settings
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#94a3b8' }}>
@@ -431,10 +432,10 @@ const SchoolAdminSettingsPage: React.FC = () => {
               </Box>
             </Box>
 
-            <Divider sx={{ mb: 3, borderColor: '#334155' }} />
+            <Divider sx={{ mb: 3, borderColor: ip.cardBorder }} />
 
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Paper sx={{ p: 2, bgcolor: '#334155', border: '1px solid #475569' }}>
+              <Paper sx={{ p: 2, bgcolor: '#F8FAFC', border: `1px solid ${ip.cardBorder}` }}>
                 <Typography variant="body2" sx={{ color: '#94a3b8', mb: 1, fontWeight: 500 }}>
                   Two-Factor Authentication
                 </Typography>
@@ -443,7 +444,7 @@ const SchoolAdminSettingsPage: React.FC = () => {
                 </Typography>
               </Paper>
 
-              <Paper sx={{ p: 2, bgcolor: '#334155', border: '1px solid #475569' }}>
+              <Paper sx={{ p: 2, bgcolor: '#F8FAFC', border: `1px solid ${ip.cardBorder}` }}>
                 <Typography variant="body2" sx={{ color: '#94a3b8', mb: 1, fontWeight: 500 }}>
                   Session Management
                 </Typography>
@@ -452,7 +453,7 @@ const SchoolAdminSettingsPage: React.FC = () => {
                 </Typography>
               </Paper>
 
-              <Paper sx={{ p: 2, bgcolor: '#334155', border: '1px solid #475569' }}>
+              <Paper sx={{ p: 2, bgcolor: '#F8FAFC', border: `1px solid ${ip.cardBorder}` }}>
                 <Typography variant="body2" sx={{ color: '#94a3b8', mb: 1, fontWeight: 500 }}>
                   Data Export
                 </Typography>
@@ -466,9 +467,9 @@ const SchoolAdminSettingsPage: React.FC = () => {
 
         {/* Action Buttons */}
         <Card sx={{ 
-          bgcolor: '#1e293b', 
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
-          border: '1px solid #334155'
+          bgcolor: '#ffffff', 
+          boxShadow: 'none',
+          border: `1px solid ${ip.cardBorder}`
         }}>
           <CardContent>
             <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
@@ -477,11 +478,11 @@ const SchoolAdminSettingsPage: React.FC = () => {
                 startIcon={<CancelIcon />}
                 onClick={handleCancel}
                 sx={{ 
-                  borderColor: '#334155', 
-                  color: '#94a3b8',
+                  borderColor: ip.cardBorder, 
+                  color: ip.subtext,
                   '&:hover': {
-                    borderColor: '#475569',
-                    bgcolor: '#334155'
+                    borderColor: ip.navy,
+                    bgcolor: ip.cardMutedBg
                   }
                 }}
               >
@@ -492,8 +493,8 @@ const SchoolAdminSettingsPage: React.FC = () => {
                 startIcon={<SaveIcon />}
                 onClick={handleSave}
                 sx={{ 
-                  bgcolor: '#3b82f6', 
-                  '&:hover': { bgcolor: '#2563eb' } 
+                  bgcolor: ip.navy, 
+                  '&:hover': { bgcolor: '#0c356f' } 
                 }}
               >
                 Save Changes

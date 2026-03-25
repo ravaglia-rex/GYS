@@ -49,12 +49,12 @@ const navItems: NavItem[] = [
     icon: <DashboardIcon sx={{ color: '#8b5cf6' }} />,
   },
   {
-    title: 'Exams',
-    path: '/exams',
+    title: 'Assessments',
+    path: '/assessments',
     icon: <AssessmentIcon sx={{ color: '#3b82f6' }} />,
     children: [
-      { title: 'Available', path: '/exams/available', icon: <SchoolIcon sx={{ color: '#10b981' }} /> },
-      { title: 'Completed & Results', path: '/exams/completed', icon: <BarChartIcon sx={{ color: '#06b6d4' }} /> },
+      { title: 'Available', path: '/assessments/available', icon: <SchoolIcon sx={{ color: '#10b981' }} /> },
+      { title: 'Completed & Results', path: '/assessments/completed', icon: <BarChartIcon sx={{ color: '#06b6d4' }} /> },
     ],
   },
   {

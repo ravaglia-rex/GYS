@@ -154,7 +154,7 @@ const EnhancedExamCard: React.FC<{
     try {
       const resultData = await getCurrentExamResult(uid, exam.id);
       
-      setCurrentResult(resultData.result);
+      setCurrentResult(resultData?.result ?? null);
       setLastUpdated(new Date());
     } catch (error) {
       // Keep the existing result if fetch fails
@@ -342,7 +342,7 @@ const EnhancedExamCard: React.FC<{
               fontWeight: 600,
               textAlign: 'center'
             }}>
-              Please scroll down to the bottom to start the exam
+              Please scroll down to the bottom to start the assessment
             </Typography>
           </Box>
         )}
@@ -389,7 +389,7 @@ const EnhancedExamCard: React.FC<{
             mb: 3
           }}>
             <Typography variant="body2" sx={{ color: '#8b5cf6', fontWeight: 600, mb: 2 }}>
-              Exam Details:
+              Assessment Details:
             </Typography>
             
             {/* Duration */}
@@ -404,7 +404,7 @@ const EnhancedExamCard: React.FC<{
             {exam.examDetails && exam.examDetails.length > 0 && (
               <Box sx={{ mt: 2 }}>
                 <Typography variant="body2" sx={{ color: '#8b5cf6', fontWeight: 600, mb: 2 }}>
-                  Exam Sections:
+                  Assessment Sections:
                 </Typography>
                 {exam.examDetails.map((detailString, index) => {
                   try {
@@ -471,10 +471,10 @@ const EnhancedExamCard: React.FC<{
                 Important Instructions:
               </Typography>
               <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.875rem', mb: 1 }}>
-                • Ensure that you have a stable internet connection before starting the exam.
+                • Ensure that you have a stable internet connection before starting the assessment.
               </Typography>
               <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.875rem' }}>
-                • The exam fees have been covered by your school.
+                • The assessment fees have been covered by your school.
               </Typography>
             </Box>
           </Box>
@@ -659,7 +659,7 @@ const EnhancedExamCard: React.FC<{
             <Button
               variant="contained"
               size="medium"
-              onClick={() => navigate('/exams/analysis')}
+              onClick={() => navigate('/reports')}
               startIcon={<Eye size={18} />}
               sx={{
                 background: 'linear-gradient(45deg, #8b5cf6, #3b82f6)',
@@ -754,7 +754,7 @@ const EnhancedExamCard: React.FC<{
                       transition: 'all 0.3s ease'
                     }}
                   >
-                    Start Exam
+                    Start Assessment
                   </Button>
                 </>
               ) : (
@@ -783,7 +783,7 @@ const EnhancedExamCard: React.FC<{
                       transition: 'all 0.3s ease'
                     }}
                   >
-                    Start Exam
+                    Start Assessment
                   </Button>
                 )
               )}
