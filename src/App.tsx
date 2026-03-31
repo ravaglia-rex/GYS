@@ -13,6 +13,13 @@ import CssBaseline from '@mui/material/CssBaseline';
 function App() {
   // Create dark theme for Material-UI
   const darkTheme = createTheme({
+    typography: {
+      fontFamily: "'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      body2: { fontSize: '0.9375rem', lineHeight: 1.43 },
+      caption: { fontSize: '0.8125rem', lineHeight: 1.5 },
+      subtitle2: { fontSize: '0.875rem', lineHeight: 1.57 },
+      button: { fontSize: '0.9375rem' },
+    },
     palette: {
       mode: 'dark',
       background: {

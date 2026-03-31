@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '../../components/ui/use-toast';
+import { registerSchool } from '../../db/schoolCollection';
+import * as Sentry from '@sentry/react';
+import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
 
 const GYS_BLUE = '#1e3a8a';
 
@@ -116,8 +120,6 @@ const PLANS = [
   },
 ];
 
-type PaymentMethod = 'UPI' | 'CARD' | 'BANK_TRANSFER';
-
 const MAX_ABBREVIATIONS = 5;
 const MAX_EMAILS = 5;
 const TOTAL_STEPS = 4;
@@ -128,8 +130,11 @@ function isValidEmail(value: string): boolean {
 
 const SchoolRegistrationPage: React.FC = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [registeredSchoolId, setRegisteredSchoolId] = useState<string | null>(null);
 
   // Step 1: School Identity
   const [schoolName, setSchoolName] = useState('');
@@ -150,10 +155,9 @@ const SchoolRegistrationPage: React.FC = () => {
   // Step 3: Point of Contact Emails
   const [emails, setEmails] = useState<string[]>(['']);
 
-  // Step 4: Payment
+  // Step 4: Plan + payment intent (invoice / details sent later)
   const [selectedPlan, setSelectedPlan] = useState('standard');
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('UPI');
-  const [upiId, setUpiId] = useState('');
+  const [commitToPay, setCommitToPay] = useState(false);
 
   // Validation errors
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -261,8 +265,10 @@ const SchoolRegistrationPage: React.FC = () => {
 
   const validateStep4 = (): boolean => {
     const newErrors: Record<string, string> = {};
-    if (paymentMethod === 'UPI' && !upiId.trim())
-      newErrors.upiId = 'Please enter your UPI ID.';
+    if (!commitToPay) {
+      newErrors.commitToPay =
+        'Please confirm that your institution will complete payment after we share the process and details.';
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -280,15 +286,56 @@ const SchoolRegistrationPage: React.FC = () => {
     else navigate(-1);
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!validateStep4()) return;
-    setSubmitted(true);
+
+    const filledEmails = emails
+      .map((e) => e.trim().toLowerCase())
+      .filter((e) => e.length > 0);
+
+    const abbrevList = abbreviations.map((a) => a.trim()).filter((a) => a.length > 0);
+
+    try {
+      setIsSubmitting(true);
+      const result = await registerSchool({
+        school_name: schoolName.trim(),
+        confirm_school_name: confirmSchoolName.trim(),
+        abbreviations: abbrevList,
+        udise_code: udiseCode.trim(),
+        board,
+        state_board_state: board === 'State Board' ? stateBoardState : '',
+        referral_source: referralSource,
+        address_line1: addressLine1.trim(),
+        address_line2: addressLine2.trim(),
+        city: city.trim(),
+        state: addressState,
+        postal_code: zipCode.trim(),
+        contact_emails: filledEmails,
+        selected_plan_id: selectedPlan,
+        commit_to_pay: commitToPay,
+      });
+      setRegisteredSchoolId(result.schoolId);
+      setSubmitted(true);
+    } catch (err: unknown) {
+      Sentry.withScope((scope) => {
+        scope.setTag('location', 'SchoolRegistrationPage.handleSubmit');
+        Sentry.captureException(err);
+      });
+      const message = err instanceof Error ? err.message : 'Registration failed.';
+      toast({
+        variant: 'destructive',
+        title: 'Could not register',
+        description: message,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // ── Progress bar ─────────────────────────────────────────────────────────
 
-  const stepLabels = ['School Identity', 'School Details', 'Contact Emails', 'Payment'];
+  const stepLabels = ['School Identity', 'School Details', 'Contact Emails', 'Plan & confirmation'];
 
   const ProgressBar = () => (
     <div className="mb-5 sm:mb-6">
@@ -321,14 +368,20 @@ const SchoolRegistrationPage: React.FC = () => {
             <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50">
               <span className="text-3xl">🏫</span>
             </div>
-            <h2 className="text-2xl font-bold text-slate-900">Registration Submitted!</h2>
+            <h2 className="text-2xl font-bold text-slate-900">Registration complete</h2>
             <p className="mt-3 text-sm text-slate-600 leading-relaxed">
               Thank you for registering{' '}
-              <span className="font-semibold">{schoolName}</span> on the GYS portal. Your{' '}
-              <span className="font-semibold">{currentPlan.name}</span> plan payment is being
-              processed. Our team will confirm your account and the point-of-contact emails you
-              provided will receive an invitation link to set up their portal access.
+              <span className="font-semibold">{schoolName}</span> on the GYS portal. You selected
+              the <span className="font-semibold">{currentPlan.name}</span> plan. Our team will
+              contact you shortly with payment instructions and next steps. Completing this
+              registration confirms that your institution intends to subscribe and will pay once
+              those details are shared-no payment is required on this form.
             </p>
+            {registeredSchoolId && (
+              <p className="mt-2 text-xs text-slate-500 font-mono break-all">
+                School reference: {registeredSchoolId}
+              </p>
+            )}
             <p className="mt-3 text-xs text-slate-500 leading-relaxed">
               Expect to hear from us within 2–3 business days. For urgent queries reach out at{' '}
               <a
@@ -372,7 +425,7 @@ const SchoolRegistrationPage: React.FC = () => {
                 Register Your School
               </h1>
               <p className="mt-2 text-xs sm:text-sm text-slate-600">
-                Let's start with your school's official name. Type carefully — this is how your
+                Let's start with your school's official name. Type carefully - this is how your
                 school will appear across the GYS platform and to students selecting their school.
               </p>
 
@@ -382,7 +435,7 @@ const SchoolRegistrationPage: React.FC = () => {
                   <label className="block text-xs sm:text-sm font-bold text-slate-700">
                     Official School Name<span className="text-red-500"> *</span>
                   </label>
-                  <p className="mt-0.5 text-[11px] sm:text-xs text-slate-500">
+                  <p className="mt-0.5 text-xs text-slate-500">
                     Use the full, official name as it appears on your school's certificate or
                     letterhead.
                   </p>
@@ -404,12 +457,12 @@ const SchoolRegistrationPage: React.FC = () => {
                   )}
                 </div>
 
-                {/* Confirm school name — no copy-paste */}
+                {/* Confirm school name - no copy-paste */}
                 <div>
                   <label className="block text-xs sm:text-sm font-bold text-slate-700">
                     Confirm School Name<span className="text-red-500"> *</span>
                   </label>
-                  <p className="mt-0.5 text-[11px] sm:text-xs text-slate-500">
+                  <p className="mt-0.5 text-xs text-slate-500">
                     Type the school name again exactly as above. Copy-paste is disabled to prevent
                     typos.
                   </p>
@@ -447,8 +500,8 @@ const SchoolRegistrationPage: React.FC = () => {
                     School Abbreviations / Common Names
                     <span className="ml-1 text-slate-400 font-normal">(optional)</span>
                   </label>
-                  <p className="mt-0.5 text-[11px] sm:text-xs text-slate-500 leading-relaxed">
-                    Add any short names, abbreviations, or aliases students commonly use — for
+                  <p className="mt-0.5 text-xs text-slate-500 leading-relaxed">
+                    Add any short names, abbreviations, or aliases students commonly use - for
                     example <span className="font-medium">DPS RK Puram</span>,{' '}
                     <span className="font-medium">DPS-R</span>, or{' '}
                     <span className="font-medium">Delhi Public RKP</span>. These help students find
@@ -518,7 +571,7 @@ const SchoolRegistrationPage: React.FC = () => {
                     UDISE Code
                     <span className="ml-1 text-slate-400 font-normal">(optional)</span>
                   </label>
-                  <p className="mt-0.5 text-[11px] sm:text-xs text-slate-500">
+                  <p className="mt-0.5 text-xs text-slate-500">
                     The 11-digit code assigned by the Ministry of Education. Found on your school's
                     UDISE certificate.
                   </p>
@@ -566,7 +619,7 @@ const SchoolRegistrationPage: React.FC = () => {
                   {/* State Board sub-selector */}
                   {board === 'State Board' && (
                     <div className="mt-3">
-                      <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 mb-1">
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">
                         Which state board?<span className="text-red-500"> *</span>
                       </label>
                       <select
@@ -627,7 +680,7 @@ const SchoolRegistrationPage: React.FC = () => {
                   {/* Address line 1 */}
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 mb-1">
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">
                         Address Line 1<span className="text-red-500"> *</span>
                       </label>
                       <input
@@ -649,7 +702,7 @@ const SchoolRegistrationPage: React.FC = () => {
 
                     {/* Address line 2 */}
                     <div>
-                      <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 mb-1">
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">
                         Address Line 2
                         <span className="ml-1 text-slate-400 font-normal">(optional)</span>
                       </label>
@@ -666,7 +719,7 @@ const SchoolRegistrationPage: React.FC = () => {
                     {/* City + State */}
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 mb-1">
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">
                           City<span className="text-red-500"> *</span>
                         </label>
                         <input
@@ -686,7 +739,7 @@ const SchoolRegistrationPage: React.FC = () => {
                         )}
                       </div>
                       <div>
-                        <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 mb-1">
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">
                           State<span className="text-red-500"> *</span>
                         </label>
                         <select
@@ -711,7 +764,7 @@ const SchoolRegistrationPage: React.FC = () => {
 
                     {/* PIN Code */}
                     <div>
-                      <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 mb-1">
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">
                         PIN Code<span className="text-red-500"> *</span>
                       </label>
                       <input
@@ -771,16 +824,15 @@ const SchoolRegistrationPage: React.FC = () => {
               </p>
 
               <div className="mt-4 rounded-xl bg-blue-50 border border-blue-100 px-4 py-3">
-                <p className="text-[11px] sm:text-xs text-blue-800 leading-relaxed">
+                <p className="text-xs text-blue-800 leading-relaxed">
                   <span className="font-semibold block mb-1">What these emails are for</span>
-                  These can be a shared generic inbox that multiple senior school officials access
+                  These can be a shared generic inbox that multiple senior school officials use
                   (e.g.{' '}
                   <span className="font-medium">principal@yourschool.edu.in</span>), or individual
-                  emails for specific people such as the school principal or administrator. Each
-                  email you add here will receive a personal{' '}
-                  <span className="font-semibold">invitation link</span> when they first attempt to
-                  sign in, which they use to set their own password and access your school's
-                  reports.
+                  addresses for the principal or administrator. Each address you add will be able to
+                  use the school admin login flow: after registration is processed, they can sign in
+                  with their school email and set a password (we send a secure link via Firebase
+                  Auth) to access your institution&apos;s dashboard and reports.
                 </p>
               </div>
 
@@ -789,7 +841,7 @@ const SchoolRegistrationPage: React.FC = () => {
                   <div key={i}>
                     <div className="flex items-center gap-2">
                       <span
-                        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
+                        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
                         style={{ backgroundColor: GYS_BLUE }}
                       >
                         {i + 1}
@@ -844,7 +896,7 @@ const SchoolRegistrationPage: React.FC = () => {
                     </span>
                   </button>
                 ) : (
-                  <p className="text-[11px] sm:text-xs text-slate-500 italic">
+                  <p className="text-xs text-slate-500 italic">
                     Maximum of {MAX_EMAILS} emails reached.
                   </p>
                 )}
@@ -864,20 +916,21 @@ const SchoolRegistrationPage: React.FC = () => {
                   className="flex-1 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-md hover:brightness-110 hover:-translate-y-0.5 active:scale-95 transition-all duration-200"
                   style={{ backgroundColor: GYS_BLUE }}
                 >
-                  Continue to Payment →
+                  Continue →
                 </button>
               </div>
             </section>
           )}
 
-          {/* ── STEP 4: Payment ──────────────────────────────────────────── */}
+          {/* ── STEP 4: Plan & pay-later acknowledgement ───────────────── */}
           {currentStep === 4 && (
             <section className="rounded-2xl bg-white p-5 sm:p-7 shadow-md ring-1 ring-slate-100">
               <h1 className="text-xl sm:text-2xl font-semibold text-slate-900">
-                Select a Plan &amp; Pay
+                Select a plan
               </h1>
               <p className="mt-2 text-xs sm:text-sm text-slate-600">
-                Choose the institutional subscription that fits your school.
+                Choose the institutional subscription that fits your school. Payment is not collected
+                here-we will email you with the process and banking or invoice details.
               </p>
 
               {/* Plan cards */}
@@ -896,7 +949,7 @@ const SchoolRegistrationPage: React.FC = () => {
                       }`}
                     >
                       {plan.recommended && (
-                        <span className="absolute -top-2.5 right-3 rounded-full bg-[#fbbf24] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-900 shadow-sm">
+                        <span className="absolute -top-2.5 right-3 rounded-full bg-[#fbbf24] px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-slate-900 shadow-sm">
                           Recommended
                         </span>
                       )}
@@ -916,7 +969,7 @@ const SchoolRegistrationPage: React.FC = () => {
                           </span>
                           <div>
                             <p className="text-sm font-bold text-slate-900">{plan.name}</p>
-                            <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
+                            <p className="text-xs text-slate-500 mt-0.5">
                               {plan.tagline}
                             </p>
                             {isSelected && (
@@ -924,7 +977,7 @@ const SchoolRegistrationPage: React.FC = () => {
                                 {plan.features.map((f) => (
                                   <li
                                     key={f}
-                                    className="flex items-start gap-1 text-[11px] sm:text-xs text-slate-600"
+                                    className="flex items-start gap-1 text-xs text-slate-600"
                                   >
                                     <span className="text-emerald-600 mt-px">✓</span>
                                     {f}
@@ -949,103 +1002,65 @@ const SchoolRegistrationPage: React.FC = () => {
 
               {/* Order summary */}
               <div className="mt-6 rounded-xl bg-slate-50 border border-slate-200 px-4 py-3">
-                <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
                   Order Summary
                 </p>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-slate-700">
-                    {schoolName} — {currentPlan.name} Plan
+                    {schoolName} - {currentPlan.name} Plan
                   </span>
                   <span className="font-bold" style={{ color: GYS_BLUE }}>
                     {currentPlan.price}/yr
                   </span>
                 </div>
-                <p className="mt-1 text-[11px] text-slate-500">
+                <p className="mt-1 text-xs text-slate-500">
                   {board === 'State Board' && stateBoardState
-                    ? `State Board — ${stateBoardState}`
+                    ? `State Board - ${stateBoardState}`
                     : board}
                 </p>
                 {udiseCode && (
-                  <p className="mt-1 text-[11px] text-slate-500">UDISE: {udiseCode}</p>
+                  <p className="mt-1 text-xs text-slate-500">UDISE: {udiseCode}</p>
                 )}
-                <p className="mt-1 text-[11px] text-slate-500">
-                  {addressLine1}{addressLine2 ? `, ${addressLine2}` : ''}, {city}, {addressState} — {zipCode}
+                <p className="mt-1 text-xs text-slate-500">
+                  {addressLine1}{addressLine2 ? `, ${addressLine2}` : ''}, {city}, {addressState} - {zipCode}
                 </p>
                 <div className="mt-2 border-t border-slate-200 pt-2 flex justify-between text-sm font-semibold text-slate-900">
-                  <span>Total (Annual)</span>
-                  <span style={{ color: GYS_BLUE }}>{currentPlan.price} + GST</span>
+                  <span>Annual fee (excl. GST)</span>
+                  <span style={{ color: GYS_BLUE }}>{currentPlan.price}/yr + GST</span>
                 </div>
               </div>
 
-              {/* Payment method */}
-              <div className="mt-6">
-                <p className="text-xs sm:text-sm font-bold text-slate-700 mb-3">
-                  Payment Method<span className="text-red-500"> *</span>
+              <div className="mt-6 rounded-xl border border-amber-100 bg-amber-50/80 px-4 py-3">
+                <p className="text-xs text-amber-950 leading-relaxed">
+                  <span className="font-semibold">Payment next steps</span>{' '}
+                  We are finalising our billing workflow. After you submit, our team will reach out
+                  with the payment process (invoice, bank details, or approved gateway-whatever
+                  applies). Submitting this form does not charge your school; it records your plan
+                  choice and your agreement to complete payment when we send instructions.
                 </p>
-
-                <div className="flex gap-2">
-                  {(
-                    [
-                      { id: 'UPI', label: 'UPI' },
-                      { id: 'CARD', label: 'Card' },
-                      { id: 'BANK_TRANSFER', label: 'Bank Transfer' },
-                    ] as { id: PaymentMethod; label: string }[]
-                  ).map((m) => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => { setPaymentMethod(m.id); clearError('upiId'); }}
-                      className={`flex-1 rounded-lg border-2 py-2 text-xs sm:text-sm font-semibold transition-all ${
-                        paymentMethod === m.id
-                          ? 'border-[#1e3a8a] bg-blue-50 text-[#1e3a8a]'
-                          : 'border-slate-200 text-slate-600 hover:border-slate-300'
-                      }`}
-                    >
-                      {m.label}
-                    </button>
-                  ))}
-                </div>
-
-                {/* UPI input */}
-                {paymentMethod === 'UPI' && (
-                  <div className="mt-3">
-                    <label className="block text-[11px] sm:text-xs font-semibold text-slate-600 mb-1">
-                      UPI ID<span className="text-red-500"> *</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={upiId}
-                      onChange={(e) => { setUpiId(e.target.value); clearError('upiId'); }}
-                      className={`w-full rounded-lg border px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 ${
-                        errors.upiId
-                          ? 'border-red-400 focus:border-red-400 focus:ring-red-300'
-                          : 'border-slate-200 focus:border-slate-400 focus:ring-slate-400'
-                      }`}
-                      placeholder="yourname@bank"
-                      autoComplete="off"
-                    />
-                    {errors.upiId && (
-                      <p className="mt-1 text-xs text-red-600">{errors.upiId}</p>
-                    )}
-                  </div>
-                )}
-
-                {paymentMethod === 'CARD' && (
-                  <p className="mt-3 text-[11px] sm:text-xs text-slate-500 rounded-lg bg-slate-50 border border-slate-200 px-3 py-2.5">
-                    You will be securely redirected to our payment partner to enter your card
-                    details. We accept all major credit and debit cards.
-                  </p>
-                )}
-
-                {paymentMethod === 'BANK_TRANSFER' && (
-                  <div className="mt-3 text-[11px] sm:text-xs text-slate-700 rounded-lg bg-slate-50 border border-slate-200 px-3 py-2.5 space-y-1">
-                    <p className="font-semibold text-slate-800">Bank Transfer / NEFT / RTGS</p>
-                    <p>Our team will send the bank account details to your registered contact
-                    emails after your registration is approved. Payment is due within 7 business
-                    days of receiving details.</p>
-                  </div>
-                )}
               </div>
+
+              <div className="mt-5 flex gap-3 items-start">
+                <input
+                  id="commit-to-pay"
+                  type="checkbox"
+                  checked={commitToPay}
+                  onChange={(e) => {
+                    setCommitToPay(e.target.checked);
+                    clearError('commitToPay');
+                  }}
+                  className="mt-1 h-4 w-4 rounded border-slate-300 text-[#1e3a8a] focus:ring-[#1e3a8a]"
+                />
+                <label htmlFor="commit-to-pay" className="text-xs sm:text-sm text-slate-700 leading-relaxed cursor-pointer">
+                  On behalf of our institution, we confirm that we intend to subscribe at the plan
+                  selected above and{' '}
+                  <span className="font-semibold">will complete payment</span> after Global Young
+                  Scholar shares payment details and instructions with us.
+                </label>
+              </div>
+              {errors.commitToPay && (
+                <p className="mt-2 text-xs text-red-600">{errors.commitToPay}</p>
+              )}
 
               <div className="mt-6 flex gap-3">
                 <button
@@ -1057,16 +1072,15 @@ const SchoolRegistrationPage: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-md hover:brightness-110 hover:-translate-y-0.5 active:scale-95 transition-all duration-200"
+                  disabled={isSubmitting}
+                  className="flex-1 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-md hover:brightness-110 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 disabled:opacity-60 disabled:pointer-events-none"
                   style={{ backgroundColor: GYS_BLUE }}
                 >
-                  {paymentMethod === 'BANK_TRANSFER'
-                    ? 'Submit Registration'
-                    : 'Proceed to Payment →'}
+                  {isSubmitting ? 'Submitting…' : 'Complete registration'}
                 </button>
               </div>
 
-              <p className="mt-4 text-center text-[11px] sm:text-xs text-slate-500">
+              <p className="mt-4 text-center text-xs text-slate-500">
                 All prices are exclusive of applicable GST. Annual institutional license.
               </p>
             </section>
@@ -1113,14 +1127,17 @@ const Header: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => navigate('/login')}
-          className="px-5 py-2.5 rounded-xl text-white text-sm font-medium shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:brightness-110 active:scale-95 transition-all duration-200"
-          style={{ backgroundColor: GYS_BLUE }}
-        >
-          Log In
-        </button>
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+          <PublicHomeNavButton />
+          <button
+            type="button"
+            onClick={() => navigate('/login')}
+            className="px-4 py-2.5 sm:px-5 rounded-xl text-white text-sm font-medium shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:brightness-110 active:scale-95 transition-all duration-200"
+            style={{ backgroundColor: GYS_BLUE }}
+          >
+            Log In
+          </button>
+        </div>
       </div>
     </header>
   );

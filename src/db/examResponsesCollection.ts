@@ -1,4 +1,4 @@
-// Legacy file — Typeform-based exam responses have been replaced by the
+// Legacy file - Typeform-based exam responses have been replaced by the
 // adaptive assessment system. Use completeExam from assessmentCollection.ts.
 
 export const fetchResultTotals = async (

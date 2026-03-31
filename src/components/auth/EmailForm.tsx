@@ -200,15 +200,14 @@ if (emailExists === false && isSchoolOfficial && schoolInfo) {
             </div>
             <DialogTitle className="text-center text-slate-900">No account found</DialogTitle>
             <DialogDescription className="text-center text-slate-600">
-              We couldn't find an account for <span className="font-semibold text-slate-800">{email}</span>. You'll need to create a student account to access the exam portal.
+              We couldn&apos;t find an account for <span className="font-semibold text-slate-800">{email}</span>.
+              New student signup isn&apos;t available yet—check back soon or use a different email if you
+              already have access.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex-col gap-2 sm:flex-col">
-            <Button
-              onClick={() => navigate('/students/register')}
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold"
-            >
-              Create Student Account
+            <Button type="button" disabled className="w-full cursor-not-allowed font-semibold opacity-80">
+              Coming soon
             </Button>
             <Button
               variant="outline"

@@ -167,7 +167,7 @@ const AssessmentResultPage: React.FC = () => {
             <Typography sx={{ fontSize: '1.75rem', mb: 0.5 }}>🥇</Typography>
             <Typography sx={{ fontWeight: 900, color: '#1b5e20', fontSize: '1.2rem' }}>{perfTier.label}</Typography>
             <Typography sx={{ color: '#2e7d32', fontWeight: 700, fontSize: '0.95rem', mt: 0.5 }}>
-              {percentile}th percentile — indicative global ranking
+              {percentile}th percentile - indicative global ranking
             </Typography>
             <Typography sx={{ color: '#558b2f', fontSize: '0.8rem', mt: 1 }}>
               Score {displayScore}% · {correct} / {total} items
@@ -180,7 +180,7 @@ const AssessmentResultPage: React.FC = () => {
               {displayScore}%
             </Typography>
             <Typography sx={{ color: '#64748b', fontSize: '0.85rem', mt: 0.5 }}>
-              {correct} / {total} items — keep going; retakes are unlimited.
+              {correct} / {total} items - keep going; retakes are unlimited.
             </Typography>
           </Box>
         )}
@@ -251,7 +251,7 @@ const AssessmentResultPage: React.FC = () => {
                 '&:hover': { bgcolor: '#e2e8f0' },
               }}
             >
-              Next tier — start
+              Next tier - start
             </Button>
           )}
 

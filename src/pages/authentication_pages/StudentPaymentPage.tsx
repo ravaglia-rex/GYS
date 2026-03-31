@@ -1,29 +1,201 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import {
+  createUserWithEmailAndPassword,
+  deleteUser,
+  sendEmailVerification,
+  type User,
+} from 'firebase/auth';
+import * as Sentry from '@sentry/react';
+import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
+import { auth } from '../../firebase/firebase';
+import { runSignUpTransaction } from '../../db/signupTransaction';
+import { useToast } from '../../components/ui/use-toast';
+import { LoadingSpinner as Spinner } from '../../components/ui/spinner';
+import analytics from '../../segment/segment';
 
 const GYS_BLUE = '#1e3a8a';
 
 type PaymentMethod = 'UPI' | 'CARD' | 'NET_BANKING';
 
+type MembershipLevelCode = 'LEVEL_1' | 'LEVEL_2' | 'LEVEL_3';
+
+interface SignupFlowState {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  password?: string;
+  grade?: string;
+  dob?: string;
+  cityState?: string;
+  schoolId?: string;
+  homeLanguage?: string;
+  aspiration?: string;
+  heardFrom?: string;
+  membershipLevel?: MembershipLevelCode;
+  membershipName?: string;
+  membershipPrice?: string;
+}
+
+function membershipCodeToLevel(code: MembershipLevelCode | undefined): number {
+  if (code === 'LEVEL_1') return 1;
+  if (code === 'LEVEL_2') return 2;
+  if (code === 'LEVEL_3') return 3;
+  return 0;
+}
+
 const StudentPaymentPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const state = location.state || {};
+  const state = (location.state || {}) as SignupFlowState;
+  const { toast } = useToast();
 
-  const membershipName = (state as any).membershipName || 'Level 2 — Engage';
-  const membershipPrice = (state as any).membershipPrice || '₹4,999';
+  const membershipName = state.membershipName || 'Level 2 - Engage';
+  const membershipPrice = state.membershipPrice || '₹4,999';
 
   const [method, setMethod] = useState<PaymentMethod>('UPI');
   const [upiId, setUpiId] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    // Mock only: later we will trigger Razorpay / backend here.
-    navigate('/students/register/welcome', {
-      state: {
-        membershipName,
-      },
-    });
+
+    const {
+      firstName,
+      lastName,
+      email,
+      password,
+      grade,
+      dob,
+      cityState,
+      schoolId,
+      homeLanguage,
+      aspiration,
+      heardFrom,
+      membershipLevel,
+    } = state;
+
+    if (!email || !password || !firstName || !lastName || !grade || !schoolId) {
+      toast({
+        variant: 'destructive',
+        title: 'Session expired',
+        description: 'Please start registration again from step 1.',
+      });
+      navigate('/students/register');
+      return;
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const numericGrade = parseInt(grade, 10);
+    if (Number.isNaN(numericGrade)) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid grade',
+        description: 'Please go back and correct your grade.',
+      });
+      navigate('/students/register');
+      return;
+    }
+
+    setIsSubmitting(true);
+    let createdUser: User | null = null;
+
+    try {
+      // Mock payment UI only — no payee/payment records until real Razorpay integration.
+      const userCredential = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
+      createdUser = userCredential.user;
+
+      const membership_level = membershipCodeToLevel(membershipLevel);
+
+      await runSignUpTransaction({
+        uid: userCredential.user.uid,
+        first_name: firstName,
+        last_name: lastName,
+        email: normalizedEmail,
+        school_id: schoolId,
+        grade: numericGrade,
+        parent_name: '',
+        parent_email: '',
+        parent_phone: '',
+        ...(dob && { date_of_birth: dob }),
+        ...(cityState && { city_state: cityState }),
+        ...(homeLanguage && { home_language: homeLanguage }),
+        ...(aspiration && { aspiration }),
+        ...(heardFrom && { heard_from: heardFrom }),
+        ...(membership_level > 0 && { membership_level }),
+      });
+
+      await sendEmailVerification(userCredential.user);
+
+      analytics.track('[CREATE] New User Added', {
+        email: normalizedEmail,
+        first_name: firstName,
+        last_name: lastName,
+        school_id: schoolId,
+        grade: numericGrade,
+        homeLanguage,
+        aspiration,
+        heardFrom,
+        membershipLevel: membershipLevel ?? null,
+      });
+
+      toast({
+        variant: 'default',
+        title: 'Account created successfully!',
+        description: `Welcome to Argus, ${firstName}! A verification email has been sent to ${normalizedEmail}.`,
+      });
+
+      navigate('/students/register/welcome', {
+        state: {
+          membershipName,
+        },
+      });
+    } catch (error: unknown) {
+      const err = error as { code?: string; message?: string };
+
+      if (createdUser) {
+        try {
+          await deleteUser(createdUser);
+        } catch (delErr) {
+          Sentry.withScope((scope) => {
+            scope.setTag('location', 'StudentPaymentPage.deleteUserAfterSignupFailure');
+            Sentry.captureException(delErr);
+          });
+        }
+      }
+
+      if (err?.code === 'auth/email-already-in-use') {
+        navigate('/students/register', {
+          state: {
+            prefill: {
+              firstName,
+              lastName,
+              email: state.email,
+              grade,
+              dob,
+              cityState,
+            },
+            emailInUse: true,
+          },
+        });
+        return;
+      }
+
+      Sentry.withScope((scope) => {
+        scope.setTag('location', 'StudentPaymentPage.handleSubmit');
+        scope.setExtra('email', normalizedEmail);
+        scope.setExtra('schoolId', schoolId);
+        Sentry.captureException(error);
+      });
+
+      toast({
+        variant: 'destructive',
+        title: 'Could not complete signup',
+        description: err?.message || 'Something went wrong. Please try again.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -58,7 +230,9 @@ const StudentPaymentPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="w-10" />
+          <div className="flex shrink-0 justify-end">
+            <PublicHomeNavButton />
+          </div>
         </div>
       </header>
 
@@ -218,12 +392,13 @@ const StudentPaymentPage: React.FC = () => {
 
             <button
               type="submit"
-              className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-blue-600 px-4 py-3 text-base sm:text-lg font-semibold text-white shadow-md hover:bg-blue-700 transition-colors duration-200"
+              disabled={isSubmitting}
+              className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-blue-600 px-4 py-3 text-base sm:text-lg font-semibold text-white shadow-md hover:bg-blue-700 transition-colors duration-200 disabled:cursor-not-allowed disabled:bg-blue-400"
             >
-              Pay {membershipPrice} →
+              {isSubmitting ? <Spinner /> : `Pay ${membershipPrice} →`}
             </button>
 
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-4 border-t border-slate-200 pt-3 text-[10px] sm:text-[11px] text-slate-500">
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-4 border-t border-slate-200 pt-3 text-xs sm:text-sm text-slate-500">
               <span>🔒 SSL Encrypted</span>
               <span>🛡️ Razorpay Secure</span>
               <span>🏦 RBI Compliant</span>

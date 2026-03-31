@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
 
 const GYS_BLUE = '#1e3a8a';
 const GYS_GOLD = '#fbbf24';
@@ -72,14 +73,17 @@ const ForSchoolsPage: React.FC = () => {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => navigate('/login')}
-            className="px-5 py-2.5 rounded-xl text-white text-sm font-medium shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:brightness-110 active:scale-95 transition-all duration-200"
-            style={{ backgroundColor: GYS_BLUE }}
-          >
-            Log In
-          </button>
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+            <PublicHomeNavButton />
+            <button
+              type="button"
+              onClick={() => navigate('/login')}
+              className="px-4 py-2.5 sm:px-5 rounded-xl text-white text-sm font-medium shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:brightness-110 active:scale-95 transition-all duration-200"
+              style={{ backgroundColor: GYS_BLUE }}
+            >
+              Log In
+            </button>
+          </div>
         </div>
       </header>
 
@@ -136,13 +140,13 @@ const ForSchoolsPage: React.FC = () => {
               {[
                 {
                   icon: '📊',
-                  value: '5',
+                  value: '7',
                   label: 'Assessments',
                 },
                 {
                   icon: '🌍',
-                  value: '30+',
-                  label: 'Countries',
+                  value: 'Global',
+                  label: 'Partnerships',
                 },
                 {
                   icon: '📈',
@@ -164,7 +168,7 @@ const ForSchoolsPage: React.FC = () => {
                     <span className="text-xl sm:text-2xl font-bold text-slate-900">
                       {item.value}
                     </span>
-                    <span className="text-[11px] sm:text-xs uppercase tracking-[0.16em] text-slate-500">
+                    <span className="text-xs uppercase tracking-[0.16em] text-slate-500">
                       {item.label}
                     </span>
                   </div>
@@ -286,7 +290,7 @@ const ForSchoolsPage: React.FC = () => {
 
               {/* Standard - recommended */}
               <div className="relative flex flex-col rounded-2xl bg-white px-4 py-4 text-slate-900 shadow-md ring-2 ring-[#1e3a8a]/70 sm:px-5 sm:py-5">
-                <div className="absolute -top-3 right-4 rounded-full bg-[#fbbf24] px-3 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-900 shadow">
+                <div className="absolute -top-3 right-4 rounded-full bg-[#fbbf24] px-3 py-0.5 text-xs font-semibold uppercase tracking-[0.16em] text-slate-900 shadow">
                   Recommended
                 </div>
                 <h4 className="text-sm font-semibold sm:text-base">Standard</h4>
@@ -372,7 +376,7 @@ const ForSchoolsPage: React.FC = () => {
             <div className="rounded-2xl bg-[#e0edff] px-5 py-4 shadow-sm sm:px-6 sm:py-5">
               <div className="flex flex-row items-center gap-3">
                 <div
-                  className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl px-2 text-[10px] font-semibold leading-tight text-white sm:h-16 sm:w-16 sm:text-[11px]"
+                  className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl px-2 text-xs font-semibold leading-tight text-white sm:h-16 sm:w-16 sm:text-sm"
                   style={{ backgroundColor: 'rgba(30, 58, 138, 0.9)' }}
                 >
                   Education
@@ -394,18 +398,18 @@ const ForSchoolsPage: React.FC = () => {
 
           {/* Partner quote */}
           <section className="mt-8 sm:mt-10">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
               From Our Partners
             </p>
             <div className="mt-3 rounded-2xl bg-white px-5 py-4 shadow-sm ring-1 ring-slate-100 sm:px-6 sm:py-5">
               <p className="text-xs sm:text-sm text-slate-700 leading-relaxed italic">
                 “Indian schools are world-class but have never had a way to prove it on the
                 global stage. GYS gives every school in our network the data to demonstrate
-                what we&apos;ve always known — that our students compete with the best
+                what we&apos;ve always known - that our students compete with the best
                 anywhere.”
               </p>
               <p className="mt-3 text-xs font-semibold text-slate-600 sm:text-sm">
-                — Bhavin Shah, CEO, EducationWorld
+                - Bhavin Shah, CEO, EducationWorld
               </p>
             </div>
           </section>
@@ -432,8 +436,9 @@ const ForSchoolsPage: React.FC = () => {
               </button>
             </div>
             <p className="pt-4 text-center text-xs text-slate-500 sm:text-sm">
-              Already registered? School administrators can log in using the invitation link sent to
-              their email.
+              Already registered? School administrators can log in with the school email addresses you
+              provided at registration and complete password setup from the secure link in their
+              inbox.
             </p>
           </section>
         </div>

@@ -1,6 +1,7 @@
 import axios from 'axios';
 import {
   CREATE_EXPEDITED_SCHOOL,
+  REGISTER_SCHOOL,
   SCHOOLS_APIS,
   FETCH_SCHOOL_NAMES_AND_IDS,
   FETCH_SCHOOL_NAME,
@@ -12,6 +13,50 @@ type expeditedSchool = {
     city: string;
     state: string;
 }
+
+export type RegisterSchoolPayload = {
+  school_name: string;
+  confirm_school_name: string;
+  abbreviations: string[];
+  udise_code: string;
+  board: string;
+  state_board_state: string;
+  referral_source: string;
+  address_line1: string;
+  address_line2: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  contact_emails: string[];
+  selected_plan_id: string;
+  commit_to_pay: boolean;
+};
+
+export type RegisterSchoolResponse = {
+  success: boolean;
+  schoolId: string;
+  schoolName: string;
+  pocEmail: string;
+};
+
+export const registerSchool = async (
+  payload: RegisterSchoolPayload
+): Promise<RegisterSchoolResponse> => {
+  try {
+    const response = await axios.post(
+      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOLS_APIS}${REGISTER_SCHOOL}`,
+      payload
+    );
+    return response.data;
+  } catch (e) {
+    if (axios.isAxiosError(e) && e.response?.data?.error) {
+      throw new Error(String(e.response.data.error));
+    }
+    throw new Error(
+      'Could not complete registration. Please try again or contact schools@globalyoungscholar.com.'
+    );
+  }
+};
 
 export const createExpeditedSchool = async (school: expeditedSchool) => {
     try {
@@ -27,7 +72,7 @@ export const createExpeditedSchool = async (school: expeditedSchool) => {
     }
 }
 
-// FETCH ALL SCHOOL NAMES AND IDs (server-cached; no client cache — list excludes list-only schools)
+// FETCH ALL SCHOOL NAMES AND IDs (server-cached; no client cache - list excludes list-only schools)
 export const fetchSchoolNamesAndIds = async (): Promise<{ id: string; name: string }[]> => {
   try {
     const response = await axios.get(`${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOLS_APIS}${FETCH_SCHOOL_NAMES_AND_IDS}`);
@@ -44,7 +89,7 @@ export type ResolveRegistrationSchoolResult = {
   schoolName: string | null;
 };
 
-/** Matches signup email to a school-provided allowlist (list-only schools). */
+/** Matches signup email to this school’s `student_registration_emails` (and legacy allowlist). */
 export const resolveRegistrationSchool = async (
   email: string
 ): Promise<ResolveRegistrationSchoolResult> => {

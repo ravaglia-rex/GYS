@@ -1,15 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { UserCredential, createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import { fetchSchoolNamesAndIds, resolveRegistrationSchool } from '../../db/schoolCollection';
 import SchoolsInput from '../../components/autocomplete/SchoolsInput';
 import * as Sentry from '@sentry/react';
-import { auth } from '../../firebase/firebase';
-import { runSignUpTransaction } from '../../db/signupTransaction';
-import { addEmailMapping } from '../../db/emailMappingCollection';
 import { useToast } from '../../components/ui/use-toast';
-import { LoadingSpinner as Spinner } from '../../components/ui/spinner';
-import analytics from '../../segment/segment';
+import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
 
 const GYS_BLUE = '#1e3a8a';
 
@@ -35,7 +30,6 @@ const StudentSchoolStepPage: React.FC = () => {
   const [aspiration, setAspiration] = useState('');
   const [heardFrom, setHeardFrom] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const { toast } = useToast();
 
@@ -69,9 +63,9 @@ const StudentSchoolStepPage: React.FC = () => {
     loadSchools();
   }, [state.email]);
 
-  const handleSubmit = async (event: React.FormEvent) => {
+  const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!selectedSchoolId || isSubmitted) return;
+    if (!selectedSchoolId) return;
 
     const {
       firstName,
@@ -93,116 +87,23 @@ const StudentSchoolStepPage: React.FC = () => {
       return;
     }
 
-    try {
-      setIsSubmitted(true);
+    const normalizedEmail = email.trim().toLowerCase();
 
-      const normalizedEmail = email.trim().toLowerCase();
-      const numericGrade = grade ? parseInt(grade, 10) : 0;
-
-      // Step 1: Create the user in Firebase Auth
-      const userCredential: UserCredential = await createUserWithEmailAndPassword(
-        auth,
-        normalizedEmail,
-        password
-      );
-
-      // Step 2: Build student object using collected data
-      const newStudent = {
-        uid: userCredential.user.uid,
-        first_name: firstName,
-        last_name: lastName,
-        school_id: selectedSchoolId,
-        grade: numericGrade,
-        parent_name: '',
-        parent_email: '',
-        parent_phone: '',
-      };
-
-      // Step 3: Run the signup transaction
-      await runSignUpTransaction({ ...newStudent, email: normalizedEmail });
-
-      // Step 3a: Add email mapping (used for uniqueness checks & admin tools)
-      try {
-        await addEmailMapping(userCredential.user.uid, normalizedEmail);
-      } catch (mappingError) {
-        Sentry.withScope((scope) => {
-          scope.setTag('location', 'StudentSchoolStepPage.addEmailMapping');
-          scope.setExtra('uid', userCredential.user.uid);
-          scope.setExtra('email', normalizedEmail);
-          Sentry.captureException(mappingError);
-        });
-      }
-
-      // Step 4: Send email verification
-      await sendEmailVerification(userCredential.user);
-
-      // Step 5: Track analytics event
-      analytics.track('[CREATE] New User Added', {
+    navigate('/students/register/membership', {
+      state: {
+        firstName,
+        lastName,
         email: normalizedEmail,
-        first_name: firstName,
-        last_name: lastName,
-        school_id: selectedSchoolId,
-        grade: numericGrade,
+        password,
+        grade,
+        dob,
+        cityState,
+        schoolId: selectedSchoolId,
         homeLanguage,
         aspiration,
         heardFrom,
-      });
-
-      toast({
-        variant: 'default',
-        title: 'Account created successfully!',
-        description: `Welcome to Argus, ${firstName}! A verification email has been sent to ${normalizedEmail}.`,
-      });
-
-      navigate('/students/register/membership', {
-        state: {
-          firstName,
-          lastName,
-          email: normalizedEmail,
-          grade,
-          dob,
-          cityState,
-          schoolId: selectedSchoolId,
-          homeLanguage,
-          aspiration,
-          heardFrom,
-        },
-      });
-    } catch (error: any) {
-      if (error?.code === 'auth/email-already-in-use') {
-        navigate('/students/register', {
-          state: {
-            prefill: {
-              firstName,
-              lastName,
-              email,
-              grade,
-              dob,
-              cityState,
-            },
-            emailInUse: true,
-          },
-        });
-        return;
-      }
-
-      Sentry.withScope((scope) => {
-        scope.setTag('location', 'StudentSchoolStepPage.handleSubmit');
-        scope.setExtra('first_name', state.firstName);
-        scope.setExtra('last_name', state.lastName);
-        scope.setExtra('email', state.email);
-        scope.setExtra('grade', state.grade);
-        scope.setExtra('schoolId', selectedSchoolId);
-        Sentry.captureException(error);
-      });
-      toast({
-        variant: 'destructive',
-        title: 'Uh oh! Something went wrong.',
-        description: error?.message || 'An error occurred while creating your account. Please try again.',
-      });
-    } finally {
-      setIsSubmitted(false);
-    }
+      },
+    });
   };
 
   return (
@@ -237,14 +138,17 @@ const StudentSchoolStepPage: React.FC = () => {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => navigate('/login')}
-            className="px-5 py-2.5 rounded-xl text-white text-sm font-medium shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:brightness-110 active:scale-95 transition-all duration-200"
-            style={{ backgroundColor: GYS_BLUE }}
-          >
-            Log In
-          </button>
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+            <PublicHomeNavButton />
+            <button
+              type="button"
+              onClick={() => navigate('/login')}
+              className="px-4 py-2.5 sm:px-5 rounded-xl text-white text-sm font-medium shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:brightness-110 active:scale-95 transition-all duration-200"
+              style={{ backgroundColor: GYS_BLUE }}
+            >
+              Log In
+            </button>
+          </div>
         </div>
       </header>
 
@@ -349,14 +253,14 @@ const StudentSchoolStepPage: React.FC = () => {
 
             <button
               type="submit"
-              disabled={!selectedSchoolId || isSubmitted}
+              disabled={!selectedSchoolId}
               className="mt-2 inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm sm:text-base font-semibold text-white shadow-md hover:bg-slate-900/90 disabled:cursor-not-allowed disabled:bg-slate-400"
               style={{ backgroundColor: selectedSchoolId ? GYS_BLUE : undefined }}
             >
-              {isSubmitted ? <Spinner /> : 'Continue →'}
+              Continue →
             </button>
 
-            <p className="pt-1 text-center text-[11px] sm:text-xs text-slate-500">
+            <p className="pt-1 text-center text-xs text-slate-500">
               You can update this later from your dashboard.
             </p>
           </form>

@@ -58,7 +58,7 @@ export function nextAssessmentNudge(assessmentId: string): { title: string; subt
     },
     mathematical_reasoning: {
       title: 'Next: Personality Assessment',
-      subtitle: 'Short self-report — unlocks English & more.',
+      subtitle: 'Short self-report - unlocks English & more.',
       path: '/assessments/personality_assessment/tier/1/detail',
     },
   };

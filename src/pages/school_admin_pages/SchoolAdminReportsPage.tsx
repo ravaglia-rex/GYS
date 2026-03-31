@@ -1,126 +1,245 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
-  Box, Card, CardContent, Typography, Button, Chip,
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Button,
+  Chip,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
-import {
-  FileDownload as DownloadIcon,
-  BarChart as BarChartIcon,
-  TrendingUp as TrendingUpIcon,
-  Assessment as AssessmentIcon,
-  TableChart as TableChartIcon,
-} from '@mui/icons-material';
+import { FileDownload as DownloadIcon } from '@mui/icons-material';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
-
-interface ReportItem {
-  id: string;
-  title: string;
-  description: string;
-  generated: string;
-  type: string;
-  icon: React.ReactElement;
-  accent: string;
-  tag?: string;
-}
-
-const reports: ReportItem[] = [
-  {
-    id: 'q2-performance',
-    title: 'Q2 2027 Performance Report',
-    description: 'Comprehensive overview of all student assessments for Q2, including tier distribution, subject breakdowns, and grade-wise performance.',
-    generated: '1 Mar 2027',
-    type: '.docx',
-    icon: <BarChartIcon sx={{ color: ip.statBlue, fontSize: '2rem' }} />,
-    accent: ip.statBlue,
-    tag: 'Latest',
-  },
-  {
-    id: 'q1-q2-growth',
-    title: 'Q1 → Q2 Growth Report',
-    description: 'Quarter-over-quarter growth analysis showing improvement trends, percentile shifts, and tier upgrades/downgrades.',
-    generated: '1 Mar 2027',
-    type: '.docx',
-    icon: <TrendingUpIcon sx={{ color: '#10b981', fontSize: '2rem' }} />,
-    accent: '#10b981',
-  },
-  {
-    id: 'grade-breakdown',
-    title: 'Grade-Level Breakdown',
-    description: 'Detailed performance data segmented by grade (6–12), including averages, tier distributions, and assessment completion rates per grade.',
-    generated: '1 Mar 2027',
-    type: '.docx',
-    icon: <AssessmentIcon sx={{ color: '#8b5cf6', fontSize: '2rem' }} />,
-    accent: '#8b5cf6',
-  },
-  {
-    id: 'q1-performance',
-    title: 'Q1 2027 Performance Report',
-    description: 'Full historical report from Q1 — avg percentile, tier distribution, and subject analysis for all students.',
-    generated: '1 Dec 2026',
-    type: '.docx',
-    icon: <TableChartIcon sx={{ color: '#f59e0b', fontSize: '2rem' }} />,
-    accent: '#f59e0b',
-  },
-];
+import {
+  downloadQuarterlyReportPdf,
+  getQuarterlyReports,
+  type QuarterlyReportListItem,
+} from '../../db/schoolAdminCollection';
+import { GREENFIELD_QUARTERLY_REPORTS } from '../../data/schoolPreviewMock';
 
 const SchoolAdminReportsPage: React.FC = () => {
+  const location = useLocation();
+  const isSchoolAdminPreview = location.pathname.startsWith('/for-schools/preview');
+  const [reports, setReports] = useState<QuarterlyReportListItem[]>([]);
+  const [s3Configured, setS3Configured] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [rowError, setRowError] = useState<string | null>(null);
+  const [downloadingKey, setDownloadingKey] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    if (isSchoolAdminPreview) {
+      setReports([...GREENFIELD_QUARTERLY_REPORTS].sort((a, b) => b.quarterKey.localeCompare(a.quarterKey)));
+      setS3Configured(false);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getQuarterlyReports();
+      setReports(
+        [...(data.reports ?? [])].sort((a, b) => b.quarterKey.localeCompare(a.quarterKey))
+      );
+      setS3Configured(data.s3Configured !== false);
+    } catch (e) {
+      setError((e as Error).message ?? 'Could not load reports.');
+      setReports([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [isSchoolAdminPreview]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const onDownload = async (r: QuarterlyReportListItem) => {
+    setRowError(null);
+    if (!r.hasPdf || !r.quarterKey) {
+      setRowError('No PDF is stored for this quarter yet.');
+      return;
+    }
+    if (!s3Configured) {
+      setRowError('Server is not configured for S3 signed URLs (AWS env vars on Cloud Functions).');
+      return;
+    }
+    setDownloadingKey(r.quarterKey);
+    try {
+      await downloadQuarterlyReportPdf(r.quarterKey);
+    } catch (e) {
+      setRowError((e as Error).message ?? 'Download failed.');
+    } finally {
+      setDownloadingKey(null);
+    }
+  };
+
   return (
-    <Box sx={{ maxWidth: 900, mx: 'auto', pb: 6 }}>
-      {/* Header */}
-      <Box sx={{ mb: 4 }}>
+    <Box sx={{ maxWidth: 1000, mx: 'auto', pb: 6, px: { xs: 1, sm: 0 } }}>
+      <Box sx={{ mb: 3 }}>
         <Typography variant="h4" sx={{ color: ip.heading, fontWeight: 700, mb: 0.5 }}>
-          Institutional Reports
+          Institutional reports
         </Typography>
         <Typography variant="body2" sx={{ color: ip.subtext }}>
-          Downloadable performance reports for board meetings and parent communications
+          Quarterly PDFs stored for your school. Download any past report.
         </Typography>
       </Box>
 
-      {/* Reports grid */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        {reports.map(report => (
-          <Card key={report.id} sx={{ bgcolor: '#fff', border: `1px solid ${ip.cardBorder}`, borderRadius: 2, boxShadow: 'none', transition: 'border-color 0.15s', '&:hover': { borderColor: report.accent } }}>
-            <CardContent sx={{ p: '24px !important' }}>
-              <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
-                <Box sx={{ display: 'flex', gap: 2, flex: 1 }}>
-                  <Box sx={{ mt: 0.3, flexShrink: 0 }}>{report.icon}</Box>
-                  <Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                      <Typography variant="body1" sx={{ color: ip.heading, fontWeight: 700 }}>
-                        {report.title}
-                      </Typography>
-                      {report.tag && (
-                        <Chip label={report.tag} size="small" sx={{ bgcolor: `${report.accent}20`, color: report.accent, fontSize: '0.62rem', height: 18, fontWeight: 700 }} />
-                      )}
-                    </Box>
-                    <Typography variant="body2" sx={{ color: ip.subtext, mb: 1 }}>
-                      {report.description}
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: ip.subtext }}>
-                      Generated {report.generated}
-                    </Typography>
-                  </Box>
-                </Box>
-                <Button
-                  variant="outlined"
-                  startIcon={<DownloadIcon />}
-                  sx={{
-                    borderColor: report.accent, color: report.accent, fontWeight: 600,
-                    '&:hover': { bgcolor: `${report.accent}10`, borderColor: report.accent },
-                    borderRadius: 1.5, whiteSpace: 'nowrap',
-                  }}
-                >
-                  Download {report.type}
-                </Button>
-              </Box>
-            </CardContent>
-          </Card>
-        ))}
-      </Box>
+      {!s3Configured && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          PDF downloads require AWS credentials and the reports bucket env var on the API. Links will not work until
+          those are set.
+        </Alert>
+      )}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+      {rowError && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setRowError(null)}>
+          {rowError}
+        </Alert>
+      )}
 
-      {/* Empty state note */}
-      <Box sx={{ mt: 4, p: 3, bgcolor: ip.cardMutedBg, border: `1px dashed ${ip.cardBorder}`, borderRadius: 2, textAlign: 'center' }}>
+      <Card sx={{ bgcolor: '#fff', border: `1px solid ${ip.cardBorder}`, borderRadius: 2, boxShadow: 'none' }}>
+        <CardContent sx={{ p: { xs: '16px !important', sm: '24px !important' } }}>
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+              <CircularProgress size={36} sx={{ color: ip.navy }} />
+            </Box>
+          ) : reports.length === 0 ? (
+            <Typography variant="body2" sx={{ color: ip.subtext, py: 2 }}>
+              No quarterly reports in Firestore yet. Run the seed script for your school or add documents under{' '}
+              <Typography component="span" variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
+                schools/&lt;id&gt;/quarterly_reports
+              </Typography>
+              .
+            </Typography>
+          ) : (
+            <TableContainer
+              component={Paper}
+              elevation={0}
+              sx={{
+                bgcolor: '#ffffff',
+                color: ip.heading,
+                border: `1px solid ${ip.cardBorder}`,
+                borderRadius: 2,
+                overflow: 'hidden',
+              }}
+            >
+              <Table
+                size="small"
+                sx={{
+                  minWidth: 560,
+                  '& .MuiTableCell-root': {
+                    borderColor: ip.cardBorder,
+                  },
+                }}
+              >
+                <TableHead>
+                  <TableRow sx={{ bgcolor: ip.cardMutedBg }}>
+                    <TableCell sx={{ fontWeight: 700, color: ip.heading, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: 0.06 }}>
+                      Quarter
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: ip.heading, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: 0.06 }}>
+                      Title
+                    </TableCell>
+                    <TableCell
+                      align="right"
+                      sx={{ fontWeight: 700, color: ip.heading, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: 0.06 }}
+                    >
+                      Students
+                    </TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700, color: ip.heading, fontSize: '0.72rem', width: 120 }} />
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {reports.map((r) => (
+                    <TableRow
+                      key={r.quarterKey}
+                      hover
+                      sx={{
+                        bgcolor: '#ffffff',
+                        '&:hover': { bgcolor: ip.cardMutedBg },
+                        '&:last-of-type td': { borderBottom: 0 },
+                      }}
+                    >
+                      <TableCell sx={{ color: ip.heading, fontWeight: 600, verticalAlign: 'middle' }}>
+                        {r.quarterKey}
+                        {r.isLatest ? (
+                          <Chip
+                            label="Latest"
+                            size="small"
+                            sx={{
+                              ml: 1,
+                              height: 22,
+                              fontSize: '0.65rem',
+                              fontWeight: 700,
+                              bgcolor: 'rgba(16, 64, 139, 0.1)',
+                              color: ip.navy,
+                              border: 'none',
+                            }}
+                          />
+                        ) : null}
+                      </TableCell>
+                      <TableCell sx={{ color: ip.heading, maxWidth: { xs: 200, sm: 380 }, verticalAlign: 'middle' }}>
+                        {r.title}
+                      </TableCell>
+                      <TableCell align="right" sx={{ color: ip.heading, fontWeight: 600, verticalAlign: 'middle' }}>
+                        {r.studentsAssessed ?? '-'}
+                      </TableCell>
+                      <TableCell align="right" sx={{ verticalAlign: 'middle' }}>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          startIcon={
+                            downloadingKey === r.quarterKey ? (
+                              <CircularProgress size={14} sx={{ color: ip.navy }} />
+                            ) : (
+                              <DownloadIcon sx={{ fontSize: '1.05rem' }} />
+                            )
+                          }
+                          disabled={!r.hasPdf || !s3Configured || downloadingKey !== null}
+                          onClick={() => void onDownload(r)}
+                          sx={{
+                            borderColor: r.hasPdf ? ip.navy : ip.cardBorder,
+                            color: r.hasPdf ? ip.navy : ip.subtext,
+                            fontWeight: 600,
+                            textTransform: 'none',
+                            minWidth: 108,
+                            '&:hover': r.hasPdf
+                              ? { borderColor: ip.navy, bgcolor: 'rgba(16, 64, 139, 0.06)' }
+                              : {},
+                          }}
+                        >
+                          {r.hasPdf ? 'Download' : 'No file'}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </CardContent>
+      </Card>
+
+      <Box sx={{ mt: 3, p: 2.5, bgcolor: ip.cardMutedBg, border: `1px dashed ${ip.cardBorder}`, borderRadius: 2 }}>
         <Typography variant="body2" sx={{ color: ip.subtext }}>
-          Reports are generated automatically after each assessment cycle. New reports appear here within 24 hours of cycle close.
+          {isSchoolAdminPreview
+            ? 'Preview uses the same quarterly metadata as the Greenfield International School seed. PDF download stays disabled until you sign in with a configured API.'
+            : "New PDFs are appended each quarter here. Only officials signed in with your school's email can list and download them."}
         </Typography>
       </Box>
     </Box>

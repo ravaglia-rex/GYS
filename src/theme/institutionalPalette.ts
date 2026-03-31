@@ -19,8 +19,6 @@ export const institutionalPalette = {
   declineText: '#4B5563',
   pendingBg: '#FEFCE8',
   tierBar: {
-    diamond: '#0D9488',
-    platinum: '#475569',
     gold: '#F59E0B',
     silver: '#64748B',
     bronze: '#C2410C',

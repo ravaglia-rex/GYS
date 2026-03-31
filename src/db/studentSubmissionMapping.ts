@@ -1,4 +1,4 @@
-// Legacy file — Typeform submission mappings no longer exist.
+// Legacy file - Typeform submission mappings no longer exist.
 // Exam completion is handled by completeExam in assessmentCollection.ts.
 
 export const runExamSubmissionTransaction = async (

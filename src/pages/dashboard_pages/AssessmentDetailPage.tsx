@@ -33,6 +33,7 @@ import {
   ASSESSMENT_NAMES,
   MEMBERSHIP_LEVEL_LABELS,
 } from '../../utils/assessmentGating';
+import { canAttemptTier } from '../../utils/tierProgression';
 import {
   getAssessmentFlowDefinition,
   BeforeBeginIconKey,
@@ -74,6 +75,7 @@ const AssessmentDetailPage: React.FC = () => {
   const [membershipLevel, setMembershipLevel] = useState(1);
   const [progressMap, setProgressMap] = useState<Record<string, typeof defaultAssessmentProgress>>({});
   const [assessmentTypes, setAssessmentTypes] = useState<AssessmentType[]>([]);
+  const [studentGrade, setStudentGrade] = useState(8);
 
   useEffect(() => {
     if (!uid || !assessmentId) return;
@@ -82,6 +84,9 @@ const AssessmentDetailPage: React.FC = () => {
         setLoading(true);
         const [student, config] = await Promise.all([getStudent(uid), getAssessmentConfig()]);
         setMembershipLevel(normalizeMembershipLevel(student?.membership_level));
+        setStudentGrade(
+          typeof student?.grade === 'number' && !Number.isNaN(student.grade) ? student.grade : 8
+        );
         setProgressMap(student?.assessment_progress ?? {});
         setAssessmentTypes(config);
       } catch (e) {
@@ -104,8 +109,13 @@ const AssessmentDetailPage: React.FC = () => {
 
   const flow = assessmentId ? getAssessmentFlowDefinition(assessmentId) : getAssessmentFlowDefinition('');
   const gate = assessmentId
-    ? computeGate(assessmentId, membershipLevel, progressMap as any)
+    ? computeGate(assessmentId, membershipLevel, progressMap as any, studentGrade, assessmentTypes)
     : { locked: true, reason: 'membership' as const, requiredMembershipLevel: 3 };
+
+  const progressForAssessment = assessmentId ? progressMap[assessmentId] ?? defaultAssessmentProgress : defaultAssessmentProgress;
+  const maxTierCount = assessment?.tiers?.length ?? 1;
+  const tierAttemptAllowed =
+    !!assessment && canAttemptTier(progressForAssessment, tier, maxTierCount);
 
   const statGrid = useMemo(
     () => mergeStatGridWithTier(flow, tierConfig),
@@ -172,7 +182,7 @@ const AssessmentDetailPage: React.FC = () => {
 
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, flexWrap: 'wrap', mb: 4 }}>
             <Box sx={{ px: 2, py: 0.75, borderRadius: 10, bgcolor: '#ffedd5', color: '#9a3412', fontWeight: 700, fontSize: '0.75rem' }}>
-              {missName} — do this first
+              {missName} - do this first
             </Box>
             <Typography sx={{ color: '#94a3b8' }}>→</Typography>
             <Box sx={{ px: 2, py: 0.75, borderRadius: 10, bgcolor: primary.light, color: primary.dark, fontWeight: 600, fontSize: '0.75rem' }}>
@@ -193,7 +203,7 @@ const AssessmentDetailPage: React.FC = () => {
               '&.Mui-disabled': { bgcolor: '#94a3b8', color: '#fff' },
             }}
           >
-            Locked — complete prerequisite first
+            Locked - complete prerequisite first
           </Button>
         </Box>
       </Box>
@@ -262,7 +272,7 @@ const AssessmentDetailPage: React.FC = () => {
 
           <Box sx={{ bgcolor: '#fff8e1', border: '1px solid #ffe082', borderRadius: 2, p: 2, mb: 2 }}>
             <Typography sx={{ fontSize: '0.85rem', color: '#e65100', fontWeight: 600, textAlign: 'center' }}>
-              Upgrade pricing appears at checkout — compare plans on the billing page.
+              Upgrade pricing appears at checkout - compare plans on the billing page.
             </Typography>
           </Box>
 
@@ -288,68 +298,125 @@ const AssessmentDetailPage: React.FC = () => {
     );
   }
 
+  // ── Tier sequence (e.g. must clear tier 1 before tier 2) ────────────────
+  if (!gate.locked && !tierAttemptAllowed) {
+    return (
+      <Box sx={{ minHeight: '100vh', bgcolor: '#f1f5f9', pb: 10 }}>
+        <Box sx={{ bgcolor: '#fff', borderBottom: '1px solid #e2e8f0', px: 2, py: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <IconButton onClick={goBack} aria-label="Back" size="small">
+            <ArrowBackIcon sx={{ color: primary.main }} />
+          </IconButton>
+          <Typography sx={{ flex: 1, textAlign: 'center', fontWeight: 600, color: '#64748b', fontSize: '0.95rem' }}>
+            Assessment Detail
+          </Typography>
+          <Box sx={{ width: 40 }} />
+        </Box>
+        <Box sx={{ maxWidth: 480, mx: 'auto', px: 2, pt: 5, textAlign: 'center' }}>
+          <Typography sx={{ fontSize: '2.5rem', mb: 2 }}>🔒</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 800, color: '#475569', mb: 1.5 }}>
+            Tier {tier} not available yet
+          </Typography>
+          <Typography sx={{ color: '#64748b', fontSize: '0.95rem', lineHeight: 1.65, mb: 3 }}>
+            Complete the previous tier at your grade’s required score to unlock this one. You can still retake an earlier tier from the assessments list.
+          </Typography>
+          <Button fullWidth variant="contained" onClick={goBack} sx={{ py: 1.5, borderRadius: 2, fontWeight: 700 }}>
+            Back to assessments
+          </Button>
+        </Box>
+      </Box>
+    );
+  }
+
   // ── 7A / 7E active pre-assessment ─────────────────────────────────────────
   const heroIcon = flow.theme === 'purple' ? '🧠' : flow.examOrdinal === 1 ? '🧩' : '📋';
 
+  const contentMaxWidth = { xs: 'min(100%, 520px)', md: 920, lg: 1040 };
+
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#f8fafc', pb: 12 }}>
-      <Box sx={{ bgcolor: '#fff', borderBottom: '1px solid #e2e8f0', px: 2, py: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: '#f8fafc', pb: { xs: 14, md: 16 } }}>
+      <Box
+        sx={{
+          bgcolor: '#fff',
+          borderBottom: '1px solid #e2e8f0',
+          px: { xs: 2, md: 3 },
+          py: 1.5,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+        }}
+      >
         <IconButton onClick={goBack} aria-label="Back" size="small">
           <ArrowBackIcon sx={{ color: primary.main }} />
         </IconButton>
-        <Typography sx={{ flex: 1, textAlign: 'center', fontWeight: 600, color: '#334155', fontSize: '0.95rem' }}>
+        <Typography sx={{ flex: 1, textAlign: 'center', fontWeight: 600, color: '#334155', fontSize: { xs: '0.95rem', md: '1rem' } }}>
           Assessment Detail
         </Typography>
         <Box sx={{ width: 40 }} />
       </Box>
 
-      <Box sx={{ maxWidth: 520, mx: 'auto', px: 2, pt: 3 }}>
+      <Box sx={{ maxWidth: contentMaxWidth, mx: 'auto', px: { xs: 2, md: 4, lg: 5 }, pt: { xs: 3, md: 4 } }}>
         <Box
           sx={{
             borderRadius: 3,
             background: flow.theme === 'purple' ? 'linear-gradient(180deg, #f3e5f5 0%, #fce4ec 100%)' : `linear-gradient(180deg, ${primary.light} 0%, #fff 85%)`,
-            pt: 3,
-            pb: 2,
-            px: 2,
-            textAlign: 'center',
-            mb: 2,
+            pt: { xs: 3, md: 3.5 },
+            pb: { xs: 2, md: 3 },
+            px: { xs: 2, md: 4 },
+            mb: { xs: 2, md: 3 },
+            textAlign: { xs: 'center', md: 'left' },
+            display: { md: 'flex' },
+            flexDirection: { md: 'row' },
+            alignItems: { md: 'center' },
+            gap: { md: 3 },
           }}
         >
-          {flow.levelExclusiveBadge && (
+          <Box sx={{ flexShrink: 0, textAlign: { xs: 'center', md: 'left' } }}>
+            {flow.levelExclusiveBadge && (
+              <Typography
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  px: 1.5,
+                  py: 0.35,
+                  borderRadius: 10,
+                  bgcolor: '#7b1fa2',
+                  color: '#fff',
+                  fontSize: '0.65rem',
+                  fontWeight: 800,
+                  letterSpacing: 0.5,
+                  mb: 1.5,
+                }}
+              >
+                <StarIcon sx={{ fontSize: '0.85rem !important' }} /> {flow.levelExclusiveBadge}
+              </Typography>
+            )}
+            <Typography sx={{ fontSize: { xs: '2.75rem', md: '3.25rem' }, lineHeight: 1, mb: { xs: 1, md: 0 } }}>{heroIcon}</Typography>
+          </Box>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography
+              variant="h5"
               sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 0.5,
-                px: 1.5,
-                py: 0.35,
-                borderRadius: 10,
-                bgcolor: '#7b1fa2',
-                color: '#fff',
-                fontSize: '0.65rem',
                 fontWeight: 800,
-                letterSpacing: 0.5,
-                mb: 1.5,
+                color: primary.dark,
+                mb: 0.5,
+                fontSize: { xs: '1.25rem', md: '1.75rem' },
               }}
             >
-              <StarIcon sx={{ fontSize: '0.85rem !important' }} /> {flow.levelExclusiveBadge}
+              {flow.examTitleShort}
             </Typography>
-          )}
-          <Typography sx={{ fontSize: '2.75rem', lineHeight: 1, mb: 1 }}>{heroIcon}</Typography>
-          <Typography variant="h5" sx={{ fontWeight: 800, color: primary.dark, mb: 0.5 }}>
-            {flow.examTitleShort}
-          </Typography>
-          <Typography sx={{ color: primary.main, fontSize: '0.88rem', fontWeight: 500 }}>
-            {examLabel} • {flow.heroSubtitle}
-          </Typography>
+            <Typography sx={{ color: primary.main, fontSize: { xs: '0.88rem', md: '1rem' }, fontWeight: 500 }}>
+              {examLabel} • {flow.heroSubtitle}
+            </Typography>
+          </Box>
         </Box>
 
         <Box
           sx={{
             display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: 1.25,
-            mb: 2.5,
+            gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, minmax(0, 1fr))' },
+            gap: { xs: 1.25, md: 1.5 },
+            mb: { xs: 2.5, md: 3 },
           }}
         >
           {statGrid.map((cell) => (
@@ -358,7 +425,7 @@ const AssessmentDetailPage: React.FC = () => {
               sx={{
                 bgcolor: '#fff',
                 borderRadius: 2,
-                p: 1.75,
+                p: { xs: 1.75, md: 2 },
                 boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
                 border: '1px solid #e2e8f0',
               }}
@@ -366,30 +433,48 @@ const AssessmentDetailPage: React.FC = () => {
               <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: '#94a3b8', letterSpacing: 0.6, textTransform: 'uppercase', mb: 0.5 }}>
                 {cell.label}
               </Typography>
-              <Typography sx={{ fontWeight: 800, color: '#0f172a', fontSize: '0.95rem' }}>{cell.value}</Typography>
+              <Typography sx={{ fontWeight: 800, color: '#0f172a', fontSize: { xs: '0.95rem', md: '1.05rem' } }}>{cell.value}</Typography>
             </Box>
           ))}
         </Box>
 
-        <Typography sx={{ color: '#334155', fontSize: '0.9rem', lineHeight: 1.65, mb: 2.5 }}>
-          {flow.bodyDescription}
-        </Typography>
-
         <Box
           sx={{
-            bgcolor: flow.theme === 'purple' ? '#f3e5f5' : '#ede7f6',
-            borderRadius: 2,
-            p: 2,
-            mb: 2,
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: '1.15fr 0.85fr' },
+            gap: { xs: 0, md: 3 },
+            alignItems: 'start',
+            mb: { xs: 2, md: 0 },
           }}
         >
-          <Typography sx={{ fontWeight: 800, color: flow.theme === 'purple' ? '#4a148c' : '#4527a0', mb: 1, fontSize: '0.95rem' }}>
-            {flow.measuresTitle}
+          <Typography
+            sx={{
+              color: '#334155',
+              fontSize: { xs: '0.9rem', md: '1rem' },
+              lineHeight: 1.7,
+              mb: { xs: 2.5, md: 0 },
+            }}
+          >
+            {flow.bodyDescription}
           </Typography>
-          <Box component="ul" sx={{ m: 0, pl: 2.2, color: '#37474f', fontSize: '0.88rem', lineHeight: 1.7 }}>
-            {flow.measuresBullets.map((b) => (
-              <li key={b}>{b}</li>
-            ))}
+
+          <Box
+            sx={{
+              bgcolor: flow.theme === 'purple' ? '#f3e5f5' : '#ede7f6',
+              borderRadius: 2,
+              p: { xs: 2, md: 2.5 },
+              mb: { xs: 2, md: 0 },
+              height: 'fit-content',
+            }}
+          >
+            <Typography sx={{ fontWeight: 800, color: flow.theme === 'purple' ? '#4a148c' : '#4527a0', mb: 1, fontSize: { xs: '0.95rem', md: '1.05rem' } }}>
+              {flow.measuresTitle}
+            </Typography>
+            <Box component="ul" sx={{ m: 0, pl: 2.2, color: '#37474f', fontSize: { xs: '0.88rem', md: '0.92rem' }, lineHeight: 1.7 }}>
+              {flow.measuresBullets.map((b) => (
+                <li key={b}>{b}</li>
+              ))}
+            </Box>
           </Box>
         </Box>
 
@@ -398,22 +483,31 @@ const AssessmentDetailPage: React.FC = () => {
             sx={{
               bgcolor: '#fff',
               borderRadius: 2,
-              p: 2,
-              mb: 2,
+              p: { xs: 2, md: 3 },
+              mb: { xs: 2, md: 3 },
+              mt: { md: 3 },
               border: `1px solid ${primary.border}`,
             }}
           >
-            <Typography sx={{ fontWeight: 800, color: primary.dark, mb: 1.5, fontSize: '0.9rem' }}>
+            <Typography sx={{ fontWeight: 800, color: primary.dark, mb: 1.5, fontSize: { xs: '0.9rem', md: '1rem' } }}>
               {flow.comprehensiveExtra.howDifferentTitle}
             </Typography>
-            {flow.comprehensiveExtra.howDifferentItems.map((row) => (
-              <Box key={row.text} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.25, mb: 1.25 }}>
-                {row.icon === 'brain' && <BrainIcon sx={{ color: '#7b1fa2', fontSize: '1.25rem', mt: 0.1 }} />}
-                {row.icon === 'timer' && <TimerIcon sx={{ color: '#7b1fa2', fontSize: '1.25rem', mt: 0.1 }} />}
-                {row.icon === 'target' && <TargetIcon sx={{ color: '#7b1fa2', fontSize: '1.25rem', mt: 0.1 }} />}
-                <Typography sx={{ fontSize: '0.85rem', color: '#424242', lineHeight: 1.5 }}>{row.text}</Typography>
-              </Box>
-            ))}
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' },
+                gap: { md: 2 },
+              }}
+            >
+              {flow.comprehensiveExtra.howDifferentItems.map((row) => (
+                <Box key={row.text} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.25, mb: { xs: 1.25, md: 0 } }}>
+                  {row.icon === 'brain' && <BrainIcon sx={{ color: '#7b1fa2', fontSize: '1.25rem', mt: 0.1 }} />}
+                  {row.icon === 'timer' && <TimerIcon sx={{ color: '#7b1fa2', fontSize: '1.25rem', mt: 0.1 }} />}
+                  {row.icon === 'target' && <TargetIcon sx={{ color: '#7b1fa2', fontSize: '1.25rem', mt: 0.1 }} />}
+                  <Typography sx={{ fontSize: { xs: '0.85rem', md: '0.9rem' }, color: '#424242', lineHeight: 1.5 }}>{row.text}</Typography>
+                </Box>
+              ))}
+            </Box>
             <Typography sx={{ fontSize: '0.72rem', color: '#9e9e9e', mt: 1 }}>{flow.comprehensiveExtra.footerNote}</Typography>
           </Box>
         )}
@@ -423,19 +517,29 @@ const AssessmentDetailPage: React.FC = () => {
             bgcolor: '#fffbeb',
             border: '1px solid #fde68a',
             borderRadius: 2,
-            p: 2,
+            p: { xs: 2, md: 3 },
             mb: 3,
+            mt: { md: flow.comprehensiveExtra ? 0 : 3 },
           }}
         >
-          <Typography sx={{ fontWeight: 800, color: '#b45309', mb: 1.25, fontSize: '0.95rem' }}>
+          <Typography sx={{ fontWeight: 800, color: '#b45309', mb: 1.25, fontSize: { xs: '0.95rem', md: '1.05rem' } }}>
             Before You Begin
           </Typography>
-          {flow.beforeBegin.map((row) => (
-            <Box key={row.text} sx={{ display: 'flex', gap: 1.25, alignItems: 'flex-start', mb: 1.25 }}>
-              <BeforeBeginIcon k={row.icon} />
-              <Typography sx={{ fontSize: '0.85rem', color: '#78350f', lineHeight: 1.55, flex: 1 }}>{row.text}</Typography>
-            </Box>
-          ))}
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' },
+              columnGap: 3,
+              rowGap: 0,
+            }}
+          >
+            {flow.beforeBegin.map((row) => (
+              <Box key={row.text} sx={{ display: 'flex', gap: 1.25, alignItems: 'flex-start', mb: 1.25 }}>
+                <BeforeBeginIcon k={row.icon} />
+                <Typography sx={{ fontSize: { xs: '0.85rem', md: '0.9rem' }, color: '#78350f', lineHeight: 1.55, flex: 1 }}>{row.text}</Typography>
+              </Box>
+            ))}
+          </Box>
         </Box>
       </Box>
 
@@ -447,33 +551,36 @@ const AssessmentDetailPage: React.FC = () => {
           right: 0,
           bgcolor: '#fff',
           borderTop: '1px solid #e2e8f0',
-          px: 2,
-          py: 2,
-          maxWidth: 520,
-          mx: 'auto',
+          py: { xs: 2, md: 2.25 },
+          boxShadow: '0 -4px 24px rgba(15, 23, 42, 0.06)',
         }}
       >
-        <Button
-          fullWidth
-          variant="contained"
-          onClick={() => navigate(`/assessments/${assessmentId}/tier/${tier}/take`)}
-          sx={{
-            py: 1.5,
-            borderRadius: 2,
-            fontWeight: 800,
-            fontSize: '1rem',
-            bgcolor: flow.theme === 'purple' ? '#7b1fa2' : primary.main,
-            '&:hover': { bgcolor: flow.theme === 'purple' ? '#6a1b9a' : primary.dark },
-            textTransform: 'none',
-          }}
-        >
-          {flow.isComprehensivePersonality ? 'Begin comprehensive assessment →' : 'Begin assessment →'}
-        </Button>
-        {flow.detailFooterFinePrint && (
-          <Typography sx={{ textAlign: 'center', fontSize: '0.72rem', color: '#94a3b8', mt: 1.25 }}>
-            {flow.detailFooterFinePrint}
-          </Typography>
-        )}
+        <Box sx={{ maxWidth: contentMaxWidth, mx: 'auto', px: { xs: 2, md: 4, lg: 5 } }}>
+          <Button
+            fullWidth
+            variant="contained"
+            disabled={!tierAttemptAllowed}
+            onClick={() =>
+              tierAttemptAllowed && navigate(`/assessments/${assessmentId}/tier/${tier}/take`)
+            }
+            sx={{
+              py: { xs: 1.5, md: 1.65 },
+              borderRadius: 2,
+              fontWeight: 800,
+              fontSize: { xs: '1rem', md: '1.05rem' },
+              bgcolor: flow.theme === 'purple' ? '#7b1fa2' : primary.main,
+              '&:hover': { bgcolor: flow.theme === 'purple' ? '#6a1b9a' : primary.dark },
+              textTransform: 'none',
+            }}
+          >
+            {flow.isComprehensivePersonality ? 'Begin comprehensive assessment →' : 'Begin assessment →'}
+          </Button>
+          {flow.detailFooterFinePrint && (
+            <Typography sx={{ textAlign: 'center', fontSize: '0.72rem', color: '#94a3b8', mt: 1.25 }}>
+              {flow.detailFooterFinePrint}
+            </Typography>
+          )}
+        </Box>
       </Box>
     </Box>
   );

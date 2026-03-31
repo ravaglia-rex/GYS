@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
 
 const GYS_BLUE = '#1e3a8a';
 const GYS_GOLD = '#fbbf24';
@@ -72,14 +73,17 @@ const StudentPathPage: React.FC = () => {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => navigate('/login')}
-            className="px-5 py-2.5 rounded-xl text-white text-sm font-medium shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:brightness-110 active:scale-95 transition-all duration-200"
-            style={{ backgroundColor: GYS_BLUE }}
-          >
-            Log In
-          </button>
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+            <PublicHomeNavButton />
+            <button
+              type="button"
+              onClick={() => navigate('/login')}
+              className="px-4 py-2.5 sm:px-5 rounded-xl text-white text-sm font-medium shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:brightness-110 active:scale-95 transition-all duration-200"
+              style={{ backgroundColor: GYS_BLUE }}
+            >
+              Log In
+            </button>
+          </div>
         </div>
       </header>
 
@@ -96,6 +100,15 @@ const StudentPathPage: React.FC = () => {
               Take world-class assessments, get your global tier, and build a profile that top universities
               notice.
             </p>
+            <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+              <button
+                type="button"
+                onClick={() => navigate('/students/preview/dashboard')}
+                className="w-full max-w-sm rounded-xl border-2 border-white/40 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm transition-all duration-200 hover:bg-white/20 hover:border-white/60 sm:w-auto"
+              >
+                Try the sample dashboard - no account
+              </button>
+            </div>
           </div>
         </section>
 
@@ -112,8 +125,8 @@ const StudentPathPage: React.FC = () => {
               },
               {
                 icon: '🧠',
-                title: '5 Assessments',
-                body: 'Symbolic, Verbal, and Mathematical Reasoning. Personality Profile. Conversational English Fluency.',
+                title: '7 Assessments',
+                body: 'Reasoning triad, personality profiles, English fluency, AI literacy, and comprehensive personality—benchmarked globally.',
               },
               {
                 icon: '📊',
@@ -151,8 +164,9 @@ const StudentPathPage: React.FC = () => {
 
         {/* Assessments - full width grey band */}
         <section
+          id="assessments"
           data-section="assessments"
-          className={`mt-12 bg-slate-100 border-y border-slate-200 py-8 text-center sm:mt-16 sm:py-10 relative left-1/2 right-1/2 -ml-[50vw] w-screen transition-all duration-600 ${assessmentsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
+          className={`mt-12 bg-slate-100 border-y border-slate-200 py-8 text-center sm:mt-16 sm:py-10 relative left-1/2 right-1/2 -ml-[50vw] w-screen scroll-mt-20 transition-all duration-600 ${assessmentsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
         >
           <div className="mx-auto max-w-5xl px-4 sm:px-6">
             <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">The Assessments</h2>
@@ -161,17 +175,17 @@ const StudentPathPage: React.FC = () => {
               const cards = [
                 {
                   label: 'Symbolic Reasoning',
-                  desc: 'Patterns, logic, abstraction',
+                  desc: 'Patterns, rules, and structured logic',
                   icon: '🔢',
                 },
                 {
                   label: 'Verbal Reasoning',
-                  desc: 'Arguments, inference, comprehension',
+                  desc: 'Meaning, inference, and argument from text',
                   icon: '📚',
                 },
                 {
                   label: 'Mathematical Reasoning',
-                  desc: 'Quantitative, spatial, analytical',
+                  desc: 'Number sense, logic, and quantitative thinking',
                   icon: '📐',
                 },
                 {
@@ -183,6 +197,16 @@ const StudentPathPage: React.FC = () => {
                   label: 'English Fluency',
                   desc: 'AI-assessed conversational English',
                   icon: '💬',
+                },
+                {
+                  label: 'AI Literacy',
+                  desc: 'Skills for learning and working with AI',
+                  icon: '🤖',
+                },
+                {
+                  label: 'Comprehensive Personality',
+                  desc: 'Deep profile across many dimensions',
+                  icon: '✨',
                 },
               ];
 
@@ -196,20 +220,20 @@ const StudentPathPage: React.FC = () => {
                     {card.icon}
                   </span>
                   <p className="mt-2 text-xs font-semibold text-white sm:text-sm">{card.label}</p>
-                  <p className="mt-1 text-[11px] text-white/80 sm:text-xs">{card.desc}</p>
+                  <p className="mt-1 text-xs text-white/80 sm:text-xs">{card.desc}</p>
                 </div>
               );
 
               return (
                 <>
-                  {/* Phone: 2-2-1 layout */}
+                  {/* Phone: 2+2+2+1 layout */}
                   <div className="grid grid-cols-2 gap-3 sm:hidden">
-                    {cards.slice(0, 4).map(renderCard)}
+                    {cards.slice(0, 6).map(renderCard)}
                     <div className="col-span-2 flex justify-center">
-                      {renderCard(cards[4])}
+                      {renderCard(cards[6])}
                     </div>
                   </div>
-                  {/* Big screen: 6-col grid so all 5 cards same width (each col-span-2), row 2 centered */}
+                  {/* Tablet+: three rows of three + three + one (centered) */}
                   <div className="hidden sm:block">
                     <div className="grid grid-cols-6 gap-3">
                       {cards.slice(0, 3).map((card) => (
@@ -219,11 +243,15 @@ const StudentPathPage: React.FC = () => {
                       ))}
                     </div>
                     <div className="mt-3 grid grid-cols-6 gap-3">
-                      <div className="col-span-2 col-start-2">
-                        {renderCard(cards[3])}
-                      </div>
-                      <div className="col-span-2">
-                        {renderCard(cards[4])}
+                      {cards.slice(3, 6).map((card) => (
+                        <div key={card.label} className="col-span-2">
+                          {renderCard(card)}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-3 grid grid-cols-6 gap-3">
+                      <div className="col-span-2 col-start-3">
+                        {renderCard(cards[6])}
                       </div>
                     </div>
                   </div>
@@ -288,18 +316,19 @@ const StudentPathPage: React.FC = () => {
 
         {/* Final CTAs */}
         <section className="mt-12 sm:mt-16">
-          <div className="flex justify-center">
-            <button
-              type="button"
-              onClick={() => navigate('/students/register')}
-              className="inline-flex w-full max-w-xl items-center justify-center rounded-2xl bg-[#fbbf24] px-14 py-3.5 text-sm font-semibold text-slate-900 shadow-md hover:shadow-lg hover:-translate-y-0.5 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 sm:text-base"
+          <div className="mx-auto flex max-w-xl flex-col items-center gap-3">
+            <div
+              className="inline-flex w-full cursor-not-allowed items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-100 px-14 py-3.5 text-sm font-semibold text-slate-500 sm:text-base"
+              role="status"
+              aria-label="Student signup coming soon"
             >
-              Create Your Account →
-            </button>
+              Sign Up - Coming soon!
+            </div>
+            <p className="text-center text-sm text-slate-600 sm:text-base">
+              Keep an eye out, student signup isn&apos;t open yet. Try the sample dashboard above to explore
+              the experience!
+            </p>
           </div>
-          <p className="pt-8 text-center text-sm text-slate-500 sm:text-base">
-            Create your account free. Choose a membership level to begin assessments.
-          </p>
         </section>
         </div>
       </main>
@@ -308,25 +337,38 @@ const StudentPathPage: React.FC = () => {
       <footer className="bg-white border-t border-gray-200 py-10">
         <div className="mx-auto max-w-5xl px-6">
           <nav className="flex flex-wrap justify-center gap-6 text-sm text-gray-600">
-            <a href="/#about" className="text-gray-600 hover:text-gray-900 transition-colors duration-200">
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="text-gray-600 hover:text-gray-900 transition-colors duration-200"
+            >
               About
-            </a>
-            <a href="/#for-schools" className="text-gray-600 hover:text-gray-900 transition-colors duration-200">
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/for-schools')}
+              className="text-gray-600 hover:text-gray-900 transition-colors duration-200"
+            >
               For Schools
-            </a>
-            <a href="/#for-students" className="text-gray-600 hover:text-gray-900 transition-colors duration-200">
+            </button>
+            <button
+              type="button"
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="text-gray-600 hover:text-gray-900 transition-colors duration-200"
+            >
               For Students
-            </a>
-            <a href="/#assessments" className="text-gray-600 hover:text-gray-900 transition-colors duration-200">
+            </button>
+            <button
+              type="button"
+              onClick={() => document.getElementById('assessments')?.scrollIntoView({ behavior: 'smooth' })}
+              className="text-gray-600 hover:text-gray-900 transition-colors duration-200"
+            >
               Assessments
-            </a>
-            <a href="/#privacy" className="text-gray-600 hover:text-gray-900 transition-colors duration-200">
-              Privacy Policy
-            </a>
-            <a href="/#terms" className="text-gray-600 hover:text-gray-900 transition-colors duration-200">
-              Terms of Service
-            </a>
-            <a href="/#contact" className="text-gray-600 hover:text-gray-900 transition-colors duration-200">
+            </button>
+            <a
+              href="mailto:schools@globalyoungscholar.com"
+              className="text-gray-600 hover:text-gray-900 transition-colors duration-200"
+            >
               Contact
             </a>
           </nav>

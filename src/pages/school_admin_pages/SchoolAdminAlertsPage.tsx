@@ -3,7 +3,6 @@ import {
   Box, Card, CardContent, Typography, Chip, Button, Divider, IconButton,
 } from '@mui/material';
 import {
-  PersonAdd as PersonAddIcon,
   Assessment as ReportIcon,
   NotificationsActive as AlertIcon,
   CheckCircle as ReadIcon,
@@ -13,7 +12,7 @@ import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 
 interface Alert {
   id: string;
-  type: 'student_request' | 'report_ready' | 'system';
+  type: 'report_ready' | 'system';
   title: string;
   body: string;
   time: string;
@@ -21,23 +20,18 @@ interface Alert {
 }
 
 const INITIAL_ALERTS: Alert[] = [
-  { id: 'a1', type: 'student_request', title: 'New Student Connection Request', body: 'Priya Sharma (Grade 6) has requested to connect to your school via UDISE lookup.', time: '2 Mar 2027 · 10:14 AM', read: false },
-  { id: 'a2', type: 'student_request', title: 'New Student Connection Request', body: 'Rahul Patel (Grade 8) has requested to connect to your school via UDISE lookup.', time: '1 Mar 2027 · 3:22 PM', read: false },
   { id: 'a3', type: 'report_ready', title: 'Q2 Performance Report Ready', body: 'Your Q2 2027 institutional performance report has been generated and is available for download.', time: '1 Mar 2027 · 12:00 PM', read: false },
-  { id: 'a4', type: 'student_request', title: 'New Student Connection Request', body: 'Ananya Krishnan (Grade 7) has requested to connect to your school via UDISE lookup.', time: '28 Feb 2027 · 9:05 AM', read: true },
   { id: 'a5', type: 'report_ready', title: 'Q1 → Q2 Growth Report Ready', body: 'Your quarter-over-quarter growth report is available. Overall percentile improved by 5 points.', time: '1 Mar 2027 · 12:00 PM', read: true },
 ];
 
 const ALERT_ICON: Record<string, React.ReactElement> = {
-  student_request: <PersonAddIcon sx={{ fontSize: '1.1rem' }} />,
-  report_ready:    <ReportIcon sx={{ fontSize: '1.1rem' }} />,
-  system:          <AlertIcon sx={{ fontSize: '1.1rem' }} />,
+  report_ready: <ReportIcon sx={{ fontSize: '1.1rem' }} />,
+  system: <AlertIcon sx={{ fontSize: '1.1rem' }} />,
 };
 
 const ALERT_COLOR: Record<string, string> = {
-  student_request: '#f59e0b',
-  report_ready:    '#3b82f6',
-  system:          '#8b5cf6',
+  report_ready: '#3b82f6',
+  system: '#8b5cf6',
 };
 
 const SchoolAdminAlertsPage: React.FC = () => {
@@ -66,7 +60,7 @@ const SchoolAdminAlertsPage: React.FC = () => {
             )}
           </Box>
           <Typography variant="body2" sx={{ color: ip.subtext }}>
-            Student connection requests, report notifications, and system updates
+            Report notifications and system updates
           </Typography>
         </Box>
         {unreadCount > 0 && (
@@ -132,7 +126,7 @@ const SchoolAdminAlertsPage: React.FC = () => {
           <AlertIcon sx={{ color: ip.cardBorder, fontSize: '3rem', mb: 1.5 }} />
           <Typography variant="body1" sx={{ color: ip.subtext }}>No alerts</Typography>
           <Typography variant="caption" sx={{ color: ip.subtext }}>
-            You're all caught up. New student requests and report notifications will appear here.
+            You&apos;re all caught up. New report notifications will appear here.
           </Typography>
         </Box>
       )}

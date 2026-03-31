@@ -1,5 +1,6 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
 
 const GYS_BLUE = '#1e3a8a';
 
@@ -8,13 +9,16 @@ const StudentWelcomePage: React.FC = () => {
   const location = useLocation();
   const state = location.state || {};
 
-  const membershipName = (state as any).membershipName || 'Level 2 — Engage';
+  const membershipName = (state as any).membershipName || 'Level 2 - Engage';
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <header className="sticky top-0 z-40 bg-white/90 border-b border-gray-200 backdrop-blur">
-        <div className="mx-auto flex max-w-md items-center justify-center px-4 py-4">
-          <div className="flex items-center gap-3">
+        <div className="mx-auto grid w-full max-w-6xl grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 py-4">
+          <div className="flex justify-start">
+            <PublicHomeNavButton />
+          </div>
+          <div className="flex items-center gap-3 justify-center">
             <div
               className="w-10 h-10 rounded flex items-center justify-center text-white font-bold text-sm shrink-0"
               style={{ backgroundColor: GYS_BLUE }}
@@ -27,6 +31,7 @@ const StudentWelcomePage: React.FC = () => {
               </h1>
             </div>
           </div>
+          <div />
         </div>
       </header>
 

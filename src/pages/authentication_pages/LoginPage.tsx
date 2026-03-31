@@ -1,12 +1,11 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import * as Sentry from '@sentry/react';
 import EmailEntryForm from '../../components/auth/EmailForm';
+import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
 
 const GYS_BLUE = '#1e3a8a';
 
 const LoginPage: React.FC = () => {
-  const navigate = useNavigate();
 
   return (
     <Sentry.ErrorBoundary
@@ -34,14 +33,7 @@ const LoginPage: React.FC = () => {
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => navigate('/')}
-              className="px-5 py-2.5 rounded-xl text-white text-sm font-medium shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-transform duration-150"
-              style={{ backgroundColor: GYS_BLUE }}
-            >
-              Back to Home
-            </button>
+            <PublicHomeNavButton prominent />
           </div>
         </header>
 
@@ -53,7 +45,7 @@ const LoginPage: React.FC = () => {
               <section className="flex items-start justify-center order-first sm:order-last">
                 <div className="w-full max-w-md">
                   <EmailEntryForm />
-                  <p className="mt-4 text-center text-[11px] text-slate-500">
+                  <p className="mt-4 text-center text-xs text-slate-500">
                     By continuing, you agree to the exam rules and honor code shared with your school.
                   </p>
                 </div>
@@ -71,7 +63,7 @@ const LoginPage: React.FC = () => {
                   </h1>
                   <p className="max-w-xl text-sm sm:text-base text-slate-700">
                     Access your exam schedule, practice sets, and performance insights in one secure
-                    dashboard—built for ambitious students and school leaders.
+                    dashboard-built for ambitious students and school leaders.
                   </p>
 
                   <div className="mt-5 grid grid-cols-2 gap-4 max-w-lg text-xs text-slate-700">

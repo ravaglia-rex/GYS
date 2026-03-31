@@ -14,9 +14,14 @@ export type NewStudent = {
     phone_number?: string;
     about_me?: string;
     date_of_birth?: string;
+    membership_level?: number;
+    home_language?: string;
+    aspiration?: string;
+    heard_from?: string;
+    city_state?: string;
 };
 
-// No auth token needed — called during signup before the user has a verified token.
+// No auth token needed - called during signup before the user has a verified token.
 export const runSignUpTransaction = async (student: NewStudent) => {
     try {
         const config = {

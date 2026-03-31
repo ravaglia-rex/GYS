@@ -1,4 +1,5 @@
 import React from 'react';
+import type { SvgIconProps } from '@mui/material';
 import {
   Box, Card, CardContent, Typography, Button, Chip, Divider,
 } from '@mui/material';
@@ -7,82 +8,92 @@ import {
   WorkspacePremium as PremiumIcon,
   School as StandardIcon,
   ArrowForward as ArrowIcon,
+  LooksOne as EntryIcon,
 } from '@mui/icons-material';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 
-interface PlanFeature {
-  text: string;
-  included: boolean;
-}
+const EW_BLUE = 'rgba(30, 58, 138, 0.9)';
+const RECOMMENDED_GOLD = '#fbbf24';
+const STANDARD_RING = 'rgba(30, 58, 138, 0.7)';
+/** Same as ip.statBlue - literal here so plan data has no palette init at module top */
+const PLAN_STANDARD_BLUE = '#1D4ED8';
+
+type PlanIcon = React.ComponentType<SvgIconProps>;
 
 interface Plan {
   id: string;
   name: string;
   price: string;
   per: string;
-  description: string;
-  features: PlanFeature[];
+  features: string[];
   accent: string;
-  icon: React.ReactElement;
+  Icon: PlanIcon;
   current?: boolean;
-  tag?: string;
+  recommended?: boolean;
 }
 
 const PLANS: Plan[] = [
   {
+    id: 'entry',
+    name: 'Entry',
+    price: '₹2,00,000',
+    per: '/yr',
+    accent: '#475569',
+    Icon: EntryIcon,
+    features: [
+      'Assessment 1 (Symbolic Reasoning)',
+      'Headline performance report',
+      'Tier distribution analysis',
+      'Path to next tier',
+    ],
+  },
+  {
     id: 'standard',
     name: 'Standard',
-    price: '₹2,00,000',
-    per: '/year',
-    description: 'Core institutional access for schools getting started with GYS assessments.',
-    accent: ip.statBlue,
-    icon: <StandardIcon sx={{ fontSize: '1.6rem', color: ip.statBlue }} />,
+    price: '₹3,00,000',
+    per: '/yr',
+    accent: PLAN_STANDARD_BLUE,
+    Icon: StandardIcon,
     current: true,
+    recommended: true,
     features: [
-      { text: 'Unlimited student connections', included: true },
-      { text: 'Full access for school-paid students', included: true },
-      { text: 'Invitation code generation', included: true },
-      { text: 'Institutional performance reports (.docx)', included: true },
-      { text: 'Analytics & grade-level breakdown', included: true },
-      { text: 'Student approval workflow', included: true },
-      { text: 'Consulting-style action plans', included: false },
-      { text: 'Dedicated account manager', included: false },
-      { text: 'Faculty training workshops', included: false },
-      { text: 'Marketing toolkit & tier badges for parents', included: false },
+      'Assessments 1–3 (reasoning triad)',
+      'Full analytics & subscore breakdowns',
+      'Grade-level analysis',
+      'Comparative benchmarks (national, regional)',
+      'Quarterly growth tracking',
+      'Prioritized recommendations',
     ],
   },
   {
     id: 'premium',
     name: 'Premium',
     price: '₹5,00,000',
-    per: '/year',
-    description: 'Full-service institutional partnership with hands-on support and marketing tools.',
+    per: '/yr',
     accent: '#8b5cf6',
-    icon: <PremiumIcon sx={{ fontSize: '1.6rem', color: '#8b5cf6' }} />,
-    tag: 'Recommended',
+    Icon: PremiumIcon,
     features: [
-      { text: 'Everything in Standard', included: true },
-      { text: 'Consulting-style action plans', included: true },
-      { text: 'Dedicated account manager', included: true },
-      { text: 'Faculty training workshops', included: true },
-      { text: 'Marketing toolkit & tier badges for parents', included: true },
-      { text: 'Priority report generation', included: true },
-      { text: 'Custom branded parent communication templates', included: true },
-      { text: 'Quarterly strategic review meetings', included: true },
+      'Everything in Standard',
+      'All grades & custom cohorts',
+      'Cohort analysis & cluster insights',
+      'Faculty training workshops',
+      'Consulting-style action plans',
+      'Dedicated account manager',
+      'Marketing toolkit (tier badges, parent comms)',
     ],
   },
 ];
 
-const SchoolAdminSubscriptionPage: React.FC = () => {
+function SchoolAdminSubscriptionPage() {
   return (
-    <Box sx={{ maxWidth: 960, mx: 'auto', pb: 6 }}>
-      {/* Header */}
+    <Box sx={{ maxWidth: 1120, mx: 'auto', pb: 6 }}>
+      {/* Header - aligned with For Schools / institutional pricing */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" sx={{ color: ip.heading, fontWeight: 700, mb: 0.5 }}>
-          Subscription
+          Institutional Subscriptions
         </Typography>
         <Typography variant="body2" sx={{ color: ip.subtext }}>
-          Manage your institutional subscription and explore upgrade options
+          Annual institutional license. All students in selected grades included.
         </Typography>
       </Box>
 
@@ -99,57 +110,84 @@ const SchoolAdminSubscriptionPage: React.FC = () => {
           </Box>
           <Box>
             <Typography variant="body1" sx={{ color: ip.heading, fontWeight: 700 }}>
-              Standard Subscription
+              Standard
             </Typography>
             <Typography variant="body2" sx={{ color: ip.subtext }}>
-              Renews annually · ₹2,00,000/yr · Next renewal: 1 Jan 2028
+              Renews annually · ₹3,00,000/yr · Next renewal: 1 Jan 2028
             </Typography>
           </Box>
         </Box>
         <Chip label="Active" sx={{ bgcolor: 'rgba(34,197,94,0.15)', color: '#16a34a', fontWeight: 700 }} />
       </Box>
 
-      {/* Plans */}
       <Typography variant="h6" sx={{ color: ip.heading, fontWeight: 700, mb: 2 }}>
-        Available Plans
+        Available plans
       </Typography>
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2.5, mb: 4 }}>
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', sm: '1fr', md: 'repeat(3, 1fr)' },
+        gap: 2.5,
+        mb: 4,
+      }}>
         {PLANS.map(plan => (
           <Card
             key={plan.id}
             sx={{
               bgcolor: '#fff',
-              boxShadow: 'none',
-              border: plan.current ? `2px solid ${plan.accent}` : `1px solid ${ip.cardBorder}`,
+              boxShadow: plan.recommended ? 2 : 'none',
+              border: plan.recommended
+                ? `2px solid ${STANDARD_RING}`
+                : `1px solid ${ip.cardBorder}`,
               borderRadius: 2.5,
               position: 'relative',
+              overflow: 'visible',
               transition: 'all 0.18s',
-              '&:hover': { border: `2px solid ${plan.accent}`, transform: 'translateY(-2px)' },
+              pt: plan.recommended ? 1.5 : 0,
+              '&:hover': {
+                border: `2px solid ${plan.accent}`,
+                transform: 'translateY(-2px)',
+              },
             }}
           >
-            {(plan.tag || plan.current) && (
-              <Box sx={{ position: 'absolute', top: 16, right: 16 }}>
-                {plan.current && <Chip label="Current Plan" size="small" sx={{ bgcolor: `${plan.accent}20`, color: plan.accent, fontWeight: 700, fontSize: '0.68rem' }} />}
-                {plan.tag && !plan.current && <Chip label={plan.tag} size="small" sx={{ bgcolor: `${plan.accent}20`, color: plan.accent, fontWeight: 700, fontSize: '0.68rem' }} />}
+            {plan.recommended && (
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: -12,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  bgcolor: RECOMMENDED_GOLD,
+                  color: '#0f172a',
+                  px: 1.75,
+                  py: 0.35,
+                  borderRadius: 999,
+                  fontSize: '0.65rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.16em',
+                  textTransform: 'uppercase',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.12)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Recommended
               </Box>
             )}
-            <CardContent sx={{ p: '28px !important' }}>
+            <CardContent sx={{ p: '24px !important', pt: plan.recommended ? '28px !important' : '24px !important' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
-                {plan.icon}
+                <plan.Icon sx={{ fontSize: '1.6rem', color: plan.accent }} />
                 <Typography variant="h6" sx={{ color: ip.heading, fontWeight: 700 }}>{plan.name}</Typography>
               </Box>
-              <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5, mb: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5, mb: 2 }}>
                 <Typography variant="h4" sx={{ color: plan.accent, fontWeight: 800 }}>{plan.price}</Typography>
                 <Typography variant="body2" sx={{ color: ip.subtext }}>{plan.per}</Typography>
               </Box>
-              <Typography variant="body2" sx={{ color: ip.subtext, mb: 2.5 }}>{plan.description}</Typography>
               <Divider sx={{ borderColor: ip.cardBorder, mb: 2 }} />
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 3 }}>
-                {plan.features.map(f => (
-                  <Box key={f.text} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <CheckIcon sx={{ fontSize: '0.9rem', color: f.included ? '#16a34a' : ip.cardBorder }} />
-                    <Typography variant="body2" sx={{ color: f.included ? ip.heading : ip.subtext, fontSize: '0.82rem' }}>
-                      {f.text}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 3, minHeight: { md: 200 } }}>
+                {plan.features.map(text => (
+                  <Box key={text} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                    <CheckIcon sx={{ fontSize: '1rem', color: '#16a34a', mt: '2px', flexShrink: 0 }} />
+                    <Typography variant="body2" sx={{ color: ip.heading, fontSize: '0.875rem', lineHeight: 1.45 }}>
+                      {text}
                     </Typography>
                   </Box>
                 ))}
@@ -161,7 +199,15 @@ const SchoolAdminSubscriptionPage: React.FC = () => {
                   disabled
                   sx={{ borderColor: ip.cardBorder, color: ip.subtext, borderRadius: 1.5, fontWeight: 600 }}
                 >
-                  Current Plan
+                  Current plan
+                </Button>
+              ) : plan.id === 'entry' ? (
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  sx={{ borderColor: ip.cardBorder, color: ip.heading, borderRadius: 1.5, fontWeight: 600, '&:hover': { bgcolor: ip.cardMutedBg } }}
+                >
+                  Contact sales
                 </Button>
               ) : (
                 <Button
@@ -178,16 +224,61 @@ const SchoolAdminSubscriptionPage: React.FC = () => {
         ))}
       </Box>
 
+      {/* EducationWorld strip - matches public For Schools page */}
+      <Box
+        sx={{
+          borderRadius: 2.5,
+          bgcolor: '#e0edff',
+          px: { xs: 2.5, sm: 3 },
+          py: { xs: 2, sm: 2.5 },
+          mb: 4,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+        }}
+      >
+        <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+          <Box
+            sx={{
+              flexShrink: 0,
+              width: 56,
+              height: 56,
+              borderRadius: 2,
+              bgcolor: EW_BLUE,
+              color: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              fontSize: '0.7rem',
+              fontWeight: 600,
+              lineHeight: 1.2,
+              px: 0.5,
+            }}
+          >
+            Education
+            <br />
+            World
+          </Box>
+          <Box>
+            <Typography variant="body2" sx={{ fontWeight: 700, color: ip.heading }}>
+              Presented by EducationWorld
+            </Typography>
+            <Typography variant="body2" sx={{ mt: 0.5, color: '#1e293b', fontSize: '0.8125rem', lineHeight: 1.5 }}>
+              India&apos;s most trusted name in school assessment and ranking. Your data, our expertise.
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
+
       {/* Billing info */}
       <Card sx={{ bgcolor: '#fff', border: `1px solid ${ip.cardBorder}`, borderRadius: 2, boxShadow: 'none' }}>
         <CardContent sx={{ p: '24px !important' }}>
-          <Typography variant="h6" sx={{ color: ip.heading, fontWeight: 700, mb: 2 }}>Billing Information</Typography>
+          <Typography variant="h6" sx={{ color: ip.heading, fontWeight: 700, mb: 2 }}>Billing information</Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
             {[
-              { label: 'Billing Contact', value: 'Principal / Academic Director' },
-              { label: 'Payment Method', value: 'Bank Transfer / NEFT' },
-              { label: 'GST Number', value: 'Registered Institution' },
-              { label: 'Next Renewal', value: '1 January 2028' },
+              { label: 'Billing contact', value: 'Principal / Academic Director' },
+              { label: 'Payment method', value: 'Bank Transfer / NEFT' },
+              { label: 'GST number', value: 'Registered institution' },
+              { label: 'Next renewal', value: '1 January 2028' },
             ].map(item => (
               <Box key={item.label} sx={{ flex: 1, minWidth: 180 }}>
                 <Typography variant="caption" sx={{ color: ip.subtext, textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: 0.5 }}>
@@ -202,19 +293,19 @@ const SchoolAdminSubscriptionPage: React.FC = () => {
           <Divider sx={{ borderColor: ip.cardBorder, my: 2 }} />
           <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
             <Button variant="outlined" size="small" sx={{ borderColor: ip.cardBorder, color: ip.subtext, '&:hover': { bgcolor: ip.cardMutedBg }, borderRadius: 1.5 }}>
-              Download Invoice
+              Download invoice
             </Button>
             <Button variant="outlined" size="small" sx={{ borderColor: ip.cardBorder, color: ip.subtext, '&:hover': { bgcolor: ip.cardMutedBg }, borderRadius: 1.5 }}>
-              Update Billing Details
+              Update billing details
             </Button>
             <Button variant="text" size="small" sx={{ color: ip.statBlue, fontWeight: 600, fontSize: '0.8rem' }}>
-              Contact Sales for Custom Pricing →
+              Contact sales for custom pricing →
             </Button>
           </Box>
         </CardContent>
       </Card>
     </Box>
   );
-};
+}
 
 export default SchoolAdminSubscriptionPage;

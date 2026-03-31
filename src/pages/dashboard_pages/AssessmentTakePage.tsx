@@ -453,7 +453,7 @@ const AssessmentTakePage: React.FC = () => {
 
       {secondsLeft === 0 && flow.useTimer && (
         <Alert severity="warning" sx={{ borderRadius: 0 }}>
-          Time is up — submit your answer and finish remaining questions promptly.
+          Time is up - submit your answer and finish remaining questions promptly.
         </Alert>
       )}
 

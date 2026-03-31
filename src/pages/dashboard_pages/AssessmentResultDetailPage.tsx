@@ -58,14 +58,14 @@ const AssessmentResultDetailPage: React.FC = () => {
 
   const dateLabel = completedAt
     ? new Date(completedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
-    : '—';
+    : '-';
 
   const tryShare = async () => {
     try {
       if (navigator.share) {
         await navigator.share({
           title: `${flow.examTitleShort} results`,
-          text: `${tierPerf.label} — about ${pct}th percentile`,
+          text: `${tierPerf.label} - about ${pct}th percentile`,
         });
       }
     } catch {
@@ -111,7 +111,7 @@ const AssessmentResultDetailPage: React.FC = () => {
             🥇 {tierPerf.label}
           </Typography>
           <Typography sx={{ color: '#2e7d32', fontWeight: 600, fontSize: '0.9rem' }}>
-            {pct}th percentile — indicative global ranking
+            {pct}th percentile - indicative global ranking
           </Typography>
           <Typography sx={{ color: '#558b2f', fontSize: '0.78rem', mt: 1 }}>
             Completed {dateLabel}
@@ -155,7 +155,7 @@ const AssessmentResultDetailPage: React.FC = () => {
           <Box>
             <Typography sx={{ fontWeight: 800, color: '#0d47a1', fontSize: '0.85rem' }}>Growth area</Typography>
             <Typography sx={{ fontSize: '0.82rem', color: '#37474f', lineHeight: 1.5 }}>
-              {growth} — keep practicing; small gains compound quickly.
+              {growth} - keep practicing; small gains compound quickly.
             </Typography>
           </Box>
         </Box>

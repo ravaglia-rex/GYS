@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Typography } from '@mui/material';
 import DashboardLayout from '../../layouts/DashboardLayout';
+import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../firebase/firebase';
 import { getStudent } from '../../db/studentCollection';
 import { getAssessmentConfig } from '../../db/assessmentCollection';
@@ -38,7 +39,7 @@ const TOTAL_ASSESSMENT_TYPES = 7;
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const Dashboard: React.FC = () => {
-  const uid = auth.currentUser?.uid ?? '';
+  const [uid, setUid] = useState(() => auth.currentUser?.uid ?? '');
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState<DashboardStats>({
     totalAssessments: TOTAL_ASSESSMENT_TYPES,
@@ -46,8 +47,17 @@ const Dashboard: React.FC = () => {
     averageScore: 0,
     availableAssessments: 0,
   });
-  const [scoresByAssessment, setScoresByAssessment] = useState<{ subject: string; score: number }[]>([]);
+  const [scoresByAssessment, setScoresByAssessment] = useState<
+    { subject: string; score: number; assessmentId: string }[]
+  >([]);
   const [assessmentScopeLine, setAssessmentScopeLine] = useState<string>('');
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, user => {
+      setUid(user?.uid ?? '');
+    });
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     if (!uid) return;
@@ -58,6 +68,8 @@ const Dashboard: React.FC = () => {
         const [student, configFromBackend] = await Promise.all([getStudent(uid), getAssessmentConfig()]);
         const progress: Record<string, AssessmentProgress> = student?.assessment_progress ?? {};
         const membershipLevel = normalizeMembershipLevel(student?.membership_level);
+        const studentGrade =
+          typeof student?.grade === 'number' && !Number.isNaN(student.grade) ? student.grade : 8;
 
         const sorted = [...configFromBackend].sort((a, b) => {
           const ia = ASSESSMENT_ORDER.indexOf(a.id as (typeof ASSESSMENT_ORDER)[number]);
@@ -72,7 +84,7 @@ const Dashboard: React.FC = () => {
 
         for (const a of sorted) {
           const p = progress[a.id] ?? defaultAssessmentProgress;
-          const gate = computeGate(a.id, membershipLevel, progress);
+          const gate = computeGate(a.id, membershipLevel, progress, studentGrade, sorted);
           const done =
             p.status === 'tier_advanced' || isAssessmentFullyComplete(a, p);
           if (done) tiersCompleted++;
@@ -103,22 +115,20 @@ const Dashboard: React.FC = () => {
           availableAssessments,
         });
 
-        // Chart data: one bar per assessment that has been attempted
-        const DISPLAY_NAMES: Record<string, string> = {
-          symbolic_reasoning: 'Symbolic',
-          verbal_reasoning: 'Verbal',
-          mathematical_reasoning: 'Math',
-          personality_assessment: 'Personality',
-          english_proficiency: 'English',
-          ai_literacy: 'AI Literacy',
-          comprehensive_personality: 'Comp. Personality',
-        };
-        const chartData = Object.entries(progress)
-          .filter(([, p]) => p.best_score !== null && p.attempts_count > 0)
-          .map(([id, p]) => ({
-            subject: DISPLAY_NAMES[id] ?? id,
-            score: Math.round((p.best_score ?? 0) * 100),
-          }));
+        // Chart: best tier as 0–100% for each assessment with at least one attempt and a best_score
+        const chartData = sorted
+          .filter((a) => {
+            const p = progress[a.id] ?? defaultAssessmentProgress;
+            return p.best_score !== null && p.attempts_count > 0;
+          })
+          .map((a) => {
+            const p = progress[a.id]!;
+            return {
+              subject: a.name,
+              score: Math.round((p.best_score ?? 0) * 100),
+              assessmentId: a.id,
+            };
+          });
         setScoresByAssessment(chartData);
       } catch (err) {
         Sentry.withScope((scope) => {
@@ -178,7 +188,7 @@ const Dashboard: React.FC = () => {
                   )}
                 </Box>
                 <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.65)', mb: 2, maxWidth: 720 }}>
-                  All assessments are listed below. Complete them in sequence where your membership allows — upgrade to unlock the full reasoning triad and Level 3 reports.
+                  All assessments are listed below. Complete them in sequence where your membership allows - upgrade to unlock the full reasoning triad and Level 3 reports.
                 </Typography>
                 <EnhancedAssessmentCardsGroup uid={uid} filterType="all" />
               </Box>

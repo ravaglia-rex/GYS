@@ -1,4 +1,5 @@
 import axios from 'axios';
+import type { TierProgressionConfig } from '../utils/tierProgression';
 import {
   ASSESSMENTS_APIS,
   GET_ASSESSMENT_CONFIG,
@@ -27,6 +28,7 @@ export interface AssessmentType {
   order?: number;
   is_adaptive?: boolean;
   tiers: AssessmentTier[];
+  tier_progression?: TierProgressionConfig | null;
 }
 
 export interface AssessmentRecord {
@@ -94,10 +96,20 @@ export interface CompleteExamResponse {
 // ─── Public (no auth) ────────────────────────────────────────────────────────
 
 export const getAssessmentConfig = async (): Promise<AssessmentType[]> => {
-  const response = await axios.get(
-    `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${ASSESSMENTS_APIS}${GET_ASSESSMENT_CONFIG}`
-  );
-  return response.data;
+  const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS;
+  if (!base) {
+    throw new Error(
+      'REACT_APP_GOOGLE_CLOUD_FUNCTIONS is not set. Add it to .env (Firebase function URL, e.g. https://asia-south1-PROJECT.cloudfunctions.net/api).'
+    );
+  }
+  const response = await axios.get(`${base}${ASSESSMENTS_APIS}${GET_ASSESSMENT_CONFIG}`);
+  const data = response.data;
+  if (!Array.isArray(data)) {
+    throw new Error(
+      'Assessment config response was not a list. Ensure Firestore app_config/assessment_types exists and the API is deployed.'
+    );
+  }
+  return data;
 };
 
 // ─── Auth-required ────────────────────────────────────────────────────────────

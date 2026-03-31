@@ -5,14 +5,7 @@ import {
   CardContent,
   Typography,
   Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Tooltip,
+  Alert,
 } from '@mui/material';
 import {
   People as PeopleIcon,
@@ -20,59 +13,90 @@ import {
   TrendingDown as TrendingDownIcon,
   Rocket as RocketIcon,
   ArrowForward as ArrowForwardIcon,
-  Mail as MailIcon,
-  Description as DescriptionIcon,
-  TableChart as TableChartIcon,
-  QrCode2 as QrCodeIcon,
   Stars as StarsIcon,
   PriorityHigh as PriorityHighIcon,
   CheckCircle as CheckCircleIcon,
   BarChart as MiniBarChartIcon,
+  HelpOutline as HelpOutlineIcon,
+  FileDownload as FileDownloadIcon,
+  Analytics as AnalyticsIcon,
 } from '@mui/icons-material';
 import { alpha } from '@mui/material/styles';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../state_data/reducer';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebase/firebase';
 import { LoadingSpinner } from '../../components/ui/spinner';
-import { getSchoolDashboard, type StudentRow } from '../../db/schoolAdminCollection';
+import {
+  downloadQuarterlyReportPdf,
+  getQuarterlyReports,
+  getSchoolDashboard,
+  type QuarterlyReportListItem,
+  type StudentRow,
+} from '../../db/schoolAdminCollection';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import { useSchoolAdminBelowNav } from '../../layouts/schoolAdminBelowNavContext';
+import { summarizeSchoolTier123 } from '../../utils/schoolAdminTierAnalytics';
+import { displaySubscriptionPlan } from '../../utils/displaySubscriptionPlan';
+import { ProficiencyTier123Overview } from '../../components/school_admin/ProficiencyTier123Overview';
+import {
+  buildGreenfieldPreviewStudentRows,
+  GREENFIELD_ANALYTICS_SNAPSHOT,
+  GREENFIELD_QUARTERLY_REPORTS,
+  GREENFIELD_SCHOOL_DISPLAY,
+} from '../../data/schoolPreviewMock';
 
 // ─── Tier config ─────────────────────────────────────────────────────────────
+const SCHOOL_ADMIN_HELP_HREF =
+  'mailto:talentsearch@argus.ai?subject=' + encodeURIComponent('Argus school portal - help');
+
+type DashboardQuickAction =
+  | { key: string; icon: React.ReactElement; label: string; subcaption: string; path: string }
+  | { key: string; icon: React.ReactElement; label: string; subcaption: string; href: string };
+
+function getDashboardQuickActions(routeBase: string): DashboardQuickAction[] {
+  return [
+    {
+      key: 'analytics',
+      icon: <AnalyticsIcon sx={{ color: '#dc2626', fontSize: '2rem' }} />,
+      label: 'Analytics',
+      subcaption: 'School-wide scores, grade mix, and proficiency tiers across assessments.',
+      path: `${routeBase}/analytics`,
+    },
+    {
+      key: 'help',
+      icon: <HelpOutlineIcon sx={{ color: '#0d9488', fontSize: '2rem' }} />,
+      label: 'Help & support',
+      subcaption: 'Email Argus for roster, reports, billing, or anything about your portal.',
+      href: SCHOOL_ADMIN_HELP_HREF,
+    },
+  ];
+}
+
 const TIER_CONFIG: Record<string, { color: string; bg: string; label: string; bar: string }> = {
-  diamond:  { color: '#0f766e', bg: 'rgba(13,148,136,0.12)',  label: 'Diamond',  bar: ip.tierBar.diamond },
-  platinum: { color: '#475569', bg: 'rgba(71,85,105,0.12)', label: 'Platinum', bar: ip.tierBar.platinum },
   gold:     { color: '#d97706', bg: 'rgba(245,158,11,0.12)', label: 'Gold',     bar: ip.tierBar.gold },
   silver:   { color: '#64748b', bg: 'rgba(100,116,139,0.12)', label: 'Silver',  bar: ip.tierBar.silver },
   bronze:   { color: '#9a3412', bg: 'rgba(194,65,12,0.12)',   label: 'Bronze',   bar: ip.tierBar.bronze },
   explorer: { color: '#6b7280', bg: 'rgba(209,213,219,0.35)', label: 'Explorer', bar: ip.tierBar.explorer },
 };
 
-const TIER_ORDER = ['diamond', 'platinum', 'gold', 'silver', 'bronze', 'explorer'];
-
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function normalizeTier(raw: unknown): string {
   if (!raw) return 'explorer';
-  return String(raw).toLowerCase().replace(/\s+/g, '');
+  const t = String(raw).toLowerCase().replace(/\s+/g, '');
+  if (t === 'platinum' || t === 'diamond') return 'gold';
+  return t;
 }
 
 function ordinal(n: number): string {
-  if (n <= 0) return '—';
+  if (n <= 0) return '-';
   const s = ['th', 'st', 'nd', 'rd'];
   const v = n % 100;
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
-function formatStudentDate(createdAt: unknown): string {
-  if (!createdAt || typeof createdAt !== 'object') return '—';
-  const sec = (createdAt as { seconds?: number }).seconds;
-  if (typeof sec === 'number') return new Date(sec * 1000).toLocaleDateString();
-  return '—';
-}
-
-/** Count completed assessment slots across all registered students at the school. */
+/** Count completed assessment slots across all students at the school. */
 function countAssessmentsCompleted(students: StudentRow[]): number {
   let n = 0;
   for (const s of students) {
@@ -94,20 +118,16 @@ function parseOptionalInt(v: unknown): number | null {
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-interface TierCount {
-  tier: string;
-  count: number;
-  pct: number;
-}
-
 interface PerformanceMetrics {
   avgPercentile: number;
+  /** % of students whose weakest active assessment is in proficiency band 3+ (Gold). */
   goldPlusPct: number;
-  belowBronzePct: number;
+  /** % of students whose weakest active assessment is in proficiency band 1 (Bronze). */
+  inBronzePct: number;
   completionRate: number;
   avgPercentileChange: number;
   goldPlusChange: number;
-  belowBronzeChange: number;
+  inBronzeChange: number;
   completionChange: number;
 }
 
@@ -124,28 +144,33 @@ function HeroRankTrend(props: {
   institutionalRank: number | null;
   rankChangeQ1: number | null;
   avgPercentileChange: number;
+  compact?: boolean;
 }) {
-  const { institutionalRank, rankChangeQ1, avgPercentileChange } = props;
+  const { institutionalRank, rankChangeQ1, avgPercentileChange, compact } = props;
   const hasRank = institutionalRank != null && institutionalRank > 0;
+  const mt = compact ? 0.35 : 1;
+  const iconSz = compact ? '0.85rem' : '1.05rem';
+  const fontSz = compact ? '0.62rem' : '0.72rem';
+  const mutedSz = compact ? '0.6rem' : '0.68rem';
 
   if (hasRank && rankChangeQ1 != null) {
     if (rankChangeQ1 !== 0) {
       const improved = rankChangeQ1 < 0;
       return (
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mt: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: compact ? 'flex-end' : 'center', gap: 0.5, mt }}>
           {improved ? (
-            <TrendingUpIcon sx={{ color: '#86efac', fontSize: '1.05rem' }} />
+            <TrendingUpIcon sx={{ color: '#86efac', fontSize: iconSz }} />
           ) : (
-            <TrendingDownIcon sx={{ color: '#fecaca', fontSize: '1.05rem' }} />
+            <TrendingDownIcon sx={{ color: '#fecaca', fontSize: iconSz }} />
           )}
-          <Typography sx={{ color: improved ? 'rgba(220,252,231,0.95)' : 'rgba(254,226,226,0.95)', fontSize: '0.72rem', fontWeight: 600 }}>
+          <Typography sx={{ color: improved ? 'rgba(220,252,231,0.95)' : 'rgba(254,226,226,0.95)', fontSize: fontSz, fontWeight: 600 }}>
             {improved ? `↑ ${Math.abs(rankChangeQ1)}` : `↓ ${rankChangeQ1}`} vs. Q1
           </Typography>
         </Box>
       );
     }
     return (
-      <Typography sx={{ mt: 1, fontSize: '0.68rem', color: 'rgba(255,255,255,0.65)', fontWeight: 500 }}>
+      <Typography sx={{ mt, fontSize: mutedSz, color: 'rgba(255,255,255,0.65)', fontWeight: 500, textAlign: compact ? 'right' : 'center' }}>
         No change vs. Q1
       </Typography>
     );
@@ -154,13 +179,13 @@ function HeroRankTrend(props: {
   if (avgPercentileChange !== 0) {
     const up = avgPercentileChange > 0;
     return (
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mt: 1 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: compact ? 'flex-end' : 'center', gap: 0.5, mt }}>
         {up ? (
-          <TrendingUpIcon sx={{ color: '#86efac', fontSize: '1.05rem' }} />
+          <TrendingUpIcon sx={{ color: '#86efac', fontSize: iconSz }} />
         ) : (
-          <TrendingDownIcon sx={{ color: '#fecaca', fontSize: '1.05rem' }} />
+          <TrendingDownIcon sx={{ color: '#fecaca', fontSize: iconSz }} />
         )}
-        <Typography sx={{ color: up ? 'rgba(220,252,231,0.95)' : 'rgba(254,226,226,0.95)', fontSize: '0.72rem', fontWeight: 600 }}>
+        <Typography sx={{ color: up ? 'rgba(220,252,231,0.95)' : 'rgba(254,226,226,0.95)', fontSize: fontSz, fontWeight: 600 }}>
           {up ? `↑ ${avgPercentileChange}` : `↓ ${Math.abs(avgPercentileChange)}`} pts vs. Q1
         </Typography>
       </Box>
@@ -168,7 +193,7 @@ function HeroRankTrend(props: {
   }
 
   return (
-    <Typography sx={{ mt: 1, fontSize: '0.68rem', color: 'rgba(255,255,255,0.65)', fontWeight: 500 }}>
+    <Typography sx={{ mt, fontSize: mutedSz, color: 'rgba(255,255,255,0.65)', fontWeight: 500, textAlign: compact ? 'right' : 'center' }}>
       No change vs. Q1
     </Typography>
   );
@@ -179,11 +204,8 @@ function InstitutionHeroStrip(props: {
   schoolName: string;
   schoolCity: string;
   schoolBoard: string;
-  schoolUDISE: string;
   subscriptionPlan: string;
   institutionalTierCfg: { label: string; color: string; bg: string; bar: string };
-  activeStudentCount: number;
-  totalAssessmentsCompleted: number;
   institutionalRank: number | null;
   rankChangeQ1: number | null;
   performance: PerformanceMetrics;
@@ -192,18 +214,15 @@ function InstitutionHeroStrip(props: {
     schoolName,
     schoolCity,
     schoolBoard,
-    schoolUDISE,
     subscriptionPlan,
     institutionalTierCfg,
-    activeStudentCount,
-    totalAssessmentsCompleted,
     institutionalRank,
     rankChangeQ1,
     performance,
   } = props;
 
-  const rankDisplay =
-    institutionalRank != null && institutionalRank > 0 ? ordinal(institutionalRank) : '—';
+  const rankShort =
+    institutionalRank != null && institutionalRank > 0 ? ordinal(institutionalRank) : '-';
 
   return (
     <Box
@@ -214,132 +233,170 @@ function InstitutionHeroStrip(props: {
         border: 'none',
         borderBottom: '1px solid rgba(255,255,255,0.1)',
         bgcolor: ip.navy,
-        pt: { xs: 3, md: 4 },
-        pb: { xs: 3, md: 4 },
+        pt: { xs: 2.5, md: 3 },
+        pb: { xs: 2.5, md: 3 },
         position: 'relative',
       }}
     >
       <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, maxWidth: 1320, mx: 'auto' }}>
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2.5 }}>
-          <Box sx={{ flex: '1 1 280px', minWidth: 0 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 1.5,
+            columnGap: 2,
+          }}
+        >
+          <Box sx={{ flex: '1 1 auto', minWidth: 0, maxWidth: { sm: 'min(100%, 560px)' } }}>
             <Typography
               sx={{
                 color: '#ffffff',
                 fontWeight: 700,
-                fontSize: { xs: '1.5rem', md: '1.85rem' },
+                fontSize: { xs: '1.35rem', sm: '1.5rem', md: '1.65rem' },
                 lineHeight: 1.2,
-                mb: 1,
                 letterSpacing: -0.3,
+                pt: { xs: 0, sm: 0.25 },
               }}
             >
               {schoolName || 'Your Institution'}
             </Typography>
-            <Typography variant="body1" sx={{ color: 'rgba(191, 219, 254, 0.95)', fontSize: { xs: '0.875rem', md: '0.95rem' }, lineHeight: 1.5, fontWeight: 400 }}>
-              {[schoolCity, schoolBoard || null, schoolUDISE ? `UDISE: ${schoolUDISE}` : null, subscriptionPlan]
-                .filter(Boolean)
-                .join(' • ')}
+            <Typography
+              variant="body1"
+              component="div"
+              sx={{
+                color: 'rgba(191, 219, 254, 0.95)',
+                fontSize: { xs: '0.8rem', md: '0.875rem' },
+                lineHeight: 1.45,
+                fontWeight: 400,
+                mt: { xs: 0.35, sm: 0.5 },
+              }}
+            >
+              {[schoolCity, schoolBoard || null, subscriptionPlan].filter(Boolean).join(' • ')}
             </Typography>
           </Box>
           <Box
             sx={{
               display: 'flex',
               flexDirection: 'row',
-              alignItems: 'center',
-              gap: 1.75,
-              px: 2.5,
-              py: 1.75,
+              alignItems: 'stretch',
               borderRadius: 2,
-              bgcolor: 'rgba(147, 197, 253, 0.2)',
-              border: '1px solid rgba(186, 230, 253, 0.45)',
+              bgcolor: 'rgba(255,255,255,0.14)',
+              border: '1px solid rgba(255,255,255,0.22)',
+              backdropFilter: 'blur(8px)',
               boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+              flexShrink: 0,
+              width: { xs: '100%', sm: 'auto' },
+              minWidth: { sm: 260 },
+              overflow: 'hidden',
             }}
           >
-            <Typography component="span" sx={{ fontSize: '2.25rem', lineHeight: 1 }} aria-hidden>
-              🥇
-            </Typography>
-            <Box>
-              <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: '1.15rem', lineHeight: 1.15 }}>
-                {institutionalTierCfg.label}
-              </Typography>
-              <Typography sx={{ color: 'rgba(255,255,255,0.88)', fontSize: '0.75rem', fontWeight: 500, mt: 0.35 }}>
-                Institutional Tier
-              </Typography>
-            </Box>
-          </Box>
-        </Box>
-
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mt: 3 }}>
-          {[
-            {
-              node: (
-                <>
-                  <Typography sx={{ color: '#ffffff', fontWeight: 700, fontSize: { xs: '1.65rem', md: '1.85rem' }, lineHeight: 1.1 }}>
-                    {activeStudentCount}
-                  </Typography>
-                  <Typography sx={{ color: 'rgba(255,255,255,0.88)', textTransform: 'uppercase', letterSpacing: 1, fontSize: '0.65rem', fontWeight: 600, mt: 1 }}>
-                    Active Students
-                  </Typography>
-                </>
-              ),
-            },
-            {
-              node: (
-                <>
-                  <Typography sx={{ color: '#ffffff', fontWeight: 700, fontSize: { xs: '1.65rem', md: '1.85rem' }, lineHeight: 1.1 }}>
-                    {totalAssessmentsCompleted}
-                  </Typography>
-                  <Typography sx={{ color: 'rgba(255,255,255,0.88)', textTransform: 'uppercase', letterSpacing: 1, fontSize: '0.65rem', fontWeight: 600, mt: 1 }}>
-                    Assessments Completed
-                  </Typography>
-                </>
-              ),
-            },
-            {
-              node: (
-                <>
-                  <Typography sx={{ color: '#ffffff', fontWeight: 700, fontSize: { xs: '1.65rem', md: '1.85rem' }, lineHeight: 1.1 }}>
-                    {performance.avgPercentile > 0 ? ordinal(performance.avgPercentile) : '—'}
-                  </Typography>
-                  <Typography sx={{ color: 'rgba(255,255,255,0.88)', textTransform: 'uppercase', letterSpacing: 1, fontSize: '0.65rem', fontWeight: 600, mt: 1 }}>
-                    Avg. Percentile
-                  </Typography>
-                </>
-              ),
-            },
-            {
-              node: (
-                <>
-                  <Typography sx={{ color: '#ffffff', fontWeight: 700, fontSize: { xs: '1.65rem', md: '1.85rem' }, lineHeight: 1.1 }}>
-                    {rankDisplay}
-                  </Typography>
-                  <Typography sx={{ color: 'rgba(255,255,255,0.88)', textTransform: 'uppercase', letterSpacing: 1, fontSize: '0.65rem', fontWeight: 600, mt: 1 }}>
-                    School Rank
-                  </Typography>
-                  <HeroRankTrend
-                    institutionalRank={institutionalRank}
-                    rankChangeQ1={rankChangeQ1}
-                    avgPercentileChange={performance.avgPercentileChange}
-                  />
-                </>
-              ),
-            },
-          ].map((stat, i) => (
             <Box
-              key={i}
               sx={{
-                flex: 1,
-                minWidth: { xs: 'calc(50% - 8px)', sm: 140, md: 160 },
-                bgcolor: 'rgba(255,255,255,0.14)',
-                borderRadius: 2,
-                p: 2.25,
+                flex: '1 1 0',
+                minWidth: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
                 textAlign: 'center',
-                border: '1px solid rgba(255,255,255,0.18)',
-                backdropFilter: 'blur(6px)',
+                py: { xs: 1.35, sm: 1.5 },
+                px: { xs: 1.5, sm: 2 },
+                gap: 0.35,
               }}
             >
-              {stat.node}
+              <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 0.75, justifyContent: 'center', flexWrap: 'wrap' }}>
+                <Typography component="span" sx={{ fontSize: { xs: '1.35rem', sm: '1.5rem' }, lineHeight: 1 }} aria-hidden>
+                  🥇
+                </Typography>
+                <Typography
+                  sx={{
+                    color: '#fff',
+                    fontWeight: 800,
+                    fontSize: { xs: '1.05rem', sm: '1.15rem' },
+                    lineHeight: 1.2,
+                  }}
+                >
+                  {institutionalTierCfg.label}
+                </Typography>
+              </Box>
+              <Typography
+                sx={{
+                  color: 'rgba(255,255,255,0.72)',
+                  fontSize: '0.65rem',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.75,
+                }}
+              >
+                Institutional tier
+              </Typography>
             </Box>
-          ))}
+            <Box
+              sx={{
+                alignSelf: 'stretch',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                flexShrink: 0,
+                py: 0.85,
+                px: { xs: 0.65, sm: 0.85 },
+              }}
+              aria-hidden
+            >
+              <Box
+                sx={{
+                  width: '1.5px',
+                  flex: '1 1 auto',
+                  minHeight: 48,
+                  bgcolor: 'rgba(255,255,255,0.4)',
+                  borderRadius: 0.5,
+                }}
+              />
+            </Box>
+            <Box
+              sx={{
+                flex: '1 1 0',
+                minWidth: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                py: { xs: 1.35, sm: 1.5 },
+                px: { xs: 1.5, sm: 2 },
+                gap: 0.35,
+              }}
+            >
+              <Typography
+                sx={{
+                  color: '#fff',
+                  fontWeight: 800,
+                  fontSize: { xs: '1.05rem', sm: '1.15rem' },
+                  lineHeight: 1.2,
+                }}
+              >
+                {rankShort}
+              </Typography>
+              <Typography
+                sx={{
+                  color: 'rgba(255,255,255,0.72)',
+                  fontSize: '0.65rem',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.75,
+                }}
+              >
+                School rank
+              </Typography>
+              <HeroRankTrend
+                institutionalRank={institutionalRank}
+                rankChangeQ1={rankChangeQ1}
+                avgPercentileChange={performance.avgPercentileChange}
+              />
+            </Box>
+          </Box>
         </Box>
       </Box>
     </Box>
@@ -347,7 +404,7 @@ function InstitutionHeroStrip(props: {
 }
 
 const StatCard: React.FC<StatCardProps> = ({ label, value, change, accent = ip.statBlue, icon }) => {
-  const empty = value === '—';
+  const empty = value === '-';
   return (
     <Card sx={{ bgcolor: ip.cardMutedBg, border: `1px solid ${ip.cardBorder}`, flex: 1, minWidth: 160, borderRadius: 2, boxShadow: 'none' }}>
       <CardContent sx={{ p: '20px !important' }}>
@@ -382,30 +439,72 @@ const StatCard: React.FC<StatCardProps> = ({ label, value, change, accent = ip.s
 // ─── Main Component ───────────────────────────────────────────────────────────
 const SchoolAdminDashboardPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isSchoolAdminPreview = location.pathname.startsWith('/for-schools/preview');
+  const routeBase = isSchoolAdminPreview ? '/for-schools/preview' : '/school-admin';
   const { schoolAdmin } = useSelector((state: RootState) => state.auth);
   const { setBelowNav } = useSchoolAdminBelowNav();
 
   const [schoolName, setSchoolName] = useState('');
   const [schoolCity, setSchoolCity] = useState('');
   const [schoolBoard, setSchoolBoard] = useState('');
-  const [schoolUDISE, setSchoolUDISE] = useState('');
   const [schoolTier, setSchoolTier] = useState('gold');
   const [subscriptionPlan, setSubscriptionPlan] = useState('Standard Subscription');
-  const [activeStudentCount, setActiveStudentCount] = useState(0);
+  const [studentCount, setStudentCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const [performance, setPerformance] = useState<PerformanceMetrics>({
-    avgPercentile: 0, goldPlusPct: 0, belowBronzePct: 0, completionRate: 0,
-    avgPercentileChange: 0, goldPlusChange: 0, belowBronzeChange: 0, completionChange: 0,
+    avgPercentile: 0, goldPlusPct: 0, inBronzePct: 0, completionRate: 0,
+    avgPercentileChange: 0, goldPlusChange: 0, inBronzeChange: 0, completionChange: 0,
   });
-  const [tierDistribution, setTierDistribution] = useState<TierCount[]>([]);
-  const [pendingApprovals, setPendingApprovals] = useState<(StudentRow & { email?: string })[]>([]);
+  const [proficiencyTier123, setProficiencyTier123] = useState({ tier1: 0, tier2: 0, tier3: 0, total: 0 });
   const [totalAssessmentsCompleted, setTotalAssessmentsCompleted] = useState(0);
   const [institutionalRank, setInstitutionalRank] = useState<number | null>(null);
   const [rankChangeQ1, setRankChangeQ1] = useState<number | null>(null);
+  const [dashboardApiError, setDashboardApiError] = useState<string | null>(null);
+  const [latestQuarterly, setLatestQuarterly] = useState<QuarterlyReportListItem | null>(null);
+  const [quarterlyS3Configured, setQuarterlyS3Configured] = useState(true);
+  const [reportDownloadError, setReportDownloadError] = useState<string | null>(null);
 
   // ── Data Fetch ─────────────────────────────────────────────────────────────
   useEffect(() => {
+    if (isSchoolAdminPreview) {
+      setLoading(true);
+      setDashboardApiError(null);
+      const allStudents = buildGreenfieldPreviewStudentRows();
+      setSchoolName(GREENFIELD_SCHOOL_DISPLAY.schoolName);
+      setSchoolCity(
+        [GREENFIELD_SCHOOL_DISPLAY.city, GREENFIELD_SCHOOL_DISPLAY.state].filter(Boolean).join(', ')
+      );
+      setSchoolBoard(GREENFIELD_SCHOOL_DISPLAY.board);
+      setSchoolTier(normalizeTier(GREENFIELD_SCHOOL_DISPLAY.institutionalTier));
+      setSubscriptionPlan(GREENFIELD_SCHOOL_DISPLAY.subscriptionPlan);
+      setStudentCount(allStudents.length);
+      setTotalAssessmentsCompleted(countAssessmentsCompleted(allStudents));
+      const tier123 = summarizeSchoolTier123(allStudents);
+      setProficiencyTier123(tier123);
+      const total = allStudents.length || 1;
+      setInstitutionalRank(GREENFIELD_ANALYTICS_SNAPSHOT.institutional_rank);
+      setRankChangeQ1(GREENFIELD_ANALYTICS_SNAPSHOT.rank_change_q1);
+      setPerformance({
+        avgPercentile: GREENFIELD_ANALYTICS_SNAPSHOT.avg_percentile,
+        goldPlusPct: Math.round((tier123.tier3 / total) * 100),
+        inBronzePct: Math.round((tier123.tier1 / total) * 100),
+        completionRate: GREENFIELD_ANALYTICS_SNAPSHOT.completion_rate,
+        avgPercentileChange: GREENFIELD_ANALYTICS_SNAPSHOT.perf_change_percentile,
+        goldPlusChange: 0,
+        inBronzeChange: 0,
+        completionChange: GREENFIELD_ANALYTICS_SNAPSHOT.perf_change_completion,
+      });
+      setLatestQuarterly(
+        GREENFIELD_QUARTERLY_REPORTS.find(r => r.isLatest) ?? GREENFIELD_QUARTERLY_REPORTS[0] ?? null
+      );
+      // Preview uses mock metadata (hasPdf) but cannot call the signed-URL API without a real school-admin session.
+      setQuarterlyS3Configured(false);
+      setLoading(false);
+      return;
+    }
+
     const fetchData = async () => {
       if (!schoolAdmin?.schoolId) { setLoading(false); return; }
       const schoolId = String(schoolAdmin.schoolId ?? '').trim();
@@ -413,67 +512,55 @@ const SchoolAdminDashboardPage: React.FC = () => {
 
       try {
         setLoading(true);
+        setDashboardApiError(null);
 
-        // School document (direct read — schools collection is unchanged)
-        const [schoolSnap, dashboardData] = await Promise.all([
-          getDoc(doc(db, 'schools', schoolId)),
-          getSchoolDashboard(schoolId),
-        ]);
-
+        const schoolSnap = await getDoc(doc(db, 'schools', schoolId));
         const schoolData = schoolSnap.data() ?? {};
         setSchoolName(schoolData.school_name ?? schoolData.name ?? 'Your School');
         setSchoolCity(schoolData.city ?? schoolData.location ?? '');
         setSchoolBoard(schoolData.board ?? schoolData.affiliation ?? '');
-        setSchoolUDISE(schoolData.udise_code ?? schoolData.udise ?? schoolId);
         setSchoolTier(normalizeTier(schoolData.institutional_tier ?? schoolData.tier ?? 'gold'));
-        setSubscriptionPlan(schoolData.subscription_plan ?? schoolData.plan ?? 'Standard Subscription');
+        setSubscriptionPlan(
+          displaySubscriptionPlan(schoolData.subscription_plan ?? schoolData.plan ?? 'Standard Subscription')
+        );
 
-        const allStudents = dashboardData.students;
+        let allStudents: StudentRow[] = [];
+        let analyticsData: Record<string, any> = {};
+        try {
+          const dashboardData = await getSchoolDashboard(schoolId);
+          allStudents = dashboardData.students ?? [];
+          analyticsData = dashboardData.analytics ?? {};
+        } catch (apiErr) {
+          console.error('getSchoolDashboard failed:', apiErr);
+          setDashboardApiError(
+            'Could not load the student roster from the API (getSchoolDashboard). ' +
+              'Confirm REACT_APP_GOOGLE_CLOUD_FUNCTIONS points at the same Firebase project you seeded, ' +
+              'and that functions are deployed or your local emulator is running with the latest build.'
+          );
+        }
+
+        try {
+          const qr = await getQuarterlyReports();
+          setQuarterlyS3Configured(qr.s3Configured !== false);
+          const sorted = [...(qr.reports ?? [])].sort((a, b) => a.quarterKey.localeCompare(b.quarterKey));
+          const pick =
+            sorted.find((r) => r.isLatest && r.hasPdf) ??
+            [...sorted].reverse().find((r) => r.hasPdf) ??
+            null;
+          setLatestQuarterly(pick);
+        } catch (e) {
+          console.warn('getQuarterlyReports:', e);
+          setLatestQuarterly(null);
+        }
+
         setTotalAssessmentsCompleted(countAssessmentsCompleted(allStudents));
+        setStudentCount(allStudents.length);
 
-        const approvedStudents = allStudents.filter(
-          s => !s.approval_status || s.approval_status === 'approved'
-        );
-        setActiveStudentCount(approvedStudents.length);
+        const tier123 = summarizeSchoolTier123(allStudents);
+        setProficiencyTier123(tier123);
 
-        const pendingRaw = allStudents.filter(s => s.approval_status === 'pending');
-        const enrichedPending = await Promise.all(
-          pendingRaw.slice(0, 12).map(async (s) => {
-            try {
-              const snap = await getDoc(doc(db, 'student_email_mappings', s.uid));
-              const email = (snap.exists() ? (snap.data() as { email?: string })?.email : '') || '';
-              return { ...s, email };
-            } catch {
-              return { ...s, email: '' };
-            }
-          })
-        );
-        setPendingApprovals(enrichedPending);
+        const total = allStudents.length || 1;
 
-        // Tier distribution from achievement_tier on approved students
-        const tierCounts: Record<string, number> = {};
-        approvedStudents.forEach(s => {
-          const t = normalizeTier(s.achievement_tier ?? 'explorer');
-          tierCounts[t] = (tierCounts[t] || 0) + 1;
-        });
-        const total = approvedStudents.length || 1;
-        const dist = TIER_ORDER.map(t => ({
-          tier: t,
-          count: tierCounts[t] ?? 0,
-          pct: Math.round(((tierCounts[t] ?? 0) / total) * 100),
-        })).filter(t => t.count > 0);
-        setTierDistribution(dist);
-
-        // Performance metrics
-        const goldPlusCount = approvedStudents.filter(s => {
-          const t = normalizeTier(s.achievement_tier ?? 'explorer');
-          return ['diamond', 'platinum', 'gold'].includes(t);
-        }).length;
-        const belowBronzeCount = approvedStudents.filter(s =>
-          normalizeTier(s.achievement_tier ?? 'explorer') === 'explorer'
-        ).length;
-
-        const analyticsData = dashboardData.analytics ?? {};
         const rankParsed = parseOptionalInt(
           analyticsData.institutional_rank ?? analyticsData.school_rank ?? analyticsData.national_rank
         );
@@ -483,12 +570,12 @@ const SchoolAdminDashboardPage: React.FC = () => {
 
         setPerformance({
           avgPercentile: analyticsData.avg_percentile ?? 0,
-          goldPlusPct: Math.round((goldPlusCount / total) * 100),
-          belowBronzePct: Math.round((belowBronzeCount / total) * 100),
+          goldPlusPct: Math.round((tier123.tier3 / total) * 100),
+          inBronzePct: Math.round((tier123.tier1 / total) * 100),
           completionRate: analyticsData.completion_rate ?? 0,
           avgPercentileChange: analyticsData.perf_change_percentile ?? 0,
-          goldPlusChange: analyticsData.perf_change_gold_plus ?? 0,
-          belowBronzeChange: analyticsData.perf_change_below_bronze ?? 0,
+          goldPlusChange: 0,
+          inBronzeChange: 0,
           completionChange: analyticsData.perf_change_completion ?? 0,
         });
 
@@ -498,8 +585,8 @@ const SchoolAdminDashboardPage: React.FC = () => {
         setLoading(false);
       }
     };
-    fetchData();
-  }, [schoolAdmin]);
+    void fetchData();
+  }, [schoolAdmin, isSchoolAdminPreview]);
 
   useEffect(() => {
     if (loading) {
@@ -512,11 +599,8 @@ const SchoolAdminDashboardPage: React.FC = () => {
         schoolName={schoolName}
         schoolCity={schoolCity}
         schoolBoard={schoolBoard}
-        schoolUDISE={schoolUDISE}
         subscriptionPlan={subscriptionPlan}
         institutionalTierCfg={tierCfg}
-        activeStudentCount={activeStudentCount}
-        totalAssessmentsCompleted={totalAssessmentsCompleted}
         institutionalRank={institutionalRank}
         rankChangeQ1={rankChangeQ1}
         performance={performance}
@@ -529,22 +613,43 @@ const SchoolAdminDashboardPage: React.FC = () => {
     schoolName,
     schoolCity,
     schoolBoard,
-    schoolUDISE,
     subscriptionPlan,
     schoolTier,
-    activeStudentCount,
-    totalAssessmentsCompleted,
     institutionalRank,
     rankChangeQ1,
     performance.avgPercentile,
     performance.goldPlusPct,
-    performance.belowBronzePct,
+    performance.inBronzePct,
     performance.completionRate,
     performance.avgPercentileChange,
     performance.goldPlusChange,
-    performance.belowBronzeChange,
+    performance.inBronzeChange,
     performance.completionChange,
   ]);
+
+  const latestReportAccent = ip.statBlue;
+  const latestReportLabel = latestQuarterly?.title ?? 'Institutional report';
+  const canDownloadQuarterlyPdf = Boolean(
+    latestQuarterly?.hasPdf && latestQuarterly?.quarterKey && quarterlyS3Configured
+  );
+
+  const handleLatestReportClick = async () => {
+    setReportDownloadError(null);
+    if (!latestQuarterly?.hasPdf || !latestQuarterly.quarterKey) {
+      return;
+    }
+    if (!quarterlyS3Configured) {
+      setReportDownloadError(
+        'Report downloads are not configured on the server (AWS S3 env vars). PDFs must be available in S3.'
+      );
+      return;
+    }
+    try {
+      await downloadQuarterlyReportPdf(latestQuarterly.quarterKey);
+    } catch (e) {
+      setReportDownloadError((e as Error).message ?? 'Download failed.');
+    }
+  };
 
   // ── Loading ────────────────────────────────────────────────────────────────
   if (loading) {
@@ -567,146 +672,196 @@ const SchoolAdminDashboardPage: React.FC = () => {
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', px: { xs: 2, md: 3 }, pb: 6, pt: 3 }}>
+      {dashboardApiError && (
+        <Alert severity="warning" sx={{ mb: 2 }} onClose={() => setDashboardApiError(null)}>
+          {dashboardApiError}
+        </Alert>
+      )}
+      {reportDownloadError && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setReportDownloadError(null)}>
+          {reportDownloadError}
+        </Alert>
+      )}
 
-      {/* ── Quick Actions (wireframe: 4 tiles) ───────────────────────────── */}
+      {/* ── Quick Actions: roster summary + shortcuts ───────────────── */}
       <Box sx={{
         display: 'grid',
         gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' },
         gap: 2,
         mb: 3,
       }}>
-        {[
-          { icon: <MailIcon sx={{ color: '#6366f1', fontSize: '2rem' }} />, label: 'Send Invitations', path: '/school-admin/invitations' },
-          { icon: <DescriptionIcon sx={{ color: '#8b5cf6', fontSize: '2rem' }} />, label: 'Latest Report', path: '/school-admin/reports' },
-          { icon: <TableChartIcon sx={{ color: '#10b981', fontSize: '2rem' }} />, label: 'Export Data', path: '/school-admin/analytics' },
-          { icon: <QrCodeIcon sx={{ color: '#f59e0b', fontSize: '2rem' }} />, label: 'Generate Codes', path: '/school-admin/invitations' },
-        ].map(action => (
+        <Card
+          onClick={() => navigate(`${routeBase}/students`)}
+          sx={{
+            bgcolor: '#fff',
+            border: `1px solid ${ip.cardBorder}`,
+            borderRadius: 2,
+            boxShadow: 'none',
+            cursor: 'pointer',
+            transition: 'all 0.18s',
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            '&:hover': {
+              borderColor: ip.navy,
+              bgcolor: ip.cardMutedBg,
+              transform: 'translateY(-2px)',
+              boxShadow: '0 6px 16px rgba(16,64,139,0.08)',
+            },
+          }}
+        >
+          <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', p: '20px !important', '&:last-child': { pb: '20px !important' }, gap: 0.85 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+              <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: { xs: 1, sm: 1.25 } }}>
+                <PeopleIcon sx={{ color: '#f59e0b', fontSize: { xs: '2rem', sm: '2.35rem' }, flexShrink: 0, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.06))' }} />
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', minWidth: 0 }}>
+                  <Typography
+                    variant="h4"
+                    sx={{ color: ip.navy, fontWeight: 800, lineHeight: 1.05, fontSize: { xs: '1.75rem', sm: '2rem' } }}
+                  >
+                    {studentCount}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: ip.subtext, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.8, fontSize: '0.62rem' }}>
+                    Students
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+            <Box sx={{ width: '100%', pt: 1, mt: 0.25, borderTop: `1px solid ${ip.cardBorder}`, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 1 }}>
+                <Typography sx={{ color: ip.subtext, fontSize: '0.68rem', fontWeight: 500 }}>Assessments</Typography>
+                <Typography sx={{ color: ip.heading, fontSize: '0.8rem', fontWeight: 700 }}>{totalAssessmentsCompleted}</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 1 }}>
+                <Typography sx={{ color: ip.subtext, fontSize: '0.68rem', fontWeight: 500 }}>Avg. percentile</Typography>
+                <Typography sx={{ color: ip.heading, fontSize: '0.8rem', fontWeight: 700 }}>
+                  {performance.avgPercentile > 0 ? ordinal(performance.avgPercentile) : '-'}
+                </Typography>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+        <Card
+          onClick={canDownloadQuarterlyPdf ? () => { void handleLatestReportClick(); } : undefined}
+          sx={{
+            bgcolor: '#fff',
+            border: `1px solid ${ip.cardBorder}`,
+            borderRadius: 2,
+            boxShadow: 'none',
+            cursor: canDownloadQuarterlyPdf ? 'pointer' : 'default',
+            transition: 'all 0.18s',
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            opacity: latestQuarterly?.hasPdf ? 1 : 0.92,
+            '&:hover': canDownloadQuarterlyPdf ? {
+              borderColor: latestReportAccent,
+              bgcolor: ip.cardMutedBg,
+              transform: 'translateY(-2px)',
+              boxShadow: `0 6px 16px ${latestReportAccent}22`,
+            } : {},
+          }}
+        >
+          <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', p: '20px !important', '&:last-child': { pb: '20px !important' }, gap: 0.65 }}>
+            <Box sx={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.06))' }}>
+              <MiniBarChartIcon sx={{ color: latestReportAccent, fontSize: '2rem' }} />
+            </Box>
+            <Typography variant="body2" sx={{ color: ip.heading, fontWeight: 600, textAlign: 'center', fontSize: '0.82rem' }}>
+              Latest report
+            </Typography>
+            <Typography variant="caption" sx={{ color: ip.subtext, textAlign: 'center', fontSize: '0.72rem', lineHeight: 1.35, maxWidth: 260 }}>
+              {latestQuarterly?.hasPdf ? latestReportLabel : 'No PDF on file yet. Open Reports after uploading to S3.'}
+            </Typography>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5,
+                mt: 0.5,
+                color: latestReportAccent,
+                fontWeight: 700,
+                fontSize: '0.78rem',
+              }}
+            >
+              <FileDownloadIcon sx={{ fontSize: '1.1rem' }} />
+              <span>{canDownloadQuarterlyPdf ? 'Download PDF' : 'PDF unavailable'}</span>
+            </Box>
+          </CardContent>
+        </Card>
+        {getDashboardQuickActions(routeBase).map(action => (
           <Card
-            key={action.label}
-            onClick={() => navigate(action.path)}
+            key={action.key}
+            onClick={() => {
+              if ('href' in action) {
+                window.location.href = action.href;
+              } else {
+                navigate(action.path);
+              }
+            }}
             sx={{
               bgcolor: '#fff', border: `1px solid ${ip.cardBorder}`, borderRadius: 2, boxShadow: 'none',
               cursor: 'pointer', transition: 'all 0.18s',
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
               '&:hover': { borderColor: ip.navy, bgcolor: ip.cardMutedBg, transform: 'translateY(-2px)', boxShadow: '0 6px 16px rgba(16,64,139,0.08)' },
             }}
           >
-            <CardContent sx={{ p: '20px !important', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.25 }}>
+            <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', p: '20px !important', '&:last-child': { pb: '20px !important' }, gap: 0.65 }}>
               <Box sx={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.06))' }}>{action.icon}</Box>
               <Typography variant="body2" sx={{ color: ip.heading, fontWeight: 600, textAlign: 'center', fontSize: '0.82rem' }}>
                 {action.label}
+              </Typography>
+              <Typography variant="caption" sx={{ color: ip.subtext, textAlign: 'center', fontSize: '0.72rem', lineHeight: 1.35, maxWidth: 260 }}>
+                {action.subcaption}
               </Typography>
             </CardContent>
           </Card>
         ))}
       </Box>
 
-      {/* ── Pending Student Approvals ─────────────────────────────────────── */}
-      <Card sx={{ bgcolor: '#fff', border: `1px solid ${ip.cardBorder}`, mb: 3, borderRadius: 2, boxShadow: 'none' }}>
-        <CardContent sx={{ p: '24px !important' }}>
-          <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-            <Typography variant="h6" sx={{ color: ip.heading, fontWeight: 700 }}>
-              Pending Student Approvals
-            </Typography>
-            <Typography variant="body2" sx={{ color: ip.subtext }}>
-              {pendingApprovals.length} student{pendingApprovals.length === 1 ? '' : 's'}
-            </Typography>
-          </Box>
-          {pendingApprovals.length > 0 ? (
-            <TableContainer component={Paper} sx={{ bgcolor: 'transparent', boxShadow: 'none' }}>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    {['Student', 'Grade', 'Signed up', 'Email', 'Actions'].map(h => (
-                      <TableCell key={h} sx={{ color: ip.subtext, fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: 0.6, borderBottom: `1px solid ${ip.cardBorder}`, py: 1.25 }}>
-                        {h}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {pendingApprovals.map((row, idx) => (
-                    <TableRow
-                      key={row.uid}
-                      sx={{
-                        bgcolor: idx % 2 === 0 ? 'transparent' : ip.cardMutedBg,
-                        '& td': { borderBottom: `1px solid ${ip.cardBorder}` },
-                      }}
-                    >
-                      <TableCell sx={{ color: ip.heading, fontWeight: 600, py: 1.5 }}>
-                        {row.first_name} {row.last_name}
-                      </TableCell>
-                      <TableCell sx={{ color: ip.subtext, py: 1.5 }}>{row.grade || '—'}</TableCell>
-                      <TableCell sx={{ color: ip.subtext, py: 1.5 }}>{formatStudentDate(row.created_at)}</TableCell>
-                      <TableCell sx={{ color: ip.subtext, py: 1.5, fontSize: '0.8rem' }}>{row.email || '—'}</TableCell>
-                      <TableCell sx={{ py: 1.5 }}>
-                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                          <Button
-                            size="small"
-                            variant="contained"
-                            onClick={() => navigate('/school-admin/students?pending=1')}
-                            sx={{ bgcolor: ip.approveGreen, fontWeight: 700, fontSize: '0.72rem', textTransform: 'none', boxShadow: 'none', '&:hover': { bgcolor: '#16a34a', boxShadow: 'none' } }}
-                          >
-                            Approve
-                          </Button>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            onClick={() => navigate('/school-admin/students?pending=1')}
-                            sx={{ borderColor: ip.cardBorder, color: ip.declineText, bgcolor: ip.declineGray, fontWeight: 600, fontSize: '0.72rem', textTransform: 'none', '&:hover': { borderColor: '#d1d5db', bgcolor: '#e5e7eb' } }}
-                          >
-                            Decline
-                          </Button>
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          ) : (
-            <Box sx={{ textAlign: 'center', py: 4, bgcolor: ip.cardMutedBg, borderRadius: 2, border: `1px dashed ${ip.cardBorder}` }}>
-              <PeopleIcon sx={{ color: '#3b82f6', fontSize: '2.75rem', mb: 1, opacity: 0.85 }} />
-              <Typography variant="body2" sx={{ color: ip.heading, fontWeight: 600 }}>No pending requests</Typography>
-              <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mt: 0.5 }}>
-                New student sign-ups awaiting your review will appear here
-              </Typography>
-            </Box>
-          )}
-        </CardContent>
-      </Card>
-
       {/* ── Performance Overview ───────────────────────────────────────────── */}
       <Card sx={{ bgcolor: '#fff', border: `1px solid ${ip.cardBorder}`, mb: 3, borderRadius: 2, boxShadow: 'none' }}>
         <CardContent sx={{ p: '24px !important' }}>
           <Typography variant="h6" sx={{ color: ip.heading, fontWeight: 700, mb: 0.5 }}>
-            Performance Overview — Q2 2027
+            Performance overview
           </Typography>
-          <Typography variant="body2" sx={{ color: ip.subtext, mb: 3 }}>All assessments, all grades</Typography>
+          <Typography variant="body2" sx={{ color: ip.subtext, mb: 1, lineHeight: 1.55 }}>
+            For each student we only look at assessments they’ve <strong>started or completed</strong>. Their overall tier is the{' '}
+            <strong>lowest</strong> tier among those-so if they’re strong in one subject but still in Tier 1 on another, they count in Tier 1
+            (that’s the gap to close first).
+          </Typography>
+          <Typography variant="caption" sx={{ color: ip.subtext, mb: 2, display: 'block', lineHeight: 1.5 }}>
+            <strong>How to read tiers:</strong> Tier 1 = Bronze, Tier 2 = Silver, Tier 3+ = Gold. Everyone on your school roster is included.
+          </Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
             <StatCard
               label="Avg. Percentile"
-              value={performance.avgPercentile > 0 ? ordinal(performance.avgPercentile) : '—'}
+              value={performance.avgPercentile > 0 ? ordinal(performance.avgPercentile) : '-'}
               change={performance.avgPercentileChange !== 0 ? { value: performance.avgPercentileChange, label: 'pts from Q1' } : undefined}
               accent={ip.statBlue}
               icon={<MiniBarChartIcon sx={{ fontSize: '1.15rem', color: ip.statBlue }} />}
             />
             <StatCard
-              label="Students at Gold+"
+              label="At Gold (Tier 3+)"
               value={`${performance.goldPlusPct}%`}
               change={performance.goldPlusChange !== 0 ? { value: performance.goldPlusChange, label: '% from Q1' } : undefined}
               accent="#d97706"
               icon={<StarsIcon sx={{ fontSize: '1.15rem', color: '#f59e0b' }} />}
             />
             <StatCard
-              label="Below Bronze"
-              value={`${performance.belowBronzePct}%`}
-              change={performance.belowBronzeChange !== 0 ? { value: performance.belowBronzeChange, label: '% from Q1' } : undefined}
-              accent="#dc2626"
-              icon={<PriorityHighIcon sx={{ fontSize: '1.15rem', color: '#ef4444' }} />}
+              label="In Bronze (Tier 1)"
+              value={`${performance.inBronzePct}%`}
+              change={performance.inBronzeChange !== 0 ? { value: performance.inBronzeChange, label: '% from Q1' } : undefined}
+              accent="#b45309"
+              icon={<PriorityHighIcon sx={{ fontSize: '1.15rem', color: '#b45309' }} />}
             />
             <StatCard
               label="Completion Rate"
-              value={performance.completionRate > 0 ? `${performance.completionRate}%` : '—'}
+              value={performance.completionRate > 0 ? `${performance.completionRate}%` : '-'}
               change={performance.completionChange !== 0 ? { value: performance.completionChange, label: '% from Q1' } : undefined}
               accent="#16a34a"
               icon={<CheckCircleIcon sx={{ fontSize: '1.15rem', color: '#22c55e' }} />}
@@ -714,52 +869,13 @@ const SchoolAdminDashboardPage: React.FC = () => {
           </Box>
 
           <Box>
-            <Typography variant="body2" sx={{ color: ip.heading, fontWeight: 600, mb: 1.5 }}>Tier Distribution</Typography>
-            <Box sx={{ display: 'flex', borderRadius: 1, overflow: 'hidden', height: 28, mb: 1.5, border: `1px solid ${ip.cardBorder}` }}>
-              {tierDistribution.length > 0 ? (
-                tierDistribution.map(t => (
-                  <Tooltip key={t.tier} title={`${TIER_CONFIG[t.tier]?.label ?? t.tier}: ${t.pct}%`}>
-                    <Box sx={{
-                      width: `${t.pct}%`, bgcolor: TIER_CONFIG[t.tier]?.bar ?? '#94a3b8',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: t.pct > 5 ? 'auto' : 0,
-                    }}>
-                      {t.pct > 5 && (
-                        <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#fff' }}>
-                          {t.pct}%
-                        </Typography>
-                      )}
-                    </Box>
-                  </Tooltip>
-                ))
-              ) : (
-                TIER_ORDER.map(t => (
-                  <Box
-                    key={t}
-                    sx={{
-                      flex: 1,
-                      bgcolor: alpha(TIER_CONFIG[t]?.bar ?? '#94a3b8', 0.4),
-                      minWidth: 8,
-                      borderRight: `1px solid ${alpha('#fff', 0.35)}`,
-                      '&:last-of-type': { borderRight: 'none' },
-                    }}
-                  />
-                ))
-              )}
-            </Box>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-              {TIER_ORDER.map(t => {
-                const row = tierDistribution.find(x => x.tier === t);
-                const pct = row?.pct ?? 0;
-                return (
-                  <Box key={t} sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
-                    <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: TIER_CONFIG[t]?.bar ?? '#94a3b8' }} />
-                    <Typography variant="caption" sx={{ color: ip.subtext, fontSize: '0.7rem' }}>
-                      {TIER_CONFIG[t]?.label ?? t} ({pct}%)
-                    </Typography>
-                  </Box>
-                );
-              })}
-            </Box>
+            <Typography variant="body2" sx={{ color: ip.heading, fontWeight: 600, mb: 0.5 }}>
+              Student proficiency (tiers 1–3)
+            </Typography>
+            <ProficiencyTier123Overview
+              summary={proficiencyTier123}
+              subtitle="Same rule as above: lowest tier among that student’s active assessments. Tier 1 = Bronze · Tier 2 = Silver · Tier 3+ = Gold."
+            />
           </Box>
         </CardContent>
       </Card>
@@ -775,7 +891,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
           <RocketIcon sx={{ color: '#f97316', fontSize: '2.25rem', mt: 0.2, filter: 'drop-shadow(0 2px 4px rgba(249,115,22,0.35))' }} />
           <Box>
             <Typography variant="body1" sx={{ color: ip.heading, fontWeight: 700 }}>
-              Upgrade to Premium — ₹5,00,000/yr
+              Upgrade to Premium - ₹5,00,000/yr
             </Typography>
             <Typography variant="body2" sx={{ color: ip.subtext, maxWidth: 500 }}>
               Get consulting-style action plans, dedicated account manager, faculty training workshops,
@@ -785,7 +901,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
         </Box>
         <Button
           endIcon={<ArrowForwardIcon />}
-          onClick={() => navigate('/school-admin/subscription')}
+          onClick={() => navigate(`${routeBase}/subscription`)}
           sx={{
             bgcolor: ip.navy, color: '#ffffff', fontWeight: 700,
             '&:hover': { bgcolor: '#0c356f' }, borderRadius: 1.5, px: 3, py: 1, whiteSpace: 'nowrap',

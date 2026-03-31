@@ -308,7 +308,7 @@ export const ExamQuestionBody: React.FC<ExamQuestionBodyProps> = ({
         </Box>
         <Box sx={{ bgcolor: '#f1f5f9', borderRadius: 2, p: 2 }}>
           <Typography sx={{ fontSize: '0.82rem', color: '#475569', fontStyle: 'italic', lineHeight: 1.55 }}>
-            There are no right or wrong answers. Be honest — this helps us understand you better.
+            There are no right or wrong answers. Be honest - this helps us understand you better.
           </Typography>
         </Box>
       </Box>

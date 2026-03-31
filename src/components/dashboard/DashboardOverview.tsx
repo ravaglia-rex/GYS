@@ -15,27 +15,24 @@ import { getStudent } from '../../db/studentCollection';
 import { getSchoolDetails } from '../../db/schoolCollection';
 import { getPayments } from '../../db/studentPaymentMappings';
 import { getPhase2ExamResponse } from '../../db/phase2ExamResponsesCollection';
-import { normalizeMembershipLevel } from '../../utils/assessmentGating';
+import { normalizeMembershipLevel, NON_COMPETITIVE_CHART_ASSESSMENT_IDS } from '../../utils/assessmentGating';
 
-const ColumnChart: React.FC<{ data: { subject: string; score: number }[]; isPhase2?: boolean }> = ({ data, isPhase2 }) => {
-  // Load student grade to pick Phase 1 caps
-  const [grade, setGrade] = React.useState<number>(12);
-  React.useEffect(() => {
-    (async () => {
-      try {
-        const user = await getStudent(auth.currentUser?.uid || '');
-        if (user?.grade) setGrade(user.grade);
-      } catch {}
-    })();
-  }, []);
+export type AssessmentChartRow = { subject: string; score: number; assessmentId?: string };
 
-  const phase1Max = React.useMemo(() => {
-    if (grade >= 6 && grade <= 8) return { math: 8, reading: 8, writing: 10 };
-    if (grade >= 9 && grade <= 10) return { math: 9, reading: 8, writing: 10 };
-    return { math: 10, reading: 10, writing: 12 }; // 11–12
-  }, [grade]);
-
+/** Phase 2 chart rows use raw section totals; program assessments pass score as 0–100 (best tier %). */
+const ColumnChart: React.FC<{ data: AssessmentChartRow[]; isPhase2?: boolean }> = ({ data, isPhase2 }) => {
   const phase2Max = { reading: 32, writing: 16, logic: 10, math: 22 };
+
+  const phase2ColorMap: Record<string, string> = {
+    reading: '#FFB3BA',
+    writing: '#BAFFC9',
+    logic: '#BAE1FF',
+    math: '#FFFFBA',
+  };
+
+  const programBarPalette = [
+    '#5eead4', '#93c5fd', '#fcd34d', '#f9a8d4', '#c4b5fd', '#67e8f9', '#86efac', '#fca5a5',
+  ];
 
   if (!data || data.length === 0) {
     return (
@@ -47,164 +44,201 @@ const ColumnChart: React.FC<{ data: { subject: string; score: number }[]; isPhas
     );
   }
 
-  // Calculate percentages with correct caps
-  const dataWithPercentages = data.map(item => {
-    const key = item.subject.toLowerCase() as 'math' | 'reading' | 'writing' | 'logic';
-    const maxPoints = (isPhase2 ? (phase2Max as any)[key] : (phase1Max as any)[key]) ?? 100;
-    const percentage = Math.round((item.score / maxPoints) * 100);
-    return { ...item, percentage, maxPoints };
+  const dataWithPercentages = data.map((item, index) => {
+    if (isPhase2) {
+      const key = item.subject.toLowerCase() as keyof typeof phase2Max;
+      const maxPoints = phase2Max[key] ?? 100;
+      const rawPct = Math.round((item.score / maxPoints) * 100);
+      const percentage = Math.max(0, Math.min(100, rawPct));
+      return {
+        ...item,
+        percentage,
+        barColor: phase2ColorMap[key] ?? programBarPalette[index % programBarPalette.length],
+        isNonCompetitive: false,
+      };
+    }
+    const percentage = Math.max(0, Math.min(100, Math.round(item.score)));
+    const isNonCompetitive =
+      !!item.assessmentId && NON_COMPETITIVE_CHART_ASSESSMENT_IDS.has(item.assessmentId);
+    return {
+      ...item,
+      percentage,
+      barColor: programBarPalette[index % programBarPalette.length],
+      isNonCompetitive,
+    };
   });
 
-  const maxPercentage = Math.max(...dataWithPercentages.map(item => item.percentage));
-  const chartMax = Math.min(110, Math.max(100, maxPercentage + 10));
+  const chartMax = 100;
+  const BAR_AREA_PX = 260;
+  const BAR_WIDTH_PX = 72;
+
+  const baseTicks = [100, 75, 50, 25, 0];
+  const topTick = chartMax <= 100 ? [chartMax] : [];
+  const ticks = Array.from(new Set([...topTick, ...baseTicks].filter((v) => v <= chartMax))).sort((a, b) => b - a);
 
   return (
-    <Box sx={{ p: 2 }}>
-      <Typography variant="h6" sx={{ color: 'white', mb: 3, textAlign: 'center' }}>
-        Latest Assessment Results (%)
+    <Box sx={{ p: { xs: 1.5, sm: 2 }, width: '100%', overflow: 'hidden' }}>
+      <Typography variant="h6" sx={{ color: 'white', mb: 2, textAlign: 'center' }}>
+        {isPhase2 ? 'Phase 2 section scores (%)' : 'Best tier score by assessment'}
       </Typography>
-      <Box sx={{ 
-        display: 'flex', 
-        alignItems: 'end', 
-        gap: 3, 
-        justifyContent: 'center',
-        height: '200px',
-        position: 'relative',
-        minWidth: '400px',
-        width: '100%'
-      }}>
-      {/* Y-axis labels */}
-      <Box sx={{ 
-        position: 'absolute',
-        left: 0,
-        top: 0,
-        height: '100%',
-        width: 32,
-        mr: 2
-      }}>
-               {(() => {
-  // Build ticks without showing 110; always include 100, 75, 50, 25, 0
-  const baseTicks = [100, 75, 50, 25, 0];
-  // Only include the top value if it's <= 100 (never show 110)
-  const topTick = chartMax <= 100 ? [chartMax] : [];
-  const ticks = Array.from(new Set([...topTick, ...baseTicks].filter(v => v <= chartMax))).sort((a, b) => b - a);
-
-  return ticks.map((value) => {
-    const pct = Math.max(0, Math.min(100, (value / chartMax) * 100));
-    return (
-      <Typography
-        key={`tick-${value}`}
-        variant="caption"
-        sx={{
-          position: 'absolute',
-          bottom: `${pct}%`,
-          transform: 'translateY(50%)',
-          color: 'rgba(255, 255, 255, 0.5)',
-          fontSize: '0.7rem'
-        }}
-      >
-        {value}%
-      </Typography>
-    );
-  });
-})()}
-        </Box>
-        
-        {/* Columns */}
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'end', 
-          gap: 3, 
-          justifyContent: 'center',
-          height: '100%',
-          width: '100%',
-          pl: 4
-        }}>
-          {dataWithPercentages.map((item, index) => {
-            // Use the calculated percentage for bar height
-            const barHeight = (item.percentage / chartMax) * 200;
-            // Different colors for each subject
-            const colorMap: { [key: string]: string } = {
-              'Reading': '#FFB3BA',    // Light pink
-              'Writing': '#BAFFC9',    // Light green
-              'Logic': '#BAE1FF',     // Light blue
-              'Math': '#FFFFBA'       // Light yellow
-            };
-            const color = colorMap[item.subject] || '#99D5C9'; // Fallback color
-            
-            return (
-              <Box key={index} sx={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center',
-                justifyContent: 'flex-end',
-                gap: 1,
-                flex: 1,
-                minWidth: '60px',
-                maxWidth: '100px',
-                position: 'relative',
-                height: '200px'
-              }}>
-                <Box
-                  sx={{
-                    width: '100%',
-                    backgroundColor: color,
-                    borderRadius: '4px 4px 0 0',
-                    transition: 'height 0.3s ease',
-                    position: 'absolute',
-                    bottom: '0px',
-                    left: 0,
-                    right: 0,
-                    boxShadow: `0 4px 12px ${color}40`
-                  }}
-                  style={{
-                    height: `${barHeight}px`
-                  }}
-                />
-                
-                {/* Percentage label at the top of the bar */}
+      <Box sx={{ width: '100%', pb: 0.5 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'stretch',
+            gap: 0,
+            width: '100%',
+            mx: 'auto',
+          }}
+        >
+          {/* Y-axis */}
+          <Box
+            sx={{
+              position: 'relative',
+              width: 36,
+              flexShrink: 0,
+              height: BAR_AREA_PX,
+              pr: 0.5,
+            }}
+          >
+            {ticks.map((value) => {
+              const pct = Math.max(0, Math.min(100, (value / chartMax) * 100));
+              return (
                 <Typography
+                  key={`tick-${value}`}
                   variant="caption"
                   sx={{
-                    color: 'white',
-                    fontWeight: 600,
                     position: 'absolute',
-                    bottom: `${barHeight + 12}px`,  // constant 12px gap above bar
-                    transform: 'translateX(-50%)',
-                    left: '50%',
-                    zIndex: 10
+                    bottom: `${pct}%`,
+                    right: 0,
+                    transform: 'translateY(50%)',
+                    color: 'rgba(255, 255, 255, 0.5)',
+                    fontSize: '0.7rem',
+                    lineHeight: 1,
                   }}
                 >
-                  {item.percentage}%
+                  {value}%
                 </Typography>
-                
-                {/* Subject label */}
-              <Typography 
-                variant="caption" 
-                sx={{ 
-                  color: 'rgba(255, 255, 255, 0.8)',
-                  textAlign: 'center',
-                  fontSize: '0.75rem',
-                  lineHeight: 1.2,
-                  maxWidth: '100%',
-                  wordBreak: 'break-word',
-                  position: 'absolute',
-                  bottom: '-20px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  width: '100%'
-                }}
-              >
-                {item.subject}
-              </Typography>
-              </Box>
-            );
-          })}
+              );
+            })}
+          </Box>
+
+          {/* Bars + labels (assessment names below bars, not on the bars) */}
+          <Box
+            sx={{
+              display: 'flex',
+              flex: 1,
+              alignItems: 'flex-start',
+              justifyContent: 'center',
+              gap: 0.5,
+              minHeight: BAR_AREA_PX + 72,
+              py: 0,
+              minWidth: 0,
+            }}
+          >
+            {dataWithPercentages.map((item, index) => {
+              const barHeight = item.isNonCompetitive
+                ? Math.round(BAR_AREA_PX * 0.88)
+                : Math.min(BAR_AREA_PX, Math.max(4, (item.percentage / chartMax) * BAR_AREA_PX));
+              const color = item.barColor ?? programBarPalette[index % programBarPalette.length];
+
+              return (
+                <Box
+                  key={index}
+                  sx={{
+                    flex: '1 1 0',
+                    minWidth: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: '100%',
+                      height: BAR_AREA_PX,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Box sx={{ flex: 1, minHeight: 0, width: '100%' }} aria-hidden />
+                    <Box
+                      sx={{
+                        width: '100%',
+                        height: 36,
+                        flexShrink: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        mb: 0.5,
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: item.isNonCompetitive ? 'rgba(255,255,255,0.75)' : 'white',
+                          fontWeight: 700,
+                          fontSize: item.isNonCompetitive ? '0.72rem' : '0.8rem',
+                          lineHeight: 1.2,
+                          textAlign: 'center',
+                          px: 0.25,
+                        }}
+                      >
+                        {item.isNonCompetitive ? 'Completed' : `${item.percentage}%`}
+                      </Typography>
+                    </Box>
+                    <Box
+                      sx={{
+                        width: BAR_WIDTH_PX,
+                        maxWidth: '100%',
+                        backgroundColor: color,
+                        borderRadius: '6px 6px 0 0',
+                        transition: 'height 0.3s ease',
+                        boxShadow: `0 4px 14px ${color}55`,
+                        flexShrink: 0,
+                      }}
+                      style={{ height: `${barHeight}px` }}
+                    />
+                  </Box>
+                  <Typography
+                    variant="caption"
+                    component="div"
+                    sx={{
+                      mt: 1.5,
+                      px: 0.75,
+                      textAlign: 'center',
+                      color: 'rgba(255, 255, 255, 0.88)',
+                      fontSize: { xs: '0.72rem', sm: '0.78rem' },
+                      lineHeight: 1.35,
+                      width: '100%',
+                      whiteSpace: 'normal',
+                      wordBreak: 'normal',
+                      overflowWrap: 'break-word',
+                      hyphens: 'none',
+                    }}
+                  >
+                    {item.subject}
+                  </Typography>
+                </Box>
+              );
+            })}
+          </Box>
         </Box>
       </Box>
     </Box>
   );
 };
+
+export interface DashboardOverviewPreviewProfile {
+  userName: string;
+  grade: number;
+  schoolName: string;
+  membershipLevel: string;
+  membershipExpiry: string;
+}
 
 interface DashboardOverviewProps {
   stats: {
@@ -213,12 +247,15 @@ interface DashboardOverviewProps {
     averageScore: number;
     availableAssessments: number;
   };
-  latestAssessmentResults?: {
-    subject: string;
-    score: number;
-  }[];
+  latestAssessmentResults?: AssessmentChartRow[];
   /** When true, show default Entry tier chip (Tier 1) for new students */
   defaultEntryTier?: boolean;
+  /** Static profile - skips Firestore; use with sample / preview dashboards */
+  previewProfile?: DashboardOverviewPreviewProfile;
+  /** When set with previewProfile, stat-card clicks navigate here instead of live assessment routes */
+  previewNavTargets?: { available: string; completed: string };
+  /** Preview only: “Results Available” and “Assessments Available” stats are non-interactive */
+  previewDisableAssessmentStatClicks?: boolean;
 }
 
 const StatCard: React.FC<{
@@ -238,11 +275,21 @@ const StatCard: React.FC<{
       boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
       transition: 'all 0.3s ease',
       cursor: onClick ? 'pointer' : 'default',
-      '&:hover': {
-        transform: 'translateY(-4px)',
-        boxShadow: '0 8px 30px rgba(0, 0, 0, 0.3)',
-        borderColor: `${color}40`,
-      }
+      ...(onClick
+        ? {
+            '&:hover': {
+              transform: 'translateY(-4px)',
+              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.3)',
+              borderColor: `${color}40`,
+            },
+          }
+        : {
+            '&:hover': {
+              transform: 'none',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
+              borderColor: 'rgba(255, 255, 255, 0.1)',
+            },
+          }),
     }}
   >
     <CardContent sx={{ p: 3, textAlign: 'left' }}>
@@ -348,6 +395,9 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   stats,
   latestAssessmentResults = [],
   defaultEntryTier = true,
+  previewProfile,
+  previewNavTargets,
+  previewDisableAssessmentStatClicks = false,
 }) => {
   const navigate = useNavigate();
   const [, setIsNavigating] = useState(false);
@@ -365,6 +415,15 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   const notifications = generateDynamicNotifications(stats.availableAssessments, stats.completedAssessments);
 
   useEffect(() => {
+    if (previewProfile) {
+      setUserName(previewProfile.userName);
+      setStudentGrade(previewProfile.grade);
+      setSchoolName(previewProfile.schoolName);
+      setMembershipLevel(previewProfile.membershipLevel);
+      setMembershipExpiry(previewProfile.membershipExpiry);
+      setLoading(false);
+      return;
+    }
     const fetchUserName = async () => {
       if (auth.currentUser?.uid) {
         try {
@@ -384,9 +443,9 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
           // Derive membership level + expiry from payments, fall back to account creation date
           const levelMap: Record<string, string> = {
-            LEVEL_1: 'Level 1 — Explore',
-            LEVEL_2: 'Level 2 — Engage',
-            LEVEL_3: 'Level 3 — Excel',
+            LEVEL_1: 'Level 1 - Explore',
+            LEVEL_2: 'Level 2 - Engage',
+            LEVEL_3: 'Level 3 - Excel',
           };
           const rawLevel = userData?.membership_level ?? userData?.plan_level ?? null;
           const levelFromStudent: string | number | null =
@@ -410,7 +469,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
           try {
             const payments = await getPayments(auth.currentUser.uid);
-            // Use any payment regardless of status — take the most recent by paid_on
+            // Use any payment regardless of status - take the most recent by paid_on
             const sorted = [...payments].sort(
               (a, b) => new Date(b.paid_on).getTime() - new Date(a.paid_on).getTime()
             );
@@ -425,18 +484,18 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                   setMembershipLevel(levelMap[levelFromStudent as keyof typeof levelMap] ?? String(levelFromStudent));
                 }
               } else if (latest.amount < 2000) {
-                setMembershipLevel('Level 1 — Explore');
+                setMembershipLevel('Level 1 - Explore');
               } else if (latest.amount < 7000) {
-                setMembershipLevel('Level 2 — Engage');
+                setMembershipLevel('Level 2 - Engage');
               } else {
-                setMembershipLevel('Level 3 — Excel');
+                setMembershipLevel('Level 3 - Excel');
               }
               const baseDate = new Date(latest.paid_on);
               setMembershipExpiry(
                 !isNaN(baseDate.getTime()) ? resolveExpiry(baseDate) : creationExpiry()
               );
             } else {
-              // No payments — default new students to Level 1; respect explicit level on student doc
+              // No payments - default new students to Level 1; respect explicit level on student doc
               if (levelFromStudent != null && levelFromStudent !== '') {
                 if (typeof levelFromStudent === 'number' && levelFromStudent >= 1 && levelFromStudent <= 3) {
                   setMembershipLevel(levelMap[`LEVEL_${levelFromStudent}` as 'LEVEL_1'] ?? `Level ${levelFromStudent}`);
@@ -446,7 +505,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
               } else if (levelNum != null && levelNum >= 1 && levelNum <= 3) {
                 setMembershipLevel(levelMap[`LEVEL_${levelNum}` as 'LEVEL_1']);
               } else {
-                setMembershipLevel('Level 1 — Explore');
+                setMembershipLevel('Level 1 - Explore');
               }
               setMembershipExpiry(creationExpiry());
             }
@@ -460,7 +519,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             } else if (levelNum != null && levelNum >= 1 && levelNum <= 3) {
               setMembershipLevel(levelMap[`LEVEL_${levelNum}` as 'LEVEL_1']);
             } else {
-              setMembershipLevel('Level 1 — Explore');
+              setMembershipLevel('Level 1 - Explore');
             }
             setMembershipExpiry(creationExpiry());
           }
@@ -475,10 +534,15 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     };
 
     fetchUserName();
-  }, []);
+  }, [previewProfile]);
 
   // Check for phase 2 assessment responses
   useEffect(() => {
+    if (previewProfile) {
+      setIsLoadingPhase2(false);
+      setHasPhase2Results(false);
+      return;
+    }
     const checkPhase2Results = async () => {
       if (!auth.currentUser?.uid) {
         setIsLoadingPhase2(false);
@@ -518,17 +582,20 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     };
 
     checkPhase2Results();
-  }, []);
+  }, [previewProfile]);
 
   const handleNavigation = (path: string) => {
+    if (previewNavTargets) {
+      if (path === '/assessments/available') navigate(previewNavTargets.available);
+      else if (path === '/assessments/completed') navigate(previewNavTargets.completed);
+      return;
+    }
     setIsNavigating(true);
-    
-    // Small delay to show loading state
+
     setTimeout(() => {
       try {
         navigate(path);
-      } catch (error) {
-        // Fallback to window.location if React Router fails
+      } catch {
         window.location.href = path;
       }
     }, 150);
@@ -575,7 +642,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1.5, mt: 0.5, alignItems: 'center' }}>
             {defaultEntryTier && stats.completedAssessments === 0 && (
               <Chip
-                label="Tier 1 — Entry"
+                label="Tier 1 - Entry"
                 size="small"
                 sx={{
                   bgcolor: 'rgba(251, 191, 36, 0.12)',
@@ -649,14 +716,22 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           value={stats.completedAssessments}
           icon={<CheckCircle size={24} />}
           color="#10b981"
-          onClick={() => handleNavigation('/assessments/completed')}
+          onClick={
+            previewDisableAssessmentStatClicks
+              ? undefined
+              : () => handleNavigation('/assessments/completed')
+          }
         />
          <StatCard
           title="Assessments Available"
           value={stats.availableAssessments}
           icon={<Clock size={24} />}
           color="#8b5cf6"
-          onClick={() => handleNavigation('/assessments/available')}
+          onClick={
+            previewDisableAssessmentStatClicks
+              ? undefined
+              : () => handleNavigation('/assessments/available')
+          }
         />
         
         <StatCard
@@ -697,9 +772,9 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                 </Typography>
                 <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '1rem' }}>
                   {displayResults.data.length > 0 
-                    ? (displayResults.isPhase2 
+                    ? (displayResults.isPhase2
                         ? 'Your Phase 2 assessment performance across different subjects'
-                        : 'Your latest assessment performance across different subjects')
+                        : 'Your best tier scores on competitive assessments; personality profiles show completion only.')
                     : 'Performance data will appear here once your assessments are evaluated'
                   }
                 </Typography>

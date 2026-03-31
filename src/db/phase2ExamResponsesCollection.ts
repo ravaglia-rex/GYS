@@ -1,4 +1,4 @@
-// Legacy file — Phase 2 Typeform exam responses no longer exist.
+// Legacy file - Phase 2 Typeform exam responses no longer exist.
 // Personality Profile assessment results are now stored in
 // students/{uid}/attempts/ and students/{uid}/assessments/.
 

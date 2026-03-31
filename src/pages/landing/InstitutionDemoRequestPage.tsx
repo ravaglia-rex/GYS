@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase/firebase';
 
@@ -128,14 +129,17 @@ const InstitutionDemoRequestPage: React.FC = () => {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => navigate('/login')}
-            className="px-5 py-2.5 rounded-xl text-white text-sm font-medium shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:brightness-110 active:scale-95 transition-all duration-200"
-            style={{ backgroundColor: GYS_BLUE }}
-          >
-            Log In
-          </button>
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+            <PublicHomeNavButton />
+            <button
+              type="button"
+              onClick={() => navigate('/login')}
+              className="px-4 py-2.5 sm:px-5 rounded-xl text-white text-sm font-medium shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:brightness-110 active:scale-95 transition-all duration-200"
+              style={{ backgroundColor: GYS_BLUE }}
+            >
+              Log In
+            </button>
+          </div>
         </div>
       </header>
 
@@ -206,7 +210,7 @@ const InstitutionDemoRequestPage: React.FC = () => {
                       <span className="font-medium">3.</span> We customize a proposal for your school
                     </li>
                     <li>
-                      <span className="font-medium">4.</span> Onboarding &amp; student invitations
+                      <span className="font-medium">4.</span> Onboarding &amp; student roster setup
                     </li>
                   </ol>
                 </div>
@@ -476,7 +480,7 @@ const InstitutionDemoRequestPage: React.FC = () => {
                     onChange={handleChange}
                     className="mt-1 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-200"
                   >
-                    <option value="not_sure">Not sure yet — help me decide</option>
+                    <option value="not_sure">Not sure yet - help me decide</option>
                     <option value="entry">Entry</option>
                     <option value="standard">Standard</option>
                     <option value="premium">Premium</option>

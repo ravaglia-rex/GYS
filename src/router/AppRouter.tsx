@@ -5,6 +5,7 @@ import SuperProtected from '../components/route_protection/SuperProtected';
 import SchoolAdminRoute from '../components/route_protection/SchoolAdminRoute';
 import NotFoundPage from '../pages/NotFoundPage';
 import BigSpinner from '../components/ui/BigSpinner';
+import PreviewStubPage from '../pages/landing/preview/PreviewStubPage';
 
 /*
 LANDING AND PUBLIC PAGES
@@ -21,14 +22,12 @@ const StudentPathPage = React.lazy(() => import('../pages/landing/StudentPathPag
 
 const SchoolPreviewLayout = React.lazy(() => import('../layouts/SchoolPreviewLayout'));
 const SchoolPreviewHubPage = React.lazy(() => import('../pages/landing/preview/SchoolPreviewHubPage'));
-const SchoolPreviewDashboardPage = React.lazy(
-  () => import('../pages/landing/preview/SchoolPreviewDashboardPage')
-);
-const SchoolPreviewReportsPage = React.lazy(
-  () => import('../pages/landing/preview/SchoolPreviewReportsPage')
-);
 const SchoolPreviewAssessmentPage = React.lazy(
   () => import('../pages/landing/preview/SchoolPreviewAssessmentPage')
+);
+const StudentPreviewLayout = React.lazy(() => import('../layouts/StudentPreviewLayout'));
+const StudentPreviewDashboardPage = React.lazy(
+  () => import('../pages/landing/preview/StudentPreviewDashboardPage')
 );
 
 /*
@@ -84,7 +83,7 @@ const SchoolAdminSettingsPage = React.lazy(() => import('../pages/school_admin_p
 const SchoolAdminReportsPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminReportsPage'));
 const SchoolAdminAlertsPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminAlertsPage'));
 const SchoolAdminSubscriptionPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminSubscriptionPage'));
-const SchoolAdminInvitationsPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminInvitationsPage'));
+const SchoolAdminStudentDetailPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminStudentDetailPage'));
 
 /*
 CAMERA AND MICROPHONE ACCESS PAGE: This page is used to check if the camera and microphone are working
@@ -169,6 +168,69 @@ const AppRouter: React.FC = () => {
           errorElement={<NotFoundPage />}
         />
         <Route
+          path="/students/preview"
+          element={
+            <Suspense fallback={<BigSpinner />}>
+              <StudentPreviewLayout />
+            </Suspense>
+          }
+          errorElement={<NotFoundPage />}
+        >
+          <Route index element={<Navigate to="/students/preview/dashboard" replace />} />
+          <Route
+            path="dashboard"
+            element={
+              <Suspense fallback={<BigSpinner />}>
+                <StudentPreviewDashboardPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="assessments/completed"
+            element={
+              <PreviewStubPage
+                title="Completed & Results"
+                body="After you sign in, finished assessments and score history appear here. In this preview, open Dashboard to explore the sample performance chart and assessment cards."
+                backPath="/students/preview/dashboard"
+                backLabel="Back to Dashboard"
+              />
+            }
+          />
+          <Route
+            path="reports"
+            element={
+              <PreviewStubPage
+                title="Reports"
+                body="Signed-in students can download and review official reports here. Register and log in to generate reports from your real results."
+                backPath="/students/preview/dashboard"
+                backLabel="Back to Dashboard"
+              />
+            }
+          />
+          <Route
+            path="payments"
+            element={
+              <PreviewStubPage
+                title="Billing & Payments"
+                body="Manage membership and payment history in the live portal after you create an account."
+                backPath="/students/preview/dashboard"
+                backLabel="Back to Dashboard"
+              />
+            }
+          />
+          <Route
+            path="settings"
+            element={
+              <PreviewStubPage
+                title="Settings"
+                body="Update your profile, password, and preferences here once you are logged in."
+                backPath="/students/preview/dashboard"
+                backLabel="Back to Dashboard"
+              />
+            }
+          />
+        </Route>
+        <Route
           path="/for-schools"
           element={
             <Suspense fallback={<BigSpinner/>}>
@@ -206,6 +268,16 @@ const AppRouter: React.FC = () => {
               </Suspense>
             }
           />
+          {/* Full-screen sample exam (no admin sidebar), mirrors student Symbolic Reasoning take UI */}
+          <Route
+            path="assessment"
+            element={
+              <Suspense fallback={<BigSpinner/>}>
+                <SchoolPreviewAssessmentPage />
+              </Suspense>
+            }
+          />
+          <Route path="exam" element={<Navigate to="/for-schools/preview/assessment" replace />} />
           <Route
             element={
               <Suspense fallback={<BigSpinner/>}>
@@ -217,7 +289,23 @@ const AppRouter: React.FC = () => {
               path="dashboard"
               element={
                 <Suspense fallback={<BigSpinner/>}>
-                  <SchoolPreviewDashboardPage />
+                  <SchoolAdminDashboardPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="students"
+              element={
+                <Suspense fallback={<BigSpinner/>}>
+                  <SchoolAdminStudentsPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="students/:studentId"
+              element={
+                <Suspense fallback={<BigSpinner/>}>
+                  <SchoolAdminStudentDetailPage />
                 </Suspense>
               }
             />
@@ -225,19 +313,43 @@ const AppRouter: React.FC = () => {
               path="reports"
               element={
                 <Suspense fallback={<BigSpinner/>}>
-                  <SchoolPreviewReportsPage />
+                  <SchoolAdminReportsPage />
                 </Suspense>
               }
             />
             <Route
-              path="assessment"
+              path="analytics"
               element={
                 <Suspense fallback={<BigSpinner/>}>
-                  <SchoolPreviewAssessmentPage />
+                  <SchoolAdminAnalyticsPage />
                 </Suspense>
               }
             />
-            <Route path="exam" element={<Navigate to="/for-schools/preview/assessment" replace />} />
+            <Route path="student-emails" element={<Navigate to="/for-schools/preview/students" replace />} />
+            <Route
+              path="alerts"
+              element={
+                <Suspense fallback={<BigSpinner />}>
+                  <SchoolAdminAlertsPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="settings"
+              element={
+                <Suspense fallback={<BigSpinner />}>
+                  <SchoolAdminSettingsPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="subscription"
+              element={
+                <Suspense fallback={<BigSpinner />}>
+                  <SchoolAdminSubscriptionPage />
+                </Suspense>
+              }
+            />
           </Route>
         </Route>
 
@@ -593,6 +705,20 @@ const AppRouter: React.FC = () => {
           }
           errorElement={<NotFoundPage />}
         />
+
+        <Route
+          path="/school-admin/students/:studentId"
+          element={
+            <SchoolAdminRoute>
+              <Suspense fallback={<BigSpinner />}>
+                <SchoolAdminPageWrapper>
+                  <SchoolAdminStudentDetailPage />
+                </SchoolAdminPageWrapper>
+              </Suspense>
+            </SchoolAdminRoute>
+          }
+          errorElement={<NotFoundPage />}
+        />
         
         <Route 
           path="/school-admin/analytics" 
@@ -610,16 +736,12 @@ const AppRouter: React.FC = () => {
 
         <Route
           path="/school-admin/invitations"
-          element={
-            <SchoolAdminRoute>
-              <Suspense fallback={<BigSpinner/>}>
-                <SchoolAdminPageWrapper>
-                  <SchoolAdminInvitationsPage />
-                </SchoolAdminPageWrapper>
-              </Suspense>
-            </SchoolAdminRoute>
-          }
-          errorElement={<NotFoundPage />}
+          element={<Navigate to="/school-admin/students" replace />}
+        />
+
+        <Route
+          path="/school-admin/student-emails"
+          element={<Navigate to="/school-admin/students" replace />}
         />
         
         <Route 

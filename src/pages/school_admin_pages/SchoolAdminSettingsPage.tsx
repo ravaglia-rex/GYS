@@ -21,13 +21,17 @@ import {
   CheckCircle as CheckCircleIcon
 } from '@mui/icons-material';
 import { useSelector, useDispatch } from 'react-redux';
+import { useLocation } from 'react-router-dom';
 import { RootState, AppDispatch } from '../../state_data/reducer';
 import { doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../../firebase/firebase';
 import { checkUserRole } from '../../state_data/authSlice';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
+import { GREENFIELD_POC_EMAIL, GREENFIELD_SCHOOL_DISPLAY } from '../../data/schoolPreviewMock';
 
 const SchoolAdminSettingsPage: React.FC = () => {
+  const location = useLocation();
+  const isSchoolAdminPreview = location.pathname.startsWith('/for-schools/preview');
   const dispatch = useDispatch<AppDispatch>();
   const { schoolAdmin, user, loading: authLoading } = useSelector((state: RootState) => state.auth);
   const [schoolInfo, setSchoolInfo] = useState({
@@ -44,8 +48,25 @@ const SchoolAdminSettingsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [hasTriedLoading, setHasTriedLoading] = useState(false);
 
+  useEffect(() => {
+    if (!isSchoolAdminPreview) return;
+    const { city, state, schoolName } = GREENFIELD_SCHOOL_DISPLAY;
+    setSchoolInfo({
+      name: schoolName,
+      address: [city, state].filter(Boolean).join(', '),
+      city: city ?? '',
+      state: state ?? '',
+      contactEmail: GREENFIELD_POC_EMAIL,
+      phone: '+91 80 4000 0000',
+      website: '',
+      verified: true,
+    });
+    setLoading(false);
+  }, [isSchoolAdminPreview]);
+
   // Ensure schoolAdmin is loaded
   useEffect(() => {
+    if (isSchoolAdminPreview) return;
     const ensureSchoolAdmin = async () => {
       // Only try once
       if (hasTriedLoading || authLoading) {
@@ -73,10 +94,12 @@ const SchoolAdminSettingsPage: React.FC = () => {
     };
 
     ensureSchoolAdmin();
-  }, [authLoading, schoolAdmin, user, dispatch, hasTriedLoading]);
+  }, [authLoading, schoolAdmin, user, dispatch, hasTriedLoading, isSchoolAdminPreview]);
 
   useEffect(() => {
     const fetchSchoolData = async () => {
+      if (isSchoolAdminPreview) return;
+
       // Wait for auth to finish loading
       if (authLoading) {
         return;
@@ -153,7 +176,7 @@ const SchoolAdminSettingsPage: React.FC = () => {
     };
 
     fetchSchoolData();
-  }, [schoolAdmin, authLoading, hasTriedLoading]);
+  }, [schoolAdmin, authLoading, hasTriedLoading, isSchoolAdminPreview]);
 
   const handleSchoolInfoChange = (field: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
     setSchoolInfo({
@@ -455,10 +478,10 @@ const SchoolAdminSettingsPage: React.FC = () => {
 
               <Paper sx={{ p: 2, bgcolor: '#F8FAFC', border: `1px solid ${ip.cardBorder}` }}>
                 <Typography variant="body2" sx={{ color: '#94a3b8', mb: 1, fontWeight: 500 }}>
-                  Data Export
+                  Reports & analytics alerts
                 </Typography>
                 <Typography variant="caption" sx={{ color: '#94a3b8' }}>
-                  Export school data and analytics
+                  New institutional reports and analytics updates appear under Notifications on your Overview dashboard
                 </Typography>
               </Paper>
             </Box>

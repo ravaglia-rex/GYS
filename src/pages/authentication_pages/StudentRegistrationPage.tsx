@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { fetchSignInMethodsForEmail } from 'firebase/auth';
 import { checkEmailExists } from '../../db/emailMappingCollection';
 import { auth } from '../../firebase/firebase';
+import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
 
 const GYS_BLUE = '#1e3a8a';
 
@@ -107,14 +108,17 @@ const StudentRegistrationPage: React.FC = () => {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => navigate('/login')}
-            className="px-5 py-2.5 rounded-xl text-white text-sm font-medium shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:brightness-110 active:scale-95 transition-all duration-200"
-            style={{ backgroundColor: GYS_BLUE }}
-          >
-            Log In
-          </button>
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+            <PublicHomeNavButton />
+            <button
+              type="button"
+              onClick={() => navigate('/login')}
+              className="px-4 py-2.5 sm:px-5 rounded-xl text-white text-sm font-medium shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:brightness-110 active:scale-95 transition-all duration-200"
+              style={{ backgroundColor: GYS_BLUE }}
+            >
+              Log In
+            </button>
+          </div>
         </div>
       </header>
 
@@ -184,7 +188,7 @@ const StudentRegistrationPage: React.FC = () => {
                 placeholder="arjun@example.com"
                 required
               />
-              <p className="mt-1 text-[11px] sm:text-xs text-slate-500">
+              <p className="mt-1 text-xs text-slate-500">
                 Please use your <span className="font-semibold">school email ID</span>. Parent&apos;s school email
                 is recommended for students under 16.
               </p>
@@ -249,7 +253,7 @@ const StudentRegistrationPage: React.FC = () => {
               />
             </div>
 
-            <label className="mt-1 flex items-start gap-2 text-[11px] sm:text-xs text-slate-600">
+            <label className="mt-1 flex items-start gap-2 text-xs text-slate-600">
               <input
                 type="checkbox"
                 checked={acceptedTerms}
@@ -287,7 +291,7 @@ const StudentRegistrationPage: React.FC = () => {
               Create Account →
             </button>
 
-            <p className="pt-3 text-center text-[11px] sm:text-xs text-slate-500">
+            <p className="pt-3 text-center text-xs text-slate-500">
               Your account is free. You&apos;ll select a membership level next.
             </p>
           </form>

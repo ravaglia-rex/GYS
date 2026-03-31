@@ -1,4 +1,4 @@
-// Legacy file — exam mappings have been replaced by assessment_progress on the
+// Legacy file - exam mappings have been replaced by assessment_progress on the
 // student document and the assessmentCollection API.
 // Stubs are kept so existing imports compile while components are being migrated.
 

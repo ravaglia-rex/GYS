@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
 
 const GYS_BLUE = '#1e3a8a';
 
@@ -52,7 +53,7 @@ const StudentMembershipStepPage: React.FC = () => {
         { text: 'Personality & English – Level 3', included: false },
         { text: 'Full college guidance – Level 3', included: false },
       ],
-      footer: 'Best value — the complete reasoning triad + growth tracking',
+      footer: 'Best value - the complete reasoning triad + growth tracking',
     },
     {
       id: 'LEVEL_3' as MembershipLevel,
@@ -72,7 +73,7 @@ const StudentMembershipStepPage: React.FC = () => {
         { text: 'College mapping (Indian & international)', included: true },
         { text: 'Individual counselor sessions & advising', included: true },
       ],
-      footer: 'Individual families only — full college guidance included.',
+      footer: 'Individual families only - full college guidance included.',
     },
   ];
 
@@ -122,14 +123,17 @@ const StudentMembershipStepPage: React.FC = () => {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => navigate('/login')}
-            className="px-5 py-2.5 rounded-xl text-white text-sm font-medium shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:brightness-110 active:scale-95 transition-all duration-200"
-            style={{ backgroundColor: GYS_BLUE }}
-          >
-            Log In
-          </button>
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+            <PublicHomeNavButton />
+            <button
+              type="button"
+              onClick={() => navigate('/login')}
+              className="px-4 py-2.5 sm:px-5 rounded-xl text-white text-sm font-medium shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:brightness-110 active:scale-95 transition-all duration-200"
+              style={{ backgroundColor: GYS_BLUE }}
+            >
+              Log In
+            </button>
+          </div>
         </div>
       </header>
 
@@ -177,7 +181,7 @@ const StudentMembershipStepPage: React.FC = () => {
                           <span className="h-2.5 w-2.5 rounded-full bg-white" />
                         </span>
                         <div>
-                          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                             {level.label}
                           </p>
                           <p className="text-sm sm:text-base font-semibold text-slate-900">
@@ -189,11 +193,11 @@ const StudentMembershipStepPage: React.FC = () => {
                         <p className="text-base sm:text-lg font-semibold text-slate-900">
                           {level.price}
                         </p>
-                        <p className="text-[11px] text-slate-500">{level.priceSuffix}</p>
+                        <p className="text-xs text-slate-500">{level.priceSuffix}</p>
                       </div>
                     </div>
                     {level.badge && (
-                      <div className="mt-2 inline-flex rounded-full bg-amber-100 px-3 py-1 text-[11px] font-semibold text-amber-800">
+                      <div className="mt-2 inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
                         {level.badge}
                       </div>
                     )}
@@ -201,7 +205,7 @@ const StudentMembershipStepPage: React.FC = () => {
                       {level.features.map((feature) => (
                         <li key={feature.text} className="flex items-start gap-2">
                           <span
-                            className={`mt-0.5 inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold ${
+                            className={`mt-0.5 inline-flex h-4 w-4 items-center justify-center rounded-full text-[11px] font-bold ${
                               feature.included ? 'bg-emerald-500 text-white' : 'bg-slate-300 text-white'
                             }`}
                           >
@@ -214,7 +218,7 @@ const StudentMembershipStepPage: React.FC = () => {
                       ))}
                     </ul>
                     {level.footer && (
-                      <p className="mt-3 rounded-lg bg-slate-900/5 px-3 py-2 text-[11px] sm:text-xs font-medium text-slate-800">
+                      <p className="mt-3 rounded-lg bg-slate-900/5 px-3 py-2 text-xs font-medium text-slate-800">
                         {level.footer}
                       </p>
                     )}
@@ -223,9 +227,9 @@ const StudentMembershipStepPage: React.FC = () => {
               })}
             </div>
 
-            <div className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-[11px] sm:text-xs text-amber-900">
+            <div className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-xs text-amber-900">
               You can always upgrade. Start with any level and upgrade anytime. You&apos;ll only pay
-              the difference between your current level and the new one. No penalty, no lost data —
+              the difference between your current level and the new one. No penalty, no lost data -
               your existing results carry forward.
             </div>
 
@@ -239,21 +243,21 @@ const StudentMembershipStepPage: React.FC = () => {
 
             {showComparison && (
               <div className="mt-3 overflow-x-auto rounded-xl border border-slate-200 bg-white">
-                <table className="min-w-full text-left text-[11px] sm:text-xs">
+                <table className="min-w-full text-left text-xs">
                   <thead className="bg-slate-50">
                     <tr>
                       <th className="px-4 py-2 font-semibold text-slate-700">Feature</th>
                       <th className="px-4 py-2 font-semibold text-slate-700 text-center">
                         L1
-                        <span className="block text-[10px] text-slate-500">₹999</span>
+                        <span className="block text-xs text-slate-500">₹999</span>
                       </th>
                       <th className="px-4 py-2 font-semibold text-slate-700 text-center">
                         L2
-                        <span className="block text-[10px] text-slate-500">₹4,999</span>
+                        <span className="block text-xs text-slate-500">₹4,999</span>
                       </th>
                       <th className="px-4 py-2 font-semibold text-slate-700 text-center">
                         L3
-                        <span className="block text-[10px] text-slate-500">₹9,999</span>
+                        <span className="block text-xs text-slate-500">₹9,999</span>
                       </th>
                     </tr>
                   </thead>
@@ -281,7 +285,7 @@ const StudentMembershipStepPage: React.FC = () => {
                             className="px-4 py-2 text-center text-slate-700"
                           >
                             {val === '✓' ? (
-                              <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-[9px] font-bold text-white">
+                              <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-[11px] font-bold text-white">
                                 ✓
                               </span>
                             ) : (
@@ -303,7 +307,7 @@ const StudentMembershipStepPage: React.FC = () => {
               Continue with {selected.name} – {selected.price}/yr →
             </button>
 
-            <p className="pt-1 text-center text-[11px] sm:text-xs text-slate-500">
+            <p className="pt-1 text-center text-xs text-slate-500">
               Secure payment via Razorpay, UPI, cards, and net banking accepted.
             </p>
           </form>

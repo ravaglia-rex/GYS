@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
+import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
 
 const GYS_BLUE = '#1e3a8a';
 const GYS_GOLD = '#fbbf24'; // brighter, radiant gold (amber-400)
@@ -114,14 +115,18 @@ const LandingPage: React.FC = () => {
             </button>
             <button
               type="button"
-              onClick={() => scrollToSection('for-schools')}
+              onClick={() => navigate('/for-schools')}
               className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
             >
               For Schools
             </button>
-            <a href="#for-students" className="text-gray-600 hover:text-gray-900 transition-colors duration-150">
+            <button
+              type="button"
+              onClick={() => navigate('/students')}
+              className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
+            >
               For Students
-            </a>
+            </button>
             <button
               type="button"
               onClick={() => scrollToSection('performance-tiers')}
@@ -130,14 +135,17 @@ const LandingPage: React.FC = () => {
               Pricing
             </button>
           </nav>
-          <button
-            type="button"
-            onClick={() => navigate('/login')}
-            className="px-5 py-2.5 rounded-xl text-white text-sm font-medium shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-transform duration-150"
-            style={{ backgroundColor: GYS_BLUE }}
-          >
-            Log In
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            <PublicHomeNavButton />
+            <button
+              type="button"
+              onClick={() => navigate('/login')}
+              className="px-5 py-2.5 rounded-xl text-white text-sm font-medium shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-transform duration-150"
+              style={{ backgroundColor: GYS_BLUE }}
+            >
+              Log In
+            </button>
+          </div>
         </div>
       </header>
 
@@ -171,7 +179,7 @@ const LandingPage: React.FC = () => {
             </div>
             <div className="flex items-center gap-2 bg-white/10 rounded-full px-4 py-2 text-white text-sm backdrop-blur-sm hover:bg-white/20 transition-colors duration-150">
               <span className="text-base">📝</span>
-              <span>5 Assessments</span>
+              <span>7 Assessments</span>
             </div>
             <div className="flex items-center gap-2 bg-white/10 rounded-full px-4 py-2 text-white text-sm backdrop-blur-sm hover:bg-white/20 transition-colors duration-150">
               <span className="text-base">🏫</span>
@@ -274,8 +282,8 @@ const LandingPage: React.FC = () => {
               </div>
               <h4 className="font-bold text-lg text-gray-900 mt-4">Get Your Tier</h4>
               <p className="text-gray-600 mt-2 text-sm leading-relaxed">
-                Earn Diamond, Platinum, Gold, Silver, or Bronze – benchmarked against
-                college-bound students worldwide.
+                Earn Gold, Silver, or Bronze – benchmarked against college-bound students
+                worldwide.
               </p>
             </div>
             <div className="rounded-2xl border border-gray-200 border-t-4 p-6 md:p-7 relative bg-slate-50 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-150"
@@ -310,22 +318,8 @@ const LandingPage: React.FC = () => {
             Performance Tiers
           </h3>
           <p className="text-gray-600 mt-2">Where will you land?</p>
-          <div className="mt-8 md:mt-10 grid grid-cols-2 md:grid-cols-5 gap-4 md:gap-5">
+          <div className="mt-8 md:mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-5 max-w-3xl mx-auto">
             {[
-              {
-                name: 'Diamond',
-                bg: 'bg-[#e5f3ff]',
-                text: 'text-[#0060df]',
-                border: 'border-[#0060df]',
-                icon: <span className="text-3xl">💎</span>,
-              },
-              {
-                name: 'Platinum',
-                bg: 'bg-[#f3f4f6]',
-                text: 'text-gray-800',
-                border: 'border-gray-400',
-                icon: <span className="text-3xl">⬜️</span>,
-              },
               {
                 name: 'Gold',
                 bg: 'bg-[#fef3c7]', // amber-100
@@ -366,7 +360,7 @@ const LandingPage: React.FC = () => {
         className="bg-slate-100 border-t border-gray-200 pb-10 md:pb-12 pt-6 md:pt-10 scroll-mt-20"
       >
         <div className="max-w-5xl mx-auto px-6 space-y-6">
-          {/* EducationWorld — full-width card */}
+          {/* EducationWorld - full-width card */}
           <div>
            
             <div className="rounded-2xl bg-[#e0edff] px-6 py-5 shadow-sm sm:px-8 sm:py-6">
@@ -393,7 +387,7 @@ const LandingPage: React.FC = () => {
             </div>
           </div>
 
-          {/* In Partnership With — below, full-width */}
+          {/* In Partnership With - below, full-width */}
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-400 mb-3 text-center">
               In partnership with
@@ -416,15 +410,32 @@ const LandingPage: React.FC = () => {
       <footer className="bg-white border-t border-gray-200 py-10">
         <div className="max-w-5xl mx-auto px-6">
           <nav className="flex flex-wrap justify-center gap-6 text-sm text-gray-600">
-            <a href="#about" className="text-gray-600 hover:text-gray-900">About</a>
-            <button type="button" onClick={() => scrollToSection('for-schools')} className="text-gray-600 hover:text-gray-900">
+            <button
+              type="button"
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              About
+            </button>
+            <button type="button" onClick={() => navigate('/for-schools')} className="text-gray-600 hover:text-gray-900">
               For Schools
             </button>
-            <a href="#for-students" className="text-gray-600 hover:text-gray-900">For Students</a>
-            <a href="#assessments" className="text-gray-600 hover:text-gray-900">Assessments</a>
-            <a href="#privacy" className="text-gray-600 hover:text-gray-900">Privacy Policy</a>
-            <a href="#terms" className="text-gray-600 hover:text-gray-900">Terms of Service</a>
-            <a href="#contact" className="text-gray-600 hover:text-gray-900">Contact</a>
+            <button type="button" onClick={() => navigate('/students')} className="text-gray-600 hover:text-gray-900">
+              For Students
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollToSection('how-it-works')}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Assessments
+            </button>
+            <a
+              href="mailto:schools@globalyoungscholar.com"
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Contact
+            </a>
           </nav>
           <p className="text-center text-gray-500 text-sm mt-6">
             © 2026 Global Young Scholar. A joint initiative of Access USA, Argus, and

@@ -1,4 +1,4 @@
-// Legacy file — Phase 2 analysis is no longer stored in a separate collection.
+// Legacy file - Phase 2 analysis is no longer stored in a separate collection.
 // Assessment results live in students/{uid}/attempts/ and
 // students/{uid}/assessments/.
 

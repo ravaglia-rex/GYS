@@ -45,16 +45,16 @@ export interface AssessmentFlowDefinition {
 }
 
 const symbolicBefore: BeforeBeginItem[] = [
-  { icon: 'clock', text: 'You have a fixed time once you start — the timer cannot be paused.' },
-  { icon: 'phone', text: 'Find a quiet place with no distractions.' },
+  { icon: 'clock', text: 'You have a fixed time once you start - the timer cannot be paused.' },
   { icon: 'block', text: 'No calculators, notes, or outside help.' },
-  { icon: 'bolt', text: 'Questions get harder as you answer correctly (adaptive).' },
   { icon: 'chart', text: 'Your score is compared to students worldwide.' },
+  { icon: 'phone', text: 'Find a quiet place with no distractions.' },
+  { icon: 'bolt', text: 'Questions get harder as you answer correctly (adaptive).' },
 ];
 
 const englishBefore: BeforeBeginItem[] = [
   { icon: 'headphones', text: 'Use headphones for listening sections when possible.' },
-  { icon: 'mic', text: 'Speaking sections need microphone access — allow browser permissions.' },
+  { icon: 'mic', text: 'Speaking sections need microphone access - allow browser permissions.' },
   { icon: 'phone', text: 'We strongly recommend a laptop or desktop for audio quality.' },
   { icon: 'clock', text: 'Manage your time across reading, writing, listening, and speaking.' },
   { icon: 'block', text: 'No outside help during the exam.' },
@@ -66,13 +66,13 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
     examTitleShort: 'Symbolic Reasoning',
     heroSubtitle: 'Your first assessment',
     statGrid: [
-      { label: 'Duration', value: '25 min' },
-      { label: 'Questions', value: '30' },
+      { label: 'Duration', value: '45 min' },
+      { label: 'Questions', value: '20' },
       { label: 'Difficulty', value: 'Adaptive' },
       { label: 'Language', value: 'Language-free' },
     ],
     bodyDescription:
-      'This exam measures how you identify patterns, sequences, and abstract relationships. No reading or language knowledge is required — only careful observation and reasoning.',
+      'This exam measures how you identify patterns, sequences, and abstract relationships. No reading or language knowledge is required - only careful observation and reasoning.',
     measuresTitle: 'What This Measures',
     measuresBullets: [
       'Pattern recognition & completion',
@@ -107,7 +107,7 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
       'Vocabulary in context',
     ],
     beforeBegin: [
-      { icon: 'clock', text: 'The timer runs continuously — plan your pace.' },
+      { icon: 'clock', text: 'The timer runs continuously - plan your pace.' },
       { icon: 'phone', text: 'Minimize distractions; you will need focused reading.' },
       { icon: 'block', text: 'No dictionaries, translators, or outside help.' },
     ],
@@ -146,7 +146,7 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
   personality_assessment: {
     examOrdinal: 4,
     examTitleShort: 'Personality Assessment',
-    heroSubtitle: 'Self-report — no wrong answers',
+    heroSubtitle: 'Self-report - no wrong answers',
     statGrid: [
       { label: 'Duration', value: 'No limit' },
       { label: 'Questions', value: '40' },
@@ -163,7 +163,7 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
       'Stress and motivation patterns',
     ],
     beforeBegin: [
-      { icon: 'bolt', text: 'There are no right or wrong answers — choose what fits you best.' },
+      { icon: 'bolt', text: 'There are no right or wrong answers - choose what fits you best.' },
       { icon: 'phone', text: 'Answer based on how you usually are, not how you wish to be seen.' },
     ],
     theme: 'purple',
@@ -237,7 +237,7 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
       { label: 'Timer', value: 'None' },
     ],
     bodyDescription:
-      'Our most comprehensive self-report instrument maps many dimensions for college matching and career guidance. There is no timer — take breaks if you need them.',
+      'Our most comprehensive self-report instrument maps many dimensions for college matching and career guidance. There is no timer - take breaks if you need them.',
     measuresTitle: 'What This Maps',
     measuresBullets: [
       'Intellectual curiosity & openness',
@@ -246,7 +246,7 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
       'Values and interpersonal style',
     ],
     beforeBegin: [
-      { icon: 'bolt', text: 'No right or wrong answers — honesty improves your guidance.' },
+      { icon: 'bolt', text: 'No right or wrong answers - honesty improves your guidance.' },
       { icon: 'chart', text: 'Results feed into college matching and counselor conversations.' },
     ],
     theme: 'purple',
@@ -256,7 +256,7 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
       howDifferentTitle: 'How This Is Different',
       howDifferentItems: [
         { icon: 'brain', text: 'No right or wrong answers' },
-        { icon: 'timer', text: 'No timer — work at your pace' },
+        { icon: 'timer', text: 'No timer - work at your pace' },
         { icon: 'target', text: 'Feeds college matching & counseling' },
       ],
       footerNote: 'Can be retaken once per year (policy may vary).',
@@ -273,10 +273,10 @@ const DEFAULT_FLOW: AssessmentFlowDefinition = {
   examTitleShort: 'Assessment',
   heroSubtitle: '',
   statGrid: [
-    { label: 'Duration', value: '—' },
-    { label: 'Questions', value: '—' },
-    { label: 'Difficulty', value: '—' },
-    { label: 'Language', value: '—' },
+    { label: 'Duration', value: '-' },
+    { label: 'Questions', value: '-' },
+    { label: 'Difficulty', value: '-' },
+    { label: 'Language', value: '-' },
   ],
   bodyDescription: '',
   measuresTitle: 'What This Measures',
@@ -310,9 +310,9 @@ export function unlockNoticeForAssessment(assessmentId: string, passed: boolean)
       return 'Verbal Reasoning and Mathematical Reasoning are now available (within your membership).';
     case 'verbal_reasoning':
     case 'mathematical_reasoning':
-      return 'Continue the sequence — Personality and English assessments unlock when prerequisites are complete.';
+      return 'Continue the sequence - Personality and English assessments unlock when prerequisites are complete.';
     case 'personality_assessment':
-      return 'English Proficiency and further assessments may unlock next — check your dashboard.';
+      return 'English Proficiency and further assessments may unlock next - check your dashboard.';
     default:
       return null;
   }

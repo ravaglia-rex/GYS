@@ -1,82 +1,138 @@
 /**
- * Static mock data for /for-schools/preview — no Firestore, no auth.
+ * Greenfield International School - static snapshot aligned with Firestore seed
+ * (`seedGreenfieldGysReport.js`, ADMIN_EMAIL srishti+6@argus.ai).
  */
+import type { QuarterlyReportListItem } from '../db/schoolAdminCollection';
 
-export const PREVIEW_SCHOOL = {
-  name: 'Delhi Public School — Sample',
-  city: 'New Delhi',
-  udise: '07040101234',
-  subscriptionPlan: 'Standard Subscription',
+export {
+  buildGreenfieldPreviewStudentRows,
+  GREENFIELD_SCHOOL_FIRESTORE_ID,
+} from './greenfieldPreviewCohort';
+
+/** Primary POC on the seeded school document. */
+export const GREENFIELD_POC_EMAIL = 'srishti+6@argus.ai';
+
+export const GREENFIELD_SCHOOL_DISPLAY = {
+  schoolName: 'Greenfield International School',
+  city: 'Bangalore',
+  state: 'Karnataka',
+  board: 'CBSE',
+  udise: '29290300301',
+  subscriptionPlan: 'Standard (₹3 lakh / yr)',
   institutionalTier: 'gold',
 };
 
-export interface PreviewReportStudent {
-  id: string;
-  firstName: string;
-  lastName: string;
-  grade: number;
-  tier: string;
-  percentile: number | null;
-  assessmentsCompleted: number;
-  totalAssessments: number;
-}
-
-export const PREVIEW_STUDENTS: PreviewReportStudent[] = [
-  { id: 's1', firstName: 'Isha', lastName: 'Kapoor', grade: 7, tier: 'gold', percentile: 82, assessmentsCompleted: 4, totalAssessments: 5 },
-  { id: 's2', firstName: 'Arjun', lastName: 'Menon', grade: 8, tier: 'platinum', percentile: 91, assessmentsCompleted: 5, totalAssessments: 5 },
-  { id: 's3', firstName: 'Diya', lastName: 'Reddy', grade: 9, tier: 'silver', percentile: 64, assessmentsCompleted: 3, totalAssessments: 5 },
-  { id: 's4', firstName: 'Kabir', lastName: 'Singh', grade: 10, tier: 'bronze', percentile: 48, assessmentsCompleted: 2, totalAssessments: 5 },
-  { id: 's5', firstName: 'Meera', lastName: 'Nair', grade: 11, tier: 'diamond', percentile: 96, assessmentsCompleted: 5, totalAssessments: 5 },
-  { id: 's6', firstName: 'Rohan', lastName: 'Iyer', grade: 12, tier: 'explorer', percentile: 35, assessmentsCompleted: 1, totalAssessments: 5 },
-];
-
-export const PREVIEW_TIER_DISTRIBUTION: { tier: string; count: number; pct: number }[] = [
-  { tier: 'diamond', count: 1, pct: 8 },
-  { tier: 'platinum', count: 2, pct: 17 },
-  { tier: 'gold', count: 3, pct: 25 },
-  { tier: 'silver', count: 2, pct: 17 },
-  { tier: 'bronze', count: 2, pct: 17 },
-  { tier: 'explorer', count: 2, pct: 16 },
-];
-
-export const PREVIEW_PERFORMANCE = {
-  avgPercentile: 72,
-  goldPlusPct: 50,
-  belowBronzePct: 16,
-  completionRate: 78,
-  avgPercentileChange: 4,
-  goldPlusChange: 6,
-  belowBronzeChange: -2,
-  completionChange: 5,
+/** Mirrors `schools/{id}/analytics/current` from the seed script. */
+export const GREENFIELD_ANALYTICS_SNAPSHOT = {
+  avg_percentile: 68,
+  completion_rate: 72,
+  perf_change_percentile: 4,
+  perf_change_gold_plus: 0,
+  perf_change_below_bronze: -3,
+  perf_change_completion: 8,
+  institutional_rank: null as number | null,
+  rank_change_q1: null as number | null,
 };
 
-export const PREVIEW_ASSESSMENT_QUESTIONS: {
+export const GREENFIELD_QUARTERLY_REPORTS: QuarterlyReportListItem[] = [
+  {
+    quarterKey: '2026-Q4',
+    reportId: 'GYS-SCH-2026-Q4-0047',
+    title: 'GYS Institutional Performance Report - Q4 2026',
+    assessmentPeriodLabel: 'Q4 2026 (October – December)',
+    studentsAssessed: 142,
+    subscriptionTier: 'Standard (₹3 lakh)',
+    institutionalTier: 'gold',
+    pdfS3Key: 'school-reports/greenfield_international_bangalore/2026_q4.pdf',
+    pdfFilename: 'Greenfield-International-School-GYS-Q4-2026.pdf',
+    hasPdf: true,
+    generatedAt: null,
+    isLatest: true,
+  },
+  {
+    quarterKey: '2026-Q2',
+    reportId: 'GYS-SCH-2026-Q2-PLACEHOLDER',
+    title: 'GYS Institutional Performance Report - Q2 2026',
+    assessmentPeriodLabel: 'Q2 2026 (April – June)',
+    studentsAssessed: 100,
+    subscriptionTier: 'Standard (₹3 lakh)',
+    institutionalTier: 'silver',
+    pdfS3Key: null,
+    pdfFilename: null,
+    hasPdf: false,
+    generatedAt: null,
+    isLatest: false,
+  },
+];
+
+/** Ten symbolic-reasoning–style items for the school preview sample exam (frontend only). */
+export const PREVIEW_SYMBOLIC_SAMPLE_QUESTIONS: {
   id: string;
   prompt: string;
   options: string[];
   correctIndex: number;
 }[] = [
   {
-    id: 'q1',
-    prompt: 'In a right triangle, if one acute angle is 35°, what is the other acute angle?',
-    options: ['45°', '55°', '65°', '90°'],
+    id: 'sym-p1',
+    prompt: 'Complete the sequence: ▲ ◆ ▲ ◆ ▲ ?',
+    options: ['▲', '◆', '●', '■'],
     correctIndex: 1,
   },
   {
-    id: 'q2',
-    prompt: 'Which sentence uses the subjunctive mood correctly?',
-    options: [
-      'If I was you, I would study more.',
-      'If I were you, I would study more.',
-      'If I am you, I would study more.',
-      'If I be you, I would study more.',
-    ],
+    id: 'sym-p2',
+    prompt: 'Which shape continues the pattern: ○ △ ○ △ ○ ?',
+    options: ['○', '△', '□', '◇'],
     correctIndex: 1,
   },
   {
-    id: 'q3',
-    prompt: 'Photosynthesis primarily produces which gas as a by-product?',
-    options: ['Nitrogen', 'Carbon dioxide', 'Oxygen', 'Methane'],
+    id: 'sym-p3',
+    prompt: 'If all corners of a square are removed equally, the outline most resembles:',
+    options: ['A circle', 'An octagon', 'A triangle', 'A hexagon'],
+    correctIndex: 1,
+  },
+  {
+    id: 'sym-p4',
+    prompt: 'Mirror the figure left-to-right:  ⟮  )  -  which option matches?',
+    options: ['⟮  )', ')  ⟯', '(  ⟯', '⟯  ('],
+    correctIndex: 2,
+  },
+  {
+    id: 'sym-p5',
+    prompt: 'Grid rule: each row has one filled cell moving right by one. Row 3, col 4 is ?\n■ · · ·\n· ■ · ·\n· · ? ·',
+    options: ['■', '·', 'Both valid', 'No pattern'],
+    correctIndex: 0,
+  },
+  {
+    id: 'sym-p6',
+    prompt: 'Number sequence: 2, 6, 12, 20, 30, ?',
+    options: ['40', '42', '44', '48'],
+    correctIndex: 1,
+  },
+  {
+    id: 'sym-p7',
+    prompt: 'Which option completes the analogy?  BIG is to small as TALL is to:',
+    options: ['Wide', 'Short', 'Thin', 'Long'],
+    correctIndex: 1,
+  },
+  {
+    id: 'sym-p8',
+    prompt: 'Rotating a “Z” shape 180° in the plane looks like:',
+    options: ['Z unchanged', 'N', 'S', 'Backwards Z (like Ƨ)'],
+    correctIndex: 3,
+  },
+  {
+    id: 'sym-p9',
+    prompt: 'Dots per step: ·  ··  ···  ?',
+    options: ['····', '···', '··', '·'],
+    correctIndex: 0,
+  },
+  {
+    id: 'sym-p10',
+    prompt: 'If the rule is “alternate between adding 1 and doubling,” starting at 1: 1, 2, 3, 6, 7, ?',
+    options: ['8', '12', '14', '13'],
     correctIndex: 2,
   },
 ];
+
+/** @deprecated Use PREVIEW_SYMBOLIC_SAMPLE_QUESTIONS; kept for any external imports. */
+export const PREVIEW_ASSESSMENT_QUESTIONS = PREVIEW_SYMBOLIC_SAMPLE_QUESTIONS;

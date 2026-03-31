@@ -40,6 +40,7 @@ export const EMAIL_CHECK_APIS = '/emailCheck';
 
 // Schools
 export const CREATE_EXPEDITED_SCHOOL='/createExpeditedSchool';
+export const REGISTER_SCHOOL='/registerSchool';
 export const FETCH_SCHOOL_NAMES_AND_IDS='/fetchSchoolNamesAndIds';
 export const FETCH_SCHOOL_NAME='/getSchoolDetails';
 export const CHECK_SCHOOL_EMAIL = '/checkSchoolEmail';
@@ -57,6 +58,9 @@ export const FETCH_PAYEE_DETAILS='/getPayeeDetails';
 // School admins
 export const FETCH_SCHOOL_ADMIN_DATA='/getSchoolAdminDetails';
 export const FETCH_SCHOOL_DASHBOARD='/getSchoolDashboard';
+export const STUDENT_REGISTRATION_EMAILS='/studentRegistrationEmails';
+export const QUARTERLY_REPORTS='/quarterlyReports';
+export const QUARTERLY_REPORT_DOWNLOAD_URL='/quarterlyReportDownloadUrl';
 
 // Assessments
 export const GET_ASSESSMENT_CONFIG='/getAssessmentConfig';

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Drawer,
@@ -6,10 +6,10 @@ import {
   Toolbar,
   Typography,
   IconButton,
+  Button,
   useTheme,
   Avatar,
   Divider,
-  Badge,
   Tooltip,
 } from '@mui/material';
 import {
@@ -21,7 +21,7 @@ import {
   Settings as SettingsIcon,
   CreditCard as SubscriptionIcon,
   Logout as LogoutIcon,
-  Mail as InvitationsIcon,
+  HomeOutlined as HomeOutlinedIcon,
 } from '@mui/icons-material';
 import { auth } from '../firebase/firebase';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -30,11 +30,9 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../state_data/reducer';
 import authTokenHandler from '../functions/auth_token/auth_token_handler';
 import { institutionalPalette as ip } from '../theme/institutionalPalette';
-import { getSchoolDashboard } from '../db/schoolAdminCollection';
 import { useSchoolAdminBelowNav } from './schoolAdminBelowNavContext';
 
 const HEADER_NAVY = '#002147';
-const NAV_ACTIVE_GOLD = '#FACC15';
 const DRAWER_WIDTH = 260;
 const APP_BAR_HEIGHT = 64;
 const PAGE_BG = '#f1f5f9';
@@ -50,72 +48,53 @@ function OverviewColoredIcon() {
   );
 }
 
+/** When set, layout matches signed-in chrome but uses preview paths and Exit preview instead of sign-out. */
+export interface SchoolAdminInteractivePreview {
+  pathPrefix: string;
+  pocEmail: string;
+}
+
 interface SchoolAdminLayoutProps {
   children: React.ReactNode;
+  interactivePreview?: SchoolAdminInteractivePreview;
 }
-
-interface TopNavItem {
-  title: string;
-  path: string;
-  badgeKey?: 'pendingStudents';
-}
-
-const TOP_NAV: TopNavItem[] = [
-  { title: 'Dashboard', path: '/school-admin/dashboard' },
-  { title: 'Students', path: '/school-admin/students', badgeKey: 'pendingStudents' },
-  { title: 'Reports', path: '/school-admin/reports' },
-  { title: 'Invitations', path: '/school-admin/invitations' },
-  { title: 'Settings', path: '/school-admin/settings' },
-];
 
 interface SidebarNavItem {
   title: string;
   path: string;
   icon: React.ReactElement;
-  badgeKey?: 'pendingStudents';
 }
 
-/** Left sidebar — mockup order & labels (Overview vs top-bar “Dashboard”). */
+/** Left sidebar - primary navigation (no duplicate links in the app bar). */
 const SIDEBAR_NAV: SidebarNavItem[] = [
   { title: 'Overview', path: '/school-admin/dashboard', icon: <OverviewColoredIcon /> },
-  { title: 'Students', path: '/school-admin/students', icon: <PeopleIcon sx={{ color: '#64748b', fontSize: '1.3rem' }} />, badgeKey: 'pendingStudents' },
+  { title: 'Students', path: '/school-admin/students', icon: <PeopleIcon sx={{ color: '#64748b', fontSize: '1.3rem' }} /> },
   { title: 'Reports', path: '/school-admin/reports', icon: <ReportsIcon sx={{ color: '#b45309', fontSize: '1.3rem' }} /> },
   { title: 'Analytics', path: '/school-admin/analytics', icon: <AnalyticsIcon sx={{ color: '#dc2626', fontSize: '1.3rem' }} /> },
-  { title: 'Invitations', path: '/school-admin/invitations', icon: <InvitationsIcon sx={{ color: '#94a3b8', fontSize: '1.3rem' }} /> },
   { title: 'Alerts', path: '/school-admin/alerts', icon: <AlertsIcon sx={{ color: '#eab308', fontSize: '1.3rem' }} /> },
   { title: 'Settings', path: '/school-admin/settings', icon: <SettingsIcon sx={{ color: '#64748b', fontSize: '1.3rem' }} /> },
   { title: 'Subscription', path: '/school-admin/subscription', icon: <SubscriptionIcon sx={{ color: '#059669', fontSize: '1.3rem' }} /> },
 ];
 
-export default function SchoolAdminLayout({ children }: SchoolAdminLayoutProps) {
+export default function SchoolAdminLayout({ children, interactivePreview }: SchoolAdminLayoutProps) {
   const theme = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const currentUser = auth.currentUser;
   const navigate = useNavigate();
   const location = useLocation();
   const { schoolAdmin } = useSelector((state: RootState) => state.auth);
-  const [pendingApprovalCount, setPendingApprovalCount] = useState(0);
   const { belowNav } = useSchoolAdminBelowNav();
 
-  useEffect(() => {
-    const sid = schoolAdmin?.schoolId ? String(schoolAdmin.schoolId).trim() : '';
-    if (!sid) return;
-    let cancelled = false;
-    getSchoolDashboard(sid)
-      .then((d) => {
-        if (!cancelled) setPendingApprovalCount(d.live?.pending_approval ?? 0);
-      })
-      .catch(() => {
-        if (!cancelled) setPendingApprovalCount(0);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [schoolAdmin?.schoolId]);
+  const pathPrefix = interactivePreview?.pathPrefix ?? '/school-admin';
+  const sidebarNavItems = React.useMemo(
+    () => SIDEBAR_NAV.map((item) => ({ ...item, path: item.path.replace('/school-admin', pathPrefix) })),
+    [pathPrefix]
+  );
 
-  const isInstitutionDashboard = location.pathname === '/school-admin/dashboard';
+  const isInstitutionDashboard =
+    location.pathname === '/school-admin/dashboard' || location.pathname === `${pathPrefix}/dashboard`;
 
-  const displayEmail = currentUser?.email ?? schoolAdmin?.email ?? '';
+  const displayEmail = interactivePreview?.pocEmail ?? currentUser?.email ?? schoolAdmin?.email ?? '';
   const avatarInitials = React.useMemo(() => {
     const raw = (displayEmail || '?').trim();
     if (!raw) return '?';
@@ -126,6 +105,10 @@ export default function SchoolAdminLayout({ children }: SchoolAdminLayoutProps) 
   }, [displayEmail]);
 
   const handleLogout = async () => {
+    if (interactivePreview) {
+      navigate('/');
+      return;
+    }
     try {
       await signOut(auth);
       authTokenHandler.clearToken();
@@ -140,21 +123,20 @@ export default function SchoolAdminLayout({ children }: SchoolAdminLayoutProps) 
       ? location.pathname === path
       : location.pathname === path || location.pathname.startsWith(`${path}/`);
 
-  const getBadge = (item: { badgeKey?: string }): number =>
-    item.badgeKey === 'pendingStudents' ? pendingApprovalCount : 0;
-
   const go = (path: string) => {
     navigate(path);
     setMobileOpen(false);
   };
 
   const renderSidebarNav = () =>
-    SIDEBAR_NAV.map((item) => {
+    sidebarNavItems.map((item) => {
       const active = isNavActive(item.path);
-      const badge = getBadge(item);
+      const settingsLocked = Boolean(interactivePreview && item.title === 'Settings');
       const row = (
         <Box
-          onClick={() => go(item.path)}
+          onClick={() => {
+            if (!settingsLocked) go(item.path);
+          }}
           sx={{
             display: 'flex',
             alignItems: 'center',
@@ -163,29 +145,17 @@ export default function SchoolAdminLayout({ children }: SchoolAdminLayoutProps) 
             py: 1.25,
             mx: 1,
             borderRadius: 1.5,
-            cursor: 'pointer',
+            cursor: settingsLocked ? 'default' : 'pointer',
+            opacity: settingsLocked ? 0.48 : 1,
             bgcolor: active ? 'rgba(37, 99, 235, 0.08)' : 'transparent',
             borderLeft: active ? '4px solid #2563eb' : '4px solid transparent',
-            transition: 'background-color 0.15s',
-            '&:hover': { bgcolor: active ? 'rgba(37, 99, 235, 0.1)' : 'rgba(15, 23, 42, 0.04)' },
+            transition: 'background-color 0.15s, opacity 0.15s',
+            ...(!settingsLocked
+              ? { '&:hover': { bgcolor: active ? 'rgba(37, 99, 235, 0.1)' : 'rgba(15, 23, 42, 0.04)' } }
+              : {}),
           }}
         >
-          <Badge
-            badgeContent={badge > 99 ? '99+' : badge}
-            invisible={badge === 0 || item.badgeKey !== 'pendingStudents'}
-            sx={{
-              '& .MuiBadge-badge': {
-                fontSize: '0.65rem',
-                minWidth: 18,
-                height: 18,
-                bgcolor: '#ef4444',
-                color: '#fff',
-                fontWeight: 700,
-              },
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28 }}>{item.icon}</Box>
-          </Badge>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28 }}>{item.icon}</Box>
           <Typography
             sx={{
               fontWeight: active ? 600 : 500,
@@ -197,29 +167,78 @@ export default function SchoolAdminLayout({ children }: SchoolAdminLayoutProps) 
           </Typography>
         </Box>
       );
-      return <Box key={item.path}>{row}</Box>;
+      return (
+        <Box key={item.path}>
+          {settingsLocked ? (
+            <Tooltip title="Settings are available in your live school admin workspace after you sign in." placement="right">
+              <Box component="span" sx={{ display: 'block' }}>
+                {row}
+              </Box>
+            </Tooltip>
+          ) : (
+            row
+          )}
+        </Box>
+      );
     });
 
   const SidebarBody = (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', py: 1 }}>
-      <Box sx={{ flex: 1, overflowY: 'auto' }}>{renderSidebarNav()}</Box>
-      <Divider sx={{ borderColor: ip.sidebarBorder, my: 1 }} />
-      <Box sx={{ px: 2, pb: 1.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-        <Avatar sx={{ width: 36, height: 36, bgcolor: '#e2e8f0', color: '#0f172a', fontSize: '0.85rem', fontWeight: 700 }}>
-          {avatarInitials}
-        </Avatar>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{ color: ip.heading, fontWeight: 500, fontSize: '0.78rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {displayEmail || 'Admin'}
-          </Typography>
-          <Typography sx={{ color: ip.subtext, fontSize: '0.68rem' }}>School Admin</Typography>
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        flex: 1,
+        minHeight: 0,
+        height: '100%',
+        py: 1,
+        overflow: 'hidden',
+      }}
+    >
+      <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>{renderSidebarNav()}</Box>
+      <Divider sx={{ borderColor: ip.sidebarBorder, my: 1, flexShrink: 0 }} />
+      {interactivePreview ? (
+        <Box sx={{ px: 2, pb: 1.5, flexShrink: 0 }}>
+          <Button
+            fullWidth
+            variant="outlined"
+            onClick={handleLogout}
+            startIcon={<HomeOutlinedIcon />}
+            sx={{
+              py: 1,
+              justifyContent: 'flex-start',
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: '0.85rem',
+              color: ip.heading,
+              borderColor: ip.sidebarBorder,
+              '&:hover': {
+                borderColor: '#2563eb',
+                bgcolor: 'rgba(37, 99, 235, 0.06)',
+                color: '#1d4ed8',
+              },
+            }}
+          >
+            Exit preview - back to home
+          </Button>
         </Box>
-        <Tooltip title="Sign out">
-          <IconButton onClick={handleLogout} size="small" sx={{ color: ip.subtext, '&:hover': { color: '#ef4444' } }}>
-            <LogoutIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      </Box>
+      ) : (
+        <Box sx={{ px: 2, pb: 1.5, display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0 }}>
+          <Avatar sx={{ width: 36, height: 36, bgcolor: '#e2e8f0', color: '#0f172a', fontSize: '0.85rem', fontWeight: 700 }}>
+            {avatarInitials}
+          </Avatar>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography sx={{ color: ip.heading, fontWeight: 500, fontSize: '0.78rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {displayEmail || 'Admin'}
+            </Typography>
+            <Typography sx={{ color: ip.subtext, fontSize: '0.68rem' }}>School Admin</Typography>
+          </Box>
+          <Tooltip title="Sign out">
+            <IconButton onClick={handleLogout} size="small" sx={{ color: ip.subtext, '&:hover': { color: '#ef4444' } }}>
+              <LogoutIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      )}
     </Box>
   );
 
@@ -229,6 +248,9 @@ export default function SchoolAdminLayout({ children }: SchoolAdminLayoutProps) 
     boxSizing: 'border-box' as const,
     top: APP_BAR_HEIGHT,
     height: `calc(100vh - ${APP_BAR_HEIGHT}px)`,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    overflow: 'hidden',
   };
 
   return (
@@ -253,7 +275,7 @@ export default function SchoolAdminLayout({ children }: SchoolAdminLayoutProps) 
             gap: 2,
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 }, flexShrink: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 }, flex: 1, minWidth: 0 }}>
             <IconButton
               color="inherit"
               onClick={() => setMobileOpen((o) => !o)}
@@ -277,66 +299,6 @@ export default function SchoolAdminLayout({ children }: SchoolAdminLayoutProps) 
             >
               Institution Portal
             </Typography>
-          </Box>
-
-          <Box
-            sx={{
-              display: { xs: 'none', md: 'flex' },
-              alignItems: 'center',
-              justifyContent: 'center',
-              flex: 1,
-              gap: { md: 2, lg: 3 },
-              minWidth: 0,
-            }}
-          >
-            {TOP_NAV.map((item) => {
-              const active = isNavActive(item.path);
-              const badge = getBadge(item);
-              const linkInner = (
-                <Typography
-                  sx={{
-                    cursor: 'pointer',
-                    fontSize: '0.875rem',
-                    fontWeight: active ? 700 : 500,
-                    color: active ? NAV_ACTIVE_GOLD : 'rgba(255,255,255,0.92)',
-                    letterSpacing: 0.2,
-                    whiteSpace: 'nowrap',
-                    borderBottom: active ? `2px solid ${NAV_ACTIVE_GOLD}` : '2px solid transparent',
-                    pb: 0.25,
-                    transition: 'color 0.15s',
-                    '&:hover': { color: active ? NAV_ACTIVE_GOLD : '#fff' },
-                  }}
-                >
-                  {item.title}
-                </Typography>
-              );
-              const clickable = (
-                <Box component="span" onClick={() => navigate(item.path)} sx={{ display: 'inline-flex', cursor: 'pointer' }}>
-                  {linkInner}
-                </Box>
-              );
-              return item.badgeKey === 'pendingStudents' && badge > 0 ? (
-                <Badge
-                  key={item.path}
-                  badgeContent={badge > 99 ? '99+' : badge}
-                  sx={{
-                    '& .MuiBadge-badge': {
-                      fontSize: '0.6rem',
-                      minWidth: 16,
-                      height: 16,
-                      bgcolor: '#ef4444',
-                      color: '#fff',
-                    },
-                  }}
-                >
-                  {clickable}
-                </Badge>
-              ) : (
-                <Box key={item.path} component="span">
-                  {clickable}
-                </Box>
-              );
-            })}
           </Box>
 
           <Tooltip title={displayEmail || 'Account'}>
@@ -391,6 +353,7 @@ export default function SchoolAdminLayout({ children }: SchoolAdminLayoutProps) 
             {SidebarBody}
           </Drawer>
 
+          {/* Desktop: fixed under app bar so it does not scroll with main content */}
           <Box
             sx={{
               display: { xs: 'none', md: 'flex' },
@@ -399,8 +362,12 @@ export default function SchoolAdminLayout({ children }: SchoolAdminLayoutProps) 
               flexDirection: 'column',
               bgcolor: '#ffffff',
               borderRight: `1px solid ${ip.sidebarBorder}`,
-              overflowY: 'auto',
-              alignSelf: 'stretch',
+              overflow: 'hidden',
+              position: 'fixed',
+              left: 0,
+              top: APP_BAR_HEIGHT,
+              height: `calc(100vh - ${APP_BAR_HEIGHT}px)`,
+              zIndex: theme.zIndex.drawer,
             }}
           >
             {SidebarBody}
@@ -415,8 +382,29 @@ export default function SchoolAdminLayout({ children }: SchoolAdminLayoutProps) 
               flexDirection: 'column',
               bgcolor: PAGE_BG,
               overflow: 'auto',
+              marginLeft: { xs: 0, md: `${DRAWER_WIDTH}px` },
             }}
           >
+            {interactivePreview && (
+              <Box
+                sx={{
+                  width: '100%',
+                  flexShrink: 0,
+                  px: { xs: 2, sm: 3, md: 4 },
+                  py: 1.25,
+                  boxSizing: 'border-box',
+                  bgcolor: 'rgba(251, 191, 36, 0.14)',
+                  borderBottom: '1px solid rgba(217, 119, 6, 0.35)',
+                }}
+              >
+                <Typography
+                  variant="body2"
+                  sx={{ color: '#92400e', fontWeight: 600, textAlign: 'center', maxWidth: 1320, mx: 'auto' }}
+                >
+                  Interactive preview only - Sign in after registration for your live workspace.
+                </Typography>
+              </Box>
+            )}
             {belowNav}
             <Box
               component="main"

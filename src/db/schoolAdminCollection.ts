@@ -2,8 +2,11 @@ import axios from "axios";
 import {
   FETCH_SCHOOL_ADMIN_DATA,
   FETCH_SCHOOL_DASHBOARD,
+  QUARTERLY_REPORT_DOWNLOAD_URL,
+  QUARTERLY_REPORTS,
   SCHOOL_ADMINS_APIS,
   SCHOOLS_APIS,
+  STUDENT_REGISTRATION_EMAILS,
 } from "../constants/constants";
 import authTokenHandler from "../functions/auth_token/auth_token_handler";
 
@@ -27,6 +30,7 @@ export interface AssessmentProgress {
   status: "locked" | "available" | "tier_advanced";
   best_score: number | null;
   attempts_count: number;
+  tiers_cleared?: Record<string, boolean>;
 }
 
 export interface StudentRow {
@@ -56,6 +60,27 @@ export interface SchoolDashboardResponse {
   analytics: Record<string, any>;
 }
 
+export interface QuarterlyReportListItem {
+  quarterKey: string;
+  reportId: string | null;
+  title: string;
+  assessmentPeriodLabel: string | null;
+  studentsAssessed: number | null;
+  subscriptionTier: string | null;
+  institutionalTier: string | null;
+  pdfS3Key: string | null;
+  pdfFilename: string | null;
+  hasPdf: boolean;
+  generatedAt: string | null;
+  isLatest: boolean;
+}
+
+export interface QuarterlyReportsResponse {
+  schoolId: string;
+  reports: QuarterlyReportListItem[];
+  s3Configured: boolean;
+}
+
 export const getSchoolAdmin = async (email: string): Promise<SchoolAdmin | null> => {
   try {
     const authToken = await authTokenHandler.getAuthToken();
@@ -73,16 +98,119 @@ export const getSchoolAdmin = async (email: string): Promise<SchoolAdmin | null>
   }
 };
 
-export const getSchoolDashboard = async (schoolId: string): Promise<SchoolDashboardResponse> => {
+export const getStudentRegistrationEmails = async (): Promise<string[]> => {
   try {
     const authToken = await authTokenHandler.getAuthToken();
-    const encodedSchoolId = encodeURIComponent(String(schoolId ?? "").trim());
     const response = await axios.get(
-      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${FETCH_SCHOOL_DASHBOARD}/${encodedSchoolId}`,
+      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${STUDENT_REGISTRATION_EMAILS}`,
+      { headers: { Authorization: `Bearer ${authToken}` } }
+    );
+    return Array.isArray(response.data?.emails) ? response.data.emails : [];
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data?.error) {
+      throw new Error(String(error.response.data.error));
+    }
+    throw new Error("Could not load student registration emails.");
+  }
+};
+
+export const putStudentRegistrationEmails = async (
+  emails: string[]
+): Promise<{ success: boolean; count: number }> => {
+  try {
+    const authToken = await authTokenHandler.getAuthToken();
+    const response = await axios.put(
+      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${STUDENT_REGISTRATION_EMAILS}`,
+      { emails },
+      { headers: { Authorization: `Bearer ${authToken}` } }
+    );
+    return response.data ?? { success: true, count: emails.length };
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data?.error) {
+      throw new Error(String(error.response.data.error));
+    }
+    throw new Error("Could not save student registration emails.");
+  }
+};
+
+export const getQuarterlyReports = async (): Promise<QuarterlyReportsResponse> => {
+  try {
+    const authToken = await authTokenHandler.getAuthToken();
+    const response = await axios.get(
+      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${QUARTERLY_REPORTS}`,
+      { headers: { Authorization: `Bearer ${authToken}` } }
+    );
+    return response.data as QuarterlyReportsResponse;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data?.error) {
+      throw new Error(String(error.response.data.error));
+    }
+    throw new Error("Could not load quarterly reports.");
+  }
+};
+
+export const getQuarterlyReportDownloadUrl = async (
+  quarterKey: string
+): Promise<{ url: string; filename: string; quarterKey: string }> => {
+  try {
+    const authToken = await authTokenHandler.getAuthToken();
+    const enc = encodeURIComponent(quarterKey);
+    const response = await axios.get(
+      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${QUARTERLY_REPORT_DOWNLOAD_URL}/${enc}`,
       { headers: { Authorization: `Bearer ${authToken}` } }
     );
     return response.data;
   } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data?.error) {
+      throw new Error(String(error.response.data.error));
+    }
+    throw new Error("Could not get download link for this report.");
+  }
+};
+
+export const downloadQuarterlyReportPdf = async (quarterKey: string): Promise<void> => {
+  const { url, filename } = await getQuarterlyReportDownloadUrl(quarterKey);
+  try {
+    const res = await fetch(url, { mode: "cors" });
+    if (!res.ok) {
+      throw new Error(String(res.status));
+    }
+    const blob = await res.blob();
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = filename || `${quarterKey}.pdf`;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(href);
+  } catch {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+};
+
+export const getSchoolDashboard = async (schoolId: string): Promise<SchoolDashboardResponse> => {
+  const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS ?? "";
+  try {
+    const authToken = await authTokenHandler.getAuthToken();
+    const encodedSchoolId = encodeURIComponent(String(schoolId ?? "").trim());
+    // `fetch` + `cache: "no-store"` bypasses the browser HTTP cache more reliably than axios
+    // (fixes stale 304 / old tier % after Firestore updates). `_t` busts URL-keyed CDN caches.
+    const url = `${base}${SCHOOL_ADMINS_APIS}${FETCH_SCHOOL_DASHBOARD}/${encodedSchoolId}?_t=${Date.now()}`;
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+        Accept: "application/json",
+      },
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      throw new Error(`getSchoolDashboard HTTP ${res.status}`);
+    }
+    return (await res.json()) as SchoolDashboardResponse;
+  } catch {
     throw new Error("Error fetching school dashboard. Please contact talentsearch@argus.ai");
   }
 };
@@ -121,7 +249,7 @@ export const verifySchoolEmail = async (email: string) => {
   }
 };
 
-// Alias kept for backward compatibility — delegates to verifySchoolAdminAndSendPasswordSetup
+// Alias kept for backward compatibility - delegates to verifySchoolAdminAndSendPasswordSetup
 // which now handles both Firebase Auth user creation and admin record creation.
 export const createSchoolAdmin = async (email: string, schoolId: string, _password?: string) => {
   return verifySchoolAdminAndSendPasswordSetup(email, schoolId);
