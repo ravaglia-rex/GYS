@@ -617,14 +617,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
     schoolTier,
     institutionalRank,
     rankChangeQ1,
-    performance.avgPercentile,
-    performance.goldPlusPct,
-    performance.inBronzePct,
-    performance.completionRate,
-    performance.avgPercentileChange,
-    performance.goldPlusChange,
-    performance.inBronzeChange,
-    performance.completionChange,
+    performance,
   ]);
 
   const latestReportAccent = ip.statBlue;

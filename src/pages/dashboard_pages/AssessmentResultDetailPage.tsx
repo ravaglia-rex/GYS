@@ -47,7 +47,7 @@ const AssessmentResultDetailPage: React.FC = () => {
     return null;
   }
 
-  const { assessmentId, tierNumber, scorePercent, passed, completedAt } = state;
+  const { assessmentId, scorePercent, passed, completedAt } = state;
   const flow = getAssessmentFlowDefinition(assessmentId);
   const displayScore = Math.round(scorePercent);
   const pct = estimatedPercentileFromScore(scorePercent);
