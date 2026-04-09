@@ -5,6 +5,7 @@ import StopIcon from '@mui/icons-material/Stop';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import type { ExamQuestion, QuestionInteractionType } from '../../db/assessmentCollection';
 import { getAssessmentFlowDefinition } from '../../config/assessmentFlowUI';
+import { ExamMathBlock, ExamMathText } from './ExamMathText';
 
 const LIKERT_LEFT = 'Strongly disagree';
 const LIKERT_MID = 'Neutral';
@@ -34,9 +35,18 @@ interface OptionPickerProps {
   primaryColor: string;
   primarySoft: string;
   borderMuted: string;
+  mathWrap?: boolean;
 }
 
-function OptionPicker({ options, selectedOption, onSelect, primaryColor, primarySoft, borderMuted }: OptionPickerProps) {
+function OptionPicker({
+  options,
+  selectedOption,
+  onSelect,
+  primaryColor,
+  primarySoft,
+  borderMuted,
+  mathWrap,
+}: OptionPickerProps) {
   return (
     <FormControl component="fieldset" fullWidth>
       <RadioGroup
@@ -68,16 +78,29 @@ function OptionPicker({ options, selectedOption, onSelect, primaryColor, primary
                     {String.fromCharCode(65 + idx)}
                   </Typography>
                 </Box>
-                <Typography
-                  sx={{
-                    color: selectedOption === idx ? '#0f172a' : '#475569',
-                    fontSize: '0.92rem',
-                    fontWeight: selectedOption === idx ? 700 : 500,
-                    lineHeight: 1.45,
-                  }}
-                >
-                  {option}
-                </Typography>
+                {mathWrap ? (
+                  <ExamMathText
+                    inline
+                    sx={{
+                      color: selectedOption === idx ? '#0f172a' : '#475569',
+                      fontSize: '0.92rem',
+                      fontWeight: selectedOption === idx ? 700 : 500,
+                    }}
+                  >
+                    {option}
+                  </ExamMathText>
+                ) : (
+                  <Typography
+                    sx={{
+                      color: selectedOption === idx ? '#0f172a' : '#475569',
+                      fontSize: '0.92rem',
+                      fontWeight: selectedOption === idx ? 700 : 500,
+                      lineHeight: 1.45,
+                    }}
+                  >
+                    {option}
+                  </Typography>
+                )}
               </Box>
             }
             sx={{
@@ -108,7 +131,18 @@ const ListeningMcqInner: React.FC<{
   primary: string;
   primarySoft: string;
   borderMuted: string;
-}> = ({ question, questionNumber, totalQuestions, selectedOption, onSelectOption, primary, primarySoft, borderMuted }) => {
+  renderMath?: boolean;
+}> = ({
+  question,
+  questionNumber,
+  totalQuestions,
+  selectedOption,
+  onSelectOption,
+  primary,
+  primarySoft,
+  borderMuted,
+  renderMath,
+}) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
   const toggle = () => {
@@ -131,9 +165,15 @@ const ListeningMcqInner: React.FC<{
       >
         Question {questionNumber} of {totalQuestions}
       </Typography>
-      <Typography variant="h6" sx={{ fontWeight: 700, color: '#0f172a', mb: 2, fontSize: { xs: '1.05rem', sm: '1.2rem' } }}>
-        {question.prompt}
-      </Typography>
+      {renderMath ? (
+        <Box sx={{ mb: 2, fontWeight: 700, color: '#0f172a', fontSize: { xs: '1.05rem', sm: '1.2rem' } }}>
+          <ExamMathText inline={false}>{question.prompt}</ExamMathText>
+        </Box>
+      ) : (
+        <Typography variant="h6" sx={{ fontWeight: 700, color: '#0f172a', mb: 2, fontSize: { xs: '1.05rem', sm: '1.2rem' } }}>
+          {question.prompt}
+        </Typography>
+      )}
       <Button
         startIcon={playing ? <StopIcon /> : <PlayArrowIcon />}
         variant="outlined"
@@ -149,6 +189,7 @@ const ListeningMcqInner: React.FC<{
         primaryColor={primary}
         primarySoft={primarySoft}
         borderMuted={borderMuted}
+        mathWrap={renderMath}
       />
     </Box>
   );
@@ -163,7 +204,18 @@ const SpokenResponseInner: React.FC<{
   primary: string;
   primarySoft: string;
   borderMuted: string;
-}> = ({ question, questionNumber, totalQuestions, selectedOption, onSelectOption, primary, primarySoft, borderMuted }) => {
+  renderMath?: boolean;
+}> = ({
+  question,
+  questionNumber,
+  totalQuestions,
+  selectedOption,
+  onSelectOption,
+  primary,
+  primarySoft,
+  borderMuted,
+  renderMath,
+}) => {
   const [rec, setRec] = useState<MediaRecorder | null>(null);
   const chunks = useRef<Blob[]>([]);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
@@ -206,9 +258,15 @@ const SpokenResponseInner: React.FC<{
       <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 700, letterSpacing: 1, display: 'block', mb: 1.5, textTransform: 'uppercase', fontSize: '0.68rem' }}>
         Question {questionNumber} of {totalQuestions}
       </Typography>
-      <Typography variant="h6" sx={{ fontWeight: 700, color: '#0f172a', mb: 2, fontSize: { xs: '1.05rem', sm: '1.2rem' } }}>
-        {question.prompt}
-      </Typography>
+      {renderMath ? (
+        <Box sx={{ mb: 2, fontWeight: 700, color: '#0f172a', fontSize: { xs: '1.05rem', sm: '1.2rem' } }}>
+          <ExamMathText inline={false}>{question.prompt}</ExamMathText>
+        </Box>
+      ) : (
+        <Typography variant="h6" sx={{ fontWeight: 700, color: '#0f172a', mb: 2, fontSize: { xs: '1.05rem', sm: '1.2rem' } }}>
+          {question.prompt}
+        </Typography>
+      )}
       <Box sx={{ bgcolor: '#f8fafc', borderRadius: 2, p: 2, mb: 2, border: `1px solid ${borderMuted}` }}>
         <Typography sx={{ fontSize: '0.8rem', color: '#64748b', mb: 1.5 }}>
           Record your spoken response (practice). Select the option that best matches your response for scoring.
@@ -233,6 +291,7 @@ const SpokenResponseInner: React.FC<{
         primaryColor={primary}
         primarySoft={primarySoft}
         borderMuted={borderMuted}
+        mathWrap={renderMath}
       />
     </Box>
   );
@@ -246,6 +305,8 @@ interface ExamQuestionBodyProps {
   selectedOption: number | null;
   onSelectOption: (i: number) => void;
   theme: 'blue' | 'purple';
+  /** When true, prompt/options/passage use MathJax (requires MathJaxContext ancestor). */
+  renderMath?: boolean;
 }
 
 export const ExamQuestionBody: React.FC<ExamQuestionBodyProps> = ({
@@ -256,6 +317,7 @@ export const ExamQuestionBody: React.FC<ExamQuestionBodyProps> = ({
   selectedOption,
   onSelectOption,
   theme,
+  renderMath = false,
 }) => {
   const primary = theme === 'purple' ? '#7b1fa2' : '#0d47a1';
   const primarySoft = theme === 'purple' ? 'rgba(123,31,162,0.08)' : 'rgba(13,71,161,0.06)';
@@ -276,9 +338,15 @@ export const ExamQuestionBody: React.FC<ExamQuestionBodyProps> = ({
         >
           Question {questionNumber} of {totalQuestions}
         </Typography>
-        <Typography variant="h6" sx={{ fontWeight: 700, color: '#0f172a', lineHeight: 1.5, mb: 3, fontSize: { xs: '1.05rem', sm: '1.2rem' } }}>
-          {question.prompt}
-        </Typography>
+        {renderMath ? (
+          <Box sx={{ lineHeight: 1.5, mb: 3, fontWeight: 700, color: '#0f172a', fontSize: { xs: '1.05rem', sm: '1.2rem' } }}>
+            <ExamMathText inline={false}>{question.prompt}</ExamMathText>
+          </Box>
+        ) : (
+          <Typography variant="h6" sx={{ fontWeight: 700, color: '#0f172a', lineHeight: 1.5, mb: 3, fontSize: { xs: '1.05rem', sm: '1.2rem' } }}>
+            {question.prompt}
+          </Typography>
+        )}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 0.75, mb: 1, flexWrap: 'nowrap' }}>
           {scale.map((i) => (
             <Button
@@ -326,6 +394,7 @@ export const ExamQuestionBody: React.FC<ExamQuestionBodyProps> = ({
         primary={primary}
         primarySoft={primarySoft}
         borderMuted={borderMuted}
+        renderMath={renderMath}
       />
     );
   }
@@ -341,6 +410,7 @@ export const ExamQuestionBody: React.FC<ExamQuestionBodyProps> = ({
         primary={primary}
         primarySoft={primarySoft}
         borderMuted={borderMuted}
+        renderMath={renderMath}
       />
     );
   }
@@ -352,14 +422,32 @@ export const ExamQuestionBody: React.FC<ExamQuestionBodyProps> = ({
           Question {questionNumber} of {totalQuestions}
         </Typography>
         <Box sx={{ borderLeft: `4px solid ${primary}`, bgcolor: primarySoft, borderRadius: 2, p: 2, mb: 2.5 }}>
-          <Typography sx={{ fontSize: '0.92rem', color: '#334155', fontStyle: 'italic', lineHeight: 1.65 }}>
-            {question.passage}
-          </Typography>
+          {renderMath ? (
+            <ExamMathBlock>{question.passage}</ExamMathBlock>
+          ) : (
+            <Typography sx={{ fontSize: '0.92rem', color: '#334155', fontStyle: 'italic', lineHeight: 1.65 }}>
+              {question.passage}
+            </Typography>
+          )}
         </Box>
-        <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#0f172a', mb: 2, lineHeight: 1.5 }}>
-          {question.prompt}
-        </Typography>
-        <OptionPicker options={opts} selectedOption={selectedOption} onSelect={onSelectOption} primaryColor={primary} primarySoft={primarySoft} borderMuted={borderMuted} />
+        {renderMath ? (
+          <Box sx={{ fontWeight: 800, color: '#0f172a', mb: 2, lineHeight: 1.5 }}>
+            <ExamMathText inline={false}>{question.prompt}</ExamMathText>
+          </Box>
+        ) : (
+          <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#0f172a', mb: 2, lineHeight: 1.5 }}>
+            {question.prompt}
+          </Typography>
+        )}
+        <OptionPicker
+          options={opts}
+          selectedOption={selectedOption}
+          onSelect={onSelectOption}
+          primaryColor={primary}
+          primarySoft={primarySoft}
+          borderMuted={borderMuted}
+          mathWrap={renderMath}
+        />
       </Box>
     );
   }
@@ -369,9 +457,15 @@ export const ExamQuestionBody: React.FC<ExamQuestionBodyProps> = ({
       <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 700, letterSpacing: 1, display: 'block', mb: 1.5, textTransform: 'uppercase', fontSize: '0.68rem' }}>
         Question {questionNumber} of {totalQuestions}
       </Typography>
-      <Typography variant="h6" sx={{ fontWeight: 700, color: '#0f172a', mb: 2.5, lineHeight: 1.5, fontSize: { xs: '1.05rem', sm: '1.2rem' } }}>
-        {question.prompt}
-      </Typography>
+      {renderMath ? (
+        <Box sx={{ fontWeight: 700, color: '#0f172a', mb: 2.5, lineHeight: 1.5, fontSize: { xs: '1.05rem', sm: '1.2rem' } }}>
+          <ExamMathText inline={false}>{question.prompt}</ExamMathText>
+        </Box>
+      ) : (
+        <Typography variant="h6" sx={{ fontWeight: 700, color: '#0f172a', mb: 2.5, lineHeight: 1.5, fontSize: { xs: '1.05rem', sm: '1.2rem' } }}>
+          {question.prompt}
+        </Typography>
+      )}
       {question.image_url && (
         <Box
           sx={{
@@ -388,7 +482,15 @@ export const ExamQuestionBody: React.FC<ExamQuestionBodyProps> = ({
           <img src={question.image_url} alt="" style={{ width: '100%', maxHeight: 320, objectFit: 'contain' }} />
         </Box>
       )}
-      <OptionPicker options={opts} selectedOption={selectedOption} onSelect={onSelectOption} primaryColor={primary} primarySoft={primarySoft} borderMuted={borderMuted} />
+      <OptionPicker
+        options={opts}
+        selectedOption={selectedOption}
+        onSelect={onSelectOption}
+        primaryColor={primary}
+        primarySoft={primarySoft}
+        borderMuted={borderMuted}
+        mathWrap={renderMath}
+      />
     </Box>
   );
 };

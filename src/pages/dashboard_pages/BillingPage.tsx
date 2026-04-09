@@ -1,12 +1,23 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Box, Typography, Paper, Divider, Avatar } from '@mui/material';
 import { CreditCard } from 'lucide-react';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import PaymentsTabs from '../../components/dashboard/PaymentsTabs';
+import MembershipUpgradeSection from '../../components/dashboard/MembershipUpgradeSection';
 import { auth } from '../../firebase/firebase';
 import * as Sentry from '@sentry/react';
 
 const BillingPage: React.FC = () => {
+  const location = useLocation();
+  const membershipAnchorRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (location.hash === '#membership-upgrade') {
+      membershipAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [location.hash]);
+
   return (
     <Sentry.ErrorBoundary
       beforeCapture={(scope) => {
@@ -90,6 +101,10 @@ const BillingPage: React.FC = () => {
               </Box>
             </Box>
           </Paper>
+
+          <Box ref={membershipAnchorRef} id="membership-upgrade">
+            <MembershipUpgradeSection />
+          </Box>
 
           {/* Payment Management */}
           <Box sx={{ mb: 4 }}>

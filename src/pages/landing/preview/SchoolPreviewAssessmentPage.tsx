@@ -31,6 +31,7 @@ import { PREVIEW_SYMBOLIC_SAMPLE_QUESTIONS } from '../../../data/schoolPreviewMo
 import {
   getAssessmentFlowDefinition,
   type BeforeBeginIconKey,
+  type BeforeBeginItem,
 } from '../../../config/assessmentFlowUI';
 import { mergeStatGridWithTier } from '../../../components/assessment/mergeStatGridWithTier';
 import { ExamQuestionBody, inferQuestionInteraction } from '../../../components/assessment/ExamQuestionBody';
@@ -60,7 +61,7 @@ function PreviewBeforeBeginIcon({ k }: { k: BeforeBeginIconKey }) {
       return <AccessTimeIcon sx={sx} />;
   }
 }
-const SAMPLE_TIMER_START_SEC = 45 * 60;
+const SAMPLE_TIMER_START_SEC = 10 * 60;
 const SAMPLE_BANNER_PT = 5.5; // rem ≈ 88px including padding
 
 function formatMmSs(totalSec: number): string {
@@ -74,7 +75,29 @@ type PreviewPhase = 'intro' | 'exam' | 'complete';
 const SchoolPreviewAssessmentPage: React.FC = () => {
   const navigate = useNavigate();
   const flow = getAssessmentFlowDefinition(ASSESSMENT_ID);
-  const statGrid = useMemo(() => mergeStatGridWithTier(flow, undefined), [flow]);
+  const previewQuestionCount = PREVIEW_SYMBOLIC_SAMPLE_QUESTIONS.length;
+  const statGrid = useMemo(() => {
+    return mergeStatGridWithTier(flow, undefined).map((cell) => {
+      const L = cell.label.toLowerCase();
+      if (L === 'duration') return { ...cell, value: '10 min' };
+      if (L === 'questions' || L.includes('question')) return { ...cell, value: String(previewQuestionCount) };
+      return cell;
+    });
+  }, [flow, previewQuestionCount]);
+
+  const previewBeforeBegin: BeforeBeginItem[] = useMemo(
+    () => [
+      {
+        icon: 'clock',
+        text: `This sample has ${previewQuestionCount} practice questions and a 10-minute countdown (display only - not enforced). You can exit anytime; nothing is saved.`,
+      },
+      { icon: 'block', text: 'No calculators, notes, or outside help (same norms as the live exam).' },
+      { icon: 'chart', text: 'Scores here are for practice feedback only, not official benchmarking.' },
+      { icon: 'phone', text: 'Find a quiet place with minimal distraction to get a feel for the real flow.' },
+      { icon: 'bolt', text: 'The live exam adapts difficulty; this sample uses fixed practice items.' },
+    ],
+    [previewQuestionCount]
+  );
   const primary =
     flow.theme === 'purple'
       ? { main: '#7b1fa2', dark: '#4a148c', light: '#f3e5f5', border: '#ce93d8' }
@@ -205,8 +228,21 @@ const SchoolPreviewAssessmentPage: React.FC = () => {
         </Box>
 
         <Box sx={{ maxWidth: contentMaxWidth, mx: 'auto', px: { xs: 2, md: 4, lg: 5 }, pt: { xs: 3, md: 4 } }}>
-          <Typography sx={{ fontSize: '0.7rem', color: '#94a3b8', textAlign: 'center', mb: 1.5, letterSpacing: 0.2 }}>
+          <Typography sx={{ fontSize: '0.7rem', color: '#94a3b8', textAlign: 'center', mb: 0.75, letterSpacing: 0.2 }}>
             Sample preview - practice only; not scored or saved
+          </Typography>
+          <Typography
+            sx={{
+              fontSize: { xs: '0.8rem', md: '0.85rem' },
+              color: '#64748b',
+              textAlign: 'center',
+              mb: 1.5,
+              maxWidth: 520,
+              mx: 'auto',
+              lineHeight: 1.55,
+            }}
+          >
+            {previewQuestionCount} questions · about 10 minutes on the timer (demo only) · leave anytime via Exit or back
           </Typography>
 
           <Box
@@ -356,7 +392,7 @@ const SchoolPreviewAssessmentPage: React.FC = () => {
                 rowGap: 0,
               }}
             >
-              {flow.beforeBegin.map((row) => (
+              {previewBeforeBegin.map((row) => (
                 <Box key={row.text} sx={{ display: 'flex', gap: 1.25, alignItems: 'flex-start', mb: 1.25 }}>
                   <PreviewBeforeBeginIcon k={row.icon} />
                   <Typography sx={{ fontSize: { xs: '0.85rem', md: '0.9rem' }, color: '#78350f', lineHeight: 1.55, flex: 1 }}>{row.text}</Typography>
@@ -395,11 +431,9 @@ const SchoolPreviewAssessmentPage: React.FC = () => {
             >
               Begin assessment →
             </Button>
-            {flow.detailFooterFinePrint && (
-              <Typography sx={{ textAlign: 'center', fontSize: '0.72rem', color: '#94a3b8', mt: 1.25 }}>
-                {flow.detailFooterFinePrint}
-              </Typography>
-            )}
+            <Typography sx={{ textAlign: 'center', fontSize: '0.72rem', color: '#94a3b8', mt: 1.25, lineHeight: 1.5 }}>
+              {previewQuestionCount} practice questions, 10-minute sample timer (not enforced). You can exit anytime - nothing is saved.
+            </Typography>
           </Box>
         </Box>
       </Box>
@@ -515,7 +549,7 @@ const SchoolPreviewAssessmentPage: React.FC = () => {
               {formatMmSs(secondsLeft)}
             </Typography>
             <Typography component="span" sx={{ fontWeight: 600, fontSize: '0.65rem', opacity: 0.85, display: { xs: 'none', sm: 'inline' }, ml: 0.5 }}>
-              (sample - not enforced)
+              (10 min demo - not enforced)
             </Typography>
           </Box>
           <Typography sx={{ fontWeight: 700, textAlign: 'right', fontSize: '0.85rem', fontVariantNumeric: 'tabular-nums' }}>
@@ -547,7 +581,7 @@ const SchoolPreviewAssessmentPage: React.FC = () => {
               />
             )}
             <Typography variant="caption" sx={{ color: '#94a3b8', mt: 2, display: 'block', textAlign: 'center' }}>
-              Keys 1–4 for options · Enter to continue
+              Keys 1 - 4 for options · Enter to continue
             </Typography>
           </Box>
         </Box>

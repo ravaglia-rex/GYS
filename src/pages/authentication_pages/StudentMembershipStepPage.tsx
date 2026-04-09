@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
+import { useStudentSignupExit } from '../../contexts/StudentSignupExitContext';
+import { useStudentSignupExitGuard } from '../../hooks/useStudentSignupExitGuard';
 
 const GYS_BLUE = '#1e3a8a';
 
@@ -14,12 +16,16 @@ const StudentMembershipStepPage: React.FC = () => {
   const [selectedLevel, setSelectedLevel] = useState<MembershipLevel>('LEVEL_2');
   const [showComparison, setShowComparison] = useState(true);
 
+  const { requestLeave } = useStudentSignupExit();
+
+  useStudentSignupExitGuard(true);
+
   const levels = [
     {
       id: 'LEVEL_1' as MembershipLevel,
       label: 'Level 1',
       name: 'Explore',
-      price: '₹999',
+      price: '₹499',
       priceSuffix: 'per year',
       badge: null as string | null,
       borderColor: 'border-slate-200',
@@ -30,8 +36,8 @@ const StudentMembershipStepPage: React.FC = () => {
         { text: 'Basic performance report with tier placement', included: true },
         { text: 'Global benchmarking (college-bound norms)', included: true },
         { text: 'Subscore analysis (3 subscores)', included: true },
-        { text: 'Assessments 2–3 (Verbal, Mathematical) – Level 2', included: false },
-        { text: 'Personality & English assessments – Level 3', included: false },
+        { text: 'Assessments 2 - 4 (Verbal, Mathematical, Basic Personality)  -  Level 2', included: false },
+        { text: 'English (Advanced), AI & comprehensive personality  -  Level 3', included: false },
       ],
       footer: 'Great for a first benchmark.',
     },
@@ -39,7 +45,7 @@ const StudentMembershipStepPage: React.FC = () => {
       id: 'LEVEL_2' as MembershipLevel,
       label: 'Level 2',
       name: 'Engage',
-      price: '₹4,999',
+      price: '₹1,299',
       priceSuffix: 'per year',
       badge: 'Most Popular',
       borderColor: 'border-amber-400',
@@ -47,28 +53,29 @@ const StudentMembershipStepPage: React.FC = () => {
       accent: 'bg-emerald-500',
       features: [
         { text: '3 Reasoning Assessments (Symbolic, Verbal, Mathematical)', included: true },
+        { text: 'Assessment 4: Basic Personality Profile', included: true },
         { text: 'Reasoning triad cross-synthesis report', included: true },
         { text: 'Course recommendations from Access USA', included: true },
         { text: 'Year-over-year growth tracking', included: true },
-        { text: 'Personality & English – Level 3', included: false },
-        { text: 'Full college guidance – Level 3', included: false },
+        { text: 'English (Advanced), AI exam, comprehensive personality  -  Level 3', included: false },
+        { text: 'Full college guidance  -  Level 3', included: false },
       ],
-      footer: 'Best value - the complete reasoning triad + growth tracking',
+      footer: 'Reasoning triad plus basic personality - strong profile for growth tracking',
     },
     {
       id: 'LEVEL_3' as MembershipLevel,
       label: 'Level 3',
       name: 'Excel',
-      price: '₹9,999',
+      price: '₹2,499',
       priceSuffix: 'per year',
       badge: null as string | null,
       borderColor: 'border-orange-200',
       background: 'bg-white',
       accent: 'bg-orange-500',
       features: [
-        { text: 'Everything in Level 2 (Assessments 1–3)', included: true },
-        { text: 'Assessment 4: Personality Profile (8 dimensions)', included: true },
-        { text: 'Assessment 5: English Proficiency (listening + speaking)', included: true },
+        { text: 'Everything in Level 2 (Exams 1 - 4: reasoning triad + basic personality)', included: true },
+        { text: 'Assessment 5: English Proficiency - Advanced (listening + speaking)', included: true },
+        { text: 'Assessment 6: AI Literacy & Capability', included: true },
         { text: 'Assessment 7: Comprehensive Personality (~30 dimensions)', included: true },
         { text: 'College mapping (Indian & international)', included: true },
         { text: 'Individual counselor sessions & advising', included: true },
@@ -97,7 +104,7 @@ const StudentMembershipStepPage: React.FC = () => {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={() => requestLeave(() => navigate(-1))}
             className="group flex items-center gap-1 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors duration-200 hover:bg-slate-100 rounded-lg px-1 py-0.5 -ml-1"
           >
             <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-300 text-xs transition-all duration-200 group-hover:border-slate-400">
@@ -127,7 +134,7 @@ const StudentMembershipStepPage: React.FC = () => {
             <PublicHomeNavButton />
             <button
               type="button"
-              onClick={() => navigate('/login')}
+              onClick={() => requestLeave(() => navigate('/login'))}
               className="px-4 py-2.5 sm:px-5 rounded-xl text-white text-sm font-medium shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:brightness-110 active:scale-95 transition-all duration-200"
               style={{ backgroundColor: GYS_BLUE }}
             >
@@ -209,7 +216,7 @@ const StudentMembershipStepPage: React.FC = () => {
                               feature.included ? 'bg-emerald-500 text-white' : 'bg-slate-300 text-white'
                             }`}
                           >
-                            {feature.included ? '✓' : '–'}
+                            {feature.included ? '✓' : ' - '}
                           </span>
                           <span className={feature.included ? 'text-slate-700' : 'text-slate-400'}>
                             {feature.text}
@@ -249,33 +256,34 @@ const StudentMembershipStepPage: React.FC = () => {
                       <th className="px-4 py-2 font-semibold text-slate-700">Feature</th>
                       <th className="px-4 py-2 font-semibold text-slate-700 text-center">
                         L1
-                        <span className="block text-xs text-slate-500">₹999</span>
+                        <span className="block text-xs text-slate-500">₹499</span>
                       </th>
                       <th className="px-4 py-2 font-semibold text-slate-700 text-center">
                         L2
-                        <span className="block text-xs text-slate-500">₹4,999</span>
+                        <span className="block text-xs text-slate-500">₹1,299</span>
                       </th>
                       <th className="px-4 py-2 font-semibold text-slate-700 text-center">
                         L3
-                        <span className="block text-xs text-slate-500">₹9,999</span>
+                        <span className="block text-xs text-slate-500">₹2,499</span>
                       </th>
                     </tr>
                   </thead>
                   <tbody>
                     {[
                       ['Assessment 1: Symbolic Reasoning', '✓', '✓', '✓'],
-                      ['Assessment 2: Verbal Reasoning', '–', '✓', '✓'],
-                      ['Assessment 3: Mathematical Reasoning', '–', '✓', '✓'],
-                      ['Assessment 4: Personality Profile', '–', '–', '✓'],
-                      ['Assessment 5: English Proficiency', '–', '–', '✓'],
-                      ['Assessment 7: Comprehensive Personality', '–', '–', '✓'],
+                      ['Assessment 2: Verbal Reasoning', ' - ', '✓', '✓'],
+                      ['Assessment 3: Mathematical Reasoning', ' - ', '✓', '✓'],
+                      ['Assessment 4: Personality Profile (basic)', ' - ', '✓', '✓'],
+                      ['Assessment 5: English Proficiency (advanced)', ' - ', ' - ', '✓'],
+                      ['Assessment 6: AI Literacy & Capability', ' - ', ' - ', '✓'],
+                      ['Assessment 7: Comprehensive Personality', ' - ', ' - ', '✓'],
                       ['Basic Report + Tier', '✓', '✓', '✓'],
-                      ['Reasoning Cross-Synthesis', '–', '✓', '✓'],
-                      ['Course Recommendations', '–', '✓', '✓'],
-                      ['Growth Tracking', '–', '✓', '✓'],
-                      ['Full Composite Profile', '–', '–', '✓'],
-                      ['College Mapping', '–', '–', '✓'],
-                      ['Counselor Sessions & Advising', '–', '–', '✓'],
+                      ['Reasoning Cross-Synthesis', ' - ', '✓', '✓'],
+                      ['Course Recommendations', ' - ', '✓', '✓'],
+                      ['Growth Tracking', ' - ', '✓', '✓'],
+                      ['Full Composite Profile', ' - ', ' - ', '✓'],
+                      ['College Mapping', ' - ', ' - ', '✓'],
+                      ['Counselor Sessions & Advising', ' - ', ' - ', '✓'],
                     ].map(([feature, l1, l2, l3]) => (
                       <tr key={feature} className="border-t border-slate-100">
                         <td className="px-4 py-2 text-slate-700">{feature}</td>
@@ -289,7 +297,7 @@ const StudentMembershipStepPage: React.FC = () => {
                                 ✓
                               </span>
                             ) : (
-                              <span className="text-slate-300">–</span>
+                              <span className="text-slate-300"> - </span>
                             )}
                           </td>
                         ))}
@@ -304,7 +312,7 @@ const StudentMembershipStepPage: React.FC = () => {
               type="submit"
               className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-blue-600 px-4 py-3 text-sm sm:text-base font-semibold text-white shadow-md hover:bg-blue-700 transition-colors duration-200"
             >
-              Continue with {selected.name} – {selected.price}/yr →
+              Continue with {selected.name}  -  {selected.price}/yr →
             </button>
 
             <p className="pt-1 text-center text-xs text-slate-500">

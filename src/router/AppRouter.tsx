@@ -6,6 +6,7 @@ import SchoolAdminRoute from '../components/route_protection/SchoolAdminRoute';
 import NotFoundPage from '../pages/NotFoundPage';
 import BigSpinner from '../components/ui/BigSpinner';
 import PreviewStubPage from '../pages/landing/preview/PreviewStubPage';
+import StudentRegistrationFlowLayout from '../layouts/StudentRegistrationFlowLayout';
 
 /*
 LANDING AND PUBLIC PAGES
@@ -124,40 +125,42 @@ const AppRouter: React.FC = () => {
         />
         <Route
           path="/students/register"
-          element={
-            <Suspense fallback={<BigSpinner/>}>
-              <StudentRegistrationPage />
-            </Suspense>
-          }
+          element={<StudentRegistrationFlowLayout />}
           errorElement={<NotFoundPage />}
-        />
-        <Route
-          path="/students/register/school"
-          element={
-            <Suspense fallback={<BigSpinner/>}>
-              <StudentSchoolStepPage />
-            </Suspense>
-          }
-          errorElement={<NotFoundPage />}
-        />
-        <Route
-          path="/students/register/membership"
-          element={
-            <Suspense fallback={<BigSpinner/>}>
-              <StudentMembershipStepPage />
-            </Suspense>
-          }
-          errorElement={<NotFoundPage />}
-        />
-        <Route
-          path="/students/register/payment"
-          element={
-            <Suspense fallback={<BigSpinner/>}>
-              <StudentPaymentPage />
-            </Suspense>
-          }
-          errorElement={<NotFoundPage />}
-        />
+        >
+          <Route
+            index
+            element={
+              <Suspense fallback={<BigSpinner />}>
+                <StudentRegistrationPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="school"
+            element={
+              <Suspense fallback={<BigSpinner />}>
+                <StudentSchoolStepPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="membership"
+            element={
+              <Suspense fallback={<BigSpinner />}>
+                <StudentMembershipStepPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="payment"
+            element={
+              <Suspense fallback={<BigSpinner />}>
+                <StudentPaymentPage />
+              </Suspense>
+            }
+          />
+        </Route>
         <Route
           path="/students/register/welcome"
           element={

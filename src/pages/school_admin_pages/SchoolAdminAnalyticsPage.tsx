@@ -57,7 +57,7 @@ import { ProficiencyTier123Overview } from '../../components/school_admin/Profic
 import { FAKE_SCORE_DISTRIBUTION_BY_EXAM } from '../../data/schoolAdminScoreSubcategoryMock';
 import { buildGreenfieldPreviewStudentRows } from '../../data/schoolPreviewMock';
 
-/** App theme is dark; school admin analytics cards are light — Select needs explicit light-field styles. */
+/** App theme is dark; school admin analytics cards are light - Select needs explicit light-field styles. */
 const examTierSelectFormSx = {
   minWidth: 280,
   mb: 2,
@@ -121,7 +121,7 @@ interface AnalyticsData {
   qualificationStats: {
     total: number;
   };
-  /** Mean best_score (0–100) among top performers per exam; one row per scored assessment (0 if none). */
+  /** Mean best_score (0 - 100) among top performers per exam; one row per scored assessment (0 if none). */
   examAverages: Array<{ category: string; current: number }>;
 }
 
@@ -431,7 +431,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
             </Card>
           </Box>
 
-          {/* Proficiency tiers 1–3 (assessment progress) */}
+          {/* Proficiency tiers 1 - 3 (assessment progress) */}
           <Card sx={{ bgcolor: '#ffffff', boxShadow: 'none', border: `1px solid ${ip.cardBorder}`, mb: 4 }}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, color: '#1E293B', mb: 0.5 }}>

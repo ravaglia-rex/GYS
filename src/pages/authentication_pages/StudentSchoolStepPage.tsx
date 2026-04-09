@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { fetchSchoolNamesAndIds, resolveRegistrationSchool } from '../../db/schoolCollection';
+import { resolveRegistrationSchool } from '../../db/schoolCollection';
 import SchoolsInput from '../../components/autocomplete/SchoolsInput';
 import * as Sentry from '@sentry/react';
 import { useToast } from '../../components/ui/use-toast';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
+import { useStudentSignupExit } from '../../contexts/StudentSignupExitContext';
+import { useStudentSignupExitGuard } from '../../hooks/useStudentSignupExitGuard';
 
 const GYS_BLUE = '#1e3a8a';
 
@@ -23,15 +25,20 @@ const StudentSchoolStepPage: React.FC = () => {
   const location = useLocation();
   const state = (location.state || {}) as Partial<LocationState>;
 
-  const [schools, setSchools] = useState<{ id: string; name: string }[]>([]);
   const [selectedSchoolId, setSelectedSchoolId] = useState('');
   const [lockedSchool, setLockedSchool] = useState<{ id: string; name: string } | null>(null);
+  /** When email is not on any school list: free-text school name; stored with signup as school_id not-listed. */
+  const [typedSchoolName, setTypedSchoolName] = useState('');
   const [homeLanguage, setHomeLanguage] = useState('');
   const [aspiration, setAspiration] = useState('');
   const [heardFrom, setHeardFrom] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
   const { toast } = useToast();
+
+  const { requestLeave } = useStudentSignupExit();
+
+  useStudentSignupExitGuard(true);
 
   useEffect(() => {
     const loadSchools = async () => {
@@ -41,14 +48,18 @@ const StudentSchoolStepPage: React.FC = () => {
         return;
       }
       try {
-        const [data, resolved] = await Promise.all([
-          fetchSchoolNamesAndIds(),
-          resolveRegistrationSchool(email).catch(() => ({ schoolId: null as string | null, schoolName: null as string | null })),
-        ]);
-        setSchools(data);
+        const resolved = await resolveRegistrationSchool(email).catch(() => ({
+          schoolId: null as string | null,
+          schoolName: null as string | null,
+        }));
         if (resolved.schoolId && resolved.schoolName) {
           setLockedSchool({ id: resolved.schoolId, name: resolved.schoolName });
           setSelectedSchoolId(resolved.schoolId);
+          setTypedSchoolName('');
+        } else {
+          setLockedSchool(null);
+          setSelectedSchoolId('');
+          setTypedSchoolName('');
         }
       } catch (error: any) {
         Sentry.withScope((scope) => {
@@ -63,9 +74,16 @@ const StudentSchoolStepPage: React.FC = () => {
     loadSchools();
   }, [state.email]);
 
+  const emailMatchedSchool = Boolean(lockedSchool?.id);
+  const schoolIdForSignup = emailMatchedSchool
+    ? selectedSchoolId
+    : 'not-listed';
+  const canContinue =
+    emailMatchedSchool ? Boolean(selectedSchoolId) : typedSchoolName.trim().length > 0;
+
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!selectedSchoolId) return;
+    if (!canContinue) return;
 
     const {
       firstName,
@@ -98,7 +116,10 @@ const StudentSchoolStepPage: React.FC = () => {
         grade,
         dob,
         cityState,
-        schoolId: selectedSchoolId,
+        schoolId: schoolIdForSignup,
+        ...(!emailMatchedSchool && typedSchoolName.trim()
+          ? { signupSchoolName: typedSchoolName.trim() }
+          : {}),
         homeLanguage,
         aspiration,
         heardFrom,
@@ -112,7 +133,7 @@ const StudentSchoolStepPage: React.FC = () => {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-4 sm:gap-6">
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={() => requestLeave(() => navigate(-1))}
             className="group flex items-center gap-1 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors duration-200 hover:bg-slate-100 rounded-lg px-1 py-0.5 -ml-1"
           >
             <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-300 text-xs transition-all duration-200 group-hover:border-slate-400">
@@ -142,7 +163,7 @@ const StudentSchoolStepPage: React.FC = () => {
             <PublicHomeNavButton />
             <button
               type="button"
-              onClick={() => navigate('/login')}
+              onClick={() => requestLeave(() => navigate('/login'))}
               className="px-4 py-2.5 sm:px-5 rounded-xl text-white text-sm font-medium shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:brightness-110 active:scale-95 transition-all duration-200"
               style={{ backgroundColor: GYS_BLUE }}
             >
@@ -177,17 +198,35 @@ const StudentSchoolStepPage: React.FC = () => {
               <label className="block text-xs sm:text-sm font-bold text-slate-700">
                 School<span className="text-red-500"> *</span>
               </label>
-              <SchoolsInput
-                schools={schools}
-                onSelect={(id) => setSelectedSchoolId(id)}
-                lockedSelection={lockedSchool}
-                className="mt-1.5 bg-white border border-slate-200 focus-visible:ring-slate-500 rounded-lg w-full text-slate-900"
-                loading={isLoading}
-              />
+              {emailMatchedSchool ? (
+                <SchoolsInput
+                  schools={[]}
+                  onSelect={(id) => setSelectedSchoolId(id)}
+                  lockedSelection={lockedSchool}
+                  className="mt-1.5 bg-white border border-slate-200 focus-visible:ring-slate-500 rounded-lg w-full text-slate-900"
+                  loading={isLoading}
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={typedSchoolName}
+                  onChange={(event) => setTypedSchoolName(event.target.value)}
+                  disabled={isLoading}
+                  className="mt-1.5 w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm sm:text-base text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 disabled:bg-slate-100"
+                  placeholder="Enter your school name"
+                  required
+                  autoComplete="organization"
+                />
+              )}
             </div>
             {lockedSchool && (
               <p className="text-xs text-slate-600">
                 Your email is on this school&apos;s registration list, so your school is set automatically.
+              </p>
+            )}
+            {!emailMatchedSchool && !isLoading && (
+              <p className="text-xs text-slate-600">
+                We couldn&apos;t match your email to a school list. Enter your school name as it should appear on your profile.
               </p>
             )}
 
@@ -253,9 +292,9 @@ const StudentSchoolStepPage: React.FC = () => {
 
             <button
               type="submit"
-              disabled={!selectedSchoolId}
+              disabled={!canContinue}
               className="mt-2 inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm sm:text-base font-semibold text-white shadow-md hover:bg-slate-900/90 disabled:cursor-not-allowed disabled:bg-slate-400"
-              style={{ backgroundColor: selectedSchoolId ? GYS_BLUE : undefined }}
+              style={{ backgroundColor: canContinue ? GYS_BLUE : undefined }}
             >
               Continue →
             </button>

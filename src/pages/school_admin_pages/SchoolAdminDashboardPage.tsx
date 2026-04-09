@@ -863,7 +863,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
 
           <Box>
             <Typography variant="body2" sx={{ color: ip.heading, fontWeight: 600, mb: 0.5 }}>
-              Student proficiency (tiers 1–3)
+              Student proficiency (tiers 1 - 3)
             </Typography>
             <ProficiencyTier123Overview
               summary={proficiencyTier123}

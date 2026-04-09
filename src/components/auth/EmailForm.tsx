@@ -199,15 +199,31 @@ if (emailExists === false && isSchoolOfficial && schoolInfo) {
               </div>
             </div>
             <DialogTitle className="text-center text-slate-900">No account found</DialogTitle>
-            <DialogDescription className="text-center text-slate-600">
-              We couldn&apos;t find an account for <span className="font-semibold text-slate-800">{email}</span>.
-              New student signup isn&apos;t available yet—check back soon or use a different email if you
-              already have access.
+            <DialogDescription asChild>
+              <div className="space-y-3 text-center text-slate-600">
+                <p>
+                  We couldn&apos;t find an account for{' '}
+                  <span className="font-semibold text-slate-800">{email}</span>. You can create a student
+                  account with this school email, or try a different email if you already have access.
+                </p>
+                <p>
+                  If your school has signed up with Argus and asked you to complete this, you must use your{' '}
+                  <span className="font-semibold text-slate-800">official school email</span>. If you are
+                  not sure what that address is, contact your school.
+                </p>
+              </div>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex-col gap-2 sm:flex-col">
-            <Button type="button" disabled className="w-full cursor-not-allowed font-semibold opacity-80">
-              Coming soon
+            <Button
+              type="button"
+              className="w-full font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+              onClick={() => {
+                setShowNoAccountDialog(false);
+                navigate('/students/register', { state: { prefill: { email } } });
+              }}
+            >
+              Create student account
             </Button>
             <Button
               variant="outline"

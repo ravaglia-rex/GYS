@@ -59,7 +59,7 @@ const StudentPreviewDashboardPage: React.FC = () => {
           </Typography>
         </Box>
         <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.65)', mb: 2, maxWidth: 720 }}>
-          All assessments are listed below. Complete them in sequence where your membership allows - upgrade to unlock the full reasoning triad and Level 3 reports.
+          All assessments are listed below. Complete them in sequence where your membership allows - Level 2 covers Exams 1 - 4; Level 3 unlocks Exams 5 - 7 (advanced English, AI, comprehensive personality).
         </Typography>
         <EnhancedAssessmentCardsGroup
           uid=""

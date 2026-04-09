@@ -41,7 +41,13 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({
   title,
 }) => {
   const [payees, setPayees] = useState<Payee[]>([]);
-  const [order_id, setOrder_id] = useState<string>("");
+  const [rzpOrder, setRzpOrder] = useState<{
+    id: string;
+    amount: number;
+    currency: string;
+    key_id: string;
+    checkout_config_id?: string;
+  } | null>(null);
 
   const [selectedPayee, setSelectedPayee] = useState<Payee | null>(null);
   const [isAddPayeeOpen, setIsAddPayeeOpen] = useState<boolean>(false);
@@ -95,7 +101,9 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({
       const selected = payees.find((payee) => payee.id === payeeId);
       if (selected) {
         setSelectedPayee(selected);
-        setCanProceed(false); // Reset proceed state
+        setCanProceed(false);
+        setRzpOrder(null);
+        setIsPaying(false);
       }
     }
   };
@@ -137,7 +145,7 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({
     setIsConfirming(true); // Show spinner
     try {
       const order = await handleOrderExam(
-        cost*1.18,
+        cost * 1.18,
         currency,
         selectedPayee.name,
         selectedPayee.contact,
@@ -151,10 +159,29 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({
         1, // membership_level - updated during Phase 4 UI rewrite
         uid
       );
-      setOrder_id(order.id);
+      const keyId =
+        typeof order.key_id === "string" && order.key_id.length > 0
+          ? order.key_id
+          : process.env.REACT_APP_RAZORPAY_KEY_ID || "";
+      if (!keyId) {
+        throw new Error("Server did not return key_id - set RAZORPAY_KEY_ID on the API.");
+      }
+      setRzpOrder({
+        id: order.id,
+        amount: Number(order.amount),
+        currency: typeof order.currency === "string" ? order.currency : currency,
+        key_id: keyId,
+        checkout_config_id:
+          typeof order.checkout_config_id === "string" ? order.checkout_config_id : undefined,
+      });
       setCanProceed(true); // Allow proceeding to payment
     } catch (error) {
       console.error("Error confirming order:", error);
+      toast({
+        variant: "destructive",
+        title: "Could not start checkout",
+        description: error instanceof Error ? error.message : "Please try again or contact support.",
+      });
     } finally {
       setIsConfirming(false); // Hide spinner
     }
@@ -272,11 +299,12 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({
               uid={uid}
               email={email}
             />
-          ) : (
+          ) : rzpOrder ? (
             <RenderRazorpay
-              amount={cost * 100 * 1.18}
-              currency={currency}
-              order_id={order_id}
+              amount={rzpOrder.amount}
+              currency={rzpOrder.currency}
+              order_id={rzpOrder.id}
+              checkout_config_id={rzpOrder.checkout_config_id}
               membership_level={1}
               payee_name={selectedPayee.name}
               payee_email={selectedPayee.email}
@@ -289,9 +317,9 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({
               state={selectedPayee.state}
               zipcode={selectedPayee.zipcode}
               country={selectedPayee.country}
-              keyID={process.env.REACT_APP_RAZORPAY_KEY_ID || ""}
+              keyID={rzpOrder.key_id}
             />
-          )}
+          ) : null}
         </div>
       )}
     </div>

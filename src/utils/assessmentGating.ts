@@ -35,11 +35,16 @@ export interface GateResult {
   missingPrerequisite?: string;
 }
 
-/** Level 1 = Assessment 1; Level 2 = Assessments 1–3; Level 3 = full program (1–5 + 6 + 7) */
+/** Level 1 = Exam 1; Level 2 = Exams 1 - 4 (reasoning triad + basic personality); Level 3 = all 7 exams */
 export const MEMBERSHIP_ALLOWED: Record<number, string[]> = {
   0: [],
   1: ['symbolic_reasoning'],
-  2: ['symbolic_reasoning', 'verbal_reasoning', 'mathematical_reasoning'],
+  2: [
+    'symbolic_reasoning',
+    'verbal_reasoning',
+    'mathematical_reasoning',
+    'personality_assessment',
+  ],
   3: [...ASSESSMENT_ORDER],
 };
 
@@ -59,8 +64,8 @@ export const ASSESSMENT_NAMES: Record<string, string> = {
   symbolic_reasoning: 'Symbolic Reasoning',
   verbal_reasoning: 'Verbal Reasoning',
   mathematical_reasoning: 'Mathematical Reasoning',
-  personality_assessment: 'Personality Assessment',
-  english_proficiency: 'English Proficiency',
+  personality_assessment: 'Personality Assessment (Basic)',
+  english_proficiency: 'English Proficiency (Advanced)',
   ai_literacy: 'AI Literacy & Capability',
   comprehensive_personality: 'Comprehensive Personality',
 };

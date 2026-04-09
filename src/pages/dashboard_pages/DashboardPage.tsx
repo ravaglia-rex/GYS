@@ -33,7 +33,7 @@ interface DashboardStats {
   availableAssessments: number;
 }
 
-// Assessments 1–7 (canonical program count)
+// Assessments 1 - 7 (canonical program count)
 const TOTAL_ASSESSMENT_TYPES = 7;
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -115,7 +115,7 @@ const Dashboard: React.FC = () => {
           availableAssessments,
         });
 
-        // Chart: best tier as 0–100% for each assessment with at least one attempt and a best_score
+        // Chart: best tier as 0 - 100% for each assessment with at least one attempt and a best_score
         const chartData = sorted
           .filter((a) => {
             const p = progress[a.id] ?? defaultAssessmentProgress;
@@ -188,7 +188,7 @@ const Dashboard: React.FC = () => {
                   )}
                 </Box>
                 <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.65)', mb: 2, maxWidth: 720 }}>
-                  All assessments are listed below. Complete them in sequence where your membership allows - upgrade to unlock the full reasoning triad and Level 3 reports.
+                  All assessments are listed below. Complete them in sequence where your membership allows - Level 2 includes the reasoning triad and basic personality (Exams 1 - 4); Level 3 adds advanced English, AI, and comprehensive personality (Exams 5 - 7).
                 </Typography>
                 <EnhancedAssessmentCardsGroup uid={uid} filterType="all" />
               </Box>

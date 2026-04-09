@@ -7,6 +7,7 @@ import {
   INITIALIZE_EXAM,
   RECORD_ANSWER,
   COMPLETE_EXAM,
+  ABANDON_EXAM,
 } from '../constants/constants';
 import authTokenHandler from '../functions/auth_token/auth_token_handler';
 
@@ -40,11 +41,18 @@ export interface AssessmentRecord {
   updated_at: any;
 }
 
+export interface AbandonExamResponse {
+  ok: boolean;
+  strikes: number;
+  suspended: boolean;
+  suspended_until_ms: number | null;
+}
+
 export interface AttemptRecord {
   attempt_id: string;
   assessment_id: string;
   proficiency_tier: number;
-  status: 'in_progress' | 'completed';
+  status: 'in_progress' | 'completed' | 'abandoned';
   score: number | null;
   passed: boolean | null;
   started_at: any;
@@ -56,6 +64,9 @@ export interface InitializedExam {
   total_questions: number;
   current_index: number;
   question: ExamQuestion | null;
+  /** Server-computed; null if this assessment has no time limit */
+  seconds_remaining?: number | null;
+  resumed?: boolean;
 }
 
 /** Firestore / API may set question_type on items; otherwise UI infers from assessment + fields */
@@ -159,6 +170,16 @@ export const completeExam = async (uid: string, attempt_id: string): Promise<Com
   const authToken = await authTokenHandler.getAuthToken();
   const response = await axios.post(
     `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${ASSESSMENTS_APIS}${COMPLETE_EXAM}`,
+    { uid, attempt_id },
+    { headers: { Authorization: `Bearer ${authToken}` } }
+  );
+  return response.data;
+};
+
+export const abandonExam = async (uid: string, attempt_id: string): Promise<AbandonExamResponse> => {
+  const authToken = await authTokenHandler.getAuthToken();
+  const response = await axios.post(
+    `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${ASSESSMENTS_APIS}${ABANDON_EXAM}`,
     { uid, attempt_id },
     { headers: { Authorization: `Bearer ${authToken}` } }
   );

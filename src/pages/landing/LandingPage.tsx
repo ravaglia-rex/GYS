@@ -127,13 +127,6 @@ const LandingPage: React.FC = () => {
             >
               For Students
             </button>
-            <button
-              type="button"
-              onClick={() => scrollToSection('performance-tiers')}
-              className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
-            >
-              Pricing
-            </button>
           </nav>
           <div className="flex shrink-0 items-center gap-2">
             <PublicHomeNavButton />
@@ -282,7 +275,7 @@ const LandingPage: React.FC = () => {
               </div>
               <h4 className="font-bold text-lg text-gray-900 mt-4">Get Your Tier</h4>
               <p className="text-gray-600 mt-2 text-sm leading-relaxed">
-                Earn Gold, Silver, or Bronze – benchmarked against college-bound students
+                Earn Gold, Silver, or Bronze  -  benchmarked against college-bound students
                 worldwide.
               </p>
             </div>

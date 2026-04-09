@@ -42,7 +42,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 function formatBestScore(raw: number | null | undefined): string {
-  if (raw == null || Number.isNaN(Number(raw))) return '—';
+  if (raw == null || Number.isNaN(Number(raw))) return '-';
   const n = Number(raw);
   if (n >= 0 && n <= 1) return `${Math.round(n * 100)}%`;
   return `${Math.round(n)}%`;
@@ -172,10 +172,12 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
 
         setRow(srow);
 
-        try {
-          const mapSnap = await getDoc(doc(db, 'student_email_mappings', studentId));
-          setEmail((mapSnap.exists() ? (mapSnap.data() as { email?: string })?.email : '') || '');
-        } catch {
+        if (stSnap.exists()) {
+          const stData = stSnap.data() as Record<string, unknown>;
+          setEmail(
+            String((stData.email_normalized as string) ?? (stData.email as string) ?? '').trim()
+          );
+        } else {
           setEmail('');
         }
       } catch (e) {
@@ -314,8 +316,8 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
               Levels &amp; billing
             </Typography>
             <Typography variant="body2" sx={{ color: ip.subtext, mb: 2, lineHeight: 1.6 }}>
-              Your school’s plan covers students through <strong>Level 2</strong> for everyone on the roster.
-              <strong> Level 3</strong> is an add-on: each student must purchase it individually to unlock Level 3 exams and reporting.
+              Your school’s plan covers students through <strong>Level 2</strong> for everyone on the roster (Exams 1 - 4: reasoning triad and basic personality).
+              <strong> Level 3</strong> is an add-on: each student must purchase it individually to unlock advanced English, AI, comprehensive personality, and related reporting.
             </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
               <Chip
@@ -355,7 +357,7 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
             </Typography>
             <Typography variant="body2" sx={{ color: ip.subtext, mb: 2, lineHeight: 1.6 }}>
               Slots with a score or advanced status count as completed: <strong>{completedSlots}</strong>. Best score is
-              shown as a percentage (0–100%).
+              shown as a percentage (0 - 100%).
             </Typography>
             <TableContainer
               component={Paper}
@@ -390,7 +392,7 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
                     return (
                       <TableRow key={key} hover sx={{ '&:nth-of-type(even)': { bgcolor: ip.cardMutedBg } }}>
                         <TableCell sx={{ color: ip.heading, fontWeight: 600 }}>{assessmentLabel(key)}</TableCell>
-                        <TableCell sx={{ color: ip.heading }}>{p.proficiency_tier != null ? `Tier ${p.proficiency_tier}` : '—'}</TableCell>
+                        <TableCell sx={{ color: ip.heading }}>{p.proficiency_tier != null ? `Tier ${p.proficiency_tier}` : '-'}</TableCell>
                         <TableCell>
                           <Chip
                             label={statusText}

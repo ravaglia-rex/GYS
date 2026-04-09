@@ -38,7 +38,7 @@ export const PREVIEW_ASSESSMENT_TYPES: AssessmentType[] = [
 
 /**
  * Level 3 membership. Reasoning triad + personality done. English on tier 3 (retake).
- * AI Literacy tier 1 not yet attempted — Assessment 7 stays prerequisite-locked until AI is finished.
+ * AI Literacy tier 1 not yet attempted - Assessment 7 stays prerequisite-locked until AI is finished.
  */
 export const PREVIEW_ASSESSMENT_PROGRESS: Record<string, AssessmentProgress> = {
   symbolic_reasoning: {

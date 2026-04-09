@@ -24,6 +24,7 @@ interface RenderRazorpayProps {
   order_id: string;
   currency: string;
   amount: number;
+  checkout_config_id?: string;
   membership_level?: number;
   payee_name: string;
   payee_email: string;
@@ -43,6 +44,7 @@ const RenderRazorpay: React.FC<RenderRazorpayProps> = ({
   order_id,
   currency,
   amount,
+  checkout_config_id,
   membership_level = 1,
   payee_name,
   payee_email,
@@ -73,11 +75,17 @@ const RenderRazorpay: React.FC<RenderRazorpayProps> = ({
     const rzp1 = new (window as any).Razorpay(options);
 
     rzp1.on('payment.failed', (response: any) => {
-      paymentId.current = response.error.metadata.payment_id;
+      const pid = response?.error?.metadata?.payment_id;
+      paymentId.current = typeof pid === 'string' ? pid : null;
 
       Sentry.withScope((scope) => {
         scope.setTag('location', 'RenderRazorpay.payment.failed');
-        Sentry.captureException(new Error('Payment failed'));
+        scope.setContext('razorpay', { error: response?.error });
+        Sentry.captureMessage(
+          typeof response?.error?.description === 'string'
+            ? `Payment failed: ${response.error.description}`
+            : 'Payment failed'
+        );
       });
     });
 
@@ -139,8 +147,9 @@ const RenderRazorpay: React.FC<RenderRazorpayProps> = ({
   const options = {
     key: keyID,
     currency: currency,
-    amount: amount,
+    amount: String(Math.round(Number(amount))),
     order_id: order_id,
+    ...(checkout_config_id ? {checkout_config_id} : {}),
     customer_id: id,
     name: 'Argus',
     description: `Argus Membership`,
@@ -172,14 +181,9 @@ const RenderRazorpay: React.FC<RenderRazorpayProps> = ({
     },
     modal: {
       ondismiss: () => {
-        handlePayment('failed',  { 
-          error: { 
-            payment_id: paymentId.current 
-          }
-        });
         Sentry.withScope((scope) => {
           scope.setTag('location', 'RenderRazorpay.modal.ondismiss');
-          Sentry.captureException(new Error('Payment modal dismissed'));
+          Sentry.captureMessage('Razorpay checkout dismissed');
         });
       },
     },

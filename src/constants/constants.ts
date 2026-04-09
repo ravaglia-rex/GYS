@@ -41,6 +41,7 @@ export const EMAIL_CHECK_APIS = '/emailCheck';
 // Schools
 export const CREATE_EXPEDITED_SCHOOL='/createExpeditedSchool';
 export const REGISTER_SCHOOL='/registerSchool';
+export const RESUME_SCHOOL_CHECKOUT='/resumeSchoolCheckout';
 export const FETCH_SCHOOL_NAMES_AND_IDS='/fetchSchoolNamesAndIds';
 export const FETCH_SCHOOL_NAME='/getSchoolDetails';
 export const CHECK_SCHOOL_EMAIL = '/checkSchoolEmail';
@@ -68,12 +69,19 @@ export const GET_STUDENT_ASSESSMENTS='/getStudentAssessments';
 export const INITIALIZE_EXAM='/initializeExam';
 export const RECORD_ANSWER='/recordAnswer';
 export const COMPLETE_EXAM='/completeExam';
+export const ABANDON_EXAM='/abandonExam';
 
 // Razorpay
 export const CREATE_RAZORPAY_CUSTOMER='/createCustomer';
 export const CREATE_RAZORPAY_ORDER='/createOrder';
 export const MARK_PAYMENT_PENDING='/markPaymentPending';
 export const DEV_MODE_PAYMENT='/devModePayment';
+export const CREATE_SCHOOL_RAZORPAY_ORDER='/createSchoolOrder';
+export const VERIFY_SCHOOL_RAZORPAY_PAYMENT='/verifySchoolPayment';
+export const CREATE_STUDENT_REGISTRATION_ORDER = '/createStudentRegistrationOrder';
+export const VERIFY_STUDENT_REGISTRATION_PAYMENT = '/verifyStudentRegistrationPayment';
+export const CREATE_STUDENT_UPGRADE_ORDER = '/createStudentUpgradeOrder';
+export const VERIFY_STUDENT_UPGRADE_PAYMENT = '/verifyStudentUpgradePayment';
 
 // Email check
 export const CHECK_EMAIL_EXISTS='/checkEmailExists';

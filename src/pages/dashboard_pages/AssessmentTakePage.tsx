@@ -8,6 +8,11 @@ import {
   CircularProgress,
   Alert,
   Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -24,17 +29,26 @@ import {
   initializeExam,
   recordAnswer,
   completeExam,
+  abandonExam,
   getAssessmentConfig,
   ExamQuestion,
   AssessmentType,
 } from '../../db/assessmentCollection';
+import { MathJaxContext } from 'better-react-mathjax';
 import { getAssessmentFlowDefinition } from '../../config/assessmentFlowUI';
-import { inferQuestionInteraction } from '../../components/assessment/ExamQuestionBody';
-import { ExamQuestionBody } from '../../components/assessment/ExamQuestionBody';
+import { EXAM_MATHJAX_CONFIG } from '../../components/assessment/examMathJaxConfig';
+import { ExamQuestionBody, inferQuestionInteraction } from '../../components/assessment/ExamQuestionBody';
+import { useExamIntegrity } from '../../hooks/useExamIntegrity';
 import * as Sentry from '@sentry/react';
 
 const NEEDS_MIC = new Set(['english_proficiency']);
 const NEEDS_LAPTOP = new Set(['ai_literacy']);
+
+const EXAM_BEFORE_UNLOAD_HINT =
+  'Leaving or refreshing will end this exam attempt. You cannot continue until you start again (timer resets). Repeated interruptions may suspend your account.';
+
+const EXAM_LEAVE_DIALOG_COPY =
+  'If you leave or refresh now, this exam attempt will be terminated. You will not be able to resume; you may start again only when you begin a new attempt (your timer resets). Each time you leave, go back, or refresh this way, it counts toward a limit. After 3 such events, your account will be temporarily suspended from starting new assessments.';
 
 type PageStage = 'pre_exam' | 'taking' | 'complete';
 
@@ -143,6 +157,15 @@ const PreExamStep: React.FC<PreExamStepProps> = ({ assessmentId, tierNumber, onC
             </Alert>
           )}
 
+          <Alert severity="info" sx={{ mb: 2 }}>
+            <Typography variant="body2" fontWeight={700} gutterBottom>
+              Exam integrity
+            </Typography>
+            <Typography variant="body2" sx={{ fontSize: '0.82rem', lineHeight: 1.55 }}>
+              Copy, cut, and paste are disabled during the exam. Leaving this tab in the background for too long will end your attempt. Fullscreen is recommended; screenshots may violate assessment policy.
+            </Typography>
+          </Alert>
+
           <Box sx={{ display: 'flex', gap: 1.5, mt: 2 }}>
             <Button variant="outlined" startIcon={<ArrowBackIcon />} onClick={onBack} sx={{ borderColor: '#cbd5e1', color: '#475569' }}>
               Back
@@ -169,7 +192,7 @@ const PreExamStep: React.FC<PreExamStepProps> = ({ assessmentId, tierNumber, onC
   );
 };
 
-const AssessmentTakePage: React.FC = () => {
+export default function AssessmentTakePage() {
   const { assessmentId, tierNumber } = useParams<{ assessmentId: string; tierNumber: string }>();
   const navigate = useNavigate();
   const uid = auth.currentUser?.uid ?? '';
@@ -190,11 +213,45 @@ const AssessmentTakePage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
+  const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
+  const [abandoning, setAbandoning] = useState(false);
+  const [showOfflineBar, setShowOfflineBar] = useState(false);
+  const [integrityGateOk, setIntegrityGateOk] = useState(needsPreExamStep);
+  const [screenshotNudge, setScreenshotNudge] = useState(false);
   const questionStartTimeRef = useRef<number>(Date.now());
 
   const flow = assessmentId ? getAssessmentFlowDefinition(assessmentId) : getAssessmentFlowDefinition('');
   const assessmentConfig = configTypes.find((a) => a.id === assessmentId);
   const adaptiveNoBack = flow.adaptiveForwardOnly || !!assessmentConfig?.is_adaptive;
+  const mathExam = assessmentId === 'mathematical_reasoning';
+
+  const endAttemptForIntegrity = useCallback(
+    async (message: string) => {
+      if (!attemptId || !uid) return;
+      try {
+        const res = await abandonExam(uid, attemptId);
+        if (res.suspended && res.suspended_until_ms) {
+          window.alert(
+            `Your account is temporarily suspended from starting new assessments until ${new Date(res.suspended_until_ms).toLocaleString()}.`
+          );
+        } else {
+          window.alert(message);
+        }
+      } catch (e) {
+        Sentry.captureException(e);
+        window.alert(message);
+      }
+      navigate(`/assessments/${assessmentId}/tier/${tier}/detail`, { replace: true });
+    },
+    [attemptId, uid, assessmentId, tier, navigate]
+  );
+
+  const { leftFullscreen, tryEnterFullscreen, dismissFullscreenWarning } = useExamIntegrity({
+    active: Boolean(attemptId && stage === 'taking'),
+    onBackgroundTooLong: () =>
+      endAttemptForIntegrity('This attempt ended because the exam stayed in the background too long.'),
+    onPrintScreen: () => setScreenshotNudge(true),
+  });
 
   useEffect(() => {
     getAssessmentConfig()
@@ -213,13 +270,28 @@ const AssessmentTakePage: React.FC = () => {
       setCurrentIndex(result.current_index);
       setTotalQuestions(result.total_questions);
       questionStartTimeRef.current = Date.now();
+      if (result.seconds_remaining != null) {
+        setSecondsLeft(result.seconds_remaining);
+      } else {
+        setSecondsLeft(null);
+      }
     } catch (err: any) {
       Sentry.captureException(err);
       const status = err?.response?.status;
       if (status === 403) {
-        setError(err?.response?.data?.error ?? 'This assessment is not available for your membership level.');
+        const code = err?.response?.data?.code;
+        const untilMs = err?.response?.data?.suspended_until_ms;
+        if (code === 'exam_suspended' && typeof untilMs === 'number') {
+          setError(
+            `${err?.response?.data?.error ?? 'Assessments are temporarily suspended.'} Suspension ends: ${new Date(untilMs).toLocaleString()}.`
+          );
+        } else {
+          setError(err?.response?.data?.error ?? 'This assessment is not available for your membership level.');
+        }
       } else if (status === 503) {
         setError('Not enough questions available for this tier. Please try again later.');
+      } else if (status === 409) {
+        setError(err?.response?.data?.error ?? 'Could not resume your attempt. Please go back and try again.');
       } else {
         setError('Failed to start assessment. Please go back and try again.');
       }
@@ -228,25 +300,12 @@ const AssessmentTakePage: React.FC = () => {
     }
   }, [uid, assessmentId, tier]);
 
-  useEffect(() => {
-    if (!attemptId) return;
-    if (!flow.useTimer) {
-      setSecondsLeft(null);
-      return;
-    }
-    const ac = configTypes.find((a) => a.id === assessmentId);
-    if (!ac) return;
-    const tc = ac.tiers.find((t) => t.tier_number === tier);
-    const lim = tc?.time_limit_minutes;
-    if (lim != null && lim > 0) setSecondsLeft(lim * 60);
-    else setSecondsLeft(null);
-  }, [attemptId, assessmentId, tier, configTypes, flow.useTimer]);
+  const mayStartExam = needsPreExamStep ? stage === 'taking' : integrityGateOk && stage === 'taking';
 
   useEffect(() => {
-    if (!needsPreExamStep && stage === 'taking' && !attemptId && uid && assessmentId) {
-      doInitialize();
-    }
-  }, [needsPreExamStep, stage, attemptId, uid, assessmentId, doInitialize]);
+    if (!mayStartExam || !uid || !assessmentId || attemptId || isInitializing) return;
+    void doInitialize();
+  }, [mayStartExam, uid, assessmentId, attemptId, isInitializing, doInitialize]);
 
   useEffect(() => {
     if (secondsLeft === null || stage !== 'taking') return;
@@ -257,10 +316,93 @@ const AssessmentTakePage: React.FC = () => {
     return () => clearInterval(id);
   }, [secondsLeft, stage]);
 
+  // Trap browser Back: without an extra same-URL history entry, one Back leaves /take, this page
+  // unmounts, and popstate never shows our dialog. Push a sentinel so the first Back stays on /take.
+  useEffect(() => {
+    if (stage !== 'taking' || !attemptId || !assessmentId || !tierNumber) return;
+    const examPath = `/assessments/${assessmentId}/tier/${tierNumber}/take`;
+    window.history.pushState({ argusExamTakeTrap: true }, '', examPath);
+
+    const onPopState = () => {
+      window.history.pushState({ argusExamTakeTrap: true }, '', examPath);
+      setLeaveDialogOpen(true);
+      queueMicrotask(() => {
+        navigate(examPath, { replace: true });
+      });
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [stage, attemptId, assessmentId, tierNumber, navigate]);
+
+  useEffect(() => {
+    if (stage !== 'taking' || !attemptId) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = EXAM_BEFORE_UNLOAD_HINT;
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [stage, attemptId]);
+
+  // Keyboard refresh (F5, Ctrl/Cmd+R, hard reload) → same leave dialog. Toolbar refresh only hits beforeunload (browser-native prompt).
+  useEffect(() => {
+    if (stage !== 'taking' || !attemptId) return;
+    const isReloadChord = (e: KeyboardEvent) => {
+      if (e.code === 'F5') return true;
+      if (e.code === 'KeyR' && (e.ctrlKey || e.metaKey)) return true;
+      return false;
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!isReloadChord(e)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setLeaveDialogOpen(true);
+    };
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => window.removeEventListener('keydown', onKeyDown, true);
+  }, [stage, attemptId]);
+
+  useEffect(() => {
+    if (stage !== 'taking' || !attemptId) return;
+    const onOffline = () => setShowOfflineBar(true);
+    const onOnline = () => setShowOfflineBar(false);
+    window.addEventListener('offline', onOffline);
+    window.addEventListener('online', onOnline);
+    if (!navigator.onLine) setShowOfflineBar(true);
+    return () => {
+      window.removeEventListener('offline', onOffline);
+      window.removeEventListener('online', onOnline);
+    };
+  }, [stage, attemptId]);
+
+  const confirmLeaveExam = useCallback(async () => {
+    if (!attemptId || !uid) {
+      setLeaveDialogOpen(false);
+      return;
+    }
+    setAbandoning(true);
+    try {
+      const res = await abandonExam(uid, attemptId);
+      setLeaveDialogOpen(false);
+      if (res.suspended && res.suspended_until_ms) {
+        window.alert(
+          `Your account is temporarily suspended from starting new assessments until ${new Date(res.suspended_until_ms).toLocaleString()}.`
+        );
+      }
+      navigate(`/assessments/${assessmentId}/tier/${tier}/detail`, { replace: true });
+    } catch (e) {
+      Sentry.captureException(e);
+      setLeaveDialogOpen(false);
+      navigate(`/assessments/${assessmentId}/tier/${tier}/detail`, { replace: true });
+    } finally {
+      setAbandoning(false);
+    }
+  }, [attemptId, uid, assessmentId, tier, navigate]);
+
   const handlePreExamConfirm = useCallback(() => {
+    void document.documentElement.requestFullscreen?.().catch(() => {});
     setStage('taking');
-    doInitialize();
-  }, [doInitialize]);
+  }, []);
 
   const handleNext = useCallback(async () => {
     if (selectedOption === null || !attemptId || !currentQuestion) return;
@@ -342,6 +484,40 @@ const AssessmentTakePage: React.FC = () => {
     );
   }
 
+  if (stage === 'taking' && !needsPreExamStep && !integrityGateOk && !attemptId) {
+    return (
+      <Box sx={{ minHeight: '100vh', bgcolor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}>
+        <Dialog open maxWidth="sm" fullWidth disableEscapeKeyDown>
+          <DialogTitle sx={{ fontWeight: 800 }}>Exam integrity</DialogTitle>
+          <DialogContent>
+            <DialogContentText component="div" sx={{ color: 'text.primary', typography: 'body2', lineHeight: 1.65 }}>
+              <Typography component="p" sx={{ mb: 1.5 }}>
+                This exam uses standard integrity measures: copy, cut, and paste are disabled; context menus are limited; and staying away from this tab for too long will end your attempt.
+              </Typography>
+              <Typography component="p" sx={{ mb: 1.5 }}>
+                Fullscreen is recommended (your browser may ask for permission). Screenshots and sharing content may violate assessment rules.
+              </Typography>
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={() => navigate(`/assessments/${assessmentId}/tier/${tier}/detail`)} color="inherit">
+              Back
+            </Button>
+            <Button
+              variant="contained"
+              onClick={() => {
+                void document.documentElement.requestFullscreen?.().catch(() => {});
+                setIntegrityGateOk(true);
+              }}
+            >
+              I understand - begin
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Box>
+    );
+  }
+
   if (isInitializing) {
     return (
       <Box sx={{ minHeight: '100vh', bgcolor: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
@@ -349,9 +525,7 @@ const AssessmentTakePage: React.FC = () => {
         <Typography variant="h6" sx={{ color: '#334155', fontWeight: 700 }}>
           Preparing your assessment…
         </Typography>
-        <Typography variant="body2" sx={{ color: '#64748b' }}>
-          Selecting questions from the item bank
-        </Typography>
+      
       </Box>
     );
   }
@@ -387,6 +561,19 @@ const AssessmentTakePage: React.FC = () => {
   const progressPercent = totalQuestions > 0 ? ((currentIndex + (selectedOption !== null ? 0.5 : 0)) / totalQuestions) * 100 : 0;
   const questionNumber = currentIndex + 1;
 
+  const questionBodyEl = (
+    <ExamQuestionBody
+      assessmentId={assessmentId}
+      question={currentQuestion}
+      questionNumber={questionNumber}
+      totalQuestions={totalQuestions}
+      selectedOption={selectedOption}
+      onSelectOption={setSelectedOption}
+      theme={flow.theme}
+      renderMath={mathExam}
+    />
+  );
+
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#fff', display: 'flex', flexDirection: 'column' }}>
       <Box
@@ -396,22 +583,12 @@ const AssessmentTakePage: React.FC = () => {
           px: { xs: 1.5, sm: 2.5 },
           py: 1.5,
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr auto auto', sm: '1fr 1fr 1fr' },
+          gridTemplateColumns: { xs: '1fr auto', sm: '1fr auto auto' },
           alignItems: 'center',
           gap: 1,
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-          <Button
-            size="small"
-            startIcon={<ArrowBackIcon />}
-            onClick={() => navigate(`/assessments/${assessmentId}/tier/${tier}/detail`)}
-            sx={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem', minWidth: 0, px: 0.5 }}
-          >
-            <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
-              Exit
-            </Box>
-          </Button>
           <Typography
             sx={{
               fontWeight: 700,
@@ -451,27 +628,52 @@ const AssessmentTakePage: React.FC = () => {
         }}
       />
 
+      {showOfflineBar && (
+        <Alert severity="warning" sx={{ borderRadius: 0 }} onClose={() => setShowOfflineBar(false)}>
+          You appear to be offline. If you leave or refresh, this exam attempt may end and cannot be resumed (timer resets). Repeated interruptions can lead to a temporary account suspension.
+        </Alert>
+      )}
+
       {secondsLeft === 0 && flow.useTimer && (
         <Alert severity="warning" sx={{ borderRadius: 0 }}>
           Time is up - submit your answer and finish remaining questions promptly.
         </Alert>
       )}
 
+      {leftFullscreen && (
+        <Alert
+          severity="warning"
+          sx={{ borderRadius: 0 }}
+          onClose={dismissFullscreenWarning}
+          action={
+            <Button color="inherit" size="small" onClick={tryEnterFullscreen}>
+              Fullscreen
+            </Button>
+          }
+        >
+          Fullscreen was exited. Re-enter for the best secure exam experience (optional on some devices).
+        </Alert>
+      )}
+
+      {screenshotNudge && (
+        <Alert severity="warning" sx={{ borderRadius: 0 }} onClose={() => setScreenshotNudge(false)}>
+          Screenshots and sharing items may violate assessment integrity. Please keep the exam to yourself.
+        </Alert>
+      )}
+
       <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', py: { xs: 3, md: 5 }, px: { xs: 2, md: 4 } }}>
         <Box sx={{ width: '100%', maxWidth: 720 }}>
-          <ExamQuestionBody
-            assessmentId={assessmentId}
-            question={currentQuestion}
-            questionNumber={questionNumber}
-            totalQuestions={totalQuestions}
-            selectedOption={selectedOption}
-            onSelectOption={setSelectedOption}
-            theme={flow.theme}
-          />
+          {mathExam ? (
+            <MathJaxContext version={3} config={EXAM_MATHJAX_CONFIG}>
+              {questionBodyEl}
+            </MathJaxContext>
+          ) : (
+            questionBodyEl
+          )}
           <Typography variant="caption" sx={{ color: '#94a3b8', mt: 2, display: 'block', textAlign: 'center' }}>
             {inferQuestionInteraction(assessmentId, currentQuestion) === 'likert'
-              ? 'Keys 1–5 to select · Enter to continue'
-              : 'Keys 1–4 for options · Enter to continue'}
+              ? 'Keys 1 - 5 to select · Enter to continue'
+              : 'Keys 1 - 4 for options · Enter to continue'}
           </Typography>
         </Box>
       </Box>
@@ -526,8 +728,51 @@ const AssessmentTakePage: React.FC = () => {
           {currentIndex + 1 >= totalQuestions ? 'Submit' : 'Next'}
         </Button>
       </Box>
+
+      <Dialog
+        open={leaveDialogOpen}
+        onClose={() => !abandoning && setLeaveDialogOpen(false)}
+        disableEscapeKeyDown={abandoning}
+        slotProps={{
+          paper: {
+            sx: {
+              bgcolor: '#1e293b',
+              backgroundImage: 'none',
+              color: '#f8fafc',
+              maxWidth: 520,
+              width: '100%',
+              opacity: 1,
+              p: 0,
+              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+            },
+          },
+        }}
+      >
+        <DialogTitle sx={{ px: { xs: 2.5, sm: 3.5 }, pt: { xs: 3, sm: 3.5 }, pb: 2, fontWeight: 800, fontSize: '1.2rem' }}>
+          Leave this exam?
+        </DialogTitle>
+        <DialogContent sx={{ px: { xs: 2.5, sm: 3.5 }, pt: 0, pb: 2 }}>
+          <DialogContentText
+            component="div"
+            sx={{
+              m: 0,
+              color: 'rgba(248, 250, 252, 0.98)',
+              typography: 'body2',
+              lineHeight: 1.65,
+            }}
+          >
+            {EXAM_LEAVE_DIALOG_COPY}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: { xs: 2.5, sm: 3.5 }, pb: { xs: 3, sm: 3.5 }, pt: 0, gap: 1, flexWrap: 'wrap' }}>
+          <Button onClick={() => setLeaveDialogOpen(false)} disabled={abandoning} sx={{ color: '#f8fafc' }}>
+            Stay in exam
+          </Button>
+          <Button onClick={confirmLeaveExam} disabled={abandoning} color="error" variant="contained">
+            {abandoning ? 'Ending…' : 'End attempt & leave'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
-};
-
-export default AssessmentTakePage;
+}

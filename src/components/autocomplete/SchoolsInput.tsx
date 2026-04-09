@@ -126,12 +126,19 @@ const SchoolsInput: React.FC<SchoolsInputProps> = ({
                 </CommandItem>
               ))
             ) : (
-              <div
-                onClick={() => handleSelect("not-listed", "My school isn't listed")}
-                style={{ padding: '8px', cursor: 'pointer', backgroundColor: '#f3f4f6' }}
-              >
-                My school isn't listed
-              </div>
+              <>
+                {/* Re-enable when restoring open-registration combobox + "not listed" path (see StudentSchoolStepPage).
+                <div
+                  onClick={() => handleSelect("not-listed", "My school isn't listed")}
+                  style={{ padding: '8px', cursor: 'pointer', backgroundColor: '#f3f4f6' }}
+                >
+                  My school isn't listed
+                </div>
+                */}
+                <div className="px-2 py-6 text-center text-sm text-slate-500">
+                  No schools match your search.
+                </div>
+              </>
             )}
           </CommandList>
         </Command>

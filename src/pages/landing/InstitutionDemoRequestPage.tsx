@@ -98,7 +98,7 @@ const InstitutionDemoRequestPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
-      {/* Top nav – aligned with landing pages */}
+      {/* Top nav  -  aligned with landing pages */}
       <header className="sticky top-0 z-50 bg-white/90 border-b border-gray-200 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-4 sm:gap-6">
           <button
@@ -277,7 +277,7 @@ const InstitutionDemoRequestPage: React.FC = () => {
                     value={form.udisecode}
                     onChange={handleChange}
                     className="mt-1 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-900 shadow-xs focus:border-slate-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-200"
-                    placeholder="Optional – helps us locate your school"
+                    placeholder="Optional  -  helps us locate your school"
                   />
                   <p className="mt-1 text-xs text-slate-500">
                     India&apos;s universal school identifier. Find yours at{' '}
@@ -439,7 +439,7 @@ const InstitutionDemoRequestPage: React.FC = () => {
                 {/* Total students */}
                 <div>
                   <label className="block text-sm font-semibold text-slate-800 sm:text-[15px]">
-                    Total Students (Grades 6–12)
+                    Total Students (Grades 6 - 12)
                   </label>
                   <input
                     type="number"

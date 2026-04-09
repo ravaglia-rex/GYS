@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useMemo, useState } from 'react';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import {
   createUserWithEmailAndPassword,
   deleteUser,
@@ -8,6 +8,9 @@ import {
 } from 'firebase/auth';
 import * as Sentry from '@sentry/react';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
+import { useStudentSignupExit } from '../../contexts/StudentSignupExitContext';
+import { useStudentSignupExitGuard } from '../../hooks/useStudentSignupExitGuard';
+import StudentRegistrationRazorpayCheckout from '../../components/authentication/StudentRegistrationRazorpayCheckout';
 import { auth } from '../../firebase/firebase';
 import { runSignUpTransaction } from '../../db/signupTransaction';
 import { useToast } from '../../components/ui/use-toast';
@@ -15,8 +18,6 @@ import { LoadingSpinner as Spinner } from '../../components/ui/spinner';
 import analytics from '../../segment/segment';
 
 const GYS_BLUE = '#1e3a8a';
-
-type PaymentMethod = 'UPI' | 'CARD' | 'NET_BANKING';
 
 type MembershipLevelCode = 'LEVEL_1' | 'LEVEL_2' | 'LEVEL_3';
 
@@ -29,6 +30,8 @@ interface SignupFlowState {
   dob?: string;
   cityState?: string;
   schoolId?: string;
+  /** Free-text school from step 2 when email did not match any school list (school_id is not-listed). */
+  signupSchoolName?: string;
   homeLanguage?: string;
   aspiration?: string;
   heardFrom?: string;
@@ -37,11 +40,11 @@ interface SignupFlowState {
   membershipPrice?: string;
 }
 
-function membershipCodeToLevel(code: MembershipLevelCode | undefined): number {
+function membershipCodeToNumericLevel(code: MembershipLevelCode | undefined): 1 | 2 | 3 | null {
   if (code === 'LEVEL_1') return 1;
   if (code === 'LEVEL_2') return 2;
   if (code === 'LEVEL_3') return 3;
-  return 0;
+  return null;
 }
 
 const StudentPaymentPage: React.FC = () => {
@@ -51,15 +54,20 @@ const StudentPaymentPage: React.FC = () => {
   const { toast } = useToast();
 
   const membershipName = state.membershipName || 'Level 2 - Engage';
-  const membershipPrice = state.membershipPrice || '₹4,999';
+  const membershipPrice = state.membershipPrice || '₹1,299';
+  const membershipLevelCode = state.membershipLevel;
+  const numericLevel = useMemo(
+    () => membershipCodeToNumericLevel(membershipLevelCode),
+    [membershipLevelCode]
+  );
 
-  const [method, setMethod] = useState<PaymentMethod>('UPI');
-  const [upiId, setUpiId] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
+  const { requestLeave } = useStudentSignupExit();
 
+  useStudentSignupExitGuard(true);
+
+  const completeSignupAfterPayment = async (razorpayPaymentId: string) => {
     const {
       firstName,
       lastName,
@@ -69,13 +77,14 @@ const StudentPaymentPage: React.FC = () => {
       dob,
       cityState,
       schoolId,
+      signupSchoolName,
       homeLanguage,
       aspiration,
       heardFrom,
       membershipLevel,
     } = state;
 
-    if (!email || !password || !firstName || !lastName || !grade || !schoolId) {
+    if (!email || !password || !firstName || !lastName || !grade || !schoolId || !numericLevel) {
       toast({
         variant: 'destructive',
         title: 'Session expired',
@@ -97,15 +106,17 @@ const StudentPaymentPage: React.FC = () => {
       return;
     }
 
-    setIsSubmitting(true);
+    setIsCreatingAccount(true);
     let createdUser: User | null = null;
 
     try {
-      // Mock payment UI only — no payee/payment records until real Razorpay integration.
       const userCredential = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
       createdUser = userCredential.user;
 
-      const membership_level = membershipCodeToLevel(membershipLevel);
+      const membership_level = membershipCodeToNumericLevel(membershipLevel);
+      if (!membership_level) {
+        throw new Error('Invalid membership level');
+      }
 
       await runSignUpTransaction({
         uid: userCredential.user.uid,
@@ -122,7 +133,9 @@ const StudentPaymentPage: React.FC = () => {
         ...(homeLanguage && { home_language: homeLanguage }),
         ...(aspiration && { aspiration }),
         ...(heardFrom && { heard_from: heardFrom }),
-        ...(membership_level > 0 && { membership_level }),
+        ...(signupSchoolName?.trim() && { signup_school_name: signupSchoolName.trim() }),
+        membership_level,
+        razorpay_payment_id: razorpayPaymentId,
       });
 
       await sendEmailVerification(userCredential.user);
@@ -137,6 +150,7 @@ const StudentPaymentPage: React.FC = () => {
         aspiration,
         heardFrom,
         membershipLevel: membershipLevel ?? null,
+        razorpay: true,
       });
 
       toast({
@@ -182,7 +196,7 @@ const StudentPaymentPage: React.FC = () => {
       }
 
       Sentry.withScope((scope) => {
-        scope.setTag('location', 'StudentPaymentPage.handleSubmit');
+        scope.setTag('location', 'StudentPaymentPage.completeSignupAfterPayment');
         scope.setExtra('email', normalizedEmail);
         scope.setExtra('schoolId', schoolId);
         Sentry.captureException(error);
@@ -191,12 +205,19 @@ const StudentPaymentPage: React.FC = () => {
       toast({
         variant: 'destructive',
         title: 'Could not complete signup',
-        description: err?.message || 'Something went wrong. Please try again.',
+        description: err?.message || 'Something went wrong. If you were charged, contact support with your payment id.',
       });
     } finally {
-      setIsSubmitting(false);
+      setIsCreatingAccount(false);
     }
   };
+
+  if (!numericLevel) {
+    return <Navigate to="/students/register/membership" replace state={location.state} />;
+  }
+  if (!state.email || !state.password) {
+    return <Navigate to="/students/register" replace />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -204,7 +225,7 @@ const StudentPaymentPage: React.FC = () => {
         <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={() => requestLeave(() => navigate(-1))}
             className="group flex items-center gap-1 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors duration-200 hover:bg-slate-100 rounded-lg px-1 py-0.5 -ml-1"
           >
             <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-300 text-xs transition-all duration-200 group-hover:border-slate-400">
@@ -221,12 +242,8 @@ const StudentPaymentPage: React.FC = () => {
               GYS
             </div>
             <div>
-              <h1 className="font-bold text-lg text-gray-900 tracking-tight">
-                Global Young Scholar
-              </h1>
-              <p className="text-xs text-gray-500">
-                Powered by Argus, Access USA, EducationWorld
-              </p>
+              <h1 className="font-bold text-lg text-gray-900 tracking-tight">Global Young Scholar</h1>
+              <p className="text-xs text-gray-500">Powered by Argus, Access USA, EducationWorld</p>
             </div>
           </div>
 
@@ -238,172 +255,49 @@ const StudentPaymentPage: React.FC = () => {
 
       <main className="mx-auto flex max-w-3xl flex-col px-4 pb-12 pt-6 sm:px-6">
         <section className="rounded-2xl bg-white p-5 sm:p-7 shadow-md ring-1 ring-slate-100">
-          {/* Order summary */}
           <p className="text-sm sm:text-base font-semibold uppercase tracking-wide text-slate-500">
-            Order Summary
+            Order summary
           </p>
           <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-5 sm:px-7 sm:py-6 shadow-sm">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-base sm:text-xl font-semibold text-slate-900">
-                  {membershipName}
-                </p>
+                <p className="text-base sm:text-xl font-semibold text-slate-900">{membershipName}</p>
                 <p className="mt-1 text-xs sm:text-sm text-slate-600">
-                  Annual membership • 5 assessments • Cross-synthesis reports
+                  Annual membership • Charged in INR (includes 18% GST at checkout)
                 </p>
               </div>
               <div className="text-right">
                 <p className="text-xl sm:text-2xl font-semibold" style={{ color: GYS_BLUE }}>
                   {membershipPrice}
                 </p>
+                <p className="text-xs text-slate-500 mt-1">+ GST in Razorpay total</p>
               </div>
             </div>
           </div>
 
-          {/* Payment form */}
-          <form onSubmit={handleSubmit} className="mt-5 space-y-5">
-            <div>
-              <p className="text-sm sm:text-base font-bold text-slate-700">Payment Method</p>
+          <p className="mt-5 text-sm text-slate-600 leading-relaxed">
+            Pay with Razorpay (UPI, cards, net banking). After payment succeeds, we create your account with the email
+            you used in step 1: <span className="font-medium text-slate-800">{state.email}</span>
+          </p>
 
-              <div className="mt-3 space-y-2">
-                <button
-                  type="button"
-                  onClick={() => setMethod('UPI')}
-                  className={`w-full rounded-2xl border px-4 py-3 text-sm sm:text-lg text-left ${
-                    method === 'UPI'
-                      ? 'border-blue-600 bg-blue-50'
-                      : 'border-slate-200 bg-white hover:bg-slate-50'
-                  } transition-colors duration-150`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`inline-flex h-4 w-4 items-center justify-center rounded-full border ${
-                        method === 'UPI' ? 'border-blue-600 bg-blue-600' : 'border-slate-400 bg-white'
-                      }`}
-                    >
-                      <span className="h-2 w-2 rounded-full bg-white" />
-                    </span>
-                    <div>
-                      <p className="font-semibold text-slate-900 text-base sm:text-lg">
-                        <span className="mr-1.5" aria-hidden="true">
-                          📱
-                        </span>
-                        UPI
-                      </p>
-                    </div>
-                  </div>
-                  <p className="mt-1 text-xs sm:text-sm text-slate-500">
-                    Google Pay, PhonePe, Paytm, or any UPI app
-                  </p>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setMethod('CARD')}
-                  className={`w-full rounded-2xl border px-4 py-3 text-sm sm:text-lg text-left ${
-                    method === 'CARD'
-                      ? 'border-blue-600 bg-blue-50'
-                      : 'border-slate-200 bg-white hover:bg-slate-50'
-                  } transition-colors duration-150`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`inline-flex h-4 w-4 items-center justify-center rounded-full border ${
-                        method === 'CARD' ? 'border-blue-600 bg-blue-600' : 'border-slate-400 bg-white'
-                      }`}
-                    >
-                      <span className="h-2 w-2 rounded-full bg-white" />
-                    </span>
-                    <div>
-                      <p className="font-semibold text-slate-900 text-base sm:text-lg">
-                        <span className="mr-1.5" aria-hidden="true">
-                          💳
-                        </span>
-                        Credit / Debit Card
-                      </p>
-                    </div>
-                  </div>
-                  <p className="mt-1 text-xs sm:text-sm text-slate-500">
-                    Visa, Mastercard, Rupay
-                  </p>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setMethod('NET_BANKING')}
-                  className={`w-full rounded-2xl border px-4 py-3 text-sm sm:text-lg text-left ${
-                    method === 'NET_BANKING'
-                      ? 'border-blue-600 bg-blue-50'
-                      : 'border-slate-200 bg-white hover:bg-slate-50'
-                  } transition-colors duration-150`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`inline-flex h-4 w-4 items-center justify-center rounded-full border ${
-                        method === 'NET_BANKING'
-                          ? 'border-blue-600 bg-blue-600'
-                          : 'border-slate-400 bg-white'
-                      }`}
-                    >
-                      <span className="h-2 w-2 rounded-full bg-white" />
-                    </span>
-                    <div>
-                      <p className="font-semibold text-slate-900 text-base sm:text-lg">
-                        <span className="mr-1.5" aria-hidden="true">
-                          🏦
-                        </span>
-                        Net Banking
-                      </p>
-                    </div>
-                  </div>
-                  <p className="mt-1 text-xs sm:text-sm text-slate-500">
-                    All major Indian banks
-                  </p>
-                </button>
-              </div>
+          {isCreatingAccount ? (
+            <div className="mt-6 flex flex-col items-center gap-3 py-8">
+              <Spinner />
+              <p className="text-sm text-slate-600">Creating your account…</p>
             </div>
+          ) : (
+            <StudentRegistrationRazorpayCheckout
+              email={state.email}
+              membershipLevel={numericLevel}
+              planLabel={membershipName}
+              onPaymentVerified={completeSignupAfterPayment}
+            />
+          )}
 
-            {method === 'UPI' && (
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-sm sm:text-base font-bold text-slate-700">
-                    Enter UPI ID or scan QR
-                  </label>
-                  <input
-                    type="text"
-                    value={upiId}
-                    onChange={(e) => setUpiId(e.target.value)}
-                    className="mt-1.5 w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm sm:text-lg text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
-                    placeholder="yourname@upi"
-                  />
-                </div>
-
-                <div className="flex items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
-                  <div>
-                    <div className="h-20 w-20 mx-auto rounded-lg border border-slate-300 border-dashed" />
-                    <p className="mt-3 text-xs sm:text-sm text-slate-500">
-                      [ QR Code ]<br />
-                      Scan with any UPI app
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-blue-600 px-4 py-3 text-base sm:text-lg font-semibold text-white shadow-md hover:bg-blue-700 transition-colors duration-200 disabled:cursor-not-allowed disabled:bg-blue-400"
-            >
-              {isSubmitting ? <Spinner /> : `Pay ${membershipPrice} →`}
-            </button>
-
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-4 border-t border-slate-200 pt-3 text-xs sm:text-sm text-slate-500">
-              <span>🔒 SSL Encrypted</span>
-              <span>🛡️ Razorpay Secure</span>
-              <span>🏦 RBI Compliant</span>
-            </div>
-          </form>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-4 border-t border-slate-200 pt-3 text-xs sm:text-sm text-slate-500">
+            <span>🔒 SSL Encrypted</span>
+            <span>🛡️ Razorpay Secure</span>
+          </div>
         </section>
       </main>
     </div>
@@ -411,4 +305,3 @@ const StudentPaymentPage: React.FC = () => {
 };
 
 export default StudentPaymentPage;
-

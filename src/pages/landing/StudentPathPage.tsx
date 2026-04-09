@@ -100,13 +100,20 @@ const StudentPathPage: React.FC = () => {
               Take world-class assessments, get your global tier, and build a profile that top universities
               notice.
             </p>
-            <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+            <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center sm:flex-wrap">
               <button
                 type="button"
                 onClick={() => navigate('/students/preview/dashboard')}
                 className="w-full max-w-sm rounded-xl border-2 border-white/40 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm transition-all duration-200 hover:bg-white/20 hover:border-white/60 sm:w-auto"
               >
                 Try the sample dashboard - no account
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/for-schools/preview/assessment')}
+                className="w-full max-w-sm rounded-xl border-2 border-white/40 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm transition-all duration-200 hover:bg-white/20 hover:border-white/60 sm:w-auto"
+              >
+                Try the sample assessment - no account
               </button>
             </div>
           </div>
@@ -126,7 +133,7 @@ const StudentPathPage: React.FC = () => {
               {
                 icon: '🧠',
                 title: '7 Assessments',
-                body: 'Reasoning triad, personality profiles, English fluency, AI literacy, and comprehensive personality—benchmarked globally.',
+                body: 'Up to seven exams: reasoning triad and basic personality (Level 2), plus advanced English, AI literacy, and comprehensive personality with Level 3-benchmarked globally.',
               },
               {
                 icon: '📊',
@@ -277,19 +284,19 @@ const StudentPathPage: React.FC = () => {
               {
                 name: 'Level 1 - Explore',
                 desc: 'Assessment 1 + basic report + tier placement',
-                price: '₹999/yr',
+                price: '₹499/yr',
                 bg: 'bg-[#e5f3ff]',
               },
               {
                 name: 'Level 2 - Engage',
-                desc: 'Assessments 1–3 (reasoning triad) + cross-synthesis',
-                price: '₹4,999/yr',
+                desc: 'Exams 1 - 4: reasoning triad + basic personality + cross-synthesis',
+                price: '₹1,299/yr',
                 bg: 'bg-[#fff7e0]',
               },
               {
                 name: 'Level 3 - Excel',
-                desc: 'All assessments + personality + English + college guidance',
-                price: '₹9,999/yr',
+                desc: 'All 7 exams: advanced English, AI, comprehensive personality + guidance',
+                price: '₹2,499/yr',
                 bg: 'bg-[#f9e8ff]',
               },
             ].map((tier, index) => (
@@ -317,16 +324,18 @@ const StudentPathPage: React.FC = () => {
         {/* Final CTAs */}
         <section className="mt-12 sm:mt-16">
           <div className="mx-auto flex max-w-xl flex-col items-center gap-3">
-            <div
-              className="inline-flex w-full cursor-not-allowed items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-100 px-14 py-3.5 text-sm font-semibold text-slate-500 sm:text-base"
-              role="status"
-              aria-label="Student signup coming soon"
+            <button
+              type="button"
+              onClick={() => navigate('/students/register')}
+              className="inline-flex w-full items-center justify-center rounded-2xl px-14 py-3.5 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98] sm:text-base"
+              style={{ backgroundColor: GYS_BLUE }}
+              aria-label="Sign up as a student"
             >
-              Sign Up - Coming soon!
-            </div>
+              Sign Up
+            </button>
             <p className="text-center text-sm text-slate-600 sm:text-base">
-              Keep an eye out, student signup isn&apos;t open yet. Try the sample dashboard above to explore
-              the experience!
+              Create your account with your school email, or try the sample dashboard above to explore the
+              experience first.
             </p>
           </div>
         </section>

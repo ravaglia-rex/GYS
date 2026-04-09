@@ -261,7 +261,7 @@ const AssessmentDetailPage: React.FC = () => {
                 'College matching & fit analysis',
                 'Counselor sessions (per plan)',
                 'Comprehensive guidance reporting',
-                'Everything in Level 1 + Level 2',
+                'Everything in Level 2 (Exams 1 - 4) plus Exams 5 - 7',
               ].map((t) => (
                 <Typography key={t} sx={{ fontSize: '0.82rem', color: '#4a148c', pl: 1, mb: 0.5, '&:before': { content: '"✓ "', fontWeight: 800 } }}>
                   {t}
@@ -279,7 +279,7 @@ const AssessmentDetailPage: React.FC = () => {
           <Button
             fullWidth
             variant="contained"
-            onClick={() => navigate('/payments')}
+            onClick={() => navigate('/payments#membership-upgrade')}
             sx={{
               py: 1.5,
               borderRadius: 2,

@@ -17,9 +17,17 @@ import { getPayments } from '../../db/studentPaymentMappings';
 import { getPhase2ExamResponse } from '../../db/phase2ExamResponsesCollection';
 import { normalizeMembershipLevel, NON_COMPETITIVE_CHART_ASSESSMENT_IDS } from '../../utils/assessmentGating';
 
+/** When the student doc has no level, infer tier from last payment (₹499 / ₹1,299 / ₹2,499 and legacy ₹999 / ₹4,999 / ₹9,999, incl. typical GST). */
+function membershipLabelFromPaymentAmountInr(amount: number): string {
+  if (amount < 1200) return 'Level 1 - Explore';
+  if (amount >= 4000 && amount < 8000) return 'Level 2 - Engage';
+  if (amount < 2200) return 'Level 2 - Engage';
+  return 'Level 3 - Excel';
+}
+
 export type AssessmentChartRow = { subject: string; score: number; assessmentId?: string };
 
-/** Phase 2 chart rows use raw section totals; program assessments pass score as 0–100 (best tier %). */
+/** Phase 2 chart rows use raw section totals; program assessments pass score as 0 - 100 (best tier %). */
 const ColumnChart: React.FC<{ data: AssessmentChartRow[]; isPhase2?: boolean }> = ({ data, isPhase2 }) => {
   const phase2Max = { reading: 32, writing: 16, logic: 10, math: 22 };
 
@@ -483,12 +491,8 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                 } else {
                   setMembershipLevel(levelMap[levelFromStudent as keyof typeof levelMap] ?? String(levelFromStudent));
                 }
-              } else if (latest.amount < 2000) {
-                setMembershipLevel('Level 1 - Explore');
-              } else if (latest.amount < 7000) {
-                setMembershipLevel('Level 2 - Engage');
               } else {
-                setMembershipLevel('Level 3 - Excel');
+                setMembershipLevel(membershipLabelFromPaymentAmountInr(latest.amount));
               }
               const baseDate = new Date(latest.paid_on);
               setMembershipExpiry(

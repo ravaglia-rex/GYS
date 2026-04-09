@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../components/ui/use-toast';
-import { registerSchool } from '../../db/schoolCollection';
+import { registerSchool, resumeSchoolCheckout } from '../../db/schoolCollection';
 import * as Sentry from '@sentry/react';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
+import SchoolRazorpayCheckout from '../../components/school-registration/SchoolRazorpayCheckout';
 
 const GYS_BLUE = '#1e3a8a';
 
@@ -56,6 +57,12 @@ const INDIAN_STATES = [
   'Puducherry',
 ];
 
+/**
+ * Match backend `SCHOOL_RAZORPAY_TEST_AMOUNTS` + default (non-micro) test prices.
+ * Default test charges are ₹100 / ₹200 / ₹300 (see `SCHOOL_RAZORPAY_MICRO_TEST` on API for ₹1/₹2/₹3).
+ */
+const SCHOOL_PAY_TEST = process.env.REACT_APP_SCHOOL_RAZORPAY_TEST_AMOUNTS === 'true';
+
 const REFERRAL_SOURCES = [
   'EducationWorld Magazine / Website',
   'Another school recommended it',
@@ -71,8 +78,8 @@ const PLANS = [
   {
     id: 'entry',
     name: 'Entry',
-    price: '₹2,00,000',
-    priceNum: 200000,
+    price: SCHOOL_PAY_TEST ? '₹100' : '₹2,00,000',
+    priceNum: SCHOOL_PAY_TEST ? 100 : 200000,
     period: '/yr',
     tagline: 'Core benchmarking for one assessment',
     features: [
@@ -86,12 +93,12 @@ const PLANS = [
   {
     id: 'standard',
     name: 'Standard',
-    price: '₹3,00,000',
-    priceNum: 300000,
+    price: SCHOOL_PAY_TEST ? '₹200' : '₹3,00,000',
+    priceNum: SCHOOL_PAY_TEST ? 200 : 300000,
     period: '/yr',
-    tagline: 'Full reasoning triad with deep analytics',
+    tagline: 'Reasoning triad, basic personality & deep analytics',
     features: [
-      'Assessments 1–3 (reasoning triad)',
+      'Assessments 1 - 4 (reasoning triad + basic personality)',
       'Full analytics & subscore breakdowns',
       'Grade-level analysis',
       'Comparative benchmarks (national, regional)',
@@ -103,8 +110,8 @@ const PLANS = [
   {
     id: 'premium',
     name: 'Premium',
-    price: '₹5,00,000',
-    priceNum: 500000,
+    price: SCHOOL_PAY_TEST ? '₹300' : '₹5,00,000',
+    priceNum: SCHOOL_PAY_TEST ? 300 : 500000,
     period: '/yr',
     tagline: 'Everything in Standard, plus consulting',
     features: [
@@ -135,6 +142,10 @@ const SchoolRegistrationPage: React.FC = () => {
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [registeredSchoolId, setRegisteredSchoolId] = useState<string | null>(null);
+  const [registeredPocEmail, setRegisteredPocEmail] = useState<string | null>(null);
+  const [registeredCheckoutSecret, setRegisteredCheckoutSecret] = useState<string | null>(null);
+  const [paymentComplete, setPaymentComplete] = useState(false);
+  const [resumingCheckout, setResumingCheckout] = useState(false);
 
   // Step 1: School Identity
   const [schoolName, setSchoolName] = useState('');
@@ -193,7 +204,12 @@ const SchoolRegistrationPage: React.FC = () => {
 
   const validateStep1 = (): boolean => {
     const newErrors: Record<string, string> = {};
-    if (!schoolName.trim()) newErrors.schoolName = 'Please enter your school name.';
+    const trimmed = schoolName.trim();
+    if (!trimmed) {
+      newErrors.schoolName = 'Please enter your school name.';
+    } else if (trimmed.length < 2) {
+      newErrors.schoolName = 'School name must be at least 2 characters.';
+    }
     if (!confirmSchoolName.trim()) {
       newErrors.confirmSchoolName = 'Please re-type your school name to confirm.';
     } else if (schoolName.trim() !== confirmSchoolName.trim()) {
@@ -267,7 +283,7 @@ const SchoolRegistrationPage: React.FC = () => {
     const newErrors: Record<string, string> = {};
     if (!commitToPay) {
       newErrors.commitToPay =
-        'Please confirm that your institution will complete payment after we share the process and details.';
+        'Please confirm that your institution will complete payment (secure checkout on the next step).';
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -289,6 +305,26 @@ const SchoolRegistrationPage: React.FC = () => {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!validateStep4()) return;
+
+    const sn = schoolName.trim();
+    const cn = confirmSchoolName.trim();
+    if (!sn || !cn) {
+      toast({
+        variant: 'destructive',
+        title: 'School name missing',
+        description:
+          'Your form may have reset (e.g. refresh or hot reload). Go back to Step 1 and re-enter your school name, then continue through the steps.',
+      });
+      return;
+    }
+    if (sn.length < 2) {
+      toast({
+        variant: 'destructive',
+        title: 'School name too short',
+        description: 'Use at least 2 characters for the official school name (Step 1).',
+      });
+      return;
+    }
 
     const filledEmails = emails
       .map((e) => e.trim().toLowerCase())
@@ -316,6 +352,8 @@ const SchoolRegistrationPage: React.FC = () => {
         commit_to_pay: commitToPay,
       });
       setRegisteredSchoolId(result.schoolId);
+      setRegisteredPocEmail(result.pocEmail);
+      setRegisteredCheckoutSecret(result.checkoutSecret);
       setSubmitted(true);
     } catch (err: unknown) {
       Sentry.withScope((scope) => {
@@ -357,25 +395,129 @@ const SchoolRegistrationPage: React.FC = () => {
 
   const currentPlan = PLANS.find((p) => p.id === selectedPlan)!;
 
-  // ── Success Screen ────────────────────────────────────────────────────────
+  // ── Post-submit: Razorpay checkout (until payment verified) ────────────────
 
-  if (submitted) {
+  if (
+    submitted &&
+    !paymentComplete &&
+    registeredSchoolId &&
+    registeredPocEmail &&
+    registeredCheckoutSecret
+  ) {
+    return (
+      <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
+        <Header onBack={() => navigate('/for-schools')} />
+        <main className="flex flex-1 items-center justify-center px-4 py-12">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-7 shadow-md ring-1 ring-slate-100 text-center">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50">
+              <span className="text-3xl">💳</span>
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900">Complete payment</h2>
+            <p className="mt-3 text-sm text-slate-600 leading-relaxed">
+              <span className="font-semibold">{schoolName}</span> is registered for the{' '}
+              <span className="font-semibold">{currentPlan.name}</span> plan (
+              <span className="font-semibold">{currentPlan.price}</span>
+              {SCHOOL_PAY_TEST ? ' sandbox test charge' : '/yr'} + GST as applicable). Pay below with UPI, cards, or net
+              banking.
+            </p>
+            {SCHOOL_PAY_TEST && (
+              <div className="mt-2 space-y-2 text-left">
+                <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-950 leading-relaxed">
+                  <span className="font-semibold">Sandbox mode:</span> these amounts are test-only (Entry ₹100, Standard
+                  ₹200, Premium ₹300). Use Razorpay&apos;s India test guides -{' '}
+                  <a
+                    href="https://razorpay.com/docs/payments/payments/test-card-details/?preferred-country=IN"
+                    className="font-medium underline underline-offset-2"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Cards
+                  </a>
+                  {' · '}
+                  <a
+                    href="https://razorpay.com/docs/payments/payments/test-card-upi-details/?preferred-country=IN"
+                    className="font-medium underline underline-offset-2"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    UPI
+                  </a>
+                  . If a card fails, try UPI or another method from the same pages. When Checkout asks for a mobile
+                  number, use a <span className="font-semibold">real-looking</span> one (not all identical digits) -
+                  Razorpay can block dummy contact data on cross-border INR flows. US merchants: see also{' '}
+                  <a
+                    href="https://razorpay.com/docs/payments/international-payments/?preferred-country=US"
+                    className="font-medium underline underline-offset-2"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    International payments (US)
+                  </a>
+                  .
+                </p>
+                {process.env.NODE_ENV === 'development' && (
+                  <p className="rounded-lg border border-amber-200/80 bg-white px-3 py-2 text-[11px] text-slate-700 leading-relaxed font-mono">
+                    Dev: Checkout uses <span className="text-slate-900">key_id</span> from{' '}
+                    <span className="text-slate-900">createSchoolOrder</span> (<span className="text-slate-900">
+                      RAZORPAY_KEY_ID
+                    </span>
+                    /SECRET on the API), not <span className="text-slate-900">REACT_APP_RAZORPAY_KEY_ID</span>. ₹1/2/3
+                    test: <span className="text-slate-900">SCHOOL_RAZORPAY_MICRO_TEST=true</span>. Production prices:{' '}
+                    <span className="text-slate-900">SCHOOL_RAZORPAY_TEST_AMOUNTS=false</span> + unset{' '}
+                    <span className="text-slate-900">REACT_APP_SCHOOL_RAZORPAY_TEST_AMOUNTS</span>. US/cross-border: no
+                    dummy phone in Checkout prefill (Razorpay intl docs); enter a real-looking mobile in the Razorpay
+                    modal. <span className="text-slate-900">rzp_test_us_*</span> keys are normal for that product.
+                    Optional: <span className="text-slate-900">RAZORPAY_CHECKOUT_CONFIG_ID</span> on API (Dashboard
+                    payment config) - echoed to Checkout when set.
+                  </p>
+                )}
+              </div>
+            )}
+            <p className="mt-2 text-xs text-slate-500 font-mono break-all">
+              Reference: {registeredSchoolId}
+            </p>
+            <SchoolRazorpayCheckout
+              schoolId={registeredSchoolId}
+              checkoutSecret={registeredCheckoutSecret}
+              schoolName={schoolName.trim()}
+              pocEmail={registeredPocEmail}
+              planName={currentPlan.name}
+              onSuccess={() => setPaymentComplete(true)}
+            />
+            <p className="mt-4 text-xs text-slate-500 leading-relaxed">
+              Problems with checkout? Email{' '}
+              <a
+                href="mailto:schools@globalyoungscholar.com"
+                className="font-medium underline underline-offset-2"
+                style={{ color: GYS_BLUE }}
+              >
+                schools@globalyoungscholar.com
+              </a>{' '}
+              with your school name and reference.
+            </p>
+          </div>
+        </main>
+        <PageFooter />
+      </div>
+    );
+  }
+
+  // ── Success Screen (payment done, or fallback if checkout state incomplete) ─
+
+  if (submitted && paymentComplete) {
     return (
       <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
         <Header onBack={() => navigate('/for-schools')} />
         <main className="flex flex-1 items-center justify-center px-4 py-12">
           <div className="w-full max-w-lg rounded-2xl bg-white p-7 shadow-md ring-1 ring-slate-100 text-center">
             <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50">
-              <span className="text-3xl">🏫</span>
+              <span className="text-3xl">✓</span>
             </div>
-            <h2 className="text-2xl font-bold text-slate-900">Registration complete</h2>
+            <h2 className="text-2xl font-bold text-slate-900">Registration &amp; payment complete</h2>
             <p className="mt-3 text-sm text-slate-600 leading-relaxed">
-              Thank you for registering{' '}
-              <span className="font-semibold">{schoolName}</span> on the GYS portal. You selected
-              the <span className="font-semibold">{currentPlan.name}</span> plan. Our team will
-              contact you shortly with payment instructions and next steps. Completing this
-              registration confirms that your institution intends to subscribe and will pay once
-              those details are shared-no payment is required on this form.
+              Thank you. <span className="font-semibold">{schoolName}</span> is on the{' '}
+              <span className="font-semibold">{currentPlan.name}</span> plan and your Razorpay
+              payment was recorded. Our team may follow up with onboarding and GST documentation.
             </p>
             {registeredSchoolId && (
               <p className="mt-2 text-xs text-slate-500 font-mono break-all">
@@ -383,7 +525,7 @@ const SchoolRegistrationPage: React.FC = () => {
               </p>
             )}
             <p className="mt-3 text-xs text-slate-500 leading-relaxed">
-              Expect to hear from us within 2–3 business days. For urgent queries reach out at{' '}
+              Questions?{' '}
               <a
                 href="mailto:schools@globalyoungscholar.com"
                 className="font-medium underline underline-offset-2"
@@ -400,6 +542,73 @@ const SchoolRegistrationPage: React.FC = () => {
             >
               Back to For Schools
             </button>
+          </div>
+        </main>
+        <PageFooter />
+      </div>
+    );
+  }
+
+  if (submitted) {
+    const canResumePayment = Boolean(registeredSchoolId && registeredPocEmail);
+
+    const handleResumeCheckout = async () => {
+      if (!registeredSchoolId || !registeredPocEmail) return;
+      setResumingCheckout(true);
+      try {
+        const { checkoutSecret } = await resumeSchoolCheckout(
+          registeredSchoolId,
+          registeredPocEmail
+        );
+        setRegisteredCheckoutSecret(checkoutSecret);
+        toast({
+          title: 'Ready for payment',
+          description: 'Open Razorpay below to complete checkout.',
+        });
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Could not resume checkout.';
+        toast({ variant: 'destructive', title: 'Could not load payment', description: message });
+      } finally {
+        setResumingCheckout(false);
+      }
+    };
+
+    return (
+      <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
+        <Header onBack={() => navigate('/for-schools')} />
+        <main className="flex flex-1 items-center justify-center px-4 py-12">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-7 shadow-md ring-1 ring-slate-100 text-center">
+            <h2 className="text-lg font-semibold text-slate-900">Payment step needs a refresh</h2>
+            <p className="mt-3 text-sm text-slate-600 leading-relaxed">
+              Your school registration was saved, but this browser session did not keep the secure
+              payment token (for example after a refresh, or if the API response was trimmed).
+            </p>
+            {registeredSchoolId && (
+              <p className="mt-3 text-xs text-slate-500 font-mono break-all">
+                Reference: {registeredSchoolId}
+              </p>
+            )}
+            {canResumePayment ? (
+              <button
+                type="button"
+                disabled={resumingCheckout}
+                onClick={() => void handleResumeCheckout()}
+                className="mt-5 w-full rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-md hover:brightness-110 active:scale-95 transition-all disabled:opacity-60"
+                style={{ backgroundColor: GYS_BLUE }}
+              >
+                {resumingCheckout ? 'Loading…' : 'Continue to payment'}
+              </button>
+            ) : null}
+            <p className="mt-4 text-xs text-slate-500">
+              If this keeps failing, ensure the Functions emulator or deployed API includes{' '}
+              <span className="font-mono text-[11px]">resumeSchoolCheckout</span> and your latest{' '}
+              <span className="font-mono text-[11px]">registerSchool</span> code, then try again. Or
+              contact{' '}
+              <a href="mailto:schools@globalyoungscholar.com" className="underline" style={{ color: GYS_BLUE }}>
+                schools@globalyoungscholar.com
+              </a>
+              .
+            </p>
           </div>
         </main>
         <PageFooter />
@@ -819,7 +1028,7 @@ const SchoolRegistrationPage: React.FC = () => {
                 Points of Contact
               </h1>
               <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Add <span className="font-semibold">1–5 email addresses</span> for school officials
+                Add <span className="font-semibold">1 - 5 email addresses</span> for school officials
                 who should have access to your school's reports and data on the GYS portal.
               </p>
 
@@ -929,8 +1138,8 @@ const SchoolRegistrationPage: React.FC = () => {
                 Select a plan
               </h1>
               <p className="mt-2 text-xs sm:text-sm text-slate-600">
-                Choose the institutional subscription that fits your school. Payment is not collected
-                here-we will email you with the process and banking or invoice details.
+                Choose the institutional subscription that fits your school. After you submit this
+                form, you will complete payment securely via Razorpay (UPI, cards, net banking).
               </p>
 
               {/* Plan cards */}
@@ -1032,11 +1241,10 @@ const SchoolRegistrationPage: React.FC = () => {
 
               <div className="mt-6 rounded-xl border border-amber-100 bg-amber-50/80 px-4 py-3">
                 <p className="text-xs text-amber-950 leading-relaxed">
-                  <span className="font-semibold">Payment next steps</span>{' '}
-                  We are finalising our billing workflow. After you submit, our team will reach out
-                  with the payment process (invoice, bank details, or approved gateway-whatever
-                  applies). Submitting this form does not charge your school; it records your plan
-                  choice and your agreement to complete payment when we send instructions.
+                  <span className="font-semibold">Payment</span>{' '}
+                  Submitting registers your school and chosen plan. The next screen opens Razorpay
+                  checkout for the plan fee (plus GST as shown at payment). You can use test cards in
+                  Razorpay test mode.
                 </p>
               </div>
 
@@ -1054,8 +1262,8 @@ const SchoolRegistrationPage: React.FC = () => {
                 <label htmlFor="commit-to-pay" className="text-xs sm:text-sm text-slate-700 leading-relaxed cursor-pointer">
                   On behalf of our institution, we confirm that we intend to subscribe at the plan
                   selected above and{' '}
-                  <span className="font-semibold">will complete payment</span> after Global Young
-                  Scholar shares payment details and instructions with us.
+                  <span className="font-semibold">will complete payment</span> on the Razorpay step
+                  that follows this form.
                 </label>
               </div>
               {errors.commitToPay && (

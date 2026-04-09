@@ -19,6 +19,10 @@ export type NewStudent = {
     aspiration?: string;
     heard_from?: string;
     city_state?: string;
+    /** When school_id is not-listed: name the student entered at signup. */
+    signup_school_name?: string;
+    /** From verifyStudentRegistrationPayment when membership_level ≥ 1 */
+    razorpay_payment_id?: string;
 };
 
 // No auth token needed - called during signup before the user has a verified token.

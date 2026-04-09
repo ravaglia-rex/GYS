@@ -3,7 +3,7 @@
 export interface SubscoreRow {
   id: string;
   label: string;
-  /** 0–99 percentile-style display */
+  /** 0 - 99 percentile-style display */
   percentile: number;
 }
 

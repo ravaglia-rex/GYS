@@ -217,7 +217,7 @@ const AssessmentResultPage: React.FC = () => {
               </Typography>
               <Typography sx={{ color: '#37474f', fontSize: '0.85rem', lineHeight: 1.55 }}>{unlock}</Typography>
               <Typography sx={{ color: '#78909c', fontSize: '0.72rem', mt: 1, lineHeight: 1.45 }}>
-                Higher membership levels include additional instruments. Level 2+ students see Exams 4–7 per plan.
+                Higher membership levels include additional instruments. Level 2 includes through Exam 4 (basic personality); Level 3 includes all seven exams.
               </Typography>
             </Box>
           </Box>

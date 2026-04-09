@@ -38,7 +38,7 @@ import {
 } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { collection, query, where, getDocs, getDoc, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase/firebase';
 import {
   getSchoolDashboard,
@@ -225,20 +225,6 @@ const SchoolAdminStudentsPage: React.FC = () => {
       }
       const dashByUid = new Map(dashboardStudents.map(s => [s.uid, s]));
 
-      const uidList = studentsSnap.docs.map(d => d.id);
-      const emailByUid: Record<string, string> = {};
-      await Promise.all(
-        uidList.map(async uid => {
-          try {
-            const snap = await getDoc(doc(db, 'student_email_mappings', uid));
-            const em = (snap.exists() ? (snap.data() as { email?: string })?.email : '') || '';
-            if (em) emailByUid[uid] = normalizeRosterEmail(em);
-          } catch {
-            /* ignore */
-          }
-        })
-      );
-
       const registered: RosterRegistered[] = studentsSnap.docs.map(d => {
         const data = d.data() as Record<string, unknown>;
         const uid = d.id;
@@ -261,7 +247,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
         return {
           kind: 'registered' as const,
           uid,
-          email: emailByUid[uid] || emailFromDoc || '',
+          email: emailFromDoc || '',
           firstName,
           lastName,
           grade,
@@ -277,7 +263,6 @@ const SchoolAdminStudentsPage: React.FC = () => {
         .map(e => normalizeRosterEmail(e))
         .filter(email => {
           if (!email) return false;
-          if (Object.values(emailByUid).some(m => m === email)) return false;
           return !registered.some(r => normalizeRosterEmail(r.email) === email);
         })
         .map(email => ({ kind: 'invited' as const, email }));

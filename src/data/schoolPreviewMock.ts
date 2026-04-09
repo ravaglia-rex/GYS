@@ -39,7 +39,7 @@ export const GREENFIELD_QUARTERLY_REPORTS: QuarterlyReportListItem[] = [
     quarterKey: '2026-Q4',
     reportId: 'GYS-SCH-2026-Q4-0047',
     title: 'GYS Institutional Performance Report - Q4 2026',
-    assessmentPeriodLabel: 'Q4 2026 (October – December)',
+    assessmentPeriodLabel: 'Q4 2026 (October  -  December)',
     studentsAssessed: 142,
     subscriptionTier: 'Standard (₹3 lakh)',
     institutionalTier: 'gold',
@@ -53,7 +53,7 @@ export const GREENFIELD_QUARTERLY_REPORTS: QuarterlyReportListItem[] = [
     quarterKey: '2026-Q2',
     reportId: 'GYS-SCH-2026-Q2-PLACEHOLDER',
     title: 'GYS Institutional Performance Report - Q2 2026',
-    assessmentPeriodLabel: 'Q2 2026 (April – June)',
+    assessmentPeriodLabel: 'Q2 2026 (April  -  June)',
     studentsAssessed: 100,
     subscriptionTier: 'Standard (₹3 lakh)',
     institutionalTier: 'silver',
@@ -65,7 +65,7 @@ export const GREENFIELD_QUARTERLY_REPORTS: QuarterlyReportListItem[] = [
   },
 ];
 
-/** Ten symbolic-reasoning–style items for the school preview sample exam (frontend only). */
+/** Ten symbolic-reasoning - style items for the school preview sample exam (frontend only). */
 export const PREVIEW_SYMBOLIC_SAMPLE_QUESTIONS: {
   id: string;
   prompt: string;

@@ -68,7 +68,7 @@ const ASSESSMENT_META: Record<string, {
     color: '#f59e0b',
     gradient: 'linear-gradient(135deg, #f59e0b 0%, #b45309 100%)',
     icon: '🧠',
-    description: '8 general personality dimensions including goal setting, persistence, and learning orientation.',
+    description: 'Basic profile: 8 general dimensions (goal setting, persistence, learning orientation). Included with Level 2.',
     languages: [],
   },
   english_proficiency: {
@@ -76,7 +76,7 @@ const ASSESSMENT_META: Record<string, {
     color: '#ef4444',
     gradient: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
     icon: '✍️',
-    description: 'Full four-skills assessment: reading, writing, listening, and speaking.',
+    description: 'Advanced English - reading, writing, listening, and speaking. Level 3.',
     languages: [],
     needsMic: true,
   },
@@ -94,7 +94,7 @@ const ASSESSMENT_META: Record<string, {
     color: '#ec4899',
     gradient: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)',
     icon: '🌐',
-    description: '~30 college-specific dimensions. ~200 questions, 45–60 minutes. The capstone assessment.',
+    description: '~30 college-specific dimensions. ~200 questions, 45 - 60 minutes. The capstone assessment.',
     languages: [],
   },
 };
@@ -213,8 +213,8 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
           '&:last-child': { pb: '20px !important' },
         }}
       >
-        {/* Main copy: natural height only (no 1fr growth — avoids huge gaps on reasoning cards) */}
-        <Box sx={{ flex: '0 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+        {/* Never put header/description inside flex:1 + minHeight:0 - it can shrink to zero and overlap the footer */}
+        <Box sx={{ flex: '0 0 auto' }}>
         {/* Header */}
         <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -266,19 +266,30 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
         <Typography variant="body2" sx={{ color: '#64748b', fontSize: '0.85rem', mb: 1, lineHeight: 1.45 }}>
           {meta.description}
         </Typography>
+        </Box>
 
-        {reasoningSubcategories.length > 0 && (
-          <Box sx={{ mb: 0, minHeight: 0 }}>
-            <Typography variant="caption" sx={{ color: '#475569', fontSize: '0.76rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', mb: 0.75 }}>
+        {/* Only this region uses flex:1 + minHeight:0 so equal-height cards get scrollable subcats without crushing the header */}
+        {reasoningSubcategories.length > 0 ? (
+          <Box
+            sx={{
+              flex: 1,
+              minHeight: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+            }}
+          >
+            <Typography variant="caption" sx={{ color: '#475569', fontSize: '0.76rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', mb: 0.75, flexShrink: 0 }}>
               Subcategories
             </Typography>
             <Box
               component="ul"
               sx={{
+                flex: 1,
+                minHeight: 0,
                 m: 0,
                 pl: 2,
                 listStyleType: 'disc',
-                maxHeight: 84,
                 overflowY: 'auto',
                 pr: 0.5,
                 scrollbarWidth: 'thin',
@@ -296,21 +307,19 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
               ))}
             </Box>
           </Box>
+        ) : (
+          <Box sx={{ flex: 1, minHeight: 0 }} />
         )}
 
-        {/* Lock reason */}
         {isLocked && lockLabel && (
-          <Typography variant="caption" sx={{ color: '#475569', fontSize: '0.8rem', display: 'block', mb: 0, fontStyle: 'italic' }}>
+          <Typography variant="caption" sx={{ color: '#475569', fontSize: '0.8rem', display: 'block', mb: 0, fontStyle: 'italic', flexShrink: 0 }}>
             {lockLabel}
           </Typography>
         )}
-        </Box>
 
-        {/* mt: 'auto' pins footer to card bottom when the card is stretched (no empty spacer div) */}
         <Box
           sx={{
             flex: '0 0 auto',
-            mt: 'auto',
             display: 'flex',
             flexDirection: 'column',
             gap: 1.5,

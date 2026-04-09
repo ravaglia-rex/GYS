@@ -4,13 +4,13 @@
  */
 export interface SubcategoryScoreBandMock {
   range: string;
-  /** Share of synthetic cohort in this band (0–100, rows sum to ~100) */
+  /** Share of synthetic cohort in this band (0 - 100, rows sum to ~100) */
   percentage: number;
 }
 
 export interface SubcategoryScoreMock {
   name: string;
-  /** Illustrative mean % (0–100) */
+  /** Illustrative mean % (0 - 100) */
   meanScore: number;
   bands: SubcategoryScoreBandMock[];
 }

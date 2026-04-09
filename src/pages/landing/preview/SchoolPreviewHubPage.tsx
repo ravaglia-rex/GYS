@@ -30,7 +30,7 @@ const cards = [
   {
     title: 'Sample student assessment',
     body:
-      'Walk through 10 Symbolic Reasoning–style items in the same full-screen layout students see - sample banner, timer look, and exit anytime.',
+      'Walk through 10 Symbolic Reasoning - style items in the same full-screen layout students see - sample banner, timer look, and exit anytime.',
     path: '/for-schools/preview/assessment',
     icon: <QuizIcon sx={{ fontSize: 44, color: '#10b981' }} />,
     accent: '#10b981',

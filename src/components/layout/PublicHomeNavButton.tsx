@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useStudentSignupExitOptional } from '../../contexts/StudentSignupExitContext';
 
 const GYS_BLUE = '#1e3a8a';
 
@@ -17,6 +18,7 @@ const PublicHomeNavButton: React.FC<PublicHomeNavButtonProps> = ({
   prominent = false,
 }) => {
   const navigate = useNavigate();
+  const signupExit = useStudentSignupExitOptional();
 
   const base = prominent
     ? 'text-sm font-semibold px-5 py-2.5 rounded-xl text-white shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-transform duration-150'
@@ -26,8 +28,15 @@ const PublicHomeNavButton: React.FC<PublicHomeNavButtonProps> = ({
     <button
       type="button"
       onClick={() => {
-        navigate('/');
-        window.scrollTo(0, 0);
+        const goHome = () => {
+          navigate('/');
+          window.scrollTo(0, 0);
+        };
+        if (signupExit) {
+          signupExit.requestLeave(goHome);
+          return;
+        }
+        goHome();
       }}
       className={`${base} ${className}`.trim()}
       style={prominent ? { backgroundColor: GYS_BLUE } : undefined}

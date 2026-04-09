@@ -297,7 +297,7 @@ const ForSchoolsPage: React.FC = () => {
                 <div className="mt-1 flex flex-col gap-1 text-xs text-slate-600 sm:text-sm">
                   <span className="flex items-start gap-1">
                     <span className="mt-[2px] text-emerald-600 text-xs">✓</span>
-                    <span>Assessments 1–3 (reasoning triad)</span>
+                    <span>Assessments 1 - 4 (reasoning triad + basic personality)</span>
                   </span>
                   <span className="flex items-start gap-1">
                     <span className="mt-[2px] text-emerald-600 text-xs">✓</span>

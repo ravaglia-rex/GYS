@@ -4,12 +4,29 @@ import { fetchSignInMethodsForEmail } from 'firebase/auth';
 import { checkEmailExists } from '../../db/emailMappingCollection';
 import { auth } from '../../firebase/firebase';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
+import { useToast } from '../../components/ui/use-toast';
+import { useStudentSignupExit } from '../../contexts/StudentSignupExitContext';
+import { useStudentSignupExitGuard } from '../../hooks/useStudentSignupExitGuard';
 
 const GYS_BLUE = '#1e3a8a';
+
+/** Student signup: date of birth calendar year must be in this range (inclusive). */
+const STUDENT_SIGNUP_DOB_YEAR_MIN = 1995;
+const STUDENT_SIGNUP_DOB_YEAR_MAX = 2020;
+const STUDENT_SIGNUP_DOB_MIN = `${STUDENT_SIGNUP_DOB_YEAR_MIN}-01-01`;
+const STUDENT_SIGNUP_DOB_MAX = `${STUDENT_SIGNUP_DOB_YEAR_MAX}-12-31`;
+
+function isStudentSignupDobYearInRange(isoDate: string): boolean {
+  if (!isoDate) return true;
+  const y = parseInt(isoDate.slice(0, 4), 10);
+  if (Number.isNaN(y)) return false;
+  return y >= STUDENT_SIGNUP_DOB_YEAR_MIN && y <= STUDENT_SIGNUP_DOB_YEAR_MAX;
+}
 
 const StudentRegistrationPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { toast } = useToast();
   const locationState = (location.state || {}) as any;
 
   const [firstName, setFirstName] = useState(locationState?.prefill?.firstName || '');
@@ -22,11 +39,22 @@ const StudentRegistrationPage: React.FC = () => {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [emailInUseOpen, setEmailInUseOpen] = useState<boolean>(!!locationState?.emailInUse);
 
+  const { requestLeave } = useStudentSignupExit();
+
+  useStudentSignupExitGuard(true);
+
   useEffect(() => {
     if (locationState?.emailInUse) {
       window.history.replaceState({}, document.title);
     }
   }, [locationState?.emailInUse]);
+
+  useEffect(() => {
+    const prefillDob = locationState?.prefill?.dob as string | undefined;
+    if (prefillDob && !isStudentSignupDobYearInRange(prefillDob)) {
+      setDob('');
+    }
+  }, [locationState?.prefill?.dob]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -62,6 +90,15 @@ const StudentRegistrationPage: React.FC = () => {
       return;
     }
 
+    if (dob && !isStudentSignupDobYearInRange(dob)) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid date of birth',
+        description: `Birth year must be between ${STUDENT_SIGNUP_DOB_YEAR_MIN} and ${STUDENT_SIGNUP_DOB_YEAR_MAX}.`,
+      });
+      return;
+    }
+
     navigate('/students/register/school', {
       state: {
         firstName,
@@ -82,7 +119,7 @@ const StudentRegistrationPage: React.FC = () => {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-4 sm:gap-6">
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={() => requestLeave(() => navigate(-1))}
             className="group flex items-center gap-1 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors duration-200 hover:bg-slate-100 rounded-lg px-1 py-0.5 -ml-1"
           >
             <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-300 text-xs transition-all duration-200 group-hover:border-slate-400">
@@ -112,7 +149,7 @@ const StudentRegistrationPage: React.FC = () => {
             <PublicHomeNavButton />
             <button
               type="button"
-              onClick={() => navigate('/login')}
+              onClick={() => requestLeave(() => navigate('/login'))}
               className="px-4 py-2.5 sm:px-5 rounded-xl text-white text-sm font-medium shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:brightness-110 active:scale-95 transition-all duration-200"
               style={{ backgroundColor: GYS_BLUE }}
             >
@@ -235,10 +272,13 @@ const StudentRegistrationPage: React.FC = () => {
                 </label>
                 <input
                   type="date"
+                  min={STUDENT_SIGNUP_DOB_MIN}
+                  max={STUDENT_SIGNUP_DOB_MAX}
                   value={dob}
                   onChange={(event) => setDob(event.target.value)}
                   className="mt-1.5 w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm sm:text-base text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
                 />
+                
               </div>
             </div>
 

@@ -57,7 +57,7 @@ const PLANS: Plan[] = [
     current: true,
     recommended: true,
     features: [
-      'Assessments 1–3 (reasoning triad)',
+      'Assessments 1 - 4 (reasoning triad + basic personality)',
       'Full analytics & subscore breakdowns',
       'Grade-level analysis',
       'Comparative benchmarks (national, regional)',

@@ -1,5 +1,5 @@
 /**
- * Wireframe-aligned copy and UI flags for the assessment lifecycle (7A–7G).
+ * Wireframe-aligned copy and UI flags for the assessment lifecycle (7A - 7G).
  * Runtime may override stat values from AssessmentType tier config.
  */
 
@@ -69,7 +69,7 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
       { label: 'Duration', value: '45 min' },
       { label: 'Questions', value: '20' },
       { label: 'Difficulty', value: 'Adaptive' },
-      { label: 'Language', value: 'Language-free' },
+      { label: 'Language', value: 'English' },
     ],
     bodyDescription:
       'This exam measures how you identify patterns, sequences, and abstract relationships. No reading or language knowledge is required - only careful observation and reasoning.',
@@ -145,8 +145,8 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
   },
   personality_assessment: {
     examOrdinal: 4,
-    examTitleShort: 'Personality Assessment',
-    heroSubtitle: 'Self-report - no wrong answers',
+    examTitleShort: 'Personality (Basic)',
+    heroSubtitle: 'Foundational profile - self-report, no wrong answers',
     statGrid: [
       { label: 'Duration', value: 'No limit' },
       { label: 'Questions', value: '40' },
@@ -173,8 +173,8 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
   },
   english_proficiency: {
     examOrdinal: 5,
-    examTitleShort: 'English Proficiency',
-    heroSubtitle: 'Reading, writing, listening & speaking',
+    examTitleShort: 'English Proficiency (Advanced)',
+    heroSubtitle: 'Advanced English - reading, writing, listening & speaking',
     statGrid: [
       { label: 'Duration', value: 'Varies' },
       { label: 'Sections', value: '4 skills' },
@@ -231,7 +231,7 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
     examTitleShort: 'Comprehensive Personality',
     heroSubtitle: 'Exam 7 • The deep-dive assessment',
     statGrid: [
-      { label: 'Duration', value: '45–60 min' },
+      { label: 'Duration', value: '45 - 60 min' },
       { label: 'Dimensions', value: '~30' },
       { label: 'Questions', value: '~200' },
       { label: 'Timer', value: 'None' },
@@ -261,7 +261,7 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
       ],
       footerNote: 'Can be retaken once per year (policy may vary).',
     },
-    detailFooterFinePrint: 'Estimated time: 45–60 minutes • Take breaks if needed.',
+    detailFooterFinePrint: 'Estimated time: 45 - 60 minutes • Take breaks if needed.',
     defaultQuestionInteraction: 'likert',
     useTimer: false,
     adaptiveForwardOnly: false,
@@ -310,9 +310,9 @@ export function unlockNoticeForAssessment(assessmentId: string, passed: boolean)
       return 'Verbal Reasoning and Mathematical Reasoning are now available (within your membership).';
     case 'verbal_reasoning':
     case 'mathematical_reasoning':
-      return 'Continue the sequence - Personality and English assessments unlock when prerequisites are complete.';
+      return 'Continue the sequence - Basic Personality (Exam 4) opens when reasoning prerequisites are met; Advanced English and Exams 5 - 7 require Level 3.';
     case 'personality_assessment':
-      return 'English Proficiency and further assessments may unlock next - check your dashboard.';
+      return 'Level 3 members continue with Advanced English, then AI, then comprehensive personality - see your dashboard.';
     default:
       return null;
   }
