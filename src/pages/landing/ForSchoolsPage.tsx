@@ -143,7 +143,7 @@ const ForSchoolsPage: React.FC = () => {
               {[
                 {
                   icon: '📊',
-                  value: '7',
+                  value: '6',
                   label: 'Assessments',
                 },
                 {

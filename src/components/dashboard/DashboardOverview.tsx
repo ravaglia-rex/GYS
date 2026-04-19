@@ -14,7 +14,6 @@ import { auth } from '../../firebase/firebase';
 import { getStudent } from '../../db/studentCollection';
 import { getSchoolDetails } from '../../db/schoolCollection';
 import { getPayments } from '../../db/studentPaymentMappings';
-import { getPhase2ExamResponse } from '../../db/phase2ExamResponsesCollection';
 import { normalizeMembershipLevel, NON_COMPETITIVE_CHART_ASSESSMENT_IDS } from '../../utils/assessmentGating';
 
 /** When the student doc has no level, infer tier from last payment (₹499 / ₹1,299 / ₹2,499 and legacy ₹999 / ₹4,999 / ₹9,999, incl. typical GST). */
@@ -27,17 +26,8 @@ function membershipLabelFromPaymentAmountInr(amount: number): string {
 
 export type AssessmentChartRow = { subject: string; score: number; assessmentId?: string };
 
-/** Phase 2 chart rows use raw section totals; program assessments pass score as 0 - 100 (best tier %). */
-const ColumnChart: React.FC<{ data: AssessmentChartRow[]; isPhase2?: boolean }> = ({ data, isPhase2 }) => {
-  const phase2Max = { reading: 32, writing: 16, logic: 10, math: 22 };
-
-  const phase2ColorMap: Record<string, string> = {
-    reading: '#FFB3BA',
-    writing: '#BAFFC9',
-    logic: '#BAE1FF',
-    math: '#FFFFBA',
-  };
-
+/** Program assessments pass score as 0–100 (best tier %). */
+const ColumnChart: React.FC<{ data: AssessmentChartRow[] }> = ({ data }) => {
   const programBarPalette = [
     '#5eead4', '#93c5fd', '#fcd34d', '#f9a8d4', '#c4b5fd', '#67e8f9', '#86efac', '#fca5a5',
   ];
@@ -53,18 +43,6 @@ const ColumnChart: React.FC<{ data: AssessmentChartRow[]; isPhase2?: boolean }> 
   }
 
   const dataWithPercentages = data.map((item, index) => {
-    if (isPhase2) {
-      const key = item.subject.toLowerCase() as keyof typeof phase2Max;
-      const maxPoints = phase2Max[key] ?? 100;
-      const rawPct = Math.round((item.score / maxPoints) * 100);
-      const percentage = Math.max(0, Math.min(100, rawPct));
-      return {
-        ...item,
-        percentage,
-        barColor: phase2ColorMap[key] ?? programBarPalette[index % programBarPalette.length],
-        isNonCompetitive: false,
-      };
-    }
     const percentage = Math.max(0, Math.min(100, Math.round(item.score)));
     const isNonCompetitive =
       !!item.assessmentId && NON_COMPETITIVE_CHART_ASSESSMENT_IDS.has(item.assessmentId);
@@ -87,7 +65,7 @@ const ColumnChart: React.FC<{ data: AssessmentChartRow[]; isPhase2?: boolean }> 
   return (
     <Box sx={{ p: { xs: 1.5, sm: 2 }, width: '100%', overflow: 'hidden' }}>
       <Typography variant="h6" sx={{ color: 'white', mb: 2, textAlign: 'center' }}>
-        {isPhase2 ? 'Phase 2 section scores (%)' : 'Best tier score by assessment'}
+        Best tier score by assessment
       </Typography>
       <Box sx={{ width: '100%', pb: 0.5 }}>
         <Box
@@ -415,9 +393,6 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   const [schoolName, setSchoolName] = useState<string | null>(null);
   const [membershipLevel, setMembershipLevel] = useState<string | null>(null);
   const [membershipExpiry, setMembershipExpiry] = useState<string | null>(null);
-  const [phase2Results, setPhase2Results] = useState<{ subject: string; score: number }[]>([]);
-  const [hasPhase2Results, setHasPhase2Results] = useState<boolean>(false);
-  const [isLoadingPhase2, setIsLoadingPhase2] = useState<boolean>(true);
 
   // Generate notifications based on stats
   const notifications = generateDynamicNotifications(stats.availableAssessments, stats.completedAssessments);
@@ -540,54 +515,6 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     fetchUserName();
   }, [previewProfile]);
 
-  // Check for phase 2 assessment responses
-  useEffect(() => {
-    if (previewProfile) {
-      setIsLoadingPhase2(false);
-      setHasPhase2Results(false);
-      return;
-    }
-    const checkPhase2Results = async () => {
-      if (!auth.currentUser?.uid) {
-        setIsLoadingPhase2(false);
-        return;
-      }
-
-      try {
-        const phase2Response = await getPhase2ExamResponse(auth.currentUser.uid);
-        
-        if (phase2Response && phase2Response.typeTotals) {
-          // Extract type totals excluding big5
-          const { big5, ...otherTotals } = phase2Response.typeTotals;
-          
-          // Convert to chart data format
-          const chartData = Object.entries(otherTotals)
-            .filter(([key, value]) => typeof value === 'number')
-            .map(([subject, score]) => ({
-              subject: subject.charAt(0).toUpperCase() + subject.slice(1),
-              score: score as number
-            }));
-          
-          if (chartData.length > 0) {
-            setPhase2Results(chartData);
-            setHasPhase2Results(true);
-          } else {
-            setHasPhase2Results(false);
-          }
-        } else {
-          setHasPhase2Results(false);
-        }
-      } catch (error) {
-        console.error('Error fetching phase 2 results:', error);
-        setHasPhase2Results(false);
-      } finally {
-        setIsLoadingPhase2(false);
-      }
-    };
-
-    checkPhase2Results();
-  }, [previewProfile]);
-
   const handleNavigation = (path: string) => {
     if (previewNavTargets) {
       if (path === '/assessments/available') {
@@ -610,21 +537,11 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     }, 150);
   };
 
-  // Determine which results to show
   const getDisplayResults = () => {
-    if (isLoadingPhase2) {
-      return { data: [], isLoading: true };
-    }
-    
-    if (hasPhase2Results && phase2Results.length > 0) {
-      return { data: phase2Results, isLoading: false, isPhase2: true };
-    }
-    
     if (latestAssessmentResults.length > 0) {
-      return { data: latestAssessmentResults, isLoading: false, isPhase2: false };
+      return { data: latestAssessmentResults };
     }
-    
-    return { data: [], isLoading: false };
+    return { data: [] as AssessmentChartRow[] };
   };
 
   const displayResults = getDisplayResults();
@@ -780,54 +697,18 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                   Performance Overview
                 </Typography>
                 <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '1rem' }}>
-                  {displayResults.data.length > 0 
-                    ? (displayResults.isPhase2
-                        ? 'Your Phase 2 assessment performance across different subjects'
-                        : 'Your best tier scores on competitive assessments; personality profiles show completion only.')
-                    : 'Performance data will appear here once your assessments are evaluated'
-                  }
+                  {displayResults.data.length > 0
+                    ? 'Your best tier scores on competitive assessments; non-scored programmes show completion only.'
+                    : 'Performance data will appear here once your assessments are evaluated'}
                 </Typography>
               </Box>
             </Box>
 
-            {/* Content based on whether there are assessment results */}
-            {displayResults.isLoading ? (
-              // Show loading state
-              <Box sx={{ 
-                textAlign: 'center', 
-                py: 6,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 2
-              }}>
-                <Box sx={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: '50%',
-                  background: 'rgba(139, 92, 246, 0.1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '2px solid rgba(139, 92, 246, 0.3)',
-                  animation: 'pulse 2s infinite'
-                }}>
-                  <BarChart3 size={40} color="#8b5cf6" />
-                </Box>
-                <Typography variant="h6" sx={{ color: 'white', fontWeight: 600 }}>
-                  Loading Results...
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', maxWidth: 400 }}>
-                  Checking for your latest assessment results and performance data.
-                </Typography>
-              </Box>
-            ) : displayResults.data.length > 0 ? (
-              // Show chart when there are results
+            {displayResults.data.length > 0 ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                <ColumnChart data={displayResults.data} isPhase2={!!displayResults.isPhase2} />
+                <ColumnChart data={displayResults.data} />
               </Box>
             ) : (
-              // Show message when no results available
               <Box sx={{ 
                 textAlign: 'center', 
                 py: 6,

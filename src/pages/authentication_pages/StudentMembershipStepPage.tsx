@@ -14,7 +14,7 @@ const StudentMembershipStepPage: React.FC = () => {
   const location = useLocation();
   const merged = useMemo(
     () => mergeSignupState(location.state) as { membershipLevel?: MembershipLevel },
-    [location.key]
+    [location]
   );
 
   const initialLevel: MembershipLevel =
@@ -31,7 +31,7 @@ const StudentMembershipStepPage: React.FC = () => {
     if (m.membershipLevel === 'LEVEL_1' || m.membershipLevel === 'LEVEL_2' || m.membershipLevel === 'LEVEL_3') {
       setSelectedLevel(m.membershipLevel);
     }
-  }, [location.key]);
+  }, [location]);
   const [showComparison, setShowComparison] = useState(true);
 
   const { requestLeave } = useStudentSignupExit();

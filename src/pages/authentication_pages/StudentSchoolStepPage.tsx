@@ -34,7 +34,7 @@ const StudentSchoolStepPage: React.FC = () => {
   const location = useLocation();
   const merged = useMemo(
     () => mergeSignupState(location.state) as Partial<LocationState>,
-    [location.key]
+    [location]
   );
 
   const [selectedSchoolId, setSelectedSchoolId] = useState('');
@@ -54,7 +54,7 @@ const StudentSchoolStepPage: React.FC = () => {
     setAspiration(m.aspiration || '');
     setHeardFrom(m.heardFrom || '');
     setTypedSchoolName(typeof m.signupSchoolName === 'string' ? m.signupSchoolName : '');
-  }, [location.key]);
+  }, [location]);
 
   const { toast } = useToast();
 
@@ -98,7 +98,7 @@ const StudentSchoolStepPage: React.FC = () => {
     };
 
     loadSchools();
-  }, [location.key]);
+  }, [location]);
 
   const emailMatchedSchool = Boolean(lockedSchool?.id);
   const schoolIdForSignup = emailMatchedSchool

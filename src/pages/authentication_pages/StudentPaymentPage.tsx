@@ -54,7 +54,8 @@ function membershipCodeToNumericLevel(code: MembershipLevelCode | undefined): 1 
 const StudentPaymentPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const state = (location.state || {}) as SignupFlowState;
+  const locationState = location.state;
+  const state = (locationState || {}) as SignupFlowState;
   const { toast } = useToast();
 
   const membershipName = state.membershipName || 'Level 2 - Engage';
@@ -70,8 +71,8 @@ const StudentPaymentPage: React.FC = () => {
   useStudentSignupExitGuard(true);
 
   useEffect(() => {
-    writeSignupDraft(mergeSignupState(location.state));
-  }, [location.key]);
+    writeSignupDraft(mergeSignupState(locationState));
+  }, [locationState]);
 
   const completeSignupAfterPayment = async (razorpayPaymentId: string) => {
     const {
