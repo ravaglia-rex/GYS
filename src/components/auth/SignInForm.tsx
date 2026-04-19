@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import ResendVerificationButton from './ResendVerificationButton';
-import { UserCredential, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { UserCredential, reload, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { useNavigate, Link } from 'react-router-dom';
 import { auth } from '../../firebase/firebase';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { checkSchoolEmail, verifySchoolEmail } from '../../db/schoolAdminCollection';
 import { checkUserRole } from '../../state_data/authSlice';
 import { useDispatch } from 'react-redux';
 import { AppDispatch } from '../../state_data/reducer';
@@ -36,7 +37,7 @@ const signinSchema = z.object({
 interface SignInFormProps {
     email: string;
     isSchoolAdmin?: boolean;
-    schoolInfo?: { schoolId: string; schoolName: string };
+    schoolInfo?: { schoolId: string; schoolName: string; verified?: boolean };
 }
 const SignInForm: React.FC<SignInFormProps> = ({ email, isSchoolAdmin, schoolInfo }) => {
     const navigate = useNavigate();
@@ -60,9 +61,36 @@ const SignInForm: React.FC<SignInFormProps> = ({ email, isSchoolAdmin, schoolInf
             const authToken = await userCredential.user.getIdToken();
             authTokenHandler.setAuthToken(authToken);
             
-            // For school admins, email must be verified
+            // For school admins, require either Firebase emailVerified OR school marked verified in
+            // Firestore. If the POC completed password reset only on Firebase's default handler page,
+            // neither flag is set until verifySchoolEmail runs (normally from /auth/action).
             if (isSchoolAdmin) {
-              if (!userCredential.user.emailVerified) {
+              const signedInEmail = userCredential.user.email || email;
+              const schoolCheck = await checkSchoolEmail(signedInEmail);
+              let firebaseEmailOk = userCredential.user.emailVerified;
+              let schoolRecordOk = schoolCheck?.verified === true;
+
+              if (!firebaseEmailOk && !schoolRecordOk && schoolCheck) {
+                try {
+                  await verifySchoolEmail(signedInEmail);
+                  await reload(userCredential.user);
+                  firebaseEmailOk = userCredential.user.emailVerified;
+                  schoolRecordOk = true;
+                } catch (err: unknown) {
+                  const message =
+                    err instanceof Error ? err.message : 'Could not complete school account verification.';
+                  toast({
+                    variant: 'destructive',
+                    title: 'Account setup incomplete',
+                    description: message,
+                  });
+                  await signOut(auth);
+                  setIsSubmitted(false);
+                  return;
+                }
+              }
+
+              if (!firebaseEmailOk && !schoolRecordOk) {
                 toast({
                   variant: 'destructive',
                   title: 'Email not verified',

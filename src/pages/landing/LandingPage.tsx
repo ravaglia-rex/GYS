@@ -158,7 +158,7 @@ const LandingPage: React.FC = () => {
           </h2>
           <p className="mt-6 text-lg text-white/90 max-w-2xl mx-auto">
             India&apos;s premier global benchmarking program for college-bound students.
-            Reasoning. Personality. English fluency. Five assessments that place students
+            Reasoning. Personality. English fluency. Six assessments that place students
             on the world stage.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-4">
@@ -172,7 +172,7 @@ const LandingPage: React.FC = () => {
             </div>
             <div className="flex items-center gap-2 bg-white/10 rounded-full px-4 py-2 text-white text-sm backdrop-blur-sm hover:bg-white/20 transition-colors duration-150">
               <span className="text-base">📝</span>
-              <span>7 Assessments</span>
+              <span>6 Assessments</span>
             </div>
             <div className="flex items-center gap-2 bg-white/10 rounded-full px-4 py-2 text-white text-sm backdrop-blur-sm hover:bg-white/20 transition-colors duration-150">
               <span className="text-base">🏫</span>
@@ -350,30 +350,29 @@ const LandingPage: React.FC = () => {
       {/* Trust section */}
       <section
         id="for-schools"
-        className="bg-slate-100 border-t border-gray-200 pb-10 md:pb-12 pt-6 md:pt-10 scroll-mt-20"
+        className="bg-white border-t border-gray-200 pb-8 md:pb-10 pt-5 md:pt-8 scroll-mt-20"
       >
-        <div className="max-w-5xl mx-auto px-6 space-y-6">
+        <div className="max-w-5xl mx-auto px-6 space-y-4">
           {/* EducationWorld - full-width card */}
           <div>
-           
-            <div className="rounded-2xl bg-[#e0edff] px-6 py-5 shadow-sm sm:px-8 sm:py-6">
-              <div className="flex items-center gap-5">
-                <div
-                  className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl px-2 text-[11px] font-semibold leading-tight text-white sm:h-20 sm:w-20 sm:text-xs"
-                  style={{ backgroundColor: 'rgba(30, 58, 138, 0.9)' }}
-                >
-                  Education
-                  <br />
-                  World
-                </div>
-                <div className="text-left">
+            <div className="rounded-2xl bg-[#eef4ff] px-4 py-4 shadow-sm sm:px-5 sm:py-4 md:px-6 md:py-5">
+              <div className="flex items-center gap-4 sm:gap-5">
+                <img
+                  src="/EW%20logo.png"
+                  alt="EducationWorld"
+                  className="h-24 w-auto max-w-[11rem] shrink-0 object-contain sm:h-28 sm:max-w-[13rem]"
+                />
+                <div className="min-w-0 text-left">
                   <p className="text-sm font-semibold text-slate-900 sm:text-base">
                     Presented by EducationWorld
                   </p>
-                  <p className="mt-1 text-xs leading-relaxed text-slate-700 sm:text-sm sm:leading-relaxed">
-                    India&apos;s #1 education media platform.
-                    <br />
-                    Trusted by 500+ schools and millions of parents nationwide.
+                  <p className="mt-1.5 text-xs leading-snug text-slate-700 sm:text-sm sm:leading-relaxed">
+                    Trusted by over 5,000 schools and millions of parents nationwide for its credible,
+                    comprehensive and in-depth school rankings on a wide range of parameters including
+                    academic reputation, teacher competence, co-curricular and sports education. For the
+                    past 20 years, the annual EducationWorld India School Rankings — the world&apos;s
+                    largest and most comprehensive schools survey — has aided and enabled parents to
+                    select the most aptitudinally suitable school for their children.
                   </p>
                 </div>
               </div>
@@ -382,14 +381,14 @@ const LandingPage: React.FC = () => {
 
           {/* In Partnership With - below, full-width */}
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-400 mb-3 text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-400 mb-2 text-center">
               In partnership with
             </p>
-            <div className="flex flex-wrap justify-center gap-3">
+            <div className="flex flex-wrap justify-center gap-2">
               {['Access USA', 'Argus'].map((partner) => (
                 <span
                   key={partner}
-                  className="px-6 py-3 rounded-xl bg-white text-slate-700 text-sm font-semibold shadow-sm ring-1 ring-slate-100 hover:shadow-md hover:ring-slate-200 transition-all duration-150"
+                  className="px-4 py-2 rounded-lg bg-white text-slate-700 text-xs font-semibold shadow-sm ring-1 ring-slate-100 hover:shadow-md hover:ring-slate-200 transition-all duration-150 sm:text-sm"
                 >
                   {partner}
                 </span>

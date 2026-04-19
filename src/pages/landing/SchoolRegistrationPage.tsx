@@ -5,6 +5,13 @@ import { registerSchool, resumeSchoolCheckout } from '../../db/schoolCollection'
 import * as Sentry from '@sentry/react';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
 import SchoolRazorpayCheckout from '../../components/school-registration/SchoolRazorpayCheckout';
+import {
+  SCHOOL_PAY_TEST,
+  SCHOOL_REGISTRATION_PLANS as PLANS,
+  schoolPlanAnnualLabel,
+  schoolPlanPriceQualifierAfterAmount,
+  schoolSandboxPlanAmountsSummary,
+} from '../../utils/schoolRegistrationPlans';
 
 const GYS_BLUE = '#1e3a8a';
 
@@ -57,12 +64,6 @@ const INDIAN_STATES = [
   'Puducherry',
 ];
 
-/**
- * Match backend `SCHOOL_RAZORPAY_TEST_AMOUNTS` + default (non-micro) test prices.
- * Default test charges are ₹100 / ₹200 / ₹300 (see `SCHOOL_RAZORPAY_MICRO_TEST` on API for ₹1/₹2/₹3).
- */
-const SCHOOL_PAY_TEST = process.env.REACT_APP_SCHOOL_RAZORPAY_TEST_AMOUNTS === 'true';
-
 const REFERRAL_SOURCES = [
   'EducationWorld Magazine / Website',
   'Another school recommended it',
@@ -74,62 +75,12 @@ const REFERRAL_SOURCES = [
   'Other',
 ];
 
-const PLANS = [
-  {
-    id: 'entry',
-    name: 'Entry',
-    price: SCHOOL_PAY_TEST ? '₹100' : '₹2,00,000',
-    priceNum: SCHOOL_PAY_TEST ? 100 : 200000,
-    period: '/yr',
-    tagline: 'Core benchmarking for one assessment',
-    features: [
-      'Assessment 1 (Symbolic Reasoning)',
-      'Headline performance report',
-      'Tier distribution analysis',
-      'Path to next tier',
-    ],
-    recommended: false,
-  },
-  {
-    id: 'standard',
-    name: 'Standard',
-    price: SCHOOL_PAY_TEST ? '₹200' : '₹3,00,000',
-    priceNum: SCHOOL_PAY_TEST ? 200 : 300000,
-    period: '/yr',
-    tagline: 'Reasoning triad, basic personality & deep analytics',
-    features: [
-      'Assessments 1 - 4 (reasoning triad + basic personality)',
-      'Full analytics & subscore breakdowns',
-      'Grade-level analysis',
-      'Comparative benchmarks (national, regional)',
-      'Quarterly growth tracking',
-      'Prioritised recommendations',
-    ],
-    recommended: true,
-  },
-  {
-    id: 'premium',
-    name: 'Premium',
-    price: SCHOOL_PAY_TEST ? '₹300' : '₹5,00,000',
-    priceNum: SCHOOL_PAY_TEST ? 300 : 500000,
-    period: '/yr',
-    tagline: 'Everything in Standard, plus consulting',
-    features: [
-      'Everything in Standard',
-      'All grades & custom cohorts',
-      'Cohort analysis & cluster insights',
-      'Faculty training workshops',
-      'Consulting-style action plans',
-      'Dedicated account manager',
-      'Marketing toolkit (tier badges, parent comms)',
-    ],
-    recommended: false,
-  },
-];
-
 const MAX_ABBREVIATIONS = 5;
 const MAX_EMAILS = 5;
 const TOTAL_STEPS = 4;
+
+/** Temporary: skip embedded Razorpay; onboarding emails a payment link (revert to false to restore checkout). */
+const SCHOOL_SIGNUP_TEMP_PAYMENT_LINK = true;
 
 function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
@@ -282,8 +233,9 @@ const SchoolRegistrationPage: React.FC = () => {
   const validateStep4 = (): boolean => {
     const newErrors: Record<string, string> = {};
     if (!commitToPay) {
-      newErrors.commitToPay =
-        'Please confirm that your institution will complete payment (secure checkout on the next step).';
+      newErrors.commitToPay = SCHOOL_SIGNUP_TEMP_PAYMENT_LINK
+        ? 'Please confirm that your institution will complete payment using the link we email you.'
+        : 'Please confirm that your institution will complete payment (secure checkout on the next step).';
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -395,9 +347,64 @@ const SchoolRegistrationPage: React.FC = () => {
 
   const currentPlan = PLANS.find((p) => p.id === selectedPlan)!;
 
-  // ── Post-submit: Razorpay checkout (until payment verified) ────────────────
+  // ── Post-submit: payment link (temporary) or Razorpay checkout ───────────────
+
+  if (submitted && SCHOOL_SIGNUP_TEMP_PAYMENT_LINK && registeredSchoolId) {
+    return (
+      <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
+        <Header onBack={() => navigate('/for-schools')} />
+        <main className="flex flex-1 items-center justify-center px-4 py-12">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-7 shadow-md ring-1 ring-slate-100 text-center">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50">
+              <span className="text-3xl" aria-hidden>
+                ✉️
+              </span>
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900">Registration received</h2>
+            <p className="mt-3 text-sm text-slate-600 leading-relaxed">
+              Thank you. <span className="font-semibold">{schoolName}</span> is recorded for the{' '}
+              <span className="font-semibold">{currentPlan.name}</span> plan (
+              <span className="font-semibold">{currentPlan.price}</span>
+              {schoolPlanPriceQualifierAfterAmount()} + GST as applicable).{' '}
+              <span className="font-semibold">
+                We will email a secure Razorpay payment link
+              </span>{' '}
+              to your point-of-contact address(es) so you can complete payment online (UPI, cards, net
+              banking).
+            </p>
+            {registeredSchoolId && (
+              <p className="mt-3 text-xs text-slate-500 font-mono break-all">
+                Reference: {registeredSchoolId}
+              </p>
+            )}
+            <p className="mt-4 text-xs text-slate-500 leading-relaxed">
+              Didn&apos;t get the email? Check spam, or write to{' '}
+              <a
+                href="mailto:schools@globalyoungscholar.com"
+                className="font-medium underline underline-offset-2"
+                style={{ color: GYS_BLUE }}
+              >
+                schools@globalyoungscholar.com
+              </a>{' '}
+              with your school name and reference.
+            </p>
+            <button
+              type="button"
+              onClick={() => navigate('/for-schools')}
+              className="mt-6 w-full rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-sm hover:brightness-110 active:scale-95 transition-all duration-200"
+              style={{ backgroundColor: GYS_BLUE }}
+            >
+              Back to For Schools
+            </button>
+          </div>
+        </main>
+        <PageFooter />
+      </div>
+    );
+  }
 
   if (
+    !SCHOOL_SIGNUP_TEMP_PAYMENT_LINK &&
     submitted &&
     !paymentComplete &&
     registeredSchoolId &&
@@ -417,14 +424,14 @@ const SchoolRegistrationPage: React.FC = () => {
               <span className="font-semibold">{schoolName}</span> is registered for the{' '}
               <span className="font-semibold">{currentPlan.name}</span> plan (
               <span className="font-semibold">{currentPlan.price}</span>
-              {SCHOOL_PAY_TEST ? ' sandbox test charge' : '/yr'} + GST as applicable). Pay below with UPI, cards, or net
+              {schoolPlanPriceQualifierAfterAmount()} + GST as applicable). Pay below with UPI, cards, or net
               banking.
             </p>
             {SCHOOL_PAY_TEST && (
               <div className="mt-2 space-y-2 text-left">
                 <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-950 leading-relaxed">
-                  <span className="font-semibold">Sandbox mode:</span> these amounts are test-only (Entry ₹100, Standard
-                  ₹200, Premium ₹300). Use Razorpay&apos;s India test guides -{' '}
+                  <span className="font-semibold">Sandbox mode:</span> these amounts are test-only (
+                  {schoolSandboxPlanAmountsSummary()}). Use Razorpay&apos;s India test guides -{' '}
                   <a
                     href="https://razorpay.com/docs/payments/payments/test-card-details/?preferred-country=IN"
                     className="font-medium underline underline-offset-2"
@@ -462,9 +469,12 @@ const SchoolRegistrationPage: React.FC = () => {
                       RAZORPAY_KEY_ID
                     </span>
                     /SECRET on the API), not <span className="text-slate-900">REACT_APP_RAZORPAY_KEY_ID</span>. ₹1/2/3
-                    test: <span className="text-slate-900">SCHOOL_RAZORPAY_MICRO_TEST=true</span>. Production prices:{' '}
+                    test: <span className="text-slate-900">SCHOOL_RAZORPAY_MICRO_TEST=true</span> on API +{' '}
+                    <span className="text-slate-900">REACT_APP_SCHOOL_RAZORPAY_MICRO_TEST=false</span> on this app.
+                    Production prices:{' '}
                     <span className="text-slate-900">SCHOOL_RAZORPAY_TEST_AMOUNTS=false</span> + unset{' '}
-                    <span className="text-slate-900">REACT_APP_SCHOOL_RAZORPAY_TEST_AMOUNTS</span>. US/cross-border: no
+                    <span className="text-slate-900">REACT_APP_SCHOOL_RAZORPAY_TEST_AMOUNTS</span> /{' '}
+                    <span className="text-slate-900">REACT_APP_SCHOOL_RAZORPAY_MICRO_TEST</span>. US/cross-border: no
                     dummy phone in Checkout prefill (Razorpay intl docs); enter a real-looking mobile in the Razorpay
                     modal. <span className="text-slate-900">rzp_test_us_*</span> keys are normal for that product.
                     Optional: <span className="text-slate-900">RAZORPAY_CHECKOUT_CONFIG_ID</span> on API (Dashboard
@@ -502,9 +512,9 @@ const SchoolRegistrationPage: React.FC = () => {
     );
   }
 
-  // ── Success Screen (payment done, or fallback if checkout state incomplete) ─
+  // ── Success Screen (Razorpay payment verified) ─
 
-  if (submitted && paymentComplete) {
+  if (!SCHOOL_SIGNUP_TEMP_PAYMENT_LINK && submitted && paymentComplete) {
     return (
       <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
         <Header onBack={() => navigate('/for-schools')} />
@@ -549,7 +559,7 @@ const SchoolRegistrationPage: React.FC = () => {
     );
   }
 
-  if (submitted) {
+  if (submitted && !SCHOOL_SIGNUP_TEMP_PAYMENT_LINK) {
     const canResumePayment = Boolean(registeredSchoolId && registeredPocEmail);
 
     const handleResumeCheckout = async () => {
@@ -1138,8 +1148,10 @@ const SchoolRegistrationPage: React.FC = () => {
                 Select a plan
               </h1>
               <p className="mt-2 text-xs sm:text-sm text-slate-600">
-                Choose the institutional subscription that fits your school. After you submit this
-                form, you will complete payment securely via Razorpay (UPI, cards, net banking).
+                Choose the institutional subscription that fits your school. After you submit this form,
+                {SCHOOL_SIGNUP_TEMP_PAYMENT_LINK
+                  ? ' we will email you a secure payment link to complete checkout (UPI, cards, net banking).'
+                  : ' you will complete payment securely via Razorpay (UPI, cards, net banking).'}
               </p>
 
               {/* Plan cards */}
@@ -1219,7 +1231,7 @@ const SchoolRegistrationPage: React.FC = () => {
                     {schoolName} - {currentPlan.name} Plan
                   </span>
                   <span className="font-bold" style={{ color: GYS_BLUE }}>
-                    {currentPlan.price}/yr
+                    {schoolPlanAnnualLabel(currentPlan)}
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-slate-500">
@@ -1235,16 +1247,26 @@ const SchoolRegistrationPage: React.FC = () => {
                 </p>
                 <div className="mt-2 border-t border-slate-200 pt-2 flex justify-between text-sm font-semibold text-slate-900">
                   <span>Annual fee (excl. GST)</span>
-                  <span style={{ color: GYS_BLUE }}>{currentPlan.price}/yr + GST</span>
+                  <span style={{ color: GYS_BLUE }}>{schoolPlanAnnualLabel(currentPlan)} + GST</span>
                 </div>
               </div>
 
               <div className="mt-6 rounded-xl border border-amber-100 bg-amber-50/80 px-4 py-3">
                 <p className="text-xs text-amber-950 leading-relaxed">
                   <span className="font-semibold">Payment</span>{' '}
-                  Submitting registers your school and chosen plan. The next screen opens Razorpay
-                  checkout for the plan fee (plus GST as shown at payment). You can use test cards in
-                  Razorpay test mode.
+                  {SCHOOL_SIGNUP_TEMP_PAYMENT_LINK ? (
+                    <>
+                      Submitting registers your school and chosen plan. Our team will send a Razorpay
+                      payment link to your contact email(s) for the plan fee (plus GST as shown on the
+                      link).
+                    </>
+                  ) : (
+                    <>
+                      Submitting registers your school and chosen plan. The next screen opens Razorpay
+                      checkout for the plan fee (plus GST as shown at payment). You can use test cards in
+                      Razorpay test mode.
+                    </>
+                  )}
                 </p>
               </div>
 
@@ -1252,6 +1274,8 @@ const SchoolRegistrationPage: React.FC = () => {
                 <input
                   id="commit-to-pay"
                   type="checkbox"
+                  required
+                  aria-required="true"
                   checked={commitToPay}
                   onChange={(e) => {
                     setCommitToPay(e.target.checked);
@@ -1260,10 +1284,13 @@ const SchoolRegistrationPage: React.FC = () => {
                   className="mt-1 h-4 w-4 rounded border-slate-300 text-[#1e3a8a] focus:ring-[#1e3a8a]"
                 />
                 <label htmlFor="commit-to-pay" className="text-xs sm:text-sm text-slate-700 leading-relaxed cursor-pointer">
+                  <span className="font-semibold text-slate-900">Required.</span>{' '}
                   On behalf of our institution, we confirm that we intend to subscribe at the plan
                   selected above and{' '}
-                  <span className="font-semibold">will complete payment</span> on the Razorpay step
-                  that follows this form.
+                  <span className="font-semibold">will complete payment</span>{' '}
+                  {SCHOOL_SIGNUP_TEMP_PAYMENT_LINK
+                    ? 'using the secure payment link we receive by email.'
+                    : 'on the Razorpay step that follows this form.'}
                 </label>
               </div>
               {errors.commitToPay && (
@@ -1280,7 +1307,7 @@ const SchoolRegistrationPage: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !commitToPay}
                   className="flex-1 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-md hover:brightness-110 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 disabled:opacity-60 disabled:pointer-events-none"
                   style={{ backgroundColor: GYS_BLUE }}
                 >

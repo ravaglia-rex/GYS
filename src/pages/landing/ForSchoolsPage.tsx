@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
+import LandingFaq from '../../components/landing/LandingFaq';
+import { schoolFaqSections } from './faq/schoolFaqSections';
+import { SCHOOL_INSTITUTIONAL_PRICE_LANDING } from '../../utils/schoolRegistrationPlans';
 
 const GYS_BLUE = '#1e3a8a';
 const GYS_GOLD = '#fbbf24';
@@ -127,7 +130,7 @@ const ForSchoolsPage: React.FC = () => {
                 className="rounded-xl px-6 py-3 text-sm font-semibold shadow-md transition hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.99]"
                 style={{ backgroundColor: GYS_GOLD, color: '#0f172a' }}
               >
-                Interested in the next step?
+                Take the next step →
               </button>
             </div>
           </div>
@@ -265,7 +268,7 @@ const ForSchoolsPage: React.FC = () => {
                 <div className="mt-1 flex flex-col gap-1 text-xs text-slate-600 sm:text-sm">
                   <span className="flex items-start gap-1">
                     <span className="mt-[2px] text-emerald-600 text-xs">✓</span>
-                    <span>Assessment 1 (Symbolic Reasoning)</span>
+                    <span>Assessment 1 (Pattern and Logic)</span>
                   </span>
                   <span className="flex items-start gap-1">
                     <span className="mt-[2px] text-emerald-600 text-xs">✓</span>
@@ -284,7 +287,7 @@ const ForSchoolsPage: React.FC = () => {
                   className="mt-3 text-base sm:text-lg font-bold"
                   style={{ color: GYS_BLUE }}
                 >
-                  ₹2,00,000/yr
+                  {SCHOOL_INSTITUTIONAL_PRICE_LANDING.entry}
                 </p>
               </div>
 
@@ -297,7 +300,7 @@ const ForSchoolsPage: React.FC = () => {
                 <div className="mt-1 flex flex-col gap-1 text-xs text-slate-600 sm:text-sm">
                   <span className="flex items-start gap-1">
                     <span className="mt-[2px] text-emerald-600 text-xs">✓</span>
-                    <span>Assessments 1 - 4 (reasoning triad + basic personality)</span>
+                    <span>Assessments 1–3 (full reasoning triad)</span>
                   </span>
                   <span className="flex items-start gap-1">
                     <span className="mt-[2px] text-emerald-600 text-xs">✓</span>
@@ -324,7 +327,7 @@ const ForSchoolsPage: React.FC = () => {
                   className="mt-3 text-base sm:text-lg font-bold"
                   style={{ color: GYS_BLUE }}
                 >
-                  ₹3,00,000/yr
+                  {SCHOOL_INSTITUTIONAL_PRICE_LANDING.standard}
                 </p>
               </div>
 
@@ -346,10 +349,6 @@ const ForSchoolsPage: React.FC = () => {
                   </span>
                   <span className="flex items-start gap-1">
                     <span className="mt-[2px] text-emerald-600 text-xs">✓</span>
-                    <span>Faculty training workshops</span>
-                  </span>
-                  <span className="flex items-start gap-1">
-                    <span className="mt-[2px] text-emerald-600 text-xs">✓</span>
                     <span>Consulting-style action plans</span>
                   </span>
                   <span className="flex items-start gap-1">
@@ -365,31 +364,31 @@ const ForSchoolsPage: React.FC = () => {
                   className="mt-3 text-base sm:text-lg font-bold"
                   style={{ color: GYS_BLUE }}
                 >
-                  ₹5,00,000/yr
+                  {SCHOOL_INSTITUTIONAL_PRICE_LANDING.premium}
                 </p>
               </div>
             </div>
           </section>
 
           {/* EducationWorld strip */}
-          <section className="mt-12 sm:mt-14">
-            <div className="rounded-2xl bg-[#e0edff] px-5 py-4 shadow-sm sm:px-6 sm:py-5">
-              <div className="flex flex-row items-center gap-3">
-                <div
-                  className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl px-2 text-xs font-semibold leading-tight text-white sm:h-16 sm:w-16 sm:text-sm"
-                  style={{ backgroundColor: 'rgba(30, 58, 138, 0.9)' }}
-                >
-                  Education
-                  <br />
-                  World
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-900 sm:text-sm">
+          <section className="mt-10 sm:mt-12">
+            <div className="rounded-2xl bg-[#eef4ff] px-4 py-4 shadow-sm sm:px-5 sm:py-4 md:px-6 md:py-5">
+              <div className="flex items-center gap-4 sm:gap-5">
+                <img
+                  src="/EW%20logo.png"
+                  alt="EducationWorld"
+                  className="h-24 w-auto max-w-[11rem] shrink-0 object-contain sm:h-28 sm:max-w-[13rem]"
+                />
+                <div className="min-w-0 text-left">
+                  <p className="text-sm font-semibold text-slate-900 sm:text-base">
                     Presented by EducationWorld
                   </p>
-                  <p className="mt-1 text-xs leading-relaxed text-slate-800 sm:text-sm">
-                    India&apos;s most trusted name in school assessment and ranking. Your
-                    data, our expertise.
+                  <p className="mt-1.5 text-xs leading-snug text-slate-700 sm:text-sm sm:leading-relaxed">
+                    India&apos;s most trusted name in school assessment and ranking. Your data, our
+                    expertise. For the past 20 years, the annual EducationWorld India School Rankings —
+                    the world&apos;s largest and most comprehensive schools survey — has stimulated and
+                    motivated institutional managements to strive for delivering balanced holistic
+                    education and benchmark themselves with globally admired schools.
                   </p>
                 </div>
               </div>
@@ -413,6 +412,13 @@ const ForSchoolsPage: React.FC = () => {
               </p>
             </div>
           </section>
+
+          <LandingFaq
+            id="faq"
+            title="GYS — Frequently Asked Questions"
+            sections={schoolFaqSections}
+            className="mt-12 sm:mt-14"
+          />
 
           {/* Final CTAs */}
           <section

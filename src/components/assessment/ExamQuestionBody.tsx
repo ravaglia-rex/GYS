@@ -20,7 +20,7 @@ export function inferQuestionInteraction(
   if (q.audio_url) return 'listening_mcq';
   if (q.passage && q.passage.trim()) return 'passage_mcq';
   const flow = getAssessmentFlowDefinition(assessmentId);
-  const pid = assessmentId === 'personality_assessment' || assessmentId === 'comprehensive_personality';
+  const pid = assessmentId === 'comprehensive_personality';
   if (pid && q.options?.length >= 5) return 'likert';
   if (flow.defaultQuestionInteraction === 'likert' && q.options?.length >= 5) return 'likert';
   if (flow.defaultQuestionInteraction === 'listening_mcq' && q.audio_url) return 'listening_mcq';

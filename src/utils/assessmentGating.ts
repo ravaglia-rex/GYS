@@ -9,7 +9,6 @@ export const ASSESSMENT_ORDER = [
   'symbolic_reasoning',
   'verbal_reasoning',
   'mathematical_reasoning',
-  'personality_assessment',
   'english_proficiency',
   'ai_literacy',
   'comprehensive_personality',
@@ -35,16 +34,11 @@ export interface GateResult {
   missingPrerequisite?: string;
 }
 
-/** Level 1 = Exam 1; Level 2 = Exams 1 - 4 (reasoning triad + basic personality); Level 3 = all 7 exams */
+/** Level 1 = Exam 1; Level 2 = full reasoning triad (Exams 1–3); Level 3 = + English, AI, comprehensive personality (Exams 4–6) */
 export const MEMBERSHIP_ALLOWED: Record<number, string[]> = {
   0: [],
   1: ['symbolic_reasoning'],
-  2: [
-    'symbolic_reasoning',
-    'verbal_reasoning',
-    'mathematical_reasoning',
-    'personality_assessment',
-  ],
+  2: ['symbolic_reasoning', 'verbal_reasoning', 'mathematical_reasoning'],
   3: [...ASSESSMENT_ORDER],
 };
 
@@ -55,16 +49,12 @@ export const MEMBERSHIP_LEVEL_LABELS: Record<number, string> = {
 };
 
 /** Shown on the dashboard chart without a numeric % (non-competitive / profile assessments). */
-export const NON_COMPETITIVE_CHART_ASSESSMENT_IDS: ReadonlySet<string> = new Set([
-  'personality_assessment',
-  'comprehensive_personality',
-]);
+export const NON_COMPETITIVE_CHART_ASSESSMENT_IDS: ReadonlySet<string> = new Set(['comprehensive_personality']);
 
 export const ASSESSMENT_NAMES: Record<string, string> = {
-  symbolic_reasoning: 'Symbolic Reasoning',
+  symbolic_reasoning: 'Pattern and Logic',
   verbal_reasoning: 'Verbal Reasoning',
   mathematical_reasoning: 'Mathematical Reasoning',
-  personality_assessment: 'Personality Assessment (Basic)',
   english_proficiency: 'English Proficiency (Advanced)',
   ai_literacy: 'AI Literacy & Capability',
   comprehensive_personality: 'Comprehensive Personality',
@@ -75,10 +65,9 @@ export const COMPLETION_PREREQUISITES: Record<string, string[]> = {
   symbolic_reasoning: [],
   verbal_reasoning: ['symbolic_reasoning'],
   mathematical_reasoning: ['symbolic_reasoning'],
-  personality_assessment: ['verbal_reasoning', 'mathematical_reasoning'],
   english_proficiency: ['verbal_reasoning', 'mathematical_reasoning'],
-  ai_literacy: ['personality_assessment', 'english_proficiency'],
-  comprehensive_personality: ['personality_assessment', 'english_proficiency', 'ai_literacy'],
+  ai_literacy: ['english_proficiency'],
+  comprehensive_personality: ['english_proficiency', 'ai_literacy'],
 };
 
 /** New accounts and missing level default to Level 1 (Entry / Tier 1 experience). */

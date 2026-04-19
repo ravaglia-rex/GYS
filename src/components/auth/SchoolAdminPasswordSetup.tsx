@@ -9,7 +9,7 @@ import { LoadingSpinner as Spinner } from '../ui/spinner';
 import { useToast } from '../ui/use-toast';
 import { createSchoolAdmin } from '../../db/schoolAdminCollection';
 import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from 'firebase/auth';
-import { auth } from '../../firebase/firebase';
+import { auth, getAuthActionCodeSettings } from '../../firebase/firebase';
 import * as Sentry from '@sentry/react';
 import { useNavigate } from 'react-router-dom';
 import VerifyEmailDialog from './VerifyEmailDialog';
@@ -53,7 +53,7 @@ const SchoolAdminPasswordSetup: React.FC<SchoolAdminPasswordSetupProps> = ({ ema
       await createSchoolAdmin(email, schoolId, data.password);
 
       // Step 3: Send email verification
-      await sendEmailVerification(userCredential.user);
+      await sendEmailVerification(userCredential.user, getAuthActionCodeSettings());
 
       // Step 4: Sign out and show verification dialog
       await signOut(auth);

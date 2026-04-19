@@ -241,7 +241,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
           : 0;
 
         const emailFromDoc = normalizeRosterEmail(
-          String((data.email_normalized as string) ?? (data.email as string) ?? '')
+          String((data.email as string) ?? (data.email_normalized as string) ?? '')
         );
 
         return {

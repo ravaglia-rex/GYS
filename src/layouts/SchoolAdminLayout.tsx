@@ -52,6 +52,8 @@ function OverviewColoredIcon() {
 export interface SchoolAdminInteractivePreview {
   pathPrefix: string;
   pocEmail: string;
+  /** Where Exit preview navigates (e.g. `/for-schools/preview` hub). Defaults to `/` if omitted. */
+  exitPreviewTo?: string;
 }
 
 interface SchoolAdminLayoutProps {
@@ -106,7 +108,7 @@ export default function SchoolAdminLayout({ children, interactivePreview }: Scho
 
   const handleLogout = async () => {
     if (interactivePreview) {
-      navigate('/');
+      navigate(interactivePreview.exitPreviewTo ?? '/');
       return;
     }
     try {
@@ -218,7 +220,7 @@ export default function SchoolAdminLayout({ children, interactivePreview }: Scho
               },
             }}
           >
-            Exit preview - back to home
+            Exit preview - back to hub
           </Button>
         </Box>
       ) : (

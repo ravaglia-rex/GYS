@@ -12,7 +12,6 @@ import {
 } from '@mui/icons-material';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 
-const EW_BLUE = 'rgba(30, 58, 138, 0.9)';
 const RECOMMENDED_GOLD = '#fbbf24';
 const STANDARD_RING = 'rgba(30, 58, 138, 0.7)';
 /** Same as ip.statBlue - literal here so plan data has no palette init at module top */
@@ -41,7 +40,7 @@ const PLANS: Plan[] = [
     accent: '#475569',
     Icon: EntryIcon,
     features: [
-      'Assessment 1 (Symbolic Reasoning)',
+      'Assessment 1 (Pattern and Logic)',
       'Headline performance report',
       'Tier distribution analysis',
       'Path to next tier',
@@ -57,7 +56,7 @@ const PLANS: Plan[] = [
     current: true,
     recommended: true,
     features: [
-      'Assessments 1 - 4 (reasoning triad + basic personality)',
+      'Assessments 1–3 (full reasoning triad)',
       'Full analytics & subscore breakdowns',
       'Grade-level analysis',
       'Comparative benchmarks (national, regional)',
@@ -76,7 +75,6 @@ const PLANS: Plan[] = [
       'Everything in Standard',
       'All grades & custom cohorts',
       'Cohort analysis & cluster insights',
-      'Faculty training workshops',
       'Consulting-style action plans',
       'Dedicated account manager',
       'Marketing toolkit (tier badges, parent comms)',
@@ -227,43 +225,37 @@ function SchoolAdminSubscriptionPage() {
       {/* EducationWorld strip - matches public For Schools page */}
       <Box
         sx={{
-          borderRadius: 2.5,
-          bgcolor: '#e0edff',
-          px: { xs: 2.5, sm: 3 },
-          py: { xs: 2, sm: 2.5 },
+          borderRadius: '24px',
+          bgcolor: '#eef4ff',
+          px: { xs: 4, sm: 5, md: 6 },
+          py: { xs: 4, sm: 5, md: 6 },
           mb: 4,
           boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
         }}
       >
-        <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: { xs: 3, sm: 4 } }}>
           <Box
+            component="img"
+            src="/EW%20logo.png"
+            alt="EducationWorld"
             sx={{
               flexShrink: 0,
-              width: 56,
-              height: 56,
-              borderRadius: 2,
-              bgcolor: EW_BLUE,
-              color: '#fff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textAlign: 'center',
-              fontSize: '0.7rem',
-              fontWeight: 600,
-              lineHeight: 1.2,
-              px: 0.5,
+              height: { xs: 96, sm: 112 },
+              width: 'auto',
+              maxWidth: { xs: 176, sm: 208 },
+              objectFit: 'contain',
             }}
-          >
-            Education
-            <br />
-            World
-          </Box>
-          <Box>
-            <Typography variant="body2" sx={{ fontWeight: 700, color: ip.heading }}>
+          />
+          <Box sx={{ minWidth: 0, flex: 1 }}>
+            <Typography sx={{ fontWeight: 700, color: ip.heading, fontSize: { xs: '1rem', sm: '1.125rem' } }}>
               Presented by EducationWorld
             </Typography>
-            <Typography variant="body2" sx={{ mt: 0.5, color: '#1e293b', fontSize: '0.8125rem', lineHeight: 1.5 }}>
+            <Typography sx={{ mt: 0.75, color: '#1e293b', fontSize: { xs: '0.9375rem', sm: '1rem' }, lineHeight: 1.6 }}>
               India&apos;s most trusted name in school assessment and ranking. Your data, our expertise.
+              For the past 20 years, the annual EducationWorld India School Rankings — the world&apos;s
+              largest and most comprehensive schools survey — has stimulated and motivated institutional
+              managements to strive for delivering balanced holistic education and benchmark themselves
+              with globally admired schools.
             </Typography>
           </Box>
         </Box>

@@ -1,23 +1,21 @@
 const STORAGE_KEY = 'argus.studentPreview.exitTo';
 
-/**
- * Exit preview always sends users to the public home page (`/`).
- * Storage is cleared for backwards compatibility with older sessions.
- */
-export function consumeStudentPreviewExitTo(): '/' {
+/** Persist where Exit preview should go (set when entering `/students/preview/*` with router state). */
+export function rememberStudentPreviewExitTo(path: string): void {
   try {
-    sessionStorage.removeItem(STORAGE_KEY);
+    if (path.startsWith('/')) sessionStorage.setItem(STORAGE_KEY, path);
   } catch {
     /* ignore */
   }
-  return '/';
 }
 
-/** Kept for callers that still set a return path; exit destination is always `/`. */
-export function rememberStudentPreviewExitTo(_path?: string): void {
+/** Read exit path, clear storage, default `/`. */
+export function consumeStudentPreviewExitTo(): string {
   try {
+    const v = sessionStorage.getItem(STORAGE_KEY);
     sessionStorage.removeItem(STORAGE_KEY);
+    return v != null && v.startsWith('/') ? v : '/';
   } catch {
-    /* ignore */
+    return '/';
   }
 }

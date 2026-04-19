@@ -33,8 +33,8 @@ interface DashboardStats {
   availableAssessments: number;
 }
 
-// Assessments 1 - 7 (canonical program count)
-const TOTAL_ASSESSMENT_TYPES = 7;
+// Canonical program count (reasoning triad + English + AI + comprehensive personality)
+const TOTAL_ASSESSMENT_TYPES = 6;
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -188,7 +188,7 @@ const Dashboard: React.FC = () => {
                   )}
                 </Box>
                 <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.65)', mb: 2, maxWidth: 720 }}>
-                  All assessments are listed below. Complete them in sequence where your membership allows - Level 2 includes the reasoning triad and basic personality (Exams 1 - 4); Level 3 adds advanced English, AI, and comprehensive personality (Exams 5 - 7).
+                  All assessments are listed below. Complete them in sequence where your membership allows — Level 2 is the full reasoning triad (Exams 1–3); Level 3 adds advanced English, AI literacy, and comprehensive personality (Exams 4–6).
                 </Typography>
                 <EnhancedAssessmentCardsGroup uid={uid} filterType="all" />
               </Box>

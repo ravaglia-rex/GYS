@@ -1,43 +1,103 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
+import LandingFaq from '../../components/landing/LandingFaq';
+import { studentFaqSections } from './faq/studentFaqSections';
 
 const GYS_BLUE = '#1e3a8a';
 const GYS_GOLD = '#fbbf24';
 
+/** Landing copy — aligned with signup membership tiers (L1 / L2 / L3). */
+const STUDENT_ASSESSMENTS = [
+  {
+    exam: 1,
+    group: 'triad' as const,
+    label: 'Pattern and Logic',
+    shortName: 'Pattern & Logic',
+    desc: 'Patterns, rules, and structured logic',
+    icon: '🔢',
+    inL1: true,
+    inL2: true,
+    inL3: true,
+  },
+  {
+    exam: 2,
+    group: 'triad' as const,
+    label: 'Verbal Reasoning',
+    shortName: 'Verbal',
+    desc: 'Meaning, inference, and argument from text',
+    icon: '📚',
+    inL1: false,
+    inL2: true,
+    inL3: true,
+  },
+  {
+    exam: 3,
+    group: 'triad' as const,
+    label: 'Mathematical Reasoning',
+    shortName: 'Math',
+    desc: 'Number sense, logic, and quantitative thinking',
+    icon: '📐',
+    inL1: false,
+    inL2: true,
+    inL3: true,
+  },
+  {
+    exam: 4,
+    group: 'depth' as const,
+    label: 'English Proficiency (Advanced)',
+    shortName: 'English (adv.)',
+    desc: 'Listening, speaking, and conversational fluency — AI-assessed',
+    icon: '💬',
+    inL1: false,
+    inL2: false,
+    inL3: true,
+  },
+  {
+    exam: 5,
+    group: 'depth' as const,
+    label: 'AI Literacy & Capability',
+    shortName: 'AI literacy',
+    desc: 'Skills for learning and working responsibly with AI',
+    icon: '🤖',
+    inL1: false,
+    inL2: false,
+    inL3: true,
+  },
+  {
+    exam: 6,
+    group: 'depth' as const,
+    label: 'Comprehensive Personality',
+    shortName: 'Personality (full)',
+    desc: 'Deep profile across many dimensions (~30)',
+    icon: '✨',
+    inL1: false,
+    inL2: false,
+    inL3: true,
+  },
+] as const;
+
+const TIER_HEADERS = [
+  { key: 'L1' as const, title: 'Level 1', subtitle: 'Explore', tint: 'bg-sky-100 text-sky-950' },
+  { key: 'L2' as const, title: 'Level 2', subtitle: 'Engage', tint: 'bg-amber-100 text-amber-950' },
+  { key: 'L3' as const, title: 'Level 3', subtitle: 'Excel', tint: 'bg-purple-100 text-purple-950' },
+];
+
+const ASSESSMENT_SECTIONS: {
+  group: (typeof STUDENT_ASSESSMENTS)[number]['group'];
+  title: string;
+  hint: string;
+}[] = [
+  { group: 'triad', title: 'Reasoning triad', hint: 'Pattern & logic · verbal · mathematical — unified report at Level 2' },
+  { group: 'depth', title: 'English, AI & comprehensive personality', hint: 'Level 3 only' },
+];
+
 const StudentPathPage: React.FC = () => {
   const navigate = useNavigate();
   const [isVisible, setIsVisible] = useState(false);
-  const [assessmentsVisible, setAssessmentsVisible] = useState(false);
-  const [membershipVisible, setMembershipVisible] = useState(false);
 
   useEffect(() => {
     setIsVisible(true);
-  }, []);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            if (entry.target.getAttribute('data-section') === 'assessments') {
-              setAssessmentsVisible(true);
-            } else if (entry.target.getAttribute('data-section') === 'membership') {
-              setMembershipVisible(true);
-            }
-          }
-        });
-      },
-      { threshold: 0.15, rootMargin: '0px 0px -50px 0px' }
-    );
-    const el1 = document.querySelector('[data-section="assessments"]');
-    const el2 = document.querySelector('[data-section="membership"]');
-    if (el1) observer.observe(el1);
-    if (el2) observer.observe(el2);
-    return () => {
-      if (el1) observer.unobserve(el1);
-      if (el2) observer.unobserve(el2);
-    };
   }, []);
 
   return (
@@ -103,14 +163,22 @@ const StudentPathPage: React.FC = () => {
             <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center sm:flex-wrap">
               <button
                 type="button"
-                onClick={() => navigate('/students/preview/dashboard')}
+                onClick={() =>
+                  navigate('/students/preview/dashboard', {
+                    state: { studentPreviewExitTo: '/students' },
+                  })
+                }
                 className="w-full max-w-sm rounded-xl border-2 border-white/40 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm transition-all duration-200 hover:bg-white/20 hover:border-white/60 sm:w-auto"
               >
                 Try the sample dashboard - no account
               </button>
               <button
                 type="button"
-                onClick={() => navigate('/for-schools/preview/assessment')}
+                onClick={() =>
+                  navigate('/for-schools/preview/assessment', {
+                    state: { sampleAssessmentExitTo: '/students' },
+                  })
+                }
                 className="w-full max-w-sm rounded-xl border-2 border-white/40 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm transition-all duration-200 hover:bg-white/20 hover:border-white/60 sm:w-auto"
               >
                 Try the sample assessment - no account
@@ -132,8 +200,8 @@ const StudentPathPage: React.FC = () => {
               },
               {
                 icon: '🧠',
-                title: '7 Assessments',
-                body: 'Up to seven exams: reasoning triad and basic personality (Level 2), plus advanced English, AI literacy, and comprehensive personality with Level 3-benchmarked globally.',
+                title: '6 Assessments',
+                body: 'Six exams total: Level 2 is the full reasoning triad; Level 3 adds advanced English, AI literacy, and comprehensive personality — benchmarked globally.',
               },
               {
                 icon: '📊',
@@ -172,108 +240,111 @@ const StudentPathPage: React.FC = () => {
         {/* Assessments - full width grey band */}
         <section
           id="assessments"
-          data-section="assessments"
-          className={`mt-12 bg-slate-100 border-y border-slate-200 py-8 text-center sm:mt-16 sm:py-10 relative left-1/2 right-1/2 -ml-[50vw] w-screen scroll-mt-20 transition-all duration-600 ${assessmentsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
+          className="mt-12 bg-slate-100 border-y border-slate-200 py-8 text-center sm:mt-16 sm:py-10 relative left-1/2 right-1/2 -ml-[50vw] w-screen scroll-mt-20"
         >
           <div className="mx-auto max-w-5xl px-4 sm:px-6">
             <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">The Assessments</h2>
-            <div className="mt-10 sm:mt-12">
-            {(() => {
-              const cards = [
-                {
-                  label: 'Symbolic Reasoning',
-                  desc: 'Patterns, rules, and structured logic',
-                  icon: '🔢',
-                },
-                {
-                  label: 'Verbal Reasoning',
-                  desc: 'Meaning, inference, and argument from text',
-                  icon: '📚',
-                },
-                {
-                  label: 'Mathematical Reasoning',
-                  desc: 'Number sense, logic, and quantitative thinking',
-                  icon: '📐',
-                },
-                {
-                  label: 'Personality Profile',
-                  desc: '8 dimensions of how you learn',
-                  icon: '🧩',
-                },
-                {
-                  label: 'English Fluency',
-                  desc: 'AI-assessed conversational English',
-                  icon: '💬',
-                },
-                {
-                  label: 'AI Literacy',
-                  desc: 'Skills for learning and working with AI',
-                  icon: '🤖',
-                },
-                {
-                  label: 'Comprehensive Personality',
-                  desc: 'Deep profile across many dimensions',
-                  icon: '✨',
-                },
-              ];
+            <p className="mx-auto mt-2 max-w-xl text-sm text-slate-600">
+              One map: each row is an exam (name + what it measures). Checkmarks show which membership unlocks it.
+            </p>
 
-              const renderCard = (card: { label: string; desc: string; icon: string }) => (
-                <div
-                  key={card.label}
-                  className="rounded-2xl px-3 py-4 text-center shadow-sm sm:px-4 sm:py-5 transition-all duration-300 ease-out hover:scale-[1.04] hover:-translate-y-1 hover:shadow-xl cursor-default"
-                  style={{ backgroundColor: 'rgba(30, 58, 138, 0.8)' }}
-                >
-                  <span className="block text-2xl leading-none sm:text-3xl" aria-hidden="true">
-                    {card.icon}
-                  </span>
-                  <p className="mt-2 text-xs font-semibold text-white sm:text-sm">{card.label}</p>
-                  <p className="mt-1 text-xs text-white/80 sm:text-xs">{card.desc}</p>
+            <div
+              className="mx-auto mt-6 max-w-3xl overflow-hidden rounded-2xl border border-slate-200 bg-white text-left shadow-md ring-1 ring-slate-100"
+              role="region"
+              aria-label="Assessments and membership levels"
+            >
+              {/* Column headers — compact */}
+              <div className="grid grid-cols-[minmax(0,1fr)_repeat(3,3.25rem)] gap-x-1 border-b border-slate-200 bg-slate-50 sm:grid-cols-[minmax(0,1fr)_repeat(3,4.5rem)] sm:gap-x-2">
+                <div className="px-3 py-2 text-[0.65rem] font-semibold uppercase tracking-wide text-slate-500 sm:px-4 sm:py-2.5 sm:text-xs">
+                  Assessment
                 </div>
-              );
+                {TIER_HEADERS.map((t) => (
+                  <div
+                    key={t.key}
+                    className={`flex flex-col items-center justify-center px-0.5 py-2 text-center sm:py-2.5 ${t.tint}`}
+                  >
+                    <span className="text-[0.65rem] font-bold leading-none sm:text-xs">{t.title.replace('Level ', 'L')}</span>
+                    <span className="mt-0.5 hidden text-[0.6rem] font-medium opacity-80 sm:inline sm:text-[0.65rem]">
+                      {t.subtitle}
+                    </span>
+                  </div>
+                ))}
+              </div>
 
-              return (
-                <>
-                  {/* Phone: 2+2+2+1 layout */}
-                  <div className="grid grid-cols-2 gap-3 sm:hidden">
-                    {cards.slice(0, 6).map(renderCard)}
-                    <div className="col-span-2 flex justify-center">
-                      {renderCard(cards[6])}
+              {ASSESSMENT_SECTIONS.map((section) => {
+                const rows = STUDENT_ASSESSMENTS.filter((a) => a.group === section.group);
+                const triadBand =
+                  section.group === 'triad'
+                    ? 'bg-gradient-to-r from-sky-50 via-indigo-50/60 to-transparent border-l-[3px] sm:border-l-4'
+                    : section.group === 'depth'
+                      ? 'bg-gradient-to-r from-purple-50/90 via-transparent to-transparent border-l-[3px] border-l-purple-300/80 sm:border-l-4'
+                      : 'bg-slate-50/80 border-l-[3px] border-l-slate-300/80 sm:border-l-4';
+
+                return (
+                  <div key={section.group}>
+                    <div
+                      className={`${triadBand} border-slate-200/80 px-3 py-2 sm:px-4`}
+                      style={section.group === 'triad' ? { borderLeftColor: GYS_BLUE } : undefined}
+                    >
+                      <p className="text-xs font-bold text-slate-800 sm:text-sm">{section.title}</p>
+                      <p className="text-[0.65rem] text-slate-600 sm:text-xs">{section.hint}</p>
                     </div>
-                  </div>
-                  {/* Tablet+: three rows of three + three + one (centered) */}
-                  <div className="hidden sm:block">
-                    <div className="grid grid-cols-6 gap-3">
-                      {cards.slice(0, 3).map((card) => (
-                        <div key={card.label} className="col-span-2">
-                          {renderCard(card)}
+                    {rows.map((row) => (
+                      <div
+                        key={row.exam}
+                        className="grid grid-cols-[minmax(0,1fr)_repeat(3,3.25rem)] items-center gap-x-1 border-b border-slate-100 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_repeat(3,4.5rem)] sm:gap-x-2"
+                      >
+                        <div className="flex min-w-0 gap-2.5 px-3 py-2 sm:gap-3 sm:px-4 sm:py-2">
+                          <span className="shrink-0 text-lg leading-none sm:text-xl" aria-hidden="true">
+                            {row.icon}
+                          </span>
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                              <span
+                                className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded px-1 text-[0.6rem] font-bold text-white sm:h-5 sm:text-[0.65rem]"
+                                style={{ backgroundColor: GYS_BLUE }}
+                              >
+                                {row.exam}
+                              </span>
+                              <span className="text-sm font-semibold leading-tight text-slate-900">{row.label}</span>
+                            </div>
+                            <p className="mt-0.5 text-[0.7rem] leading-snug text-slate-500 sm:text-xs">{row.desc}</p>
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                    <div className="mt-3 grid grid-cols-6 gap-3">
-                      {cards.slice(3, 6).map((card) => (
-                        <div key={card.label} className="col-span-2">
-                          {renderCard(card)}
-                        </div>
-                      ))}
-                    </div>
-                    <div className="mt-3 grid grid-cols-6 gap-3">
-                      <div className="col-span-2 col-start-3">
-                        {renderCard(cards[6])}
+                        {[row.inL1, row.inL2, row.inL3].map((on, i) => (
+                          <div
+                            key={TIER_HEADERS[i].key}
+                            className="flex h-full min-h-[2.75rem] items-center justify-center sm:min-h-0 sm:py-2"
+                            aria-label={
+                              on
+                                ? `${row.label} included in ${TIER_HEADERS[i].title}`
+                                : `${row.label} not in ${TIER_HEADERS[i].title}`
+                            }
+                          >
+                            <span
+                              className={`text-lg font-bold sm:text-xl ${on ? 'text-emerald-600' : 'text-slate-200'}`}
+                              aria-hidden="true"
+                            >
+                              {on ? '✓' : '—'}
+                            </span>
+                          </div>
+                        ))}
                       </div>
-                    </div>
+                    ))}
                   </div>
-                </>
-              );
-            })()}
+                );
+              })}
+
+              <p className="border-t border-slate-100 bg-slate-50 px-3 py-2 text-center text-[0.65rem] leading-relaxed text-slate-600 sm:text-xs">
+                Level 2 also includes the <span className="font-semibold text-slate-800">triad cross-synthesis</span>{' '}
+                report when all three reasoning exams are complete. Prices below.
+              </p>
             </div>
           </div>
         </section>
 
         {/* Membership levels */}
-        <section
-          data-section="membership"
-          className={`mt-12 sm:mt-16 transition-all duration-600 ${membershipVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
-        >
+        <section className="mt-12 sm:mt-16">
           <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl text-center">Membership Levels</h2>
           <p className="mt-2 text-center text-xs text-slate-600 sm:text-sm">
             Choose the depth of insight that&apos;s right for you.
@@ -289,13 +360,13 @@ const StudentPathPage: React.FC = () => {
               },
               {
                 name: 'Level 2 - Engage',
-                desc: 'Exams 1 - 4: reasoning triad + basic personality + cross-synthesis',
+                desc: 'Full reasoning triad (Exams 1–3) + triad cross-synthesis report',
                 price: '₹1,299/yr',
                 bg: 'bg-[#fff7e0]',
               },
               {
                 name: 'Level 3 - Excel',
-                desc: 'All 7 exams: advanced English, AI, comprehensive personality + guidance',
+                desc: 'All 6 exams: English, AI, comprehensive personality + full guidance',
                 price: '₹2,499/yr',
                 bg: 'bg-[#f9e8ff]',
               },
@@ -321,21 +392,53 @@ const StudentPathPage: React.FC = () => {
           </div>
         </section>
 
+        {/* EducationWorld — students & parents (aligned with main landing) */}
+        <section className="mt-10 sm:mt-12">
+          <div className="rounded-2xl bg-[#eef4ff] px-4 py-4 shadow-sm sm:px-5 sm:py-4 md:px-6 md:py-5">
+            <div className="flex items-center gap-4 sm:gap-5">
+              <img
+                src="/EW%20logo.png"
+                alt="EducationWorld"
+                className="h-24 w-auto max-w-[11rem] shrink-0 object-contain sm:h-28 sm:max-w-[13rem]"
+              />
+              <div className="min-w-0 text-left">
+                <p className="text-sm font-semibold text-slate-900 sm:text-base">
+                  Presented by EducationWorld
+                </p>
+                <p className="mt-1.5 text-xs leading-snug text-slate-700 sm:text-sm sm:leading-relaxed">
+                  Trusted by over 5,000 schools and millions of parents nationwide for its credible,
+                  comprehensive and in-depth school rankings on a wide range of parameters including
+                  academic reputation, teacher competence, co-curricular and sports education. For the
+                  past 20 years, the annual EducationWorld India School Rankings — the world&apos;s
+                  largest and most comprehensive schools survey — has aided and enabled parents to select
+                  the most aptitudinally suitable school for their children.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <LandingFaq
+          id="faq"
+          title="GYS — Frequently Asked Questions"
+          sections={studentFaqSections}
+          className="mt-12 sm:mt-16"
+        />
+
         {/* Final CTAs */}
         <section className="mt-12 sm:mt-16">
           <div className="mx-auto flex max-w-xl flex-col items-center gap-3">
             <button
               type="button"
-              onClick={() => navigate('/students/register')}
-              className="inline-flex w-full items-center justify-center rounded-2xl px-14 py-3.5 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98] sm:text-base"
-              style={{ backgroundColor: GYS_BLUE }}
-              aria-label="Sign up as a student"
+              disabled
+              className="inline-flex w-full cursor-not-allowed items-center justify-center rounded-2xl border border-slate-200 bg-slate-200 px-14 py-3.5 text-sm font-semibold text-slate-500 shadow-none sm:text-base"
+              aria-label="Student sign up (temporarily unavailable)"
             >
-              Sign Up
+              Sign up — Coming soon!
             </button>
             <p className="text-center text-sm text-slate-600 sm:text-base">
-              Create your account with your school email, or try the sample dashboard above to explore the
-              experience first.
+              Student registration is paused for a short time. Try the sample dashboard above to explore the
+              experience, or check back soon.
             </p>
           </div>
         </section>
@@ -373,6 +476,13 @@ const StudentPathPage: React.FC = () => {
               className="text-gray-600 hover:text-gray-900 transition-colors duration-200"
             >
               Assessments
+            </button>
+            <button
+              type="button"
+              onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })}
+              className="text-gray-600 hover:text-gray-900 transition-colors duration-200"
+            >
+              FAQ
             </button>
             <a
               href="mailto:schools@globalyoungscholar.com"

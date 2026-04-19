@@ -34,8 +34,11 @@ import {
   BarChart as BarChartIcon,
 } from '@mui/icons-material';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { rememberStudentPreviewExitTo, consumeStudentPreviewExitTo } from '../utils/studentPreviewExit';
 
 const DRAWER_WIDTH = 280;
+
+type StudentPreviewEntryState = { studentPreviewExitTo?: string };
 
 const iconSx = { fontSize: '1.35rem' };
 
@@ -49,8 +52,15 @@ export default function StudentPreviewLayout() {
   const location = useLocation();
 
   const exitPreview = useCallback(() => {
-    navigate('/');
+    navigate(consumeStudentPreviewExitTo());
   }, [navigate]);
+
+  useEffect(() => {
+    const v = (location.state as StudentPreviewEntryState | null)?.studentPreviewExitTo;
+    if (typeof v === 'string' && v.startsWith('/')) {
+      rememberStudentPreviewExitTo(v);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     const p = location.pathname;
@@ -253,7 +263,7 @@ export default function StudentPreviewLayout() {
       <Divider sx={{ borderColor: '#1e293b' }} />
 
       <Box sx={{ p: 2 }}>
-        <Tooltip title="Leave preview and return to the Argus home page">
+        <Tooltip title="Leave preview and return to the previous public page">
           <Box
             onClick={exitPreview}
             sx={{

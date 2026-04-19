@@ -13,6 +13,7 @@ import {
 import { MEMBERSHIP_ALLOWED } from '../../../utils/assessmentGating';
 
 const SAMPLE_ASSESSMENT_PATH = '/for-schools/preview/assessment';
+const SAMPLE_ASSESSMENT_EXIT = '/students/preview/dashboard';
 
 const StudentPreviewDashboardPage: React.FC = () => {
   const inScope = MEMBERSHIP_ALLOWED[PREVIEW_MEMBERSHIP_LEVEL] ?? [];
@@ -46,6 +47,7 @@ const StudentPreviewDashboardPage: React.FC = () => {
         previewNavTargets={{
           available: SAMPLE_ASSESSMENT_PATH,
           completed: '/students/preview/dashboard#your-assessments',
+          sampleAssessmentExitTo: SAMPLE_ASSESSMENT_EXIT,
         }}
         previewDisableAssessmentStatClicks
       />
@@ -59,7 +61,7 @@ const StudentPreviewDashboardPage: React.FC = () => {
           </Typography>
         </Box>
         <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.65)', mb: 2, maxWidth: 720 }}>
-          All assessments are listed below. Complete them in sequence where your membership allows - Level 2 covers Exams 1 - 4; Level 3 unlocks Exams 5 - 7 (advanced English, AI, comprehensive personality).
+          All assessments are listed below. Complete them in sequence where your membership allows — Level 2 is the reasoning triad (Exams 1–3); Level 3 unlocks Exams 4–6 (English, AI, comprehensive personality).
         </Typography>
         <EnhancedAssessmentCardsGroup
           uid=""
@@ -69,6 +71,7 @@ const StudentPreviewDashboardPage: React.FC = () => {
             progress: PREVIEW_ASSESSMENT_PROGRESS,
             membershipLevel: PREVIEW_MEMBERSHIP_LEVEL,
             previewAssessmentPath: SAMPLE_ASSESSMENT_PATH,
+            previewSampleExitTo: SAMPLE_ASSESSMENT_EXIT,
             previewGrade: PREVIEW_STUDENT_PROFILE.grade,
             previewDisableStartNavigation: true,
           }}

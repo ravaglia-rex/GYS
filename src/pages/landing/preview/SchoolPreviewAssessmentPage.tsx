@@ -26,8 +26,8 @@ import BoltIcon from '@mui/icons-material/Bolt';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import HeadphonesIcon from '@mui/icons-material/Headphones';
 import MicIcon from '@mui/icons-material/Mic';
-import { useNavigate } from 'react-router-dom';
-import { PREVIEW_SYMBOLIC_SAMPLE_QUESTIONS } from '../../../data/schoolPreviewMock';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { PREVIEW_PATTERN_LOGIC_SAMPLE_QUESTIONS } from '../../../data/schoolPreviewMock';
 import {
   getAssessmentFlowDefinition,
   type BeforeBeginIconKey,
@@ -36,6 +36,8 @@ import {
 import { mergeStatGridWithTier } from '../../../components/assessment/mergeStatGridWithTier';
 import { ExamQuestionBody, inferQuestionInteraction } from '../../../components/assessment/ExamQuestionBody';
 import type { ExamQuestion } from '../../../db/assessmentCollection';
+
+type SampleAssessmentLocationState = { sampleAssessmentExitTo?: string };
 
 const ASSESSMENT_ID = 'symbolic_reasoning';
 const EXAM_TOTAL = 7;
@@ -72,10 +74,22 @@ function formatMmSs(totalSec: number): string {
 
 type PreviewPhase = 'intro' | 'exam' | 'complete';
 
+const DEFAULT_SAMPLE_EXIT = '/for-schools/preview';
+
+function sampleAssessmentExitLabel(exitTo: string): string {
+  if (exitTo === DEFAULT_SAMPLE_EXIT) return 'Back to preview hub';
+  if (exitTo === '/students') return 'Back to students';
+  if (exitTo.startsWith('/students/preview')) return 'Back to sample dashboard';
+  return 'Back';
+}
+
 const SchoolPreviewAssessmentPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const sampleExitTo =
+    (location.state as SampleAssessmentLocationState | null)?.sampleAssessmentExitTo ?? DEFAULT_SAMPLE_EXIT;
   const flow = getAssessmentFlowDefinition(ASSESSMENT_ID);
-  const previewQuestionCount = PREVIEW_SYMBOLIC_SAMPLE_QUESTIONS.length;
+  const previewQuestionCount = PREVIEW_PATTERN_LOGIC_SAMPLE_QUESTIONS.length;
   const statGrid = useMemo(() => {
     return mergeStatGridWithTier(flow, undefined).map((cell) => {
       const L = cell.label.toLowerCase();
@@ -115,7 +129,7 @@ const SchoolPreviewAssessmentPage: React.FC = () => {
 
   const questions: ExamQuestion[] = useMemo(
     () =>
-      PREVIEW_SYMBOLIC_SAMPLE_QUESTIONS.map((q) => ({
+      PREVIEW_PATTERN_LOGIC_SAMPLE_QUESTIONS.map((q) => ({
         id: q.id,
         prompt: q.prompt,
         options: q.options,
@@ -143,7 +157,7 @@ const SchoolPreviewAssessmentPage: React.FC = () => {
 
   const score = useCallback(() => {
     let correct = 0;
-    PREVIEW_SYMBOLIC_SAMPLE_QUESTIONS.forEach((item) => {
+    PREVIEW_PATTERN_LOGIC_SAMPLE_QUESTIONS.forEach((item) => {
       if (choices[item.id] === item.correctIndex) correct += 1;
     });
     return correct;
@@ -192,7 +206,7 @@ const SchoolPreviewAssessmentPage: React.FC = () => {
 
   const confirmExit = () => {
     setExitOpen(false);
-    navigate('/for-schools/preview');
+    navigate(sampleExitTo);
   };
 
   const headerBg = flow.theme === 'purple' ? '#6a1b9a' : '#0d47a1';
@@ -202,7 +216,7 @@ const SchoolPreviewAssessmentPage: React.FC = () => {
   const progressPercent = total > 0 ? ((step + (selectedOption !== null ? 0.5 : 0)) / total) * 100 : 0;
   const adaptiveNoBack = flow.adaptiveForwardOnly;
 
-  const goPreviewHub = () => navigate('/for-schools/preview');
+  const goPreviewHub = () => navigate(sampleExitTo);
 
   if (phase === 'intro') {
     return (
@@ -469,12 +483,17 @@ const SchoolPreviewAssessmentPage: React.FC = () => {
             Sample complete
           </Typography>
           <Typography variant="body2" sx={{ color: '#64748b', textAlign: 'center', maxWidth: 420 }}>
-            You answered {s} of {total} practice items correctly. The live Symbolic Reasoning exam uses adaptive difficulty,
+            You answered {s} of {total} practice items correctly. The live Pattern and Logic exam uses adaptive difficulty,
             full timing rules, and proctoring where applicable.
           </Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, justifyContent: 'center', mt: 1 }}>
-            <Button variant="outlined" startIcon={<ArrowBackIcon />} onClick={() => navigate('/for-schools/preview')} sx={{ borderColor: '#cbd5e1', color: '#475569', fontWeight: 700 }}>
-              Back to preview hub
+            <Button
+              variant="outlined"
+              startIcon={<ArrowBackIcon />}
+              onClick={() => navigate(sampleExitTo)}
+              sx={{ borderColor: '#cbd5e1', color: '#475569', fontWeight: 700 }}
+            >
+              {sampleAssessmentExitLabel(sampleExitTo)}
             </Button>
             <Button variant="contained" startIcon={<ReplayIcon />} onClick={reset} sx={{ bgcolor: primaryBtn, fontWeight: 700, '&:hover': { bgcolor: flow.theme === 'purple' ? '#6a1b9a' : '#1565c0' } }}>
               Try again
@@ -503,7 +522,7 @@ const SchoolPreviewAssessmentPage: React.FC = () => {
         }}
       >
         <Typography sx={{ fontWeight: 800, fontSize: { xs: '0.78rem', sm: '0.9rem' }, letterSpacing: 0.3, lineHeight: 1.35 }}>
-          SAMPLE EXAM - Same look as Symbolic Reasoning; not scored or saved. You may exit anytime (top-left Exit).
+          SAMPLE EXAM - Same look as Pattern and Logic; not scored or saved. You may exit anytime (top-left Exit).
         </Typography>
       </Box>
 
@@ -642,7 +661,7 @@ const SchoolPreviewAssessmentPage: React.FC = () => {
         <DialogTitle id="preview-exit-title">Leave sample exam?</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            This is a demo only - nothing is saved. You can restart the sample from the preview hub anytime.
+            This is a demo only - nothing is saved. You can try the sample again anytime from the student or school preview.
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>

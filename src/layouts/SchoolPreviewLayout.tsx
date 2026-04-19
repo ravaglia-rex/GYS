@@ -17,6 +17,7 @@ export default function SchoolPreviewLayout() {
         interactivePreview={{
           pathPrefix: PREVIEW_PATH_PREFIX,
           pocEmail: GREENFIELD_POC_EMAIL,
+          exitPreviewTo: '/for-schools/preview',
         }}
       >
         <Outlet />

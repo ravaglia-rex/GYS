@@ -175,7 +175,8 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
         if (stSnap.exists()) {
           const stData = stSnap.data() as Record<string, unknown>;
           setEmail(
-            String((stData.email_normalized as string) ?? (stData.email as string) ?? '').trim()
+            String((stData.email as string) ?? (stData.email_normalized as string) ?? '')
+              .trim()
           );
         } else {
           setEmail('');
@@ -316,7 +317,7 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
               Levels &amp; billing
             </Typography>
             <Typography variant="body2" sx={{ color: ip.subtext, mb: 2, lineHeight: 1.6 }}>
-              Your school’s plan covers students through <strong>Level 2</strong> for everyone on the roster (Exams 1 - 4: reasoning triad and basic personality).
+              Your school’s plan covers students through <strong>Level 2</strong> for everyone on the roster (full reasoning triad: Exams 1–3).
               <strong> Level 3</strong> is an add-on: each student must purchase it individually to unlock advanced English, AI, comprehensive personality, and related reporting.
             </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>

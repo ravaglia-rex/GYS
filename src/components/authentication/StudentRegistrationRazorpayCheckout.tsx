@@ -2,9 +2,15 @@ import React, { useState } from 'react';
 import { useToast } from '../ui/use-toast';
 import {
   createStudentRegistrationOrder,
+  devBypassStudentSignupPaymentClaim,
   verifyStudentRegistrationPayment,
 } from '../../db/studentRegistrationPayment';
 import * as Sentry from '@sentry/react';
+
+function isStudentSignupRazorpayDevBypass(): boolean {
+  const v = (process.env.REACT_APP_DEV_BYPASS_STUDENT_RAZORPAY ?? '').trim().toLowerCase();
+  return v === 'true' || v === '1' || v === 'yes';
+}
 
 const loadScript = (src: string): Promise<boolean> =>
   new Promise((resolve) => {
@@ -55,6 +61,13 @@ const StudentRegistrationRazorpayCheckout: React.FC<StudentRegistrationRazorpayC
   const startCheckout = async () => {
     setBusy(true);
     try {
+      if (isStudentSignupRazorpayDevBypass()) {
+        const { razorpay_payment_id: pid } = await devBypassStudentSignupPaymentClaim(email, membershipLevel);
+        setBusy(false);
+        await onPaymentVerified(pid);
+        return;
+      }
+
       const order = await createStudentRegistrationOrder(email, membershipLevel);
 
       if (process.env.NODE_ENV === 'development' && typeof order.key_id === 'string') {
@@ -195,7 +208,13 @@ const StudentRegistrationRazorpayCheckout: React.FC<StudentRegistrationRazorpayC
       className="mt-4 inline-flex w-full items-center justify-center rounded-2xl px-4 py-3 text-base sm:text-lg font-semibold text-white shadow-md hover:brightness-110 active:scale-[0.99] transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60"
       style={{ backgroundColor: '#1e3a8a' }}
     >
-      {busy ? 'Opening secure checkout…' : `Pay ${planLabel} securely with Razorpay`}
+      {busy
+        ? isStudentSignupRazorpayDevBypass()
+          ? 'Skipping payment (dev)…'
+          : 'Opening secure checkout…'
+        : isStudentSignupRazorpayDevBypass()
+          ? `Dev: skip Razorpay — continue as ${planLabel}`
+          : `Pay ${planLabel} securely with Razorpay`}
     </button>
   );
 };

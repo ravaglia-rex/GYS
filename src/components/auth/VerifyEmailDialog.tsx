@@ -9,7 +9,7 @@ import {
 } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { sendEmailVerification } from 'firebase/auth';
-import { auth } from '../../firebase/firebase';
+import { auth, getAuthActionCodeSettings } from '../../firebase/firebase';
 import { useToast } from '../ui/use-toast';
 import * as Sentry from '@sentry/react';
 
@@ -28,7 +28,7 @@ const VerifyEmailDialog: React.FC<VerifyEmailDialogProps> = ({ isOpen, onClose }
     setIsSending(true);
     try {
       if (auth.currentUser) {
-        await sendEmailVerification(auth.currentUser);
+        await sendEmailVerification(auth.currentUser, getAuthActionCodeSettings());
         const cooldownEndTime = Date.now() + 60000; // Set cooldown for 1 minute
         localStorage.setItem('emailResendCooldown', cooldownEndTime.toString());
         setCooldown(cooldownEndTime);

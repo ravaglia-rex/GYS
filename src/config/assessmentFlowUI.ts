@@ -44,7 +44,7 @@ export interface AssessmentFlowDefinition {
   adaptiveForwardOnly: boolean;
 }
 
-const symbolicBefore: BeforeBeginItem[] = [
+const patternAndLogicBefore: BeforeBeginItem[] = [
   { icon: 'clock', text: 'You have a fixed time once you start - the timer cannot be paused.' },
   { icon: 'block', text: 'No calculators, notes, or outside help.' },
   { icon: 'chart', text: 'Your score is compared to students worldwide.' },
@@ -63,7 +63,7 @@ const englishBefore: BeforeBeginItem[] = [
 export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
   symbolic_reasoning: {
     examOrdinal: 1,
-    examTitleShort: 'Symbolic Reasoning',
+    examTitleShort: 'Pattern and Logic',
     heroSubtitle: 'Your first assessment',
     statGrid: [
       { label: 'Duration', value: '45 min' },
@@ -80,7 +80,7 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
       'Spatial relationship processing',
       'Non-verbal problem solving',
     ],
-    beforeBegin: symbolicBefore,
+    beforeBegin: patternAndLogicBefore,
     theme: 'blue',
     detailFooterFinePrint: 'Once started, you must complete this in one sitting.',
     defaultQuestionInteraction: 'visual_mcq',
@@ -128,7 +128,7 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
       { label: 'Language', value: 'Your selected language' },
     ],
     bodyDescription:
-      'Problems emphasize reasoning, structure, and quantitative insight. Visual grids and diagrams share the same layout as symbolic items; word problems appear in your chosen language.',
+      'Problems emphasize reasoning, structure, and quantitative insight. Visual grids and diagrams share the same layout as pattern-and-logic items; word problems appear in your chosen language.',
     measuresTitle: 'What This Measures',
     measuresBullets: [
       'Quantitative reasoning',
@@ -136,43 +136,15 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
       'Problem decomposition',
       'Visual-mathematical patterns',
     ],
-    beforeBegin: symbolicBefore.filter((b) => b.icon !== 'chart'),
+    beforeBegin: patternAndLogicBefore.filter((b) => b.icon !== 'chart'),
     theme: 'blue',
     detailFooterFinePrint: 'Once started, you must complete this in one sitting.',
     defaultQuestionInteraction: 'visual_mcq',
     useTimer: true,
     adaptiveForwardOnly: true,
   },
-  personality_assessment: {
-    examOrdinal: 4,
-    examTitleShort: 'Personality (Basic)',
-    heroSubtitle: 'Foundational profile - self-report, no wrong answers',
-    statGrid: [
-      { label: 'Duration', value: 'No limit' },
-      { label: 'Questions', value: '40' },
-      { label: 'Format', value: 'Likert scale' },
-      { label: 'Language', value: 'Your selected language' },
-    ],
-    bodyDescription:
-      'Honest responses help us understand how you learn and work. There are no trick questions and no timed pressure.',
-    measuresTitle: 'What This Covers',
-    measuresBullets: [
-      'Goal orientation and persistence',
-      'Openness to new ideas',
-      'Collaboration preferences',
-      'Stress and motivation patterns',
-    ],
-    beforeBegin: [
-      { icon: 'bolt', text: 'There are no right or wrong answers - choose what fits you best.' },
-      { icon: 'phone', text: 'Answer based on how you usually are, not how you wish to be seen.' },
-    ],
-    theme: 'purple',
-    defaultQuestionInteraction: 'likert',
-    useTimer: false,
-    adaptiveForwardOnly: false,
-  },
   english_proficiency: {
-    examOrdinal: 5,
+    examOrdinal: 4,
     examTitleShort: 'English Proficiency (Advanced)',
     heroSubtitle: 'Advanced English - reading, writing, listening & speaking',
     statGrid: [
@@ -198,7 +170,7 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
     adaptiveForwardOnly: false,
   },
   ai_literacy: {
-    examOrdinal: 6,
+    examOrdinal: 5,
     examTitleShort: 'AI Literacy & Capability',
     heroSubtitle: 'Concepts, evaluation, and live task',
     statGrid: [
@@ -227,9 +199,9 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
     adaptiveForwardOnly: false,
   },
   comprehensive_personality: {
-    examOrdinal: 7,
+    examOrdinal: 6,
     examTitleShort: 'Comprehensive Personality',
-    heroSubtitle: 'Exam 7 • The deep-dive assessment',
+    heroSubtitle: 'Exam 6 • The deep-dive assessment',
     statGrid: [
       { label: 'Duration', value: '45 - 60 min' },
       { label: 'Dimensions', value: '~30' },
@@ -310,9 +282,7 @@ export function unlockNoticeForAssessment(assessmentId: string, passed: boolean)
       return 'Verbal Reasoning and Mathematical Reasoning are now available (within your membership).';
     case 'verbal_reasoning':
     case 'mathematical_reasoning':
-      return 'Continue the sequence - Basic Personality (Exam 4) opens when reasoning prerequisites are met; Advanced English and Exams 5 - 7 require Level 3.';
-    case 'personality_assessment':
-      return 'Level 3 members continue with Advanced English, then AI, then comprehensive personality - see your dashboard.';
+      return 'Continue the sequence - Advanced English (Exam 4) unlocks after the reasoning triad; AI and comprehensive personality require Level 3.';
     default:
       return null;
   }

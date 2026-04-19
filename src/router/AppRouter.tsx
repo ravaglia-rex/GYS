@@ -271,7 +271,7 @@ const AppRouter: React.FC = () => {
               </Suspense>
             }
           />
-          {/* Full-screen sample exam (no admin sidebar), mirrors student Symbolic Reasoning take UI */}
+          {/* Full-screen sample exam (no admin sidebar), mirrors student Pattern and Logic take UI */}
           <Route
             path="assessment"
             element={

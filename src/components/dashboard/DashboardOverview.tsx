@@ -261,7 +261,7 @@ interface DashboardOverviewProps {
   /** Static profile - skips Firestore; use with sample / preview dashboards */
   previewProfile?: DashboardOverviewPreviewProfile;
   /** When set with previewProfile, stat-card clicks navigate here instead of live assessment routes */
-  previewNavTargets?: { available: string; completed: string };
+  previewNavTargets?: { available: string; completed: string; sampleAssessmentExitTo?: string };
   /** Preview only: “Results Available” and “Assessments Available” stats are non-interactive */
   previewDisableAssessmentStatClicks?: boolean;
 }
@@ -590,8 +590,13 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
   const handleNavigation = (path: string) => {
     if (previewNavTargets) {
-      if (path === '/assessments/available') navigate(previewNavTargets.available);
-      else if (path === '/assessments/completed') navigate(previewNavTargets.completed);
+      if (path === '/assessments/available') {
+        const exitTo = previewNavTargets.sampleAssessmentExitTo;
+        navigate(
+          previewNavTargets.available,
+          exitTo ? { state: { sampleAssessmentExitTo: exitTo } } : undefined
+        );
+      } else if (path === '/assessments/completed') navigate(previewNavTargets.completed);
       return;
     }
     setIsNavigating(true);

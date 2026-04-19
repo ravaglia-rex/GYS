@@ -80,6 +80,8 @@ export const CREATE_SCHOOL_RAZORPAY_ORDER='/createSchoolOrder';
 export const VERIFY_SCHOOL_RAZORPAY_PAYMENT='/verifySchoolPayment';
 export const CREATE_STUDENT_REGISTRATION_ORDER = '/createStudentRegistrationOrder';
 export const VERIFY_STUDENT_REGISTRATION_PAYMENT = '/verifyStudentRegistrationPayment';
+/** Dev only: paired with API DEV_BYPASS_RAZORPAY_STUDENT_SIGNUP — see .env.example on functions. */
+export const DEV_BYPASS_STUDENT_SIGNUP_CLAIM = '/devBypassStudentSignupPaymentClaim';
 export const CREATE_STUDENT_UPGRADE_ORDER = '/createStudentUpgradeOrder';
 export const VERIFY_STUDENT_UPGRADE_PAYMENT = '/verifyStudentUpgradePayment';
 

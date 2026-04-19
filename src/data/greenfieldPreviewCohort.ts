@@ -11,7 +11,6 @@ const CANONICAL_ASSESSMENT_IDS = [
   'symbolic_reasoning',
   'verbal_reasoning',
   'mathematical_reasoning',
-  'personality_assessment',
   'english_proficiency',
   'ai_literacy',
   'comprehensive_personality',
@@ -39,7 +38,7 @@ function round2(x: number): number {
   return Math.round(x * 100) / 100;
 }
 
-function symbolicProgressFromPerfTier(perfTier: string, studentIndex: number): AssessmentProgress {
+function patternLogicProgressFromPerfTier(perfTier: string, studentIndex: number): AssessmentProgress {
   const t = String(perfTier).toLowerCase();
   if (t === 'gold') {
     return {
@@ -155,14 +154,14 @@ function mathProgressFromPerfTier(perfTier: string, studentIndex: number): Asses
 }
 
 function buildProgress(
-  symbolicPerfTier: string,
+  patternLogicPerfTier: string,
   verbalPerfTier: string,
   mathPerfTier: string,
   triadLevel: number,
   studentIndex: number
 ): Record<string, AssessmentProgress> {
   const p = baseAssessmentProgress();
-  p.symbolic_reasoning = symbolicProgressFromPerfTier(symbolicPerfTier, studentIndex);
+  p.symbolic_reasoning = patternLogicProgressFromPerfTier(patternLogicPerfTier, studentIndex);
   if (triadLevel >= 2) {
     p.verbal_reasoning = verbalProgressFromPerfTier(verbalPerfTier, studentIndex);
   }
@@ -205,8 +204,8 @@ function buildSortedSeedNamePairs(count: number): { first_name: string; last_nam
 export const GREENFIELD_TIER1_PATCH_GRADE6_COUNT = 40;
 export const GREENFIELD_TIER1_PATCH_GRADE7_COUNT = 10;
 
-/** Forces overall Tier 1 (min band): symbolic slot at proficiency band 1; other active slots unchanged. */
-function forceOverallTier1Symbolic(
+/** Forces overall Tier 1 (min band): pattern-and-logic slot at proficiency band 1; other active slots unchanged. */
+function forceOverallTier1PatternLogic(
   progress: Record<string, AssessmentProgress>
 ): Record<string, AssessmentProgress> {
   const next = JSON.parse(JSON.stringify(progress)) as Record<string, AssessmentProgress>;
@@ -233,7 +232,7 @@ function applyTier1PatchSubset(students: StudentRow[]): void {
   ]);
   for (const s of students) {
     if (!targets.has(s.uid)) continue;
-    s.assessment_progress = forceOverallTier1Symbolic(s.assessment_progress);
+    s.assessment_progress = forceOverallTier1PatternLogic(s.assessment_progress);
     s.achievement_tier = 'bronze';
     s.membership_level = 2;
   }
@@ -242,7 +241,7 @@ function applyTier1PatchSubset(students: StudentRow[]): void {
 /** 142 students - same composition as Greenfield GYS Q4 seed (fixed ordering). */
 export function buildGreenfieldPreviewStudentRows(): StudentRow[] {
   const grades = [...Array(50).fill(6), ...Array(52).fill(7), ...Array(40).fill(8)] as number[];
-  const symbolicPerfTiers = [
+  const patternLogicPerfTiers = [
     ...Array(26).fill('gold'),
     ...Array(54).fill('silver'),
     ...Array(38).fill('bronze'),
@@ -266,7 +265,7 @@ export function buildGreenfieldPreviewStudentRows(): StudentRow[] {
 
   for (let i = 0; i < 142; i++) {
     const triadLevel = i < 44 ? 1 : i < 57 ? 2 : 3;
-    const achievementTier = symbolicPerfTiers[i]!;
+    const achievementTier = patternLogicPerfTiers[i]!;
     const grade = grades[i]!;
     const verbalIx = i - 44;
     const mathIx = i - 57;

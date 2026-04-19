@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { fetchSignInMethodsForEmail } from 'firebase/auth';
 import { checkEmailExists } from '../../db/emailMappingCollection';
@@ -7,6 +7,7 @@ import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
 import { useToast } from '../../components/ui/use-toast';
 import { useStudentSignupExit } from '../../contexts/StudentSignupExitContext';
 import { useStudentSignupExitGuard } from '../../hooks/useStudentSignupExitGuard';
+import { mergeSignupState, writeSignupDraft } from '../../utils/studentSignupDraft';
 
 const GYS_BLUE = '#1e3a8a';
 
@@ -29,15 +30,52 @@ const StudentRegistrationPage: React.FC = () => {
   const { toast } = useToast();
   const locationState = (location.state || {}) as any;
 
-  const [firstName, setFirstName] = useState(locationState?.prefill?.firstName || '');
-  const [lastName, setLastName] = useState(locationState?.prefill?.lastName || '');
-  const [email, setEmail] = useState(locationState?.prefill?.email || '');
-  const [password, setPassword] = useState('');
-  const [grade, setGrade] = useState(locationState?.prefill?.grade || '');
-  const [dob, setDob] = useState(locationState?.prefill?.dob || '');
-  const [cityState, setCityState] = useState(locationState?.prefill?.cityState || '');
+  const regInitial = useMemo(() => {
+    const m = mergeSignupState(location.state) as Record<string, unknown>;
+    const p = (m.prefill || {}) as Record<string, unknown>;
+    return {
+      firstName: String(m.firstName ?? p.firstName ?? ''),
+      lastName: String(m.lastName ?? p.lastName ?? ''),
+      email: String(m.email ?? p.email ?? ''),
+      password: String(m.password ?? ''),
+      grade: String(m.grade ?? p.grade ?? ''),
+      dob: String(m.dob ?? p.dob ?? ''),
+      cityState: String(m.cityState ?? p.cityState ?? ''),
+    };
+  }, [location.state]);
+
+  const [firstName, setFirstName] = useState(regInitial.firstName);
+  const [lastName, setLastName] = useState(regInitial.lastName);
+  const [email, setEmail] = useState(regInitial.email);
+  const [password, setPassword] = useState(regInitial.password);
+  const [grade, setGrade] = useState(regInitial.grade);
+  const [dob, setDob] = useState(regInitial.dob);
+  const [cityState, setCityState] = useState(regInitial.cityState);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+
+  useEffect(() => {
+    setFirstName(regInitial.firstName);
+    setLastName(regInitial.lastName);
+    setEmail(regInitial.email);
+    setPassword(regInitial.password);
+    setGrade(regInitial.grade);
+    setDob(regInitial.dob);
+    setCityState(regInitial.cityState);
+  }, [
+    location.key,
+    regInitial.firstName,
+    regInitial.lastName,
+    regInitial.email,
+    regInitial.password,
+    regInitial.grade,
+    regInitial.dob,
+    regInitial.cityState,
+  ]);
   const [emailInUseOpen, setEmailInUseOpen] = useState<boolean>(!!locationState?.emailInUse);
+  /** Which check blocked signup — production Auth/Firestore are used even when the API runs on localhost. */
+  const [emailInUseReason, setEmailInUseReason] = useState<
+    'auth' | 'student' | 'schooladmin' | null
+  >(() => (locationState?.emailInUse ? 'auth' : null));
 
   const { requestLeave } = useStudentSignupExit();
 
@@ -50,11 +88,11 @@ const StudentRegistrationPage: React.FC = () => {
   }, [locationState?.emailInUse]);
 
   useEffect(() => {
-    const prefillDob = locationState?.prefill?.dob as string | undefined;
-    if (prefillDob && !isStudentSignupDobYearInRange(prefillDob)) {
+    const d = regInitial.dob;
+    if (d && !isStudentSignupDobYearInRange(d)) {
       setDob('');
     }
-  }, [locationState?.prefill?.dob]);
+  }, [regInitial.dob]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -62,30 +100,27 @@ const StudentRegistrationPage: React.FC = () => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    let exists = false;
+    let blockReason: 'auth' | 'student' | 'schooladmin' | null = null;
 
-    // Check Firebase Auth directly
+    // Production Firebase Auth (no emulator in firebase.ts) — user can exist here without a students/* doc.
     try {
       const methods = await fetchSignInMethodsForEmail(auth, normalizedEmail);
       if (methods && methods.length > 0) {
-        exists = true;
+        blockReason = 'auth';
       }
-    } catch (error) {
-      // ignore and fall back to Firestore mapping check
+    } catch {
+      // ignore and fall back to API check
     }
 
-    // Check our email mapping collections as well
-    if (!exists) {
-      try {
-        const emailCheck = await checkEmailExists(normalizedEmail);
-        exists = emailCheck.exists;
-      } catch (error) {
-        // On error, be conservative and treat as "exists" so we don't create duplicates silently
-        exists = true;
+    if (!blockReason) {
+      const emailCheck = await checkEmailExists(normalizedEmail);
+      if (emailCheck.exists) {
+        blockReason = emailCheck.type === 'schooladmin' ? 'schooladmin' : 'student';
       }
     }
 
-    if (exists) {
+    if (blockReason) {
+      setEmailInUseReason(blockReason);
       setEmailInUseOpen(true);
       return;
     }
@@ -99,17 +134,17 @@ const StudentRegistrationPage: React.FC = () => {
       return;
     }
 
-    navigate('/students/register/school', {
-      state: {
-        firstName,
-        lastName,
-        email: normalizedEmail,
-        password,
-        grade,
-        dob,
-        cityState,
-      },
-    });
+    const nextState = {
+      firstName,
+      lastName,
+      email: normalizedEmail,
+      password,
+      grade,
+      dob,
+      cityState,
+    };
+    writeSignupDraft(nextState as Record<string, unknown>);
+    navigate('/students/register/school', { state: nextState });
   };
 
   return (
@@ -119,7 +154,7 @@ const StudentRegistrationPage: React.FC = () => {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-4 sm:gap-6">
           <button
             type="button"
-            onClick={() => requestLeave(() => navigate(-1))}
+            onClick={() => navigate(-1)}
             className="group flex items-center gap-1 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors duration-200 hover:bg-slate-100 rounded-lg px-1 py-0.5 -ml-1"
           >
             <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-300 text-xs transition-all duration-200 group-hover:border-slate-400">
@@ -328,7 +363,7 @@ const StudentRegistrationPage: React.FC = () => {
               className="mt-2 inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm sm:text-base font-semibold text-white shadow-md hover:bg-slate-900/90 disabled:cursor-not-allowed disabled:bg-slate-400"
               style={{ backgroundColor: acceptedTerms ? GYS_BLUE : undefined }}
             >
-              Create Account →
+              Next: School & profile →
             </button>
 
             <p className="pt-3 text-center text-xs text-slate-500">
@@ -343,13 +378,35 @@ const StudentRegistrationPage: React.FC = () => {
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl ring-1 ring-slate-200">
             <h2 className="text-lg font-semibold text-slate-900">Email already in use</h2>
             <p className="mt-2 text-sm text-slate-600">
-              An account already exists for <span className="font-medium">{email}</span>. Please log
-              in instead, or use a different school email address.
+              {emailInUseReason === 'auth' && (
+                <>
+                  Sign-in is already enabled for{' '}
+                  <span className="font-medium">{email}</span> in Argus (Firebase Authentication), even
+                  if you do not see a student document in Firestore. Use <span className="font-medium">Log in</span>{' '}
+                  or choose another email for a new student account.
+                </>
+              )}
+              {emailInUseReason === 'schooladmin' && (
+                <>
+                  <span className="font-medium">{email}</span> is already registered as a{' '}
+                  <span className="font-medium">school portal</span> contact for a school on Argus.
+                  Student signup must use a different email address.
+                </>
+              )}
+              {(emailInUseReason === 'student' || emailInUseReason === null) && (
+                <>
+                  A student profile already exists for <span className="font-medium">{email}</span>.
+                  Please log in instead, or use a different school email address.
+                </>
+              )}
             </p>
             <div className="mt-5 flex justify-end gap-2">
               <button
                 type="button"
-                onClick={() => setEmailInUseOpen(false)}
+                onClick={() => {
+                  setEmailInUseOpen(false);
+                  setEmailInUseReason(null);
+                }}
                 className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
               >
                 Use different email

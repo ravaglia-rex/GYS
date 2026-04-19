@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
+import { clearSignupDraft } from '../../utils/studentSignupDraft';
 
 const GYS_BLUE = '#1e3a8a';
 
@@ -8,6 +9,10 @@ const StudentWelcomePage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const state = location.state || {};
+
+  useEffect(() => {
+    clearSignupDraft();
+  }, []);
 
   const membershipName = (state as any).membershipName || 'Level 2 - Engage';
 
@@ -57,7 +62,7 @@ const StudentWelcomePage: React.FC = () => {
             <ul className="space-y-1.5 text-sm sm:text-base text-slate-800">
               <li className="flex items-center gap-2">
                 <span aria-hidden="true">🧠</span>
-                <span>Symbolic Reasoning Assessment</span>
+                <span>Pattern and Logic Assessment</span>
               </li>
               <li className="flex items-center gap-2">
                 <span aria-hidden="true">📚</span>

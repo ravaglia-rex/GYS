@@ -647,7 +647,7 @@ export default function AssessmentTakePage() {
           onClose={dismissFullscreenWarning}
           action={
             <Button color="inherit" size="small" onClick={tryEnterFullscreen}>
-              Fullscreen
+              Enter Fullscreen
             </Button>
           }
         >

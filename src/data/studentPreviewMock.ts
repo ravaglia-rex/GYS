@@ -20,25 +20,24 @@ export const PREVIEW_STUDENT_PROFILE = {
 };
 
 export const PREVIEW_DASHBOARD_STATS = {
-  totalAssessments: 7,
+  totalAssessments: 6,
   completedAssessments: 4,
   averageScore: 81,
   availableAssessments: 2,
 };
 
 export const PREVIEW_ASSESSMENT_TYPES: AssessmentType[] = [
-  { id: 'symbolic_reasoning', name: 'Symbolic Reasoning', tiers: mkTiers(3) },
+  { id: 'symbolic_reasoning', name: 'Pattern and Logic', tiers: mkTiers(3) },
   { id: 'verbal_reasoning', name: 'Verbal Reasoning', tiers: mkTiers(3) },
   { id: 'mathematical_reasoning', name: 'Mathematical Reasoning', tiers: mkTiers(3) },
-  { id: 'personality_assessment', name: 'Personality Assessment', tiers: mkTiers(3) },
   { id: 'english_proficiency', name: 'English Proficiency', tiers: mkTiers(3) },
   { id: 'ai_literacy', name: 'AI Literacy & Capability', tiers: mkTiers(1) },
   { id: 'comprehensive_personality', name: 'Comprehensive Personality', tiers: mkTiers(3) },
 ];
 
 /**
- * Level 3 membership. Reasoning triad + personality done. English on tier 3 (retake).
- * AI Literacy tier 1 not yet attempted - Assessment 7 stays prerequisite-locked until AI is finished.
+ * Level 3 membership. Reasoning triad complete; English on tier 3 (retake).
+ * AI tier 1 not yet attempted - comprehensive stays prerequisite-locked until AI is finished.
  */
 export const PREVIEW_ASSESSMENT_PROGRESS: Record<string, AssessmentProgress> = {
   symbolic_reasoning: {
@@ -57,12 +56,6 @@ export const PREVIEW_ASSESSMENT_PROGRESS: Record<string, AssessmentProgress> = {
     proficiency_tier: 4,
     status: 'tier_advanced',
     best_score: 0.88,
-    attempts_count: 1,
-  },
-  personality_assessment: {
-    proficiency_tier: 4,
-    status: 'tier_advanced',
-    best_score: 0.79,
     attempts_count: 1,
   },
   english_proficiency: {

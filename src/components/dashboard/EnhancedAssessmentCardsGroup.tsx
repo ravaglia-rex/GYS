@@ -63,16 +63,8 @@ const ASSESSMENT_META: Record<string, {
     description: 'Quantitative reasoning, structure, and non-routine mathematical thinking beyond rote calculation.',
     languages: [],
   },
-  personality_assessment: {
-    assessmentNumber: 4,
-    color: '#f59e0b',
-    gradient: 'linear-gradient(135deg, #f59e0b 0%, #b45309 100%)',
-    icon: '🧠',
-    description: 'Basic profile: 8 general dimensions (goal setting, persistence, learning orientation). Included with Level 2.',
-    languages: [],
-  },
   english_proficiency: {
-    assessmentNumber: 5,
+    assessmentNumber: 4,
     color: '#ef4444',
     gradient: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
     icon: '✍️',
@@ -81,7 +73,7 @@ const ASSESSMENT_META: Record<string, {
     needsMic: true,
   },
   ai_literacy: {
-    assessmentNumber: 6,
+    assessmentNumber: 5,
     color: '#06b6d4',
     gradient: 'linear-gradient(135deg, #06b6d4 0%, #0e7490 100%)',
     icon: '🤖',
@@ -90,7 +82,7 @@ const ASSESSMENT_META: Record<string, {
     needsLaptop: true,
   },
   comprehensive_personality: {
-    assessmentNumber: 7,
+    assessmentNumber: 6,
     color: '#ec4899',
     gradient: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)',
     icon: '🌐',
@@ -112,6 +104,8 @@ interface EnhancedAssessmentCardsGroupProps {
     progress: Record<string, AssessmentProgress>;
     membershipLevel: number;
     previewAssessmentPath: string;
+    /** Return path for `/for-schools/preview/assessment` back / exit (student preview) */
+    previewSampleExitTo?: string;
     /** Grade for tier-progression gating (defaults to 8) */
     previewGrade?: number;
     /** When true, Start / Retake on every card is a no-op (dashboard preview only) */
@@ -130,6 +124,8 @@ interface AssessmentCardProps {
   onStart: (assessmentId: string, tier: number) => void;
   /** When set (preview mode), locked "View details" opens this path instead of live assessment routes */
   previewFallbackPath?: string;
+  /** Passed as router state when opening preview sample assessment */
+  previewSampleExitTo?: string;
   /** Preview: Start button shown but click is a no-op */
   previewStartBlocked?: boolean;
 }
@@ -140,9 +136,12 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
   gate,
   onStart,
   previewFallbackPath,
+  previewSampleExitTo,
   previewStartBlocked = false,
 }) => {
   const navigate = useNavigate();
+  const goPreviewSample = (path: string) =>
+    navigate(path, previewSampleExitTo ? { state: { sampleAssessmentExitTo: previewSampleExitTo } } : undefined);
   const meta = ASSESSMENT_META[assessment.id] ?? {
     assessmentNumber: 0, color: '#6b7280', gradient: 'linear-gradient(135deg, #6b7280, #374151)',
     icon: '📋', description: '', languages: [], needsMic: false, needsLaptop: false,
@@ -463,7 +462,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
             startIcon={<LockIcon />}
             onClick={() =>
               previewFallbackPath
-                ? navigate(previewFallbackPath)
+                ? goPreviewSample(previewFallbackPath)
                 : navigate(`/assessments/${assessment.id}/tier/1/detail`)
             }
             sx={{
@@ -604,7 +603,11 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
       return;
     }
     if (previewBundle) {
-      navigate(previewBundle.previewAssessmentPath);
+      const exitTo = previewBundle.previewSampleExitTo;
+      navigate(
+        previewBundle.previewAssessmentPath,
+        exitTo ? { state: { sampleAssessmentExitTo: exitTo } } : undefined
+      );
       return;
     }
     navigate(`/assessments/${assessmentId}/tier/${tierNumber}/detail`);
@@ -726,6 +729,7 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
                 gate={gate}
                 onStart={handleStart}
                 previewFallbackPath={previewBundle?.previewAssessmentPath}
+                previewSampleExitTo={previewBundle?.previewSampleExitTo}
                 previewStartBlocked={Boolean(
                   previewBundle?.previewDisableStartNavigation ||
                     previewBundle?.previewBlockStartForIds?.includes(assessment.id)

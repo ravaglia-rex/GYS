@@ -118,7 +118,8 @@ const EmailEntryForm: React.FC = () => {
           
           setSchoolInfo(schoolData);
           setEmail(data.email.toLowerCase());
-          setEmailExists(schoolData.verified);
+          // Recognized POC: keep emailExists true so we can route to setup or sign-in even when Firestore verified is still false.
+          setEmailExists(true);
           setCheckingSchool(false);
           return;
         } catch (error: any) {
@@ -166,24 +167,20 @@ const EmailEntryForm: React.FC = () => {
     }
   };
   if (emailExists === true) {
-  if (isSchoolOfficial && schoolInfo) {
-    return <SignInForm email={email} isSchoolAdmin={true} schoolInfo={schoolInfo} />;
+    if (isSchoolOfficial && schoolInfo) {
+      if (!schoolInfo.verified) {
+        return (
+          <SchoolAdminSchoolSelect
+            email={email}
+            schoolInfo={schoolInfo}
+            onSchoolSelected={() => {}}
+          />
+        );
+      }
+      return <SignInForm email={email} isSchoolAdmin={true} schoolInfo={schoolInfo} />;
+    }
+    return <SignInForm email={email} />;
   }
-  return <SignInForm email={email} />;
-}
-
-if (emailExists === false && isSchoolOfficial && schoolInfo) {
-  return (
-    <SchoolAdminSchoolSelect 
-      email={email} 
-      schoolInfo={schoolInfo}
-      onSchoolSelected={(schoolId) => {
-        // This callback is no longer used since link is sent
-        // But keeping it for consistency
-      }}
-    />
-  );
-}
 
   // Default: show email entry form (+ no-account dialog when triggered)
   return (

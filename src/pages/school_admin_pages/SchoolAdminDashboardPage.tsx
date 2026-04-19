@@ -887,8 +887,8 @@ const SchoolAdminDashboardPage: React.FC = () => {
               Upgrade to Premium - ₹5,00,000/yr
             </Typography>
             <Typography variant="body2" sx={{ color: ip.subtext, maxWidth: 500 }}>
-              Get consulting-style action plans, dedicated account manager, faculty training workshops,
-              and a marketing toolkit with tier badges for parent communications.
+              Get consulting-style action plans, dedicated account manager, and a marketing toolkit
+              with tier badges for parent communications.
             </Typography>
           </Box>
         </Box>

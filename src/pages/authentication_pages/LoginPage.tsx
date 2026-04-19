@@ -45,7 +45,7 @@ const LoginPage: React.FC = () => {
               <section className="flex items-start justify-center order-first sm:order-last">
                 <div className="w-full max-w-md">
                   <EmailEntryForm />
-                  <p className="mt-4 text-center text-xs text-slate-500">
+                  <p className="mt-4 text-center text-xs text-slate-600">
                     By continuing, you agree to the exam rules and honor code shared with your school.
                   </p>
                 </div>

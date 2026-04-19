@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
 import { useStudentSignupExit } from '../../contexts/StudentSignupExitContext';
 import { useStudentSignupExitGuard } from '../../hooks/useStudentSignupExitGuard';
+import { mergeSignupState, writeSignupDraft } from '../../utils/studentSignupDraft';
 
 const GYS_BLUE = '#1e3a8a';
 
@@ -11,9 +12,26 @@ type MembershipLevel = 'LEVEL_1' | 'LEVEL_2' | 'LEVEL_3';
 const StudentMembershipStepPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const state = location.state || {};
+  const merged = useMemo(
+    () => mergeSignupState(location.state) as { membershipLevel?: MembershipLevel },
+    [location.key]
+  );
 
-  const [selectedLevel, setSelectedLevel] = useState<MembershipLevel>('LEVEL_2');
+  const initialLevel: MembershipLevel =
+    merged.membershipLevel === 'LEVEL_1' ||
+    merged.membershipLevel === 'LEVEL_2' ||
+    merged.membershipLevel === 'LEVEL_3'
+      ? merged.membershipLevel
+      : 'LEVEL_2';
+
+  const [selectedLevel, setSelectedLevel] = useState<MembershipLevel>(initialLevel);
+
+  useEffect(() => {
+    const m = mergeSignupState(location.state) as { membershipLevel?: MembershipLevel };
+    if (m.membershipLevel === 'LEVEL_1' || m.membershipLevel === 'LEVEL_2' || m.membershipLevel === 'LEVEL_3') {
+      setSelectedLevel(m.membershipLevel);
+    }
+  }, [location.key]);
   const [showComparison, setShowComparison] = useState(true);
 
   const { requestLeave } = useStudentSignupExit();
@@ -32,11 +50,11 @@ const StudentMembershipStepPage: React.FC = () => {
       background: 'bg-white',
       accent: 'bg-emerald-500',
       features: [
-        { text: 'Assessment 1: Symbolic Reasoning', included: true },
+        { text: 'Assessment 1: Pattern and Logic', included: true },
         { text: 'Basic performance report with tier placement', included: true },
         { text: 'Global benchmarking (college-bound norms)', included: true },
         { text: 'Subscore analysis (3 subscores)', included: true },
-        { text: 'Assessments 2 - 4 (Verbal, Mathematical, Basic Personality)  -  Level 2', included: false },
+        { text: 'Assessments 2 - 3 (Verbal & Mathematical reasoning)  -  Level 2', included: false },
         { text: 'English (Advanced), AI & comprehensive personality  -  Level 3', included: false },
       ],
       footer: 'Great for a first benchmark.',
@@ -52,15 +70,14 @@ const StudentMembershipStepPage: React.FC = () => {
       background: 'bg-amber-50',
       accent: 'bg-emerald-500',
       features: [
-        { text: '3 Reasoning Assessments (Symbolic, Verbal, Mathematical)', included: true },
-        { text: 'Assessment 4: Basic Personality Profile', included: true },
+        { text: '3 Reasoning Assessments (Pattern and Logic, Verbal, Mathematical)', included: true },
         { text: 'Reasoning triad cross-synthesis report', included: true },
         { text: 'Course recommendations from Access USA', included: true },
         { text: 'Year-over-year growth tracking', included: true },
         { text: 'English (Advanced), AI exam, comprehensive personality  -  Level 3', included: false },
         { text: 'Full college guidance  -  Level 3', included: false },
       ],
-      footer: 'Reasoning triad plus basic personality - strong profile for growth tracking',
+      footer: 'Full reasoning triad — strong benchmark for growth tracking',
     },
     {
       id: 'LEVEL_3' as MembershipLevel,
@@ -73,10 +90,10 @@ const StudentMembershipStepPage: React.FC = () => {
       background: 'bg-white',
       accent: 'bg-orange-500',
       features: [
-        { text: 'Everything in Level 2 (Exams 1 - 4: reasoning triad + basic personality)', included: true },
-        { text: 'Assessment 5: English Proficiency - Advanced (listening + speaking)', included: true },
-        { text: 'Assessment 6: AI Literacy & Capability', included: true },
-        { text: 'Assessment 7: Comprehensive Personality (~30 dimensions)', included: true },
+        { text: 'Everything in Level 2 (full reasoning triad, Exams 1–3)', included: true },
+        { text: 'Assessment 4: English Proficiency - Advanced (listening + speaking)', included: true },
+        { text: 'Assessment 5: AI Literacy & Capability', included: true },
+        { text: 'Assessment 6: Comprehensive Personality (~30 dimensions)', included: true },
         { text: 'College mapping (Indian & international)', included: true },
         { text: 'Individual counselor sessions & advising', included: true },
       ],
@@ -88,14 +105,19 @@ const StudentMembershipStepPage: React.FC = () => {
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    navigate('/students/register/payment', {
-      state: {
-        ...state,
-        membershipLevel: selected.id,
-        membershipName: selected.name,
-        membershipPrice: selected.price,
-      },
-    });
+    const base = mergeSignupState(location.state) as Record<string, unknown>;
+    const nextState = {
+      ...base,
+      membershipLevel: selected.id,
+      membershipName: selected.name,
+      membershipPrice: selected.price,
+    };
+    writeSignupDraft(nextState);
+    navigate('/students/register/payment', { state: nextState });
+  };
+
+  const goBackToSchoolStep = () => {
+    navigate('/students/register/school', { state: mergeSignupState(location.state) });
   };
 
   return (
@@ -104,7 +126,7 @@ const StudentMembershipStepPage: React.FC = () => {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <button
             type="button"
-            onClick={() => requestLeave(() => navigate(-1))}
+            onClick={goBackToSchoolStep}
             className="group flex items-center gap-1 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors duration-200 hover:bg-slate-100 rounded-lg px-1 py-0.5 -ml-1"
           >
             <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-300 text-xs transition-all duration-200 group-hover:border-slate-400">
@@ -270,7 +292,7 @@ const StudentMembershipStepPage: React.FC = () => {
                   </thead>
                   <tbody>
                     {[
-                      ['Assessment 1: Symbolic Reasoning', '✓', '✓', '✓'],
+                      ['Assessment 1: Pattern and Logic', '✓', '✓', '✓'],
                       ['Assessment 2: Verbal Reasoning', ' - ', '✓', '✓'],
                       ['Assessment 3: Mathematical Reasoning', ' - ', '✓', '✓'],
                       ['Assessment 4: Personality Profile (basic)', ' - ', '✓', '✓'],
@@ -312,7 +334,7 @@ const StudentMembershipStepPage: React.FC = () => {
               type="submit"
               className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-blue-600 px-4 py-3 text-sm sm:text-base font-semibold text-white shadow-md hover:bg-blue-700 transition-colors duration-200"
             >
-              Continue with {selected.name}  -  {selected.price}/yr →
+              Next: Payment  —  {selected.name} ({selected.price}/yr) →
             </button>
 
             <p className="pt-1 text-center text-xs text-slate-500">

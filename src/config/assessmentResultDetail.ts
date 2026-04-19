@@ -57,9 +57,19 @@ export function nextAssessmentNudge(assessmentId: string): { title: string; subt
       path: '/assessments/mathematical_reasoning/tier/1/detail',
     },
     mathematical_reasoning: {
-      title: 'Next: Personality Assessment',
-      subtitle: 'Short self-report - unlocks English & more.',
-      path: '/assessments/personality_assessment/tier/1/detail',
+      title: 'Next: English Proficiency',
+      subtitle: 'Advanced English — unlocks after the reasoning triad (Level 3).',
+      path: '/assessments/english_proficiency/tier/1/detail',
+    },
+    english_proficiency: {
+      title: 'Next: AI Literacy',
+      subtitle: 'Build on English with applied AI skills.',
+      path: '/assessments/ai_literacy/tier/1/detail',
+    },
+    ai_literacy: {
+      title: 'Next: Comprehensive Personality',
+      subtitle: 'Capstone profile for college matching — complete all AI tiers first.',
+      path: '/assessments/comprehensive_personality/tier/1/detail',
     },
   };
   return map[assessmentId] ?? null;

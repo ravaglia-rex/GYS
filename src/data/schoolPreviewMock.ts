@@ -65,8 +65,8 @@ export const GREENFIELD_QUARTERLY_REPORTS: QuarterlyReportListItem[] = [
   },
 ];
 
-/** Ten symbolic-reasoning - style items for the school preview sample exam (frontend only). */
-export const PREVIEW_SYMBOLIC_SAMPLE_QUESTIONS: {
+/** Ten pattern-and-logic-style items for the school preview sample exam (frontend only). */
+export const PREVIEW_PATTERN_LOGIC_SAMPLE_QUESTIONS: {
   id: string;
   prompt: string;
   options: string[];
@@ -134,5 +134,8 @@ export const PREVIEW_SYMBOLIC_SAMPLE_QUESTIONS: {
   },
 ];
 
-/** @deprecated Use PREVIEW_SYMBOLIC_SAMPLE_QUESTIONS; kept for any external imports. */
-export const PREVIEW_ASSESSMENT_QUESTIONS = PREVIEW_SYMBOLIC_SAMPLE_QUESTIONS;
+/** @deprecated Use PREVIEW_PATTERN_LOGIC_SAMPLE_QUESTIONS; kept for any external imports. */
+export const PREVIEW_ASSESSMENT_QUESTIONS = PREVIEW_PATTERN_LOGIC_SAMPLE_QUESTIONS;
+
+/** @deprecated Renamed to PREVIEW_PATTERN_LOGIC_SAMPLE_QUESTIONS. */
+export const PREVIEW_SYMBOLIC_SAMPLE_QUESTIONS = PREVIEW_PATTERN_LOGIC_SAMPLE_QUESTIONS;

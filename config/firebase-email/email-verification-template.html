@@ -1,0 +1,58 @@
+<!--
+  Firebase Console → Authentication → Templates → Email address verification
+
+  Steps:
+  1. Authentication → Templates → select "Email address verification".
+  2. Set Subject to e.g.: Confirm your email for Argus
+  3. Paste everything BETWEEN the dashed lines as the message body.
+  4. Keep %LINK% exactly once in the button href and once as plain text fallback.
+
+  Placeholders:
+  - %LINK% — Firebase replaces with the real verification URL (required).
+  - %EMAIL% — optional; include if you want to show the address in the body.
+  - %APP_NAME% — uses "Public-facing name" from Project settings → General (optional in subject).
+
+  The sample URL Firebase shows in the editor (firebaseapp.com/__/auth/action?...) is only a preview;
+  real sends use a valid mode and oobCode. Do not paste a fake URL — use %LINK% only.
+
+  "From: noreply@….firebaseapp.com" is the default until you configure custom email (e.g. SMTP/extension).
+-->
+
+<p>Hello,</p>
+
+<p>
+  Please confirm this email address for your <strong>Argus Assessment Portal</strong> account.
+  Click the button below to verify your email and continue.
+</p>
+
+<p style="margin: 24px 0;">
+  <a
+    href="%LINK%"
+    style="
+      display: inline-block;
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #4f46e5, #2563eb);
+      color: #ffffff !important;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-family: system-ui, sans-serif;
+    "
+    >Verify my email</a
+  >
+</p>
+
+<p style="font-size: 14px; color: #64748b;">
+  If the button doesn’t work, copy and paste this link into your browser:<br />
+  <span style="word-break: break-all;">%LINK%</span>
+</p>
+
+<p>
+  If you didn’t create an Argus account or didn’t request this email, you can ignore it.
+</p>
+
+<p>
+  Thank you,<br />
+  <strong>The Argus Team</strong><br />
+  <a href="mailto:talentsearch@argus.ai">talentsearch@argus.ai</a>
+</p>

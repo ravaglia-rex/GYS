@@ -4,7 +4,7 @@ import {useForm} from "react-hook-form";
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { sendPasswordResetEmail } from 'firebase/auth';
-import { auth } from '../../firebase/firebase';
+import { auth, getAuthActionCodeSettings } from '../../firebase/firebase';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../ui/use-toast';
 import * as Sentry from '@sentry/react';
@@ -40,7 +40,7 @@ const ResetPasswordForm: React.FC = () => {
     const sendResetEmail = async (data: z.infer<typeof resetPasswordSchema>) => {
         setIsSubmitted(true);
         try {
-            await sendPasswordResetEmail(auth, data.email);
+            await sendPasswordResetEmail(auth, data.email, getAuthActionCodeSettings());
             toast({
                 variant: 'default',
                 title: 'Password Reset Email Sent',

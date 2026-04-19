@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from 'firebase/auth';
-import { auth } from '../../firebase/firebase';
+import { auth, getAuthActionCodeSettings } from '../../firebase/firebase';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -90,7 +90,7 @@ const SchoolAdminSignUpForm: React.FC<SchoolAdminSignUpFormProps> = ({ email, sc
       await createSchoolAdmin(email, schoolInfo.schoolId, data.password);
 
       // Send email verification
-      await sendEmailVerification(userCredential.user);
+      await sendEmailVerification(userCredential.user, getAuthActionCodeSettings());
 
       // Sign out and show verification dialog
       await signOut(auth);

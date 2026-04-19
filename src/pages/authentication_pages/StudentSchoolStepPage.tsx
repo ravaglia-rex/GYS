@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { resolveRegistrationSchool } from '../../db/schoolCollection';
 import SchoolsInput from '../../components/autocomplete/SchoolsInput';
@@ -7,6 +7,7 @@ import { useToast } from '../../components/ui/use-toast';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
 import { useStudentSignupExit } from '../../contexts/StudentSignupExitContext';
 import { useStudentSignupExitGuard } from '../../hooks/useStudentSignupExitGuard';
+import { mergeSignupState, writeSignupDraft } from '../../utils/studentSignupDraft';
 
 const GYS_BLUE = '#1e3a8a';
 
@@ -18,21 +19,42 @@ interface LocationState {
   grade: string;
   dob: string;
   cityState: string;
+  signupSchoolName?: string;
+  homeLanguage?: string;
+  aspiration?: string;
+  heardFrom?: string;
+  schoolId?: string;
+  membershipLevel?: string;
+  membershipName?: string;
+  membershipPrice?: string;
 }
 
 const StudentSchoolStepPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const state = (location.state || {}) as Partial<LocationState>;
+  const merged = useMemo(
+    () => mergeSignupState(location.state) as Partial<LocationState>,
+    [location.key]
+  );
 
   const [selectedSchoolId, setSelectedSchoolId] = useState('');
   const [lockedSchool, setLockedSchool] = useState<{ id: string; name: string } | null>(null);
   /** When email is not on any school list: free-text school name; stored with signup as school_id not-listed. */
-  const [typedSchoolName, setTypedSchoolName] = useState('');
-  const [homeLanguage, setHomeLanguage] = useState('');
-  const [aspiration, setAspiration] = useState('');
-  const [heardFrom, setHeardFrom] = useState('');
+  const [typedSchoolName, setTypedSchoolName] = useState(
+    typeof merged.signupSchoolName === 'string' ? merged.signupSchoolName : ''
+  );
+  const [homeLanguage, setHomeLanguage] = useState(merged.homeLanguage || '');
+  const [aspiration, setAspiration] = useState(merged.aspiration || '');
+  const [heardFrom, setHeardFrom] = useState(merged.heardFrom || '');
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const m = mergeSignupState(location.state) as Partial<LocationState>;
+    setHomeLanguage(m.homeLanguage || '');
+    setAspiration(m.aspiration || '');
+    setHeardFrom(m.heardFrom || '');
+    setTypedSchoolName(typeof m.signupSchoolName === 'string' ? m.signupSchoolName : '');
+  }, [location.key]);
 
   const { toast } = useToast();
 
@@ -42,7 +64,8 @@ const StudentSchoolStepPage: React.FC = () => {
 
   useEffect(() => {
     const loadSchools = async () => {
-      const email = (state.email ?? '').trim();
+      const m = mergeSignupState(location.state) as Partial<LocationState>;
+      const email = String(m.email ?? '').trim();
       if (!email) {
         setIsLoading(false);
         return;
@@ -59,7 +82,10 @@ const StudentSchoolStepPage: React.FC = () => {
         } else {
           setLockedSchool(null);
           setSelectedSchoolId('');
-          setTypedSchoolName('');
+          const draft = mergeSignupState(location.state) as Partial<LocationState>;
+          setTypedSchoolName(
+            typeof draft.signupSchoolName === 'string' ? draft.signupSchoolName : ''
+          );
         }
       } catch (error: any) {
         Sentry.withScope((scope) => {
@@ -72,7 +98,7 @@ const StudentSchoolStepPage: React.FC = () => {
     };
 
     loadSchools();
-  }, [state.email]);
+  }, [location.key]);
 
   const emailMatchedSchool = Boolean(lockedSchool?.id);
   const schoolIdForSignup = emailMatchedSchool
@@ -85,6 +111,7 @@ const StudentSchoolStepPage: React.FC = () => {
     event.preventDefault();
     if (!canContinue) return;
 
+    const base = mergeSignupState(location.state) as Partial<LocationState>;
     const {
       firstName,
       lastName,
@@ -93,7 +120,7 @@ const StudentSchoolStepPage: React.FC = () => {
       grade,
       dob,
       cityState,
-    } = state as LocationState;
+    } = base;
 
     if (!email || !password || !firstName || !lastName || !grade) {
       toast({
@@ -107,22 +134,49 @@ const StudentSchoolStepPage: React.FC = () => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    navigate('/students/register/membership', {
+    const nextState: Partial<LocationState> & Record<string, unknown> = {
+      ...base,
+      firstName,
+      lastName,
+      email: normalizedEmail,
+      password,
+      grade,
+      dob,
+      cityState,
+      schoolId: schoolIdForSignup,
+      homeLanguage,
+      aspiration,
+      heardFrom,
+    };
+    if (!emailMatchedSchool && typedSchoolName.trim()) {
+      nextState.signupSchoolName = typedSchoolName.trim();
+    } else {
+      delete nextState.signupSchoolName;
+    }
+
+    writeSignupDraft(nextState);
+    navigate('/students/register/membership', { state: nextState });
+  };
+
+  const goBackToAccountStep = () => {
+    const m = mergeSignupState(location.state) as Partial<LocationState>;
+    navigate('/students/register', {
       state: {
-        firstName,
-        lastName,
-        email: normalizedEmail,
-        password,
-        grade,
-        dob,
-        cityState,
-        schoolId: schoolIdForSignup,
-        ...(!emailMatchedSchool && typedSchoolName.trim()
-          ? { signupSchoolName: typedSchoolName.trim() }
-          : {}),
-        homeLanguage,
-        aspiration,
-        heardFrom,
+        firstName: m.firstName,
+        lastName: m.lastName,
+        email: m.email,
+        password: m.password,
+        grade: m.grade,
+        dob: m.dob,
+        cityState: m.cityState,
+        prefill: {
+          firstName: m.firstName,
+          lastName: m.lastName,
+          email: m.email,
+          grade: m.grade,
+          dob: m.dob,
+          cityState: m.cityState,
+        },
       },
     });
   };
@@ -133,7 +187,7 @@ const StudentSchoolStepPage: React.FC = () => {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-4 sm:gap-6">
           <button
             type="button"
-            onClick={() => requestLeave(() => navigate(-1))}
+            onClick={goBackToAccountStep}
             className="group flex items-center gap-1 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors duration-200 hover:bg-slate-100 rounded-lg px-1 py-0.5 -ml-1"
           >
             <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-300 text-xs transition-all duration-200 group-hover:border-slate-400">
@@ -296,7 +350,7 @@ const StudentSchoolStepPage: React.FC = () => {
               className="mt-2 inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm sm:text-base font-semibold text-white shadow-md hover:bg-slate-900/90 disabled:cursor-not-allowed disabled:bg-slate-400"
               style={{ backgroundColor: canContinue ? GYS_BLUE : undefined }}
             >
-              Continue →
+              Next: Choose membership →
             </button>
 
             <p className="pt-1 text-center text-xs text-slate-500">

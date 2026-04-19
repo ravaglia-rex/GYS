@@ -2,70 +2,70 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { applyActionCode } from "firebase/auth";
 import { auth } from "../../firebase/firebase";
-import { useToast } from "../../components/ui/use-toast";
+import { useToast } from "../ui/use-toast";
 import * as Sentry from "@sentry/react";
-import { checkSchoolEmail, verifySchoolEmail } from '../../db/schoolAdminCollection';
+import { checkSchoolEmail, verifySchoolEmail } from "../../db/schoolAdminCollection";
+import authTokenHandler from "../../functions/auth_token/auth_token_handler";
 
 interface VerifyEmailProps {
-    actionCode: string;
+  actionCode: string;
 }
 
 const VerifyEmail: React.FC<VerifyEmailProps> = ({ actionCode }) => {
-    const navigate = useNavigate();
-    const [isVerified, setIsVerified] = useState(false);
-    const {toast} = useToast();
+  const navigate = useNavigate();
+  const [isVerified, setIsVerified] = useState(false);
+  const { toast } = useToast();
 
-    useEffect(() => {
-        applyActionCode(auth, actionCode)
-                .then(async () => {
-                    setIsVerified(true);
-                    
-                    // Check if this is a school admin and update verified status
-                    const user = auth.currentUser;
-                    if (user?.email) {
-                    try {
-                        const schoolInfo = await checkSchoolEmail(user.email);
-                        if (schoolInfo && !schoolInfo.verified) {
-                        await verifySchoolEmail(user.email);
-                        }
-                    } catch (error) {
-                        console.error('Error verifying school email:', error);
-                    }
-                    }
-                    
-                    toast({
-                    variant: 'default',
-                    title: 'Email Verified',
-                    description: 'You have successfully verified your email address. Redirecting to login...'
-                    });
-                    setTimeout(() => {
-                    navigate('/');
-                    }, 2000);
-                })            
-                .catch((error: any) => {
-                Sentry.withScope((scope) => {
-                    scope.setTag('location', 'VerifyEmail.applyActionCode');
-                    Sentry.captureException(error);
-                });
-                toast({
-                    variant: 'destructive',
-                    title: 'Email Verification Error',
-                    description: error.message
-                  });
-                navigate('/auth/verify-email-error');
-            });
-    }, [navigate, actionCode, toast]);
+  useEffect(() => {
+    applyActionCode(auth, actionCode)
+      .then(async () => {
+        setIsVerified(true);
 
-    return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-100">
-            {isVerified && <div className="bg-white p-8 rounded-lg shadow-md text-center max-w-md mx-auto">
-                <h1 className="text-3xl font-semibold text-green-600 mb-4">Verified Your Email</h1>
-                <p className="text-lg text-gray-700 mb-6">
-                    You've successfully verified your email address. Redirecting to login page...
-                </p>
-            </div>}
+        const user = auth.currentUser;
+        if (user?.email) {
+          try {
+            const schoolInfo = await checkSchoolEmail(user.email);
+            if (schoolInfo && !schoolInfo.verified) {
+              const authToken = await user.getIdToken();
+              authTokenHandler.setAuthToken(authToken);
+              await verifySchoolEmail(user.email);
+            }
+          } catch (error) {
+            console.error("Error verifying school email:", error);
+          }
+        }
+
+        toast({
+          variant: "default",
+          title: "Email verified",
+          description: "Redirecting to login…",
+        });
+        navigate("/", { replace: true });
+      })
+      .catch((error: any) => {
+        Sentry.withScope((scope) => {
+          scope.setTag("location", "VerifyEmail.applyActionCode");
+          Sentry.captureException(error);
+        });
+        toast({
+          variant: "destructive",
+          title: "Email verification error",
+          description: error.message,
+        });
+        navigate("/auth/verify-email-error");
+      });
+  }, [navigate, actionCode, toast]);
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gray-100">
+      {isVerified && (
+        <div className="mx-auto max-w-md rounded-lg bg-white p-8 text-center shadow-md">
+          <h1 className="mb-4 text-3xl font-semibold text-green-600">Email verified</h1>
+          <p className="text-lg text-gray-700">Taking you to the login page…</p>
         </div>
-    );
+      )}
+    </div>
+  );
 };
 
 export default VerifyEmail;
