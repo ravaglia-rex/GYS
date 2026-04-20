@@ -67,9 +67,7 @@
     "check": "CI=true npm run build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org argus-0t --project argus-exam-platform ./build && sentry-cli sourcemaps upload --org argus-0t --project argus-exam-platform ./build",
-    "update-phase2-categories": "ts-node --project tsconfig.scripts.json src/scripts/updatePhase2Categories.ts",
-    "update-phase2-categories:dry-run": "ts-node --project tsconfig.scripts.json src/scripts/updatePhase2Categories.ts --dry-run"
+    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org argus-0t --project argus-exam-platform ./build && sentry-cli sourcemaps upload --org argus-0t --project argus-exam-platform ./build"
   },
   "eslintConfig": {
     "extends": [
@@ -91,7 +89,6 @@
   },
   "devDependencies": {
     "tailwindcss": "^3.4.4",
-    "ts-node": "^10.9.2",
     "typescript": "^5.9.2"
   }
 }
