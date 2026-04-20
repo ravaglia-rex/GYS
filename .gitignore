@@ -29,6 +29,7 @@ yarn-error.log*
 # Sentry Config File
 .sentryclirc
 firestore-debug.log
+firebase-debug.log
 
 # Vercel CLI local project link
 .vercel
@@ -40,6 +41,7 @@ ORIG_HEAD
 
 # Firebase / Google service account keys
 *-firebase-adminsdk-*.json
+argus-talent-search-*.json
 argus-india-v2-firebase-adminsdk-fbsvc-cc980e26ea.json
 argus-india-v2-cc980e26ea.json
 *.pem
