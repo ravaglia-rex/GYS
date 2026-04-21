@@ -1,5 +1,6 @@
 import axios from 'axios';
 import {
+  AMEND_SCHOOL_REGISTRATION,
   CREATE_EXPEDITED_SCHOOL,
   REGISTER_SCHOOL,
   RESUME_SCHOOL_CHECKOUT,
@@ -32,6 +33,9 @@ export type RegisterSchoolPayload = {
   state: string;
   postal_code: string;
   contact_emails: string[];
+  /** Optional at signup — required on Razorpay checkout step if not stored. */
+  poc_phone?: string;
+  institution_pan?: string;
   selected_plan_id: string;
   commit_to_pay: boolean;
 };
@@ -43,6 +47,11 @@ export type RegisterSchoolResponse = {
   pocEmail: string;
   /** Single-use style secret for POST /razorpay/createSchoolOrder (not shown publicly after session). */
   checkoutSecret: string;
+};
+
+export type AmendSchoolRegistrationPayload = RegisterSchoolPayload & {
+  school_id: string;
+  checkout_secret: string;
 };
 
 function pickCheckoutSecret(data: Record<string, unknown>): string {
@@ -87,6 +96,8 @@ export type CreateSchoolRazorpayOrderResponse = {
   amount: number;
   currency: string;
   key_id: string;
+  /** Razorpay Import Flow — pass to Standard Checkout options. */
+  customer_id?: string;
   plan_id: string;
   test_mode_amounts?: boolean;
   /** True when API uses ₹1/₹2/₹3 micro test amounts (SCHOOL_RAZORPAY_MICRO_TEST). */
@@ -95,23 +106,40 @@ export type CreateSchoolRazorpayOrderResponse = {
   checkout_config_id?: string;
 };
 
+export type CreateSchoolRazorpayOrderParams = {
+  schoolId: string;
+  checkoutSecret: string;
+  /** India mobile — Import Flow customer + order customer_details. */
+  poc_phone: string;
+  institution_pan?: string;
+};
+
 export const createSchoolRazorpayOrder = async (
-  schoolId: string,
-  checkoutSecret: string
+  params: CreateSchoolRazorpayOrderParams
 ): Promise<CreateSchoolRazorpayOrderResponse> => {
   const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS ?? "";
   if (!base) {
     throw new Error("REACT_APP_GOOGLE_CLOUD_FUNCTIONS is not configured.");
   }
   try {
-    const response = await axios.post(
-      `${base}${RAZORPAY_APIS}${CREATE_SCHOOL_RAZORPAY_ORDER}`,
-      {school_id: schoolId, checkout_secret: checkoutSecret}
-    );
+    const response = await axios.post(`${base}${RAZORPAY_APIS}${CREATE_SCHOOL_RAZORPAY_ORDER}`, {
+      school_id: params.schoolId,
+      checkout_secret: params.checkoutSecret,
+      poc_phone: params.poc_phone.trim(),
+      ...(params.institution_pan?.trim()
+        ? {institution_pan: params.institution_pan.trim().toUpperCase()}
+        : {}),
+    });
     return response.data;
   } catch (e) {
-    if (axios.isAxiosError(e) && e.response?.data?.message) {
-      throw new Error(String(e.response.data.message));
+    if (axios.isAxiosError(e) && e.response?.data) {
+      const d = e.response.data as { message?: string; error?: string };
+      const bits = [d.message, d.error].filter(
+        (x): x is string => typeof x === "string" && x.trim().length > 0
+      );
+      if (bits.length > 0) {
+        throw new Error(bits.join(" — "));
+      }
     }
     throw new Error("Could not start payment. Please try again or contact schools@globalyoungscholar.com.");
   }
@@ -137,6 +165,24 @@ export const verifySchoolRazorpayPayment = async (body: {
   }
 };
 
+function parseRegisterSchoolResponse(raw: Record<string, unknown>): RegisterSchoolResponse {
+  let checkoutSecret = pickCheckoutSecret(raw);
+  const schoolId = typeof raw.schoolId === "string" ? raw.schoolId : "";
+  const pocEmail =
+    typeof raw.pocEmail === "string"
+      ? raw.pocEmail
+      : typeof raw.poc_email === "string"
+        ? raw.poc_email
+        : "";
+  return {
+    success: Boolean(raw.success),
+    schoolId,
+    schoolName: typeof raw.schoolName === "string" ? raw.schoolName : "",
+    pocEmail,
+    checkoutSecret,
+  };
+}
+
 export const registerSchool = async (
   payload: RegisterSchoolPayload
 ): Promise<RegisterSchoolResponse> => {
@@ -147,35 +193,55 @@ export const registerSchool = async (
       {headers: {"Content-Type": "application/json"}}
     );
     const raw = response.data as Record<string, unknown>;
-    let checkoutSecret = pickCheckoutSecret(raw);
-    const schoolId = typeof raw.schoolId === "string" ? raw.schoolId : "";
-    const pocEmail =
-      typeof raw.pocEmail === "string"
-        ? raw.pocEmail
-        : typeof raw.poc_email === "string"
-          ? raw.poc_email
-          : "";
-    if (!checkoutSecret && schoolId && pocEmail) {
+    let result = parseRegisterSchoolResponse(raw);
+    if (!result.checkoutSecret && result.schoolId && result.pocEmail) {
       try {
-        const recovered = await resumeSchoolCheckout(schoolId, pocEmail);
-        checkoutSecret = recovered.checkoutSecret;
+        const recovered = await resumeSchoolCheckout(result.schoolId, result.pocEmail);
+        result = {...result, checkoutSecret: recovered.checkoutSecret};
       } catch {
         // leave empty; caller shows recovery UI
       }
     }
-    return {
-      success: Boolean(raw.success),
-      schoolId,
-      schoolName: typeof raw.schoolName === "string" ? raw.schoolName : "",
-      pocEmail,
-      checkoutSecret,
-    };
+    return result;
   } catch (e) {
-    if (axios.isAxiosError(e) && e.response?.data?.error) {
-      throw new Error(String(e.response.data.error));
+    if (axios.isAxiosError(e) && e.response?.data) {
+      const d = e.response.data as {message?: string; error?: string};
+      const bits = [d.message, d.error].filter(
+        (x): x is string => typeof x === "string" && x.trim().length > 0
+      );
+      if (bits.length > 0) {
+        throw new Error(bits.join(" — "));
+      }
     }
     throw new Error(
       'Could not complete registration. Please try again or contact schools@globalyoungscholar.com.'
+    );
+  }
+};
+
+export const amendSchoolRegistration = async (
+  payload: AmendSchoolRegistrationPayload
+): Promise<RegisterSchoolResponse> => {
+  try {
+    const response = await axios.post(
+      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOLS_APIS}${AMEND_SCHOOL_REGISTRATION}`,
+      payload,
+      {headers: {"Content-Type": "application/json"}}
+    );
+    const raw = response.data as Record<string, unknown>;
+    return parseRegisterSchoolResponse(raw);
+  } catch (e) {
+    if (axios.isAxiosError(e) && e.response?.data) {
+      const d = e.response.data as {message?: string; error?: string};
+      const bits = [d.message, d.error].filter(
+        (x): x is string => typeof x === "string" && x.trim().length > 0
+      );
+      if (bits.length > 0) {
+        throw new Error(bits.join(" — "));
+      }
+    }
+    throw new Error(
+      "Could not update registration. Please try again or contact schools@globalyoungscholar.com."
     );
   }
 };

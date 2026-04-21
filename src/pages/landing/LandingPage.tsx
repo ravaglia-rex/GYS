@@ -352,7 +352,7 @@ const LandingPage: React.FC = () => {
         id="for-schools"
         className="bg-white border-t border-gray-200 pb-8 md:pb-10 pt-5 md:pt-8 scroll-mt-20"
       >
-        <div className="max-w-5xl mx-auto px-6 space-y-4">
+        <div className="max-w-5xl mx-auto px-6">
           {/* EducationWorld - full-width card */}
           <div>
             <div className="rounded-2xl bg-[#eef4ff] px-4 py-4 shadow-sm sm:px-5 sm:py-4 md:px-6 md:py-5">
@@ -378,23 +378,6 @@ const LandingPage: React.FC = () => {
               </div>
             </div>
           </div>
-
-          {/* In Partnership With - below, full-width */}
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-400 mb-2 text-center">
-              In partnership with
-            </p>
-            <div className="flex flex-wrap justify-center gap-2">
-              {['Access USA', 'Argus'].map((partner) => (
-                <span
-                  key={partner}
-                  className="px-4 py-2 rounded-lg bg-white text-slate-700 text-xs font-semibold shadow-sm ring-1 ring-slate-100 hover:shadow-md hover:ring-slate-200 transition-all duration-150 sm:text-sm"
-                >
-                  {partner}
-                </span>
-              ))}
-            </div>
-          </div>
         </div>
       </section>
 
@@ -417,7 +400,7 @@ const LandingPage: React.FC = () => {
             </button>
             <button
               type="button"
-              onClick={() => scrollToSection('how-it-works')}
+              onClick={() => navigate('/about/assessments')}
               className="text-gray-600 hover:text-gray-900"
             >
               Assessments

@@ -1,7 +1,23 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../components/ui/use-toast';
-import { registerSchool, resumeSchoolCheckout } from '../../db/schoolCollection';
+import {
+  amendSchoolRegistration,
+  registerSchool,
+  resumeSchoolCheckout,
+} from '../../db/schoolCollection';
+import {
+  partyNameLengthOk,
+  shipLine1Ok,
+  cityOk,
+  RAZORPAY_PARTY_NAME_MIN,
+  RAZORPAY_PARTY_NAME_MAX,
+  RAZORPAY_SHIP_LINE1_MIN,
+  RAZORPAY_SHIP_LINE1_MAX,
+  RAZORPAY_SHIP_LINE2_MAX,
+  RAZORPAY_CITY_MIN,
+  RAZORPAY_CITY_MAX,
+} from '../../utils/schoolRegistrationPaymentRules';
 import * as Sentry from '@sentry/react';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
 import SchoolRazorpayCheckout from '../../components/school-registration/SchoolRazorpayCheckout';
@@ -79,8 +95,8 @@ const MAX_ABBREVIATIONS = 5;
 const MAX_EMAILS = 5;
 const TOTAL_STEPS = 4;
 
-/** Temporary: skip embedded Razorpay; onboarding emails a payment link (revert to false to restore checkout). */
-const SCHOOL_SIGNUP_TEMP_PAYMENT_LINK = true;
+/** When true: skip embedded Razorpay; onboarding emails a payment link. Set false for Razorpay checkout after submit. */
+const SCHOOL_SIGNUP_TEMP_PAYMENT_LINK = false;
 
 function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
@@ -153,13 +169,13 @@ const SchoolRegistrationPage: React.FC = () => {
     setAbbreviations((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const validateStep1 = (): boolean => {
+  const getStep1Errors = (): Record<string, string> => {
     const newErrors: Record<string, string> = {};
     const trimmed = schoolName.trim();
     if (!trimmed) {
       newErrors.schoolName = 'Please enter your school name.';
-    } else if (trimmed.length < 2) {
-      newErrors.schoolName = 'School name must be at least 2 characters.';
+    } else if (!partyNameLengthOk(trimmed)) {
+      newErrors.schoolName = `School name must be ${RAZORPAY_PARTY_NAME_MIN}–${RAZORPAY_PARTY_NAME_MAX} characters (required by our payment partner for billing).`;
     }
     if (!confirmSchoolName.trim()) {
       newErrors.confirmSchoolName = 'Please re-type your school name to confirm.';
@@ -167,26 +183,50 @@ const SchoolRegistrationPage: React.FC = () => {
       newErrors.confirmSchoolName =
         'School names do not match. Please type the name exactly as above.';
     }
+    return newErrors;
+  };
+
+  const validateStep1 = (): boolean => {
+    const newErrors = getStep1Errors();
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   // ── Step 2 ───────────────────────────────────────────────────────────────
 
-  const validateStep2 = (): boolean => {
+  const getStep2Errors = (): Record<string, string> => {
     const newErrors: Record<string, string> = {};
     if (!board) newErrors.board = 'Please select your school board / curriculum.';
     if (board === 'State Board' && !stateBoardState)
       newErrors.stateBoardState = 'Please select your state board.';
     if (!referralSource) newErrors.referralSource = 'Please let us know how you heard about GYS.';
-    if (!addressLine1.trim()) newErrors.addressLine1 = 'Address line 1 is required.';
-    if (!city.trim()) newErrors.city = 'City is required.';
+    const line1 = addressLine1.trim();
+    if (!line1) {
+      newErrors.addressLine1 = 'Address line 1 is required.';
+    } else if (!shipLine1Ok(line1)) {
+      newErrors.addressLine1 = `Address line 1 must be ${RAZORPAY_SHIP_LINE1_MIN}–${RAZORPAY_SHIP_LINE1_MAX} characters (payment partner requirement).`;
+    }
+    const line2 = addressLine2.trim();
+    if (line2.length > RAZORPAY_SHIP_LINE2_MAX) {
+      newErrors.addressLine2 = `Address line 2 must be at most ${RAZORPAY_SHIP_LINE2_MAX} characters.`;
+    }
+    const cityTrim = city.trim();
+    if (!cityTrim) {
+      newErrors.city = 'City is required.';
+    } else if (!cityOk(cityTrim)) {
+      newErrors.city = `City must be ${RAZORPAY_CITY_MIN}–${RAZORPAY_CITY_MAX} characters.`;
+    }
     if (!addressState) newErrors.addressState = 'Please select your state.';
     if (!zipCode.trim()) {
       newErrors.zipCode = 'PIN code is required.';
     } else if (!/^\d{6}$/.test(zipCode.trim())) {
       newErrors.zipCode = 'Please enter a valid 6-digit PIN code.';
     }
+    return newErrors;
+  };
+
+  const validateStep2 = (): boolean => {
+    const newErrors = getStep2Errors();
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -211,7 +251,7 @@ const SchoolRegistrationPage: React.FC = () => {
     clearError(`email_${index}`);
   };
 
-  const validateStep3 = (): boolean => {
+  const getStep3Errors = (): Record<string, string> => {
     const newErrors: Record<string, string> = {};
     const filled = emails.filter((e) => e.trim() !== '');
     if (filled.length === 0) {
@@ -224,6 +264,11 @@ const SchoolRegistrationPage: React.FC = () => {
     const trimmed = filled.map((e) => e.trim().toLowerCase());
     if (new Set(trimmed).size !== trimmed.length)
       newErrors.emails = 'Please remove duplicate email addresses.';
+    return newErrors;
+  };
+
+  const validateStep3 = (): boolean => {
+    const newErrors = getStep3Errors();
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -258,6 +303,24 @@ const SchoolRegistrationPage: React.FC = () => {
     event.preventDefault();
     if (!validateStep4()) return;
 
+    const e1 = getStep1Errors();
+    const e2 = getStep2Errors();
+    const e3 = getStep3Errors();
+    const merged = { ...e1, ...e2, ...e3 };
+    if (Object.keys(merged).length > 0) {
+      setErrors(merged);
+      setCurrentStep(
+        Object.keys(e1).length > 0 ? 1 : Object.keys(e2).length > 0 ? 2 : 3
+      );
+      toast({
+        variant: 'destructive',
+        title: 'Check your details',
+        description:
+          'Fix the highlighted fields. Your school name and address must match what our payment partner accepts before we can create the order.',
+      });
+      return;
+    }
+
     const sn = schoolName.trim();
     const cn = confirmSchoolName.trim();
     if (!sn || !cn) {
@@ -266,14 +329,6 @@ const SchoolRegistrationPage: React.FC = () => {
         title: 'School name missing',
         description:
           'Your form may have reset (e.g. refresh or hot reload). Go back to Step 1 and re-enter your school name, then continue through the steps.',
-      });
-      return;
-    }
-    if (sn.length < 2) {
-      toast({
-        variant: 'destructive',
-        title: 'School name too short',
-        description: 'Use at least 2 characters for the official school name (Step 1).',
       });
       return;
     }
@@ -286,7 +341,7 @@ const SchoolRegistrationPage: React.FC = () => {
 
     try {
       setIsSubmitting(true);
-      const result = await registerSchool({
+      const payload = {
         school_name: schoolName.trim(),
         confirm_school_name: confirmSchoolName.trim(),
         abbreviations: abbrevList,
@@ -302,10 +357,22 @@ const SchoolRegistrationPage: React.FC = () => {
         contact_emails: filledEmails,
         selected_plan_id: selectedPlan,
         commit_to_pay: commitToPay,
-      });
+      };
+      const amending = Boolean(registeredSchoolId && registeredCheckoutSecret);
+      const result = amending
+        ? await amendSchoolRegistration({
+            ...payload,
+            school_id: registeredSchoolId!,
+            checkout_secret: registeredCheckoutSecret!,
+          })
+        : await registerSchool(payload);
       setRegisteredSchoolId(result.schoolId);
       setRegisteredPocEmail(result.pocEmail);
-      setRegisteredCheckoutSecret(result.checkoutSecret);
+      setRegisteredCheckoutSecret(
+        result.checkoutSecret ||
+          registeredCheckoutSecret ||
+          ''
+      );
       setSubmitted(true);
     } catch (err: unknown) {
       Sentry.withScope((scope) => {
@@ -315,7 +382,10 @@ const SchoolRegistrationPage: React.FC = () => {
       const message = err instanceof Error ? err.message : 'Registration failed.';
       toast({
         variant: 'destructive',
-        title: 'Could not register',
+        title:
+          registeredSchoolId && registeredCheckoutSecret
+            ? 'Could not update registration'
+            : 'Could not register',
         description: message,
       });
     } finally {
@@ -486,11 +556,26 @@ const SchoolRegistrationPage: React.FC = () => {
             <p className="mt-2 text-xs text-slate-500 font-mono break-all">
               Reference: {registeredSchoolId}
             </p>
+            <button
+              type="button"
+              onClick={() => {
+                setSubmitted(false);
+                setCurrentStep(1);
+              }}
+              className="mt-4 w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 active:scale-[0.99] transition-all"
+            >
+              Edit registration details
+            </button>
+            <p className="mt-2 text-left text-xs text-slate-500 leading-relaxed">
+              Opens the registration form again with your answers preserved. Update any field, go through to step 4,
+              and submit — we&apos;ll save changes to this school reference (same checkout token) before you pay.
+            </p>
+           
             <SchoolRazorpayCheckout
               schoolId={registeredSchoolId}
               checkoutSecret={registeredCheckoutSecret}
               schoolName={schoolName.trim()}
-              pocEmail={registeredPocEmail}
+              pocEmail={registeredPocEmail ?? ''}
               planName={currentPlan.name}
               onSuccess={() => setPaymentComplete(true)}
             />
@@ -658,9 +743,20 @@ const SchoolRegistrationPage: React.FC = () => {
                     Use the full, official name as it appears on your school's certificate or
                     letterhead.
                   </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Billing name (payment partner):{' '}
+                    <span className="font-medium text-slate-700">
+                      {RAZORPAY_PARTY_NAME_MIN}–{RAZORPAY_PARTY_NAME_MAX} characters
+                    </span>
+                    .{' '}
+                    <span className="text-slate-400">
+                      ({schoolName.trim().length}/{RAZORPAY_PARTY_NAME_MAX})
+                    </span>
+                  </p>
                   <input
                     type="text"
                     value={schoolName}
+                    maxLength={RAZORPAY_PARTY_NAME_MAX}
                     onChange={(e) => { setSchoolName(e.target.value); clearError('schoolName'); }}
                     className={`mt-1.5 w-full rounded-lg border px-3.5 py-2.5 text-sm sm:text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 ${
                       errors.schoolName
@@ -688,6 +784,7 @@ const SchoolRegistrationPage: React.FC = () => {
                   <input
                     type="text"
                     value={confirmSchoolName}
+                    maxLength={RAZORPAY_PARTY_NAME_MAX}
                     onChange={(e) => { setConfirmSchoolName(e.target.value); clearError('confirmSchoolName'); }}
                     onPaste={(e) => e.preventDefault()}
                     onCopy={(e) => e.preventDefault()}
@@ -895,6 +992,21 @@ const SchoolRegistrationPage: React.FC = () => {
                   <p className="text-xs sm:text-sm font-bold text-slate-700 mb-3">
                     School Address<span className="text-red-500"> *</span>
                   </p>
+                  <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+                    <p className="text-[11px] font-semibold text-slate-700 uppercase tracking-wide">
+                      Payment checkout uses this address
+                    </p>
+                    <ul className="mt-1.5 list-disc space-y-0.5 pl-4 text-[11px] text-slate-600 leading-snug">
+                      <li>
+                        Address line 1: {RAZORPAY_SHIP_LINE1_MIN}–{RAZORPAY_SHIP_LINE1_MAX} characters
+                      </li>
+                      <li>Address line 2 (optional): up to {RAZORPAY_SHIP_LINE2_MAX} characters</li>
+                      <li>
+                        City: {RAZORPAY_CITY_MIN}–{RAZORPAY_CITY_MAX} characters
+                      </li>
+                      <li>PIN: exactly 6 digits</li>
+                    </ul>
+                  </div>
 
                   {/* Address line 1 */}
                   <div className="space-y-3">
@@ -905,6 +1017,7 @@ const SchoolRegistrationPage: React.FC = () => {
                       <input
                         type="text"
                         value={addressLine1}
+                        maxLength={RAZORPAY_SHIP_LINE1_MAX}
                         onChange={(e) => { setAddressLine1(e.target.value); clearError('addressLine1'); }}
                         className={`w-full rounded-lg border px-3.5 py-2.5 text-sm sm:text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 ${
                           errors.addressLine1
@@ -928,11 +1041,22 @@ const SchoolRegistrationPage: React.FC = () => {
                       <input
                         type="text"
                         value={addressLine2}
-                        onChange={(e) => setAddressLine2(e.target.value)}
-                        className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm sm:text-base text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                        maxLength={RAZORPAY_SHIP_LINE2_MAX}
+                        onChange={(e) => {
+                          setAddressLine2(e.target.value);
+                          clearError('addressLine2');
+                        }}
+                        className={`w-full rounded-lg border px-3.5 py-2.5 text-sm sm:text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 ${
+                          errors.addressLine2
+                            ? 'border-red-400 focus:border-red-400 focus:ring-red-300'
+                            : 'border-slate-200 focus:border-slate-400 focus:ring-slate-400'
+                        }`}
                         placeholder="Locality / area / landmark"
                         autoComplete="off"
                       />
+                      {errors.addressLine2 && (
+                        <p className="mt-1 text-xs text-red-600">{errors.addressLine2}</p>
+                      )}
                     </div>
 
                     {/* City + State */}
@@ -944,6 +1068,7 @@ const SchoolRegistrationPage: React.FC = () => {
                         <input
                           type="text"
                           value={city}
+                          maxLength={RAZORPAY_CITY_MAX}
                           onChange={(e) => { setCity(e.target.value); clearError('city'); }}
                           className={`w-full rounded-lg border px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 ${
                             errors.city

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
 import LandingFaq from '../../components/landing/LandingFaq';
 import { studentFaqSections } from './faq/studentFaqSections';
@@ -184,6 +185,14 @@ const StudentPathPage: React.FC = () => {
                 Try the sample assessment - no account
               </button>
             </div>
+            <button
+              type="button"
+              onClick={() => navigate('/about/assessments')}
+              className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-white/95 underline-offset-4 transition hover:text-white hover:underline"
+            >
+              Explore all six assessments
+              <ArrowRight className="h-4 w-4" />
+            </button>
           </div>
         </section>
 
@@ -472,7 +481,7 @@ const StudentPathPage: React.FC = () => {
             </button>
             <button
               type="button"
-              onClick={() => document.getElementById('assessments')?.scrollIntoView({ behavior: 'smooth' })}
+              onClick={() => navigate('/about/assessments')}
               className="text-gray-600 hover:text-gray-900 transition-colors duration-200"
             >
               Assessments

@@ -41,6 +41,7 @@ export const EMAIL_CHECK_APIS = '/emailCheck';
 // Schools
 export const CREATE_EXPEDITED_SCHOOL='/createExpeditedSchool';
 export const REGISTER_SCHOOL='/registerSchool';
+export const AMEND_SCHOOL_REGISTRATION='/amendSchoolRegistration';
 export const RESUME_SCHOOL_CHECKOUT='/resumeSchoolCheckout';
 export const FETCH_SCHOOL_NAMES_AND_IDS='/fetchSchoolNamesAndIds';
 export const FETCH_SCHOOL_NAME='/getSchoolDetails';

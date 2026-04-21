@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
 import LandingFaq from '../../components/landing/LandingFaq';
 import { schoolFaqSections } from './faq/schoolFaqSections';
@@ -10,6 +10,7 @@ const GYS_GOLD = '#fbbf24';
 
 const ForSchoolsPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isVisible, setIsVisible] = useState(false);
   const [featuresVisible, setFeaturesVisible] = useState(false);
   const [pricingVisible, setPricingVisible] = useState(false);
@@ -42,6 +43,15 @@ const ForSchoolsPage: React.FC = () => {
       if (pricingEl) observer.unobserve(pricingEl);
     };
   }, []);
+
+  useEffect(() => {
+    const scrollToId = (location.state as { scrollToId?: string } | null)?.scrollToId;
+    if (!scrollToId) return;
+    const t = window.setTimeout(() => {
+      document.getElementById(scrollToId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 175);
+    return () => window.clearTimeout(t);
+  }, [location.pathname, location.state]);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
@@ -178,6 +188,18 @@ const ForSchoolsPage: React.FC = () => {
                 </div>
               ))}
             </div>
+            <div className="mt-8 flex justify-center">
+              <button
+                type="button"
+                onClick={() => navigate('/about/assessments')}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-slate-100 transition hover:-translate-y-0.5 hover:border-slate-400 hover:shadow-md"
+              >
+                Explore the full assessment suite
+                <span aria-hidden className="text-lg leading-none">
+                  →
+                </span>
+              </button>
+            </div>
           </div>
         </section>
 
@@ -249,8 +271,9 @@ const ForSchoolsPage: React.FC = () => {
 
           {/* Institutional subscriptions / pricing */}
           <section
+            id="institutional-subscriptions"
             data-section="pricing"
-            className={`mt-10 sm:mt-12 transition-all duration-700 ${
+            className={`scroll-mt-28 mt-10 sm:mt-12 transition-all duration-700 ${
               pricingVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
             }`}
           >
