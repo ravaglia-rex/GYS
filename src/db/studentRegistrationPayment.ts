@@ -17,7 +17,7 @@ export type CreateStudentRegistrationOrderResponse = {
 
 export const createStudentRegistrationOrder = async (
   email: string,
-  membershipLevel: 1 | 2 | 3
+  membershipLevel: 1 | 2 | 3 | 4
 ): Promise<CreateStudentRegistrationOrderResponse> => {
   const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS ?? '';
   if (!base) {
@@ -43,7 +43,7 @@ export const createStudentRegistrationOrder = async (
  */
 export const devBypassStudentSignupPaymentClaim = async (
   email: string,
-  membershipLevel: 1 | 2 | 3
+  membershipLevel: 1 | 2 | 3 | 4
 ): Promise<{ success: boolean; razorpay_payment_id: string; dev_bypass?: boolean }> => {
   const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS ?? '';
   if (!base) {

@@ -14,6 +14,7 @@ const CANONICAL_ASSESSMENT_IDS = [
   'english_proficiency',
   'ai_literacy',
   'comprehensive_personality',
+  'career_interest_inventory',
 ] as const;
 
 function baseAssessmentProgress(): Record<string, AssessmentProgress> {
@@ -58,7 +59,7 @@ function patternLogicProgressFromPerfTier(perfTier: string, studentIndex: number
       tiers_cleared: { 1: true, 2: true, 3: true },
     };
   }
-  /** Proficiency Tier 1 (Bronze band) - matches dashboard Tier 1 = Bronze. */
+  /** Proficiency level 1 (Bronze band) matches dashboard Level 1 = Bronze. */
   if (t === 'bronze') {
     return {
       proficiency_tier: 1,
@@ -204,7 +205,7 @@ function buildSortedSeedNamePairs(count: number): { first_name: string; last_nam
 export const GREENFIELD_TIER1_PATCH_GRADE6_COUNT = 40;
 export const GREENFIELD_TIER1_PATCH_GRADE7_COUNT = 10;
 
-/** Forces overall Tier 1 (min band): pattern-and-logic slot at proficiency band 1; other active slots unchanged. */
+/** Forces overall Level 1 (min band): pattern-and-logic slot at proficiency band 1; other active slots unchanged. */
 function forceOverallTier1PatternLogic(
   progress: Record<string, AssessmentProgress>
 ): Record<string, AssessmentProgress> {
@@ -280,7 +281,7 @@ export function buildGreenfieldPreviewStudentRows(): StudentRow[] {
       first_name,
       last_name,
       grade,
-      membership_level: achievementTier === 'explorer' ? 1 : achievementTier === 'bronze' ? 2 : 3,
+      membership_level: achievementTier === 'explorer' ? 1 : achievementTier === 'bronze' ? 2 : 4,
       approval_status: 'approved',
       achievement_tier: achievementTier,
       assessment_progress,

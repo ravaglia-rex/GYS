@@ -4,7 +4,12 @@ import {
   graduationPrereqMetForAssessment,
 } from './tierProgression';
 
-/** Canonical assessment order for sorting and gating */
+/**
+ * Canonical assessment order for sorting and gating (wired assessment ids from Firestore).
+ * Rev 13 lists seven exams in the program; add exam 7 to `app_config/assessment_types` when ready.
+ */
+export const PROGRAM_EXAM_COUNT = 7;
+
 export const ASSESSMENT_ORDER = [
   'symbolic_reasoning',
   'verbal_reasoning',
@@ -12,6 +17,7 @@ export const ASSESSMENT_ORDER = [
   'english_proficiency',
   'ai_literacy',
   'comprehensive_personality',
+  'career_interest_inventory',
 ] as const;
 
 export type AssessmentId = (typeof ASSESSMENT_ORDER)[number];
@@ -34,53 +40,70 @@ export interface GateResult {
   missingPrerequisite?: string;
 }
 
-/** Level 1 = Exam 1; Level 2 = full reasoning triad (Exams 1–3); Level 3 = + English, AI, comprehensive personality (Exams 4–6) */
+/**
+ * Rev 13 — Level 1 Discovery (Exam 1); Level 2 Reasoning Triad (1–3); Level 3 Reasoning + Skills (1–5);
+ * Level 4 Guided Decision (+ Insight: personality + career discovery).
+ */
 export const MEMBERSHIP_ALLOWED: Record<number, string[]> = {
   0: [],
   1: ['symbolic_reasoning'],
   2: ['symbolic_reasoning', 'verbal_reasoning', 'mathematical_reasoning'],
-  3: [...ASSESSMENT_ORDER],
+  3: [
+    'symbolic_reasoning',
+    'verbal_reasoning',
+    'mathematical_reasoning',
+    'english_proficiency',
+    'ai_literacy',
+  ],
+  4: [...ASSESSMENT_ORDER],
 };
 
+/** Product copy: three annual packages (API membership levels 2–4) plus Discovery as Early offer (API level 1). */
 export const MEMBERSHIP_LEVEL_LABELS: Record<number, string> = {
-  1: 'Level 1 - Explore',
-  2: 'Level 2 - Engage',
-  3: 'Level 3 - Excel',
+  1: 'Discovery (Early offer)',
+  2: 'Membership 1 • Reasoning Triad',
+  3: 'Membership 2 • Reasoning + Skills',
+  4: 'Membership 3 • Guided Decision',
 };
 
 /** Shown on the dashboard chart without a numeric % (non-competitive / profile assessments). */
-export const NON_COMPETITIVE_CHART_ASSESSMENT_IDS: ReadonlySet<string> = new Set(['comprehensive_personality']);
+export const NON_COMPETITIVE_CHART_ASSESSMENT_IDS: ReadonlySet<string> = new Set([
+  'comprehensive_personality',
+  'career_interest_inventory',
+]);
 
 export const ASSESSMENT_NAMES: Record<string, string> = {
   symbolic_reasoning: 'Pattern and Logic',
   verbal_reasoning: 'Verbal Reasoning',
   mathematical_reasoning: 'Mathematical Reasoning',
-  english_proficiency: 'English Proficiency (Advanced)',
-  ai_literacy: 'AI Literacy & Capability',
+  english_proficiency: 'English Proficiency',
+  ai_literacy: 'AI Proficiency',
   comprehensive_personality: 'Comprehensive Personality',
+  career_interest_inventory: 'Interest & Career Discovery',
 };
 
 /** Sequence gate: prerequisites must be satisfied (membership gate is checked first). */
 export const COMPLETION_PREREQUISITES: Record<string, string[]> = {
   symbolic_reasoning: [],
   verbal_reasoning: ['symbolic_reasoning'],
-  mathematical_reasoning: ['symbolic_reasoning'],
+  mathematical_reasoning: ['verbal_reasoning'],
   english_proficiency: ['verbal_reasoning', 'mathematical_reasoning'],
   ai_literacy: ['english_proficiency'],
   comprehensive_personality: ['english_proficiency', 'ai_literacy'],
+  career_interest_inventory: ['comprehensive_personality'],
 };
 
-/** New accounts and missing level default to Level 1 (Entry / Tier 1 experience). */
+/** New accounts and missing level default to API level 1 (Discovery entry path in product copy). */
 export function normalizeMembershipLevel(raw: number | null | undefined): number {
   if (raw == null || raw === 0) return 1;
-  return Math.min(3, Math.max(1, raw));
+  return Math.min(4, Math.max(1, raw));
 }
 
 export function minMembershipLevelForAssessment(assessmentId: string): number {
-  for (let level = 1; level <= 3; level++) {
+  for (let level = 1; level <= 4; level++) {
     if (MEMBERSHIP_ALLOWED[level]?.includes(assessmentId)) return level;
   }
-  return 3;
+  return 4;
 }
 
 export function computeGate(

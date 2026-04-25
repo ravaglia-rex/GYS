@@ -55,6 +55,7 @@ import {
   parseEmailsFromBulkText,
 } from '../../utils/schoolAdminRosterUtils';
 import { buildGreenfieldPreviewStudentRows } from '../../data/schoolPreviewMock';
+import { formatAchievementTierLabel, normalizeAchievementTierId } from '../../utils/achievementTier';
 
 type RosterRegistered = {
   kind: 'registered';
@@ -64,7 +65,7 @@ type RosterRegistered = {
   lastName: string;
   grade: number;
   assessmentsCompleted: number;
-  achievementTier: string | null;
+  achievementTier: string;
   membershipLevel: number;
   approvalStatus: string;
   dashboardRow: StudentRow | null;
@@ -186,7 +187,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
         lastName: dr.last_name,
         grade: dr.grade,
         assessmentsCompleted: countAssessmentsFromProgress(dr.assessment_progress),
-        achievementTier: dr.achievement_tier,
+        achievementTier: normalizeAchievementTierId(dr.achievement_tier),
         membershipLevel: dr.membership_level,
         approvalStatus: dr.approval_status,
         dashboardRow: dr,
@@ -244,6 +245,10 @@ const SchoolAdminStudentsPage: React.FC = () => {
           String((data.email as string) ?? (data.email_normalized as string) ?? '')
         );
 
+        const tierRaw =
+          dr?.achievement_tier ??
+          ((typeof data.achievement_tier === 'string' ? data.achievement_tier : null) as string | null);
+
         return {
           kind: 'registered' as const,
           uid,
@@ -252,7 +257,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
           lastName,
           grade,
           assessmentsCompleted,
-          achievementTier: dr?.achievement_tier ?? null,
+          achievementTier: normalizeAchievementTierId(tierRaw ?? undefined),
           membershipLevel: dr?.membership_level ?? 0,
           approvalStatus: dr?.approval_status ?? 'pending',
           dashboardRow: dr,
@@ -788,6 +793,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
                       <TableCell>Student</TableCell>
                       <TableCell>Status</TableCell>
                       <TableCell>Grade</TableCell>
+                      <TableCell>Achievement</TableCell>
                       <TableCell>Assessments</TableCell>
                       <TableCell align="right">Actions</TableCell>
                     </TableRow>
@@ -795,7 +801,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
                   <TableBody>
                     {filteredSorted.length === 0 ? (
                       <TableRow sx={{ bgcolor: '#fff' }}>
-                        <TableCell colSpan={5} sx={{ textAlign: 'center', py: 4, color: ip.subtext, borderBottom: 'none' }}>
+                        <TableCell colSpan={6} sx={{ textAlign: 'center', py: 4, color: ip.subtext, borderBottom: 'none' }}>
                           No rows match your filters.
                         </TableCell>
                       </TableRow>
@@ -838,6 +844,25 @@ const SchoolAdminStudentsPage: React.FC = () => {
                               />
                             </TableCell>
                             <TableCell sx={{ color: ip.heading, fontWeight: 500 }}>{r.grade > 0 ? r.grade : '-'}</TableCell>
+                            <TableCell sx={{ color: ip.heading, fontWeight: 500 }}>
+                              <Chip
+                                size="small"
+                                label={formatAchievementTierLabel(r.achievementTier)}
+                                sx={{
+                                  fontWeight: 600,
+                                  ...(normalizeAchievementTierId(r.achievementTier) === 'explorer'
+                                    ? {
+                                        bgcolor: '#F0E9F8',
+                                        color: '#5E35B1',
+                                        border: '1px solid #D1C4E9',
+                                      }
+                                    : {
+                                        bgcolor: ip.cardMutedBg,
+                                        border: `1px solid ${ip.cardBorder}`,
+                                      }),
+                                }}
+                              />
+                            </TableCell>
                             <TableCell sx={{ color: ip.heading, fontWeight: 500 }}>{r.assessmentsCompleted}</TableCell>
                             <TableCell align="right">
                               <Button
@@ -884,6 +909,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
                                 }}
                               />
                             </TableCell>
+                            <TableCell sx={{ color: ip.subtext }}>-</TableCell>
                             <TableCell sx={{ color: ip.subtext }}>-</TableCell>
                             <TableCell sx={{ color: ip.subtext }}>-</TableCell>
                             <TableCell align="right">

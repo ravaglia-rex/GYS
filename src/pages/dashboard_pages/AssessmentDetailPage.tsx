@@ -230,7 +230,7 @@ const AssessmentDetailPage: React.FC = () => {
           <Box sx={{ textAlign: 'center', mb: 3, opacity: 0.85 }}>
             {isComprehensiveCapstone && (
               <Typography sx={{ display: 'inline-block', px: 1.5, py: 0.4, borderRadius: 10, bgcolor: '#e0e0e0', color: '#616161', fontSize: '0.65rem', fontWeight: 800, letterSpacing: 0.6, mb: 2 }}>
-                LEVEL 3 EXCLUSIVE
+                Guided Decision only
               </Typography>
             )}
             <Typography variant="h5" sx={{ fontWeight: 800, color: '#78909c' }}>
@@ -247,21 +247,21 @@ const AssessmentDetailPage: React.FC = () => {
               Level {need} members only
             </Typography>
             <Typography sx={{ color: '#607d8b', fontSize: '0.9rem', lineHeight: 1.6 }}>
-              This assessment is included with a higher membership tier. Upgrade to unlock the full sequence and premium instruments.
+              This assessment is included with a higher package. Upgrade to unlock the full sequence and premium instruments.
             </Typography>
           </Box>
 
           {isComprehensiveCapstone && (
             <Box sx={{ bgcolor: '#f3e5f5', borderRadius: 2, p: 2, mb: 2 }}>
               <Typography sx={{ fontWeight: 700, color: '#6a1b9a', mb: 1, fontSize: '0.9rem' }}>
-                What you get with Level 3
+                What you get with Guided Decision (Membership 3)
               </Typography>
               {[
-                '30-dimension personality assessment',
+                '30-dimension personality assessment (Exam 6)',
+                'Interest inventory & career discovery (Exam 7) - baseline for ongoing counseling',
                 'College matching & fit analysis',
-                'Counselor sessions (per plan)',
-                'Comprehensive guidance reporting',
-                'Everything in Level 2 (reasoning triad) plus English, AI, and comprehensive personality (Exams 4–6)',
+                'Ongoing AI career counseling after Insight: log experiences so guidance stays current',
+                'Everything in Reasoning + Skills (Exams 1-5) plus the full Insight group',
               ].map((t) => (
                 <Typography key={t} sx={{ fontSize: '0.82rem', color: '#4a148c', pl: 1, mb: 0.5, '&:before': { content: '"✓ "', fontWeight: 800 } }}>
                   {t}
@@ -298,7 +298,7 @@ const AssessmentDetailPage: React.FC = () => {
     );
   }
 
-  // ── Tier sequence (e.g. must clear tier 1 before tier 2) ────────────────
+  // ── Level sequence (e.g. must clear level 1 before level 2); routes still use /tier/ ────────────────
   if (!gate.locked && !tierAttemptAllowed) {
     return (
       <Box sx={{ minHeight: '100vh', bgcolor: '#f1f5f9', pb: 10 }}>
@@ -314,10 +314,10 @@ const AssessmentDetailPage: React.FC = () => {
         <Box sx={{ maxWidth: 480, mx: 'auto', px: 2, pt: 5, textAlign: 'center' }}>
           <Typography sx={{ fontSize: '2.5rem', mb: 2 }}>🔒</Typography>
           <Typography variant="h5" sx={{ fontWeight: 800, color: '#475569', mb: 1.5 }}>
-            Tier {tier} not available yet
+            Level {tier} not available yet
           </Typography>
           <Typography sx={{ color: '#64748b', fontSize: '0.95rem', lineHeight: 1.65, mb: 3 }}>
-            Complete the previous tier at your grade’s required score to unlock this one. You can still retake an earlier tier from the assessments list.
+            Complete the previous level at your grade’s required score to unlock this one. You can still retake an earlier level from the assessments list.
           </Typography>
           <Button fullWidth variant="contained" onClick={goBack} sx={{ py: 1.5, borderRadius: 2, fontWeight: 700 }}>
             Back to assessments

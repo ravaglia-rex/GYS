@@ -1,27 +1,45 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
+  Check,
   ClipboardCheck,
   Globe2,
-  Layers,
   MonitorPlay,
-  RotateCw,
   ShieldCheck,
   TrendingUp,
-  Unlock,
 } from 'lucide-react';
+import LandingSiteFooter from '../../components/layout/LandingSiteFooter';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
+import { LandingHeaderScrollProgress, LandingSectionRail } from '../../components/landing/LandingScrollChrome';
+import { GYS_BLUE, GYS_GOLD } from '../../constants/gysBrand';
+import {
+  useLandingRevealInContainer,
+  useLandingScrollProgress,
+  useLandingSectionSpy,
+} from '../../hooks/useLandingPageScroll';
 
-const GYS_BLUE = '#1e3a8a';
-const GYS_GOLD = '#fbbf24';
+const PA_NAV = [
+  { id: 'pa-hero', label: 'Home' },
+  { id: 'pa-measure', label: 'Suite' },
+  { id: 'pa-adaptive', label: 'Adaptive' },
+  { id: 'pa-grow', label: 'Levels' },
+  { id: 'performance-tiers', label: 'Tiers' },
+  { id: 'school-leaderboard', label: 'Leaderboard' },
+  { id: 'pa-integrity', label: 'Integrity' },
+  { id: 'pa-cta', label: 'Next' },
+] as const;
 
+const PA_SECTION_IDS_JOIN = PA_NAV.map((s) => s.id).join('|');
+
+/** Rev 13 - three groupings: Reasoning (1–3), Skills (4–5), Insight (6–7). */
 const ASSESSMENTS = [
   {
     n: 1,
-    title: 'Pattern and Logic',
-    tag: 'Reasoning Triad',
-    desc: 'Patterns, rules, and structured logic — foundation for quantitative and analytical thinking.',
+    title: 'Symbolic Reasoning',
+    tag: 'Group A • Reasoning',
+    desc: 'The entry point for every GYS student. Measures non-verbal pattern recognition, sequence completion, and abstract logical reasoning: the kind of thinking that underlies all higher-order problem solving.',
+    highlights: ['Patterns', 'Abstract logic', 'Visual reasoning'],
     icon: '🔢',
     stripe: '#3b82f6',
     band: 'from-sky-50 to-white',
@@ -29,8 +47,9 @@ const ASSESSMENTS = [
   {
     n: 2,
     title: 'Verbal Reasoning',
-    tag: 'Reasoning Triad',
-    desc: 'Meaning, inference, and argument from text — aligned with college-readiness expectations.',
+    tag: 'Group A • Reasoning',
+    desc: 'Evaluates language-based logic: analogies, reading comprehension, inference, and argument analysis. Not a vocabulary test, but a test of how precisely a student can read and think in English.',
+    highlights: ['Analogies', 'Comprehension', 'Argument analysis'],
     icon: '📚',
     stripe: '#6366f1',
     band: 'from-indigo-50 to-white',
@@ -38,50 +57,71 @@ const ASSESSMENTS = [
   {
     n: 3,
     title: 'Mathematical Reasoning',
-    tag: 'Reasoning Triad',
-    desc: 'Number sense, logic, and quantitative thinking — not drill math, but reasoning under pressure.',
+    tag: 'Group A • Reasoning',
+    desc: 'Quantitative problem-solving, data interpretation, and mathematical logic. Focuses on how students reason with numbers and structured information, not whether they have memorized a formula.',
+    highlights: ['Quantitative', 'Data interpretation', 'Logic'],
     icon: '📐',
     stripe: '#8b5cf6',
     band: 'from-violet-50 to-white',
   },
   {
     n: 4,
-    title: 'English Proficiency (Advanced)',
-    tag: 'Depth Bundle',
-    desc: 'Listening, speaking, and conversational fluency — AI-assessed for real-world communication.',
+    title: 'English Proficiency',
+    tag: 'Group B • Skills',
+    desc: 'Evaluates reading, writing, listening, and comprehension for academic and professional English fluency. Designed to reflect the communication demands of top universities and the workplace.',
+    highlights: ['Reading', 'Writing', 'Listening', 'Comprehension'],
     icon: '💬',
     stripe: '#14b8a6',
     band: 'from-teal-50 to-white',
   },
   {
     n: 5,
-    title: 'AI Literacy & Capability',
-    tag: 'Depth Bundle',
-    desc: 'Skills for learning and working responsibly with AI tools in school and beyond.',
+    title: 'AI Proficiency',
+    tag: 'Group B • Skills',
+    desc: 'Measures understanding of AI concepts, computational thinking, and the ability to interact productively with AI tools. Scenario-based, not a coding test. Built independently by the GYS team for the India context.',
+    highlights: ['AI concepts', 'Computational thinking', 'Scenario-based'],
     icon: '🤖',
     stripe: '#f59e0b',
     band: 'from-amber-50 to-white',
   },
   {
     n: 6,
-    title: 'Comprehensive Personality',
-    tag: 'Depth Bundle',
-    desc: 'A deep profile across many dimensions — insights for guidance, growth, and fit.',
+    title: 'Comprehensive Personality Assessment',
+    tag: 'Group C • Insight',
+    desc: 'A psychometric evaluation across roughly 30 personality dimensions using self-report and situational judgment. There are no right or wrong answers; the result is a multi-dimensional behavioral profile. Results are private to the student and their family.',
+    highlights: ['~30 dimensions', 'No right answers', 'Private to family'],
     icon: '✨',
     stripe: '#ec4899',
     band: 'from-pink-50 to-white',
+  },
+  {
+    n: 7,
+    title: 'Comprehensive Interest Inventory & Career Discovery',
+    tag: 'Group C • Insight',
+    desc:
+      'Maps interests and career themes to support stream exploration and establish the Insight baseline for ongoing AI career counseling. Pairs with personality and reasoning signals; after Guided Decision, students keep enriching the counseling profile by logging real-world experiences.',
+    highlights: ['Interests', 'Career themes', 'Baseline for counseling'],
+    icon: '🧭',
+    stripe: '#a855f7',
+    band: 'from-purple-50 to-white',
   },
 ] as const;
 
 const PublicAssessmentsPage: React.FC = () => {
   const navigate = useNavigate();
+  const pageRootRef = useRef<HTMLDivElement>(null);
+  const scrollProgress = useLandingScrollProgress();
+  const activeSectionId = useLandingSectionSpy(PA_SECTION_IDS_JOIN);
+  useLandingRevealInContainer(pageRootRef);
 
   const goInstitutionalSubscriptions = () =>
-    navigate('/for-schools', { state: { scrollToId: 'institutional-subscriptions' } });
+    navigate('/for-schools', { state: { scrollToId: 'institutional-packages' } });
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/90 backdrop-blur">
+    <div ref={pageRootRef} className="min-h-screen overflow-x-hidden bg-slate-50 text-slate-900">
+      <LandingSectionRail sections={PA_NAV} activeSectionId={activeSectionId} />
+      <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/90 backdrop-blur relative">
+        <LandingHeaderScrollProgress scrollProgress={scrollProgress} />
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-4 sm:gap-6">
           <button
             type="button"
@@ -126,23 +166,39 @@ const PublicAssessmentsPage: React.FC = () => {
       </header>
 
       <main>
-        <section className="relative overflow-hidden bg-gradient-to-br from-[#1d4ed8] via-[#1e3a8a] to-[#0f172a] px-6 pb-14 pt-12 text-white sm:pb-16 sm:pt-16">
+        <section
+          id="pa-hero"
+          className="relative overflow-hidden bg-gradient-to-br from-[#1d4ed8] via-[#1e3a8a] to-[#0f172a] px-6 pb-20 pt-12 text-white sm:pb-24 sm:pt-16"
+        >
+          <div className="landing-hero-mesh" />
           <div className="pointer-events-none absolute inset-0">
             <div className="absolute left-6 top-10 h-48 w-48 rounded-full bg-blue-400/10 blur-2xl md:left-20" />
             <div className="absolute bottom-0 right-6 h-56 w-56 rounded-full bg-indigo-400/10 blur-2xl md:right-24" />
           </div>
-          <div className="relative mx-auto max-w-3xl text-center">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/70">Assessment Suite</p>
-            <h2 className="mt-3 text-3xl font-bold leading-tight sm:text-4xl md:text-[2.35rem]">
-              Six Assessments.{' '}
+          <div className="relative z-[1] mx-auto max-w-3xl text-center">
+            <p className="landing-hero-enter-1 text-xs font-semibold uppercase tracking-[0.2em] text-white/70">
+              Assessment Suite
+            </p>
+            <h2 className="landing-hero-enter-2 mt-3 text-3xl font-bold leading-tight sm:text-4xl md:text-[2.35rem]">
+              Seven Exams.{' '}
               <span style={{ color: GYS_GOLD }}>One Global Benchmark.</span>
             </h2>
-            <p className="mx-auto mt-5 max-w-2xl text-sm leading-relaxed text-white/88 sm:text-base">
-              Reasoning, English fluency, AI literacy, and personality — designed for students in grades 6–12
-              and normed against college-bound peers worldwide. Schools get aggregate insight; students get a
-              profile that travels with them.
+            <p className="landing-hero-enter-3 mx-auto mt-5 max-w-2xl text-sm leading-relaxed text-white/88 sm:text-base">
+              Three exam groups (Reasoning, Skills, and Insight) for grades 6–12, normed globally. Profiles for
+              students; cohort insight for schools.
             </p>
-            <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:flex-wrap">
+            <div className="landing-hero-enter-4 mx-auto mt-5 flex max-w-lg flex-wrap justify-center gap-2">
+              <span className="landing-hero-chip rounded-full border border-white/40 bg-white/10 px-3 py-1 text-xs font-medium text-white/95 backdrop-blur-sm">
+                Practice Mode
+              </span>
+              <span className="landing-hero-chip rounded-full border border-white/40 bg-white/10 px-3 py-1 text-xs font-medium text-white/95 backdrop-blur-sm">
+                Grades 6–12
+              </span>
+              <span className="landing-hero-chip rounded-full border border-white/40 bg-white/10 px-3 py-1 text-xs font-medium text-white/95 backdrop-blur-sm">
+                Global benchmark
+              </span>
+            </div>
+            <div className="landing-hero-enter-4 mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:flex-wrap">
               <button
                 type="button"
                 onClick={() => navigate('/students')}
@@ -162,15 +218,28 @@ const PublicAssessmentsPage: React.FC = () => {
               </button>
             </div>
           </div>
+          <div className="pointer-events-none absolute bottom-0 left-0 right-0 text-slate-50" aria-hidden>
+            <svg className="landing-section-wave block w-full" viewBox="0 0 1440 96" preserveAspectRatio="none">
+              <path
+                fill="currentColor"
+                d="M0,96 L0,28 C240,8 480,88 720,48 C960,8 1200,72 1440,36 L1440,96 Z"
+              />
+            </svg>
+          </div>
         </section>
 
-        <section className="mx-auto max-w-5xl px-6 py-12 sm:py-14">
+        <section
+          id="pa-measure"
+          data-landing-reveal
+          className="mx-auto max-w-5xl px-6 py-12 sm:py-14"
+        >
           <div className="flex flex-col gap-3 text-center sm:gap-4">
             <h3 className="text-2xl font-bold text-slate-900 sm:text-3xl">What We Measure</h3>
             <p className="mx-auto max-w-2xl text-sm text-slate-600 sm:text-base">
-              The first three exams form the <span className="font-semibold text-slate-800">Reasoning Triad</span>
-              — a unified view of analytical ability. Levels 2 and 3 unlock the full triad report. Level 3 adds
-              advanced English, AI literacy, and a comprehensive personality profile.
+              <span className="font-semibold text-slate-800">Group A - Reasoning</span> (Exams 1–3) is the Reasoning Triad.
+              <span className="font-semibold text-slate-800"> Group B - Skills</span> adds English and AI Proficiency (4–5).
+              <span className="font-semibold text-slate-800"> Group C - Insight</span> (6–7) unlocks with Guided Decision and
+              establishes the baseline for ongoing AI career counseling; the relationship continues as students log new experiences on the platform.
             </p>
           </div>
 
@@ -202,163 +271,263 @@ const PublicAssessmentsPage: React.FC = () => {
                   </div>
                   <h4 className="mt-3 text-lg font-bold text-slate-900">{a.title}</h4>
                   <p className="mt-2 text-sm leading-relaxed text-slate-600">{a.desc}</p>
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {a.highlights.map((h) => (
+                      <span
+                        key={h}
+                        className="rounded-full bg-white/90 px-2.5 py-1 text-[0.7rem] font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200/90"
+                      >
+                        {h}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </article>
             ))}
           </div>
         </section>
 
-        <section className="border-y border-slate-200 bg-white py-12 sm:py-14">
+        <section
+          id="pa-adaptive"
+          data-landing-reveal
+          className="border-y border-slate-200 bg-white py-12 sm:py-14"
+        >
           <div className="mx-auto max-w-5xl px-6">
             <div className="mx-auto max-w-3xl text-center">
               <h3 className="text-xl font-bold text-slate-900 sm:text-2xl">Adaptive Exams</h3>
               <p className="mt-3 text-sm leading-relaxed text-slate-600 sm:text-base">
-                Item difficulty adjusts as students respond — similar in spirit to computer-adaptive testing.
-                The engine routes learners through content that stays appropriately challenging: strong
-                performance surfaces harder items; when someone needs support, the path reinforces
-                fundamentals before moving on. Forward-only flows on many exams keep the experience fair and
-                comparable across sessions.
+                Difficulty responds as you answer: harder items when you’re strong, reinforcement when you need
+                it. Fair, comparable sessions.
               </p>
             </div>
             <div className="mt-8 flex justify-center">
               <span className="inline-flex items-center gap-2 rounded-full bg-[#eef4ff] px-4 py-2 text-sm font-semibold text-[#1e3a8a] ring-1 ring-[#1e3a8a]/15">
                 <TrendingUp className="h-4 w-4 shrink-0" aria-hidden />
-                Calibrated Difficulty · Fewer Wasted Questions · Precise Tier Placement
+                Calibrated Difficulty • Fewer Wasted Questions • Precise Tier Placement
               </span>
             </div>
           </div>
         </section>
 
-        <section className="mx-auto max-w-5xl px-6 py-12 sm:py-14">
+        <section
+          id="pa-grow"
+          data-landing-reveal
+          className="mx-auto max-w-5xl px-6 py-12 sm:py-14"
+        >
           <div className="mx-auto max-w-3xl text-center">
-            <h3 className="text-2xl font-bold text-slate-900 sm:text-3xl">
-              Three Tiers Per Exam — Then the Next Exam Unlocks
-            </h3>
-            <p className="mt-3 text-sm leading-relaxed text-slate-600 sm:text-base">
-              Each assessment is organized into{' '}
-              <span className="font-semibold text-slate-800">three proficiency tiers</span> (Tier 1 through
-              Tier 3). Students clear tiers by meeting score thresholds that are{' '}
-              <span className="font-semibold text-slate-800">set by grade band</span> — middle school,
-              early high school, and senior grades each use calibrated cutoffs so “passing” reflects age-appropriate expectations, not a single bar for everyone.
+            <h3 className="text-2xl font-bold text-slate-900 sm:text-3xl">Designed to grow with you</h3>
+            <p className="mt-4 text-sm leading-relaxed text-slate-600 sm:text-base">
+              Each reasoning domain has three difficulty levels. As students master one, the next unlocks, with
+              harder questions written for older, more advanced students. High scorers keep moving forward, all
+              within the same subscription year.
             </p>
           </div>
 
           <div className="mt-10 grid gap-6 md:grid-cols-3">
             {[
               {
-                Icon: Layers,
-                title: 'All Tiers Included With Access',
-                body: 'When your membership covers an exam, you can work through every proficiency tier on that exam — not just one shot. Paid access is to the assessment area; tiers are stages inside it.',
+                level: 'Level 1',
+                stripe: '#3b82f6',
+                body: 'Entry-level questions calibrated for younger and newer students. Where most students begin.',
               },
               {
-                Icon: Unlock,
-                title: 'Sequential Unlock Across Exams',
-                body: 'Exams unlock in program order once prerequisites are satisfied: e.g. progress deeply enough on Pattern & Logic before Verbal and Math open; deeper bundles (English, AI, personality) follow their own chain. If your plan does not include the next exam, it stays gated until you upgrade.',
+                level: 'Level 2',
+                stripe: '#6366f1',
+                body: 'Unlocked by strong performance at Level 1. Harder questions appropriate for older or more advanced students.',
               },
               {
-                Icon: RotateCw,
-                title: 'Multiple Attempts Where Your Plan Allows',
-                body: 'Example: a Level 2 (Engage) subscription includes the full reasoning triad. Students may sit each reasoning exam more than once across the subscription window to improve — always climbing tiers within those exams while preparing for the next unlock.',
+                level: 'Level 3',
+                stripe: '#8b5cf6',
+                body: 'The highest challenge level. Reserved for students who demonstrate exceptional mastery at Level 2.',
               },
-            ].map(({ Icon, title, body }) => (
+            ].map(({ level, stripe, body }) => (
               <div
-                key={title}
-                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm ring-1 ring-slate-100 transition hover:-translate-y-0.5 hover:shadow-md"
+                key={level}
+                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm ring-1 ring-slate-100 sm:p-6"
+                style={{ borderLeftWidth: 5, borderLeftColor: stripe }}
               >
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#eef4ff] text-[#1e3a8a]" aria-hidden>
-                  <Icon className="h-5 w-5" strokeWidth={2} />
-                </span>
-                <h4 className="mt-4 text-base font-bold text-slate-900">{title}</h4>
-                <p className="mt-2 text-sm leading-relaxed text-slate-600">{body}</p>
+                <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-slate-500">Difficulty</p>
+                <h4 className="mt-2 text-lg font-bold text-slate-900">{level}</h4>
+                <p className="mt-3 text-sm leading-relaxed text-slate-600">{body}</p>
               </div>
             ))}
           </div>
-
-          <p className="mx-auto mt-8 max-w-2xl text-center text-xs leading-relaxed text-slate-500 sm:text-sm">
-            Exact percentage bands and how many tiers must be cleared before the next exam opens are defined
-            in program rules and may evolve; your dashboard always shows what&apos;s available, what&apos;s
-            locked, and why.
-          </p>
         </section>
 
-        <section className="border-y border-slate-200 bg-white py-12 sm:py-14">
-          <div className="mx-auto grid max-w-5xl gap-8 px-6 md:grid-cols-2 md:gap-12 md:items-start">
-            <div>
-              <h3 className="text-xl font-bold text-slate-900 sm:text-2xl">How It Works</h3>
-              <p className="mt-3 text-sm leading-relaxed text-slate-600 sm:text-base">
-                Assessments run in the browser with integrity checks suited to high-stakes use. Students
-                complete sections on their schedule where your program allows; schools receive exports and
-                dashboards aligned to cohorts and terms.
-              </p>
-              <ul className="mt-6 space-y-4">
-                {[
-                  {
-                    Icon: MonitorPlay,
-                    title: 'Online, Structured Sessions',
-                    text: 'Clear pacing, autosave, and accessibility-aware layouts.',
-                  },
-                  {
-                    Icon: ShieldCheck,
-                    title: 'Proctoring-Ready',
-                    text: 'Designed for fair, comparable results across environments.',
-                  },
-                  {
-                    Icon: Globe2,
-                    title: 'Global Norms',
-                    text: 'Scores interpreted against international college-bound cohorts.',
-                  },
-                  {
-                    Icon: ClipboardCheck,
-                    title: 'Actionable Reporting',
-                    text: 'Performance tiers (Gold, Silver, Bronze), subscores, and guidance — not just a percentile.',
-                  },
-                ].map(({ Icon, title, text }) => (
-                  <li key={title} className="flex gap-3">
-                    <span
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eef4ff] text-[#1e3a8a]"
-                      aria-hidden
-                    >
-                      <Icon className="h-5 w-5" strokeWidth={2} />
-                    </span>
-                    <div>
-                      <p className="font-semibold text-slate-900">{title}</p>
-                      <p className="mt-0.5 text-sm text-slate-600">{text}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 shadow-sm ring-1 ring-slate-100">
-              <h4 className="text-sm font-semibold text-slate-500">Global Performance Tiers</h4>
-              <p className="mt-2 text-sm text-slate-600">
-                Separately from the three <span className="font-medium text-slate-700">in-exam</span>{' '}
-                proficiency tiers, each assessment feeds an overall recognition band — Gold, Silver, or
-                Bronze — benchmarked globally so students and schools share a simple signal of standing.
-              </p>
-              <div className="mt-6 grid grid-cols-3 gap-3">
-                {[
-                  { name: 'Gold', emoji: '🥇', bg: 'bg-[#fef3c7]', ring: 'ring-amber-400/40' },
-                  { name: 'Silver', emoji: '🥈', bg: 'bg-[#f3f4f6]', ring: 'ring-slate-400/40' },
-                  { name: 'Bronze', emoji: '🥉', bg: 'bg-[#ffe4d6]', ring: 'ring-orange-400/40' },
-                ].map((t) => (
-                  <div
-                    key={t.name}
-                    className={`flex flex-col items-center rounded-xl ${t.bg} px-3 py-4 text-center shadow-sm ring-1 ${t.ring}`}
+        <section
+          id="pa-how"
+          data-landing-reveal
+          className="border-y border-slate-200 bg-white py-12 sm:py-14"
+        >
+          <div className="mx-auto max-w-3xl px-6">
+            <h3 className="text-xl font-bold text-slate-900 sm:text-2xl">How It Works</h3>
+            <p className="mt-3 text-sm leading-relaxed text-slate-600 sm:text-base">
+              Browser-based, integrity-ready. Students test on their schedule; schools get cohort exports and
+              dashboards.
+            </p>
+            <ul className="mt-6 space-y-4">
+              {[
+                {
+                  Icon: MonitorPlay,
+                  title: 'Online, Structured Sessions',
+                  text: 'Clear pacing, autosave, and accessibility-aware layouts.',
+                },
+                {
+                  Icon: ShieldCheck,
+                  title: 'Proctoring-Ready',
+                  text: 'Designed for fair, comparable results across environments.',
+                },
+                {
+                  Icon: Globe2,
+                  title: 'Global Norms',
+                  text: 'Scores interpreted against international college-bound cohorts.',
+                },
+                {
+                  Icon: ClipboardCheck,
+                  title: 'Actionable Reporting',
+                  text: 'Subscores, growth signals, and guidance, not just a percentile.',
+                },
+              ].map(({ Icon, title, text }) => (
+                <li key={title} className="flex gap-3">
+                  <span
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eef4ff] text-[#1e3a8a]"
+                    aria-hidden
                   >
-                    <span className="text-2xl">{t.emoji}</span>
-                    <span className="mt-2 text-sm font-bold text-slate-900">{t.name}</span>
+                    <Icon className="h-5 w-5" strokeWidth={2} />
+                  </span>
+                  <div>
+                    <p className="font-semibold text-slate-900">{title}</p>
+                    <p className="mt-0.5 text-sm text-slate-600">{text}</p>
                   </div>
-                ))}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        {/* Performance Tiers - national-normed (aligned with LandingPage Rev 13) */}
+        <section
+          id="performance-tiers"
+          data-landing-reveal
+          className="scroll-mt-20 bg-white pb-10 pt-10 md:pb-12 md:pt-12"
+        >
+          <div className="mx-auto max-w-5xl px-6 text-center">
+            <h3 className="text-2xl font-bold text-gray-900 md:text-3xl">Performance Tiers</h3>
+            <div className="mx-auto mt-10 max-w-3xl rounded-2xl border border-gray-200 bg-slate-50/80 p-5 text-left shadow-sm md:p-6">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Two lenses: leaderboard vs Performance Tier
+              </p>
+              <div className="mt-3 space-y-3 text-sm leading-relaxed text-gray-700">
+                <p>
+                  <strong>School leaderboard:</strong> per exam, per grade, within the school. School leaderboards show who are the top performers by grade on each official exam at that school.
+                  <p className="shrink-0 font-semibold text-gray-900">Trial Membership
+                <span> is excluded. Eligibility starts at <strong>Reasoning Triad</strong>{' '}
+                  and above.
+                </span></p>
+                </p>
+                <p>
+                  <strong>Performance Tier:</strong> Performance Tier is the nationwide read. After the official Reasoning Triad, each student receives a band from Explorer (baseline) through Bronze, Silver, Gold, Platinum, and Diamond. Bands are national-normed against a growing reference cohort.
+                </p>
+              </div>
+            </div>
+            <div className="mx-auto mt-8 grid max-w-5xl grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:mt-10 lg:grid-cols-6">
+              {[
+                {
+                  name: 'Explorer',
+                  bg: 'bg-[#F0E9F8]',
+                  text: 'text-[#5E35B1]',
+                  border: 'border-[#D1C4E9]',
+                  icon: <span className="text-2xl md:text-3xl">🧭</span>,
+                },
+                {
+                  name: 'Bronze',
+                  bg: 'bg-[#ffe4d6]',
+                  text: 'text-[#b5561c]',
+                  border: 'border-[#ea580c]',
+                  icon: <span className="text-2xl md:text-3xl">🥉</span>,
+                },
+                {
+                  name: 'Silver',
+                  bg: 'bg-[#f3f4f6]',
+                  text: 'text-gray-700',
+                  border: 'border-gray-400',
+                  icon: <span className="text-2xl md:text-3xl">🥈</span>,
+                },
+                {
+                  name: 'Gold',
+                  bg: 'bg-[#fef3c7]',
+                  text: 'text-[#b45309]',
+                  border: 'border-[#f59e0b]',
+                  icon: <span className="text-2xl md:text-3xl">🥇</span>,
+                },
+                {
+                  name: 'Platinum',
+                  bg: 'bg-[#e0f2fe]',
+                  text: 'text-[#0369a1]',
+                  border: 'border-sky-400',
+                  icon: <span className="text-2xl md:text-3xl">💎</span>,
+                },
+                {
+                  name: 'Diamond',
+                  bg: 'bg-[#ede9fe]',
+                  text: 'text-[#5b21b6]',
+                  border: 'border-violet-400',
+                  icon: <span className="text-2xl md:text-3xl">✦</span>,
+                },
+              ].map((tier) => (
+                <div
+                  key={tier.name}
+                  className={`flex min-h-[100px] flex-col items-center justify-center rounded-xl border p-4 shadow-sm transition-all duration-150 hover:-translate-y-1 hover:shadow-md md:min-h-[120px] md:p-5 ${tier.border} ${tier.bg} ${tier.text}`}
+                >
+                  {tier.icon && <span className="mb-1 md:mb-2">{tier.icon}</span>}
+                  <span className="text-sm font-bold md:text-lg">{tier.name}</span>
+                </div>
+              ))}
+            </div>
+           
+          </div>
+        </section>
+
+    
+
+        <section id="pa-integrity" data-landing-reveal className="bg-white py-12 sm:py-14">
+          <div className="mx-auto max-w-5xl px-6">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-md ring-1 ring-slate-100 sm:p-8 md:p-10">
+              <div className="grid gap-10 md:grid-cols-2 md:gap-12 md:items-start">
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900 sm:text-2xl">Built for integrity</h3>
+                  <p className="mt-4 text-sm leading-relaxed text-slate-600 sm:text-base">
+                    A GYS credential is only valuable if it&apos;s trusted. Our AI-driven assessment integrity system
+                    protects the results without requiring students to sit for a test in a specific location or on
+                    a specific device.
+                  </p>
+                  <p className="mt-4 text-sm leading-relaxed text-slate-600 sm:text-base">
+                    The system works quietly in the background. Students focus on the questions.
+                  </p>
+                </div>
+                <ul className="divide-y divide-slate-100 rounded-xl border border-slate-100 bg-slate-50/80">
+                  {[
+                    'Adaptive sampling: every student sees a unique mix of questions from a large bank.',
+                    'Pattern analysis of response timing and answer-change behavior.',
+                    'AI inference to flag statistical irregularities in real time.',
+                    'No question is ever shown to the same student twice.',
+                    'Continuous monitoring: confidence in every score we report.',
+                  ].map((line) => (
+                    <li key={line} className="flex gap-3 px-4 py-3.5 text-sm text-slate-700 sm:text-[0.9375rem]">
+                      <Check className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" strokeWidth={2.5} aria-hidden />
+                      <span>{line}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
           </div>
         </section>
 
-        <section className="mx-auto max-w-3xl px-6 py-14 text-center">
+        <section id="pa-cta" data-landing-reveal className="mx-auto max-w-3xl px-6 py-14 text-center">
           <p className="text-lg font-semibold text-slate-900 sm:text-xl">Ready to Go Deeper?</p>
           <p className="mt-2 text-sm text-slate-600 sm:text-base">
-            Students can explore membership levels on the For Students page. Schools can compare Entry,
-            Standard, and Premium institutional licenses — or book a walkthrough with our team.
+            Students: pricing & levels. Schools: Entry / Standard / Premium, or book a walkthrough.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
             <button
@@ -367,7 +536,7 @@ const PublicAssessmentsPage: React.FC = () => {
               className="rounded-xl border-2 px-6 py-3 text-sm font-semibold shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:text-base"
               style={{ borderColor: GYS_BLUE, color: GYS_BLUE }}
             >
-              For Students — Pricing &amp; Levels
+              For Students - Pricing &amp; Levels
             </button>
             <button
               type="button"
@@ -381,40 +550,7 @@ const PublicAssessmentsPage: React.FC = () => {
         </section>
       </main>
 
-      <footer className="border-t border-gray-200 bg-white py-10">
-        <div className="mx-auto max-w-5xl px-6">
-          <nav className="flex flex-wrap justify-center gap-6 text-sm text-gray-600">
-            <button
-              type="button"
-              onClick={() => navigate('/')}
-              className="transition-colors hover:text-gray-900"
-            >
-              Home
-            </button>
-            <button
-              type="button"
-              onClick={goInstitutionalSubscriptions}
-              className="transition-colors hover:text-gray-900"
-            >
-              For Schools
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/students')}
-              className="transition-colors hover:text-gray-900"
-            >
-              For Students
-            </button>
-            <span className="font-semibold text-[#1e3a8a]">Assessments</span>
-            <a href="mailto:schools@globalyoungscholar.com" className="transition-colors hover:text-gray-900">
-              Contact
-            </a>
-          </nav>
-          <p className="mt-6 text-center text-sm text-gray-500">
-            © 2026 Global Young Scholar. A joint initiative of Access USA, Argus, and EducationWorld.
-          </p>
-        </div>
-      </footer>
+      <LandingSiteFooter />
     </div>
   );
 };

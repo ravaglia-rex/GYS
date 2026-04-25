@@ -7,7 +7,7 @@ import { mergeSignupState, writeSignupDraft } from '../../utils/studentSignupDra
 
 const GYS_BLUE = '#1e3a8a';
 
-type MembershipLevel = 'LEVEL_1' | 'LEVEL_2' | 'LEVEL_3';
+type MembershipLevel = 'LEVEL_1' | 'LEVEL_2' | 'LEVEL_3' | 'LEVEL_4';
 
 const StudentMembershipStepPage: React.FC = () => {
   const navigate = useNavigate();
@@ -20,7 +20,8 @@ const StudentMembershipStepPage: React.FC = () => {
   const initialLevel: MembershipLevel =
     merged.membershipLevel === 'LEVEL_1' ||
     merged.membershipLevel === 'LEVEL_2' ||
-    merged.membershipLevel === 'LEVEL_3'
+    merged.membershipLevel === 'LEVEL_3' ||
+    merged.membershipLevel === 'LEVEL_4'
       ? merged.membershipLevel
       : 'LEVEL_2';
 
@@ -28,7 +29,12 @@ const StudentMembershipStepPage: React.FC = () => {
 
   useEffect(() => {
     const m = mergeSignupState(location.state) as { membershipLevel?: MembershipLevel };
-    if (m.membershipLevel === 'LEVEL_1' || m.membershipLevel === 'LEVEL_2' || m.membershipLevel === 'LEVEL_3') {
+    if (
+      m.membershipLevel === 'LEVEL_1' ||
+      m.membershipLevel === 'LEVEL_2' ||
+      m.membershipLevel === 'LEVEL_3' ||
+      m.membershipLevel === 'LEVEL_4'
+    ) {
       setSelectedLevel(m.membershipLevel);
     }
   }, [location]);
@@ -41,63 +47,90 @@ const StudentMembershipStepPage: React.FC = () => {
   const levels = [
     {
       id: 'LEVEL_1' as MembershipLevel,
-      label: 'Level 1',
-      name: 'Explore',
-      price: '₹499',
-      priceSuffix: 'per year',
+      label: 'Early offer',
+      name: 'Discovery',
+      price: '₹299',
+      priceSuffix: 'one-time',
+      oneTime: true,
       badge: null as string | null,
       borderColor: 'border-slate-200',
       background: 'bg-white',
       accent: 'bg-emerald-500',
       features: [
-        { text: 'Assessment 1: Pattern and Logic', included: true },
-        { text: 'Basic performance report with tier placement', included: true },
-        { text: 'Global benchmarking (college-bound norms)', included: true },
-        { text: 'Subscore analysis (3 subscores)', included: true },
-        { text: 'Assessments 2 - 3 (Verbal & Mathematical reasoning)  -  Level 2', included: false },
-        { text: 'English (Advanced), AI & comprehensive personality  -  Level 3', included: false },
+        { text: 'First look at GYS - Exam 1 (Symbolic Reasoning) only', included: true },
+        { text: 'Per-exam score report + category breakdowns', included: true },
+        { text: 'Dashboard shows locked previews of features in higher packages', included: true },
+        { text: 'No national performance tier or school leaderboard', included: false },
+        { text: 'Reasoning Exams 2–3, Skills & Insight groups', included: false },
       ],
-      footer: 'Great for a first benchmark.',
+      footer: 'Limited-time one-time entry: Not one of the three annual packages. Upgradable while active.',
     },
     {
       id: 'LEVEL_2' as MembershipLevel,
-      label: 'Level 2',
-      name: 'Engage',
-      price: '₹1,299',
+      label: 'Membership 1',
+      name: 'Reasoning Triad',
+      price: '₹899',
       priceSuffix: 'per year',
+      oneTime: false,
       badge: 'Most Popular',
       borderColor: 'border-amber-400',
       background: 'bg-amber-50',
       accent: 'bg-emerald-500',
       features: [
-        { text: '3 Reasoning Assessments (Pattern and Logic, Verbal, Mathematical)', included: true },
-        { text: 'Reasoning triad cross-synthesis report', included: true },
-        { text: 'Course recommendations from Access USA', included: true },
-        { text: 'Year-over-year growth tracking', included: true },
-        { text: 'English (Advanced), AI exam, comprehensive personality  -  Level 3', included: false },
-        { text: 'Full college guidance  -  Level 3', included: false },
+        { text: 'Real talent positioning - full Reasoning group (Exams 1–3)', included: true },
+        { text: 'National performance tier + school leaderboard', included: true },
+        { text: 'Three-level difficulty progression within Reasoning', included: true },
+        { text: 'Light stream/career signaling from triad performance', included: true },
+        { text: 'Skills (Exams 4–5) & Insight (Exams 6–7)', included: false },
       ],
-      footer: 'Full reasoning triad — strong benchmark for growth tracking',
+      footer: 'Annual subscription • Renews each year.',
     },
     {
       id: 'LEVEL_3' as MembershipLevel,
-      label: 'Level 3',
-      name: 'Excel',
-      price: '₹2,499',
+      label: 'Membership 2',
+      name: 'Reasoning + Skills',
+      price: '₹1,799',
       priceSuffix: 'per year',
+      oneTime: false,
+      badge: null as string | null,
+      borderColor: 'border-sky-200',
+      background: 'bg-white',
+      accent: 'bg-sky-600',
+      features: [
+        { text: 'Talent + 21st-century skills - Reasoning + English + AI (Exams 1-5)', included: true },
+        { text: 'Everything in Reasoning Triad', included: true },
+        { text: 'Skills credentialing (English Proficiency, AI Proficiency)', included: true },
+        { text: 'Insight group (personality & career discovery)', included: false },
+      ],
+      footer: 'Annual subscription • Insight stays locked until Guided Decision.',
+    },
+    {
+      id: 'LEVEL_4' as MembershipLevel,
+      label: 'Membership 3',
+      name: 'Guided Decision',
+      price: '₹2,699',
+      priceSuffix: 'per year',
+      oneTime: false,
       badge: null as string | null,
       borderColor: 'border-orange-200',
-      background: 'bg-white',
+      background: 'bg-orange-50/80',
       accent: 'bg-orange-500',
       features: [
-        { text: 'Everything in Level 2 (full reasoning triad, Exams 1–3)', included: true },
-        { text: 'Assessment 4: English Proficiency - Advanced (listening + speaking)', included: true },
-        { text: 'Assessment 5: AI Literacy & Capability', included: true },
-        { text: 'Assessment 6: Comprehensive Personality (~30 dimensions)', included: true },
-        { text: 'College mapping (Indian & international)', included: true },
-        { text: 'Individual counselor sessions & advising', included: true },
+        {
+          text: 'Ongoing AI career counseling after the Insight baseline, students log experiences so the profile deepens over time (primary renewal driver for this package)',
+          included: true,
+        },
+        { text: 'Full program: Reasoning + Skills + Insight (incl. comprehensive personality)', included: true },
+        {
+          text: 'Counseling data available to third parties working with your student when your student chooses to share it,data travels with the student',
+          included: true,
+        },
+        {
+          text: 'Practice Mode (all levels): separate question pool for familiarity only; no impact on official scores • Retake every 4 months within the year',
+          included: true,
+        },
       ],
-      footer: 'Individual families only - full college guidance included.',
+      footer: 'Annual subscription • Sustained value from the counseling relationship after Insight is complete.',
     },
   ];
 
@@ -169,7 +202,7 @@ const StudentMembershipStepPage: React.FC = () => {
       <main className="mx-auto flex max-w-3xl flex-col px-4 pb-16 pt-6 sm:px-6">
         <div className="mb-5 sm:mb-6">
           <p className="text-xs sm:text-sm font-medium uppercase tracking-wide text-slate-500">
-            Step 3 of 3 • Choose Membership
+            Step 3 of 3 • Choose plan
           </p>
           <div className="mt-2 flex h-1.5 sm:h-2 overflow-hidden rounded-full bg-slate-200">
             <div className="w-1/3 rounded-full" style={{ backgroundColor: '#22c55e' }} />
@@ -180,10 +213,13 @@ const StudentMembershipStepPage: React.FC = () => {
 
         <section className="mt-2 rounded-2xl bg-white p-5 sm:p-7 shadow-md ring-1 ring-slate-100">
           <h1 className="text-xl sm:text-2xl font-semibold text-slate-900">
-            Choose Your Membership
+            Choose your plan
           </h1>
           <p className="mt-2 text-xs sm:text-sm text-slate-600">
-            Select the level that&apos;s right for you. You can always upgrade later and pay only the
+            GYS has <span className="font-semibold text-slate-800">three annual packages</span>{' '}
+            (Reasoning Triad, Reasoning + Skills, Guided Decision).{' '}
+            <span className="font-semibold text-slate-800">Discovery </span> is a separate limited-time
+            one-time entry, not counted as an annual package. You can upgrade anytime and pay only the
             difference.
           </p>
 
@@ -257,9 +293,9 @@ const StudentMembershipStepPage: React.FC = () => {
             </div>
 
             <div className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-xs text-amber-900">
-              You can always upgrade. Start with any level and upgrade anytime. You&apos;ll only pay
-              the difference between your current level and the new one. No penalty, no lost data -
-              your existing results carry forward.
+              You can always move up among the three annual packages (or from Discovery into them).
+              You&apos;ll only pay the difference. No penalty, no lost data, your existing results carry
+              forward.
             </div>
 
             <button
@@ -277,39 +313,46 @@ const StudentMembershipStepPage: React.FC = () => {
                     <tr>
                       <th className="px-4 py-2 font-semibold text-slate-700">Feature</th>
                       <th className="px-4 py-2 font-semibold text-slate-700 text-center">
-                        L1
-                        <span className="block text-xs text-slate-500">₹499</span>
+                        <span className="block font-normal text-[0.65rem] text-slate-500">Discovery</span>
+                        <span className="block text-xs text-slate-500">₹299 • once</span>
                       </th>
                       <th className="px-4 py-2 font-semibold text-slate-700 text-center">
-                        L2
-                        <span className="block text-xs text-slate-500">₹1,299</span>
+                        M1
+                        <span className="block font-normal text-[0.65rem] text-slate-500">annual</span>
+                        <span className="block text-xs text-slate-500">₹899/yr</span>
                       </th>
                       <th className="px-4 py-2 font-semibold text-slate-700 text-center">
-                        L3
-                        <span className="block text-xs text-slate-500">₹2,499</span>
+                        M2
+                        <span className="block font-normal text-[0.65rem] text-slate-500">annual</span>
+                        <span className="block text-xs text-slate-500">₹1,799/yr</span>
+                      </th>
+                      <th className="px-4 py-2 font-semibold text-slate-700 text-center">
+                        M3
+                        <span className="block font-normal text-[0.65rem] text-slate-500">annual</span>
+                        <span className="block text-xs text-slate-500">₹2,699/yr</span>
                       </th>
                     </tr>
                   </thead>
                   <tbody>
                     {[
-                      ['Assessment 1: Pattern and Logic', '✓', '✓', '✓'],
-                      ['Assessment 2: Verbal Reasoning', ' - ', '✓', '✓'],
-                      ['Assessment 3: Mathematical Reasoning', ' - ', '✓', '✓'],
-                      ['Assessment 4: Personality Profile (basic)', ' - ', '✓', '✓'],
-                      ['Assessment 5: English Proficiency (advanced)', ' - ', ' - ', '✓'],
-                      ['Assessment 6: AI Literacy & Capability', ' - ', ' - ', '✓'],
-                      ['Assessment 7: Comprehensive Personality', ' - ', ' - ', '✓'],
-                      ['Basic Report + Tier', '✓', '✓', '✓'],
-                      ['Reasoning Cross-Synthesis', ' - ', '✓', '✓'],
-                      ['Course Recommendations', ' - ', '✓', '✓'],
-                      ['Growth Tracking', ' - ', '✓', '✓'],
-                      ['Full Composite Profile', ' - ', ' - ', '✓'],
-                      ['College Mapping', ' - ', ' - ', '✓'],
-                      ['Counselor Sessions & Advising', ' - ', ' - ', '✓'],
-                    ].map(([feature, l1, l2, l3]) => (
+                      ['Reasoning Exam 1 (Symbolic)', '✓', '✓', '✓', '✓'],
+                      ['Reasoning Exams 2–3 (Verbal & Mathematical)', ' - ', '✓', '✓', '✓'],
+                      ['Skills Exams 4–5 (English & AI)', ' - ', ' - ', '✓', '✓'],
+                      ['Insight group, personality & career discovery (Exams 6–7)', ' - ', ' - ', ' - ', '✓'],
+                      ['National performance tier (after triad)', ' - ', '✓', '✓', '✓'],
+                      ['School leaderboard eligibility', ' - ', '✓', '✓', '✓'],
+                      [
+                        'Ongoing AI career counseling (after Insight baseline; grows with logged experiences)',
+                        ' - ',
+                        ' - ',
+                        ' - ',
+                        '✓',
+                      ],
+                      ['Practice Mode - separate pool, familiarity only, no official score impact', '✓', '✓', '✓', '✓'],
+                    ].map(([feature, l1, l2, l3, l4]) => (
                       <tr key={feature} className="border-t border-slate-100">
                         <td className="px-4 py-2 text-slate-700">{feature}</td>
-                        {[l1, l2, l3].map((val, idx) => (
+                        {[l1, l2, l3, l4].map((val, idx) => (
                           <td
                             key={idx}
                             className="px-4 py-2 text-center text-slate-700"
@@ -327,6 +370,10 @@ const StudentMembershipStepPage: React.FC = () => {
                     ))}
                   </tbody>
                 </table>
+                <p className="border-t border-slate-100 bg-slate-50 px-3 py-2 text-[0.65rem] leading-relaxed text-slate-600 sm:text-xs">
+                  <strong>School Leaderboard:</strong> parent or guardian opt-in required (default-private).{' '}
+                  <strong>Discovery </strong> is not eligible; leaderboard eligibility starts at Reasoning Triad.
+                </p>
               </div>
             )}
 
@@ -334,7 +381,8 @@ const StudentMembershipStepPage: React.FC = () => {
               type="submit"
               className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-blue-600 px-4 py-3 text-sm sm:text-base font-semibold text-white shadow-md hover:bg-blue-700 transition-colors duration-200"
             >
-              Next: Payment  —  {selected.name} ({selected.price}/yr) →
+              Next: Payment - {selected.name} (
+              {selected.oneTime ? selected.price : `${selected.price}/yr`}) →
             </button>
 
             <p className="pt-1 text-center text-xs text-slate-500">

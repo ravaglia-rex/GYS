@@ -1,17 +1,19 @@
 /**
  * Mirrors argus-backend/functions/src/utils/studentSignupPlans.ts for UI copy only.
  * Charged amounts always come from the server order.
+ * GYS Consumer Pricing Rev 13 (April 22, 2026).
  */
 
-export const STUDENT_SIGNUP_BASE_INR: Record<1 | 2 | 3, number> = {
-  1: 499,
-  2: 1299,
-  3: 2499,
+export const STUDENT_SIGNUP_BASE_INR: Record<1 | 2 | 3 | 4, number> = {
+  1: 299,
+  2: 899,
+  3: 1799,
+  4: 2699,
 };
 
-export function normalizeStudentMembershipLevel(value: unknown): 0 | 1 | 2 | 3 {
+export function normalizeStudentMembershipLevel(value: unknown): 0 | 1 | 2 | 3 | 4 {
   const n = typeof value === 'number' ? value : Number(value);
-  if (n === 1 || n === 2 || n === 3) {
+  if (n === 1 || n === 2 || n === 3 || n === 4) {
     return n;
   }
   return 0;
@@ -19,13 +21,13 @@ export function normalizeStudentMembershipLevel(value: unknown): 0 | 1 | 2 | 3 {
 
 export function studentMembershipUpgradeAmountPaise(
   currentLevel: unknown,
-  targetLevel: 1 | 2 | 3
+  targetLevel: 1 | 2 | 3 | 4
 ): number | null {
   const current = normalizeStudentMembershipLevel(currentLevel);
   if (current >= targetLevel) {
     return null;
   }
-  const fromBase = current >= 1 ? STUDENT_SIGNUP_BASE_INR[current as 1 | 2 | 3] : 0;
+  const fromBase = current >= 1 ? STUDENT_SIGNUP_BASE_INR[current as 1 | 2 | 3 | 4] : 0;
   const deltaBase = STUDENT_SIGNUP_BASE_INR[targetLevel] - fromBase;
   if (deltaBase <= 0) {
     return null;
@@ -42,8 +44,9 @@ export function formatInrFromPaise(paise: number): string {
   }).format(paise / 100);
 }
 
-export const MEMBERSHIP_LEVEL_LABEL: Record<1 | 2 | 3, string> = {
-  1: 'Level 1 - Explore',
-  2: 'Level 2 - Engage',
-  3: 'Level 3 - Excel',
+export const MEMBERSHIP_LEVEL_LABEL: Record<1 | 2 | 3 | 4, string> = {
+  1: 'Discovery (Early offer)',
+  2: 'Membership 1 • Reasoning Triad',
+  3: 'Membership 2 • Reasoning + Skills',
+  4: 'Membership 3 • Guided Decision',
 };

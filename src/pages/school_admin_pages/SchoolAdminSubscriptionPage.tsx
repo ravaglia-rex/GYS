@@ -12,7 +12,7 @@ import {
 } from '@mui/icons-material';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 
-const RECOMMENDED_GOLD = '#fbbf24';
+const POPULAR_PLAN_BADGE_GOLD = '#fbbf24';
 const STANDARD_RING = 'rgba(30, 58, 138, 0.7)';
 /** Same as ip.statBlue - literal here so plan data has no palette init at module top */
 const PLAN_STANDARD_BLUE = '#1D4ED8';
@@ -28,7 +28,7 @@ interface Plan {
   accent: string;
   Icon: PlanIcon;
   current?: boolean;
-  recommended?: boolean;
+  popular?: boolean;
 }
 
 const PLANS: Plan[] = [
@@ -54,7 +54,7 @@ const PLANS: Plan[] = [
     accent: PLAN_STANDARD_BLUE,
     Icon: StandardIcon,
     current: true,
-    recommended: true,
+    popular: true,
     features: [
       'Assessments 1–3 (full reasoning triad)',
       'Full analytics & subscore breakdowns',
@@ -111,7 +111,7 @@ function SchoolAdminSubscriptionPage() {
               Standard
             </Typography>
             <Typography variant="body2" sx={{ color: ip.subtext }}>
-              Renews annually · ₹3,00,000/yr · Next renewal: 1 Jan 2028
+              Renews annually • ₹3,00,000/yr • Next renewal: 1 Jan 2028
             </Typography>
           </Box>
         </Box>
@@ -132,29 +132,29 @@ function SchoolAdminSubscriptionPage() {
             key={plan.id}
             sx={{
               bgcolor: '#fff',
-              boxShadow: plan.recommended ? 2 : 'none',
-              border: plan.recommended
+              boxShadow: plan.popular ? 2 : 'none',
+              border: plan.popular
                 ? `2px solid ${STANDARD_RING}`
                 : `1px solid ${ip.cardBorder}`,
               borderRadius: 2.5,
               position: 'relative',
               overflow: 'visible',
               transition: 'all 0.18s',
-              pt: plan.recommended ? 1.5 : 0,
+              pt: plan.popular ? 1.5 : 0,
               '&:hover': {
                 border: `2px solid ${plan.accent}`,
                 transform: 'translateY(-2px)',
               },
             }}
           >
-            {plan.recommended && (
+            {plan.popular && (
               <Box
                 sx={{
                   position: 'absolute',
                   top: -12,
                   left: '50%',
                   transform: 'translateX(-50%)',
-                  bgcolor: RECOMMENDED_GOLD,
+                  bgcolor: POPULAR_PLAN_BADGE_GOLD,
                   color: '#0f172a',
                   px: 1.75,
                   py: 0.35,
@@ -167,10 +167,10 @@ function SchoolAdminSubscriptionPage() {
                   whiteSpace: 'nowrap',
                 }}
               >
-                Recommended
+                Popular
               </Box>
             )}
-            <CardContent sx={{ p: '24px !important', pt: plan.recommended ? '28px !important' : '24px !important' }}>
+            <CardContent sx={{ p: '24px !important', pt: plan.popular ? '28px !important' : '24px !important' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
                 <plan.Icon sx={{ fontSize: '1.6rem', color: plan.accent }} />
                 <Typography variant="h6" sx={{ color: ip.heading, fontWeight: 700 }}>{plan.name}</Typography>

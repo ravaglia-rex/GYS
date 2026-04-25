@@ -19,11 +19,12 @@ export const studentFaqSections: { heading: string; items: LandingFaqItem[] }[] 
               program for students in Grades 6–12 to identify those who show exceptional promise for
               success in higher education and also for helping students understand how their
               performance compares to domestic and international populations. The GYS exams measure
-              symbolic reasoning, verbal reasoning, mathematical reasoning, personality, English
-              proficiency, and AI literacy through six progressively deeper assessments. The exams help
+              symbolic reasoning, verbal reasoning, mathematical reasoning, English proficiency, AI
+              proficiency, personality, and career discovery through seven progressively deeper exams
+              (Reasoning, Skills, and Insight groups). The exams help
               students in Grades 6–12 understand their academic strengths, identify areas for growth,
-              and receive guidance on educational decisions. It measures how your child thinks — their
-              reasoning ability, personality traits, English proficiency, and AI literacy — not just
+              and receive guidance on educational decisions. It measures how your child thinks: their
+              reasoning ability, English and AI proficiency, personality, and interests, not just
               what they&apos;ve memorized.
             </p>
           </>
@@ -36,10 +37,11 @@ export const studentFaqSections: { heading: string; items: LandingFaqItem[] }[] 
             After completing the assessments, your child receives a detailed score report showing
             where they stand across reasoning dimensions, how they compare to other students
             nationally, and specific guidance on strengths and areas to develop. At the Reasoning
-            Triad tier and above, students in Grades 8–9 receive AI-driven guidance on which academic
-            stream to pursue (PCM, PCB, Commerce, or Humanities) — one of the most consequential
-            decisions in an Indian student&apos;s academic career. Practice questions are available for
-            every exam type so your child can prepare and improve.
+            Reasoning Triad package and above, students in Grades 8–9 receive AI-driven guidance on which academic
+            stream to pursue (PCM, PCB, Commerce, or Humanities), one of the most consequential
+            decisions in an Indian student&apos;s academic career.{' '}
+            <strong>Practice Mode</strong> is available for format familiarity: it uses a separate question pool and
+            does not affect official scores or tiers.
           </p>
         ),
       },
@@ -48,28 +50,42 @@ export const studentFaqSections: { heading: string; items: LandingFaqItem[] }[] 
         answer: (
           <>
             <p>
-              Membership is on an annual subscription basis. Students can challenge exams at
-              progressive performance tiers, progressing one-to-the-next as they achieve mastery.
+              There are <strong>three annual packages</strong>, each billed annually (Rev 13, April 2026).{' '}
+              <strong>Discovery (₹299)</strong> is a separate, limited-time <strong>one-time entry offer</strong>;
+              we don&apos;t count it as an annual package; it&apos;s an on-ramp you can upgrade from.
+              Within Reasoning, students progress through three difficulty levels as they achieve mastery. After
+              the official triad, a <strong>nationwide Performance Tier</strong> (Explorer → Diamond) describes
+              absolute positioning vs a national norm, separate from the <strong>school leaderboard</strong>, which
+              highlights top students <em>per exam, per grade, at that school</em> (monthly, parent opt-in). Retakes
+              follow the published cadence.
             </p>
             <ul>
               <li>
-                <strong>Discovery</strong> — ₹499. Exam 1 (Symbolic Reasoning). Score report with
-                overall reasoning assessment and national percentile benchmarking.
+                <strong>Discovery - Early offer</strong> - ₹299 one-time. Exam 1 (Symbolic Reasoning)
+                only. No performance tier or school leaderboard; dashboard shows locked previews of higher
+                packages. Per-exam score report with category-level breakdowns.
               </li>
               <li>
-                <strong>Reasoning Triad</strong> — ₹1,299. Exams 1–3 (Symbolic, Verbal, and
-                Mathematical Reasoning).
+                <strong>Membership 1 • Reasoning Triad</strong> - ₹899/year. Full Reasoning group: Exams 1–3.
+                Unlocks national Performance Tier after official triad runs, plus optional school leaderboard
+                visibility (parent opt-in; top performers per exam per grade at the school). Light stream/career
+                signaling from triad performance.
               </li>
               <li>
-                <strong>Guided Decision</strong> — ₹2,499. All six assessments including personality,
-                English proficiency, and AI literacy. Full multi-domain report, detailed cross-synthesis
-                report plus AI-driven stream-selection recommendation for Grades 8–9,
-                college/university matching for students in Grades 10–12, one live counselor session,
-                and access to the Launchpad Rankings College Guide.
+                <strong>Membership 2 • Reasoning + Skills</strong> - ₹1,799/year. Reasoning group plus Skills
+                group: Exams 1–5 (adds English Proficiency and AI Proficiency).
+              </li>
+              <li>
+                <strong>Membership 3 • Guided Decision</strong> - ₹2,699/year. Full program including Insight
+                (e.g. comprehensive personality and career-discovery flows). AI career counseling is an ongoing
+                relationship that begins after that Insight baseline: students return to log experiences (labs,
+                internships, classes, talks) so the profile gets richer; this is the package&apos;s main long-term renewal
+                driver. Counseling-related data is available to third parties working with your child when your child
+                chooses to share it; the data travels with the student.
               </li>
             </ul>
             <p>
-              If your child&apos;s school has an institutional subscription, your child may already have
+              If your child&apos;s school has an institutional package, your child may already have
               access at no additional family cost. Check with your school.
             </p>
           </>
@@ -78,12 +94,42 @@ export const studentFaqSections: { heading: string; items: LandingFaqItem[] }[] 
       {
         question: 'Can my child upgrade later?',
         answer: (
-          <p>
-            Yes. You always pay only the difference. If your child starts at Discovery (₹499) and
-            later upgrades to the full Reasoning Triad, you pay ₹800 — not ₹1,299. From the Reasoning
-            Triad to Guided Decision, you pay ₹1,200. Your child is never penalized for starting at a
-            lower tier.
-          </p>
+          <>
+            <p>
+              Yes. <strong>Discovery is credited</strong> toward any annual package: you pay only
+              the difference in <strong>list price</strong> when you move up (18% GST is applied on the
+              upgrade payment at checkout). The same rule applies between the three annual packages. Your
+              child is never penalized for starting lower.
+            </p>
+            <p className="mt-3 text-sm">
+              Rev 13 upgrade deltas (list price, before GST):
+            </p>
+            <div className="mt-2 overflow-x-auto rounded-lg border border-slate-200">
+              <table className="w-full min-w-[280px] border-collapse text-left text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50">
+                    <th className="px-3 py-2 font-semibold text-slate-800">Upgrade</th>
+                    <th className="px-3 py-2 font-semibold text-slate-800">Delta</th>
+                  </tr>
+                </thead>
+                <tbody className="text-slate-700">
+                  {[
+                    ['Discovery → Reasoning Triad', '₹600'],
+                    ['Discovery → Reasoning + Skills', '₹1,500'],
+                    ['Discovery → Guided Decision', '₹2,400'],
+                    ['Reasoning Triad → Reasoning + Skills', '₹900'],
+                    ['Reasoning Triad → Guided Decision', '₹1,800'],
+                    ['Reasoning + Skills → Guided Decision', '₹900'],
+                  ].map(([path, delta]) => (
+                    <tr key={path} className="border-b border-slate-100 last:border-0">
+                      <td className="px-3 py-2">{path}</td>
+                      <td className="px-3 py-2 font-medium tabular-nums">{delta}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         ),
       },
       {
@@ -91,7 +137,7 @@ export const studentFaqSections: { heading: string; items: LandingFaqItem[] }[] 
         answer: (
           <p>
             Yes. All assessments are accessible on mobile phones, tablets, laptops, and desktops. Exam
-            5 (English Proficiency) includes a speaking component that works best on a device with a
+            4 (English Proficiency) includes a speaking component that works best on a device with a
             microphone, but all other exams work on any device.
           </p>
         ),
@@ -100,7 +146,7 @@ export const studentFaqSections: { heading: string; items: LandingFaqItem[] }[] 
         question: 'How long do the exams take?',
         answer: (
           <p>
-            Each reasoning exam (Symbolic, Verbal, Mathematical) is individually timed per question —
+            Each reasoning exam (Symbolic, Verbal, Mathematical) is individually timed per question;
             most students complete each exam in 45–60 minutes. The Personality Assessment is untimed and
             takes approximately 30–45 minutes. Students can complete their purchased exams at their own
             pace over days or weeks; there is no requirement to finish everything in one sitting.
@@ -112,8 +158,8 @@ export const studentFaqSections: { heading: string; items: LandingFaqItem[] }[] 
         answer: (
           <p>
             Yes. Students are encouraged to retake assessments annually to track growth and improve
-            their performance tier. On retake, students start at the highest difficulty tier they
-            previously cleared — they don&apos;t repeat introductory content. Practice questions are
+            their performance tier. On retake, students start at the highest difficulty level they
+            previously cleared; they don&apos;t repeat introductory content. Practice questions are
             available to help your child prepare between attempts.
           </p>
         ),
@@ -122,12 +168,12 @@ export const studentFaqSections: { heading: string; items: LandingFaqItem[] }[] 
         question: 'Is this just another coaching exam? How is GYS different?',
         answer: (
           <p>
-            GYS is not a coaching product and does not teach to a test. It is a reasoning assessment
-            — it measures how your child thinks, not what they&apos;ve been drilled on. Unlike
+            GYS is not a coaching product and does not teach to a test. It is a reasoning assessment;
+            it measures how your child thinks, not what they&apos;ve been drilled on. Unlike
             Olympiads or entrance exams that reward subject-specific preparation, GYS measures abstract
             reasoning, analytical thinking, and personality traits that predict long-term academic
             success. The results feed into personalized guidance: stream selection, college matching,
-            and career exploration — not just a score and a rank.
+            and career exploration, not just a score and a rank.
           </p>
         ),
       },
@@ -140,8 +186,9 @@ export const studentFaqSections: { heading: string; items: LandingFaqItem[] }[] 
             reliable measure, especially when other aspects of a student&apos;s application might not be
             obvious. At the Guided Decision level, students receive specific university matching:
             &quot;Based on your profile, here are universities where you&apos;d be competitive.&quot; GYS
-            data, combined guidance and optional counselor sessions, creates a single pathway from
-            early assessment through university admission.
+            guidance layers on an ongoing counseling relationship after the Insight baseline; when families choose to
+            share the counseling profile, that information is available to universities or other partners the student
+            involves, always under the student&apos;s control.
           </p>
         ),
       },
@@ -150,8 +197,9 @@ export const studentFaqSections: { heading: string; items: LandingFaqItem[] }[] 
         answer: (
           <p>
             Yes. GYS collects only the information necessary to deliver assessments and guidance.
-            Personal data is not shared with third parties. If your child&apos;s school has an
-            institutional subscription, the school sees assessment performance only for students in
+            Personal data is not shared with third parties without appropriate consent. Counseling outputs are shared
+            outward only when the student or family opts in. If your child&apos;s school has an
+            institutional package, the school sees assessment performance only for students in
             their program. We do not sell student data and we will never contact your child with
             unrelated marketing.
           </p>
@@ -161,12 +209,13 @@ export const studentFaqSections: { heading: string; items: LandingFaqItem[] }[] 
         question: "My child's school is offering GYS. Do I still need to buy it separately?",
         answer: (
           <p>
-            If your school has an institutional subscription, your child likely has access to Exams
-            1–3 at no additional cost to your family. Check with your school about which tier
+            If your school has an institutional package, your child likely has access to Exams
+            1–3 at no additional cost to your family. Check with your school which package
             they&apos;ve selected. If you want access to the full assessment suite (including
-            personality, English proficiency, AI literacy, and college matching), you can upgrade
+            Insight exams, English and AI proficiency, and ongoing AI career counseling after the Insight baseline),
+            you can upgrade
             individually to Guided Decision and pay only the difference beyond what your school&apos;s
-            tier covers.
+            package covers.
           </p>
         ),
       },
@@ -179,9 +228,9 @@ export const studentFaqSections: { heading: string; items: LandingFaqItem[] }[] 
         question: 'Is this a subscription or a one-time payment?',
         answer: (
           <p>
-            For families, membership in the Global Young Scholar program is by annual subscription.
-            During your child&apos;s membership, your child has access to the assessments included in
-            their subscription. For schools, the institutional fee is annual.
+            For families, Discovery is a one-time purchase; Reasoning Triad, Reasoning + Skills, and
+            Guided Decision renew annually. During the subscription year, your child has access to the
+            assessments and features included in that package. For schools, the institutional fee is annual.
           </p>
         ),
       },

@@ -72,7 +72,7 @@ const StudentRegistrationPage: React.FC = () => {
     regInitial.cityState,
   ]);
   const [emailInUseOpen, setEmailInUseOpen] = useState<boolean>(!!locationState?.emailInUse);
-  /** Which check blocked signup — production Auth/Firestore are used even when the API runs on localhost. */
+  /** Which check blocked signup production Auth/Firestore are used even when the API runs on localhost. */
   const [emailInUseReason, setEmailInUseReason] = useState<
     'auth' | 'student' | 'schooladmin' | null
   >(() => (locationState?.emailInUse ? 'auth' : null));
@@ -102,7 +102,7 @@ const StudentRegistrationPage: React.FC = () => {
 
     let blockReason: 'auth' | 'student' | 'schooladmin' | null = null;
 
-    // Production Firebase Auth (no emulator in firebase.ts) — user can exist here without a students/* doc.
+    // Production Firebase Auth (no emulator in firebase.ts) user can exist here without a students/* doc.
     try {
       const methods = await fetchSignInMethodsForEmail(auth, normalizedEmail);
       if (methods && methods.length > 0) {

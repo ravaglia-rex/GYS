@@ -23,7 +23,7 @@ const studentSignupRazorpayDevBypassOn = ['true', '1', 'yes'].includes(
   (process.env.REACT_APP_DEV_BYPASS_STUDENT_RAZORPAY ?? '').trim().toLowerCase()
 );
 
-type MembershipLevelCode = 'LEVEL_1' | 'LEVEL_2' | 'LEVEL_3';
+type MembershipLevelCode = 'LEVEL_1' | 'LEVEL_2' | 'LEVEL_3' | 'LEVEL_4';
 
 interface SignupFlowState {
   firstName?: string;
@@ -44,10 +44,11 @@ interface SignupFlowState {
   membershipPrice?: string;
 }
 
-function membershipCodeToNumericLevel(code: MembershipLevelCode | undefined): 1 | 2 | 3 | null {
+function membershipCodeToNumericLevel(code: MembershipLevelCode | undefined): 1 | 2 | 3 | 4 | null {
   if (code === 'LEVEL_1') return 1;
   if (code === 'LEVEL_2') return 2;
   if (code === 'LEVEL_3') return 3;
+  if (code === 'LEVEL_4') return 4;
   return null;
 }
 
@@ -58,8 +59,8 @@ const StudentPaymentPage: React.FC = () => {
   const state = (locationState || {}) as SignupFlowState;
   const { toast } = useToast();
 
-  const membershipName = state.membershipName || 'Level 2 - Engage';
-  const membershipPrice = state.membershipPrice || '₹1,299';
+  const membershipName = state.membershipName || 'Membership 1 • Reasoning Triad';
+  const membershipPrice = state.membershipPrice || '₹899';
   const membershipLevelCode = state.membershipLevel;
   const numericLevel = useMemo(
     () => membershipCodeToNumericLevel(membershipLevelCode),
@@ -286,7 +287,9 @@ const StudentPaymentPage: React.FC = () => {
               <div>
                 <p className="text-base sm:text-xl font-semibold text-slate-900">{membershipName}</p>
                 <p className="mt-1 text-xs sm:text-sm text-slate-600">
-                  Annual membership • Charged in INR (includes 18% GST at checkout)
+                  {numericLevel === 1
+                    ? 'One-time purchase (non-renewable) • Charged in INR (includes 18% GST at checkout)'
+                    : 'Annual subscription • Charged in INR (includes 18% GST at checkout)'}
                 </p>
               </div>
               <div className="text-right">

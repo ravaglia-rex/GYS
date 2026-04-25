@@ -20,8 +20,8 @@ interface Alert {
 }
 
 const INITIAL_ALERTS: Alert[] = [
-  { id: 'a3', type: 'report_ready', title: 'Q2 Performance Report Ready', body: 'Your Q2 2027 institutional performance report has been generated and is available for download.', time: '1 Mar 2027 · 12:00 PM', read: false },
-  { id: 'a5', type: 'report_ready', title: 'Q1 → Q2 Growth Report Ready', body: 'Your quarter-over-quarter growth report is available. Overall percentile improved by 5 points.', time: '1 Mar 2027 · 12:00 PM', read: true },
+  { id: 'a3', type: 'report_ready', title: 'Q2 Performance Report Ready', body: 'Your Q2 2027 institutional performance report has been generated and is available for download.', time: '1 Mar 2027 • 12:00 PM', read: false },
+  { id: 'a5', type: 'report_ready', title: 'Q1 → Q2 Growth Report Ready', body: 'Your quarter-over-quarter growth report is available. Overall percentile improved by 5 points.', time: '1 Mar 2027 • 12:00 PM', read: true },
 ];
 
 const ALERT_ICON: Record<string, React.ReactElement> = {

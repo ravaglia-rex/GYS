@@ -26,6 +26,11 @@ import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import { countAssessmentsFromProgress } from '../../utils/schoolAdminRosterUtils';
 import { buildGreenfieldPreviewStudentRows } from '../../data/schoolPreviewMock';
 import { ASSESSMENT_NAMES, ASSESSMENT_ORDER } from '../../utils/assessmentGating';
+import {
+  ACHIEVEMENT_TIER_EXPLORER_DESCRIPTION,
+  formatAchievementTierLabel,
+  normalizeAchievementTierId,
+} from '../../utils/achievementTier';
 
 const DEFAULT_LOCKED: AssessmentProgress = {
   proficiency_tier: 1,
@@ -80,14 +85,6 @@ function statusChipSx(status: string): Record<string, unknown> {
     bgcolor: '#f8fafc',
     '&:hover': { bgcolor: '#f1f5f9' },
   };
-}
-
-/** Retired tiers: show as Gold so admins never see removed Platinum/Diamond labels. */
-function formatAchievementTierLabel(raw: string | null | undefined): string {
-  if (raw == null || raw === '') return '-';
-  const t = String(raw).toLowerCase();
-  if (t === 'platinum' || t === 'diamond') return 'Gold';
-  return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
 const SchoolAdminStudentDetailPage: React.FC = () => {
@@ -164,7 +161,7 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
             grade,
             membership_level: typeof stData.membership_level === 'number' ? stData.membership_level : 0,
             approval_status: String(stData.approval_status ?? 'pending'),
-            achievement_tier: (stData.achievement_tier as string) ?? null,
+            achievement_tier: normalizeAchievementTierId(stData.achievement_tier as string | undefined),
             assessment_progress: {},
             created_at: stData.created_at ?? null,
           };
@@ -236,7 +233,7 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
   const progress = row.assessment_progress ?? {};
   const assessmentRows = ASSESSMENT_ORDER.map((id) => [id, progress[id] ?? DEFAULT_LOCKED] as const);
   const completedSlots = countAssessmentsFromProgress(row.assessment_progress);
-  const level3Paid = (row.membership_level ?? 0) >= 3;
+  const individualAddOnPaid = (row.membership_level ?? 0) >= 3;
   const approval = String(row.approval_status ?? '').toLowerCase();
   const approvalLabel =
     approval === 'declined'
@@ -301,11 +298,35 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
                   />
                 </Box>
               </Box>
-              <Box>
+              <Box sx={{ gridColumn: { xs: '1', sm: '1 / -1' } }}>
                 <Typography variant="caption" sx={{ color: ip.subtext }}>Achievement tier</Typography>
-                <Typography sx={{ color: ip.heading }}>
-                  {formatAchievementTierLabel(row.achievement_tier)}
-                </Typography>
+                {normalizeAchievementTierId(row.achievement_tier) === 'explorer' ? (
+                  <Box
+                    sx={{
+                      mt: 1,
+                      maxWidth: 440,
+                      p: 2.5,
+                      borderRadius: '22px',
+                      bgcolor: '#F0E9F8',
+                      border: '1px solid #D1C4E9',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <Typography sx={{ fontSize: '2rem', lineHeight: 1, mb: 1 }} aria-hidden>
+                      🧭
+                    </Typography>
+                    <Typography sx={{ color: '#5E35B1', fontWeight: 700, fontSize: '1.05rem', mb: 1 }}>
+                      Explorer
+                    </Typography>
+                    <Typography sx={{ color: '#555555', fontSize: '0.875rem', lineHeight: 1.45 }}>
+                      {ACHIEVEMENT_TIER_EXPLORER_DESCRIPTION}
+                    </Typography>
+                  </Box>
+                ) : (
+                  <Typography sx={{ color: ip.heading, mt: 0.5 }}>
+                    {formatAchievementTierLabel(row.achievement_tier)}
+                  </Typography>
+                )}
               </Box>
             </Box>
           </CardContent>
@@ -317,8 +338,8 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
               Levels &amp; billing
             </Typography>
             <Typography variant="body2" sx={{ color: ip.subtext, mb: 2, lineHeight: 1.6 }}>
-              Your school’s plan covers students through <strong>Level 2</strong> for everyone on the roster (full reasoning triad: Exams 1–3).
-              <strong> Level 3</strong> is an add-on: each student must purchase it individually to unlock advanced English, AI, comprehensive personality, and related reporting.
+              Your school’s plan covers students through <strong>Reasoning Triad</strong> (Exams 1–3) for the roster.
+              <strong> Reasoning + Skills</strong> and <strong>Guided Decision</strong> are individual add-ons: families purchase them separately to unlock Skills (Exams 4–5) and Insight plus ongoing AI career counseling after the Insight baseline (Guided Decision).
             </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
               <Chip
@@ -333,11 +354,11 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
                 }}
               />
               <Chip
-                label={level3Paid ? 'Level 3: purchased' : 'Level 3: not purchased'}
+                label={individualAddOnPaid ? 'Individual add-on: purchased' : 'Individual add-on: not purchased'}
                 size="small"
-                variant={level3Paid ? 'filled' : 'outlined'}
+                variant={individualAddOnPaid ? 'filled' : 'outlined'}
                 sx={
-                  level3Paid
+                  individualAddOnPaid
                     ? { fontWeight: 600, bgcolor: '#16a34a', color: '#ffffff' }
                     : {
                         fontWeight: 600,
@@ -371,7 +392,7 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
                       Exam / track
                     </TableCell>
                     <TableCell sx={{ fontWeight: 700, color: ip.heading, fontSize: '0.8125rem', py: 1.25 }}>
-                      Proficiency tier
+                      Proficiency level
                     </TableCell>
                     <TableCell sx={{ fontWeight: 700, color: ip.heading, fontSize: '0.8125rem', py: 1.25 }}>
                       Status
@@ -393,7 +414,7 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
                     return (
                       <TableRow key={key} hover sx={{ '&:nth-of-type(even)': { bgcolor: ip.cardMutedBg } }}>
                         <TableCell sx={{ color: ip.heading, fontWeight: 600 }}>{assessmentLabel(key)}</TableCell>
-                        <TableCell sx={{ color: ip.heading }}>{p.proficiency_tier != null ? `Tier ${p.proficiency_tier}` : '-'}</TableCell>
+                        <TableCell sx={{ color: ip.heading }}>{p.proficiency_tier != null ? `Level ${p.proficiency_tier}` : '-'}</TableCell>
                         <TableCell>
                           <Chip
                             label={statusText}

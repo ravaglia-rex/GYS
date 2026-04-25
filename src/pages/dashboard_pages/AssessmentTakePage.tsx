@@ -119,7 +119,7 @@ const PreExamStep: React.FC<PreExamStepProps> = ({ assessmentId, tierNumber, onC
                 {flow.examTitleShort}
               </Typography>
               <Typography variant="caption" sx={{ color: '#64748b' }}>
-                Tier {tierNumber}
+                Level {tierNumber}
               </Typography>
             </Box>
           </Box>
@@ -289,7 +289,7 @@ export default function AssessmentTakePage() {
           setError(err?.response?.data?.error ?? 'This assessment is not available for your membership level.');
         }
       } else if (status === 503) {
-        setError('Not enough questions available for this tier. Please try again later.');
+        setError('Not enough questions available for this level. Please try again later.');
       } else if (status === 409) {
         setError(err?.response?.data?.error ?? 'Could not resume your attempt. Please go back and try again.');
       } else {
@@ -672,8 +672,8 @@ export default function AssessmentTakePage() {
           )}
           <Typography variant="caption" sx={{ color: '#94a3b8', mt: 2, display: 'block', textAlign: 'center' }}>
             {inferQuestionInteraction(assessmentId, currentQuestion) === 'likert'
-              ? 'Keys 1 - 5 to select · Enter to continue'
-              : 'Keys 1 - 4 for options · Enter to continue'}
+              ? 'Keys 1 - 5 to select • Enter to continue'
+              : 'Keys 1 - 4 for options • Enter to continue'}
           </Typography>
         </Box>
       </Box>

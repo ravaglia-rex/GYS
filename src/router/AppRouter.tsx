@@ -21,6 +21,7 @@ const SchoolRegistrationPage = React.lazy(
 );
 const StudentPathPage = React.lazy(() => import('../pages/landing/StudentPathPage'));
 const PublicAssessmentsPage = React.lazy(() => import('../pages/landing/PublicAssessmentsPage'));
+const AboutGysPage = React.lazy(() => import('../pages/landing/AboutGysPage'));
 
 const SchoolPreviewLayout = React.lazy(() => import('../layouts/SchoolPreviewLayout'));
 const SchoolPreviewHubPage = React.lazy(() => import('../pages/landing/preview/SchoolPreviewHubPage'));
@@ -119,6 +120,15 @@ const AppRouter: React.FC = () => {
           element={
             <Suspense fallback={<BigSpinner />}>
               <PublicAssessmentsPage />
+            </Suspense>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        <Route
+          path="/about"
+          element={
+            <Suspense fallback={<BigSpinner />}>
+              <AboutGysPage />
             </Suspense>
           }
           errorElement={<NotFoundPage />}

@@ -1,10 +1,22 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
+import { LandingHeaderScrollProgress, LandingSectionRail } from '../../components/landing/LandingScrollChrome';
+import { GYS_BLUE } from '../../constants/gysBrand';
+import {
+  useLandingRevealInContainer,
+  useLandingScrollProgress,
+  useLandingSectionSpy,
+} from '../../hooks/useLandingPageScroll';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase/firebase';
 
-const GYS_BLUE = '#1e3a8a';
+const DEMO_NAV = [
+  { id: 'demo-intro', label: 'Start' },
+  { id: 'demo-form', label: 'Form' },
+] as const;
+
+const DEMO_SECTION_IDS_JOIN = DEMO_NAV.map((s) => s.id).join('|');
 
 interface FormState {
   name: string;
@@ -40,6 +52,10 @@ const initialFormState: FormState = {
 
 const InstitutionDemoRequestPage: React.FC = () => {
   const navigate = useNavigate();
+  const pageRootRef = useRef<HTMLDivElement>(null);
+  const scrollProgress = useLandingScrollProgress();
+  const activeSectionId = useLandingSectionSpy(DEMO_SECTION_IDS_JOIN);
+  useLandingRevealInContainer(pageRootRef);
   const [form, setForm] = useState<FormState>(initialFormState);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -97,9 +113,14 @@ const InstitutionDemoRequestPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
+    <div
+      ref={pageRootRef}
+      className="flex min-h-screen flex-col overflow-x-hidden bg-slate-50 text-slate-900"
+    >
+      <LandingSectionRail sections={DEMO_NAV} activeSectionId={activeSectionId} />
       {/* Top nav  -  aligned with landing pages */}
-      <header className="sticky top-0 z-50 bg-white/90 border-b border-gray-200 backdrop-blur">
+      <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/90 backdrop-blur relative">
+        <LandingHeaderScrollProgress scrollProgress={scrollProgress} />
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-4 sm:gap-6">
           <button
             type="button"
@@ -143,9 +164,9 @@ const InstitutionDemoRequestPage: React.FC = () => {
         </div>
       </header>
 
-      <main className="flex-1 px-4 py-8 sm:px-6 sm:py-10 text-[15px] sm:text-base">
+      <main className="flex-1 px-4 py-8 text-[15px] sm:px-6 sm:py-10 sm:text-base">
         <div className="mx-auto w-full max-w-xl sm:max-w-2xl">
-          <div className="mb-5 text-center">
+          <div id="demo-intro" data-landing-reveal className="mb-5 text-center">
             <h2 className="text-2xl font-semibold text-slate-900 sm:text-3xl">
               Request a Demo
             </h2>
@@ -165,7 +186,11 @@ const InstitutionDemoRequestPage: React.FC = () => {
             </p>
           </div>
 
-          <div className="rounded-3xl bg-white px-4 py-5 shadow-sm ring-1 ring-slate-200 sm:px-5 sm:py-6">
+          <div
+            id="demo-form"
+            data-landing-reveal
+            className="rounded-3xl bg-white px-4 py-5 shadow-sm ring-1 ring-slate-200 sm:px-5 sm:py-6"
+          >
             {submitted ? (
               <div className="flex flex-col items-center text-center py-4 sm:py-6">
                 <div className="flex items-center justify-center gap-3">

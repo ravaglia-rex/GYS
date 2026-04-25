@@ -42,7 +42,7 @@ function razorpayPaymentFailedUserMessage(payload: unknown): string {
   return bits.filter((b, i) => bits.indexOf(b) === i).join(' - ');
 }
 
-/** US test keys route through Razorpay cross-border test APIs — 502/currency errors are often Razorpay-side. */
+/** US test keys route through Razorpay cross-border test APIs 502/currency errors are often Razorpay-side. */
 function paymentFailedToastDescription(detail: string, keyId: string): string {
   const low = detail.toLowerCase();
   const usKey = typeof keyId === 'string' && keyId.includes('_us_');
@@ -123,7 +123,7 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
         console.info('[SchoolRazorpay] using key_id prefix:', order.key_id.slice(0, 16));
         if (order.key_id.includes('_us_')) {
           console.warn(
-            '[SchoolRazorpay] US test key (rzp_test_us_*): Checkout calls Razorpay cross-border test endpoints. A 502 on …/payments_cross_border_test/…/cb_flows is Razorpay infrastructure — “Currency is invalid” often appears after that fails. For plain INR order testing, use India test keys (no _us_).'
+            '[SchoolRazorpay] US test key (rzp_test_us_*): Checkout calls Razorpay cross-border test endpoints. A 502 on …/payments_cross_border_test/…/cb_flows is Razorpay infrastructure - “Currency is invalid” often appears after that fails. For plain INR order testing, use India test keys (no _us_).'
           );
         }
       }
@@ -149,7 +149,7 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
 
       const currencyRaw = typeof order.currency === 'string' ? order.currency.trim() : '';
       if (!/^[A-Za-z]{3}$/.test(currencyRaw)) {
-        throw new Error('Payment server returned an invalid currency — redeploy functions or contact support.');
+        throw new Error('Payment server returned an invalid currency - redeploy functions or contact support.');
       }
       const currency = currencyRaw.toUpperCase();
 
@@ -174,7 +174,7 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
 
       if (process.env.NODE_ENV === 'development' && !customerId) {
         console.warn(
-          '[SchoolRazorpay] No customer_id from API — Import Flow may fail. Deploy latest functions.'
+          '[SchoolRazorpay] No customer_id from API - Import Flow may fail. Deploy latest functions.'
         );
       }
 
@@ -224,7 +224,7 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
             setBusy(false);
             toast({
               title: 'Payment successful',
-              description: 'Your institutional subscription payment was confirmed.',
+              description: 'Your institutional package payment was confirmed.',
             });
             onSuccess();
           } catch (err: unknown) {
@@ -301,8 +301,7 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
           India mobile number<span className="text-red-500"> *</span>
         </label>
         <p className="mb-1.5 text-[11px] text-slate-500 leading-relaxed">
-          Required for Razorpay Import Flow. For international / US merchants, Razorpay may reject obviously fake
-          numbers (e.g. 9999999999) — use a plausible number for testing.
+          Required for Razorpay Import Flow.
         </p>
         <input
           type="tel"
@@ -329,7 +328,7 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
           Institution PAN <span className="text-slate-400 font-normal">(optional)</span>
         </label>
         <p className="mb-1.5 text-[11px] text-slate-500 leading-relaxed">
-          Recommended for Import Flow tax identity — format ABCDE1234F.
+          Recommended for Import Flow tax identity - format ABCDE1234F.
         </p>
         <input
           type="text"

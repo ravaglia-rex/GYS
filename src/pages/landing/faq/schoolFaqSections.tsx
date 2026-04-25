@@ -19,8 +19,8 @@ export const schoolFaqSections: { heading: string; items: LandingFaqItem[] }[] =
             success in higher education and also for helping schools understand the performance of
             their students, individually and in aggregate, in comparison to domestic and
             international populations. The GYS exams measure symbolic reasoning, verbal reasoning,
-            mathematical reasoning, personality, English proficiency, and AI literacy through six
-            progressively deeper assessments. GYS classifies students into internationally recognized
+            mathematical reasoning, English proficiency, AI proficiency, personality, and career
+            discovery through seven progressively deeper exams (Reasoning, Skills, and Insight groups). GYS classifies students into internationally recognized
             performance tiers that signal academic readiness and potential.
           </p>
         ),
@@ -31,7 +31,7 @@ export const schoolFaqSections: { heading: string; items: LandingFaqItem[] }[] =
           <p>
             GYS assessment data contributes approximately 15% to a school&apos;s EducationWorld India
             School Ranking, serving as an input value for several categories. Schools that administer
-            GYS receive a performance tier designation — updated quarterly — that feeds directly into
+            GYS receive a performance tier designation, updated quarterly, that feeds directly into
             the ranking methodology. The ranking considers both participation (how many of your
             students take the assessments) and performance (how your top students score). This is the
             most actionable lever available to schools seeking to improve or maintain their ranking
@@ -40,23 +40,37 @@ export const schoolFaqSections: { heading: string; items: LandingFaqItem[] }[] =
         ),
       },
       {
+        question:
+          'We are not buying an institutional package. Can we still earn recognition if families subscribe on their own?',
+        answer: (
+          <p>
+            Yes. When attributable consumer revenue from your students reaches at least{' '}
+            <strong>₹3 lakh</strong> in an annual cycle, using the same student–school association pathways as
+            elsewhere; your school qualifies for the same recognition benefits as paying institutional clients,
+            including <strong>Education Leadership Award</strong> eligibility (subject to Premium-equivalent benefits)
+            and inclusion in <strong>EducationWorld ranking attribution</strong>. The threshold is calibrated to
+            current consumer pricing and will be revisited as data accumulates.
+          </p>
+        ),
+      },
+      {
         question: 'What does it cost for our school?',
         answer: (
           <>
-            <p>GYS offers three institutional tiers:</p>
+            <p>GYS offers three institutional packages:</p>
             <ul>
               <li>
-                <strong>Pilot</strong> — ₹2 lakh per year (up to ~200 students). Includes Exam 1
+                <strong>Pilot</strong> - ₹2 lakh per year (up to ~200 students). Includes Exam 1
                 (Symbolic Reasoning) for all students, basic institutional reporting, and quarterly
                 performance updates.
               </li>
               <li>
-                <strong>Standard</strong> — ₹3 lakh per year (up to ~500 students). Includes Exams
+                <strong>Standard</strong> - ₹3 lakh per year (up to ~500 students). Includes Exams
                 1–3 (the full reasoning triad), detailed analytics, comparative peer analysis, and
                 student-level and class-level breakdowns.
               </li>
               <li>
-                <strong>Partner/Flagship</strong> — ₹5 lakh per year (no student cap). Same assessment
+                <strong>Partner/Flagship</strong> - ₹5 lakh per year (no student cap). Same assessment
                 access as Standard, plus stream-selection insights, dedicated support, and
                 implementation assistance.
               </li>
@@ -68,9 +82,9 @@ export const schoolFaqSections: { heading: string; items: LandingFaqItem[] }[] =
         question: 'What do we need to do to get started?',
         answer: (
           <p>
-            Visit the GYS website, select your institutional tier, and complete payment. Once enrolled,
+            Visit the GYS website, select your institutional package, and complete payment. Once enrolled,
             you can follow several defined procedures to register your students. Once registered,
-            students verify their email, and begin assessments from any device — including mobile
+            students verify their email, and begin assessments from any device, including mobile
             phones. There is no need to schedule exam sessions, allocate classroom time, or install
             any software.
           </p>
@@ -82,7 +96,7 @@ export const schoolFaqSections: { heading: string; items: LandingFaqItem[] }[] =
           <p>
             None. All assessments are completed by students independently, on their own devices, at
             their own pace. Students can take exams from home. Your only administrative task is
-            facilitating communication to students and parents — we provide all the materials for
+            facilitating communication to students and parents; we provide all the materials for
             that.
           </p>
         ),
@@ -92,10 +106,10 @@ export const schoolFaqSections: { heading: string; items: LandingFaqItem[] }[] =
         answer: (
           <p>
             Your school dashboard displays grade-wise performance distributions (what percentage of
-            students in each grade have reached each difficulty tier), your school&apos;s
+            students in each grade have reached each difficulty level), your school&apos;s
             EducationWorld ranking position, and detailed analytics on student engagement.
             Downloadable institutional reports provide class-level breakdowns that are actionable for
-            school leadership — for example: &quot;20% of your 8th graders are performing at a level
+            school leadership, for example: &quot;20% of your 8th graders are performing at a level
             expected of strong college candidates. 40% are developing. 40% need support.&quot;
           </p>
         ),
@@ -128,7 +142,7 @@ export const schoolFaqSections: { heading: string; items: LandingFaqItem[] }[] =
         answer: (
           <p>
             Students can register with personal email addresses (Gmail, etc.). Schools must supply us
-            with a student email list — whether school-issued or personal. We automatically associate
+            with a student email list, whether school-issued or personal. We automatically associate
             those students with your school when they register. Alternatively, we can provide your
             school with a unique tagged link to forward to families; any student who registers through
             that link is automatically associated with your school.
@@ -139,7 +153,7 @@ export const schoolFaqSections: { heading: string; items: LandingFaqItem[] }[] =
         question: 'Do we control what data is shared?',
         answer: (
           <p>
-            For students whose assessment access comes through your institutional subscription, you
+            For students whose assessment access comes through your institutional package, you
             have full visibility into individual scores, subscores, and reports.
           </p>
         ),

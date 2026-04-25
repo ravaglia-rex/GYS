@@ -17,14 +17,25 @@ const SAMPLE_ASSESSMENT_EXIT = '/students/preview/dashboard';
 
 const StudentPreviewDashboardPage: React.FC = () => {
   const inScope = MEMBERSHIP_ALLOWED[PREVIEW_MEMBERSHIP_LEVEL] ?? [];
+  let listedCompleted = 0;
   let scopeCompleted = 0;
   for (const id of inScope) {
     const p = PREVIEW_ASSESSMENT_PROGRESS[id];
     const a = PREVIEW_ASSESSMENT_TYPES.find((x) => x.id === id);
     if (p && a && p.proficiency_tier > a.tiers.length) scopeCompleted++;
   }
+  for (const a of PREVIEW_ASSESSMENT_TYPES) {
+    const p = PREVIEW_ASSESSMENT_PROGRESS[a.id];
+    if (p && p.proficiency_tier > a.tiers.length) listedCompleted++;
+  }
   const scopeTotal = inScope.length;
-  const assessmentScopeLine = `${scopeCompleted} of ${scopeTotal} complete (Level ${PREVIEW_MEMBERSHIP_LEVEL})`;
+  const listedTotal = PREVIEW_ASSESSMENT_TYPES.length;
+  const membershipPackageLabel =
+    PREVIEW_MEMBERSHIP_LEVEL <= 1
+      ? 'Trial / Discovery'
+      : `Membership ${PREVIEW_MEMBERSHIP_LEVEL - 1}`;
+  const assessmentScopeLine =
+    `${listedCompleted} of ${listedTotal} complete`;
 
   return (
     <Box sx={{ p: 0 }}>
@@ -43,6 +54,7 @@ const StudentPreviewDashboardPage: React.FC = () => {
           schoolName: PREVIEW_STUDENT_PROFILE.schoolName,
           membershipLevel: PREVIEW_STUDENT_PROFILE.membershipLevelLabel,
           membershipExpiry: PREVIEW_STUDENT_PROFILE.membershipExpiryLabel,
+          achievementTierId: 'gold',
         }}
         previewNavTargets={{
           available: SAMPLE_ASSESSMENT_PATH,
@@ -61,7 +73,7 @@ const StudentPreviewDashboardPage: React.FC = () => {
           </Typography>
         </Box>
         <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.65)', mb: 2, maxWidth: 720 }}>
-          All assessments are listed below. Complete them in sequence where your membership allows — Level 2 is the reasoning triad (Exams 1–3); Level 3 unlocks Exams 4–6 (English, AI, comprehensive personality).
+          All assessments are listed below. Complete them in sequence where your membership allows: Reasoning Triad is Exams 1–3; Reasoning + Skills adds 4–5; Guided Decision adds Insight (6–7) and counseling features.
         </Typography>
         <EnhancedAssessmentCardsGroup
           uid=""

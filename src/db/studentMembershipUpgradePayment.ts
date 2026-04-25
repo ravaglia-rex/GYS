@@ -24,7 +24,7 @@ function messageFromAxios(e: unknown): string | null {
 }
 
 export async function createStudentUpgradeOrder(
-  targetLevel: 1 | 2 | 3
+  targetLevel: 1 | 2 | 3 | 4
 ): Promise<CreateStudentUpgradeOrderResponse> {
   const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS ?? '';
   if (!base) {

@@ -45,14 +45,14 @@ function razorpayPaymentFailedUserMessage(payload: unknown): string {
   return bits.filter((b, i) => bits.indexOf(b) === i).join(' - ');
 }
 
-const TARGETS: Array<1 | 2 | 3> = [1, 2, 3];
+const TARGETS: Array<1 | 2 | 3 | 4> = [1, 2, 3, 4];
 
 const MembershipUpgradeSection: React.FC = () => {
   const { toast } = useToast();
   const [uid, setUid] = useState<string | null>(auth.currentUser?.uid ?? null);
   const [loading, setLoading] = useState(true);
   const [membershipLevel, setMembershipLevel] = useState<number>(0);
-  const [busyTarget, setBusyTarget] = useState<1 | 2 | 3 | null>(null);
+  const [busyTarget, setBusyTarget] = useState<1 | 2 | 3 | 4 | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const refreshProfile = useCallback(async () => {
@@ -89,7 +89,7 @@ const MembershipUpgradeSection: React.FC = () => {
     void refreshProfile();
   }, [uid, refreshProfile]);
 
-  const startUpgrade = async (targetLevel: 1 | 2 | 3) => {
+  const startUpgrade = async (targetLevel: 1 | 2 | 3 | 4) => {
     const user = auth.currentUser;
     if (!user?.uid) {
       toast({
@@ -274,7 +274,7 @@ const MembershipUpgradeSection: React.FC = () => {
   const upgrades = TARGETS.map((t) => {
     const paise = studentMembershipUpgradeAmountPaise(membershipLevel, t);
     return paise === null ? null : { target: t, paise };
-  }).filter((x): x is { target: 1 | 2 | 3; paise: number } => x !== null);
+  }).filter((x): x is { target: 1 | 2 | 3 | 4; paise: number } => x !== null);
 
   return (
     <Paper
@@ -293,16 +293,19 @@ const MembershipUpgradeSection: React.FC = () => {
         </Typography>
       </Box>
       <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.72)', mb: 2 }}>
-        Current plan:{' '}
+        Three annual membership levels (plus Discovery 1a as a one-time entry). Current plan:{' '}
         <Box component="span" sx={{ color: '#e9d5ff', fontWeight: 600 }}>
-          {membershipLevel === 0 ? 'No paid tier yet' : MEMBERSHIP_LEVEL_LABEL[membershipLevel as 1 | 2 | 3]}
+          {membershipLevel === 0
+            ? 'No paid tier yet'
+            : MEMBERSHIP_LEVEL_LABEL[membershipLevel as 1 | 2 | 3 | 4]}
         </Box>
-        . Prices include 18% GST; you only pay the difference when moving up.
+        . Prices include 18% GST; you only pay the difference when moving up. Discovery is credited toward
+        higher tiers the same way - list difference only.
       </Typography>
 
       {upgrades.length === 0 ? (
         <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.65)' }}>
-          You already have the highest membership tier. Exam fees and other billing are below.
+          You already have the highest package. Exam fees and other billing are below.
         </Typography>
       ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>

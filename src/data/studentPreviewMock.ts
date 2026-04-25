@@ -8,22 +8,22 @@ const mkTiers = (n: number) =>
   Array.from({ length: n }, (_, i) => ({
     id: `tier-${i + 1}`,
     tier_number: i + 1,
-    name: `Tier ${i + 1}`,
+    name: `Level ${i + 1}`,
   }));
 
 export const PREVIEW_STUDENT_PROFILE = {
   firstName: 'Aanya',
   grade: 10,
   schoolName: 'Navrion Future Academy',
-  membershipLevelLabel: 'Level 3 - Excel',
+  membershipLevelLabel: 'Membership 2 • Reasoning + Skills',
   membershipExpiryLabel: 'Active until Mar 2027',
 };
 
 export const PREVIEW_DASHBOARD_STATS = {
-  totalAssessments: 6,
-  completedAssessments: 4,
+  totalAssessments: 7,
+  completedAssessments: 3,
   averageScore: 81,
-  availableAssessments: 2,
+  availableAssessments: 1,
 };
 
 export const PREVIEW_ASSESSMENT_TYPES: AssessmentType[] = [
@@ -31,13 +31,14 @@ export const PREVIEW_ASSESSMENT_TYPES: AssessmentType[] = [
   { id: 'verbal_reasoning', name: 'Verbal Reasoning', tiers: mkTiers(3) },
   { id: 'mathematical_reasoning', name: 'Mathematical Reasoning', tiers: mkTiers(3) },
   { id: 'english_proficiency', name: 'English Proficiency', tiers: mkTiers(3) },
-  { id: 'ai_literacy', name: 'AI Literacy & Capability', tiers: mkTiers(1) },
+  { id: 'ai_literacy', name: 'AI Proficiency', tiers: mkTiers(3) },
   { id: 'comprehensive_personality', name: 'Comprehensive Personality', tiers: mkTiers(3) },
+  { id: 'career_interest_inventory', name: 'Interest & Career Discovery', tiers: mkTiers(1) },
 ];
 
 /**
- * Level 3 membership. Reasoning triad complete; English on tier 3 (retake).
- * AI tier 1 not yet attempted - comprehensive stays prerequisite-locked until AI is finished.
+ * Reasoning + Skills package. Reasoning triad complete; English on level 3 (retake).
+ * AI level 1 not yet attempted - comprehensive stays prerequisite-locked until AI is finished.
  */
 export const PREVIEW_ASSESSMENT_PROGRESS: Record<string, AssessmentProgress> = {
   symbolic_reasoning: {
@@ -71,6 +72,12 @@ export const PREVIEW_ASSESSMENT_PROGRESS: Record<string, AssessmentProgress> = {
     attempts_count: 0,
   },
   comprehensive_personality: {
+    proficiency_tier: 1,
+    status: 'locked',
+    best_score: null,
+    attempts_count: 0,
+  },
+  career_interest_inventory: {
     proficiency_tier: 1,
     status: 'locked',
     best_score: null,

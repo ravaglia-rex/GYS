@@ -11,6 +11,7 @@ import { EnhancedAssessmentCardsGroup } from '../../components/dashboard/Enhance
 import {
   ASSESSMENT_ORDER,
   MEMBERSHIP_ALLOWED,
+  PROGRAM_EXAM_COUNT,
   computeGate,
   normalizeMembershipLevel,
   defaultAssessmentProgress,
@@ -33,8 +34,6 @@ interface DashboardStats {
   availableAssessments: number;
 }
 
-// Canonical program count (reasoning triad + English + AI + comprehensive personality)
-const TOTAL_ASSESSMENT_TYPES = 6;
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -42,7 +41,7 @@ const Dashboard: React.FC = () => {
   const [uid, setUid] = useState(() => auth.currentUser?.uid ?? '');
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState<DashboardStats>({
-    totalAssessments: TOTAL_ASSESSMENT_TYPES,
+    totalAssessments: PROGRAM_EXAM_COUNT,
     tiersCompleted: 0,
     averageScore: 0,
     availableAssessments: 0,
@@ -80,7 +79,6 @@ const Dashboard: React.FC = () => {
         const inScopeIds = MEMBERSHIP_ALLOWED[membershipLevel] ?? [];
         let availableAssessments = 0;
         let tiersCompleted = 0;
-        let scopeCompleted = 0;
 
         for (const a of sorted) {
           const p = progress[a.id] ?? defaultAssessmentProgress;
@@ -88,13 +86,15 @@ const Dashboard: React.FC = () => {
           const done =
             p.status === 'tier_advanced' || isAssessmentFullyComplete(a, p);
           if (done) tiersCompleted++;
-          if (inScopeIds.includes(a.id) && done) scopeCompleted++;
           if (!gate.locked && !isAssessmentFullyComplete(a, p)) availableAssessments++;
         }
 
         const scopeTotal = inScopeIds.length;
+        const listedTotal = Math.max(sorted.length, PROGRAM_EXAM_COUNT);
+        const membershipPackageLabel =
+          membershipLevel <= 1 ? 'Trial / Discovery' : `Membership ${membershipLevel - 1}`;
         setAssessmentScopeLine(
-          `${scopeCompleted} of ${scopeTotal} complete (Level ${membershipLevel})`
+          `${tiersCompleted} of ${listedTotal} complete`
         );
 
         // Average score across all assessments that have a best score
@@ -109,7 +109,7 @@ const Dashboard: React.FC = () => {
             : 0;
 
         setStats({
-          totalAssessments: sorted.length || TOTAL_ASSESSMENT_TYPES,
+          totalAssessments: listedTotal,
           tiersCompleted,
           averageScore: avgScore,
           availableAssessments,
@@ -188,7 +188,7 @@ const Dashboard: React.FC = () => {
                   )}
                 </Box>
                 <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.65)', mb: 2, maxWidth: 720 }}>
-                  All assessments are listed below. Complete them in sequence where your membership allows — Level 2 is the full reasoning triad (Exams 1–3); Level 3 adds advanced English, AI literacy, and comprehensive personality (Exams 4–6).
+                  All assessments are listed below. Complete them in sequence where your membership allows - Reasoning Triad covers Exams 1-3; Reasoning + Skills adds English and AI Proficiency (4-5); Guided Decision adds the Insight group (6-7) and ongoing AI career counseling that begins after that baseline and grows as you log new experiences. Practice Mode uses a separate pool and does not change official scores.
                 </Typography>
                 <EnhancedAssessmentCardsGroup uid={uid} filterType="all" />
               </Box>

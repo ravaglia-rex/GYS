@@ -68,7 +68,7 @@ export interface Tier123Counts {
 
 /**
  * Counts students by overall proficiency band: min band across active assessment slots (see `studentOverallProficiencyBand`).
- * UI labels: Tier 1 = Bronze, Tier 2 = Silver, Tier 3+ = Gold.
+ * UI labels: Level 1 = Bronze, Level 2 = Silver, Level 3+ = Gold (difficulty / proficiency ladder, not national performance tiers).
  */
 export function summarizeSchoolTier123(students: StudentRow[]): Tier123Counts {
   const list = students;

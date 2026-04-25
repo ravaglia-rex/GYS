@@ -40,7 +40,8 @@ export interface StudentRow {
   grade: number;
   membership_level: number;
   approval_status: string;
-  achievement_tier: string | null;
+  /** Coalesced on the API; missing legacy docs read as `explorer`. */
+  achievement_tier: string;
   assessment_progress: Record<string, AssessmentProgress>;
   created_at: any;
 }

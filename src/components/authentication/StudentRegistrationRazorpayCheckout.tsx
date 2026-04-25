@@ -43,7 +43,7 @@ function razorpayPaymentFailedUserMessage(payload: unknown): string {
 
 export type StudentRegistrationRazorpayCheckoutProps = {
   email: string;
-  membershipLevel: 1 | 2 | 3;
+  membershipLevel: 1 | 2 | 3 | 4;
   planLabel: string;
   /** Called after server verifies payment; create Firebase user + runSignUpTransaction here. */
   onPaymentVerified: (razorpayPaymentId: string) => Promise<void>;

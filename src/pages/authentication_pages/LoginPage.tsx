@@ -1,6 +1,7 @@
 import React from 'react';
 import * as Sentry from '@sentry/react';
 import EmailEntryForm from '../../components/auth/EmailForm';
+import LandingSiteFooter from '../../components/layout/LandingSiteFooter';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
 
 const GYS_BLUE = '#1e3a8a';
@@ -87,14 +88,7 @@ const LoginPage: React.FC = () => {
           </div>
         </main>
 
-        {/* Footer  -  match LandingPage height */}
-        <footer className="bg-white border-t border-gray-200 py-10">
-          <div className="max-w-5xl mx-auto px-6">
-            <p className="text-center text-gray-500 text-sm">
-              © 2026 Global Young Scholar. A joint initiative of Access USA, Argus, and EducationWorld.
-            </p>
-          </div>
-        </footer>
+        <LandingSiteFooter />
       </div>
     </Sentry.ErrorBoundary>
   );

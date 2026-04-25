@@ -4,7 +4,7 @@ import type { Tier123Counts } from '../../utils/schoolAdminTierAnalytics';
 import { PROF_TIER_COLORS } from '../../utils/schoolAdminTierAnalytics';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 
-const LABELS = ['Tier 1 (Bronze)', 'Tier 2 (Silver)', 'Tier 3+ (Gold)'] as const;
+const LABELS = ['Level 1 (Bronze)', 'Level 2 (Silver)', 'Level 3+ (Gold)'] as const;
 
 function pct(part: number, total: number): number {
   if (total <= 0) return 0;

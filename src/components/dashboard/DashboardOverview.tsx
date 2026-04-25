@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Card, CardContent, Typography, Avatar, Badge, Chip } from '@mui/material';
+import { Box, Card, CardContent, Typography, Avatar, Badge } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { 
   TrendingUp, 
@@ -15,13 +15,21 @@ import { getStudent } from '../../db/studentCollection';
 import { getSchoolDetails } from '../../db/schoolCollection';
 import { getPayments } from '../../db/studentPaymentMappings';
 import { normalizeMembershipLevel, NON_COMPETITIVE_CHART_ASSESSMENT_IDS } from '../../utils/assessmentGating';
+import {
+  ACHIEVEMENT_TIER_EXPLORER,
+  formatAchievementTierLabel,
+  normalizeAchievementTierId,
+} from '../../utils/achievementTier';
 
-/** When the student doc has no level, infer tier from last payment (₹499 / ₹1,299 / ₹2,499 and legacy ₹999 / ₹4,999 / ₹9,999, incl. typical GST). */
+/**
+ * When the student doc has no level, infer tier from last payment (GST-inclusive totals).
+ * Rev 13 list + GST: ~₹353 / ~₹1,061 / ~₹2,123 / ~₹3,185; legacy tiers ~₹589 / ~₹1,533 / ~₹2,949 / ~₹3,185.
+ */
 function membershipLabelFromPaymentAmountInr(amount: number): string {
-  if (amount < 1200) return 'Level 1 - Explore';
-  if (amount >= 4000 && amount < 8000) return 'Level 2 - Engage';
-  if (amount < 2200) return 'Level 2 - Engage';
-  return 'Level 3 - Excel';
+  if (amount >= 2700) return 'Membership 3 • Guided Decision';
+  if (amount >= 1900) return 'Membership 2 • Reasoning + Skills';
+  if (amount >= 1200) return 'Membership 1 • Reasoning Triad';
+  return 'Discovery (Early offer • ₹299)';
 }
 
 export type AssessmentChartRow = { subject: string; score: number; assessmentId?: string };
@@ -224,6 +232,8 @@ export interface DashboardOverviewPreviewProfile {
   schoolName: string;
   membershipLevel: string;
   membershipExpiry: string;
+  /** Achievement band (`explorer`, `bronze`, `silver`, `gold`). Defaults to Explorer when omitted. */
+  achievementTierId?: string;
 }
 
 interface DashboardOverviewProps {
@@ -234,7 +244,7 @@ interface DashboardOverviewProps {
     availableAssessments: number;
   };
   latestAssessmentResults?: AssessmentChartRow[];
-  /** When true, show default Entry tier chip (Tier 1) for new students */
+  /** @deprecated Explorer is now the canonical default achievement tier from the student profile. */
   defaultEntryTier?: boolean;
   /** Static profile - skips Firestore; use with sample / preview dashboards */
   previewProfile?: DashboardOverviewPreviewProfile;
@@ -380,7 +390,7 @@ const generateDynamicNotifications = (
 const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   stats,
   latestAssessmentResults = [],
-  defaultEntryTier = true,
+  defaultEntryTier: _defaultEntryTier = true,
   previewProfile,
   previewNavTargets,
   previewDisableAssessmentStatClicks = false,
@@ -393,6 +403,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   const [schoolName, setSchoolName] = useState<string | null>(null);
   const [membershipLevel, setMembershipLevel] = useState<string | null>(null);
   const [membershipExpiry, setMembershipExpiry] = useState<string | null>(null);
+  const [achievementTierId, setAchievementTierId] = useState<string>(ACHIEVEMENT_TIER_EXPLORER);
 
   // Generate notifications based on stats
   const notifications = generateDynamicNotifications(stats.availableAssessments, stats.completedAssessments);
@@ -404,6 +415,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
       setSchoolName(previewProfile.schoolName);
       setMembershipLevel(previewProfile.membershipLevel);
       setMembershipExpiry(previewProfile.membershipExpiry);
+      setAchievementTierId(normalizeAchievementTierId(previewProfile.achievementTierId));
       setLoading(false);
       return;
     }
@@ -411,6 +423,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
       if (auth.currentUser?.uid) {
         try {
           const userData = await getStudent(auth.currentUser.uid);
+          setAchievementTierId(normalizeAchievementTierId(userData?.achievement_tier as string | undefined));
           if (userData?.first_name) {
             setUserName(userData.first_name.charAt(0).toUpperCase() + userData.first_name.slice(1).toLowerCase());
           }
@@ -426,9 +439,10 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
           // Derive membership level + expiry from payments, fall back to account creation date
           const levelMap: Record<string, string> = {
-            LEVEL_1: 'Level 1 - Explore',
-            LEVEL_2: 'Level 2 - Engage',
-            LEVEL_3: 'Level 3 - Excel',
+            LEVEL_1: 'Discovery (Early offer)',
+            LEVEL_2: 'Membership 1 • Reasoning Triad',
+            LEVEL_3: 'Membership 2 • Reasoning + Skills',
+            LEVEL_4: 'Membership 3 • Guided Decision',
           };
           const rawLevel = userData?.membership_level ?? userData?.plan_level ?? null;
           const levelFromStudent: string | number | null =
@@ -436,7 +450,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           const levelNum =
             typeof levelFromStudent === 'number'
               ? levelFromStudent
-              : typeof levelFromStudent === 'string' && /^LEVEL_[123]$/.test(levelFromStudent)
+              : typeof levelFromStudent === 'string' && /^LEVEL_[1234]$/.test(levelFromStudent)
                 ? Number(levelFromStudent.replace('LEVEL_', ''))
                 : null;
 
@@ -461,7 +475,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
               const latest = sorted[0];
               // Determine level: student doc field > amount heuristic
               if (levelFromStudent != null && levelFromStudent !== '') {
-                if (typeof levelFromStudent === 'number' && levelFromStudent >= 1 && levelFromStudent <= 3) {
+                if (typeof levelFromStudent === 'number' && levelFromStudent >= 1 && levelFromStudent <= 4) {
                   setMembershipLevel(levelMap[`LEVEL_${levelFromStudent}` as 'LEVEL_1'] ?? `Level ${levelFromStudent}`);
                 } else {
                   setMembershipLevel(levelMap[levelFromStudent as keyof typeof levelMap] ?? String(levelFromStudent));
@@ -476,29 +490,29 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             } else {
               // No payments - default new students to Level 1; respect explicit level on student doc
               if (levelFromStudent != null && levelFromStudent !== '') {
-                if (typeof levelFromStudent === 'number' && levelFromStudent >= 1 && levelFromStudent <= 3) {
+                if (typeof levelFromStudent === 'number' && levelFromStudent >= 1 && levelFromStudent <= 4) {
                   setMembershipLevel(levelMap[`LEVEL_${levelFromStudent}` as 'LEVEL_1'] ?? `Level ${levelFromStudent}`);
                 } else {
                   setMembershipLevel(levelMap[levelFromStudent as keyof typeof levelMap] ?? String(levelFromStudent));
                 }
-              } else if (levelNum != null && levelNum >= 1 && levelNum <= 3) {
+              } else if (levelNum != null && levelNum >= 1 && levelNum <= 4) {
                 setMembershipLevel(levelMap[`LEVEL_${levelNum}` as 'LEVEL_1']);
               } else {
-                setMembershipLevel('Level 1 - Explore');
+                setMembershipLevel('Discovery (Early offer)');
               }
               setMembershipExpiry(creationExpiry());
             }
           } catch {
             if (levelFromStudent != null && levelFromStudent !== '') {
-              if (typeof levelFromStudent === 'number' && levelFromStudent >= 1 && levelFromStudent <= 3) {
+              if (typeof levelFromStudent === 'number' && levelFromStudent >= 1 && levelFromStudent <= 4) {
                 setMembershipLevel(levelMap[`LEVEL_${levelFromStudent}` as 'LEVEL_1'] ?? `Level ${levelFromStudent}`);
               } else {
                 setMembershipLevel(levelMap[levelFromStudent as keyof typeof levelMap] ?? String(levelFromStudent));
               }
-            } else if (levelNum != null && levelNum >= 1 && levelNum <= 3) {
+            } else if (levelNum != null && levelNum >= 1 && levelNum <= 4) {
               setMembershipLevel(levelMap[`LEVEL_${levelNum}` as 'LEVEL_1']);
             } else {
-              setMembershipLevel('Level 1 - Explore');
+              setMembershipLevel('Discovery (Early offer)');
             }
             setMembershipExpiry(creationExpiry());
           }
@@ -546,72 +560,142 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
   const displayResults = getDisplayResults();
 
+  const showStudentMeta =
+    !loading &&
+    (studentGrade || schoolName || membershipLevel || membershipExpiry || achievementTierId);
+
+  const tierLabel = formatAchievementTierLabel(achievementTierId);
+  const tierEmoji =
+    tierLabel === 'Explorer'
+      ? '🧭'
+      : tierLabel === 'Bronze'
+        ? '🥉'
+        : tierLabel === 'Silver'
+          ? '🥈'
+          : tierLabel === 'Gold'
+            ? '🥇'
+            : '🏅';
+
+  const tierChipSx =
+    tierLabel === 'Explorer'
+      ? { bgcolor: '#F0E9F8', border: '1px solid #D1C4E9', color: '#5E35B1' }
+      : tierLabel === 'Bronze'
+        ? { bgcolor: '#ffe4d6', border: '1px solid #ea580c', color: '#b5561c' }
+        : tierLabel === 'Silver'
+          ? { bgcolor: '#f3f4f6', border: '1px solid #9ca3af', color: '#374151' }
+          : tierLabel === 'Gold'
+            ? { bgcolor: '#fef3c7', border: '1px solid #f59e0b', color: '#b45309' }
+            : { bgcolor: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.22)', color: '#e2e8f0' };
+
+  const tierBadge = showStudentMeta && (
+    <Box sx={{ alignSelf: { xs: 'flex-end', sm: 'flex-start' }, flexShrink: 0 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 0.35,
+          mt: { sm: 0.25 },
+          px: 1.5,
+          py: 1,
+          minWidth: 72,
+          borderRadius: '16px',
+          textAlign: 'center',
+          ...tierChipSx,
+        }}
+      >
+        <Typography component="span" aria-hidden sx={{ fontSize: '1.35rem', lineHeight: 1, color: 'inherit' }}>
+          {tierEmoji}
+        </Typography>
+        <Typography
+          component="span"
+          sx={{ fontWeight: 700, fontSize: '0.78rem', lineHeight: 1.2, color: 'inherit' }}
+        >
+          {tierLabel}
+        </Typography>
+      </Box>
+    </Box>
+  );
+
   return (
     <Box sx={{ mb: 4, ml: 1 }}>
-      {/* Welcome Section */}
+      {/* Welcome Section — title left, performance tier badge top-right */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ 
-          color: 'white', 
-          fontWeight: 700, 
-          mb: 1,
-          fontSize: '2.2rem',
-          background: 'linear-gradient(45deg, #10b981, #3b82f6)',
-          backgroundClip: 'text',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent'
-        }}>
-          👋 Welcome to Your Dashboard, {loading ? 'Student' : userName}!
-        </Typography>
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', sm: 'row' },
+            alignItems: { xs: 'stretch', sm: 'flex-start' },
+            justifyContent: 'space-between',
+            gap: 2,
+            mb: 1,
+          }}
+        >
+          <Typography
+            variant="h4"
+            sx={{
+              color: 'white',
+              fontWeight: 700,
+              flex: { sm: '1 1 auto' },
+              minWidth: 0,
+              fontSize: '2.2rem',
+              background: 'linear-gradient(45deg, #10b981, #3b82f6)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
+          >
+            👋 Welcome to Your Dashboard, {loading ? 'Student' : userName}!
+          </Typography>
+          {tierBadge}
+        </Box>
 
-        {/* Student info row */}
-        {!loading && (studentGrade || schoolName || membershipLevel || membershipExpiry) && (
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1.5, mt: 0.5, alignItems: 'center' }}>
-            {defaultEntryTier && stats.completedAssessments === 0 && (
-              <Chip
-                label="Tier 1 - Entry"
-                size="small"
-                sx={{
-                  bgcolor: 'rgba(251, 191, 36, 0.12)',
-                  border: '1px solid rgba(251, 191, 36, 0.35)',
-                  color: '#fbbf24',
-                  fontWeight: 600,
-                  fontSize: '0.78rem',
-                }}
-              />
-            )}
+        {/* Grade / school / membership — below title row */}
+        {showStudentMeta && (studentGrade || schoolName || membershipLevel || membershipExpiry) && (
+          <Box
+            sx={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 1,
+              mb: 1.5,
+              mt: 0.5,
+              alignItems: 'center',
+            }}
+          >
             {(studentGrade || schoolName) && (
-              <Box sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                background: 'rgba(255, 255, 255, 0.08)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                borderRadius: '20px',
-                px: 1.5,
-                py: 0.5,
-              }}>
+              <Box
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  borderRadius: '20px',
+                  px: 1.5,
+                  py: 0.5,
+                }}
+              >
                 <Typography sx={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: '0.82rem', fontWeight: 500 }}>
-                  {[
-                    studentGrade ? `Grade ${studentGrade}` : null,
-                    schoolName ?? null,
-                  ].filter(Boolean).join(' • ')}
+                  {[studentGrade ? `Grade ${studentGrade}` : null, schoolName ?? null].filter(Boolean).join(' • ')}
                 </Typography>
               </Box>
             )}
             {(membershipLevel || membershipExpiry) && (
-              <Box sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                background: 'rgba(251, 191, 36, 0.12)',
-                border: '1px solid rgba(251, 191, 36, 0.3)',
-                borderRadius: '20px',
-                px: 1.5,
-                py: 0.5,
-              }}>
+              <Box
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  background: 'rgba(251, 191, 36, 0.12)',
+                  border: '1px solid rgba(251, 191, 36, 0.3)',
+                  borderRadius: '20px',
+                  px: 1.5,
+                  py: 0.5,
+                }}
+              >
                 <Typography sx={{ color: '#fbbf24', fontSize: '0.82rem', fontWeight: 500 }}>
-                  {[
-                    membershipLevel ?? null,
-                    membershipExpiry ? `Active until ${membershipExpiry}` : null,
-                  ].filter(Boolean).join(' • ')}
+                  {[membershipLevel ?? null, membershipExpiry ? `Active until ${membershipExpiry}` : null]
+                    .filter(Boolean)
+                    .join(' • ')}
                 </Typography>
               </Box>
             )}

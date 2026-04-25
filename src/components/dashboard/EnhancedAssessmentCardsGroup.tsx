@@ -21,7 +21,6 @@ import {
   computeGate,
   normalizeMembershipLevel,
   defaultAssessmentProgress,
-  MEMBERSHIP_LEVEL_LABELS,
   isAssessmentFullyComplete,
 } from '../../utils/assessmentGating';
 import { countClearedTiersFromProgress } from '../../utils/tierProgression';
@@ -68,7 +67,7 @@ const ASSESSMENT_META: Record<string, {
     color: '#ef4444',
     gradient: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
     icon: '✍️',
-    description: 'Advanced English - reading, writing, listening, and speaking. Level 3.',
+    description: 'Advanced English - reading, writing, listening, and speaking (Reasoning + Skills and above).',
     languages: [],
     needsMic: true,
   },
@@ -77,7 +76,7 @@ const ASSESSMENT_META: Record<string, {
     color: '#06b6d4',
     gradient: 'linear-gradient(135deg, #06b6d4 0%, #0e7490 100%)',
     icon: '🤖',
-    description: '4 sections: AI concepts, evaluating AI outputs, live AI task (sandboxed), and reflection. 60 minutes.',
+    description: 'AI Proficiency - concepts, evaluating outputs, live sandboxed task, and reflection. 60 minutes.',
     languages: [],
     needsLaptop: true,
   },
@@ -87,6 +86,14 @@ const ASSESSMENT_META: Record<string, {
     gradient: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)',
     icon: '🌐',
     description: '~30 college-specific dimensions. ~200 questions, 45 - 60 minutes. The capstone assessment.',
+    languages: [],
+  },
+  career_interest_inventory: {
+    assessmentNumber: 7,
+    color: '#a855f7',
+    gradient: 'linear-gradient(135deg, #a855f7 0%, #6d28d9 100%)',
+    icon: '🧭',
+    description: 'Interest inventory and career discovery — Guided Decision; completes after personality.',
     languages: [],
   },
 };
@@ -148,7 +155,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
   };
 
   const isLocked = gate.locked;
-  const currentTier = progress.proficiency_tier; // 1-indexed: 1 = take tier 1, 2 = take tier 2, 3 = all done
+  const currentTier = progress.proficiency_tier; // 1-indexed: 1 = take level 1, 2 = take level 2, 3 = all done
   const bestScore = progress.best_score;
   const attemptsCount = progress.attempts_count;
   const totalTiers = assessment.tiers.length;
@@ -160,26 +167,31 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
         : 0;
   /** Each cleared tier implies at least one successful attempt; show the larger of stored count vs that floor */
   const displayAttempts = Math.max(attemptsCount, tiersDone);
-  const tierProgress = totalTiers > 0 ? (tiersDone / totalTiers) * 100 : 0;
   const allTiersComplete = currentTier > totalTiers && totalTiers > 0;
   const canStart = !isLocked && !allTiersComplete;
+  const showLevelProgress = !isLocked;
+  const progressTotal = totalTiers > 0 ? totalTiers : Math.max(currentTier, 1);
+  const progressDone = totalTiers > 0 ? tiersDone : Math.max(currentTier - 1, 0);
+  const progressPercent = progressTotal > 0 ? Math.min(100, (progressDone / progressTotal) * 100) : 0;
 
   const reqLevel = gate.requiredMembershipLevel ?? 3;
+  const requiredPackageLabel =
+    reqLevel <= 1 ? 'Trial / Discovery' : `Membership ${Math.max(1, reqLevel - 1)}`;
   const lockLabel = gate.reason === 'membership'
-    ? `⭐ Level ${reqLevel} required - ${MEMBERSHIP_LEVEL_LABELS[reqLevel] ?? ''}`
+    ? `⭐ ${requiredPackageLabel} required`
     : gate.reason === 'prerequisite'
     ? `Unlocks after ${ASSESSMENT_NAMES[gate.missingPrerequisite ?? ''] ?? gate.missingPrerequisite}`
     : '';
 
-  const isL3Exclusive = assessment.id === 'comprehensive_personality';
+  const isGuidedDecisionExclusive =
+    assessment.id === 'comprehensive_personality' || assessment.id === 'career_interest_inventory';
   const membershipLocked = gate.reason === 'membership';
-  const isPurpleTier = isL3Exclusive && membershipLocked;
+  const isPurpleTier = isGuidedDecisionExclusive && membershipLocked;
   const reasoningSubcategories = getReasoningExamSubcategories(assessment.id);
 
   /** Fixed slots so device chips, tier bar, and stats line up across cards in the same grid row */
-  const DEVICE_CHIPS_SLOT_MIN = 40;
-  const TIER_PROGRESS_SLOT_MIN = 46;
   const STATS_ROW_SLOT_MIN = 42;
+  const hasStats = !isLocked && (attemptsCount > 0 || tiersDone > 0);
 
   return (
     <Card sx={{
@@ -254,7 +266,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
             />
           ) : displayAttempts > 0 ? (
             <Chip
-              label={`Tier ${currentTier}`}
+              label={`Level ${currentTier}`}
               size="small"
               sx={{ bgcolor: `${meta.color}18`, color: meta.color, fontSize: '0.73rem', height: 22, border: `1px solid ${meta.color}35` }}
             />
@@ -310,12 +322,6 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
           <Box sx={{ flex: 1, minHeight: 0 }} />
         )}
 
-        {isLocked && lockLabel && (
-          <Typography variant="caption" sx={{ color: '#475569', fontSize: '0.8rem', display: 'block', mb: 0, fontStyle: 'italic', flexShrink: 0 }}>
-            {lockLabel}
-          </Typography>
-        )}
-
         <Box
           sx={{
             flex: '0 0 auto',
@@ -328,91 +334,13 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
         >
           <Box
             sx={{
-              minHeight: DEVICE_CHIPS_SLOT_MIN,
+              minHeight: hasStats ? STATS_ROW_SLOT_MIN : 0,
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'flex-end',
             }}
           >
-            {meta.needsMic || meta.needsLaptop ? (
-              <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
-                {meta.needsMic && (
-                  <Tooltip title="Listening & speaking components require a microphone">
-                    <Chip
-                      icon={<MicIcon sx={{ fontSize: '0.73rem !important' }} />}
-                      label="Mic required"
-                      size="small"
-                      sx={{
-                        bgcolor: 'rgba(239,68,68,0.1)',
-                        color: '#f87171',
-                        fontSize: '0.68rem',
-                        height: 20,
-                        border: '1px solid rgba(239,68,68,0.2)',
-                      }}
-                    />
-                  </Tooltip>
-                )}
-                {meta.needsLaptop && (
-                  <Tooltip title="Section 3 (Live AI Task) works best on a laptop or desktop">
-                    <Chip
-                      icon={<LaptopMacIcon sx={{ fontSize: '0.73rem !important' }} />}
-                      label="Laptop recommended"
-                      size="small"
-                      sx={{
-                        bgcolor: 'rgba(6,182,212,0.1)',
-                        color: '#67e8f9',
-                        fontSize: '0.68rem',
-                        height: 20,
-                        border: '1px solid rgba(6,182,212,0.2)',
-                      }}
-                    />
-                  </Tooltip>
-                )}
-              </Box>
-            ) : null}
-          </Box>
-
-          <Box
-            sx={{
-              minHeight: TIER_PROGRESS_SLOT_MIN,
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'flex-end',
-            }}
-          >
-            {!isLocked && totalTiers > 0 ? (
-              <Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                  <Typography variant="caption" sx={{ color: '#475569', fontSize: '0.73rem' }}>
-                    Tier progress
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: '#475569', fontSize: '0.73rem' }}>
-                    {tiersDone} / {totalTiers}
-                  </Typography>
-                </Box>
-                <LinearProgress
-                  variant="determinate"
-                  value={tierProgress}
-                  sx={{
-                    height: 5,
-                    borderRadius: 3,
-                    bgcolor: 'rgba(255,255,255,0.05)',
-                    '& .MuiLinearProgress-bar': { bgcolor: meta.color, borderRadius: 3 },
-                  }}
-                />
-              </Box>
-            ) : null}
-          </Box>
-
-          <Box
-            sx={{
-              minHeight: STATS_ROW_SLOT_MIN,
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'flex-end',
-            }}
-          >
-            {!isLocked && (attemptsCount > 0 || tiersDone > 0) ? (
+            {hasStats ? (
               <Box sx={{ display: 'flex', gap: 3 }}>
                 {bestScore !== null && (
                   <Box>
@@ -455,6 +383,79 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
           </Box>
 
         <Box>
+        {showLevelProgress ? (
+          <Box sx={{ mb: 1 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+              <Typography variant="caption" sx={{ color: '#94a3b8', fontSize: '0.73rem' }}>
+                Level progress
+              </Typography>
+              <Typography variant="caption" sx={{ color: '#94a3b8', fontSize: '0.73rem' }}>
+                {progressDone} / {progressTotal}
+              </Typography>
+            </Box>
+            <LinearProgress
+              variant="determinate"
+              value={progressPercent}
+              sx={{
+                height: 5,
+                borderRadius: 3,
+                bgcolor: 'rgba(255,255,255,0.05)',
+                '& .MuiLinearProgress-bar': { bgcolor: meta.color, borderRadius: 3 },
+              }}
+            />
+          </Box>
+        ) : null}
+        {meta.needsMic || meta.needsLaptop ? (
+          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', alignItems: 'center', mb: 1 }}>
+            {meta.needsMic && (
+              <Tooltip title="Listening & speaking components require a microphone">
+                <Chip
+                  icon={<MicIcon sx={{ fontSize: '0.73rem !important' }} />}
+                  label="Mic required"
+                  size="small"
+                  sx={{
+                    bgcolor: 'rgba(239,68,68,0.1)',
+                    color: '#f87171',
+                    fontSize: '0.68rem',
+                    height: 20,
+                    border: '1px solid rgba(239,68,68,0.2)',
+                  }}
+                />
+              </Tooltip>
+            )}
+            {meta.needsLaptop && (
+              <Tooltip title="Section 3 (Live AI Task) works best on a laptop or desktop">
+                <Chip
+                  icon={<LaptopMacIcon sx={{ fontSize: '0.73rem !important' }} />}
+                  label="Laptop recommended"
+                  size="small"
+                  sx={{
+                    bgcolor: 'rgba(6,182,212,0.1)',
+                    color: '#67e8f9',
+                    fontSize: '0.68rem',
+                    height: 20,
+                    border: '1px solid rgba(6,182,212,0.2)',
+                  }}
+                />
+              </Tooltip>
+            )}
+          </Box>
+        ) : null}
+        {isLocked && lockLabel && (
+          <Typography
+            variant="caption"
+            sx={{
+              color: '#475569',
+              fontSize: '0.8rem',
+              display: 'block',
+              mb: 1,
+              fontStyle: 'italic',
+              flexShrink: 0,
+            }}
+          >
+            {lockLabel}
+          </Typography>
+        )}
         {isLocked ? (
           <Button
             fullWidth
@@ -477,7 +478,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
         ) : allTiersComplete ? (
           <Button fullWidth variant="outlined" startIcon={<TrendingUpIcon />} disabled
             sx={{ borderColor: '#1e3a2f', color: '#10b981', borderRadius: 1.5, fontSize: '0.875rem' }}>
-            All Tiers Completed
+            All levels completed
           </Button>
         ) : canStart ? (
           <Button
@@ -503,7 +504,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
                 : { '&:hover': { opacity: 0.88 } }),
             }}
           >
-            {attemptsCount > 0 ? `Retake Tier ${currentTier}` : `Start Assessment ${meta.assessmentNumber}`}
+            {attemptsCount > 0 ? `Retake Level ${currentTier}` : `Start Assessment ${meta.assessmentNumber}`}
           </Button>
         ) : null}
         </Box>

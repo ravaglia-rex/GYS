@@ -38,6 +38,7 @@ import {
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import { useSchoolAdminBelowNav } from '../../layouts/schoolAdminBelowNavContext';
 import { summarizeSchoolTier123 } from '../../utils/schoolAdminTierAnalytics';
+import { normalizeTierSlugForDashboard } from '../../utils/achievementTier';
 import { displaySubscriptionPlan } from '../../utils/displaySubscriptionPlan';
 import { ProficiencyTier123Overview } from '../../components/school_admin/ProficiencyTier123Overview';
 import {
@@ -61,7 +62,7 @@ function getDashboardQuickActions(routeBase: string): DashboardQuickAction[] {
       key: 'analytics',
       icon: <AnalyticsIcon sx={{ color: '#dc2626', fontSize: '2rem' }} />,
       label: 'Analytics',
-      subcaption: 'School-wide scores, grade mix, and proficiency tiers across assessments.',
+      subcaption: 'School-wide scores, grade mix, and proficiency levels across assessments.',
       path: `${routeBase}/analytics`,
     },
     {
@@ -82,13 +83,6 @@ const TIER_CONFIG: Record<string, { color: string; bg: string; label: string; ba
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-function normalizeTier(raw: unknown): string {
-  if (!raw) return 'explorer';
-  const t = String(raw).toLowerCase().replace(/\s+/g, '');
-  if (t === 'platinum' || t === 'diamond') return 'gold';
-  return t;
-}
-
 function ordinal(n: number): string {
   if (n <= 0) return '-';
   const s = ['th', 'st', 'nd', 'rd'];
@@ -477,7 +471,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
         [GREENFIELD_SCHOOL_DISPLAY.city, GREENFIELD_SCHOOL_DISPLAY.state].filter(Boolean).join(', ')
       );
       setSchoolBoard(GREENFIELD_SCHOOL_DISPLAY.board);
-      setSchoolTier(normalizeTier(GREENFIELD_SCHOOL_DISPLAY.institutionalTier));
+      setSchoolTier(normalizeTierSlugForDashboard(GREENFIELD_SCHOOL_DISPLAY.institutionalTier));
       setSubscriptionPlan(GREENFIELD_SCHOOL_DISPLAY.subscriptionPlan);
       setStudentCount(allStudents.length);
       setTotalAssessmentsCompleted(countAssessmentsCompleted(allStudents));
@@ -519,7 +513,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
         setSchoolName(schoolData.school_name ?? schoolData.name ?? 'Your School');
         setSchoolCity(schoolData.city ?? schoolData.location ?? '');
         setSchoolBoard(schoolData.board ?? schoolData.affiliation ?? '');
-        setSchoolTier(normalizeTier(schoolData.institutional_tier ?? schoolData.tier ?? 'gold'));
+        setSchoolTier(normalizeTierSlugForDashboard(schoolData.institutional_tier ?? schoolData.tier ?? 'gold'));
         setSubscriptionPlan(
           displaySubscriptionPlan(schoolData.subscription_plan ?? schoolData.plan ?? 'Standard Subscription')
         );
@@ -593,7 +587,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
       setBelowNav(null);
       return;
     }
-    const tierCfg = TIER_CONFIG[normalizeTier(schoolTier)] ?? TIER_CONFIG.gold;
+    const tierCfg = TIER_CONFIG[normalizeTierSlugForDashboard(schoolTier)] ?? TIER_CONFIG.gold;
     setBelowNav(
       <InstitutionHeroStrip
         schoolName={schoolName}
@@ -823,12 +817,12 @@ const SchoolAdminDashboardPage: React.FC = () => {
             Performance overview
           </Typography>
           <Typography variant="body2" sx={{ color: ip.subtext, mb: 1, lineHeight: 1.55 }}>
-            For each student we only look at assessments they’ve <strong>started or completed</strong>. Their overall tier is the{' '}
-            <strong>lowest</strong> tier among those-so if they’re strong in one subject but still in Tier 1 on another, they count in Tier 1
+            For each student we only look at assessments they’ve <strong>started or completed</strong>. Their overall proficiency is the{' '}
+            <strong>lowest</strong> level among those—so if they’re strong in one subject but still in Level 1 on another, they count in Level 1
             (that’s the gap to close first).
           </Typography>
           <Typography variant="caption" sx={{ color: ip.subtext, mb: 2, display: 'block', lineHeight: 1.5 }}>
-            <strong>How to read tiers:</strong> Tier 1 = Bronze, Tier 2 = Silver, Tier 3+ = Gold. Everyone on your school roster is included.
+            <strong>How to read levels:</strong> Level 1 = Bronze, Level 2 = Silver, Level 3+ = Gold. Everyone on your school roster is included.
           </Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
             <StatCard
@@ -839,14 +833,14 @@ const SchoolAdminDashboardPage: React.FC = () => {
               icon={<MiniBarChartIcon sx={{ fontSize: '1.15rem', color: ip.statBlue }} />}
             />
             <StatCard
-              label="At Gold (Tier 3+)"
+              label="At Gold (Level 3+)"
               value={`${performance.goldPlusPct}%`}
               change={performance.goldPlusChange !== 0 ? { value: performance.goldPlusChange, label: '% from Q1' } : undefined}
               accent="#d97706"
               icon={<StarsIcon sx={{ fontSize: '1.15rem', color: '#f59e0b' }} />}
             />
             <StatCard
-              label="In Bronze (Tier 1)"
+              label="In Bronze (Level 1)"
               value={`${performance.inBronzePct}%`}
               change={performance.inBronzeChange !== 0 ? { value: performance.inBronzeChange, label: '% from Q1' } : undefined}
               accent="#b45309"
@@ -863,11 +857,11 @@ const SchoolAdminDashboardPage: React.FC = () => {
 
           <Box>
             <Typography variant="body2" sx={{ color: ip.heading, fontWeight: 600, mb: 0.5 }}>
-              Student proficiency (tiers 1 - 3)
+              Student proficiency (levels 1–3)
             </Typography>
             <ProficiencyTier123Overview
               summary={proficiencyTier123}
-              subtitle="Same rule as above: lowest tier among that student’s active assessments. Tier 1 = Bronze · Tier 2 = Silver · Tier 3+ = Gold."
+              subtitle="Same rule as above: lowest level among that student’s active assessments. Level 1 = Bronze • Level 2 = Silver • Level 3+ = Gold."
             />
           </Box>
         </CardContent>

@@ -98,8 +98,8 @@ export const PREVIEW_PATTERN_LOGIC_SAMPLE_QUESTIONS: {
   },
   {
     id: 'sym-p5',
-    prompt: 'Grid rule: each row has one filled cell moving right by one. Row 3, col 4 is ?\n■ · · ·\n· ■ · ·\n· · ? ·',
-    options: ['■', '·', 'Both valid', 'No pattern'],
+    prompt: 'Grid rule: each row has one filled cell moving right by one. Row 3, col 4 is ?\n■ • • •\n• ■ • •\n• • ? •',
+    options: ['■', '•', 'Both valid', 'No pattern'],
     correctIndex: 0,
   },
   {
@@ -122,8 +122,8 @@ export const PREVIEW_PATTERN_LOGIC_SAMPLE_QUESTIONS: {
   },
   {
     id: 'sym-p9',
-    prompt: 'Dots per step: ·  ··  ···  ?',
-    options: ['····', '···', '··', '·'],
+    prompt: 'Dots per step: •  ••  •••  ?',
+    options: ['••••', '•••', '••', '•'],
     correctIndex: 0,
   },
   {

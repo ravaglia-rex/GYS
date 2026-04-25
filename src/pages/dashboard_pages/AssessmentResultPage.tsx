@@ -71,7 +71,7 @@ const AssessmentResultPage: React.FC = () => {
             <Box sx={{ background: `linear-gradient(135deg, ${grade.color}, #263238)`, px: 3, py: 4, textAlign: 'center' }}>
               <Typography sx={{ fontSize: '2.5rem', mb: 1 }}>🤖</Typography>
               <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: '1.15rem' }}>{flow.examTitleShort}</Typography>
-              <Chip label={`Tier ${tierNumber}`} size="small" sx={{ mt: 1, bgcolor: 'rgba(255,255,255,0.2)', color: '#fff', fontWeight: 600 }} />
+              <Chip label={`Level ${tierNumber}`} size="small" sx={{ mt: 1, bgcolor: 'rgba(255,255,255,0.2)', color: '#fff', fontWeight: 600 }} />
             </Box>
             <Box sx={{ px: 3, py: 3, textAlign: 'center' }}>
               <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, bgcolor: `${grade.color}18`, border: `1px solid ${grade.color}44`, borderRadius: 10, px: 2, py: 0.75, mb: 2 }}>
@@ -91,9 +91,9 @@ const AssessmentResultPage: React.FC = () => {
               <Typography sx={{ color: '#64748b', fontSize: '0.85rem', lineHeight: 1.6, mb: 2, textAlign: 'left' }}>
                 {passed
                   ? nextTier != null
-                    ? `You unlocked Tier ${nextTier}. Continue from Assessments when you are ready.`
-                    : 'You have completed all tiers for this assessment.'
-                  : 'Review the material and retake the tier to reach the next proficiency band.'}
+                    ? `You unlocked Level ${nextTier}. Continue from Assessments when you are ready.`
+                    : 'You have completed all levels for this assessment.'
+                  : 'Review the material and retake the level to reach the next proficiency band.'}
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
                 {passed && nextTier != null && (
@@ -104,7 +104,7 @@ const AssessmentResultPage: React.FC = () => {
                     onClick={() => navigate(`/assessments/${assessmentId}/tier/${nextTier}/detail`)}
                     sx={{ bgcolor: '#06b6d4', fontWeight: 800, py: 1.3, textTransform: 'none' }}
                   >
-                    Continue to Tier {nextTier}
+                    Continue to Level {nextTier}
                   </Button>
                 )}
                 {!passed && (
@@ -115,7 +115,7 @@ const AssessmentResultPage: React.FC = () => {
                     onClick={() => navigate(`/assessments/${assessmentId}/tier/${tierNumber}/detail`)}
                     sx={{ bgcolor: '#06b6d4', fontWeight: 800, py: 1.3, textTransform: 'none' }}
                   >
-                    Retake Tier {tierNumber}
+                    Retake Level {tierNumber}
                   </Button>
                 )}
                 <Button
@@ -170,7 +170,7 @@ const AssessmentResultPage: React.FC = () => {
               {percentile}th percentile - indicative global ranking
             </Typography>
             <Typography sx={{ color: '#558b2f', fontSize: '0.8rem', mt: 1 }}>
-              Score {displayScore}% · {correct} / {total} items
+              Score {displayScore}% • {correct} / {total} items
             </Typography>
           </Box>
         ) : (
@@ -189,10 +189,10 @@ const AssessmentResultPage: React.FC = () => {
           <Box sx={{ bgcolor: '#ffebee', border: '1px solid #ffcdd2', borderRadius: 2, p: 2, mb: 2, textAlign: 'center' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 0.5 }}>
               <CancelIcon sx={{ color: '#c62828' }} />
-              <Typography sx={{ fontWeight: 800, color: '#b71c1c' }}>Tier not passed</Typography>
+              <Typography sx={{ fontWeight: 800, color: '#b71c1c' }}>Level not passed</Typography>
             </Box>
             <Typography sx={{ color: '#616161', fontSize: '0.85rem' }}>
-              Reach the passing threshold to unlock the next tier.
+              Reach the passing threshold to unlock the next level.
             </Typography>
           </Box>
         )}
@@ -217,7 +217,7 @@ const AssessmentResultPage: React.FC = () => {
               </Typography>
               <Typography sx={{ color: '#37474f', fontSize: '0.85rem', lineHeight: 1.55 }}>{unlock}</Typography>
               <Typography sx={{ color: '#78909c', fontSize: '0.72rem', mt: 1, lineHeight: 1.45 }}>
-                Higher membership levels include additional instruments. Level 2 is the full reasoning triad (Exams 1–3); Level 3 includes all six exams (adds English, AI, and comprehensive personality).
+                Higher membership levels unlock more exams: Reasoning Triad (1–3), then Reasoning + Skills (4–5), then Guided Decision for Insight (6–7) and counseling.
               </Typography>
             </Box>
           </Box>
@@ -251,7 +251,7 @@ const AssessmentResultPage: React.FC = () => {
                 '&:hover': { bgcolor: '#e2e8f0' },
               }}
             >
-              Next tier - start
+              Next level - start
             </Button>
           )}
 
@@ -271,7 +271,7 @@ const AssessmentResultPage: React.FC = () => {
                 boxShadow: 'none',
               }}
             >
-              Retake tier {tierNumber}
+              Retake level {tierNumber}
             </Button>
           )}
 

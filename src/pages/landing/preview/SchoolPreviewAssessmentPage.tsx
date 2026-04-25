@@ -256,7 +256,7 @@ const SchoolPreviewAssessmentPage: React.FC = () => {
               lineHeight: 1.55,
             }}
           >
-            {previewQuestionCount} questions · about 10 minutes on the timer (demo only) · leave anytime via Exit or back
+            {previewQuestionCount} questions • about 10 minutes on the timer (demo only) • leave anytime via Exit or back
           </Typography>
 
           <Box
@@ -600,7 +600,7 @@ const SchoolPreviewAssessmentPage: React.FC = () => {
               />
             )}
             <Typography variant="caption" sx={{ color: '#94a3b8', mt: 2, display: 'block', textAlign: 'center' }}>
-              Keys 1 - 4 for options · Enter to continue
+              Keys 1 - 4 for options • Enter to continue
             </Typography>
           </Box>
         </Box>

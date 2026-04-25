@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import * as Sentry from '@sentry/react';
 
-/** Program-level narrative reports (beyond per-assessment results) — not built yet for v2. */
+/** Program-level narrative reports (beyond per-assessment results) - not built yet for v2. */
 const ReportsPage: React.FC = () => {
   const navigate = useNavigate();
 
@@ -60,8 +60,8 @@ const ReportsPage: React.FC = () => {
               Where to see scores today
             </Typography>
             <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.78)', mb: 2 }}>
-              Your tier scores and outcomes for assessments you have completed — including Pattern and Logic
-              (symbolic reasoning) — are on{' '}
+              Your tier scores and outcomes for assessments you have completed, including Pattern and Logic
+              (symbolic reasoning), are on{' '}
               <strong style={{ color: '#93c5fd' }}>Completed &amp; Results</strong> under Assessments.
             </Typography>
             <Button variant="contained" onClick={() => navigate('/assessments/completed')} sx={{ mt: 1 }}>

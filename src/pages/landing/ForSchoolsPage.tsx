@@ -1,48 +1,42 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import LandingSiteFooter from '../../components/layout/LandingSiteFooter';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
 import LandingFaq from '../../components/landing/LandingFaq';
+import { LandingHeaderScrollProgress, LandingSectionRail } from '../../components/landing/LandingScrollChrome';
+import { GYS_BLUE, GYS_GOLD } from '../../constants/gysBrand';
+import {
+  useLandingRevealInContainer,
+  useLandingScrollProgress,
+  useLandingSectionSpy,
+} from '../../hooks/useLandingPageScroll';
 import { schoolFaqSections } from './faq/schoolFaqSections';
-import { SCHOOL_INSTITUTIONAL_PRICE_LANDING } from '../../utils/schoolRegistrationPlans';
+import {
+  INSTITUTIONAL_PLAN_STUDENT_LIMIT,
+  SCHOOL_INSTITUTIONAL_PRICE_LANDING,
+} from '../../utils/schoolRegistrationPlans';
 
-const GYS_BLUE = '#1e3a8a';
-const GYS_GOLD = '#fbbf24';
+const FOR_SCHOOLS_NAV = [
+  { id: 'schools-hero', label: 'Home' },
+  { id: 'schools-stats', label: 'At a glance' },
+  { id: 'schools-benefits', label: 'Benefits' },
+  { id: 'institutional-packages', label: 'Plans' },
+  { id: 'consumer-recognition-pass-through', label: 'Recognition' },
+  { id: 'schools-ew', label: 'Partners' },
+  { id: 'schools-quote', label: 'Voices' },
+  { id: 'faq', label: 'FAQ' },
+  { id: 'for-schools-next-step', label: 'Next step' },
+] as const;
+
+const FOR_SCHOOLS_SECTION_IDS_JOIN = FOR_SCHOOLS_NAV.map((s) => s.id).join('|');
 
 const ForSchoolsPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isVisible, setIsVisible] = useState(false);
-  const [featuresVisible, setFeaturesVisible] = useState(false);
-  const [pricingVisible, setPricingVisible] = useState(false);
-
-  useEffect(() => {
-    setIsVisible(true);
-  }, []);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting) return;
-          const section = entry.target.getAttribute('data-section');
-          if (section === 'features') setFeaturesVisible(true);
-          if (section === 'pricing') setPricingVisible(true);
-        });
-      },
-      { threshold: 0.15, rootMargin: '0px 0px -60px 0px' }
-    );
-
-    const featuresEl = document.querySelector('[data-section="features"]');
-    const pricingEl = document.querySelector('[data-section="pricing"]');
-
-    if (featuresEl) observer.observe(featuresEl);
-    if (pricingEl) observer.observe(pricingEl);
-
-    return () => {
-      if (featuresEl) observer.unobserve(featuresEl);
-      if (pricingEl) observer.unobserve(pricingEl);
-    };
-  }, []);
+  const pageRootRef = useRef<HTMLDivElement>(null);
+  const scrollProgress = useLandingScrollProgress();
+  const activeSectionId = useLandingSectionSpy(FOR_SCHOOLS_SECTION_IDS_JOIN);
+  useLandingRevealInContainer(pageRootRef);
 
   useEffect(() => {
     const scrollToId = (location.state as { scrollToId?: string } | null)?.scrollToId;
@@ -54,9 +48,14 @@ const ForSchoolsPage: React.FC = () => {
   }, [location.pathname, location.state]);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
+    <div
+      ref={pageRootRef}
+      className="flex min-h-screen flex-col overflow-x-hidden bg-slate-50 text-slate-900"
+    >
+      <LandingSectionRail sections={FOR_SCHOOLS_NAV} activeSectionId={activeSectionId} />
       {/* Top nav */}
-      <header className="sticky top-0 z-50 bg-white/90 border-gray-200 border-b backdrop-blur">
+      <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/90 backdrop-blur relative">
+        <LandingHeaderScrollProgress scrollProgress={scrollProgress} />
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-4 sm:gap-6">
           <button
             type="button"
@@ -102,14 +101,17 @@ const ForSchoolsPage: React.FC = () => {
 
       <main className="flex-1 pb-14">
         {/* Hero band */}
-        <section className="relative overflow-hidden bg-gradient-to-br from-[#1d4ed8] via-[#1e3a8a] to-[#0f172a] px-4 py-10 text-white sm:px-6 sm:py-12 lg:px-12 xl:px-20">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(251,191,36,0.14)_0%,_transparent_55%)] pointer-events-none" />
-          <div
-            className={`relative mx-auto max-w-4xl text-center transition-all duration-700 ${
-              isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
-            }`}
-          >
-            <h2 className="mt-3 text-3xl font-bold leading-snug sm:text-4xl">
+        <section
+          id="schools-hero"
+          className="relative overflow-hidden bg-gradient-to-br from-[#1d4ed8] via-[#1e3a8a] to-[#0f172a] px-6 pb-20 pt-12 text-white sm:pb-24 sm:pt-16"
+        >
+          <div className="landing-hero-mesh" />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(251,191,36,0.14)_0%,_transparent_55%)]" />
+          <div className="relative z-[1] mx-auto max-w-4xl text-center">
+            <p className="landing-hero-enter-1 text-xs font-semibold uppercase tracking-[0.2em] text-amber-200/90">
+              For schools &amp; institutions
+            </p>
+            <h2 className="landing-hero-enter-2 mt-3 text-3xl font-bold leading-snug sm:text-4xl">
               Give Your School a{' '}
               <span
                 className="inline-block transition-transform duration-300 hover:scale-105"
@@ -118,11 +120,22 @@ const ForSchoolsPage: React.FC = () => {
                 Global Benchmark
               </span>
             </h2>
-            <p className="mt-4 mx-auto max-w-2xl text-sm sm:text-base text-white/90">
+            <p className="landing-hero-enter-3 mx-auto mt-4 max-w-2xl text-sm text-white/90 sm:text-base">
               See how your students compare worldwide. Identify gaps. Track growth.
               Demonstrate excellence to parents, boards, and accreditors.
             </p>
-            <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+            <div className="landing-hero-enter-4 mx-auto mt-5 flex max-w-xl flex-wrap justify-center gap-2">
+              <span className="landing-hero-chip rounded-full border border-white/35 bg-white/10 px-3 py-1 text-xs font-medium text-white/95 backdrop-blur-sm">
+                Practice Tests
+              </span>
+              <span className="landing-hero-chip rounded-full border border-white/35 bg-white/10 px-3 py-1 text-xs font-medium text-white/95 backdrop-blur-sm">
+                Grades 6–12
+              </span>
+              <span className="landing-hero-chip rounded-full border border-white/35 bg-white/10 px-3 py-1 text-xs font-medium text-white/95 backdrop-blur-sm">
+                Global norms
+              </span>
+            </div>
+            <div className="landing-hero-enter-4 mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
               <button
                 type="button"
                 onClick={() => navigate('/for-schools/preview')}
@@ -144,16 +157,24 @@ const ForSchoolsPage: React.FC = () => {
               </button>
             </div>
           </div>
+          <div className="pointer-events-none absolute bottom-0 left-0 right-0 text-slate-50" aria-hidden>
+            <svg className="landing-section-wave block w-full" viewBox="0 0 1440 96" preserveAspectRatio="none">
+              <path
+                fill="currentColor"
+                d="M0,96 L0,28 C240,8 480,88 720,48 C960,8 1200,72 1440,36 L1440,96 Z"
+              />
+            </svg>
+          </div>
         </section>
 
         {/* Stats strip below hero */}
-        <section className="bg-slate-50 pb-12 pt-8">
+        <section id="schools-stats" data-landing-reveal className="bg-slate-50 pb-12 pt-8">
           <div className="mx-auto w-full max-w-5xl px-4 sm:px-6">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:gap-5">
               {[
                 {
                   icon: '📊',
-                  value: '6',
+                  value: '7',
                   label: 'Assessments',
                 },
                 {
@@ -206,12 +227,7 @@ const ForSchoolsPage: React.FC = () => {
         {/* Main body container */}
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
           {/* What your school gets */}
-          <section
-            data-section="features"
-            className={`mt-0 sm:mt-2 transition-all duration-700 ${
-              featuresVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-            }`}
-          >
+          <section id="schools-benefits" data-landing-reveal className="mt-0 sm:mt-2">
             <div className="mx-auto max-w-5xl">
               <h3 className="text-xl sm:text-2xl font-bold text-slate-900 text-left">
                 What Your School Gets
@@ -269,26 +285,28 @@ const ForSchoolsPage: React.FC = () => {
           </div>
           </section>
 
-          {/* Institutional subscriptions / pricing */}
+          {/* Institutional packages / pricing */}
           <section
-            id="institutional-subscriptions"
-            data-section="pricing"
-            className={`scroll-mt-28 mt-10 sm:mt-12 transition-all duration-700 ${
-              pricingVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-            }`}
+            id="institutional-packages"
+            data-landing-reveal
+            className="scroll-mt-28 mt-10 sm:mt-12"
           >
             <h3 className="text-xl sm:text-2xl font-bold text-slate-900">
-              Institutional Subscriptions
+              Institutional packages
             </h3>
             <p className="mt-1 text-xs sm:text-sm text-slate-600">
-              Annual institutional license. All students in selected grades included.
+              Annual institutional license. Each package includes a roster limit for participating students in
+              your selected grades; see each plan below.
             </p>
 
             <div className="mt-6 grid gap-4 sm:grid-cols-3">
               {/* Entry */}
               <div className="flex flex-col rounded-2xl bg-white px-4 py-4 shadow-sm ring-1 ring-slate-200 sm:px-5 sm:py-5">
                 <h4 className="text-sm font-semibold text-slate-900 sm:text-base">Entry</h4>
-                <div className="mt-1 flex flex-col gap-1 text-xs text-slate-600 sm:text-sm">
+                <p className="mt-1.5 text-xs font-semibold text-slate-800">
+                  {INSTITUTIONAL_PLAN_STUDENT_LIMIT.entry}
+                </p>
+                <div className="mt-2 flex flex-col gap-1 text-xs text-slate-600 sm:text-sm">
                   <span className="flex items-start gap-1">
                     <span className="mt-[2px] text-emerald-600 text-xs">✓</span>
                     <span>Assessment 1 (Pattern and Logic)</span>
@@ -299,11 +317,11 @@ const ForSchoolsPage: React.FC = () => {
                   </span>
                   <span className="flex items-start gap-1">
                     <span className="mt-[2px] text-emerald-600 text-xs">✓</span>
-                    <span>Tier distribution analysis</span>
+                    <span>Performance tier distribution analysis</span>
                   </span>
                   <span className="flex items-start gap-1">
                     <span className="mt-[2px] text-emerald-600 text-xs">✓</span>
-                    <span>Path to next tier</span>
+                    <span>Path to next performance tier</span>
                   </span>
                 </div>
                 <p
@@ -314,13 +332,16 @@ const ForSchoolsPage: React.FC = () => {
                 </p>
               </div>
 
-              {/* Standard - recommended */}
+              {/* Standard - popular */}
               <div className="relative flex flex-col rounded-2xl bg-white px-4 py-4 text-slate-900 shadow-md ring-2 ring-[#1e3a8a]/70 sm:px-5 sm:py-5">
                 <div className="absolute -top-3 right-4 rounded-full bg-[#fbbf24] px-3 py-0.5 text-xs font-semibold uppercase tracking-[0.16em] text-slate-900 shadow">
-                  Recommended
+                  Popular
                 </div>
                 <h4 className="text-sm font-semibold sm:text-base">Standard</h4>
-                <div className="mt-1 flex flex-col gap-1 text-xs text-slate-600 sm:text-sm">
+                <p className="mt-1.5 text-xs font-semibold text-slate-800">
+                  {INSTITUTIONAL_PLAN_STUDENT_LIMIT.standard}
+                </p>
+                <div className="mt-2 flex flex-col gap-1 text-xs text-slate-600 sm:text-sm">
                   <span className="flex items-start gap-1">
                     <span className="mt-[2px] text-emerald-600 text-xs">✓</span>
                     <span>Assessments 1–3 (full reasoning triad)</span>
@@ -357,7 +378,10 @@ const ForSchoolsPage: React.FC = () => {
               {/* Premium */}
               <div className="flex flex-col rounded-2xl bg-white px-4 py-4 shadow-sm ring-1 ring-slate-200 sm:px-5 sm:py-5">
                 <h4 className="text-sm font-semibold text-slate-900 sm:text-base">Premium</h4>
-                <div className="mt-1 flex flex-col gap-1 text-xs text-slate-600 sm:text-sm">
+                <p className="mt-1.5 text-xs font-semibold text-slate-800">
+                  {INSTITUTIONAL_PLAN_STUDENT_LIMIT.premium}
+                </p>
+                <div className="mt-2 flex flex-col gap-1 text-xs text-slate-600 sm:text-sm">
                   <span className="flex items-start gap-1">
                     <span className="mt-[2px] text-emerald-600 text-xs">✓</span>
                     <span>Everything in Standard</span>
@@ -393,8 +417,29 @@ const ForSchoolsPage: React.FC = () => {
             </div>
           </section>
 
+          {/* Consumer revenue recognition - Rev 13 pass-through (KD #99) */}
+          <section
+            id="consumer-recognition-pass-through"
+            data-landing-reveal
+            className="scroll-mt-28 mt-10 sm:mt-12 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm sm:px-5 sm:py-5"
+          >
+            <h3 className="text-lg font-bold text-slate-900 sm:text-xl">
+              Recognition when families subscribe directly
+            </h3>
+            <p className="mt-2 text-xs leading-relaxed text-slate-600 sm:text-sm sm:leading-relaxed">
+              Schools that do not purchase an institutional plan can still earn the same recognition benefits as
+              paying institutional clients when their students generate at least{' '}
+              <strong className="text-slate-800">₹3 lakh</strong> in attributable consumer revenue within an annual
+              cycle, including <strong className="text-slate-800">Education Leadership Award</strong> eligibility
+              (subject to Premium-equivalent benefits) and inclusion in{' '}
+              <strong className="text-slate-800">EducationWorld ranking attribution</strong>. Attribution follows the
+              same student–school association pathways used elsewhere (roster, tagged links, and verified
+              associations). 
+            </p>
+          </section>
+
           {/* EducationWorld strip */}
-          <section className="mt-10 sm:mt-12">
+          <section id="schools-ew" data-landing-reveal className="mt-10 sm:mt-12">
             <div className="rounded-2xl bg-[#eef4ff] px-4 py-4 shadow-sm sm:px-5 sm:py-4 md:px-6 md:py-5">
               <div className="flex items-center gap-4 sm:gap-5">
                 <img
@@ -408,8 +453,8 @@ const ForSchoolsPage: React.FC = () => {
                   </p>
                   <p className="mt-1.5 text-xs leading-snug text-slate-700 sm:text-sm sm:leading-relaxed">
                     India&apos;s most trusted name in school assessment and ranking. Your data, our
-                    expertise. For the past 20 years, the annual EducationWorld India School Rankings —
-                    the world&apos;s largest and most comprehensive schools survey — has stimulated and
+                    expertise. For the past 20 years, the annual EducationWorld India School Rankings,
+                    the world&apos;s largest and most comprehensive schools survey, has stimulated and
                     motivated institutional managements to strive for delivering balanced holistic
                     education and benchmark themselves with globally admired schools.
                   </p>
@@ -419,7 +464,7 @@ const ForSchoolsPage: React.FC = () => {
           </section>
 
           {/* Partner quote */}
-          <section className="mt-8 sm:mt-10">
+          <section id="schools-quote" data-landing-reveal className="mt-8 sm:mt-10">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
               From Our Partners
             </p>
@@ -436,16 +481,19 @@ const ForSchoolsPage: React.FC = () => {
             </div>
           </section>
 
-          <LandingFaq
-            id="faq"
-            title="GYS — Frequently Asked Questions"
-            sections={schoolFaqSections}
-            className="mt-12 sm:mt-14"
-          />
+          <div data-landing-reveal>
+            <LandingFaq
+              id="faq"
+              title="GYS - Frequently Asked Questions"
+              sections={schoolFaqSections}
+              className="mt-12 sm:mt-14"
+            />
+          </div>
 
           {/* Final CTAs */}
           <section
             id="for-schools-next-step"
+            data-landing-reveal
             className="mt-10 scroll-mt-28 sm:mt-12"
           >
             <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
@@ -473,15 +521,7 @@ const ForSchoolsPage: React.FC = () => {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 py-8">
-        <div className="mx-auto max-w-5xl px-6">
-          <p className="text-center text-xs text-gray-500 sm:text-sm">
-            © 2026 Global Young Scholar. A joint initiative of Access USA, Argus, and
-            EducationWorld.
-          </p>
-        </div>
-      </footer>
+      <LandingSiteFooter />
     </div>
   );
 };

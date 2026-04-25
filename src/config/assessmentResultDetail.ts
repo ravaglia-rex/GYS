@@ -58,18 +58,23 @@ export function nextAssessmentNudge(assessmentId: string): { title: string; subt
     },
     mathematical_reasoning: {
       title: 'Next: English Proficiency',
-      subtitle: 'Advanced English — unlocks after the reasoning triad (Level 3).',
+      subtitle: 'Advanced English - unlocks after the reasoning triad with Reasoning + Skills (Membership 2).',
       path: '/assessments/english_proficiency/tier/1/detail',
     },
     english_proficiency: {
-      title: 'Next: AI Literacy',
+      title: 'Next: AI Proficiency',
       subtitle: 'Build on English with applied AI skills.',
       path: '/assessments/ai_literacy/tier/1/detail',
     },
     ai_literacy: {
       title: 'Next: Comprehensive Personality',
-      subtitle: 'Capstone profile for college matching — complete all AI tiers first.',
+      subtitle: 'Insight group - complete all AI Proficiency levels first; Guided Decision membership required.',
       path: '/assessments/comprehensive_personality/tier/1/detail',
+    },
+    comprehensive_personality: {
+      title: 'Next: Interest & Career Discovery',
+      subtitle: 'Finish the Insight group after personality — Guided Decision.',
+      path: '/assessments/career_interest_inventory/tier/1/detail',
     },
   };
   return map[assessmentId] ?? null;

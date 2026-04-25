@@ -55,10 +55,10 @@ export type SchoolPlanDisplay = {
   period: string;
   tagline: string;
   features: string[];
-  recommended: boolean;
+  popular: boolean;
 };
 
-const PLAN_COPY: Pick<SchoolPlanDisplay, 'id' | 'name' | 'tagline' | 'features' | 'recommended'>[] = [
+const PLAN_COPY: Pick<SchoolPlanDisplay, 'id' | 'name' | 'tagline' | 'features' | 'popular'>[] = [
   {
     id: 'entry',
     name: 'Entry',
@@ -69,7 +69,7 @@ const PLAN_COPY: Pick<SchoolPlanDisplay, 'id' | 'name' | 'tagline' | 'features' 
       'Tier distribution analysis',
       'Path to next tier',
     ],
-    recommended: false,
+    popular: false,
   },
   {
     id: 'standard',
@@ -83,7 +83,7 @@ const PLAN_COPY: Pick<SchoolPlanDisplay, 'id' | 'name' | 'tagline' | 'features' 
       'Quarterly growth tracking',
       'Prioritised recommendations',
     ],
-    recommended: true,
+    popular: true,
   },
   {
     id: 'premium',
@@ -97,7 +97,7 @@ const PLAN_COPY: Pick<SchoolPlanDisplay, 'id' | 'name' | 'tagline' | 'features' 
       'Dedicated account manager',
       'Marketing toolkit (tier badges, parent comms)',
     ],
-    recommended: false,
+    popular: false,
   },
 ];
 
@@ -152,4 +152,11 @@ export const SCHOOL_INSTITUTIONAL_PRICE_LANDING: Record<RegisterPlanId, string> 
   entry: `${formatInr(PRODUCTION_INR.entry)}/yr`,
   standard: `${formatInr(PRODUCTION_INR.standard)}/yr`,
   premium: `${formatInr(PRODUCTION_INR.premium)}/yr`,
+};
+
+/** Student roster guidance per tier (marketing; align with school FAQ). */
+export const INSTITUTIONAL_PLAN_STUDENT_LIMIT: Record<RegisterPlanId, string> = {
+  entry: 'Up to ~200 students',
+  standard: 'Up to ~500 students',
+  premium: 'No fixed student cap',
 };

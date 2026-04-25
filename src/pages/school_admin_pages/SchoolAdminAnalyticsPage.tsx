@@ -431,15 +431,15 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
             </Card>
           </Box>
 
-          {/* Proficiency tiers 1 - 3 (assessment progress) */}
+          {/* Proficiency levels 1–3 (assessment progress) */}
           <Card sx={{ bgcolor: '#ffffff', boxShadow: 'none', border: `1px solid ${ip.cardBorder}`, mb: 4 }}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, color: '#1E293B', mb: 0.5 }}>
-                Proficiency tier analytics
+                Proficiency level analytics
               </Typography>
               <Typography variant="body2" sx={{ color: '#94a3b8', mb: 2, lineHeight: 1.55 }}>
-                For each student we use the <strong>lowest</strong> tier among assessments they’ve started or completed (that’s their bottleneck).
-                <strong> Tier 1 = Bronze, Tier 2 = Silver, Tier 3+ = Gold.</strong> Whole-school and grade views include everyone on the roster;
+                For each student we use the <strong>lowest</strong> level among assessments they’ve started or completed (that’s their bottleneck).
+                <strong> Level 1 = Bronze, Level 2 = Silver, Level 3+ = Gold.</strong> Whole-school and grade views include everyone on the roster;
                 the exam × grade table only counts students with progress on the assessment you pick.
               </Typography>
               <ToggleButtonGroup
@@ -471,9 +471,9 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                         <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
                         <Tooltip />
                         <Legend />
-                        <Bar dataKey="tier1" name="Tier 1" stackId="t" fill={PROF_TIER_COLORS.tier1} />
-                        <Bar dataKey="tier2" name="Tier 2" stackId="t" fill={PROF_TIER_COLORS.tier2} />
-                        <Bar dataKey="tier3" name="Tier 3+" stackId="t" fill={PROF_TIER_COLORS.tier3} />
+                        <Bar dataKey="tier1" name="Level 1" stackId="t" fill={PROF_TIER_COLORS.tier1} />
+                        <Bar dataKey="tier2" name="Level 2" stackId="t" fill={PROF_TIER_COLORS.tier2} />
+                        <Bar dataKey="tier3" name="Level 3+" stackId="t" fill={PROF_TIER_COLORS.tier3} />
                       </BarChart>
                     </ResponsiveContainer>
                   ) : (
@@ -485,7 +485,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
               )}
 
               <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#1E293B', mt: 3, mb: 1 }}>
-                By exam × grade × tier
+                By exam × grade × level
               </Typography>
               <FormControl size="small" sx={examTierSelectFormSx}>
                 <InputLabel id="exam-tier-select-label">Assessment</InputLabel>
@@ -534,9 +534,9 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                         }}
                       >
                         <TableCell>Grade</TableCell>
-                        <TableCell align="right">Tier 1</TableCell>
-                        <TableCell align="right">Tier 2</TableCell>
-                        <TableCell align="right">Tier 3+</TableCell>
+                        <TableCell align="right">Level 1</TableCell>
+                        <TableCell align="right">Level 2</TableCell>
+                        <TableCell align="right">Level 3+</TableCell>
                         <TableCell align="right">Total</TableCell>
                       </TableRow>
                     </TableHead>

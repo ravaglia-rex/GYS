@@ -1,29 +1,47 @@
-import React, { useEffect, useState } from 'react';
+import React, { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
+import LandingSiteFooter from '../../components/layout/LandingSiteFooter';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
 import LandingFaq from '../../components/landing/LandingFaq';
+import { LandingHeaderScrollProgress, LandingSectionRail } from '../../components/landing/LandingScrollChrome';
+import { GYS_BLUE, GYS_GOLD } from '../../constants/gysBrand';
+import {
+  useLandingRevealInContainer,
+  useLandingScrollProgress,
+  useLandingSectionSpy,
+} from '../../hooks/useLandingPageScroll';
 import { studentFaqSections } from './faq/studentFaqSections';
 
-const GYS_BLUE = '#1e3a8a';
-const GYS_GOLD = '#fbbf24';
+const STUDENT_NAV = [
+  { id: 'sp-hero', label: 'Home' },
+  { id: 'sp-get', label: 'Benefits' },
+  { id: 'assessments', label: 'Exams' },
+  { id: 'sp-plans', label: 'Plans' },
+  { id: 'sp-economics', label: 'Upgrades' },
+  { id: 'sp-ew', label: 'Partners' },
+  { id: 'student-faq', label: 'FAQ' },
+] as const;
 
-/** Landing copy — aligned with signup membership tiers (L1 / L2 / L3). */
+const STUDENT_SECTION_IDS_JOIN = STUDENT_NAV.map((s) => s.id).join('|');
+
+/** Rev 13 - Discovery + three annual packages; exams in Reasoning / Skills / Insight groups. */
 const STUDENT_ASSESSMENTS = [
   {
     exam: 1,
-    group: 'triad' as const,
-    label: 'Pattern and Logic',
-    shortName: 'Pattern & Logic',
-    desc: 'Patterns, rules, and structured logic',
+    group: 'reasoning' as const,
+    label: 'Symbolic Reasoning',
+    shortName: 'Symbolic',
+    desc: 'Patterns, rules, and structured logic (also shown as Pattern & Logic)',
     icon: '🔢',
     inL1: true,
     inL2: true,
     inL3: true,
+    inL4: true,
   },
   {
     exam: 2,
-    group: 'triad' as const,
+    group: 'reasoning' as const,
     label: 'Verbal Reasoning',
     shortName: 'Verbal',
     desc: 'Meaning, inference, and argument from text',
@@ -31,10 +49,11 @@ const STUDENT_ASSESSMENTS = [
     inL1: false,
     inL2: true,
     inL3: true,
+    inL4: true,
   },
   {
     exam: 3,
-    group: 'triad' as const,
+    group: 'reasoning' as const,
     label: 'Mathematical Reasoning',
     shortName: 'Math',
     desc: 'Number sense, logic, and quantitative thinking',
@@ -42,46 +61,63 @@ const STUDENT_ASSESSMENTS = [
     inL1: false,
     inL2: true,
     inL3: true,
+    inL4: true,
   },
   {
     exam: 4,
-    group: 'depth' as const,
-    label: 'English Proficiency (Advanced)',
-    shortName: 'English (adv.)',
-    desc: 'Listening, speaking, and conversational fluency — AI-assessed',
+    group: 'skills' as const,
+    label: 'English Proficiency',
+    shortName: 'English',
+    desc: 'Listening, speaking, reading, writing, AI-assessed where applicable',
     icon: '💬',
     inL1: false,
     inL2: false,
     inL3: true,
+    inL4: true,
   },
   {
     exam: 5,
-    group: 'depth' as const,
-    label: 'AI Literacy & Capability',
-    shortName: 'AI literacy',
-    desc: 'Skills for learning and working responsibly with AI',
+    group: 'skills' as const,
+    label: 'AI Proficiency',
+    shortName: 'AI',
+    desc: 'Concepts, evaluation, and responsible use of AI tools',
     icon: '🤖',
     inL1: false,
     inL2: false,
     inL3: true,
+    inL4: true,
   },
   {
     exam: 6,
-    group: 'depth' as const,
-    label: 'Comprehensive Personality',
-    shortName: 'Personality (full)',
+    group: 'insight' as const,
+    label: 'Comprehensive Personality Assessment',
+    shortName: 'Personality',
     desc: 'Deep profile across many dimensions (~30)',
     icon: '✨',
     inL1: false,
     inL2: false,
-    inL3: true,
+    inL3: false,
+    inL4: true,
+  },
+  {
+    exam: 7,
+    group: 'insight' as const,
+    label: 'Interest Inventory & Career Discovery',
+    shortName: 'Career',
+    desc: 'Interest themes and career discovery; establishes the baseline for ongoing AI career counseling',
+    icon: '🧭',
+    inL1: false,
+    inL2: false,
+    inL3: false,
+    inL4: true,
   },
 ] as const;
 
 const TIER_HEADERS = [
-  { key: 'L1' as const, title: 'Level 1', subtitle: 'Explore', tint: 'bg-sky-100 text-sky-950' },
-  { key: 'L2' as const, title: 'Level 2', subtitle: 'Engage', tint: 'bg-amber-100 text-amber-950' },
-  { key: 'L3' as const, title: 'Level 3', subtitle: 'Excel', tint: 'bg-purple-100 text-purple-950' },
+  { key: 'L1' as const, title: 'Trial',  tint: 'bg-sky-100 text-sky-950' },
+  { key: 'L2' as const, title: 'M1',  tint: 'bg-amber-100 text-amber-950' },
+  { key: 'L3' as const, title: 'M2',  tint: 'bg-sky-100 text-sky-950' },
+  { key: 'L4' as const, title: 'M3',  tint: 'bg-purple-100 text-purple-950' },
 ];
 
 const ASSESSMENT_SECTIONS: {
@@ -89,22 +125,38 @@ const ASSESSMENT_SECTIONS: {
   title: string;
   hint: string;
 }[] = [
-  { group: 'triad', title: 'Reasoning triad', hint: 'Pattern & logic · verbal · mathematical — unified report at Level 2' },
-  { group: 'depth', title: 'English, AI & comprehensive personality', hint: 'Level 3 only' },
+  {
+    group: 'reasoning',
+    title: 'Group A - Reasoning',
+    hint:
+      'Exams 1 - 3',
+  },
+  {
+    group: 'skills',
+    title: 'Group B - Skills',
+    hint: 'Exams 4 - 5',
+  },
+  {
+    group: 'insight',
+    title: 'Group C - Insight',
+    hint:
+      'Exams 6 - 7',
+  },
 ];
 
 const StudentPathPage: React.FC = () => {
   const navigate = useNavigate();
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    setIsVisible(true);
-  }, []);
+  const pageRootRef = useRef<HTMLDivElement>(null);
+  const scrollProgress = useLandingScrollProgress();
+  const activeSectionId = useLandingSectionSpy(STUDENT_SECTION_IDS_JOIN);
+  useLandingRevealInContainer(pageRootRef);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div ref={pageRootRef} className="min-h-screen overflow-x-hidden bg-slate-50 text-slate-900">
+      <LandingSectionRail sections={STUDENT_NAV} activeSectionId={activeSectionId} />
       {/* Top nav */}
-      <header className="sticky top-0 z-50 bg-white/90 border-b border-gray-200 backdrop-blur">
+      <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/90 backdrop-blur relative">
+        <LandingHeaderScrollProgress scrollProgress={scrollProgress} />
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-4 sm:gap-6">
           <button
             type="button"
@@ -150,18 +202,41 @@ const StudentPathPage: React.FC = () => {
 
       <main className="pb-12">
         {/* Hero band - full width, matching landing page */}
-        <section className="relative overflow-hidden bg-gradient-to-br from-[#1d4ed8] via-[#1e3a8a] to-[#0f172a] px-6 py-10 text-white sm:py-12">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(251,191,36,0.12)_0%,_transparent_50%)] pointer-events-none" />
-          <div className={`relative mx-auto max-w-4xl text-center transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-            <h1 className="text-3xl font-bold leading-snug sm:text-4xl">
-              Discover Where You Stand on the{' '}
-              <span className="inline-block transition-transform duration-300 hover:scale-105" style={{ color: GYS_GOLD }}>World Stage</span>
-            </h1>
-            <p className="mt-6 mx-auto max-w-2xl text-sm sm:text-base text-white/90">
-              Take world-class assessments, get your global tier, and build a profile that top universities
-              notice.
+        <section
+          id="sp-hero"
+          className="relative overflow-hidden bg-gradient-to-br from-[#1d4ed8] via-[#1e3a8a] to-[#0f172a] px-6 pb-20 pt-12 text-white sm:pb-24 sm:pt-16"
+        >
+          <div className="landing-hero-mesh" />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(251,191,36,0.14)_0%,_transparent_55%)]" />
+          <div className="relative z-[1] mx-auto max-w-4xl text-center">
+            <p className="landing-hero-enter-1 text-xs font-semibold uppercase tracking-[0.2em] text-amber-200/90">
+              For students &amp; families
             </p>
-            <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center sm:flex-wrap">
+            <h1 className="landing-hero-enter-2 mt-3 text-3xl font-bold leading-snug sm:text-4xl">
+              Give yourself a{' '}
+              <span
+                className="inline-block transition-transform duration-300 hover:scale-105"
+                style={{ color: GYS_GOLD }}
+              >
+                National benchmark
+              </span>
+            </h1>
+            <p className="landing-hero-enter-3 mx-auto mt-4 max-w-2xl text-sm text-white/90 sm:text-base">
+              See how your scores compare to students across India. Earn a nationwide performance tier after the
+              Reasoning Triad. Track growth and build a profile that selective colleges notice.
+            </p>
+            <div className="landing-hero-enter-4 mx-auto mt-5 flex max-w-xl flex-wrap justify-center gap-2">
+              <span className="landing-hero-chip rounded-full border border-white/35 bg-white/10 px-3 py-1 text-xs font-medium text-white/95 backdrop-blur-sm">
+                Practice Mode
+              </span>
+              <span className="landing-hero-chip rounded-full border border-white/35 bg-white/10 px-3 py-1 text-xs font-medium text-white/95 backdrop-blur-sm">
+                Grades 6–12
+              </span>
+              <span className="landing-hero-chip rounded-full border border-white/35 bg-white/10 px-3 py-1 text-xs font-medium text-white/95 backdrop-blur-sm">
+                National norms
+              </span>
+            </div>
+            <div className="landing-hero-enter-4 mt-8 flex max-w-xl flex-col items-stretch justify-center gap-3 sm:mx-auto sm:flex-row sm:items-center">
               <button
                 type="button"
                 onClick={() =>
@@ -169,9 +244,9 @@ const StudentPathPage: React.FC = () => {
                     state: { studentPreviewExitTo: '/students' },
                   })
                 }
-                className="w-full max-w-sm rounded-xl border-2 border-white/40 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm transition-all duration-200 hover:bg-white/20 hover:border-white/60 sm:w-auto"
+                className="rounded-xl border-2 border-white/80 bg-white/10 px-6 py-3 text-sm font-semibold text-white shadow-sm backdrop-blur transition hover:bg-white/20 hover:-translate-y-0.5 active:scale-[0.99]"
               >
-                Try the sample dashboard - no account
+                Try sample dashboard
               </button>
               <button
                 type="button"
@@ -180,25 +255,34 @@ const StudentPathPage: React.FC = () => {
                     state: { sampleAssessmentExitTo: '/students' },
                   })
                 }
-                className="w-full max-w-sm rounded-xl border-2 border-white/40 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm transition-all duration-200 hover:bg-white/20 hover:border-white/60 sm:w-auto"
+                className="rounded-xl border-2 border-white/80 bg-white/10 px-6 py-2.5 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20 hover:-translate-y-0.5 active:scale-[0.99]"
               >
-                Try the sample assessment - no account
+                Try sample assessment - no account
               </button>
             </div>
+         
             <button
               type="button"
               onClick={() => navigate('/about/assessments')}
-              className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-white/95 underline-offset-4 transition hover:text-white hover:underline"
+              className="landing-hero-enter-4 mt-4 inline-flex items-center gap-2 text-sm font-semibold text-white/95 underline-offset-4 transition hover:text-white hover:underline"
             >
-              Explore all six assessments
+              Learn more about the assessments
               <ArrowRight className="h-4 w-4" />
             </button>
+          </div>
+          <div className="pointer-events-none absolute bottom-0 left-0 right-0 text-slate-50" aria-hidden>
+            <svg className="landing-section-wave block w-full" viewBox="0 0 1440 96" preserveAspectRatio="none">
+              <path
+                fill="currentColor"
+                d="M0,96 L0,28 C240,8 480,88 720,48 C960,8 1200,72 1440,36 L1440,96 Z"
+              />
+            </svg>
           </div>
         </section>
 
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
         {/* What you get */}
-        <section className="mt-12 text-center sm:mt-16">
+        <section id="sp-get" data-landing-reveal className="mt-12 text-center sm:mt-16">
           <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">What You Get</h2>
           <div className="mt-10 sm:mt-12 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[
@@ -209,8 +293,9 @@ const StudentPathPage: React.FC = () => {
               },
               {
                 icon: '🧠',
-                title: '6 Assessments',
-                body: 'Six exams total: Level 2 is the full reasoning triad; Level 3 adds advanced English, AI literacy, and comprehensive personality — benchmarked globally.',
+                title: '7 exams • 3 groups',
+                body:
+                  'Three tracks - Reasoning (1–3), Skills (4–5), Insight (6–7). Higher plans unlock the later groups; every score is globally benchmarked.',
               },
               {
                 icon: '📊',
@@ -249,7 +334,8 @@ const StudentPathPage: React.FC = () => {
         {/* Assessments - full width grey band */}
         <section
           id="assessments"
-          className="mt-12 bg-slate-100 border-y border-slate-200 py-8 text-center sm:mt-16 sm:py-10 relative left-1/2 right-1/2 -ml-[50vw] w-screen scroll-mt-20"
+          data-landing-reveal
+          className="relative left-1/2 right-1/2 -ml-[50vw] mt-12 w-screen scroll-mt-20 border-y border-slate-200 bg-slate-100 py-8 text-center sm:mt-16 sm:py-10"
         >
           <div className="mx-auto max-w-5xl px-4 sm:px-6">
             <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">The Assessments</h2>
@@ -262,8 +348,8 @@ const StudentPathPage: React.FC = () => {
               role="region"
               aria-label="Assessments and membership levels"
             >
-              {/* Column headers — compact */}
-              <div className="grid grid-cols-[minmax(0,1fr)_repeat(3,3.25rem)] gap-x-1 border-b border-slate-200 bg-slate-50 sm:grid-cols-[minmax(0,1fr)_repeat(3,4.5rem)] sm:gap-x-2">
+              {/* Column headers - compact */}
+              <div className="grid grid-cols-[minmax(0,1fr)_repeat(4,2.75rem)] gap-x-1 border-b border-slate-200 bg-slate-50 sm:grid-cols-[minmax(0,1fr)_repeat(4,3.75rem)] sm:gap-x-2">
                 <div className="px-3 py-2 text-[0.65rem] font-semibold uppercase tracking-wide text-slate-500 sm:px-4 sm:py-2.5 sm:text-xs">
                   Assessment
                 </div>
@@ -273,27 +359,25 @@ const StudentPathPage: React.FC = () => {
                     className={`flex flex-col items-center justify-center px-0.5 py-2 text-center sm:py-2.5 ${t.tint}`}
                   >
                     <span className="text-[0.65rem] font-bold leading-none sm:text-xs">{t.title.replace('Level ', 'L')}</span>
-                    <span className="mt-0.5 hidden text-[0.6rem] font-medium opacity-80 sm:inline sm:text-[0.65rem]">
-                      {t.subtitle}
-                    </span>
+                   
                   </div>
                 ))}
               </div>
 
               {ASSESSMENT_SECTIONS.map((section) => {
                 const rows = STUDENT_ASSESSMENTS.filter((a) => a.group === section.group);
-                const triadBand =
-                  section.group === 'triad'
+                const groupBand =
+                  section.group === 'reasoning'
                     ? 'bg-gradient-to-r from-sky-50 via-indigo-50/60 to-transparent border-l-[3px] sm:border-l-4'
-                    : section.group === 'depth'
-                      ? 'bg-gradient-to-r from-purple-50/90 via-transparent to-transparent border-l-[3px] border-l-purple-300/80 sm:border-l-4'
-                      : 'bg-slate-50/80 border-l-[3px] border-l-slate-300/80 sm:border-l-4';
+                    : section.group === 'skills'
+                      ? 'bg-gradient-to-r from-teal-50/90 via-transparent to-transparent border-l-[3px] border-l-teal-300/80 sm:border-l-4'
+                      : 'bg-gradient-to-r from-purple-50/90 via-transparent to-transparent border-l-[3px] border-l-purple-300/80 sm:border-l-4';
 
                 return (
                   <div key={section.group}>
                     <div
-                      className={`${triadBand} border-slate-200/80 px-3 py-2 sm:px-4`}
-                      style={section.group === 'triad' ? { borderLeftColor: GYS_BLUE } : undefined}
+                      className={`${groupBand} border-slate-200/80 px-3 py-2 sm:px-4`}
+                      style={section.group === 'reasoning' ? { borderLeftColor: GYS_BLUE } : undefined}
                     >
                       <p className="text-xs font-bold text-slate-800 sm:text-sm">{section.title}</p>
                       <p className="text-[0.65rem] text-slate-600 sm:text-xs">{section.hint}</p>
@@ -301,7 +385,7 @@ const StudentPathPage: React.FC = () => {
                     {rows.map((row) => (
                       <div
                         key={row.exam}
-                        className="grid grid-cols-[minmax(0,1fr)_repeat(3,3.25rem)] items-center gap-x-1 border-b border-slate-100 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_repeat(3,4.5rem)] sm:gap-x-2"
+                        className="grid grid-cols-[minmax(0,1fr)_repeat(4,2.75rem)] items-center gap-x-1 border-b border-slate-100 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_repeat(4,3.75rem)] sm:gap-x-2"
                       >
                         <div className="flex min-w-0 gap-2.5 px-3 py-2 sm:gap-3 sm:px-4 sm:py-2">
                           <span className="shrink-0 text-lg leading-none sm:text-xl" aria-hidden="true">
@@ -320,7 +404,7 @@ const StudentPathPage: React.FC = () => {
                             <p className="mt-0.5 text-[0.7rem] leading-snug text-slate-500 sm:text-xs">{row.desc}</p>
                           </div>
                         </div>
-                        {[row.inL1, row.inL2, row.inL3].map((on, i) => (
+                        {[row.inL1, row.inL2, row.inL3, row.inL4].map((on, i) => (
                           <div
                             key={TIER_HEADERS[i].key}
                             className="flex h-full min-h-[2.75rem] items-center justify-center sm:min-h-0 sm:py-2"
@@ -334,7 +418,7 @@ const StudentPathPage: React.FC = () => {
                               className={`text-lg font-bold sm:text-xl ${on ? 'text-emerald-600' : 'text-slate-200'}`}
                               aria-hidden="true"
                             >
-                              {on ? '✓' : '—'}
+                              {on ? '✓' : '-'}
                             </span>
                           </div>
                         ))}
@@ -345,64 +429,110 @@ const StudentPathPage: React.FC = () => {
               })}
 
               <p className="border-t border-slate-100 bg-slate-50 px-3 py-2 text-center text-[0.65rem] leading-relaxed text-slate-600 sm:text-xs">
-                Level 2 also includes the <span className="font-semibold text-slate-800">triad cross-synthesis</span>{' '}
-                report when all three reasoning exams are complete. Prices below.
+                <span className="font-semibold text-slate-800">Membership 1</span> and above include the{' '}
+                <span className="font-semibold text-slate-800">triad cross-synthesis</span> report when all three
+                reasoning exams are complete.{' '}
+                <span className="font-semibold text-slate-800">Practice Mode</span> uses a separate question pool for
+                format familiarity only; it does not affect official scores or tiers.
               </p>
             </div>
           </div>
         </section>
 
         {/* Membership levels */}
-        <section className="mt-12 sm:mt-16">
-          <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl text-center">Membership Levels</h2>
-          <p className="mt-2 text-center text-xs text-slate-600 sm:text-sm">
-            Choose the depth of insight that&apos;s right for you.
+        <section id="sp-plans" data-landing-reveal className="mt-12 sm:mt-16">
+          <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl text-center">Plans &amp; pricing</h2>
+          <p className="mt-2 text-center text-xs text-slate-600 sm:text-sm max-w-xl mx-auto">
+            Three annual membership packages (Package 1 - Package 3), plus{' '}
+            <span className="font-semibold text-slate-800">Trial Membership</span>, a limited-time one-time entry.
           </p>
 
-          <div className="mt-8 sm:mt-10 space-y-3 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
+          <div className="mt-8 sm:mt-10 space-y-3 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
             {[
               {
-                name: 'Level 1 - Explore',
-                desc: 'Assessment 1 + basic report + tier placement',
-                price: '₹499/yr',
+                name: 'Trial Membership',
+                subLabel: 'Discovery',
+                desc: 'Exam 1 only • One-time entry',
+                price: '₹299',
                 bg: 'bg-[#e5f3ff]',
               },
               {
-                name: 'Level 2 - Engage',
-                desc: 'Full reasoning triad (Exams 1–3) + triad cross-synthesis report',
-                price: '₹1,299/yr',
+                name: 'Membership 1',
+                subLabel: 'Reasoning Triad',
+                desc: 'Exams 1–3 • Annual',
+                price: '₹899/yr',
                 bg: 'bg-[#fff7e0]',
               },
               {
-                name: 'Level 3 - Excel',
-                desc: 'All 6 exams: English, AI, comprehensive personality + full guidance',
-                price: '₹2,499/yr',
+                name: 'Membership 2',
+                subLabel: 'Reasoning + Skills',
+                desc: 'Exams 1–5 • Annual',
+                price: '₹1,799/yr',
+                bg: 'bg-[#e0f2fe]',
+              },
+              {
+                name: 'Membership 3',
+                subLabel: 'Guided Decision',
+                desc: 'All seven exams + Ongoing counseling • Annual',
+                price: '₹2,699/yr',
                 bg: 'bg-[#f9e8ff]',
               },
             ].map((tier, index) => (
               <div
                 key={index}
-                className={`flex items-center justify-between rounded-2xl ${tier.bg} px-4 py-3 shadow-sm ring-1 ring-slate-100 sm:px-5 sm:py-4 transition-all duration-300 ease-out hover:scale-[1.01] hover:shadow-md hover:ring-2 hover:ring-[#1e3a8a]/30 cursor-default`}
+                className={`flex h-full min-h-0 flex-col rounded-2xl ${tier.bg} px-4 py-3 shadow-sm ring-1 ring-slate-100 sm:px-5 sm:py-4 transition-all duration-300 ease-out hover:scale-[1.01] hover:shadow-md hover:ring-2 hover:ring-[#1e3a8a]/30 cursor-default`}
               >
-                <div className="flex items-center gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900 sm:text-base">{tier.name}</p>
-                    <p className="mt-1 text-xs text-slate-600 sm:text-sm">{tier.desc}</p>
-                  </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-900 sm:text-base">{tier.name}</p>
+                  <p className="mt-0.5 text-sm font-semibold text-slate-800 sm:text-base">{tier.subLabel}</p>
+                  <p className="mt-1 text-xs text-slate-600 sm:text-sm">{tier.desc}</p>
                 </div>
-                <div
-                  className="ml-4 text-sm font-semibold sm:text-base"
+                <p
+                  className="mt-auto pt-3 text-base font-semibold sm:text-lg"
                   style={{ color: GYS_BLUE }}
                 >
                   {tier.price}
-                </div>
+                </p>
               </div>
             ))}
           </div>
         </section>
 
-        {/* EducationWorld — students & parents (aligned with main landing) */}
-        <section className="mt-10 sm:mt-12">
+        {/* Upgrade deltas (Rev 13 - Discovery credited; list price before GST) */}
+        <section id="sp-economics" data-landing-reveal className="mt-10 sm:mt-12">
+          <h2 className="text-xl font-bold text-slate-900 sm:text-2xl text-center">Upgrade economics</h2>
+          <p className="mt-2 text-center text-xs text-slate-600 sm:text-sm max-w-xl mx-auto">
+            Trial Membership counts toward annual packages: you pay only the list difference.
+          </p>
+          <div className="mt-4 mx-auto max-w-md overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <table className="w-full text-left text-xs sm:text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50">
+                  <th className="px-3 py-2 font-semibold text-slate-800">Upgrade</th>
+                  <th className="px-3 py-2 font-semibold text-slate-800 text-right">Delta</th>
+                </tr>
+              </thead>
+              <tbody className="text-slate-700">
+                {[
+                  ['Trial Membership → Membership 1', '₹600'],
+                  ['Trial Membership → Membership 2', '₹1,500'],
+                  ['Trial Membership → Membership 3', '₹2,400'],
+                  ['Membership 1 → Membership 2', '₹900'],
+                  ['Membership 1 → Membership 3', '₹1,800'],
+                  ['Membership 2 → Membership 3', '₹900'],
+                ].map(([u, d]) => (
+                  <tr key={u} className="border-b border-slate-100 last:border-0">
+                    <td className="px-3 py-2">{u}</td>
+                    <td className="px-3 py-2 text-right font-medium tabular-nums">{d}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {/* EducationWorld - students & parents (aligned with main landing) */}
+        <section id="sp-ew" data-landing-reveal className="mt-10 sm:mt-12">
           <div className="rounded-2xl bg-[#eef4ff] px-4 py-4 shadow-sm sm:px-5 sm:py-4 md:px-6 md:py-5">
             <div className="flex items-center gap-4 sm:gap-5">
               <img
@@ -418,8 +548,8 @@ const StudentPathPage: React.FC = () => {
                   Trusted by over 5,000 schools and millions of parents nationwide for its credible,
                   comprehensive and in-depth school rankings on a wide range of parameters including
                   academic reputation, teacher competence, co-curricular and sports education. For the
-                  past 20 years, the annual EducationWorld India School Rankings — the world&apos;s
-                  largest and most comprehensive schools survey — has aided and enabled parents to select
+                  past 20 years, the annual EducationWorld India School Rankings, the world&apos;s
+                  largest and most comprehensive schools survey, has aided and enabled parents to select
                   the most aptitudinally suitable school for their children.
                 </p>
               </div>
@@ -427,15 +557,17 @@ const StudentPathPage: React.FC = () => {
           </div>
         </section>
 
-        <LandingFaq
-          id="faq"
-          title="GYS — Frequently Asked Questions"
-          sections={studentFaqSections}
-          className="mt-12 sm:mt-16"
-        />
+        <div data-landing-reveal>
+          <LandingFaq
+            id="student-faq"
+            title="GYS - Frequently Asked Questions"
+            sections={studentFaqSections}
+            className="mt-12 sm:mt-16"
+          />
+        </div>
 
         {/* Final CTAs */}
-        <section className="mt-12 sm:mt-16">
+        <section id="sp-signup" data-landing-reveal className="mt-12 sm:mt-16">
           <div className="mx-auto flex max-w-xl flex-col items-center gap-3">
             <button
               type="button"
@@ -443,7 +575,7 @@ const StudentPathPage: React.FC = () => {
               className="inline-flex w-full cursor-not-allowed items-center justify-center rounded-2xl border border-slate-200 bg-slate-200 px-14 py-3.5 text-sm font-semibold text-slate-500 shadow-none sm:text-base"
               aria-label="Student sign up (temporarily unavailable)"
             >
-              Sign up — Coming soon!
+              Sign up - Coming soon!
             </button>
             <p className="text-center text-sm text-slate-600 sm:text-base">
               Student registration is paused for a short time. Try the sample dashboard above to explore the
@@ -454,57 +586,7 @@ const StudentPathPage: React.FC = () => {
         </div>
       </main>
 
-      {/* Footer (same as first landing page) */}
-      <footer className="bg-white border-t border-gray-200 py-10">
-        <div className="mx-auto max-w-5xl px-6">
-          <nav className="flex flex-wrap justify-center gap-6 text-sm text-gray-600">
-            <button
-              type="button"
-              onClick={() => navigate('/')}
-              className="text-gray-600 hover:text-gray-900 transition-colors duration-200"
-            >
-              About
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/for-schools')}
-              className="text-gray-600 hover:text-gray-900 transition-colors duration-200"
-            >
-              For Schools
-            </button>
-            <button
-              type="button"
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              className="text-gray-600 hover:text-gray-900 transition-colors duration-200"
-            >
-              For Students
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/about/assessments')}
-              className="text-gray-600 hover:text-gray-900 transition-colors duration-200"
-            >
-              Assessments
-            </button>
-            <button
-              type="button"
-              onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })}
-              className="text-gray-600 hover:text-gray-900 transition-colors duration-200"
-            >
-              FAQ
-            </button>
-            <a
-              href="mailto:schools@globalyoungscholar.com"
-              className="text-gray-600 hover:text-gray-900 transition-colors duration-200"
-            >
-              Contact
-            </a>
-          </nav>
-          <p className="mt-6 text-center text-sm text-gray-500">
-            © 2026 Global Young Scholar. A joint initiative of Access USA, Argus, and EducationWorld.
-          </p>
-        </div>
-      </footer>
+      <LandingSiteFooter />
     </div>
   );
 };

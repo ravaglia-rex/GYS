@@ -19,7 +19,10 @@ import {
   RAZORPAY_CITY_MAX,
 } from '../../utils/schoolRegistrationPaymentRules';
 import * as Sentry from '@sentry/react';
+import PageFooter from '../../components/layout/LandingSiteFooter';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
+import { LandingHeaderScrollProgress } from '../../components/landing/LandingScrollChrome';
+import { useLandingScrollProgress } from '../../hooks/useLandingPageScroll';
 import SchoolRazorpayCheckout from '../../components/school-registration/SchoolRazorpayCheckout';
 import {
   SCHOOL_PAY_TEST,
@@ -510,7 +513,7 @@ const SchoolRegistrationPage: React.FC = () => {
                   >
                     Cards
                   </a>
-                  {' · '}
+                  {' • '}
                   <a
                     href="https://razorpay.com/docs/payments/payments/test-card-upi-details/?preferred-country=IN"
                     className="font-medium underline underline-offset-2"
@@ -568,7 +571,7 @@ const SchoolRegistrationPage: React.FC = () => {
             </button>
             <p className="mt-2 text-left text-xs text-slate-500 leading-relaxed">
               Opens the registration form again with your answers preserved. Update any field, go through to step 4,
-              and submit — we&apos;ll save changes to this school reference (same checkout token) before you pay.
+              and submit; we&apos;ll save changes to this school reference (same checkout token) before you pay.
             </p>
            
             <SchoolRazorpayCheckout
@@ -1273,7 +1276,7 @@ const SchoolRegistrationPage: React.FC = () => {
                 Select a plan
               </h1>
               <p className="mt-2 text-xs sm:text-sm text-slate-600">
-                Choose the institutional subscription that fits your school. After you submit this form,
+                Choose the institutional package that fits your school. After you submit this form,
                 {SCHOOL_SIGNUP_TEMP_PAYMENT_LINK
                   ? ' we will email you a secure payment link to complete checkout (UPI, cards, net banking).'
                   : ' you will complete payment securely via Razorpay (UPI, cards, net banking).'}
@@ -1294,9 +1297,9 @@ const SchoolRegistrationPage: React.FC = () => {
                           : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
                       }`}
                     >
-                      {plan.recommended && (
+                      {plan.popular && (
                         <span className="absolute -top-2.5 right-3 rounded-full bg-[#fbbf24] px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-slate-900 shadow-sm">
-                          Recommended
+                          Popular
                         </span>
                       )}
                       <div className="flex items-start justify-between gap-2">
@@ -1458,8 +1461,10 @@ const SchoolRegistrationPage: React.FC = () => {
 
 const Header: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const navigate = useNavigate();
+  const scrollProgress = useLandingScrollProgress();
   return (
-    <header className="sticky top-0 z-50 bg-white/90 border-b border-gray-200 backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/90 backdrop-blur relative">
+      <LandingHeaderScrollProgress scrollProgress={scrollProgress} />
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-4 sm:gap-6">
         <button
           type="button"
@@ -1502,15 +1507,5 @@ const Header: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     </header>
   );
 };
-
-const PageFooter: React.FC = () => (
-  <footer className="bg-white border-t border-gray-200 py-8">
-    <div className="mx-auto max-w-5xl px-6">
-      <p className="text-center text-xs text-gray-500 sm:text-sm">
-        © 2026 Global Young Scholar. A joint initiative of Access USA, Argus, and EducationWorld.
-      </p>
-    </div>
-  </footer>
-);
 
 export default SchoolRegistrationPage;

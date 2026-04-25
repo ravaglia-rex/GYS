@@ -145,7 +145,7 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
   },
   english_proficiency: {
     examOrdinal: 4,
-    examTitleShort: 'English Proficiency (Advanced)',
+    examTitleShort: 'English Proficiency',
     heroSubtitle: 'Advanced English - reading, writing, listening & speaking',
     statGrid: [
       { label: 'Duration', value: 'Varies' },
@@ -171,12 +171,12 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
   },
   ai_literacy: {
     examOrdinal: 5,
-    examTitleShort: 'AI Literacy & Capability',
+    examTitleShort: 'AI Proficiency',
     heroSubtitle: 'Concepts, evaluation, and live task',
     statGrid: [
       { label: 'Duration', value: '60 min' },
       { label: 'Format', value: 'Mixed' },
-      { label: 'Difficulty', value: 'Tiered' },
+      { label: 'Difficulty', value: 'Three levels' },
       { label: 'Language', value: 'English' },
     ],
     bodyDescription:
@@ -219,21 +219,53 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
     ],
     beforeBegin: [
       { icon: 'bolt', text: 'No right or wrong answers - honesty improves your guidance.' },
-      { icon: 'chart', text: 'Results feed into college matching and counselor conversations.' },
+      {
+        icon: 'chart',
+        text: 'Results feed into college matching and into the ongoing counseling profile when you choose to share.',
+      },
     ],
     theme: 'purple',
-    levelExclusiveBadge: 'LEVEL 3 EXCLUSIVE',
+    levelExclusiveBadge: 'Guided Decision only',
     isComprehensivePersonality: true,
     comprehensiveExtra: {
       howDifferentTitle: 'How This Is Different',
       howDifferentItems: [
         { icon: 'brain', text: 'No right or wrong answers' },
         { icon: 'timer', text: 'No timer - work at your pace' },
-        { icon: 'target', text: 'Feeds college matching & counseling' },
+        { icon: 'target', text: 'Feeds college matching and the ongoing counseling profile' },
       ],
       footerNote: 'Can be retaken once per year (policy may vary).',
     },
     detailFooterFinePrint: 'Estimated time: 45 - 60 minutes • Take breaks if needed.',
+    defaultQuestionInteraction: 'likert',
+    useTimer: false,
+    adaptiveForwardOnly: false,
+  },
+  career_interest_inventory: {
+    examOrdinal: 7,
+    examTitleShort: 'Interest & Career Discovery',
+    heroSubtitle: 'Exam 7 • Insight group',
+    statGrid: [
+      { label: 'Duration', value: 'Flexible' },
+      { label: 'Format', value: 'Self-report' },
+      { label: 'Timer', value: 'None' },
+      { label: 'Language', value: 'English' },
+    ],
+    bodyDescription:
+      'Explores interests and career themes to complement personality and reasoning signals. There is no timer; answer honestly for better guidance and counseling follow-up.',
+    measuresTitle: 'What This Supports',
+    measuresBullets: [
+      'Interest clusters and career themes',
+      'Stream and pathway exploration',
+      'Inputs for longitudinal counseling',
+    ],
+    beforeBegin: [
+      { icon: 'bolt', text: 'No right or wrong answers — candor improves recommendations.' },
+      { icon: 'chart', text: 'Pairs with Guided Decision counseling when you opt in.' },
+    ],
+    theme: 'purple',
+    levelExclusiveBadge: 'Guided Decision only',
+    detailFooterFinePrint: 'Complete Comprehensive Personality first when prompted.',
     defaultQuestionInteraction: 'likert',
     useTimer: false,
     adaptiveForwardOnly: false,
@@ -282,7 +314,7 @@ export function unlockNoticeForAssessment(assessmentId: string, passed: boolean)
       return 'Verbal Reasoning and Mathematical Reasoning are now available (within your membership).';
     case 'verbal_reasoning':
     case 'mathematical_reasoning':
-      return 'Continue the sequence - Advanced English (Exam 4) unlocks after the reasoning triad; AI and comprehensive personality require Level 3.';
+      return 'Continue the sequence - English (Exam 4) unlocks after the reasoning triad with Reasoning + Skills; AI Proficiency follows English; Insight instruments need Guided Decision.';
     default:
       return null;
   }
