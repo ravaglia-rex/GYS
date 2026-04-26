@@ -11,33 +11,33 @@ import { useLandingScrollProgress, useLandingSectionSpy } from '../../hooks/useL
 const DIFFERENTIATORS = [
   {
     emoji: '🌍',
-    title: 'Globally benchmarked',
-    body: 'Scores are calibrated against a growing normative population of college-bound students worldwide. You see readiness in global context, not only relative to classmates.',
+    title: 'Global Context',
+    body: 'GYS places student performance in a broader context, comparing results against a growing population of high-performing, college-bound students. Schools and families can see readiness beyond the classroom, the school, or the local cohort.',
   },
   {
     emoji: '🎯',
-    title: 'Adaptive by design',
-    body: 'Each counted exam adjusts difficulty in real time. Strong students keep moving forward; everyone finishes with a measure of ability instead of stalling on an artificial ceiling.',
+    title: 'Adaptive by Design',
+    body: 'Each official exam adjusts difficulty in real time. Stronger students keep moving into more challenging material, while every student receives a more accurate measure of ability instead of being limited by a fixed test ceiling.',
   },
   {
     emoji: '📋',
-    title: 'Practice Mode',
-    body: 'Optional familiarity runs draw from a separate question pool (same adaptive feel). They do not affect official scores, performance tiers, or reports; only counted exams do.',
+    title: 'Practice Without Penalty',
+    body: 'Students can take optional practice tests before official attempts. Practice uses a separate question pool, so students can build confidence without affecting official scores, performance tiers, school reports, or EducationWorld ranking inputs.',
   },
   {
     emoji: '🧭',
-    title: 'Guidance, not just grades',
-    body: 'Reasoning, English and AI proficiency, personality, and career discovery combine into stream and career direction. Guided Decision is built around an ongoing AI counseling relationship.',
+    title: 'Guidance, Not Just Grades',
+    body: 'GYS combines reasoning, English and communication, AI proficiency, personality, interests, and career discovery to support recommendations for stream selection, career exploration, and university fit.',
   },
   {
     emoji: '🏫',
-    title: 'Recognized by schools',
-    body: "GYS connects with EducationWorld's school rankings ecosystem, so participation aligns with how schools already measure excellence.",
+    title: 'Connected to EducationWorld Rankings',
+    body: 'GYS participation contributes to the EducationWorld school rankings framework, giving schools a credible assessment-backed signal of student excellence, readiness, and growth.',
   },
   {
     emoji: '🔁',
-    title: 'Designed to grow with you',
-    body: 'Each exam has three difficulty levels within the program year. Master one level and the next unlocks, with harder levels written for older, more advanced students.',
+    title: 'Designed to Grow With Students',
+    body: 'Each exam includes three levels of difficulty within the program year. As students master one level, the next level unlocks, allowing advanced students to keep progressing while younger students build toward more challenging work.',
   },
 ] as const;
 
@@ -272,9 +272,9 @@ const LandingPage: React.FC = () => {
             <span style={{ color: GYS_GOLD }}>World&apos;s Best?</span>
           </h2>
           <p className="landing-hero-enter-3 mx-auto mt-6 max-w-2xl text-lg text-white/90">
-            India&apos;s premier global benchmarking program for school students.
-            Seven exams and practice tests that help students improve and place them
-            on the world stage, globally benchmarked.
+            India&apos;s premier benchmarking and guidance program for schools and students in Classes 6–12.
+            Seven official assessments, plus practice tests, help schools measure student readiness,
+            support stream and career guidance, and strengthen their EducationWorld rankings profile.
           </p>
           <div className="landing-hero-enter-4 mx-auto mt-8 flex w-full max-w-full flex-nowrap justify-center gap-1.5 overflow-x-auto overscroll-x-contain px-1 pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:gap-2 md:gap-3 md:overflow-x-visible md:px-0 [&::-webkit-scrollbar]:hidden">
             <div className="landing-hero-chip flex shrink-0 items-center gap-1 rounded-full bg-white/10 px-2 py-1.5 text-[0.7rem] text-white backdrop-blur-sm transition-colors duration-150 hover:bg-white/20 sm:gap-2 sm:px-3 sm:py-2 sm:text-xs md:px-4 md:text-sm">
@@ -388,24 +388,22 @@ const LandingPage: React.FC = () => {
         <h3 className="text-xl font-bold text-slate-900 sm:text-2xl">What Is GYS?</h3>
         <div className="mt-6 space-y-4 text-justify text-xs leading-relaxed text-slate-600 sm:text-sm">
           <p>
-            <span className="font-semibold text-slate-800">Global Young Scholar (GYS)</span> is an 
-            assessment platform for understanding a student's aptitudes, personality, and readiness. Across seven
-            adaptive assessments, it builds a multi-dimensional picture of each student, then translates
-            results into clear guidance on streams, careers, and university fit. The exams can be broadly grouped into Reasoning, Skills, and Insights.
+            <span className="font-semibold text-slate-800">Global Young Scholar (GYS)</span> is an assessment and guidance platform for schools and students in Classes 6–12. Across seven adaptive assessments, GYS builds a multi-dimensional profile of each student, measuring aptitude, academic readiness, personality, and future-facing skills — then translating those results into practical guidance on strengths, growth areas, streams, careers, and university fit.
           </p>
           <p>
-          The <span className="font-semibold text-slate-800">Reasoning Triad</span> (Symbolic, Verbal, and
-            Mathematical Reasoning) benchmarks core thinking. 
+            The seven assessments are grouped into three tracks: Reasoning, Skills, and Insights.
           </p>
           <p>
-          <span className="font-semibold text-slate-800">Skills</span> dive deeper into a student's English and Communication abilities, and tests their AI proficiency.
+          <span className="font-semibold text-slate-800">Reasoning</span> includes Symbolic, Verbal, and Mathematical Reasoning, benchmarking the core thinking skills students need for advanced academic work.
           </p>
           <p>
-          Finally, <span className="font-semibold text-slate-800">Insights</span> helps the students learn more about themselves, their personality, and discover their interests and career paths.
+            <span className="font-semibold text-slate-800">Skills</span> focuses on 21st-century capabilities, including English and Communication, as well as students’ understanding of and proficiency working with AI.
+          </p>
+          <p>
+          <span className="font-semibold text-slate-800">Insights</span> helps students understand their personality, interests, motivations, and possible career pathways.
           </p>
           <p className="font-medium text-slate-800">
-            GYS is for students who want more than marks, who want to know where they stand, what they are
-            good at, and what comes next.
+            GYS is for schools and families who want more than marks. It helps students see where they stand, what they are good at, where they can grow, and what comes next.
           </p>
         </div>
       </section>
@@ -429,21 +427,21 @@ const LandingPage: React.FC = () => {
                   value="1"
                   className="min-w-0 flex-1 rounded-lg px-2 py-2.5 text-center text-xs font-semibold leading-tight data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm sm:px-3 sm:text-sm"
                 >
-                  Assessments
+                  Assess
                 </TabsTrigger>
                 <HowItWorksFlowChevron />
                 <TabsTrigger
                   value="2"
                   className="min-w-0 flex-1 rounded-lg px-2 py-2.5 text-center text-xs font-semibold leading-tight data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm sm:px-3 sm:text-sm"
                 >
-                  Your tier
+                  Benchmark
                 </TabsTrigger>
                 <HowItWorksFlowChevron />
                 <TabsTrigger
                   value="3"
                   className="min-w-0 flex-1 rounded-lg px-2 py-2.5 text-center text-xs font-semibold leading-tight data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm sm:px-3 sm:text-sm"
                 >
-                  Your path
+                  Guide
                 </TabsTrigger>
               </TabsList>
               <TabsContent
@@ -451,9 +449,9 @@ const LandingPage: React.FC = () => {
                 className="mt-6 rounded-2xl border border-gray-200 border-t-4 bg-slate-50 p-6 shadow-sm md:p-8"
                 style={{ borderTopColor: GYS_BLUE }}
               >
-                <h4 className="font-bold text-lg text-gray-900">Take assessments</h4>
+                <h4 className="font-bold text-lg text-gray-900">Assess</h4>
                 <p className="mt-3 text-sm leading-relaxed text-gray-600">
-                 World-class reasoning, personality, and English fluency assessments - online, proctored, on your schedule. Each assessment is designed to help you understand your strengths and weaknesses, and improve your skills.
+                  Students complete official GYS assessments online through a secure platform. Across seven exams, GYS measures reasoning, communication, AI readiness, personality, interests, and career direction - helping schools and families understand each student&apos;s strengths and recommend next steps for stream selection, career exploration, and university fit.
                 </p>
               </TabsContent>
               <TabsContent
@@ -461,9 +459,9 @@ const LandingPage: React.FC = () => {
                 className="mt-6 rounded-2xl border border-gray-200 border-t-4 bg-slate-50 p-6 shadow-sm md:p-8"
                 style={{ borderTopColor: GYS_BLUE }}
               >
-                <h4 className="font-bold text-lg text-gray-900">Get your tier</h4>
+                <h4 className="font-bold text-lg text-gray-900">Benchmark</h4>
                 <p className="mt-3 text-sm leading-relaxed text-gray-600">
-                Earn a performance tier (Explorer → Diamond) - benchmarked against students at your grade level worldwide. Work your way up the leaderboard to unlock opportunities and recognition.
+                Earn a performance tier (Explorer → Diamond) - benchmarked against students at each grade level worldwide. Students work their way up the leaderboard to unlock opportunities and recognition.
                 </p>
               </TabsContent>
               <TabsContent
@@ -471,10 +469,10 @@ const LandingPage: React.FC = () => {
                 className="mt-6 rounded-2xl border border-gray-200 border-t-4 bg-slate-50 p-6 shadow-sm md:p-8"
                 style={{ borderTopColor: GYS_BLUE }}
               >
-                <h4 className="font-bold text-lg text-gray-900">Build your path</h4>
+                <h4 className="font-bold text-lg text-gray-900">Guide</h4>
                 <p className="mt-3 text-sm leading-relaxed text-gray-600">
-                  Personalized reports, course recommendations, and college mapping to help you get where
-                  you&apos;re going.
+                  Personalized reports, course recommendations, and college mapping to help students achieve their goals.
+               
                 </p>
               </TabsContent>
             </Tabs>
@@ -502,14 +500,16 @@ const LandingPage: React.FC = () => {
       >
         <div className="relative mx-auto max-w-5xl px-6">
           <h3 className="text-center text-2xl md:text-3xl font-bold text-gray-900">
-            Performance Tiers and Leaderboard
+            Performance Tiers and Leaderboards
           </h3>
-          <p className="mx-auto mt-2 max-w-3xl text-justify text-sm leading-relaxed text-gray-600">
-            Performance Tiers are the nationwide lens: every student earns a band that reflects their performance
-           on the exams against a growing national cohort. Students can improve their tier by retaking the exams and earning higher scores.
-           
-          Additionally, a <strong>leaderboard</strong>  shows who are the top ten students per exam per grade at the school. Leaderboard is updated periodically.
-            </p>  
+          <div className="mx-auto mt-2 max-w-3xl space-y-4 text-justify text-sm leading-relaxed text-gray-600">
+            <p>
+              Every student earns a GYS Performance Tier that reflects their achievement against a growing national cohort. Tiers give schools, students, and families a clear way to understand performance beyond raw marks — from Explorer through Diamond.
+            </p>
+            <p>
+              Students can improve their tier over time by retaking assessments and demonstrating higher levels of mastery. School leaderboards highlight the top-performing students by exam and class, helping schools recognize excellence and celebrate student achievement.
+            </p>
+          </div>
           <div className="mx-auto mt-8 max-w-5xl md:mt-10">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6 md:gap-4">
             {[
@@ -579,7 +579,7 @@ const LandingPage: React.FC = () => {
           <div className="mx-auto max-w-2xl text-center">
             <h3 className="text-xl font-bold text-slate-900 sm:text-2xl">Practice Tests</h3>
             <p className="mt-3 text-xs leading-relaxed text-slate-600 sm:text-sm">
-              Sample tests available for students to practice before their official attempts. These tests use the same adaptive engine but a separate question pool so students build confidence.
+              Sample tests are available for students to practice before their official attempts. These tests use the same adaptive engine but a separate question pool so students build confidence.
               
             </p>
           </div>
@@ -645,9 +645,7 @@ const LandingPage: React.FC = () => {
           <div className="mx-auto max-w-2xl text-center">
             <h3 className="text-xl font-bold text-slate-900 sm:text-2xl">What Makes GYS Different</h3>
             <p className="mt-3 text-xs font-medium leading-relaxed text-slate-700 sm:text-sm">
-              Most tests stop at pass or fail. GYS is built to answer what you are ready for next, with global
-              norms, depth across domains, optional practice that does not pollute the benchmark, and a
-              scoreline schools and families can trust.
+              Most assessments produce a score. GYS helps schools and families understand what that score means — and what students are ready for next. With adaptive exams, trusted norms, optional practice, and guidance across academics, skills, personality, and career direction, GYS gives schools a more complete picture of student readiness.
             </p>
           </div>
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
@@ -687,8 +685,9 @@ const LandingPage: React.FC = () => {
                 <p className="mt-5 text-xs leading-relaxed text-slate-600 sm:text-sm">
                   GYS brings together <span className="font-semibold text-slate-900">Access USA</span>,{' '}
                   <span className="font-semibold text-slate-900">Argus</span>, and{' '}
-                  <span className="font-semibold text-slate-900">Education World</span> to combine global
-                  assessment expertise with trusted Indian school insights.
+                  <span className="font-semibold text-slate-900">EducationWorld</span> to combine
+                  assessment expertise, AI-powered analytics, and India&apos;s most trusted school
+                  rankings ecosystem.
                 </p>
                 <p className="mt-4 text-xs leading-relaxed text-slate-600 sm:text-sm">
                   The result: a credential that is globally benchmarked and locally relevant.
@@ -763,32 +762,30 @@ const LandingPage: React.FC = () => {
         className="scroll-mt-20 border-y border-slate-200 bg-gradient-to-br from-[#1e3a8a] to-[#0f172a] px-6 py-14 text-white sm:py-16"
       >
         <div className="mx-auto max-w-2xl text-center">
-          <h3 className="text-lg font-bold sm:text-xl">See What GYS Feels Like.</h3>
+          <h3 className="text-lg font-bold sm:text-xl">See how GYS works for your school</h3>
           <p className="mt-4 text-xs leading-relaxed text-white/85 sm:text-sm">
-            No account, no cost, just a quick feel for how GYS reasons about you.
+            Explore the assessment experience, review pricing, or register your school for the new academic year.
             
           </p>
           <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:flex-wrap">
             <button
               type="button"
-              onClick={() =>
-                navigate('/for-schools/preview/assessment', {
-                  state: { sampleAssessmentExitTo: '/' },
-                })
-              }
+              onClick={() => navigate('/for-schools')}
               className="inline-flex items-center justify-center gap-2 rounded-2xl px-8 py-3 text-xs font-semibold text-slate-900 shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl sm:text-sm"
               style={{ backgroundColor: GYS_GOLD }}
             >
-              Try a Sample Assessment
+              Register Your School
               <ArrowRight className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
             </button>
             <button
               type="button"
-              onClick={() => navigate('/students#sp-plans')}
+              onClick={() => navigate('/for-schools/preview')}
               className="inline-flex items-center justify-center gap-2 rounded-2xl border-2 border-white/70 bg-white/10 px-8 py-3 text-xs font-semibold text-white backdrop-blur-sm transition hover:bg-white/20 sm:text-sm"
             >
-              See Pricing
+              Try Institutional Experience
+              <ArrowRight className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
             </button>
+           
           </div>
         </div>
       </section>
