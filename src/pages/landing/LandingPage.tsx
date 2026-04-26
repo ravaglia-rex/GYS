@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import LandingSiteFooter from '../../components/layout/LandingSiteFooter';
-import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
+import PublicSamplesNavMenu from '../../components/layout/PublicSamplesNavMenu';
 import { LandingHeaderScrollProgress, LandingSectionRail } from '../../components/landing/LandingScrollChrome';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { GYS_BLUE, GYS_GOLD } from '../../constants/gysBrand';
@@ -171,6 +171,13 @@ const StatItem: React.FC<StatItemProps> = ({ target, suffix = '', label, trigger
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const [statsVisible, setStatsVisible] = useState(false);
+  const goToHomepage = () => {
+    if (window.location.pathname === '/') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    navigate('/');
+  };
   const scrollProgress = useLandingScrollProgress();
   const activeSectionId = useLandingSectionSpy(LANDING_SECTION_IDS_JOIN);
   const statsRef = useRef<HTMLDivElement | null>(null);
@@ -199,7 +206,12 @@ const LandingPage: React.FC = () => {
       <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/90 backdrop-blur relative">
         <LandingHeaderScrollProgress scrollProgress={scrollProgress} />
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-3 sm:gap-6">
-          <div className="flex items-center gap-3 group">
+          <button
+            type="button"
+            onClick={goToHomepage}
+            className="flex items-center gap-3 text-left group"
+            aria-label="Go to homepage"
+          >
             <div
               className="flex w-10 h-10 rounded items-center justify-center text-white font-bold text-sm shrink-0 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:shadow-md"
               style={{ backgroundColor: GYS_BLUE }}
@@ -214,21 +226,14 @@ const LandingPage: React.FC = () => {
                 Powered by Argus, Access USA, EducationWorld
               </p>
             </div>
-          </div>
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
+          </button>
+          <nav className="hidden md:flex items-center gap-8 text-base font-semibold">
             <button
               type="button"
-              onClick={() => navigate('/about/assessments')}
+              onClick={() => navigate('/')}
               className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
             >
-              Assessments
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/for-schools')}
-              className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
-            >
-              For Schools
+              Home
             </button>
             <button
               type="button"
@@ -237,9 +242,16 @@ const LandingPage: React.FC = () => {
             >
               For Students
             </button>
+            <button
+              type="button"
+              onClick={() => navigate('/for-schools')}
+              className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
+            >
+              For Schools
+            </button>
+            <PublicSamplesNavMenu />
           </nav>
           <div className="flex shrink-0 items-center gap-2">
-            <PublicHomeNavButton />
             <button
               type="button"
               onClick={() => navigate('/login')}

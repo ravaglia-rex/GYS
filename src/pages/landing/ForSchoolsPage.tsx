@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import LandingSiteFooter from '../../components/layout/LandingSiteFooter';
-import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
+import PublicSamplesNavMenu from '../../components/layout/PublicSamplesNavMenu';
 import LandingFaq from '../../components/landing/LandingFaq';
 import { LandingHeaderScrollProgress, LandingSectionRail } from '../../components/landing/LandingScrollChrome';
 import { GYS_BLUE, GYS_GOLD } from '../../constants/gysBrand';
@@ -73,20 +73,13 @@ const ForSchoolsPage: React.FC = () => {
               </p>
             </div>
           </div>
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
+          <nav className="hidden md:flex items-center gap-8 text-base font-semibold">
             <button
               type="button"
-              onClick={() => navigate('/about/assessments')}
+              onClick={() => navigate('/')}
               className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
             >
-              Assessments
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/for-schools')}
-              className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
-            >
-              For Schools
+              Home
             </button>
             <button
               type="button"
@@ -95,9 +88,16 @@ const ForSchoolsPage: React.FC = () => {
             >
               For Students
             </button>
+            <button
+              type="button"
+              onClick={() => navigate('/for-schools')}
+              className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
+            >
+              For Schools
+            </button>
+            <PublicSamplesNavMenu />
           </nav>
           <div className="flex shrink-0 items-center gap-2">
-            <PublicHomeNavButton />
             <button
               type="button"
               onClick={() => navigate('/login')}
@@ -424,26 +424,7 @@ const ForSchoolsPage: React.FC = () => {
             </div>
           </section>
 
-          {/* Consumer revenue recognition - Rev 13 pass-through (KD #99) */}
-          <section
-            id="consumer-recognition-pass-through"
-            data-landing-reveal
-            className="scroll-mt-28 mt-10 sm:mt-12 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm sm:px-5 sm:py-5"
-          >
-            <h3 className="text-lg font-bold text-slate-900 sm:text-xl">
-              Recognition when families subscribe directly
-            </h3>
-            <p className="mt-2 text-xs leading-relaxed text-slate-600 sm:text-sm sm:leading-relaxed">
-              Schools that do not purchase an institutional plan can still earn the same recognition benefits as
-              paying institutional clients when their students generate at least{' '}
-              <strong className="text-slate-800">₹3 lakh</strong> in attributable consumer revenue within an annual
-              cycle, including <strong className="text-slate-800">Education Leadership Award</strong> eligibility
-              (subject to Premium-equivalent benefits) and inclusion in{' '}
-              <strong className="text-slate-800">EducationWorld ranking attribution</strong>. Attribution follows the
-              same student–school association pathways used elsewhere (roster, tagged links, and verified
-              associations). 
-            </p>
-          </section>
+         
 
           {/* EducationWorld strip */}
           <section id="schools-ew" data-landing-reveal className="mt-10 sm:mt-12">

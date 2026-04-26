@@ -95,12 +95,7 @@ const SchoolAdminReportsPage: React.FC = () => {
         </Typography>
       </Box>
 
-      {!s3Configured && (
-        <Alert severity="warning" sx={{ mb: 2 }}>
-          PDF downloads require AWS credentials and the reports bucket env var on the API. Links will not work until
-          those are set.
-        </Alert>
-      )}
+    
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
           {error}
@@ -161,7 +156,19 @@ const SchoolAdminReportsPage: React.FC = () => {
                     >
                       Students
                     </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, color: ip.heading, fontSize: '0.72rem', width: 120 }} />
+                    <TableCell
+                      align="right"
+                      sx={{
+                        fontWeight: 700,
+                        color: ip.heading,
+                        fontSize: '0.72rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: 0.06,
+                        width: 160,
+                      }}
+                    >
+                      Download
+                    </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -217,13 +224,19 @@ const SchoolAdminReportsPage: React.FC = () => {
                             color: r.hasPdf ? ip.navy : ip.subtext,
                             fontWeight: 600,
                             textTransform: 'none',
-                            minWidth: 108,
+                            minWidth: 140,
                             '&:hover': r.hasPdf
                               ? { borderColor: ip.navy, bgcolor: 'rgba(16, 64, 139, 0.06)' }
                               : {},
+                            '&.Mui-disabled': {
+                              opacity: 1,
+                              borderColor: ip.cardBorder,
+                              color: ip.subtext,
+                              bgcolor: '#f8fafc',
+                            },
                           }}
                         >
-                          {r.hasPdf ? 'Download' : 'No file'}
+                          Download PDF
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -235,13 +248,7 @@ const SchoolAdminReportsPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Box sx={{ mt: 3, p: 2.5, bgcolor: ip.cardMutedBg, border: `1px dashed ${ip.cardBorder}`, borderRadius: 2 }}>
-        <Typography variant="body2" sx={{ color: ip.subtext }}>
-          {isSchoolAdminPreview
-            ? 'Preview uses the same quarterly metadata as the Greenfield International School seed. PDF download stays disabled until you sign in with a configured API.'
-            : "New PDFs are appended each quarter here. Only officials signed in with your school's email can list and download them."}
-        </Typography>
-      </Box>
+     
     </Box>
   );
 };

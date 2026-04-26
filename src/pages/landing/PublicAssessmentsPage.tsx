@@ -10,7 +10,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import LandingSiteFooter from '../../components/layout/LandingSiteFooter';
-import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
+import PublicSamplesNavMenu from '../../components/layout/PublicSamplesNavMenu';
 import { LandingHeaderScrollProgress, LandingSectionRail } from '../../components/landing/LandingScrollChrome';
 import { GYS_BLUE, GYS_GOLD } from '../../constants/gysBrand';
 import {
@@ -114,6 +114,14 @@ const PublicAssessmentsPage: React.FC = () => {
   const activeSectionId = useLandingSectionSpy(PA_SECTION_IDS_JOIN);
   useLandingRevealInContainer(pageRootRef);
 
+  const goToHomepage = () => {
+    if (window.location.pathname === '/') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    navigate('/');
+  };
+
   const goInstitutionalSubscriptions = () =>
     navigate('/for-schools', { state: { scrollToId: 'institutional-packages' } });
 
@@ -123,7 +131,12 @@ const PublicAssessmentsPage: React.FC = () => {
       <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/90 backdrop-blur relative">
         <LandingHeaderScrollProgress scrollProgress={scrollProgress} />
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-3 sm:gap-6">
-          <div className="flex items-center gap-3 group">
+          <button
+            type="button"
+            onClick={goToHomepage}
+            className="flex items-center gap-3 text-left group"
+            aria-label="Go to homepage"
+          >
             <div
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded text-sm font-bold text-white transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:shadow-md"
               style={{ backgroundColor: GYS_BLUE }}
@@ -138,21 +151,14 @@ const PublicAssessmentsPage: React.FC = () => {
                 Powered by Argus, Access USA, EducationWorld
               </p>
             </div>
-          </div>
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
+          </button>
+          <nav className="hidden md:flex items-center gap-8 text-base font-semibold">
             <button
               type="button"
-              onClick={() => navigate('/about/assessments')}
+              onClick={() => navigate('/')}
               className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
             >
-              Assessments
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/for-schools')}
-              className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
-            >
-              For Schools
+              Home
             </button>
             <button
               type="button"
@@ -161,9 +167,16 @@ const PublicAssessmentsPage: React.FC = () => {
             >
               For Students
             </button>
+            <button
+              type="button"
+              onClick={() => navigate('/for-schools')}
+              className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
+            >
+              For Schools
+            </button>
+            <PublicSamplesNavMenu />
           </nav>
           <div className="flex shrink-0 items-center gap-2">
-            <PublicHomeNavButton />
             <button
               type="button"
               onClick={() => navigate('/login')}
@@ -476,14 +489,15 @@ const PublicAssessmentsPage: React.FC = () => {
                   bg: 'bg-[#e0f2fe]',
                   text: 'text-[#0369a1]',
                   border: 'border-sky-400',
-                  icon: <span className="text-2xl md:text-3xl">💎</span>,
+                  icon: <span className="text-2xl md:text-3xl">✦</span>,
                 },
                 {
                   name: 'Diamond',
                   bg: 'bg-[#ede9fe]',
                   text: 'text-[#5b21b6]',
                   border: 'border-violet-400',
-                  icon: <span className="text-2xl md:text-3xl">✦</span>,
+                 
+                  icon: <span className="text-2xl md:text-3xl">💎</span>,
                 },
               ].map((tier) => (
                 <div

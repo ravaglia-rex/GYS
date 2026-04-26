@@ -138,6 +138,43 @@ const rosterFilterSelectSx = {
   maxWidth: ROSTER_FILTER_SELECT_MIN_W,
 };
 
+function getAchievementTierChipSx(tierRaw: string) {
+  const tier = normalizeAchievementTierId(tierRaw);
+  if (tier === 'explorer') {
+    return {
+      bgcolor: '#F0E9F8',
+      color: '#5E35B1',
+      border: '1px solid #D1C4E9',
+    };
+  }
+  if (tier === 'bronze') {
+    return {
+      bgcolor: '#ffe4d6',
+      color: '#b5561c',
+      border: '1px solid #ea580c',
+    };
+  }
+  if (tier === 'silver') {
+    return {
+      bgcolor: '#f3f4f6',
+      color: '#374151',
+      border: '1px solid #9ca3af',
+    };
+  }
+  if (tier === 'gold' || tier === 'diamond' || tier === 'platinum') {
+    return {
+      bgcolor: '#fef3c7',
+      color: '#b45309',
+      border: '1px solid #f59e0b',
+    };
+  }
+  return {
+    bgcolor: ip.cardMutedBg,
+    color: ip.heading,
+    border: `1px solid ${ip.cardBorder}`,
+  };
+}
+
 const SchoolAdminStudentsPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -850,16 +887,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
                                 label={formatAchievementTierLabel(r.achievementTier)}
                                 sx={{
                                   fontWeight: 600,
-                                  ...(normalizeAchievementTierId(r.achievementTier) === 'explorer'
-                                    ? {
-                                        bgcolor: '#F0E9F8',
-                                        color: '#5E35B1',
-                                        border: '1px solid #D1C4E9',
-                                      }
-                                    : {
-                                        bgcolor: ip.cardMutedBg,
-                                        border: `1px solid ${ip.cardBorder}`,
-                                      }),
+                                  ...getAchievementTierChipSx(r.achievementTier),
                                 }}
                               />
                             </TableCell>

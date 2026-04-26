@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
+import PublicSamplesNavMenu from '../../components/layout/PublicSamplesNavMenu';
 import { LandingHeaderScrollProgress, LandingSectionRail } from '../../components/landing/LandingScrollChrome';
 import { GYS_BLUE } from '../../constants/gysBrand';
 import {
@@ -138,20 +138,13 @@ const InstitutionDemoRequestPage: React.FC = () => {
               </p>
             </div>
           </div>
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
+          <nav className="hidden md:flex items-center gap-8 text-base font-semibold">
             <button
               type="button"
-              onClick={() => navigate('/about/assessments')}
+              onClick={() => navigate('/')}
               className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
             >
-              Assessments
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/for-schools')}
-              className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
-            >
-              For Schools
+              Home
             </button>
             <button
               type="button"
@@ -160,9 +153,16 @@ const InstitutionDemoRequestPage: React.FC = () => {
             >
               For Students
             </button>
+            <button
+              type="button"
+              onClick={() => navigate('/for-schools')}
+              className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
+            >
+              For Schools
+            </button>
+            <PublicSamplesNavMenu />
           </nav>
           <div className="flex shrink-0 items-center gap-2">
-            <PublicHomeNavButton />
             <button
               type="button"
               onClick={() => navigate('/login')}

@@ -15,17 +15,11 @@ export const studentFaqSections: { heading: string; items: LandingFaqItem[] }[] 
         answer: (
           <>
             <p>
-              Global Young Scholar (GYS) provides a sequential reasoning and proficiency assessment
-              program for students in Grades 6–12 to identify those who show exceptional promise for
-              success in higher education and also for helping students understand how their
-              performance compares to domestic and international populations. The GYS exams measure
-              symbolic reasoning, verbal reasoning, mathematical reasoning, English proficiency, AI
-              proficiency, personality, and career discovery through seven progressively deeper exams
-              (Reasoning, Skills, and Insight groups). The exams help
-              students in Grades 6–12 understand their academic strengths, identify areas for growth,
-              and receive guidance on educational decisions. It measures how your child thinks: their
-              reasoning ability, English and AI proficiency, personality, and interests, not just
-              what they&apos;ve memorized.
+            GYS assessment data contributes approximately 15% to a school’s EducationWorld India School Ranking, serving as an assessment-backed input into the ranking methodology.
+
+EducationWorld considers both participation — how many eligible students complete GYS assessments — and performance — how students perform across the assessment suite. Participating schools receive a GYS performance designation, updated periodically, that feeds into the EducationWorld rankings framework.
+
+For schools seeking to improve or maintain their ranking position, GYS provides a clear, actionable way to demonstrate student achievement through structured, comparable assessment data.
             </p>
           </>
         ),
