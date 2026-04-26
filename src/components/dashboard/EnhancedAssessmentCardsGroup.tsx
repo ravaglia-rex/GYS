@@ -330,6 +330,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
             gap: 1.5,
             width: '100%',
             minWidth: 0,
+            mt: 1.5,
           }}
         >
           <Box
@@ -384,7 +385,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
 
         <Box>
         {showLevelProgress ? (
-          <Box sx={{ mb: 1 }}>
+          <Box sx={{ mb: 2.25 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
               <Typography variant="caption" sx={{ color: '#94a3b8', fontSize: '0.73rem' }}>
                 Level progress

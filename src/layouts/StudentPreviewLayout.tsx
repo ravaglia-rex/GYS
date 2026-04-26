@@ -32,6 +32,7 @@ import {
   ExpandMore,
   School as SchoolIcon,
   BarChart as BarChartIcon,
+  EmojiEvents as EmojiEventsIcon,
 } from '@mui/icons-material';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { rememberStudentPreviewExitTo, consumeStudentPreviewExitTo } from '../utils/studentPreviewExit';
@@ -116,6 +117,38 @@ export default function StudentPreviewLayout() {
         <ListItemText
           primary="Dashboard"
           slotProps={{ primary: { fontWeight: isActive('/students/preview/dashboard') ? 600 : 500, fontSize: '0.9rem', color: '#e2e8f0' } }}
+        />
+      </ListItemButton>
+
+      <ListItemButton
+        selected={isActive('/students/preview/leaderboard')}
+        onClick={() => {
+          navigate('/students/preview/leaderboard');
+          if (isMobile) setMobileOpen(false);
+        }}
+        sx={{
+          borderRadius: 1.5,
+          mb: 0.5,
+          py: 1.1,
+          pl: 2,
+          borderLeft: isActive('/students/preview/leaderboard') ? '3px solid #f59e0b' : '3px solid transparent',
+          bgcolor: isActive('/students/preview/leaderboard') ? 'rgba(245,158,11,0.12)' : 'transparent',
+          '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' },
+          '&.Mui-selected': { bgcolor: 'rgba(245,158,11,0.15)' },
+        }}
+      >
+        <ListItemIcon sx={{ minWidth: 40, color: '#f59e0b' }}>
+          <EmojiEventsIcon sx={iconSx} />
+        </ListItemIcon>
+        <ListItemText
+          primary="Leaderboard"
+          slotProps={{
+            primary: {
+              fontWeight: isActive('/students/preview/leaderboard') ? 600 : 500,
+              fontSize: '0.9rem',
+              color: '#e2e8f0',
+            },
+          }}
         />
       </ListItemButton>
 

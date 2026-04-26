@@ -118,25 +118,14 @@ const PublicAssessmentsPage: React.FC = () => {
     navigate('/for-schools', { state: { scrollToId: 'institutional-packages' } });
 
   return (
-    <div ref={pageRootRef} className="min-h-screen overflow-x-hidden bg-slate-50 text-slate-900">
+    <div ref={pageRootRef} className="min-h-screen overflow-x-clip bg-slate-50 text-slate-900">
       <LandingSectionRail sections={PA_NAV} activeSectionId={activeSectionId} />
       <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/90 backdrop-blur relative">
         <LandingHeaderScrollProgress scrollProgress={scrollProgress} />
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-4 sm:gap-6">
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="group -ml-1 flex items-center gap-1 rounded-lg px-1 py-0.5 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-100 hover:text-slate-900"
-          >
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-300 text-xs transition-all duration-200 group-hover:border-slate-400">
-              ←
-            </span>
-            <span className="hidden xs:inline">Back</span>
-          </button>
-
-          <div className="flex items-center gap-3">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-3 sm:gap-6">
+          <div className="flex items-center gap-3 group">
             <div
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded text-sm font-bold text-white"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded text-sm font-bold text-white transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:shadow-md"
               style={{ backgroundColor: GYS_BLUE }}
             >
               GYS
@@ -150,13 +139,35 @@ const PublicAssessmentsPage: React.FC = () => {
               </p>
             </div>
           </div>
-
-          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+          <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
+            <button
+              type="button"
+              onClick={() => navigate('/about/assessments')}
+              className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
+            >
+              Assessments
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/for-schools')}
+              className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
+            >
+              For Schools
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/students')}
+              className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
+            >
+              For Students
+            </button>
+          </nav>
+          <div className="flex shrink-0 items-center gap-2">
             <PublicHomeNavButton />
             <button
               type="button"
               onClick={() => navigate('/login')}
-              className="shrink-0 rounded-xl px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:brightness-110 active:scale-95 sm:px-5"
+              className="px-5 py-2.5 rounded-xl text-white text-sm font-medium shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-transform duration-150"
               style={{ backgroundColor: GYS_BLUE }}
             >
               Log In

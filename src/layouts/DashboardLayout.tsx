@@ -48,6 +48,13 @@ export default function DashboardLayout({
     setSidebarOpen(!sidebarOpen);
   };
 
+  /** Sidebar passes this after a nav link navigation; must not toggle on desktop (would hide the drawer with no menu button to reopen). */
+  const closeSidebarAfterNav = () => {
+    if (isMobile) {
+      setSidebarOpen(false);
+    }
+  };
+
   const handleSidebarCollapse = () => {
     setSidebarCollapsed(!sidebarCollapsed);
   };
@@ -82,7 +89,7 @@ export default function DashboardLayout({
         <SidebarNavigation 
           collapsed={sidebarCollapsed} 
           onCollapse={handleSidebarCollapse}
-          onClose={handleDrawerToggle}
+          onClose={closeSidebarAfterNav}
         />
       </Drawer>
 

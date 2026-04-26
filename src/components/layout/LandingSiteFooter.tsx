@@ -8,13 +8,6 @@ const LandingSiteFooter: React.FC = () => {
     <footer className="bg-white border-t border-gray-200 py-10">
       <div className="max-w-5xl mx-auto px-6">
         <nav className="flex flex-wrap justify-center gap-6 text-sm text-gray-600">
-          <button
-            type="button"
-            onClick={() => navigate('/about')}
-            className="text-gray-600 hover:text-gray-900"
-          >
-            About
-          </button>
           <button type="button" onClick={() => navigate('/for-schools')} className="text-gray-600 hover:text-gray-900">
             For Schools
           </button>

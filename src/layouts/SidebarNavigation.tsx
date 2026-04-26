@@ -23,7 +23,9 @@ import {
   ChevronLeft as ChevronLeftIcon,
   BarChart as BarChartIcon,
   Assignment as AssignmentIcon,
-  Logout as LogoutIcon
+  Logout as LogoutIcon,
+  EmojiEvents as EmojiEventsIcon,
+  Quiz as QuizIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../firebase/firebase';
@@ -47,6 +49,16 @@ const navItems: NavItem[] = [
     title: 'Dashboard',
     path: '/dashboard',
     icon: <DashboardIcon sx={{ color: '#8b5cf6' }} />,
+  },
+  {
+    title: 'Leaderboard',
+    path: '/leaderboard',
+    icon: <EmojiEventsIcon sx={{ color: '#f59e0b' }} />,
+  },
+  {
+    title: 'Practice Mode',
+    path: '/practice-test',
+    icon: <QuizIcon sx={{ color: '#38bdf8' }} />,
   },
   {
     title: 'Assessments',

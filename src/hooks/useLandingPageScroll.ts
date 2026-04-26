@@ -87,28 +87,12 @@ export function useLandingSectionSpy(sectionIdsJoined: string): string {
   return activeSectionId;
 }
 
-/** Adds `landing-reveal-visible` to `[data-landing-reveal]` nodes inside `rootRef` when they enter view */
-export function useLandingRevealInContainer(rootRef: RefObject<HTMLElement | null>): void {
-  useEffect(() => {
-    const root = rootRef.current;
-    if (!root) return undefined;
-    const nodes = root.querySelectorAll('[data-landing-reveal]');
-    if (nodes.length === 0) return undefined;
-
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('landing-reveal-visible');
-          }
-        });
-      },
-      { threshold: 0.08, rootMargin: '0px 0px -6% 0px' }
-    );
-
-    nodes.forEach((n) => io.observe(n));
-    return () => io.disconnect();
-  }, [rootRef]);
+/**
+ * No-op: scroll-triggered reveals were removed; `[data-landing-reveal]` is always visible in CSS.
+ * Call sites keep a stable `pageRootRef` for layout without wiring observers.
+ */
+export function useLandingRevealInContainer(_rootRef: RefObject<HTMLElement | null>): void {
+  void _rootRef;
 }
 
 export function useScrollToSectionHandler(): (id: string) => void {

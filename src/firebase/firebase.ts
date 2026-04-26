@@ -24,7 +24,7 @@ export const db = getFirestore(app);
  * Authentication → Templates → (Password reset / Email verification) → Customize action URL,
  * e.g. `https://your-portal.example.com/auth/action`. If the template still points at
  * `*.firebaseapp.com`, users complete reset on Firebase’s page (oob code consumed) and land
- * on your app without a valid code — `/auth/action` cannot finish school POC setup.
+ * on your app without a valid code - `/auth/action` cannot finish school POC setup.
  */
 export function getAuthActionContinueUrl(): string {
   const fromEnv = process.env.REACT_APP_AUTH_CONTINUE_URL?.trim();
@@ -32,7 +32,7 @@ export function getAuthActionContinueUrl(): string {
   return `${window.location.origin}/auth/action`;
 }
 
-/** @deprecated Use getAuthActionContinueUrl — same value, kept for existing imports. */
+/** @deprecated Use getAuthActionContinueUrl - same value, kept for existing imports. */
 export const getPasswordResetContinueUrl = getAuthActionContinueUrl;
 
 export function getAuthActionCodeSettings(): ActionCodeSettings {

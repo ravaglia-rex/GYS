@@ -1,18 +1,14 @@
 import React from 'react';
-import { Box, Typography, Avatar, Button } from '@mui/material';
-import { BarChart2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Box, Typography, Avatar } from '@mui/material';
+import { FlaskConical } from 'lucide-react';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import * as Sentry from '@sentry/react';
 
-/** Program-level narrative reports (beyond per-assessment results) - not built yet for v2. */
-const ReportsPage: React.FC = () => {
-  const navigate = useNavigate();
-
+const PracticeTestPage: React.FC = () => {
   return (
     <Sentry.ErrorBoundary
       beforeCapture={(scope) => {
-        scope.setTag('location', 'ReportsPage');
+        scope.setTag('location', 'PracticeTestPage');
       }}
     >
       <DashboardLayout>
@@ -22,11 +18,11 @@ const ReportsPage: React.FC = () => {
               sx={{
                 width: 64,
                 height: 64,
-                background: 'linear-gradient(135deg, #10b981, #3b82f6)',
+                background: 'linear-gradient(135deg, #a78bfa, #38bdf8)',
                 color: 'white',
               }}
             >
-              <BarChart2 size={32} />
+              <FlaskConical size={32} />
             </Avatar>
             <Box>
               <Typography
@@ -34,16 +30,16 @@ const ReportsPage: React.FC = () => {
                 sx={{
                   color: 'white',
                   fontWeight: 700,
-                  background: 'linear-gradient(45deg, #10b981, #3b82f6)',
+                  background: 'linear-gradient(45deg, #a78bfa, #38bdf8)',
                   backgroundClip: 'text',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                 }}
               >
-                Reports
+                Practice Mode
               </Typography>
               <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.75)', mt: 0.5 }}>
-                Deep-dive programme reports will appear here as we roll out each assessment.
+                Warm up with sample questions before your programme assessments.
               </Typography>
             </Box>
           </Box>
@@ -54,19 +50,16 @@ const ReportsPage: React.FC = () => {
               borderRadius: 2,
               p: 3,
               border: '1px solid rgba(255, 255, 255, 0.1)',
+              textAlign: 'center',
             }}
           >
-            <Typography variant="h6" sx={{ color: 'white', fontWeight: 600, mb: 2 }}>
-              Where to see scores today
+            <Typography variant="h6" sx={{ color: 'white', fontWeight: 600, mb: 1.5 }}>
+              Coming soon
             </Typography>
-            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.78)', mb: 2 }}>
-              Your tier scores and outcomes for assessments you have completed, including Pattern and Logic
-              (symbolic reasoning), are on{' '}
-              <strong style={{ color: '#93c5fd' }}>Completed &amp; Results</strong> under Assessments.
+            <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+              We are building practice modes so you can build confidence at your own pace. Check back after your next
+              portal update.
             </Typography>
-            <Button variant="contained" onClick={() => navigate('/assessments/completed')} sx={{ mt: 1 }}>
-              Go to completed assessments
-            </Button>
           </Box>
         </Box>
       </DashboardLayout>
@@ -74,4 +67,4 @@ const ReportsPage: React.FC = () => {
   );
 };
 
-export default ReportsPage;
+export default PracticeTestPage;

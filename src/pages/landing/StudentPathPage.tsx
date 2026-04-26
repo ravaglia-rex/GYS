@@ -1,5 +1,5 @@
-import React, { useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import LandingSiteFooter from '../../components/layout/LandingSiteFooter';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
@@ -146,32 +146,33 @@ const ASSESSMENT_SECTIONS: {
 
 const StudentPathPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const pageRootRef = useRef<HTMLDivElement>(null);
   const scrollProgress = useLandingScrollProgress();
   const activeSectionId = useLandingSectionSpy(STUDENT_SECTION_IDS_JOIN);
   useLandingRevealInContainer(pageRootRef);
 
+  useEffect(() => {
+    const hash = location.hash.replace('#', '');
+    if (!hash) return;
+    const target = document.getElementById(hash);
+    if (!target) return;
+    // Delay to allow lazy-loaded content/layout to settle before scrolling.
+    window.requestAnimationFrame(() => {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, [location.hash]);
+
   return (
-    <div ref={pageRootRef} className="min-h-screen overflow-x-hidden bg-slate-50 text-slate-900">
+    <div ref={pageRootRef} className="min-h-screen overflow-x-clip bg-slate-50 text-slate-900">
       <LandingSectionRail sections={STUDENT_NAV} activeSectionId={activeSectionId} />
       {/* Top nav */}
       <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/90 backdrop-blur relative">
         <LandingHeaderScrollProgress scrollProgress={scrollProgress} />
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-4 sm:gap-6">
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="group flex items-center gap-1 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors duration-200 hover:bg-slate-100 rounded-lg px-1 py-0.5 -ml-1"
-          >
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-300 text-xs transition-all duration-200 group-hover:border-slate-400">
-              ←
-            </span>
-            <span className="hidden xs:inline">Back</span>
-          </button>
-
-          <div className="flex items-center gap-3">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-3 sm:gap-6">
+          <div className="flex items-center gap-3 group">
             <div
-              className="flex w-10 h-10 rounded items-center justify-center text-white font-bold text-sm shrink-0"
+              className="flex w-10 h-10 rounded items-center justify-center text-white font-bold text-sm shrink-0 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:shadow-md"
               style={{ backgroundColor: GYS_BLUE }}
             >
               GYS
@@ -185,13 +186,35 @@ const StudentPathPage: React.FC = () => {
               </p>
             </div>
           </div>
-
-          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+          <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
+            <button
+              type="button"
+              onClick={() => navigate('/about/assessments')}
+              className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
+            >
+              Assessments
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/for-schools')}
+              className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
+            >
+              For Schools
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/students')}
+              className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
+            >
+              For Students
+            </button>
+          </nav>
+          <div className="flex shrink-0 items-center gap-2">
             <PublicHomeNavButton />
             <button
               type="button"
               onClick={() => navigate('/login')}
-              className="px-4 py-2.5 sm:px-5 rounded-xl text-white text-sm font-medium shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:brightness-110 active:scale-95 transition-all duration-200"
+              className="px-5 py-2.5 rounded-xl text-white text-sm font-medium shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-transform duration-150"
               style={{ backgroundColor: GYS_BLUE }}
             >
               Log In
@@ -307,14 +330,10 @@ const StudentPathPage: React.FC = () => {
                 title: 'Course Recommendations',
                 body: 'Targeted courses from Access USA to strengthen exactly the areas where you need to grow.',
               },
-            ].map((item, index) => (
+            ].map((item) => (
               <div
                 key={item.title}
                 className="group relative flex h-full flex-col overflow-hidden rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-slate-100 sm:px-5 sm:py-4 transition-all duration-300 ease-out hover:scale-[1.02] hover:-translate-y-1 hover:shadow-lg hover:ring-slate-200 cursor-default"
-                style={{
-                  animation: 'fade-slide-in 0.5s ease-out both',
-                  animationDelay: `${index * 80}ms`,
-                }}
               >
                 <div className="absolute inset-x-0 top-0 h-1 transition-all duration-300 group-hover:h-1.5" style={{ backgroundColor: GYS_BLUE }} />
                 <div className="pt-3 text-center sm:pt-3.5">

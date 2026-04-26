@@ -33,7 +33,7 @@ export type RegisterSchoolPayload = {
   state: string;
   postal_code: string;
   contact_emails: string[];
-  /** Optional at signup — required on Razorpay checkout step if not stored. */
+  /** Optional at signup - required on Razorpay checkout step if not stored. */
   poc_phone?: string;
   institution_pan?: string;
   selected_plan_id: string;
@@ -96,7 +96,7 @@ export type CreateSchoolRazorpayOrderResponse = {
   amount: number;
   currency: string;
   key_id: string;
-  /** Razorpay Import Flow — pass to Standard Checkout options. */
+  /** Razorpay Import Flow - pass to Standard Checkout options. */
   customer_id?: string;
   plan_id: string;
   test_mode_amounts?: boolean;
@@ -109,7 +109,7 @@ export type CreateSchoolRazorpayOrderResponse = {
 export type CreateSchoolRazorpayOrderParams = {
   schoolId: string;
   checkoutSecret: string;
-  /** India mobile — Import Flow customer + order customer_details. */
+  /** India mobile - Import Flow customer + order customer_details. */
   poc_phone: string;
   institution_pan?: string;
 };
@@ -138,7 +138,7 @@ export const createSchoolRazorpayOrder = async (
         (x): x is string => typeof x === "string" && x.trim().length > 0
       );
       if (bits.length > 0) {
-        throw new Error(bits.join(" — "));
+        throw new Error(bits.join(" - "));
       }
     }
     throw new Error("Could not start payment. Please try again or contact schools@globalyoungscholar.com.");
@@ -210,7 +210,7 @@ export const registerSchool = async (
         (x): x is string => typeof x === "string" && x.trim().length > 0
       );
       if (bits.length > 0) {
-        throw new Error(bits.join(" — "));
+        throw new Error(bits.join(" - "));
       }
     }
     throw new Error(
@@ -237,7 +237,7 @@ export const amendSchoolRegistration = async (
         (x): x is string => typeof x === "string" && x.trim().length > 0
       );
       if (bits.length > 0) {
-        throw new Error(bits.join(" — "));
+        throw new Error(bits.join(" - "));
       }
     }
     throw new Error(

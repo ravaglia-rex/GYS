@@ -293,7 +293,7 @@ const MembershipUpgradeSection: React.FC = () => {
         </Typography>
       </Box>
       <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.72)', mb: 2 }}>
-        Three annual membership levels (plus Discovery 1a as a one-time entry). Current plan:{' '}
+        Three annual membership levels (plus Discovery as a one-time entry). Current plan:{' '}
         <Box component="span" sx={{ color: '#e9d5ff', fontWeight: 600 }}>
           {membershipLevel === 0
             ? 'No paid tier yet'

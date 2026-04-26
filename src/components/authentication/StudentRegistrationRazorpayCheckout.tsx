@@ -213,7 +213,7 @@ const StudentRegistrationRazorpayCheckout: React.FC<StudentRegistrationRazorpayC
           ? 'Skipping payment (dev)…'
           : 'Opening secure checkout…'
         : isStudentSignupRazorpayDevBypass()
-          ? `Dev: skip Razorpay — continue as ${planLabel}`
+          ? `Dev: skip Razorpay - continue as ${planLabel}`
           : `Pay ${planLabel} securely with Razorpay`}
     </button>
   );

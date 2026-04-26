@@ -43,7 +43,7 @@ const PasswordActionLayout: React.FC<PasswordActionLayoutProps> = ({ title, desc
               talentsearch@argus.ai
             </a>
           </p>
-          <p className="mt-3 text-slate-600">— The Argus Team</p>
+          <p className="mt-3 text-slate-600">- The Argus Team</p>
         </footer>
       </div>
     </div>

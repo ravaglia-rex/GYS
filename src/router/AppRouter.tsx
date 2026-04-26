@@ -21,7 +21,6 @@ const SchoolRegistrationPage = React.lazy(
 );
 const StudentPathPage = React.lazy(() => import('../pages/landing/StudentPathPage'));
 const PublicAssessmentsPage = React.lazy(() => import('../pages/landing/PublicAssessmentsPage'));
-const AboutGysPage = React.lazy(() => import('../pages/landing/AboutGysPage'));
 
 const SchoolPreviewLayout = React.lazy(() => import('../layouts/SchoolPreviewLayout'));
 const SchoolPreviewHubPage = React.lazy(() => import('../pages/landing/preview/SchoolPreviewHubPage'));
@@ -31,6 +30,9 @@ const SchoolPreviewAssessmentPage = React.lazy(
 const StudentPreviewLayout = React.lazy(() => import('../layouts/StudentPreviewLayout'));
 const StudentPreviewDashboardPage = React.lazy(
   () => import('../pages/landing/preview/StudentPreviewDashboardPage')
+);
+const StudentPreviewLeaderboardPage = React.lazy(
+  () => import('../pages/landing/preview/StudentPreviewLeaderboardPage')
 );
 
 /*
@@ -69,6 +71,8 @@ const SettingsPage = React.lazy(() => import('../pages/dashboard_pages/SettingsP
 const AssessmentsPage = React.lazy(() => import('../pages/dashboard_pages/AssessmentsPage'));
 const BillingPage = React.lazy(() => import('../pages/dashboard_pages/BillingPage'));
 const ReportsPage = React.lazy(() => import('../pages/dashboard_pages/ReportsPage'));
+const LeaderboardPage = React.lazy(() => import('../pages/dashboard_pages/LeaderboardPage'));
+const PracticeTestPage = React.lazy(() => import('../pages/dashboard_pages/PracticeTestPage'));
 const AssessmentTakePage = React.lazy(() => import('../pages/dashboard_pages/AssessmentTakePage'));
 const AssessmentResultPage = React.lazy(() => import('../pages/dashboard_pages/AssessmentResultPage'));
 const AssessmentDetailPage = React.lazy(() => import('../pages/dashboard_pages/AssessmentDetailPage'));
@@ -124,15 +128,7 @@ const AppRouter: React.FC = () => {
           }
           errorElement={<NotFoundPage />}
         />
-        <Route
-          path="/about"
-          element={
-            <Suspense fallback={<BigSpinner />}>
-              <AboutGysPage />
-            </Suspense>
-          }
-          errorElement={<NotFoundPage />}
-        />
+        <Route path="/about" element={<Navigate to="/" replace />} errorElement={<NotFoundPage />} />
         <Route
           path="/login"
           element={
@@ -204,6 +200,14 @@ const AppRouter: React.FC = () => {
             element={
               <Suspense fallback={<BigSpinner />}>
                 <StudentPreviewDashboardPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="leaderboard"
+            element={
+              <Suspense fallback={<BigSpinner />}>
+                <StudentPreviewLeaderboardPage />
               </Suspense>
             }
           />
@@ -413,6 +417,30 @@ const AppRouter: React.FC = () => {
             <Protected>
               <Suspense fallback={<BigSpinner/>}>
                 <DashboardPage />
+              </Suspense>
+            </Protected>
+          }
+          errorElement={<NotFoundPage />}
+        />
+
+        <Route
+          path="/leaderboard"
+          element={
+            <Protected>
+              <Suspense fallback={<BigSpinner />}>
+                <LeaderboardPage />
+              </Suspense>
+            </Protected>
+          }
+          errorElement={<NotFoundPage />}
+        />
+
+        <Route
+          path="/practice-test"
+          element={
+            <Protected>
+              <Suspense fallback={<BigSpinner />}>
+                <PracticeTestPage />
               </Suspense>
             </Protected>
           }

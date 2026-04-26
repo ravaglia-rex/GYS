@@ -3,22 +3,103 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import LandingSiteFooter from '../../components/layout/LandingSiteFooter';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
-import { LandingHeaderScrollProgress } from '../../components/landing/LandingScrollChrome';
+import { LandingHeaderScrollProgress, LandingSectionRail } from '../../components/landing/LandingScrollChrome';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
-import {
-  scrollToLandingSectionId,
-  useLandingScrollProgress,
-  useLandingSectionSpy,
-} from '../../hooks/useLandingPageScroll';
+import { GYS_BLUE, GYS_GOLD } from '../../constants/gysBrand';
+import { useLandingScrollProgress, useLandingSectionSpy } from '../../hooks/useLandingPageScroll';
 
-const GYS_BLUE = '#1e3a8a';
-const GYS_GOLD = '#fbbf24'; // brighter, radiant gold (amber-400)
+const DIFFERENTIATORS = [
+  {
+    emoji: '🌍',
+    title: 'Globally benchmarked',
+    body: 'Scores are calibrated against a growing normative population of college-bound students worldwide. You see readiness in global context, not only relative to classmates.',
+  },
+  {
+    emoji: '🎯',
+    title: 'Adaptive by design',
+    body: 'Each counted exam adjusts difficulty in real time. Strong students keep moving forward; everyone finishes with a measure of ability instead of stalling on an artificial ceiling.',
+  },
+  {
+    emoji: '📋',
+    title: 'Practice Mode',
+    body: 'Optional familiarity runs draw from a separate question pool (same adaptive feel). They do not affect official scores, performance tiers, or reports; only counted exams do.',
+  },
+  {
+    emoji: '🧭',
+    title: 'Guidance, not just grades',
+    body: 'Reasoning, English and AI proficiency, personality, and career discovery combine into stream and career direction. Guided Decision is built around an ongoing AI counseling relationship.',
+  },
+  {
+    emoji: '🏫',
+    title: 'Recognized by schools',
+    body: "GYS connects with EducationWorld's school rankings ecosystem, so participation aligns with how schools already measure excellence.",
+  },
+  {
+    emoji: '🔁',
+    title: 'Designed to grow with you',
+    body: 'Each exam has three difficulty levels within the program year. Master one level and the next unlocks, with harder levels written for older, more advanced students.',
+  },
+] as const;
+
+const AUDIENCES = [
+  {
+    grades: '6–8',
+    title: 'Middle School',
+    subtitle: 'Start exploring',
+    body: 'Begin with Symbolic Reasoning. Practice Mode helps you learn adaptive pacing and screen logistics before counted exams (familiarity only); it does not change official scores.',
+    tint: 'from-sky-50 to-white border-sky-200',
+  },
+  {
+    grades: '8–12',
+    title: 'Secondary',
+    subtitle: 'Benchmark your reasoning',
+    body: 'Complete the Reasoning Triad. Earn a performance tier. Get your first aptitude-based stream suggestions before Class 11 choices matter.',
+    tint: 'from-amber-50/90 to-white border-amber-200',
+  },
+  {
+    grades: '9–12',
+    title: 'Senior Secondary',
+    subtitle: 'Make informed decisions',
+    body: 'Full assessment suite: after the Insight baseline, an ongoing AI-powered career counseling relationship, where students return to log labs, internships, classes, and other experiences so guidance stays current. Combine reasoning, skills, and insight into a holistic path forward.',
+    tint: 'from-violet-50 to-white border-violet-200',
+  },
+] as const;
+
+const OUTCOMES = [
+  {
+    emoji: '🏅',
+    title: 'Performance tier',
+    body: 'A recognized designation from Explorer through Diamond, earned from exam performances and benchmarked against college-bound peers worldwide.',
+  },
+  {
+    emoji: '📊',
+    title: 'Category-level reports',
+    body: 'Clear strengths and growth areas by question category, not just a single score, thus providing a clear roadmap for improvement.',
+  },
+  {
+    emoji: '🧭',
+    title: 'Stream & career guidance',
+    body: 'Recommendations that deepen as you complete more of the suite; at Guided Decision, counseling continues even after completing all the exams as students add real-world experiences.',
+  },
+  {
+    emoji: '🎓',
+    title: 'University-ready credential',
+    body: "A GYS profile framed for universities in India and the US and for schools in EducationWorld's rankings universe, globally legible and locally relevant.",
+  },
+] as const;
 
 const LANDING_SECTIONS = [
   { id: 'landing-hero', label: 'Home' },
   { id: 'landing-stats', label: 'Impact' },
-  { id: 'how-it-works', label: 'How it works' },
+  { id: 'landing-what-gys', label: 'What' },
+  { id: 'how-it-works', label: 'How' },
   { id: 'performance-tiers', label: 'Tiers' },
+  { id: 'landing-practice', label: 'Practice' },
+  { id: 'landing-mission', label: 'About' },
+  { id: 'landing-different', label: 'Diff' },
+  { id: 'landing-partnership', label: 'Partners' },
+  { id: 'landing-outcomes', label: 'Outcomes' },
+  { id: 'landing-try', label: 'Try' },
 ] as const;
 
 const LANDING_SECTION_IDS_JOIN = LANDING_SECTIONS.map((s) => s.id).join('|');
@@ -111,26 +192,10 @@ const LandingPage: React.FC = () => {
     return () => observer.disconnect();
   }, []);
 
-  useEffect(() => {
-    const nodes = document.querySelectorAll('[data-landing-reveal]');
-    if (nodes.length === 0) return undefined;
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('landing-reveal-visible');
-          }
-        });
-      },
-      { threshold: 0.08, rootMargin: '0px 0px -6% 0px' }
-    );
-    nodes.forEach((n) => io.observe(n));
-    return () => io.disconnect();
-  }, []);
-
   return (
-    <div className="overflow-x-hidden bg-white text-gray-900">
-      {/* Header + scroll progress (same chrome as /about, /students, etc.) */}
+    <div className="overflow-x-clip bg-white text-gray-900">
+      <LandingSectionRail sections={LANDING_SECTIONS} activeSectionId={activeSectionId} />
+      {/* Header + scroll progress (same chrome as other public marketing pages) */}
       <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/90 backdrop-blur relative">
         <LandingHeaderScrollProgress scrollProgress={scrollProgress} />
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-3 sm:gap-6">
@@ -153,10 +218,10 @@ const LandingPage: React.FC = () => {
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
             <button
               type="button"
-              onClick={() => navigate('/about')}
+              onClick={() => navigate('/about/assessments')}
               className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
             >
-              About
+              Assessments
             </button>
             <button
               type="button"
@@ -187,34 +252,6 @@ const LandingPage: React.FC = () => {
         </div>
       </header>
 
-      {/* Desktop: jump-to-section rail (same pattern as LandingSectionRail) */}
-      <nav
-        className="landing-scroll-rail fixed right-4 top-1/2 z-40 hidden -translate-y-1/2 flex-col items-center xl:flex"
-        aria-label="Jump to section on this page"
-        title="Jump to a section"
-      >
-        <ul className="flex flex-col items-center gap-y-2 rounded-full border border-white/25 bg-slate-950/35 px-2 py-3 shadow-lg backdrop-blur-md ring-1 ring-white/10">
-          {LANDING_SECTIONS.map(({ id, label }) => {
-            const active = activeSectionId === id;
-            return (
-              <li key={id} className="flex flex-col items-center">
-                <button
-                  type="button"
-                  aria-label={`Go to ${label}`}
-                  aria-current={active ? 'location' : undefined}
-                  onClick={() => scrollToLandingSectionId(id)}
-                  className={`landing-scroll-rail__dot flex h-2.5 w-2.5 shrink-0 items-center justify-center rounded-full border border-white/50 outline-none transition focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900/80 ${
-                    active
-                      ? 'landing-scroll-rail__dot--active border-amber-100 bg-amber-50 shadow-sm'
-                      : 'bg-white/35 hover:bg-white/60'
-                  }`}
-                />
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
-
       {/* Hero */}
       <section
         id="landing-hero"
@@ -235,9 +272,9 @@ const LandingPage: React.FC = () => {
             <span style={{ color: GYS_GOLD }}>World&apos;s Best?</span>
           </h2>
           <p className="landing-hero-enter-3 mx-auto mt-6 max-w-2xl text-lg text-white/90">
-            India&apos;s premier global benchmarking program for college-bound students.
-            Reasoning, skills, and insight. Seven exams and practice tests that place students
-            on the world stage.
+            India&apos;s premier global benchmarking program for school students.
+            Seven exams and practice tests that help students improve and place them
+            on the world stage, globally benchmarked.
           </p>
           <div className="landing-hero-enter-4 mx-auto mt-8 flex w-full max-w-full flex-nowrap justify-center gap-1.5 overflow-x-auto overscroll-x-contain px-1 pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:gap-2 md:gap-3 md:overflow-x-visible md:px-0 [&::-webkit-scrollbar]:hidden">
             <div className="landing-hero-chip flex shrink-0 items-center gap-1 rounded-full bg-white/10 px-2 py-1.5 text-[0.7rem] text-white backdrop-blur-sm transition-colors duration-150 hover:bg-white/20 sm:gap-2 sm:px-3 sm:py-2 sm:text-xs md:px-4 md:text-sm">
@@ -347,19 +384,44 @@ const LandingPage: React.FC = () => {
         className="pointer-events-none relative -mt-px h-px overflow-visible bg-gradient-to-r from-transparent via-amber-200/50 to-transparent"
         aria-hidden
       />
+       <section id="landing-what-gys" data-landing-reveal className="scroll-mt-20 mx-auto max-w-3xl bg-white px-6 pt-10 pb-5 sm:pt-12 sm:pb-6">
+        <h3 className="text-xl font-bold text-slate-900 sm:text-2xl">What Is GYS?</h3>
+        <div className="mt-6 space-y-4 text-justify text-xs leading-relaxed text-slate-600 sm:text-sm">
+          <p>
+            <span className="font-semibold text-slate-800">Global Young Scholar (GYS)</span> is an 
+            assessment platform for understanding a student's aptitudes, personality, and readiness. Across seven
+            adaptive assessments, it builds a multi-dimensional picture of each student, then translates
+            results into clear guidance on streams, careers, and university fit. The exams can be broadly grouped into Reasoning, Skills, and Insights.
+          </p>
+          <p>
+          The <span className="font-semibold text-slate-800">Reasoning Triad</span> (Symbolic, Verbal, and
+            Mathematical Reasoning) benchmarks core thinking. 
+          </p>
+          <p>
+          <span className="font-semibold text-slate-800">Skills</span> dive deeper into a student's English and Communication abilities, and tests their AI proficiency.
+          </p>
+          <p>
+          Finally, <span className="font-semibold text-slate-800">Insights</span> helps the students learn more about themselves, their personality, and discover their interests and career paths.
+          </p>
+          <p className="font-medium text-slate-800">
+            GYS is for students who want more than marks, who want to know where they stand, what they are
+            good at, and what comes next.
+          </p>
+        </div>
+      </section>
 
 
       {/* How It Works */}
       <section
         id="how-it-works"
         data-landing-reveal
-        className="scroll-mt-20 bg-white pt-12 pb-5 md:pt-14 md:pb-6"
+        className="scroll-mt-20 bg-white pt-6 pb-5 md:pt-8 md:pb-6"
       >
         <div className="max-w-5xl mx-auto px-6 text-center">
           <h3 className="text-2xl md:text-3xl font-bold text-gray-900">
             How It Works
           </h3>
-          <p className="text-gray-600 mt-2">Three steps to a global profile; tap each step to explore</p>
+          <p className="text-gray-600 mt-2">Three steps to build a global profile; Tap each step to explore more.</p>
           <div className="mt-10 md:mt-12 text-left">
             <Tabs defaultValue="1" className="mx-auto w-full max-w-3xl">
               <TabsList className="flex h-auto w-full flex-nowrap items-stretch gap-0 rounded-xl bg-slate-100 p-1.5 text-slate-600">
@@ -386,34 +448,27 @@ const LandingPage: React.FC = () => {
               </TabsList>
               <TabsContent
                 value="1"
-                className="mt-6 animate-in fade-in slide-in-from-bottom-4 rounded-2xl border border-gray-200 border-t-4 bg-slate-50 p-6 shadow-sm duration-500 md:p-8"
+                className="mt-6 rounded-2xl border border-gray-200 border-t-4 bg-slate-50 p-6 shadow-sm md:p-8"
                 style={{ borderTopColor: GYS_BLUE }}
               >
                 <h4 className="font-bold text-lg text-gray-900">Take assessments</h4>
                 <p className="mt-3 text-sm leading-relaxed text-gray-600">
-                  Seven exams across Reasoning, Skills, and Insight, online, integrity-aware, on your schedule.
+                 World-class reasoning, personality, and English fluency assessments - online, proctored, on your schedule. Each assessment is designed to help you understand your strengths and weaknesses, and improve your skills.
                 </p>
               </TabsContent>
               <TabsContent
                 value="2"
-                className="mt-6 animate-in fade-in slide-in-from-bottom-4 rounded-2xl border border-gray-200 border-t-4 bg-slate-50 p-6 shadow-sm duration-500 md:p-8"
+                className="mt-6 rounded-2xl border border-gray-200 border-t-4 bg-slate-50 p-6 shadow-sm md:p-8"
                 style={{ borderTopColor: GYS_BLUE }}
               >
                 <h4 className="font-bold text-lg text-gray-900">Get your tier</h4>
                 <p className="mt-3 text-sm leading-relaxed text-gray-600">
-                  Most families first see how students compare <strong>inside their school</strong>: for each
-                  official exam, leaderboards highlight <strong>top performers by grade</strong>. 
-                </p>
-                <p className="mt-3 text-sm leading-relaxed text-gray-600">
-                  After the official <strong>Reasoning Triad</strong>, GYS assigns a{' '}
-                  <strong>Performance Tier</strong> band (Explorer at the baseline, then Bronze through Diamond).
-                  Every student&apos;s tier <strong>updates periodically</strong> from official exam results. It is{' '}
-                  <strong>percentile- and exam-based within grade</strong> against a growing national reference cohort. Students can improve their tier by taking the exams and earning higher scores.
+                Earn a performance tier (Explorer → Diamond) - benchmarked against students at your grade level worldwide. Work your way up the leaderboard to unlock opportunities and recognition.
                 </p>
               </TabsContent>
               <TabsContent
                 value="3"
-                className="mt-6 animate-in fade-in slide-in-from-bottom-4 rounded-2xl border border-gray-200 border-t-4 bg-slate-50 p-6 shadow-sm duration-500 md:p-8"
+                className="mt-6 rounded-2xl border border-gray-200 border-t-4 bg-slate-50 p-6 shadow-sm md:p-8"
                 style={{ borderTopColor: GYS_BLUE }}
               >
                 <h4 className="font-bold text-lg text-gray-900">Build your path</h4>
@@ -437,25 +492,24 @@ const LandingPage: React.FC = () => {
         </svg>
       </div>
 
-      {/* Performance Tiers (Section 3 - national-normed) */}
-      <section
+      
+
+ {/* Performance Tiers (Section 3 - national-normed) */}
+ <section
         id="performance-tiers"
         data-landing-reveal
         className="scroll-mt-20 bg-slate-50/80 pb-6 pt-10 md:pb-8 md:pt-12"
       >
-        <div className="relative mx-auto max-w-5xl px-6 text-center">
-          <h3 className="text-2xl md:text-3xl font-bold text-gray-900">
+        <div className="relative mx-auto max-w-5xl px-6">
+          <h3 className="text-center text-2xl md:text-3xl font-bold text-gray-900">
             Performance Tiers and Leaderboard
           </h3>
-          <p className="text-gray-600 mt-2 max-w-3xl mx-auto text-sm leading-relaxed">
+          <p className="mx-auto mt-2 max-w-3xl text-justify text-sm leading-relaxed text-gray-600">
             Performance Tiers are the nationwide lens: every student earns a band that reflects their performance
-           on the exams against a growing national cohort (Explorer → Diamond). Students can improve their tier by taking the exams and earning higher scores.
-          </p>
-          <p className="text-gray-600 mt-2 max-w-3xl mx-auto text-sm leading-relaxed"> 
-          A <strong>school-level</strong> view for each grade, families can see the
-            <strong> top ten students per exam</strong> per grade at the school. Leaderboard is updated periodically. Over time, students will also see how they stand nationally, and top performers can earn paths to grade-level opportunities alongside other nationwide toppers.
-  
-      </p>
+           on the exams against a growing national cohort. Students can improve their tier by retaking the exams and earning higher scores.
+           
+          Additionally, a <strong>leaderboard</strong>  shows who are the top ten students per exam per grade at the school. Leaderboard is updated periodically.
+            </p>  
           <div className="mx-auto mt-8 max-w-5xl md:mt-10">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6 md:gap-4">
             {[
@@ -492,14 +546,14 @@ const LandingPage: React.FC = () => {
                 bg: 'bg-[#e0f2fe]',
                 text: 'text-[#0369a1]',
                 border: 'border-sky-400',
-                icon: <span className="text-2xl md:text-3xl">💎</span>,
+                icon: <span className="text-2xl md:text-3xl">✦</span>,
               },
               {
                 name: 'Diamond',
                 bg: 'bg-[#ede9fe]',
                 text: 'text-[#5b21b6]',
                 border: 'border-violet-400',
-                icon: <span className="text-2xl md:text-3xl">✦</span>,
+                icon: <span className="text-2xl md:text-3xl">💎</span>,
               },
             ].map((tier) => (
               <div
@@ -515,15 +569,229 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      <div className="pointer-events-none bg-slate-50/80 leading-none" aria-hidden>
-        <svg
-          className="landing-section-wave landing-section-wave--compact block w-full rotate-180 text-white"
-          viewBox="0 0 1440 64"
-          preserveAspectRatio="none"
-        >
-          <path fill="currentColor" d="M0,0 L0,40 C320,64 640,0 960,32 C1280,64 1440,24 1440,8 L1440,0 Z" />
-        </svg>
-      </div>
+     
+      <section
+        id="landing-practice"
+        data-landing-reveal
+        className="scroll-mt-20 border-t border-slate-200 bg-slate-50 py-12 sm:py-14"
+      >
+        <div className="mx-auto max-w-5xl px-6">
+          <div className="mx-auto max-w-2xl text-center">
+            <h3 className="text-xl font-bold text-slate-900 sm:text-2xl">Practice Tests</h3>
+            <p className="mt-3 text-xs leading-relaxed text-slate-600 sm:text-sm">
+              Sample tests available for students to practice before their official attempts. These tests use the same adaptive engine but a separate question pool so students build confidence.
+              
+            </p>
+          </div>
+          <div className="mt-8 grid gap-4 sm:grid-cols-3">
+            {[
+              {
+                t: 'Separate pool',
+                d: 'Practice content is drawn from a separate question bank.',
+              },
+              {
+                t: 'Tier-neutral',
+                d: 'Exploratory results do not impact official tiers or the school-facing benchmark signal.',
+              },
+              {
+                t: 'Same adaptive rhythm',
+                d: 'Difficulty still responds in real time, so you learn the feel of the exam before it counts toward reports.',
+              },
+            ].map((row) => (
+              <div
+                key={row.t}
+                className="rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm ring-1 ring-slate-100"
+              >
+                <p className="text-sm font-bold text-slate-900">{row.t}</p>
+                <p className="mt-2 text-xs leading-relaxed text-slate-600 sm:text-sm">{row.d}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="landing-mission" className="scroll-mt-20 bg-white">
+        <div className="relative overflow-x-clip bg-gradient-to-br from-[#1d4ed8] via-[#1e3a8a] to-[#0f172a] px-6 pb-16 pt-10 text-white sm:pb-20 sm:pt-14">
+          <div className="landing-hero-mesh" />
+          <div className="pointer-events-none absolute inset-0">
+            <div className="absolute left-6 top-10 h-52 w-52 rounded-full bg-blue-400/10 blur-xl md:left-20" />
+            <div className="absolute bottom-0 right-6 h-64 w-64 rounded-full bg-indigo-400/10 blur-xl md:right-24" />
+          </div>
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(251,191,36,0.12)_0%,_transparent_50%)]" />
+          <div className="relative z-[1] mx-auto max-w-3xl text-center">
+           
+            <h3 className="mt-3 text-2xl font-bold leading-snug sm:mt-4 sm:text-3xl md:text-4xl md:leading-tight">
+              <span className="text-white">Helping India&apos;s next generation</span>
+              <br />
+              <span
+                className="inline-block transition-transform duration-300 hover:scale-105"
+                style={{ color: GYS_GOLD }}
+              >
+                discover what they&apos;re capable of.
+              </span>
+            </h3>
+          
+          </div>
+      
+        </div>
+       
+      </section>
+      <section
+        id="landing-different"
+        data-landing-reveal
+        className="scroll-mt-20 border-y border-slate-200 bg-white py-14 sm:py-16"
+      >
+        <div className="mx-auto max-w-5xl px-6">
+          <div className="mx-auto max-w-2xl text-center">
+            <h3 className="text-xl font-bold text-slate-900 sm:text-2xl">What Makes GYS Different</h3>
+            <p className="mt-3 text-xs font-medium leading-relaxed text-slate-700 sm:text-sm">
+              Most tests stop at pass or fail. GYS is built to answer what you are ready for next, with global
+              norms, depth across domains, optional practice that does not pollute the benchmark, and a
+              scoreline schools and families can trust.
+            </p>
+          </div>
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
+            {DIFFERENTIATORS.map(({ emoji, title, body }) => (
+              <div
+                key={title}
+                className="flex gap-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-5 shadow-sm ring-1 ring-slate-100 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
+              >
+                <span className="text-xl leading-none" aria-hidden>
+                  {emoji}
+                </span>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900">{title}</h4>
+                  <p className="mt-1.5 text-xs leading-relaxed text-slate-600 sm:text-sm">{body}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+     
+      <section id="landing-partnership" data-landing-reveal className="scroll-mt-20 bg-slate-50 py-14 sm:py-16">
+        <div className="mx-auto max-w-5xl px-6">
+          <div className="mx-auto max-w-3xl text-center">
+            <h3 className="text-xl font-bold text-slate-900 sm:text-2xl">The partnership behind GYS</h3>
+            <p className="mt-3 text-xs text-slate-600 sm:text-sm">
+              Built by teams with decades of experience guiding students.
+            </p>
+          </div>
+
+          <div className="mx-auto mt-10 max-w-5xl rounded-2xl border border-slate-200/80 bg-white p-8 shadow-md sm:p-10 lg:p-12">
+            <div className="grid gap-10 lg:grid-cols-2 lg:gap-12 lg:items-start">
+              <div className="text-left">
+                <p className="text-sm font-bold text-slate-900 sm:text-base">
+                  Three organizations. One mission.
+                </p>
+                <p className="mt-5 text-xs leading-relaxed text-slate-600 sm:text-sm">
+                  GYS brings together <span className="font-semibold text-slate-900">Access USA</span>,{' '}
+                  <span className="font-semibold text-slate-900">Argus</span>, and{' '}
+                  <span className="font-semibold text-slate-900">Education World</span> to combine global
+                  assessment expertise with trusted Indian school insights.
+                </p>
+                <p className="mt-4 text-xs leading-relaxed text-slate-600 sm:text-sm">
+                  The result: a credential that is globally benchmarked and locally relevant.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-4">
+                {[
+                  {
+                    name: 'Access USA',
+                    text: 'Assessment design, psychometrics, and US university recognition.',
+                  },
+                  {
+                    name: 'Argus',
+                    text: 'Assessment and analytics partner powering GYS delivery and reporting.',
+                  },
+                  {
+                    name: 'Education World',
+                    text: "India's leading school ranking publication; GYS aligns with its trusted EW framework.",
+                  },
+                ].map((partner) => (
+                  <div
+                    key={partner.name}
+                    className="rounded-r-xl border border-slate-100 border-l-[5px] bg-slate-50/90 py-4 pl-5 pr-4 shadow-sm"
+                    style={{ borderLeftColor: GYS_BLUE }}
+                  >
+                    <h4 className="text-sm font-bold" style={{ color: GYS_BLUE }}>
+                      {partner.name}
+                    </h4>
+                    <p className="mt-2 text-xs leading-relaxed text-slate-600 sm:text-sm">{partner.text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+     
+      <section id="landing-outcomes" data-landing-reveal className="scroll-mt-20 border-t border-slate-200 bg-white py-14 sm:py-16">
+        <div className="mx-auto max-w-6xl px-6">
+          <div className="mx-auto max-w-2xl text-center">
+            <h3 className="text-xl font-bold text-[#1a2744] sm:text-2xl">
+              What students walk away with
+            </h3>
+            <p className="mt-3 text-sm text-slate-500 sm:text-base">
+              Every GYS student receives more than a score.
+            </p>
+          </div>
+          <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+            {OUTCOMES.map(({ emoji, title, body }) => (
+              <div
+                key={title}
+                className="flex flex-col items-center rounded-xl border border-slate-200/90 bg-white px-5 py-8 text-center shadow-[0_1px_3px_rgba(0,0,0,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
+              >
+                <span className="text-4xl leading-none sm:text-[2.75rem]" aria-hidden>
+                  {emoji}
+                </span>
+                <h4 className="mt-5 text-sm font-bold leading-snug sm:text-base" style={{ color: GYS_BLUE }}>
+                  {title}
+                </h4>
+                <p className="mt-3 text-xs leading-relaxed text-slate-600 sm:text-sm">{body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="landing-try"
+        data-landing-reveal
+        className="scroll-mt-20 border-y border-slate-200 bg-gradient-to-br from-[#1e3a8a] to-[#0f172a] px-6 py-14 text-white sm:py-16"
+      >
+        <div className="mx-auto max-w-2xl text-center">
+          <h3 className="text-lg font-bold sm:text-xl">See What GYS Feels Like.</h3>
+          <p className="mt-4 text-xs leading-relaxed text-white/85 sm:text-sm">
+            No account, no cost, just a quick feel for how GYS reasons about you.
+            
+          </p>
+          <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:flex-wrap">
+            <button
+              type="button"
+              onClick={() =>
+                navigate('/for-schools/preview/assessment', {
+                  state: { sampleAssessmentExitTo: '/' },
+                })
+              }
+              className="inline-flex items-center justify-center gap-2 rounded-2xl px-8 py-3 text-xs font-semibold text-slate-900 shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl sm:text-sm"
+              style={{ backgroundColor: GYS_GOLD }}
+            >
+              Try a Sample Assessment
+              <ArrowRight className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/students#sp-plans')}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border-2 border-white/70 bg-white/10 px-8 py-3 text-xs font-semibold text-white backdrop-blur-sm transition hover:bg-white/20 sm:text-sm"
+            >
+              See Pricing
+            </button>
+          </div>
+        </div>
+      </section>
 
       {/* Trust section */}
       <section
