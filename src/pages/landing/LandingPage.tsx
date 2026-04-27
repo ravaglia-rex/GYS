@@ -41,30 +41,6 @@ const DIFFERENTIATORS = [
   },
 ] as const;
 
-const AUDIENCES = [
-  {
-    grades: '6–8',
-    title: 'Middle School',
-    subtitle: 'Start exploring',
-    body: 'Begin with Symbolic Reasoning. Practice Mode helps you learn adaptive pacing and screen logistics before counted exams (familiarity only); it does not change official scores.',
-    tint: 'from-sky-50 to-white border-sky-200',
-  },
-  {
-    grades: '8–12',
-    title: 'Secondary',
-    subtitle: 'Benchmark your reasoning',
-    body: 'Complete the Reasoning Triad. Earn a performance tier. Get your first aptitude-based stream suggestions before Class 11 choices matter.',
-    tint: 'from-amber-50/90 to-white border-amber-200',
-  },
-  {
-    grades: '9–12',
-    title: 'Senior Secondary',
-    subtitle: 'Make informed decisions',
-    body: 'Full assessment suite: after the Insight baseline, an ongoing AI-powered career counseling relationship, where students return to log labs, internships, classes, and other experiences so guidance stays current. Combine reasoning, skills, and insight into a holistic path forward.',
-    tint: 'from-violet-50 to-white border-violet-200',
-  },
-] as const;
-
 const OUTCOMES = [
   {
     emoji: '🏅',

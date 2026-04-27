@@ -10,30 +10,17 @@ import {
   PREVIEW_ASSESSMENT_PROGRESS,
   PREVIEW_MEMBERSHIP_LEVEL,
 } from '../../../data/studentPreviewMock';
-import { MEMBERSHIP_ALLOWED } from '../../../utils/assessmentGating';
 
 const SAMPLE_ASSESSMENT_PATH = '/for-schools/preview/assessment';
 const SAMPLE_ASSESSMENT_EXIT = '/students/preview/dashboard';
 
 const StudentPreviewDashboardPage: React.FC = () => {
-  const inScope = MEMBERSHIP_ALLOWED[PREVIEW_MEMBERSHIP_LEVEL] ?? [];
   let listedCompleted = 0;
-  let scopeCompleted = 0;
-  for (const id of inScope) {
-    const p = PREVIEW_ASSESSMENT_PROGRESS[id];
-    const a = PREVIEW_ASSESSMENT_TYPES.find((x) => x.id === id);
-    if (p && a && p.proficiency_tier > a.tiers.length) scopeCompleted++;
-  }
   for (const a of PREVIEW_ASSESSMENT_TYPES) {
     const p = PREVIEW_ASSESSMENT_PROGRESS[a.id];
     if (p && p.proficiency_tier > a.tiers.length) listedCompleted++;
   }
-  const scopeTotal = inScope.length;
   const listedTotal = PREVIEW_ASSESSMENT_TYPES.length;
-  const membershipPackageLabel =
-    PREVIEW_MEMBERSHIP_LEVEL <= 1
-      ? 'Trial / Discovery'
-      : `Membership ${PREVIEW_MEMBERSHIP_LEVEL - 1}`;
   const assessmentScopeLine =
     `${listedCompleted} of ${listedTotal} complete`;
 

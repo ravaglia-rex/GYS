@@ -10,7 +10,6 @@ import DashboardOverview from '../../components/dashboard/DashboardOverview';
 import { EnhancedAssessmentCardsGroup } from '../../components/dashboard/EnhancedAssessmentCardsGroup';
 import {
   ASSESSMENT_ORDER,
-  MEMBERSHIP_ALLOWED,
   PROGRAM_EXAM_COUNT,
   computeGate,
   normalizeMembershipLevel,
@@ -76,7 +75,6 @@ const Dashboard: React.FC = () => {
           return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
         });
 
-        const inScopeIds = MEMBERSHIP_ALLOWED[membershipLevel] ?? [];
         let availableAssessments = 0;
         let tiersCompleted = 0;
 
@@ -89,10 +87,7 @@ const Dashboard: React.FC = () => {
           if (!gate.locked && !isAssessmentFullyComplete(a, p)) availableAssessments++;
         }
 
-        const scopeTotal = inScopeIds.length;
         const listedTotal = Math.max(sorted.length, PROGRAM_EXAM_COUNT);
-        const membershipPackageLabel =
-          membershipLevel <= 1 ? 'Trial / Discovery' : `Membership ${membershipLevel - 1}`;
         setAssessmentScopeLine(
           `${tiersCompleted} of ${listedTotal} complete`
         );

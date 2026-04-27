@@ -5,14 +5,6 @@ import {
   verifySchoolRazorpayPayment,
 } from '../../db/schoolCollection';
 import { isValidIndiaMobile, normalizeIndiaMobileE164 } from '../../utils/indiaMobile';
-import {
-  RAZORPAY_CITY_MAX,
-  RAZORPAY_CITY_MIN,
-  RAZORPAY_PARTY_NAME_MAX,
-  RAZORPAY_PARTY_NAME_MIN,
-  RAZORPAY_SHIP_LINE1_MAX,
-  RAZORPAY_SHIP_LINE1_MIN,
-} from '../../utils/schoolRegistrationPaymentRules';
 import * as Sentry from '@sentry/react';
 
 /** Best-effort string for Razorpay `payment.failed` payloads (shape varies by version). */
