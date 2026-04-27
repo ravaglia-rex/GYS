@@ -8,79 +8,77 @@ import {
 
 export const studentFaqSections: { heading: string; items: LandingFaqItem[] }[] = [
   {
-    heading: 'For Parents & Students',
+    heading: 'Student / Family FAQs',
     items: [
       {
         question: 'What is GYS?',
         answer: (
           <>
             <p>
-            GYS assessment data contributes approximately 15% to a school’s EducationWorld India School Ranking, serving as an assessment-backed input into the ranking methodology.
-
-EducationWorld considers both participation — how many eligible students complete GYS assessments — and performance — how students perform across the assessment suite. Participating schools receive a GYS performance designation, updated periodically, that feeds into the EducationWorld rankings framework.
-
-For schools seeking to improve or maintain their ranking position, GYS provides a clear, actionable way to demonstrate student achievement through structured, comparable assessment data.
+              Global Young Scholar (GYS) is an assessment and guidance program for students in Classes 6–12. It
+              helps students understand their reasoning ability, academic readiness, English and AI proficiency,
+              personality, interests, and possible career pathways.
+            </p>
+            <p className="mt-3">
+              GYS is different from a regular school exam because it does not only measure what a student has
+              memorized. It helps students and families understand how the student thinks, where they are strong,
+              where they can grow, and what academic or career directions may fit them best.
             </p>
           </>
         ),
       },
       {
-        question: 'What does my child actually get from this?',
-        answer: (
-          <p>
-            After completing the assessments, your child receives a detailed score report showing
-            where they stand across reasoning dimensions, how they compare to other students
-            nationally, and specific guidance on strengths and areas to develop. At the Reasoning
-            Reasoning Triad package and above, students in Grades 8–9 receive AI-driven guidance on which academic
-            stream to pursue (PCM, PCB, Commerce, or Humanities), one of the most consequential
-            decisions in an Indian student&apos;s academic career.{' '}
-            <strong>Practice Mode</strong> is available for format familiarity: it uses a separate question pool and
-            does not affect official scores or tiers.
-          </p>
-        ),
-      },
-      {
-        question: 'How much does it cost?',
+        question: 'What does my child get from GYS?',
         answer: (
           <>
             <p>
-              There are <strong>three annual packages</strong>, each billed annually (Rev 13, April 2026).{' '}
-              <strong>Discovery (₹299)</strong> is a separate, limited-time <strong>one-time entry offer</strong>;
-              we don&apos;t count it as an annual package; it&apos;s an on-ramp you can upgrade from.
-              Within Reasoning, students progress through three difficulty levels as they achieve mastery. After
-              the official triad, a <strong>nationwide Performance Tier</strong> (Explorer → Diamond) describes
-              absolute positioning vs a national norm, separate from the <strong>school leaderboard</strong>, which
-              highlights top students <em>per exam, per grade, at that school</em> (monthly, parent opt-in). Retakes
-              follow the published cadence.
+              Your child receives detailed reports showing their performance across different reasoning and skill
+              areas, along with strengths, growth areas, and guidance on possible next steps.
             </p>
-            <ul>
+            <p className="mt-3">Depending on the membership, students may receive:</p>
+            <ul className="mt-2 list-disc pl-5 space-y-1">
+              <li>Category-level score reports</li>
+              <li>National performance tiers</li>
+              <li>Reasoning profile analysis</li>
+              <li>English and AI proficiency insights</li>
+              <li>Stream-selection guidance</li>
+              <li>Career discovery insights</li>
+              <li>University-fit recommendations</li>
+              <li>Ongoing AI-supported guidance through the Guided Decision membership</li>
+            </ul>
+            <p className="mt-3">
+              For students in Classes 8–10, GYS can be especially helpful for stream-selection conversations,
+              including PCM, PCB, Commerce, Humanities, and related academic pathways.
+            </p>
+          </>
+        ),
+      },
+      {
+        question: 'How much does GYS cost?',
+        answer: (
+          <>
+            <p>GYS offers one entry-level option and three annual memberships:</p>
+            <ul className="mt-3 list-disc pl-5 space-y-2">
               <li>
-                <strong>Discovery - Early offer</strong> - ₹299 one-time. Exam 1 (Symbolic Reasoning)
-                only. No performance tier or school leaderboard; dashboard shows locked previews of higher
-                packages. Per-exam score report with category-level breakdowns.
+                <strong>Discovery</strong> — ₹299 one-time. Includes Exam 1: Symbolic Reasoning. This is a limited
+                entry option and does not include the full Reasoning Triad or a national performance tier.
               </li>
               <li>
-                <strong>Membership 1 • Reasoning Triad</strong> - ₹899/year. Full Reasoning group: Exams 1–3.
-                Unlocks national Performance Tier after official triad runs, plus optional school leaderboard
-                visibility (parent opt-in; top performers per exam per grade at the school). Light stream/career
-                signaling from triad performance.
+                <strong>Reasoning Triad</strong> — ₹899/year. Includes Exams 1–3: Symbolic, Verbal, and Mathematical
+                Reasoning. Students who complete the triad may earn a national GYS Performance Tier.
               </li>
               <li>
-                <strong>Membership 2 • Reasoning + Skills</strong> - ₹1,799/year. Reasoning group plus Skills
-                group: Exams 1–5 (adds English Proficiency and AI Proficiency).
+                <strong>Reasoning + Skills</strong> — ₹1,799/year. Includes Exams 1–5, adding English &amp;
+                Communication and AI Proficiency.
               </li>
               <li>
-                <strong>Membership 3 • Guided Decision</strong> - ₹2,699/year. Full program including Insight
-                (e.g. comprehensive personality and career-discovery flows). AI career counseling is an ongoing
-                relationship that begins after that Insight baseline: students return to log experiences (labs,
-                internships, classes, talks) so the profile gets richer; this is the package&apos;s main long-term renewal
-                driver. Counseling-related data is available to third parties working with your child when your child
-                chooses to share it; the data travels with the student.
+                <strong>Guided Decision</strong> — ₹2,699/year. Includes all seven exams, including personality,
+                interests, career discovery, and ongoing AI-supported guidance.
               </li>
             </ul>
-            <p>
-              If your child&apos;s school has an institutional package, your child may already have
-              access at no additional family cost. Check with your school.
+            <p className="mt-3">
+              If your child&apos;s school has purchased an institutional GYS package, your child may already have
+              access to some assessments at no additional family cost. Please check with your school.
             </p>
           </>
         ),
@@ -90,39 +88,14 @@ For schools seeking to improve or maintain their ranking position, GYS provides 
         answer: (
           <>
             <p>
-              Yes. <strong>Discovery is credited</strong> toward any annual package: you pay only
-              the difference in <strong>list price</strong> when you move up (18% GST is applied on the
-              upgrade payment at checkout). The same rule applies between the three annual packages. Your
-              child is never penalized for starting lower.
+              Yes. Students can start with a lower package and upgrade later. Discovery is credited toward annual
+              memberships, so families pay only the difference in list price when upgrading.
             </p>
-            <p className="mt-3 text-sm">
-              Rev 13 upgrade deltas (list price, before GST):
+            <p className="mt-3">
+              The same applies when upgrading from one annual membership to another. Your child is not penalized
+              for starting with a lower package.
             </p>
-            <div className="mt-2 overflow-x-auto rounded-lg border border-slate-200">
-              <table className="w-full min-w-[280px] border-collapse text-left text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50">
-                    <th className="px-3 py-2 font-semibold text-slate-800">Upgrade</th>
-                    <th className="px-3 py-2 font-semibold text-slate-800">Delta</th>
-                  </tr>
-                </thead>
-                <tbody className="text-slate-700">
-                  {[
-                    ['Discovery → Reasoning Triad', '₹600'],
-                    ['Discovery → Reasoning + Skills', '₹1,500'],
-                    ['Discovery → Guided Decision', '₹2,400'],
-                    ['Reasoning Triad → Reasoning + Skills', '₹900'],
-                    ['Reasoning Triad → Guided Decision', '₹1,800'],
-                    ['Reasoning + Skills → Guided Decision', '₹900'],
-                  ].map(([path, delta]) => (
-                    <tr key={path} className="border-b border-slate-100 last:border-0">
-                      <td className="px-3 py-2">{path}</td>
-                      <td className="px-3 py-2 font-medium tabular-nums">{delta}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <p className="mt-3">Applicable taxes may be added at checkout.</p>
           </>
         ),
       },
@@ -130,9 +103,9 @@ For schools seeking to improve or maintain their ranking position, GYS provides 
         question: 'Can my child take the exams on a phone?',
         answer: (
           <p>
-            Yes. All assessments are accessible on mobile phones, tablets, laptops, and desktops. Exam
-            4 (English Proficiency) includes a speaking component that works best on a device with a
-            microphone, but all other exams work on any device.
+            Yes. GYS assessments can be taken on mobile phones, tablets, laptops, or desktops. The English &amp;
+            Communication assessment includes speaking components, so it works best on a device with a working
+            microphone. Other assessments can be completed on any supported device.
           </p>
         ),
       },
@@ -140,10 +113,10 @@ For schools seeking to improve or maintain their ranking position, GYS provides 
         question: 'How long do the exams take?',
         answer: (
           <p>
-            Each reasoning exam (Symbolic, Verbal, Mathematical) is individually timed per question;
-            most students complete each exam in 45–60 minutes. The Personality Assessment is untimed and
-            takes approximately 30–45 minutes. Students can complete their purchased exams at their own
-            pace over days or weeks; there is no requirement to finish everything in one sitting.
+            Most Reasoning assessments take approximately 45–60 minutes each. The Personality assessment is
+            untimed and typically takes about 30–45 minutes. Students do not need to complete all assessments in one
+            sitting. They can complete the assessments included in their membership at their own pace over days or
+            weeks.
           </p>
         ),
       },
@@ -151,38 +124,34 @@ For schools seeking to improve or maintain their ranking position, GYS provides 
         question: 'Can my child retake exams?',
         answer: (
           <p>
-            Yes. Students are encouraged to retake assessments annually to track growth and improve
-            their performance tier. On retake, students start at the highest difficulty level they
-            previously cleared; they don&apos;t repeat introductory content. Practice questions are
-            available to help your child prepare between attempts.
+            Yes. Students are encouraged to retake assessments over time to track growth and improve their
+            performance. When students retake assessments, they may begin from the appropriate difficulty level based
+            on prior performance, rather than repeating introductory content unnecessarily. Practice questions are
+            also available to help students build familiarity between official attempts.
           </p>
         ),
       },
       {
-        question: 'Is this just another coaching exam? How is GYS different?',
+        question: 'Is this just another coaching exam?',
         answer: (
           <p>
-            GYS is not a coaching product and does not teach to a test. It is a reasoning assessment;
-            it measures how your child thinks, not what they&apos;ve been drilled on. Unlike
-            Olympiads or entrance exams that reward subject-specific preparation, GYS measures abstract
-            reasoning, analytical thinking, and personality traits that predict long-term academic
-            success. The results feed into personalized guidance: stream selection, college matching,
-            and career exploration, not just a score and a rank.
+            No. GYS is not a coaching exam and does not teach students to memorize answers for a test. GYS measures
+            reasoning, communication, AI proficiency, personality, and interests. It is designed to help students
+            and families understand how the student thinks, where they are strong, and what academic or career paths
+            may fit them best. The goal is not just a score or rank. The goal is better guidance.
           </p>
         ),
       },
       {
-        question: 'How does GYS help with college admissions?',
+        question: 'How does GYS help with stream selection and college planning?',
         answer: (
           <p>
-            GYS performance is one of the factors that colleges evaluate when reviewing candidates for
-            admission. Because the GYS scores correlate highly with academic success, they are a
-            reliable measure, especially when other aspects of a student&apos;s application might not be
-            obvious. At the Guided Decision level, students receive specific university matching:
-            &quot;Based on your profile, here are universities where you&apos;d be competitive.&quot; GYS
-            guidance layers on an ongoing counseling relationship after the Insight baseline; when families choose to
-            share the counseling profile, that information is available to universities or other partners the student
-            involves, always under the student&apos;s control.
+            GYS helps students understand their strengths across reasoning, skills, personality, and interests.
+            These results can support decisions about academic streams, career pathways, and possible university
+            fit. At the Guided Decision level, students receive deeper career and university guidance. As students
+            add more information about their experiences, interests, courses, internships, or activities, their
+            profile can become more useful over time. GYS does not guarantee admission to any university, but it
+            can help students build a clearer, more evidence-based picture of their strengths and future options.
           </p>
         ),
       },
@@ -190,12 +159,13 @@ For schools seeking to improve or maintain their ranking position, GYS provides 
         question: "Is my child's data safe?",
         answer: (
           <p>
-            Yes. GYS collects only the information necessary to deliver assessments and guidance.
-            Personal data is not shared with third parties without appropriate consent. Counseling outputs are shared
-            outward only when the student or family opts in. If your child&apos;s school has an
-            institutional package, the school sees assessment performance only for students in
-            their program. We do not sell student data and we will never contact your child with
-            unrelated marketing.
+            Yes. GYS collects only the information needed to provide assessments, reports, and guidance. Personal
+            data is not sold. GYS does not share student data with third parties without appropriate consent.
+            Counseling and Insights data — including personality, interests, motivations, and career-discovery
+            information — is private to the student by default and is shared only when the student or family chooses
+            to share it. If your child participates through a school institutional package, the school may receive
+            Reasoning and Skills assessment data for students in that program. Insights data remains private to the
+            student unless the student or family chooses to share it.
           </p>
         ),
       },
@@ -203,28 +173,25 @@ For schools seeking to improve or maintain their ranking position, GYS provides 
         question: "My child's school is offering GYS. Do I still need to buy it separately?",
         answer: (
           <p>
-            If your school has an institutional package, your child likely has access to Exams
-            1–3 at no additional cost to your family. Check with your school which package
-            they&apos;ve selected. If you want access to the full assessment suite (including
-            Insight exams, English and AI proficiency, and ongoing AI career counseling after the Insight baseline),
-            you can upgrade
-            individually to Guided Decision and pay only the difference beyond what your school&apos;s
-            package covers.
+            Maybe not. If your school has purchased an institutional GYS package, your child may already have
+            access to some assessments at no additional family cost. Please check with your school to understand which
+            GYS package they have selected. Families may be able to upgrade individually if they want access to
+            additional assessments or the full Guided Decision experience.
           </p>
         ),
       },
     ],
   },
   {
-    heading: 'About Pricing & Payment',
+    heading: 'About pricing & payment',
     items: [
       {
         question: 'Is this a subscription or a one-time payment?',
         answer: (
           <p>
-            For families, Discovery is a one-time purchase; Reasoning Triad, Reasoning + Skills, and
-            Guided Decision renew annually. During the subscription year, your child has access to the
-            assessments and features included in that package. For schools, the institutional fee is annual.
+            Discovery is a one-time purchase. Reasoning Triad, Reasoning + Skills, and Guided Decision are annual
+            memberships. During the membership year, your child has access to the assessments and features
+            included in the selected package.
           </p>
         ),
       },
@@ -232,26 +199,24 @@ For schools seeking to improve or maintain their ranking position, GYS provides 
         question: 'What payment methods are accepted?',
         answer: (
           <p>
-            GYS uses Razorpay for all payments. UPI and credit/debit cards. Wire payments are also
-            accepted from schools joining at the Partner/Flagship level.
+            GYS uses Razorpay for online payments. Families can typically pay using UPI, credit cards, or debit cards.
           </p>
         ),
       },
       {
         question: 'What is the refund policy?',
-        answer: (
-          <p>Membership in GYS is non-refundable and non-transferable.</p>
-        ),
+        answer: <p>GYS memberships are non-refundable and non-transferable once payment is completed.</p>,
       },
       {
-        question: 'Is there a free trial or sample?',
+        question: 'Is there a free sample?',
         answer: (
           <p>
-            Yes. Open the <FaqLink to={FAQ_PREVIEW_HUB}>interactive preview hub</FaqLink> for sample
-            data, a <FaqLink to={FAQ_STUDENT_DASHBOARD_PREVIEW}>sample student dashboard</FaqLink>, and
-            a <FaqLink to={FAQ_SAMPLE_ASSESSMENT}>live sample assessment</FaqLink> (~10 questions) that
-            demonstrates the exam experience. No payment or account creation is required. This lets
-            you experience the format and see what the results look like before committing.
+            Yes. Families can try a{' '}
+            <FaqLink to={FAQ_SAMPLE_ASSESSMENT}>live sample assessment</FaqLink> of approximately 10 questions and
+            view a <FaqLink to={FAQ_STUDENT_DASHBOARD_PREVIEW}>sample student dashboard</FaqLink> — or use the{' '}
+            <FaqLink to={FAQ_PREVIEW_HUB}>interactive preview hub</FaqLink> for all preview options. No account or
+            payment is required. The sample helps students and families understand the exam format and reporting
+            experience before choosing a package.
           </p>
         ),
       },

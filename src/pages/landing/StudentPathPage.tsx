@@ -23,9 +23,16 @@ const STUDENT_NAV = [
   { id: 'student-faq', label: 'FAQ' },
 ] as const;
 
+const MEMBERSHIP_TIER_LABELS = [
+  'Discovery',
+  'Reasoning Triad',
+  'Reasoning + Skills',
+  'Guided Decision',
+] as const;
+
 const STUDENT_SECTION_IDS_JOIN = STUDENT_NAV.map((s) => s.id).join('|');
 
-/** Rev 13 - Discovery + three annual packages; exams in Reasoning / Skills / Insight groups. */
+/** Discovery + three annual memberships; exams in Reasoning / Skills / Insights tracks. */
 const STUDENT_ASSESSMENTS = [
   {
     exam: 1,
@@ -66,7 +73,7 @@ const STUDENT_ASSESSMENTS = [
   {
     exam: 4,
     group: 'skills' as const,
-    label: 'English Proficiency',
+    label: 'English & Communication',
     shortName: 'English',
     desc: 'Listening, speaking, reading, writing, AI-assessed where applicable',
     icon: '💬',
@@ -114,10 +121,10 @@ const STUDENT_ASSESSMENTS = [
 ] as const;
 
 const TIER_HEADERS = [
-  { key: 'L1' as const, title: 'Trial',  tint: 'bg-sky-100 text-sky-950' },
-  { key: 'L2' as const, title: 'M1',  tint: 'bg-amber-100 text-amber-950' },
-  { key: 'L3' as const, title: 'M2',  tint: 'bg-sky-100 text-sky-950' },
-  { key: 'L4' as const, title: 'M3',  tint: 'bg-purple-100 text-purple-950' },
+  { key: 'L1' as const, title: MEMBERSHIP_TIER_LABELS[0], tint: 'bg-sky-100 text-sky-950' },
+  { key: 'L2' as const, title: MEMBERSHIP_TIER_LABELS[1], tint: 'bg-amber-100 text-amber-950' },
+  { key: 'L3' as const, title: MEMBERSHIP_TIER_LABELS[2], tint: 'bg-sky-100 text-sky-950' },
+  { key: 'L4' as const, title: MEMBERSHIP_TIER_LABELS[3], tint: 'bg-purple-100 text-purple-950' },
 ];
 
 const ASSESSMENT_SECTIONS: {
@@ -127,20 +134,18 @@ const ASSESSMENT_SECTIONS: {
 }[] = [
   {
     group: 'reasoning',
-    title: 'Group A - Reasoning',
-    hint:
-      'Exams 1 - 3',
+    title: 'Reasoning',
+    hint: 'Exams 1–3',
   },
   {
     group: 'skills',
-    title: 'Group B - Skills',
-    hint: 'Exams 4 - 5',
+    title: 'Skills',
+    hint: 'Exams 4–5',
   },
   {
     group: 'insight',
-    title: 'Group C - Insight',
-    hint:
-      'Exams 6 - 7',
+    title: 'Insights',
+    hint: 'Exams 6–7',
   },
 ];
 
@@ -236,17 +241,19 @@ const StudentPathPage: React.FC = () => {
               For students &amp; families
             </p>
             <h1 className="landing-hero-enter-2 mt-3 text-3xl font-bold leading-snug sm:text-4xl">
-              Give yourself a{' '}
+              Discover Your Strengths.{' '}
               <span
                 className="inline-block transition-transform duration-300 hover:scale-105"
                 style={{ color: GYS_GOLD }}
               >
-                National benchmark
+                Build Your Future.
               </span>
             </h1>
-            <p className="landing-hero-enter-3 mx-auto mt-4 max-w-2xl text-sm text-white/90 sm:text-base">
-              See how your scores compare to students across India. Earn a nationwide performance tier after the
-              Reasoning Triad. Track growth and build a profile that selective colleges notice.
+            <p className="landing-hero-enter-3 mx-auto mt-4 max-w-2xl text-center text-sm text-white/90 sm:text-base">
+              GYS helps students in Classes 6–12 understand how they think, where they stand, and what they may be
+              ready for next. Through official assessments in reasoning, English, AI proficiency, personality, and
+              career discovery, students receive clear reports, performance tiers, guidance for stream selection,
+              career exploration, and university fit.
             </p>
             <div className="landing-hero-enter-4 mx-auto mt-5 flex max-w-xl flex-wrap justify-center gap-2">
               <span className="landing-hero-chip rounded-full border border-white/35 bg-white/10 px-3 py-1 text-xs font-medium text-white/95 backdrop-blur-sm">
@@ -307,33 +314,49 @@ const StudentPathPage: React.FC = () => {
         {/* What you get */}
         <section id="sp-get" data-landing-reveal className="mt-12 text-center sm:mt-16">
           <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">What You Get</h2>
-          <div className="mt-10 sm:mt-12 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-10 sm:mt-12 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
             {[
               {
                 icon: '🌍',
-                title: 'Global Benchmarking',
-                body: 'See where you rank among college-bound students worldwide - not just your school or city.',
+                title: 'National & Global Benchmarking',
+                body:
+                  'See how your performance compares with students across India and with a broader population of college-bound students internationally.',
               },
               {
                 icon: '🧠',
-                title: '7 exams • 3 groups',
+                title: 'Seven Assessments Across Three Tracks',
                 body:
-                  'Three tracks - Reasoning (1–3), Skills (4–5), Insight (6–7). Higher plans unlock the later groups; every score is globally benchmarked.',
+                  'GYS includes three tracks: Reasoning, Skills, and Insights. Higher memberships unlock deeper assessments and more personalized guidance.',
               },
               {
                 icon: '📊',
                 title: 'Detailed Reports',
-                body: 'Subscore analysis, cross-domain insights, growth tracking, and personalized recommendations.',
+                body:
+                  'Receive score reports with category-level breakdowns, strengths, growth areas, and recommendations for what to focus on next.',
+              },
+              {
+                icon: '🧭',
+                title: 'Stream, Career & University Guidance',
+                body:
+                  'Use your results to support important decisions about academic streams, career pathways, and future university fit.',
               },
               {
                 icon: '🎯',
-                title: 'Course Recommendations',
-                body: 'Targeted courses from Access USA to strengthen exactly the areas where you need to grow.',
+                title: 'Targeted Learning Recommendations',
+                body:
+                  'Where relevant, GYS may recommend courses or learning resources from Access USA to help students strengthen specific areas.',
               },
-            ].map((item) => (
+            ].map((item, index) => (
               <div
                 key={item.title}
-                className="group relative flex h-full flex-col overflow-hidden rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-slate-100 sm:px-5 sm:py-4 transition-all duration-300 ease-out hover:scale-[1.02] hover:-translate-y-1 hover:shadow-lg hover:ring-slate-200 cursor-default"
+                className={[
+                  'group relative flex h-full flex-col overflow-hidden rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-slate-100 sm:px-5 sm:py-4 transition-all duration-300 ease-out hover:scale-[1.02] hover:-translate-y-1 hover:shadow-lg hover:ring-slate-200 cursor-default',
+                  'lg:col-span-2',
+                  index === 3 ? 'lg:col-start-2' : '',
+                  index === 4 ? 'lg:col-start-4' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
               >
                 <div className="absolute inset-x-0 top-0 h-1 transition-all duration-300 group-hover:h-1.5" style={{ backgroundColor: GYS_BLUE }} />
                 <div className="pt-3 text-center sm:pt-3.5">
@@ -358,27 +381,31 @@ const StudentPathPage: React.FC = () => {
         >
           <div className="mx-auto max-w-5xl px-4 sm:px-6">
             <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">The Assessments</h2>
-            <p className="mx-auto mt-2 max-w-xl text-sm text-slate-600">
-              One map: each row is an exam (name + what it measures). Checkmarks show which membership unlocks it.
+            <p className="mx-auto mt-2 max-w-2xl text-sm text-slate-600">
+              GYS includes seven official assessments across three tracks. Each row is an exam (name + what it
+              measures). Checkmarks show which membership includes it.{' '}
+              <span className="font-medium text-slate-800">Practice Mode</span> uses a separate question pool for
+              familiarity only and does not affect official scores, performance tiers, or reports.
             </p>
 
             <div
-              className="mx-auto mt-6 max-w-3xl overflow-hidden rounded-2xl border border-slate-200 bg-white text-left shadow-md ring-1 ring-slate-100"
+              className="mx-auto mt-6 max-w-4xl overflow-hidden rounded-2xl border border-slate-200 bg-white text-left shadow-md ring-1 ring-slate-100"
               role="region"
               aria-label="Assessments and membership levels"
             >
               {/* Column headers - compact */}
-              <div className="grid grid-cols-[minmax(0,1fr)_repeat(4,2.75rem)] gap-x-1 border-b border-slate-200 bg-slate-50 sm:grid-cols-[minmax(0,1fr)_repeat(4,3.75rem)] sm:gap-x-2">
+              <div className="grid grid-cols-[minmax(0,1fr)_repeat(4,minmax(0,4.25rem))] gap-x-0.5 border-b border-slate-200 bg-slate-50 sm:grid-cols-[minmax(0,1fr)_repeat(4,minmax(0,5.25rem))] sm:gap-x-1">
                 <div className="px-3 py-2 text-[0.65rem] font-semibold uppercase tracking-wide text-slate-500 sm:px-4 sm:py-2.5 sm:text-xs">
                   Assessment
                 </div>
                 {TIER_HEADERS.map((t) => (
                   <div
                     key={t.key}
-                    className={`flex flex-col items-center justify-center px-0.5 py-2 text-center sm:py-2.5 ${t.tint}`}
+                    className={`flex flex-col items-center justify-center px-0.5 py-1.5 text-center sm:py-2.5 ${t.tint}`}
                   >
-                    <span className="text-[0.65rem] font-bold leading-none sm:text-xs">{t.title.replace('Level ', 'L')}</span>
-                   
+                    <span className="text-[0.6rem] font-bold leading-tight sm:text-[0.65rem] hyphens-auto">
+                      {t.title}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -404,7 +431,7 @@ const StudentPathPage: React.FC = () => {
                     {rows.map((row) => (
                       <div
                         key={row.exam}
-                        className="grid grid-cols-[minmax(0,1fr)_repeat(4,2.75rem)] items-center gap-x-1 border-b border-slate-100 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_repeat(4,3.75rem)] sm:gap-x-2"
+                        className="grid grid-cols-[minmax(0,1fr)_repeat(4,minmax(0,4.25rem))] items-center gap-x-0.5 border-b border-slate-100 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_repeat(4,minmax(0,5.25rem))] sm:gap-x-1"
                       >
                         <div className="flex min-w-0 gap-2.5 px-3 py-2 sm:gap-3 sm:px-4 sm:py-2">
                           <span className="shrink-0 text-lg leading-none sm:text-xl" aria-hidden="true">
@@ -448,11 +475,9 @@ const StudentPathPage: React.FC = () => {
               })}
 
               <p className="border-t border-slate-100 bg-slate-50 px-3 py-2 text-center text-[0.65rem] leading-relaxed text-slate-600 sm:text-xs">
-                <span className="font-semibold text-slate-800">Membership 1</span> and above include the{' '}
+                <span className="font-semibold text-slate-800">Reasoning Triad</span> and above include the{' '}
                 <span className="font-semibold text-slate-800">triad cross-synthesis</span> report when all three
-                reasoning exams are complete.{' '}
-                <span className="font-semibold text-slate-800">Practice Mode</span> uses a separate question pool for
-                format familiarity only; it does not affect official scores or tiers.
+                reasoning exams are complete.
               </p>
             </div>
           </div>
@@ -460,40 +485,40 @@ const StudentPathPage: React.FC = () => {
 
         {/* Membership levels */}
         <section id="sp-plans" data-landing-reveal className="mt-12 sm:mt-16">
-          <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl text-center">Plans &amp; pricing</h2>
+          <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl text-center">Plans &amp; Pricing</h2>
           <p className="mt-2 text-center text-xs text-slate-600 sm:text-sm max-w-xl mx-auto">
-            Three annual membership packages (Package 1 - Package 3), plus{' '}
-            <span className="font-semibold text-slate-800">Trial Membership</span>, a limited-time one-time entry.
+            One entry option and three annual memberships. Higher plans unlock more exams and guidance.
           </p>
 
           <div className="mt-8 sm:mt-10 space-y-3 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
             {[
               {
-                name: 'Trial Membership',
-                subLabel: 'Discovery',
-                desc: 'Exam 1 only • One-time entry',
+                name: 'Discovery',
+                subLabel: 'Exam 1 only · One-time entry',
                 price: '₹299',
+                blurb: 'A low-cost way to try GYS through the Symbolic Reasoning assessment.',
                 bg: 'bg-[#e5f3ff]',
               },
               {
-                name: 'Membership 1',
-                subLabel: 'Reasoning Triad',
-                desc: 'Exams 1–3 • Annual',
-                price: '₹899/yr',
+                name: 'Reasoning Triad',
+                subLabel: 'Exams 1–3 · Annual membership',
+                price: '₹899/year',
+                blurb: 'Includes the full Reasoning track: Symbolic, Verbal, and Mathematical Reasoning.',
                 bg: 'bg-[#fff7e0]',
               },
               {
-                name: 'Membership 2',
-                subLabel: 'Reasoning + Skills',
-                desc: 'Exams 1–5 • Annual',
-                price: '₹1,799/yr',
+                name: 'Reasoning + Skills',
+                subLabel: 'Exams 1–5 · Annual membership',
+                price: '₹1,799/year',
+                blurb: 'Includes the Reasoning track plus English & Communication and AI Proficiency.',
                 bg: 'bg-[#e0f2fe]',
               },
               {
-                name: 'Membership 3',
-                subLabel: 'Guided Decision',
-                desc: 'All seven exams + Ongoing counseling • Annual',
-                price: '₹2,699/yr',
+                name: 'Guided Decision',
+                subLabel: 'All seven exams · Annual membership',
+                price: '₹2,699/year',
+                blurb:
+                  'Includes the full GYS suite - personality, interests, career discovery, and ongoing AI-supported guidance.',
                 bg: 'bg-[#f9e8ff]',
               },
             ].map((tier, index) => (
@@ -503,15 +528,15 @@ const StudentPathPage: React.FC = () => {
               >
                 <div>
                   <p className="text-sm font-semibold text-slate-900 sm:text-base">{tier.name}</p>
-                  <p className="mt-0.5 text-sm font-semibold text-slate-800 sm:text-base">{tier.subLabel}</p>
-                  <p className="mt-1 text-xs text-slate-600 sm:text-sm">{tier.desc}</p>
+                  <p className="mt-1 text-xs text-slate-600 sm:text-sm">{tier.subLabel}</p>
                 </div>
                 <p
-                  className="mt-auto pt-3 text-base font-semibold sm:text-lg"
+                  className="mt-3 text-base font-semibold sm:text-lg"
                   style={{ color: GYS_BLUE }}
                 >
                   {tier.price}
                 </p>
+                <p className="mt-2 text-xs text-slate-600 sm:text-sm leading-relaxed">{tier.blurb}</p>
               </div>
             ))}
           </div>
@@ -519,26 +544,27 @@ const StudentPathPage: React.FC = () => {
 
         {/* Upgrade deltas (Rev 13 - Discovery credited; list price before GST) */}
         <section id="sp-economics" data-landing-reveal className="mt-10 sm:mt-12">
-          <h2 className="text-xl font-bold text-slate-900 sm:text-2xl text-center">Upgrade economics</h2>
+          <h2 className="text-xl font-bold text-slate-900 sm:text-2xl text-center">Upgrade Anytime</h2>
           <p className="mt-2 text-center text-xs text-slate-600 sm:text-sm max-w-xl mx-auto">
-            Trial Membership counts toward annual packages: you pay only the list difference.
+            Discovery counts toward annual memberships. If you upgrade later, you pay only the difference in list
+            price.
           </p>
           <div className="mt-4 mx-auto max-w-md overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <table className="w-full text-left text-xs sm:text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50">
                   <th className="px-3 py-2 font-semibold text-slate-800">Upgrade</th>
-                  <th className="px-3 py-2 font-semibold text-slate-800 text-right">Delta</th>
+                  <th className="px-3 py-2 font-semibold text-slate-800 text-right">Difference</th>
                 </tr>
               </thead>
               <tbody className="text-slate-700">
                 {[
-                  ['Trial Membership → Membership 1', '₹600'],
-                  ['Trial Membership → Membership 2', '₹1,500'],
-                  ['Trial Membership → Membership 3', '₹2,400'],
-                  ['Membership 1 → Membership 2', '₹900'],
-                  ['Membership 1 → Membership 3', '₹1,800'],
-                  ['Membership 2 → Membership 3', '₹900'],
+                  ['Discovery → Reasoning Triad', '₹600'],
+                  ['Discovery → Reasoning + Skills', '₹1,500'],
+                  ['Discovery → Guided Decision', '₹2,400'],
+                  ['Reasoning Triad → Reasoning + Skills', '₹900'],
+                  ['Reasoning Triad → Guided Decision', '₹1,800'],
+                  ['Reasoning + Skills → Guided Decision', '₹900'],
                 ].map(([u, d]) => (
                   <tr key={u} className="border-b border-slate-100 last:border-0">
                     <td className="px-3 py-2">{u}</td>
@@ -548,6 +574,7 @@ const StudentPathPage: React.FC = () => {
               </tbody>
             </table>
           </div>
+          <p className="mt-3 text-center text-xs text-slate-500">Applicable taxes may be added at checkout.</p>
         </section>
 
         {/* EducationWorld - students & parents (aligned with main landing) */}
@@ -579,7 +606,7 @@ const StudentPathPage: React.FC = () => {
         <div data-landing-reveal>
           <LandingFaq
             id="student-faq"
-            title="GYS - Frequently Asked Questions"
+            title="Student / Family FAQs"
             sections={studentFaqSections}
             className="mt-12 sm:mt-16"
           />

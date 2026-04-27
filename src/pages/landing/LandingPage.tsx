@@ -782,7 +782,9 @@ const LandingPage: React.FC = () => {
           <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:flex-wrap">
             <button
               type="button"
-              onClick={() => navigate('/for-schools')}
+              onClick={() =>
+                navigate('/for-schools', { state: { scrollToId: 'for-schools-next-step' } })
+              }
               className="inline-flex items-center justify-center gap-2 rounded-2xl px-8 py-3 text-xs font-semibold text-slate-900 shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl sm:text-sm"
               style={{ backgroundColor: GYS_GOLD }}
             >
