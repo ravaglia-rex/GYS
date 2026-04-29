@@ -4,7 +4,7 @@ import { useToast } from '../../components/ui/use-toast';
 import {
   amendSchoolRegistration,
   registerSchool,
-  resumeSchoolCheckout,
+  // resumeSchoolCheckout, // used only when embedded Razorpay is enabled (see below)
 } from '../../db/schoolCollection';
 import {
   partyNameLengthOk,
@@ -23,13 +23,11 @@ import PageFooter from '../../components/layout/LandingSiteFooter';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
 import { LandingHeaderScrollProgress } from '../../components/landing/LandingScrollChrome';
 import { useLandingScrollProgress } from '../../hooks/useLandingPageScroll';
-import SchoolRazorpayCheckout from '../../components/school-registration/SchoolRazorpayCheckout';
+// import SchoolRazorpayCheckout from '../../components/school-registration/SchoolRazorpayCheckout';
 import {
-  SCHOOL_PAY_TEST,
   SCHOOL_REGISTRATION_PLANS as PLANS,
   schoolPlanAnnualLabel,
   schoolPlanPriceQualifierAfterAmount,
-  schoolSandboxPlanAmountsSummary,
 } from '../../utils/schoolRegistrationPlans';
 
 const GYS_BLUE = '#1e3a8a';
@@ -76,7 +74,7 @@ const INDIAN_STATES = [
   'Andaman and Nicobar Islands',
   'Chandigarh',
   'Dadra and Nagar Haveli and Daman and Diu',
-  'Delhi (NCT)',
+  'Delhi NCT',
   'Jammu and Kashmir',
   'Ladakh',
   'Lakshadweep',
@@ -99,7 +97,7 @@ const MAX_EMAILS = 5;
 const TOTAL_STEPS = 4;
 
 /** When true: skip embedded Razorpay; onboarding emails a payment link. Set false for Razorpay checkout after submit. */
-const SCHOOL_SIGNUP_TEMP_PAYMENT_LINK = false;
+const SCHOOL_SIGNUP_TEMP_PAYMENT_LINK = true;
 
 function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
@@ -112,10 +110,11 @@ const SchoolRegistrationPage: React.FC = () => {
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [registeredSchoolId, setRegisteredSchoolId] = useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- read by embedded Razorpay block when that section is uncommented
   const [registeredPocEmail, setRegisteredPocEmail] = useState<string | null>(null);
   const [registeredCheckoutSecret, setRegisteredCheckoutSecret] = useState<string | null>(null);
-  const [paymentComplete, setPaymentComplete] = useState(false);
-  const [resumingCheckout, setResumingCheckout] = useState(false);
+  // const [paymentComplete, setPaymentComplete] = useState(false); // with embedded Razorpay only
+  // const [resumingCheckout, setResumingCheckout] = useState(false); // resumeSchoolCheckout UI only
 
   // Step 1: School Identity
   const [schoolName, setSchoolName] = useState('');
@@ -476,6 +475,8 @@ const SchoolRegistrationPage: React.FC = () => {
     );
   }
 
+  /*
+  ── Embedded Razorpay (disabled while SCHOOL_SIGNUP_TEMP_PAYMENT_LINK is true) ──
   if (
     !SCHOOL_SIGNUP_TEMP_PAYMENT_LINK &&
     submitted &&
@@ -573,7 +574,7 @@ const SchoolRegistrationPage: React.FC = () => {
               Opens the registration form again with your answers preserved. Update any field, go through to step 4,
               and submit; we&apos;ll save changes to this school reference (same checkout token) before you pay.
             </p>
-           
+
             <SchoolRazorpayCheckout
               schoolId={registeredSchoolId}
               checkoutSecret={registeredCheckoutSecret}
@@ -713,6 +714,7 @@ const SchoolRegistrationPage: React.FC = () => {
       </div>
     );
   }
+  */
 
   // ── Main render ───────────────────────────────────────────────────────────
 

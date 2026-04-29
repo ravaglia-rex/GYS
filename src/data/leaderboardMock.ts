@@ -8,6 +8,12 @@ const LEADERBOARD_EXCLUDED_IDS = new Set<string>([
 
 const LEADERBOARD_ASSESSMENT_ORDER = ASSESSMENT_ORDER.filter((id) => !LEADERBOARD_EXCLUDED_IDS.has(id));
 
+/** Exam accordions expanded when the student first opens the leaderboard (Pattern and Logic + Verbal Reasoning). */
+export const LEADERBOARD_DEFAULT_EXPANDED_EXAM_IDS: ReadonlySet<string> = new Set([
+  'symbolic_reasoning',
+  'verbal_reasoning',
+]);
+
 export const LEADERBOARD_GRADES = [6, 7, 8, 9, 10, 11, 12] as const;
 
 export type LeaderboardGrade = (typeof LEADERBOARD_GRADES)[number];

@@ -33,6 +33,7 @@ import {
   School as SchoolIcon,
   BarChart as BarChartIcon,
   EmojiEvents as EmojiEventsIcon,
+  Quiz as QuizIcon,
 } from '@mui/icons-material';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { rememberStudentPreviewExitTo, consumeStudentPreviewExitTo } from '../utils/studentPreviewExit';
@@ -145,6 +146,38 @@ export default function StudentPreviewLayout() {
           slotProps={{
             primary: {
               fontWeight: isActive('/students/preview/leaderboard') ? 600 : 500,
+              fontSize: '0.9rem',
+              color: '#e2e8f0',
+            },
+          }}
+        />
+      </ListItemButton>
+
+      <ListItemButton
+        selected={isActive('/students/preview/practice')}
+        onClick={() => {
+          navigate('/students/preview/practice');
+          if (isMobile) setMobileOpen(false);
+        }}
+        sx={{
+          borderRadius: 1.5,
+          mb: 0.5,
+          py: 1.1,
+          pl: 2,
+          borderLeft: isActive('/students/preview/practice') ? '3px solid #38bdf8' : '3px solid transparent',
+          bgcolor: isActive('/students/preview/practice') ? 'rgba(56,189,248,0.12)' : 'transparent',
+          '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' },
+          '&.Mui-selected': { bgcolor: 'rgba(56,189,248,0.15)' },
+        }}
+      >
+        <ListItemIcon sx={{ minWidth: 40, color: '#38bdf8' }}>
+          <QuizIcon sx={iconSx} />
+        </ListItemIcon>
+        <ListItemText
+          primary="Practice Mode"
+          slotProps={{
+            primary: {
+              fontWeight: isActive('/students/preview/practice') ? 600 : 500,
               fontSize: '0.9rem',
               color: '#e2e8f0',
             },

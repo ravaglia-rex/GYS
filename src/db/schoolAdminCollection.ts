@@ -1,5 +1,6 @@
 import axios from "axios";
 import {
+  BILLING_INVOICE_DOWNLOAD_URL,
   FETCH_SCHOOL_ADMIN_DATA,
   FETCH_SCHOOL_DASHBOARD,
   QUARTERLY_REPORT_DOWNLOAD_URL,
@@ -46,6 +47,11 @@ export interface StudentRow {
   created_at: any;
 }
 
+export interface SchoolDashboardBilling {
+  invoice_number: string | null;
+  has_invoice_pdf: boolean;
+}
+
 export interface SchoolDashboardResponse {
   schoolId: string;
   live: {
@@ -59,6 +65,9 @@ export interface SchoolDashboardResponse {
   };
   students: StudentRow[];
   analytics: Record<string, any>;
+  billing?: SchoolDashboardBilling;
+  /** Mirrors backend S3 signing readiness for institutional invoice PDF downloads. */
+  s3_invoice_download_configured?: boolean;
 }
 
 export interface QuarterlyReportListItem {
@@ -181,6 +190,48 @@ export const downloadQuarterlyReportPdf = async (quarterKey: string): Promise<vo
     const a = document.createElement("a");
     a.href = href;
     a.download = filename || `${quarterKey}.pdf`;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(href);
+  } catch {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+};
+
+export const getBillingInvoiceDownloadUrl = async (): Promise<{
+  url: string;
+  filename: string;
+  invoice_number: string | null;
+}> => {
+  try {
+    const authToken = await authTokenHandler.getAuthToken();
+    const response = await axios.get(
+      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${BILLING_INVOICE_DOWNLOAD_URL}`,
+      { headers: { Authorization: `Bearer ${authToken}` } }
+    );
+    return response.data as { url: string; filename: string; invoice_number: string | null };
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data?.error) {
+      throw new Error(String(error.response.data.error));
+    }
+    throw new Error("Could not get billing invoice download link.");
+  }
+};
+
+export const downloadBillingInvoicePdf = async (): Promise<void> => {
+  const { url, filename } = await getBillingInvoiceDownloadUrl();
+  try {
+    const res = await fetch(url, { mode: "cors" });
+    if (!res.ok) {
+      throw new Error(String(res.status));
+    }
+    const blob = await res.blob();
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = filename || "invoice.pdf";
     a.rel = "noopener";
     document.body.appendChild(a);
     a.click();

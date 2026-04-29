@@ -63,6 +63,7 @@ export const FETCH_SCHOOL_DASHBOARD='/getSchoolDashboard';
 export const STUDENT_REGISTRATION_EMAILS='/studentRegistrationEmails';
 export const QUARTERLY_REPORTS='/quarterlyReports';
 export const QUARTERLY_REPORT_DOWNLOAD_URL='/quarterlyReportDownloadUrl';
+export const BILLING_INVOICE_DOWNLOAD_URL='/billingInvoiceDownloadUrl';
 
 // Assessments
 export const GET_ASSESSMENT_CONFIG='/getAssessmentConfig';

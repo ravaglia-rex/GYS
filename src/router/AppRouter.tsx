@@ -34,6 +34,9 @@ const StudentPreviewDashboardPage = React.lazy(
 const StudentPreviewLeaderboardPage = React.lazy(
   () => import('../pages/landing/preview/StudentPreviewLeaderboardPage')
 );
+const StudentPreviewPracticePage = React.lazy(
+  () => import('../pages/landing/preview/StudentPreviewPracticePage')
+);
 
 /*
 AUTHENTICATION PAGES: These are the pages that are used for the signup and login process
@@ -208,6 +211,14 @@ const AppRouter: React.FC = () => {
             element={
               <Suspense fallback={<BigSpinner />}>
                 <StudentPreviewLeaderboardPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="practice"
+            element={
+              <Suspense fallback={<BigSpinner />}>
+                <StudentPreviewPracticePage />
               </Suspense>
             }
           />

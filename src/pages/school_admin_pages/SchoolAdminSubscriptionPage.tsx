@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import type { SvgIconProps } from '@mui/material';
 import {
   Box, Card, CardContent, Typography, Button, Chip, Divider,
@@ -11,6 +11,13 @@ import {
   LooksOne as EntryIcon,
 } from '@mui/icons-material';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../state_data/reducer';
+import {
+  downloadBillingInvoicePdf,
+  getSchoolDashboard,
+  type SchoolDashboardBilling,
+} from '../../db/schoolAdminCollection';
 
 const POPULAR_PLAN_BADGE_GOLD = '#fbbf24';
 const STANDARD_RING = 'rgba(30, 58, 138, 0.7)';
@@ -83,6 +90,53 @@ const PLANS: Plan[] = [
 ];
 
 function SchoolAdminSubscriptionPage() {
+  const schoolId = useSelector((state: RootState) => state.auth.schoolAdmin?.schoolId ?? '').trim();
+  const [billingMeta, setBillingMeta] = useState<{
+    billing: SchoolDashboardBilling | null;
+    s3Configured: boolean;
+  }>({ billing: null, s3Configured: false });
+  const [billingLoading, setBillingLoading] = useState(false);
+  const [invoiceDownloading, setInvoiceDownloading] = useState(false);
+  const [invoiceDownloadErr, setInvoiceDownloadErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!schoolId) return;
+    let cancelled = false;
+    setBillingLoading(true);
+    void getSchoolDashboard(schoolId)
+      .then((dash) => {
+        if (cancelled) return;
+        setBillingMeta({
+          billing: dash.billing ?? null,
+          s3Configured: dash.s3_invoice_download_configured === true,
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setBillingMeta({ billing: null, s3Configured: false });
+      })
+      .finally(() => {
+        if (!cancelled) setBillingLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [schoolId]);
+
+  const canDownloadInvoice =
+    Boolean(billingMeta.billing?.has_invoice_pdf) && billingMeta.s3Configured;
+
+  const handleDownloadInvoice = async () => {
+    setInvoiceDownloadErr(null);
+    setInvoiceDownloading(true);
+    try {
+      await downloadBillingInvoicePdf();
+    } catch (e: unknown) {
+      setInvoiceDownloadErr(e instanceof Error ? e.message : 'Could not download invoice.');
+    } finally {
+      setInvoiceDownloading(false);
+    }
+  };
+
   return (
     <Box sx={{ maxWidth: 1120, mx: 'auto', pb: 6 }}>
       {/* Header - aligned with For Schools / institutional pricing */}
@@ -268,7 +322,10 @@ function SchoolAdminSubscriptionPage() {
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
             {[
               { label: 'Billing contact', value: 'Principal / Academic Director' },
-              { label: 'Payment method', value: 'Bank Transfer / NEFT' },
+              {
+                label: 'Payment method',
+                value: billingMeta.billing?.has_invoice_pdf ? 'Razorpay (card / UPI / netbanking)' : 'See your completed checkout',
+              },
               { label: 'GST number', value: 'Registered institution' },
               { label: 'Next renewal', value: '1 January 2028' },
             ].map(item => (
@@ -281,11 +338,37 @@ function SchoolAdminSubscriptionPage() {
                 </Typography>
               </Box>
             ))}
+            {billingMeta.billing?.invoice_number && (
+              <Box sx={{ flex: 1, minWidth: 180 }}>
+                <Typography variant="caption" sx={{ color: ip.subtext, textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: 0.5 }}>
+                  Invoice reference
+                </Typography>
+                <Typography variant="body2" sx={{ color: ip.heading, fontWeight: 500, mt: 0.3, fontFamily: 'ui-monospace, monospace' }}>
+                  {billingMeta.billing.invoice_number}
+                </Typography>
+              </Box>
+            )}
           </Box>
+          {billingLoading && (
+            <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mt: 1 }}>
+              Loading billing details…
+            </Typography>
+          )}
+          {!billingLoading && billingMeta.billing?.has_invoice_pdf && !billingMeta.s3Configured && (
+            <Typography variant="caption" sx={{ color: '#b45309', display: 'block', mt: 1 }}>
+              Invoice PDF is on file; downloads require S3 signing to be configured on the API (AWS keys + bucket).
+            </Typography>
+          )}
           <Divider sx={{ borderColor: ip.cardBorder, my: 2 }} />
-          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
-            <Button variant="outlined" size="small" sx={{ borderColor: ip.cardBorder, color: ip.subtext, '&:hover': { bgcolor: ip.cardMutedBg }, borderRadius: 1.5 }}>
-              Download invoice
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
+            <Button
+              variant="outlined"
+              size="small"
+              disabled={!canDownloadInvoice || invoiceDownloading}
+              onClick={() => void handleDownloadInvoice()}
+              sx={{ borderColor: ip.cardBorder, color: ip.subtext, '&:hover': { bgcolor: ip.cardMutedBg }, borderRadius: 1.5 }}
+            >
+              {invoiceDownloading ? 'Preparing download…' : 'Download invoice (PDF)'}
             </Button>
             <Button variant="outlined" size="small" sx={{ borderColor: ip.cardBorder, color: ip.subtext, '&:hover': { bgcolor: ip.cardMutedBg }, borderRadius: 1.5 }}>
               Update billing details
@@ -294,6 +377,11 @@ function SchoolAdminSubscriptionPage() {
               Contact sales for custom pricing →
             </Button>
           </Box>
+          {invoiceDownloadErr && (
+            <Typography variant="caption" sx={{ color: 'error.main', display: 'block', mt: 1.5 }}>
+              {invoiceDownloadErr}
+            </Typography>
+          )}
         </CardContent>
       </Card>
     </Box>

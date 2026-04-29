@@ -368,7 +368,7 @@ const InstitutionDemoRequestPage: React.FC = () => {
                         'Gujarat',
                         'Haryana',
                         'Himachal Pradesh',
-                        'Jammu & Kashmir',
+                        'Jammu and Kashmir',
                         'Jharkhand',
                         'Karnataka',
                         'Kerala',

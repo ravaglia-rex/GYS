@@ -16,6 +16,7 @@ import {
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import {
+  LEADERBOARD_DEFAULT_EXPANDED_EXAM_IDS,
   LEADERBOARD_GRADES,
   MOCK_LEADERBOARD_BY_GRADE,
   MOCK_LEADERBOARD_LAST_UPDATED,
@@ -30,6 +31,9 @@ export interface StudentLeaderboardPanelProps {
 
 export default function StudentLeaderboardPanel({ initialGrade = 10 }: StudentLeaderboardPanelProps) {
   const [grade, setGrade] = useState<LeaderboardGrade>(initialGrade);
+  const [expandedExamIds, setExpandedExamIds] = useState<Set<string>>(
+    () => new Set(LEADERBOARD_DEFAULT_EXPANDED_EXAM_IDS)
+  );
   useEffect(() => {
     setGrade(initialGrade);
   }, [initialGrade]);
@@ -108,6 +112,15 @@ export default function StudentLeaderboardPanel({ initialGrade = 10 }: StudentLe
         {sections.map((section) => (
           <Accordion
             key={section.examId}
+            expanded={expandedExamIds.has(section.examId)}
+            onChange={(_, isExpanded) => {
+              setExpandedExamIds((prev) => {
+                const next = new Set(prev);
+                if (isExpanded) next.add(section.examId);
+                else next.delete(section.examId);
+                return next;
+              });
+            }}
             disableGutters
             elevation={0}
             sx={{
