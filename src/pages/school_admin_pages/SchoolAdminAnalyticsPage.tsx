@@ -10,8 +10,6 @@ import {
   FormControl,
   InputLabel,
   Avatar,
-  ToggleButton,
-  ToggleButtonGroup,
   Table,
   TableBody,
   TableCell,
@@ -47,14 +45,10 @@ import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import {
   allExamsWithAnyActivity,
   assessmentDisplayName,
-  PROF_TIER_COLORS,
   summarizeExamGradeTier123,
   summarizeNationalPerformanceTiers,
-  summarizeSchoolTier123,
-  summarizeTier123ByGrade,
 } from '../../utils/schoolAdminTierAnalytics';
 import { ASSESSMENT_ORDER, NON_COMPETITIVE_CHART_ASSESSMENT_IDS } from '../../utils/assessmentGating';
-import { ProficiencyTier123Overview } from '../../components/school_admin/ProficiencyTier123Overview';
 import { NationalPerformanceTierOverview } from '../../components/school_admin/NationalPerformanceTierOverview';
 import { FAKE_SCORE_DISTRIBUTION_BY_EXAM } from '../../data/schoolAdminScoreSubcategoryMock';
 import { buildGreenfieldPreviewStudentRows } from '../../data/schoolPreviewMock';
@@ -134,19 +128,10 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [tierAnalyticsStudents, setTierAnalyticsStudents] = useState<StudentRow[]>([]);
-  const [proficiencyView, setProficiencyView] = useState<'school' | 'grade'>('school');
   const [examBreakdownId, setExamBreakdownId] = useState<string>('');
 
-  const tierSchoolSummary = useMemo(
-    () => summarizeSchoolTier123(tierAnalyticsStudents),
-    [tierAnalyticsStudents]
-  );
   const nationalPerfTiersSummary = useMemo(
     () => summarizeNationalPerformanceTiers(tierAnalyticsStudents),
-    [tierAnalyticsStudents]
-  );
-  const tierByGradeRows = useMemo(
-    () => summarizeTier123ByGrade(tierAnalyticsStudents),
     [tierAnalyticsStudents]
   );
   const examIdsWithActivity = useMemo(
@@ -159,17 +144,6 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
         ? summarizeExamGradeTier123(tierAnalyticsStudents, examBreakdownId)
         : [],
     [tierAnalyticsStudents, examBreakdownId]
-  );
-
-  const gradeBarChartData = useMemo(
-    () =>
-      tierByGradeRows.map(r => ({
-        name: r.grade === 0 ? 'Unspecified' : `Gr. ${r.grade}`,
-        tier1: r.tier1,
-        tier2: r.tier2,
-        tier3: r.tier3,
-      })),
-    [tierByGradeRows]
   );
 
   useEffect(() => {

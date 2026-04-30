@@ -92,7 +92,6 @@ const REFERRAL_SOURCES = [
   'Other',
 ];
 
-const MAX_ABBREVIATIONS = 5;
 const MAX_EMAILS = 5;
 const TOTAL_STEPS = 4;
 
@@ -129,7 +128,6 @@ const SchoolRegistrationPage: React.FC = () => {
   const [confirmSchoolName, setConfirmSchoolName] = useState('');
   /** Optional campus / city for multi-branch chains (stored appended to school name only). */
   const [schoolBranch, setSchoolBranch] = useState('');
-  const [abbreviations, setAbbreviations] = useState<string[]>(['']);
 
   // Step 2: School Details + Address
   const [udiseCode, setUdiseCode] = useState('');
@@ -196,24 +194,6 @@ const SchoolRegistrationPage: React.FC = () => {
   };
 
   // ── Step 1 ───────────────────────────────────────────────────────────────
-
-  const handleAbbreviationChange = (index: number, value: string) => {
-    setAbbreviations((prev) => {
-      const updated = [...prev];
-      updated[index] = value;
-      return updated;
-    });
-  };
-
-  const addAbbreviation = () => {
-    if (abbreviations.length < MAX_ABBREVIATIONS) {
-      setAbbreviations((prev) => [...prev, '']);
-    }
-  };
-
-  const removeAbbreviation = (index: number) => {
-    setAbbreviations((prev) => prev.filter((_, i) => i !== index));
-  };
 
   const getStep1Errors = (): Record<string, string> => {
     const newErrors: Record<string, string> = {};
@@ -390,14 +370,12 @@ const SchoolRegistrationPage: React.FC = () => {
       .map((e) => e.trim().toLowerCase())
       .filter((e) => e.length > 0);
 
-    const abbrevList = abbreviations.map((a) => a.trim()).filter((a) => a.length > 0);
-
     try {
       setIsSubmitting(true);
       const payload = {
         school_name: storedSchoolName,
         confirm_school_name: storedSchoolName,
-        abbreviations: abbrevList,
+        abbreviations: [],
         udise_code: udiseCode.trim(),
         boards,
         state_board_state: boards.includes('State Board') ? stateBoardState : '',
