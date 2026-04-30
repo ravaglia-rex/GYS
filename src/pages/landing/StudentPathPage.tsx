@@ -218,9 +218,9 @@ const StudentPathPage: React.FC = () => {
           <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
-              onClick={() => navigate('/students/register')}
-              className="px-5 py-2.5 rounded-xl text-sm font-medium shrink-0 border-2 bg-white shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-transform duration-150"
-              style={{ borderColor: GYS_BLUE, color: GYS_BLUE }}
+              disabled
+              className="px-5 py-2.5 rounded-xl text-sm font-medium shrink-0 border-2 bg-slate-200 text-slate-500 cursor-not-allowed shadow-none"
+              aria-label="Student sign up (temporarily unavailable)"
             >
               Sign up
             </button>

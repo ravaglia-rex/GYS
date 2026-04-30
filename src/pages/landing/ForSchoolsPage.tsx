@@ -439,10 +439,7 @@ const ForSchoolsPage: React.FC = () => {
               Institutional packages
             </h3>
               <p className="mx-auto mt-2 max-w-2xl text-sm text-slate-600">
-                <span className="font-semibold text-slate-800">Premium</span> includes Assessments{' '}
-                <span className="font-semibold text-slate-800">4–5</span> (English proficiency &amp; AI proficiency) in
-                addition to the full reasoning triad — see the matrix below. Each row is a capability; checkmarks show
-                which plan includes it. Roster limits and annual fees are in{' '}
+               Roster limits and annual fees are in{' '}
                 <span className="font-medium text-slate-800">Plans &amp; pricing</span> below.
               </p>
 
