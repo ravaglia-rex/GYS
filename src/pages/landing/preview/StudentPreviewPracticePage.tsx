@@ -31,7 +31,7 @@ const StudentPreviewPracticePage: React.FC = () => {
             Practice Mode
           </Typography>
           <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.65)', mt: 0.5, maxWidth: 640 }}>
-            Same &quot;coming soon&quot; state as the signed-in portal. After registration, use Practice Mode from your
+            After registration, use Practice Mode from your
             dashboard to warm up with a separate question pool (no effect on official scores).
           </Typography>
         </Box>

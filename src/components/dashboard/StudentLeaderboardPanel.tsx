@@ -23,6 +23,7 @@ import {
   formatLeaderboardDateTime,
   type LeaderboardGrade,
 } from '../../data/leaderboardMock';
+import { EXAM_MAX_SCORE_POINTS } from '../../utils/assessmentGating';
 
 export interface StudentLeaderboardPanelProps {
   /** Default grade shown in the toggle (e.g. signed-in student grade when wired to profile). */
@@ -47,6 +48,19 @@ export default function StudentLeaderboardPanel({ initialGrade = 10 }: StudentLe
 
   return (
     <Box>
+      <Typography
+        variant="body2"
+        sx={{
+          color: 'rgba(226, 232, 240, 0.92)',
+          mb: 2,
+          maxWidth: 720,
+          lineHeight: 1.55,
+          fontSize: '0.875rem',
+        }}
+      >
+       
+      
+      </Typography>
       <Box
         sx={{
           display: 'flex',
@@ -145,7 +159,8 @@ export default function StudentLeaderboardPanel({ initialGrade = 10 }: StudentLe
                   {section.examName}
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
-                  Top 10 — best official score (%). “Exam taken” is when that score was earned (best official attempt).
+                  Top 10 at your school — best official score (out of {EXAM_MAX_SCORE_POINTS}). “Exam taken” is when that
+                  score was earned.
                 </Typography>
               </Box>
             </AccordionSummary>
@@ -157,7 +172,10 @@ export default function StudentLeaderboardPanel({ initialGrade = 10 }: StudentLe
                       <TableCell sx={{ color: '#94a3b8', fontWeight: 600, width: 48 }}>#</TableCell>
                       <TableCell sx={{ color: '#94a3b8', fontWeight: 600 }}>Student</TableCell>
                       <TableCell sx={{ color: '#94a3b8', fontWeight: 600, whiteSpace: 'nowrap' }}>Exam taken</TableCell>
-                      <TableCell align="right" sx={{ color: '#94a3b8', fontWeight: 600, width: 72, whiteSpace: 'nowrap' }}>
+                      <TableCell
+                        align="right"
+                        sx={{ color: '#94a3b8', fontWeight: 600, minWidth: 108, whiteSpace: 'nowrap' }}
+                      >
                         Score
                       </TableCell>
                     </TableRow>
@@ -171,7 +189,7 @@ export default function StudentLeaderboardPanel({ initialGrade = 10 }: StudentLe
                           {formatLeaderboardDateTime(row.examTakenAtISO)}
                         </TableCell>
                         <TableCell align="right" sx={{ color: '#f8fafc', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
-                          {row.scorePercent}%
+                          {row.scorePoints} on {EXAM_MAX_SCORE_POINTS}
                         </TableCell>
                       </TableRow>
                     ))}

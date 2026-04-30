@@ -161,11 +161,25 @@ function getAchievementTierChipSx(tierRaw: string) {
       border: '1px solid #9ca3af',
     };
   }
-  if (tier === 'gold' || tier === 'diamond' || tier === 'platinum') {
+  if (tier === 'gold') {
     return {
       bgcolor: '#fef3c7',
       color: '#b45309',
       border: '1px solid #f59e0b',
+    };
+  }
+  if (tier === 'platinum') {
+    return {
+      bgcolor: '#e0f2fe',
+      color: '#0369a1',
+      border: '1px solid #38bdf8',
+    };
+  }
+  if (tier === 'diamond') {
+    return {
+      bgcolor: '#ede9fe',
+      color: '#5b21b6',
+      border: '1px solid #a78bfa',
     };
   }
   return {

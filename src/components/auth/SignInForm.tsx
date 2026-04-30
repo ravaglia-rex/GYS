@@ -67,6 +67,19 @@ const SignInForm: React.FC<SignInFormProps> = ({ email, isSchoolAdmin, schoolInf
             if (isSchoolAdmin) {
               const signedInEmail = userCredential.user.email || email;
               const schoolCheck = await checkSchoolEmail(signedInEmail);
+
+              if (!schoolCheck || schoolCheck.registrationPaymentComplete !== true) {
+                toast({
+                  variant: 'destructive',
+                  title: 'Payment required',
+                  description:
+                    'School dashboard unlocks after your registration payment completes. Finish checkout using the link in your confirmation email.',
+                });
+                await signOut(auth);
+                setIsSubmitted(false);
+                return;
+              }
+
               let firebaseEmailOk = userCredential.user.emailVerified;
               let schoolRecordOk = schoolCheck?.verified === true;
 

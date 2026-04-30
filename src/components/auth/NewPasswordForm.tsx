@@ -94,11 +94,25 @@ const NewPasswordForm: React.FC<PasswordResetProps> = ({ actionCode }) => {
         return;
       }
 
+      const { checkSchoolEmail } = await import("../../db/schoolAdminCollection");
+      const schoolProbe = await checkSchoolEmail(email);
+      if (schoolProbe && schoolProbe.registrationPaymentComplete !== true) {
+        toast({
+          variant: "destructive",
+          title: "Payment required",
+          description:
+            "Complete your school’s subscription using the secure payment link in your registration confirmation email before setting a password.",
+        });
+        setSubmitted(false);
+        clearPasswordResetInProgress();
+        return;
+      }
+
       await confirmPasswordReset(auth, actionCode, data.password);
 
       const { user } = await signInWithEmailAndPassword(auth, email, data.password);
       try {
-        const { checkSchoolEmail, verifySchoolEmail } = await import("../../db/schoolAdminCollection");
+        const { verifySchoolEmail } = await import("../../db/schoolAdminCollection");
         const schoolInfo = await checkSchoolEmail(user.email!);
         if (schoolInfo && !schoolInfo.verified) {
           const authToken = await user.getIdToken();

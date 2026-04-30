@@ -87,6 +87,19 @@ const SchoolAdminPasswordSetupFromLink: React.FC<SchoolAdminPasswordSetupFromLin
         return;
       }
 
+      const schoolProbe = await checkSchoolEmail(email);
+      if (schoolProbe && schoolProbe.registrationPaymentComplete !== true) {
+        toast({
+          variant: "destructive",
+          title: "Payment required",
+          description:
+            "Complete your school’s subscription using the secure payment link in your registration confirmation email before setting a password.",
+        });
+        setIsSubmitted(false);
+        clearPasswordResetInProgress();
+        return;
+      }
+
       await confirmPasswordReset(auth, actionCode, data.password);
 
       const { user } = await signInWithEmailAndPassword(auth, email, data.password);

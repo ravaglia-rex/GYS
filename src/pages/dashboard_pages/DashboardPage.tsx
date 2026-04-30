@@ -12,9 +12,11 @@ import {
   ASSESSMENT_ORDER,
   PROGRAM_EXAM_COUNT,
   computeGate,
-  normalizeMembershipLevel,
+  membershipLevelForAssessmentGate,
   defaultAssessmentProgress,
   isAssessmentFullyComplete,
+  buildDashboardExamChartRows,
+  type AssessmentChartRow,
 } from '../../utils/assessmentGating';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -45,9 +47,7 @@ const Dashboard: React.FC = () => {
     averageScore: 0,
     availableAssessments: 0,
   });
-  const [scoresByAssessment, setScoresByAssessment] = useState<
-    { subject: string; score: number; assessmentId: string }[]
-  >([]);
+  const [scoresByAssessment, setScoresByAssessment] = useState<AssessmentChartRow[]>([]);
   const [assessmentScopeLine, setAssessmentScopeLine] = useState<string>('');
 
   useEffect(() => {
@@ -65,7 +65,7 @@ const Dashboard: React.FC = () => {
         setLoading(true);
         const [student, configFromBackend] = await Promise.all([getStudent(uid), getAssessmentConfig()]);
         const progress: Record<string, AssessmentProgress> = student?.assessment_progress ?? {};
-        const membershipLevel = normalizeMembershipLevel(student?.membership_level);
+        const membershipLevel = membershipLevelForAssessmentGate(student);
         const studentGrade =
           typeof student?.grade === 'number' && !Number.isNaN(student.grade) ? student.grade : 8;
 
@@ -97,9 +97,9 @@ const Dashboard: React.FC = () => {
         const avgScore =
           scoresWithValues.length > 0
             ? Math.round(
-                scoresWithValues.reduce((sum, p) => sum + (p.best_score ?? 0), 0) /
-                  scoresWithValues.length *
-                  100
+                (scoresWithValues.reduce((sum, p) => sum + (p.best_score ?? 0), 0) /
+                  scoresWithValues.length) *
+                  1000
               )
             : 0;
 
@@ -110,21 +110,9 @@ const Dashboard: React.FC = () => {
           availableAssessments,
         });
 
-        // Chart: best tier as 0 - 100% for each assessment with at least one attempt and a best_score
-        const chartData = sorted
-          .filter((a) => {
-            const p = progress[a.id] ?? defaultAssessmentProgress;
-            return p.best_score !== null && p.attempts_count > 0;
-          })
-          .map((a) => {
-            const p = progress[a.id]!;
-            return {
-              subject: a.name,
-              score: Math.round((p.best_score ?? 0) * 100),
-              assessmentId: a.id,
-            };
-          });
-        setScoresByAssessment(chartData);
+        setScoresByAssessment(
+          buildDashboardExamChartRows(sorted, progress, membershipLevel, studentGrade)
+        );
       } catch (err) {
         Sentry.withScope((scope) => {
           scope.setTag('location', 'DashboardPage.load');

@@ -1,5 +1,9 @@
 import type { StudentRow } from '../db/schoolAdminCollection';
 import { ASSESSMENT_ORDER, ASSESSMENT_NAMES } from './assessmentGating';
+import {
+  normalizeAchievementTierId,
+  CANONICAL_ACHIEVEMENT_TIER_IDS,
+} from './achievementTier';
 
 type Progress = NonNullable<StudentRow['assessment_progress']>[string];
 
@@ -66,9 +70,72 @@ export interface Tier123Counts {
   total: number;
 }
 
+/** Bar + legend colors for national GYS performance tiers (Explorer teal — distinct from Diamond violet). */
+export const NATIONAL_PERFORMANCE_TIER_COLORS: Record<
+  (typeof CANONICAL_ACHIEVEMENT_TIER_IDS)[number],
+  string
+> = {
+  explorer: '#0d9488',
+  bronze: '#ea580c',
+  silver: '#6b7280',
+  gold: '#f59e0b',
+  platinum: '#0284c7',
+  diamond: '#7c3aed',
+};
+
+/**
+ * Whole-number percentages (0–100) per segment that sum to exactly 100 (fixes 99%/101% from naive Math.round).
+ * Uses the largest remainder method in tier order Explorer → Diamond.
+ */
+export function nationalTierPercentDistribution(
+  counts: Record<(typeof CANONICAL_ACHIEVEMENT_TIER_IDS)[number], number>,
+  total: number
+): Record<(typeof CANONICAL_ACHIEVEMENT_TIER_IDS)[number], number> {
+  const order = CANONICAL_ACHIEVEMENT_TIER_IDS as readonly string[];
+  if (total <= 0) {
+    return Object.fromEntries(order.map((id) => [id, 0])) as Record<
+      (typeof CANONICAL_ACHIEVEMENT_TIER_IDS)[number],
+      number
+    >;
+  }
+  const exact = CANONICAL_ACHIEVEMENT_TIER_IDS.map((id) => (counts[id] / total) * 100);
+  const floors = exact.map((e) => Math.floor(e));
+  let rem = 100 - floors.reduce((a, b) => a + b, 0);
+  const frac = exact.map((e, i) => ({ i, f: e - floors[i]! }));
+  frac.sort((a, b) => b.f - a.f);
+  const addOne = new Set<number>();
+  for (let k = 0; k < rem; k++) {
+    addOne.add(frac[k]!.i);
+  }
+  const out = {} as Record<(typeof CANONICAL_ACHIEVEMENT_TIER_IDS)[number], number>;
+  CANONICAL_ACHIEVEMENT_TIER_IDS.forEach((id, idx) => {
+    out[id] = floors[idx]! + (addOne.has(idx) ? 1 : 0);
+  });
+  return out;
+}
+
+/** Counts roster students by normalized `achievement_tier` (nationwide GYS tier, distinct from proficiency L1–3). */
+export function summarizeNationalPerformanceTiers(
+  students: StudentRow[]
+): { counts: Record<(typeof CANONICAL_ACHIEVEMENT_TIER_IDS)[number], number>; total: number } {
+  const counts = {
+    explorer: 0,
+    bronze: 0,
+    silver: 0,
+    gold: 0,
+    platinum: 0,
+    diamond: 0,
+  } satisfies Record<(typeof CANONICAL_ACHIEVEMENT_TIER_IDS)[number], number>;
+  for (const s of students) {
+    const id = normalizeAchievementTierId(s.achievement_tier) as (typeof CANONICAL_ACHIEVEMENT_TIER_IDS)[number];
+    counts[id] += 1;
+  }
+  return { counts, total: students.length };
+}
+
 /**
  * Counts students by overall proficiency band: min band across active assessment slots (see `studentOverallProficiencyBand`).
- * UI labels: Level 1 = Bronze, Level 2 = Silver, Level 3+ = Gold (difficulty / proficiency ladder, not national performance tiers).
+ * UI legend uses “Level 1 (Bronze)…” as shorthand—this is the per-assessment proficiency ladder only, not Explorer→Diamond GYS tiers.
  */
 export function summarizeSchoolTier123(students: StudentRow[]): Tier123Counts {
   const list = students;

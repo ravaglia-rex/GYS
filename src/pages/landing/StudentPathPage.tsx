@@ -218,8 +218,16 @@ const StudentPathPage: React.FC = () => {
           <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
+              onClick={() => navigate('/students/register')}
+              className="px-5 py-2.5 rounded-xl text-sm font-medium shrink-0 border-2 bg-white shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-transform duration-150"
+              style={{ borderColor: GYS_BLUE, color: GYS_BLUE }}
+            >
+              Sign up
+            </button>
+            <button
+              type="button"
               onClick={() => navigate('/login')}
-              className="px-5 py-2.5 rounded-xl text-white text-sm font-medium shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-transform duration-150"
+              className="px-5 py-2.5 rounded-xl border-2 border-transparent text-white text-sm font-medium shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-transform duration-150"
               style={{ backgroundColor: GYS_BLUE }}
             >
               Log In
@@ -384,8 +392,7 @@ const StudentPathPage: React.FC = () => {
             <p className="mx-auto mt-2 max-w-2xl text-sm text-slate-600">
               GYS includes seven official assessments across three tracks. Each row is an exam (name + what it
               measures). Checkmarks show which membership includes it.{' '}
-              <span className="font-medium text-slate-800">Practice Mode</span> uses a separate question pool for
-              familiarity only and does not affect official scores, performance tiers, or reports.
+             
             </p>
 
             <div
@@ -546,8 +553,8 @@ const StudentPathPage: React.FC = () => {
         <section id="sp-economics" data-landing-reveal className="mt-10 sm:mt-12">
           <h2 className="text-xl font-bold text-slate-900 sm:text-2xl text-center">Upgrade Anytime</h2>
           <p className="mt-2 text-center text-xs text-slate-600 sm:text-sm max-w-xl mx-auto">
-            Discovery counts toward annual memberships. If you upgrade later, you pay only the difference in list
-            price.
+            If you upgrade after purchase, you pay only the difference in list
+            price. Similarly, if your school paid for a particular membership level, you can upgrade to a higher level by paying the difference.
           </p>
           <div className="mt-4 mx-auto max-w-md overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <table className="w-full text-left text-xs sm:text-sm">

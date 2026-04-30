@@ -66,8 +66,8 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
     examTitleShort: 'Pattern and Logic',
     heroSubtitle: 'Your first assessment',
     statGrid: [
-      { label: 'Duration', value: '45 min' },
-      { label: 'Questions', value: '20' },
+      { label: 'Duration', value: '40 min' },
+      { label: 'Format', value: 'Multiple choice' },
       { label: 'Difficulty', value: 'Adaptive' },
       { label: 'Language', value: 'English' },
     ],
@@ -92,8 +92,8 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
     examTitleShort: 'Verbal Reasoning',
     heroSubtitle: 'Reading and argument skills',
     statGrid: [
-      { label: 'Duration', value: '30 min' },
-      { label: 'Questions', value: '25' },
+      { label: 'Duration', value: '40 min' },
+      { label: 'Format', value: 'Multiple choice' },
       { label: 'Difficulty', value: 'Adaptive' },
       { label: 'Language', value: 'Your selected language' },
     ],
@@ -122,8 +122,8 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
     examTitleShort: 'Mathematical Reasoning',
     heroSubtitle: 'Quantitative and logical thinking',
     statGrid: [
-      { label: 'Duration', value: '35 min' },
-      { label: 'Questions', value: '28' },
+      { label: 'Duration', value: '40 min' },
+      { label: 'Format', value: 'Multiple choice' },
       { label: 'Difficulty', value: 'Adaptive' },
       { label: 'Language', value: 'Your selected language' },
     ],

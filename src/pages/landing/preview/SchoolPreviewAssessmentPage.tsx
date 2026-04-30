@@ -19,6 +19,7 @@ import {
   Replay as ReplayIcon,
   AccessTime as AccessTimeIcon,
   Star as StarIcon,
+  Home as HomeIcon,
 } from '@mui/icons-material';
 import SmartphoneIcon from '@mui/icons-material/Smartphone';
 import BlockIcon from '@mui/icons-material/Block';
@@ -238,7 +239,11 @@ const SchoolPreviewAssessmentPage: React.FC = () => {
           <Typography sx={{ flex: 1, textAlign: 'center', fontWeight: 600, color: '#334155', fontSize: { xs: '0.95rem', md: '1rem' } }}>
             Assessment Detail
           </Typography>
-          <Box sx={{ width: 40 }} />
+          <Tooltip title="Marketing home">
+            <IconButton onClick={() => navigate('/')} aria-label="Home" size="small">
+              <HomeIcon sx={{ color: primary.main }} />
+            </IconButton>
+          </Tooltip>
         </Box>
 
         <Box sx={{ maxWidth: contentMaxWidth, mx: 'auto', px: { xs: 2, md: 4, lg: 5 }, pt: { xs: 3, md: 4 } }}>
@@ -494,6 +499,14 @@ const SchoolPreviewAssessmentPage: React.FC = () => {
               sx={{ borderColor: '#cbd5e1', color: '#475569', fontWeight: 700 }}
             >
               {sampleAssessmentExitLabel(sampleExitTo)}
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<HomeIcon />}
+              onClick={() => navigate('/')}
+              sx={{ borderColor: '#cbd5e1', color: '#475569', fontWeight: 700 }}
+            >
+              Home
             </Button>
             <Button variant="contained" startIcon={<ReplayIcon />} onClick={reset} sx={{ bgcolor: primaryBtn, fontWeight: 700, '&:hover': { bgcolor: flow.theme === 'purple' ? '#6a1b9a' : '#1565c0' } }}>
               Try again

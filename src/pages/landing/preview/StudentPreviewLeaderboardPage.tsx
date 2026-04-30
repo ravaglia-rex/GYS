@@ -10,11 +10,10 @@ const StudentPreviewLeaderboardPage: React.FC = () => {
   return (
     <Box sx={{ p: 0 }}>
       <Typography variant="h5" sx={{ color: 'white', fontWeight: 700, mb: 1 }}>
-        Leaderboard
+        School Leaderboard
       </Typography>
       <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)', mb: 2.5, maxWidth: 640 }}>
-        Sample standings for each programme exam — same layout as the signed-in portal. Grade defaults to the preview
-        profile (Grade {initial}).
+        Sample school leaderboard: standings for each exam at  <Box component="span" sx={{ fontWeight: 700, color: '#e9d5ff' }}>your school</Box> only (not national). Grade defaults to the preview profile (Grade {initial}).
       </Typography>
       <StudentLeaderboardPanel initialGrade={initial} />
     </Box>

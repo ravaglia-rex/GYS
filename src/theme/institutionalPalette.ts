@@ -23,5 +23,7 @@ export const institutionalPalette = {
     silver: '#64748B',
     bronze: '#C2410C',
     explorer: '#D1D5DB',
+    platinum: '#0369a1',
+    diamond: '#5b21b6',
   },
 } as const;

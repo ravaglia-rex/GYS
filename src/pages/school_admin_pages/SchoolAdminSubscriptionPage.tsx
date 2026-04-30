@@ -18,6 +18,10 @@ import {
   getSchoolDashboard,
   type SchoolDashboardBilling,
 } from '../../db/schoolAdminCollection';
+import {
+  SCHOOL_INSTITUTIONAL_PLAN_MATRIX,
+  SCHOOL_INSTITUTIONAL_PRICE_LANDING,
+} from '../../utils/schoolRegistrationPlans';
 
 const POPULAR_PLAN_BADGE_GOLD = '#fbbf24';
 const STANDARD_RING = 'rgba(30, 58, 138, 0.7)';
@@ -31,6 +35,7 @@ interface Plan {
   name: string;
   price: string;
   per: string;
+  rosterCap: string;
   features: string[];
   accent: string;
   Icon: PlanIcon;
@@ -38,56 +43,30 @@ interface Plan {
   popular?: boolean;
 }
 
-const PLANS: Plan[] = [
-  {
-    id: 'entry',
-    name: 'Entry',
-    price: '₹2,00,000',
-    per: '/yr',
-    accent: '#475569',
-    Icon: EntryIcon,
-    features: [
-      'Assessment 1 (Pattern and Logic)',
-      'Headline performance report',
-      'Tier distribution analysis',
-      'Path to next tier',
-    ],
-  },
-  {
-    id: 'standard',
-    name: 'Standard',
-    price: '₹3,00,000',
-    per: '/yr',
-    accent: PLAN_STANDARD_BLUE,
-    Icon: StandardIcon,
-    current: true,
-    popular: true,
-    features: [
-      'Assessments 1–3 (full reasoning triad)',
-      'Full analytics & subscore breakdowns',
-      'Grade-level analysis',
-      'Comparative benchmarks (national, regional)',
-      'Quarterly growth tracking',
-      'Prioritized recommendations',
-    ],
-  },
-  {
-    id: 'premium',
-    name: 'Premium',
-    price: '₹5,00,000',
-    per: '/yr',
-    accent: '#8b5cf6',
-    Icon: PremiumIcon,
-    features: [
-      'Everything in Standard',
-      'All grades & custom cohorts',
-      'Cohort analysis & cluster insights',
-      'Consulting-style action plans',
-      'Dedicated account manager',
-      'Marketing toolkit (tier badges, parent comms)',
-    ],
-  },
-];
+const PLAN_ICONS: Record<'entry' | 'standard' | 'premium', PlanIcon> = {
+  entry: EntryIcon,
+  standard: StandardIcon,
+  premium: PremiumIcon,
+};
+
+const PLAN_ACCENTS: Record<'entry' | 'standard' | 'premium', string> = {
+  entry: '#475569',
+  standard: PLAN_STANDARD_BLUE,
+  premium: '#8b5cf6',
+};
+
+const PLANS: Plan[] = SCHOOL_INSTITUTIONAL_PLAN_MATRIX.map((row) => ({
+  id: row.id,
+  name: row.name,
+  price: row.annualPriceRupeeDisplay,
+  per: '/yr',
+  rosterCap: row.rosterGuidance,
+  features: [...row.features],
+  accent: PLAN_ACCENTS[row.id],
+  Icon: PLAN_ICONS[row.id],
+  popular: row.popular,
+  current: row.id === 'standard',
+}));
 
 function SchoolAdminSubscriptionPage() {
   const schoolId = useSelector((state: RootState) => state.auth.schoolAdmin?.schoolId ?? '').trim();
@@ -165,7 +144,7 @@ function SchoolAdminSubscriptionPage() {
               Standard
             </Typography>
             <Typography variant="body2" sx={{ color: ip.subtext }}>
-              Renews annually • ₹3,00,000/yr • Next renewal: 1 Jan 2028
+              Renews annually • {SCHOOL_INSTITUTIONAL_PRICE_LANDING.standard} • Next renewal: 1 Jan 2028
             </Typography>
           </Box>
         </Box>
@@ -225,10 +204,13 @@ function SchoolAdminSubscriptionPage() {
               </Box>
             )}
             <CardContent sx={{ p: '24px !important', pt: plan.popular ? '28px !important' : '24px !important' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
                 <plan.Icon sx={{ fontSize: '1.6rem', color: plan.accent }} />
                 <Typography variant="h6" sx={{ color: ip.heading, fontWeight: 700 }}>{plan.name}</Typography>
               </Box>
+              <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1.5, pl: 0.25 }}>
+                {plan.rosterCap}
+              </Typography>
               <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5, mb: 2 }}>
                 <Typography variant="h4" sx={{ color: plan.accent, fontWeight: 800 }}>{plan.price}</Typography>
                 <Typography variant="body2" sx={{ color: ip.subtext }}>{plan.per}</Typography>

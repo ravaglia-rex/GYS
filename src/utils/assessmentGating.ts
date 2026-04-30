@@ -29,6 +29,10 @@ export interface AssessmentProgress {
   attempts_count: number;
   /** Tier index → cleared at grade-band threshold (from backend completeExam) */
   tiers_cleared?: Record<string, boolean>;
+  /** Most recently graded attempt (1-indexed level); set with latest_attempt_score on completeExam. */
+  latest_attempt_level?: number | null;
+  /** Raw score 0–1 for the most recent graded attempt at latest_attempt_level. */
+  latest_attempt_score?: number | null;
 }
 
 export type LockReason = 'membership' | 'prerequisite' | null;
@@ -99,6 +103,21 @@ export function normalizeMembershipLevel(raw: number | null | undefined): number
   return Math.min(4, Math.max(1, raw));
 }
 
+/**
+ * Prefer `assessment_gate_membership_level` from GET /getStudentDetails when present (school
+ * institutional tier may unlock Exams 4–5 for Premium campuses). Otherwise matches {@link normalizeMembershipLevel}.
+ */
+export function membershipLevelForAssessmentGate(student: {
+  membership_level?: number | null;
+  assessment_gate_membership_level?: number | null;
+}): number {
+  const g = student?.assessment_gate_membership_level;
+  if (typeof g === 'number' && !Number.isNaN(g)) {
+    return normalizeMembershipLevel(g);
+  }
+  return normalizeMembershipLevel(student?.membership_level);
+}
+
 export function minMembershipLevelForAssessment(assessmentId: string): number {
   for (let level = 1; level <= 4; level++) {
     if (MEMBERSHIP_ALLOWED[level]?.includes(assessmentId)) return level;
@@ -166,4 +185,118 @@ export const defaultAssessmentProgress: AssessmentProgress = {
   status: 'locked',
   best_score: null,
   attempts_count: 0,
+  latest_attempt_level: null,
+  latest_attempt_score: null,
 };
+
+/** Landing dashboard chart always shows Exam 1–5 (first five program assessments). */
+export const DASHBOARD_CHART_EXAM_IDS = ASSESSMENT_ORDER.slice(0, 5);
+
+/** Competitive exams are shown in the UI as points out of this total (tier % maps linearly). */
+export const EXAM_MAX_SCORE_POINTS = 1000;
+
+/** Chart rows use best-tier as 0–100; map to the display scale for labels and bars. */
+export function tierPercentToExamPoints(percent0to100: number): number {
+  const p = Math.max(0, Math.min(100, percent0to100));
+  return Math.round((p / 100) * EXAM_MAX_SCORE_POINTS);
+}
+
+/** One slot per exam bar on the student dashboard overview chart. */
+export type AssessmentChartRow = {
+  subject: string;
+  score: number;
+  assessmentId: string;
+  locked: boolean;
+  /** Level (1-indexed) for the displayed score — last graded attempt when backend fields exist. */
+  chartLevel?: number | null;
+  /** True when the bar uses legacy best_score (no latest attempt snapshot yet). */
+  chartScoreIsBestFallback?: boolean;
+};
+
+function chartExamDisplayName(
+  assessmentId: string,
+  assessment: AssessmentType | undefined
+): string {
+  const fromConfig = assessment?.name?.trim();
+  if (fromConfig) return fromConfig;
+  return ASSESSMENT_NAMES[assessmentId] ?? assessmentId;
+}
+
+/**
+ * Latest graded attempt when {@link AssessmentProgress.latest_attempt_score} is set;
+ * otherwise legacy {@link AssessmentProgress.best_score} for older profiles.
+ */
+export function pickLatestOrBestAssessmentScore(p: AssessmentProgress): {
+  score0to100: number;
+  chartLevel: number | null;
+  chartScoreIsBestFallback: boolean;
+} | null {
+  const ls = p.latest_attempt_score;
+  const ll = p.latest_attempt_level;
+  const hasLatest =
+    typeof ls === 'number' &&
+    !Number.isNaN(ls) &&
+    typeof ll === 'number' &&
+    !Number.isNaN(ll) &&
+    ll >= 1;
+
+  if (hasLatest) {
+    return {
+      score0to100: Math.max(0, Math.min(100, Math.round(ls * 100))),
+      chartLevel: ll,
+      chartScoreIsBestFallback: false,
+    };
+  }
+  if (p.best_score != null && p.attempts_count > 0) {
+    return {
+      score0to100: Math.max(0, Math.min(100, Math.round(p.best_score * 100))),
+      chartLevel: null,
+      chartScoreIsBestFallback: true,
+    };
+  }
+  return null;
+}
+
+/**
+ * Builds exactly five rows for the landing chart (first five program assessments).
+ * Uses latest attempt score/level when present; otherwise best_score for legacy profiles.
+ * X-axis labels use each assessment’s configured name (fallback: {@link ASSESSMENT_NAMES}).
+ */
+export function buildDashboardExamChartRows(
+  assessments: AssessmentType[],
+  progress: Record<string, AssessmentProgress>,
+  membershipLevel: number,
+  studentGrade: number
+): AssessmentChartRow[] {
+  const sorted = [...assessments].sort((a, b) => {
+    const ia = ASSESSMENT_ORDER.indexOf(a.id as AssessmentId);
+    const ib = ASSESSMENT_ORDER.indexOf(b.id as AssessmentId);
+    return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+  });
+
+  return DASHBOARD_CHART_EXAM_IDS.map((id) => {
+    const a = sorted.find((x) => x.id === id);
+    const subject = chartExamDisplayName(id, a);
+    const p = progress[id] ?? defaultAssessmentProgress;
+    const gate = a ? computeGate(id, membershipLevel, progress, studentGrade, sorted) : { locked: true as const };
+    const picked = pickLatestOrBestAssessmentScore(p);
+    const showBar = !!a && !gate.locked && picked != null;
+
+    if (showBar && picked) {
+      return {
+        subject,
+        score: picked.score0to100,
+        assessmentId: id,
+        locked: false,
+        chartLevel: picked.chartLevel,
+        chartScoreIsBestFallback: picked.chartScoreIsBestFallback,
+      };
+    }
+    return {
+      subject,
+      score: 0,
+      assessmentId: id,
+      locked: true,
+    };
+  });
+}

@@ -142,7 +142,7 @@ export default function StudentPreviewLayout() {
           <EmojiEventsIcon sx={iconSx} />
         </ListItemIcon>
         <ListItemText
-          primary="Leaderboard"
+          primary="School Leaderboard"
           slotProps={{
             primary: {
               fontWeight: isActive('/students/preview/leaderboard') ? 600 : 500,
@@ -398,17 +398,23 @@ export default function StudentPreviewLayout() {
           minHeight: '100vh',
           bgcolor: '#0f172a',
           maxWidth: '100%',
-          overflowX: 'auto',
+          minWidth: 0,
         }}
       >
+        {/*
+          Fixed bar + toolbar spacer: `overflow-x` on an ancestor breaks `position: sticky`, so we pin the bar
+          to the viewport and indent it beside the permanent drawer on lg (same idea as MUI “clipped” AppBar).
+        */}
         <AppBar
-          position="sticky"
+          position="fixed"
           elevation={0}
           sx={{
             backgroundColor: 'rgba(15,23,42,0.97)',
             backdropFilter: 'blur(10px)',
             borderBottom: '1px solid rgba(255,255,255,0.08)',
-            zIndex: theme.zIndex.drawer + 1,
+            zIndex: theme.zIndex.appBar,
+            left: { xs: 0, lg: `${DRAWER_WIDTH}px` },
+            width: { xs: '100%', lg: `calc(100% - ${DRAWER_WIDTH}px)` },
           }}
         >
           <Toolbar sx={{ justifyContent: 'space-between', gap: 1, minHeight: { xs: 56, sm: 64 } }}>
@@ -446,8 +452,16 @@ export default function StudentPreviewLayout() {
             </Box>
           </Toolbar>
         </AppBar>
+        <Toolbar sx={{ minHeight: { xs: 56, sm: 64 }, flexShrink: 0 }} aria-hidden />
 
-        <Box sx={{ flex: 1, p: { xs: 2, md: 3 }, pt: { xs: 2, md: 3 } }}>
+        <Box
+          sx={{
+            flex: 1,
+            p: { xs: 2, md: 3 },
+            pt: { xs: 2, md: 3 },
+            overflowX: 'auto',
+          }}
+        >
           <Box
             sx={{
               mb: 2,

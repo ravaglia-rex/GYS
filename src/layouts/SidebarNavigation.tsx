@@ -51,7 +51,7 @@ const navItems: NavItem[] = [
     icon: <DashboardIcon sx={{ color: '#8b5cf6' }} />,
   },
   {
-    title: 'Leaderboard',
+    title: 'School Leaderboard',
     path: '/leaderboard',
     icon: <EmojiEventsIcon sx={{ color: '#f59e0b' }} />,
   },

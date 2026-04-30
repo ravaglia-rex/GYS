@@ -24,7 +24,8 @@ export type RegisterSchoolPayload = {
   confirm_school_name: string;
   abbreviations: string[];
   udise_code: string;
-  board: string;
+  /** One or more curriculum options from the registration BOARDS list. */
+  boards: string[];
   state_board_state: string;
   referral_source: string;
   address_line1: string;

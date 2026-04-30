@@ -42,31 +42,14 @@ const LeaderboardPage: React.FC = () => {
                     WebkitTextFillColor: 'transparent',
                   }}
                 >
-                  Leaderboard
+                  School Leaderboard
                 </Typography>
                 <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.72)', mt: 0.5 }}>
-                  See how you compare on score-based exams within your grade band, when cohort data is available.
+                  See how you compare with classmates at your school on each exam, by grade — not national rankings. Available when your school’s cohort data is published.
                 </Typography>
               </Box>
             </Box>
-            <Typography
-              variant="caption"
-              component="div"
-              sx={{
-                color: 'rgba(255,255,255,0.5)',
-                textAlign: { xs: 'left', sm: 'right' },
-                maxWidth: 260,
-                lineHeight: 1.45,
-              }}
-            >
-              Last updated:{' '}
-              <Box component="span" sx={{ color: '#e2e8f0', fontWeight: 600 }}>
-                Not published
-              </Box>
-              <Box sx={{ display: 'block', mt: 0.5, color: 'rgba(255,255,255,0.45)' }}>
-                Shown once your school’s cohort snapshot is available.
-              </Box>
-            </Typography>
+          
           </Box>
 
           <Box

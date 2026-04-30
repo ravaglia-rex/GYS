@@ -28,7 +28,7 @@ import { getStudent } from '../../db/studentCollection';
 import { getAssessmentConfig, AssessmentType } from '../../db/assessmentCollection';
 import {
   computeGate,
-  normalizeMembershipLevel,
+  membershipLevelForAssessmentGate,
   defaultAssessmentProgress,
   ASSESSMENT_NAMES,
   MEMBERSHIP_LEVEL_LABELS,
@@ -83,7 +83,7 @@ const AssessmentDetailPage: React.FC = () => {
       try {
         setLoading(true);
         const [student, config] = await Promise.all([getStudent(uid), getAssessmentConfig()]);
-        setMembershipLevel(normalizeMembershipLevel(student?.membership_level));
+        setMembershipLevel(membershipLevelForAssessmentGate(student));
         setStudentGrade(
           typeof student?.grade === 'number' && !Number.isNaN(student.grade) ? student.grade : 8
         );

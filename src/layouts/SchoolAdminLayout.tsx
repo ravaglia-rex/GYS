@@ -21,7 +21,8 @@ import {
   Settings as SettingsIcon,
   CreditCard as SubscriptionIcon,
   Logout as LogoutIcon,
-  HomeOutlined as HomeOutlinedIcon,
+  Home as HomeIcon,
+  ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
 import { auth } from '../firebase/firebase';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -204,7 +205,7 @@ export default function SchoolAdminLayout({ children, interactivePreview }: Scho
             fullWidth
             variant="outlined"
             onClick={handleLogout}
-            startIcon={<HomeOutlinedIcon />}
+            startIcon={<ArrowBackIcon />}
             sx={{
               py: 1,
               justifyContent: 'flex-start',
@@ -301,6 +302,22 @@ export default function SchoolAdminLayout({ children, interactivePreview }: Scho
             >
               Institution Portal
             </Typography>
+            {interactivePreview && (
+              <Button
+                color="inherit"
+                onClick={() => navigate('/')}
+                startIcon={<HomeIcon />}
+                sx={{
+                  ml: { xs: 0.5, sm: 1 },
+                  color: 'rgba(255,255,255,0.92)',
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  flexShrink: 0,
+                }}
+              >
+                Home
+              </Button>
+            )}
           </Box>
 
           <Tooltip title={displayEmail || 'Account'}>

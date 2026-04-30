@@ -12,9 +12,19 @@ import {
 } from '../../hooks/useLandingPageScroll';
 import { schoolFaqSections } from './faq/schoolFaqSections';
 import {
+  INSTITUTIONAL_LANDING_PLAN_CARD_BLURBS,
   INSTITUTIONAL_PLAN_STUDENT_LIMIT,
+  SCHOOL_INSTITUTIONAL_PLAN_MATRIX,
   SCHOOL_INSTITUTIONAL_PRICE_LANDING,
+  type RegisterPlanId,
 } from '../../utils/schoolRegistrationPlans';
+
+/** Background / popular ribbon — layout only; caps & prices come from {@link SCHOOL_INSTITUTIONAL_PLAN_MATRIX}. */
+const INSTITUTIONAL_PLAN_CARD_UI: Record<RegisterPlanId, { bg: string; popular: boolean }> = {
+  entry: { bg: 'bg-[#e5f3ff]', popular: false },
+  standard: { bg: 'bg-[#fff7e0]', popular: true },
+  premium: { bg: 'bg-[#f9e8ff]', popular: false },
+};
 
 const FOR_SCHOOLS_NAV = [
   { id: 'schools-hero', label: 'Home' },
@@ -29,6 +39,123 @@ const FOR_SCHOOLS_NAV = [
 ] as const;
 
 const FOR_SCHOOLS_SECTION_IDS_JOIN = FOR_SCHOOLS_NAV.map((s) => s.id).join('|');
+
+/** Align with StudentPathPage plans matrix: tinted column headers for Entry / Standard / Premium */
+const SCHOOL_PLAN_TIER_HEADERS = [
+  { key: 'entry' as const, title: 'Entry', tint: 'bg-sky-100 text-sky-950' },
+  { key: 'standard' as const, title: 'Standard', tint: 'bg-amber-100 text-amber-950' },
+  { key: 'premium' as const, title: 'Premium', tint: 'bg-purple-100 text-purple-950' },
+];
+
+type SchoolComparisonRow =
+  | {
+      label: string;
+      desc?: string;
+      /** Entry, Standard, Premium — ✓ / − */
+      inPlan: [boolean, boolean, boolean];
+    }
+  | {
+      label: string;
+      desc?: string;
+      /** Entry, Standard, Premium — short text (e.g. roster caps) */
+      tierText: [string, string, string];
+    };
+
+type SchoolComparisonSection = {
+  group: 'assessments' | 'analytics' | 'premium';
+  title: string;
+  hint: string;
+  rows: SchoolComparisonRow[];
+};
+
+const SCHOOL_PACKAGE_COMPARISON: SchoolComparisonSection[] = [
+  {
+    group: 'assessments',
+    title: 'Roster & assessments',
+    hint: 'Participation limits and which assessments each annual license unlocks',
+    rows: [
+      {
+        label: 'Participating students (annual license)',
+        desc: '',
+        tierText: [
+          INSTITUTIONAL_PLAN_STUDENT_LIMIT.entry,
+          INSTITUTIONAL_PLAN_STUDENT_LIMIT.standard,
+          INSTITUTIONAL_PLAN_STUDENT_LIMIT.premium,
+        ],
+      },
+      {
+        label: 'Assessment 1 (Pattern & Logic)',
+        desc: 'Symbolic reasoning baseline for your cohort',
+        inPlan: [true, true, true],
+      },
+      {
+        label: 'Assessments 1–3 (full reasoning triad)',
+        desc: 'Symbolic, Verbal, and Mathematical reasoning',
+        inPlan: [false, true, true],
+      },
+      {
+        label: 'Assessments 4–5 (English & AI proficiency)',
+        desc: 'Skills track for institutional cohorts',
+        inPlan: [false, false, true],
+      },
+    ],
+  },
+  {
+    group: 'analytics',
+    title: 'Institutional analytics',
+    hint: 'Benchmarks, reporting depth, growth, and priorities',
+    rows: [
+      {
+        label: 'Headline performance & tier distribution',
+        inPlan: [true, true, true],
+      },
+      {
+        label: 'Full analytics & subscore breakdowns',
+        inPlan: [false, true, true],
+      },
+      {
+        label: 'Grade-level analysis',
+        inPlan: [false, true, true],
+      },
+      {
+        label: 'Comparative benchmarks (national, regional)',
+        inPlan: [false, true, true],
+      },
+      {
+        label: 'Quarterly growth tracking',
+        inPlan: [false, true, true],
+      },
+      {
+        label: 'Prioritized recommendations',
+        inPlan: [false, true, true],
+      },
+    ],
+  },
+  {
+    group: 'premium',
+    title: 'Premium services',
+    hint: 'Standard plus cohort depth & partnership',
+    rows: [
+      
+      {
+        label: 'Cohort analysis & cluster insights',
+        inPlan: [false, false, true],
+      },
+      {
+        label: 'Consulting-style action plans',
+        inPlan: [false, false, true],
+      },
+      {
+        label: 'Dedicated account manager',
+        inPlan: [false, false, true],
+      },
+      {
+        label: 'Marketing toolkit (tier badges, parent comms)',
+        inPlan: [false, false, true],
+      },
+    ],
+  },
+];
 
 const ForSchoolsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -100,8 +227,16 @@ const ForSchoolsPage: React.FC = () => {
           <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
+              onClick={() => navigate('/for-schools/register')}
+              className="px-5 py-2.5 rounded-xl text-sm font-medium shrink-0 border-2 bg-white shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-transform duration-150"
+              style={{ borderColor: GYS_BLUE, color: GYS_BLUE }}
+            >
+              Sign up
+            </button>
+            <button
+              type="button"
               onClick={() => navigate('/login')}
-              className="px-5 py-2.5 rounded-xl text-white text-sm font-medium shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-transform duration-150"
+              className="px-5 py-2.5 rounded-xl border-2 border-transparent text-white text-sm font-medium shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-transform duration-150"
               style={{ backgroundColor: GYS_BLUE }}
             >
               Log In
@@ -292,137 +427,161 @@ const ForSchoolsPage: React.FC = () => {
           </div>
           </section>
 
-          {/* Institutional packages / pricing */}
+        
+
+          <div id="institutional-packages" className="scroll-mt-28">
           <section
-            id="institutional-packages"
             data-landing-reveal
-            className="scroll-mt-28 mt-10 sm:mt-12"
+            className="relative left-1/2 right-1/2 -ml-[50vw] mt-8 w-screen border-y border-slate-200 bg-slate-100 py-8 text-center sm:mt-10 sm:py-10"
           >
-            <h3 className="text-xl sm:text-2xl font-bold text-slate-900">
+            <div className="mx-auto max-w-5xl px-4 sm:px-6">
+            <h3 className="text-center text-2xl font-bold text-slate-900 sm:text-3xl">
               Institutional packages
             </h3>
-            <p className="mt-1 text-xs sm:text-sm text-slate-600">
-              Annual institutional license. Each package includes a roster limit for participating students in
-              your selected grades; see each plan below.
-            </p>
+              <p className="mx-auto mt-2 max-w-2xl text-sm text-slate-600">
+                <span className="font-semibold text-slate-800">Premium</span> includes Assessments{' '}
+                <span className="font-semibold text-slate-800">4–5</span> (English proficiency &amp; AI proficiency) in
+                addition to the full reasoning triad — see the matrix below. Each row is a capability; checkmarks show
+                which plan includes it. Roster limits and annual fees are in{' '}
+                <span className="font-medium text-slate-800">Plans &amp; pricing</span> below.
+              </p>
 
-            <div className="mt-6 grid gap-4 sm:grid-cols-3">
-              {/* Entry */}
-              <div className="flex flex-col rounded-2xl bg-white px-4 py-4 shadow-sm ring-1 ring-slate-200 sm:px-5 sm:py-5">
-                <h4 className="text-sm font-semibold text-slate-900 sm:text-base">Entry</h4>
-                <p className="mt-1.5 text-xs font-semibold text-slate-800">
-                  {INSTITUTIONAL_PLAN_STUDENT_LIMIT.entry}
-                </p>
-                <div className="mt-2 flex flex-col gap-1 text-xs text-slate-600 sm:text-sm">
-                  <span className="flex items-start gap-1">
-                    <span className="mt-[2px] text-emerald-600 text-xs">✓</span>
-                    <span>Assessment 1 (Pattern and Logic)</span>
-                  </span>
-                  <span className="flex items-start gap-1">
-                    <span className="mt-[2px] text-emerald-600 text-xs">✓</span>
-                    <span>Headline performance report</span>
-                  </span>
-                  <span className="flex items-start gap-1">
-                    <span className="mt-[2px] text-emerald-600 text-xs">✓</span>
-                    <span>Performance tier distribution analysis</span>
-                  </span>
-                  <span className="flex items-start gap-1">
-                    <span className="mt-[2px] text-emerald-600 text-xs">✓</span>
-                    <span>Path to next performance tier</span>
-                  </span>
+              <div
+                className="mx-auto mt-6 max-w-4xl overflow-hidden rounded-2xl border border-slate-200 bg-white text-left shadow-md ring-1 ring-slate-100"
+                role="region"
+                aria-label="Institutional plans comparison"
+              >
+                <div className="grid grid-cols-[minmax(0,1fr)_repeat(3,minmax(0,4.75rem))] gap-x-0.5 border-b border-slate-200 bg-slate-50 sm:grid-cols-[minmax(0,1fr)_repeat(3,minmax(0,6rem))] sm:gap-x-1">
+                  <div className="px-3 py-2 text-[0.65rem] font-semibold uppercase tracking-wide text-slate-500 sm:px-4 sm:py-2.5 sm:text-xs">
+                    Capability
+                  </div>
+                  {SCHOOL_PLAN_TIER_HEADERS.map((t) => (
+                    <div
+                      key={t.key}
+                      className={`flex flex-col items-center justify-center px-0.5 py-1.5 text-center sm:py-2.5 ${t.tint}`}
+                    >
+                      <span className="hyphens-auto text-[0.6rem] font-bold leading-tight sm:text-[0.65rem]">
+                        {t.title}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-                <p
-                  className="mt-3 text-base sm:text-lg font-bold"
-                  style={{ color: GYS_BLUE }}
-                >
-                  {SCHOOL_INSTITUTIONAL_PRICE_LANDING.entry}
-                </p>
-              </div>
 
-              {/* Standard - popular */}
-              <div className="relative flex flex-col rounded-2xl bg-white px-4 py-4 text-slate-900 shadow-md ring-2 ring-[#1e3a8a]/70 sm:px-5 sm:py-5">
-                <div className="absolute -top-3 right-4 rounded-full bg-[#fbbf24] px-3 py-0.5 text-xs font-semibold uppercase tracking-[0.16em] text-slate-900 shadow">
-                  Popular
-                </div>
-                <h4 className="text-sm font-semibold sm:text-base">Standard</h4>
-                <p className="mt-1.5 text-xs font-semibold text-slate-800">
-                  {INSTITUTIONAL_PLAN_STUDENT_LIMIT.standard}
-                </p>
-                <div className="mt-2 flex flex-col gap-1 text-xs text-slate-600 sm:text-sm">
-                  <span className="flex items-start gap-1">
-                    <span className="mt-[2px] text-emerald-600 text-xs">✓</span>
-                    <span>Assessments 1–3 (full reasoning triad)</span>
-                  </span>
-                  <span className="flex items-start gap-1">
-                    <span className="mt-[2px] text-emerald-600 text-xs">✓</span>
-                    <span>Full analytics &amp; subscore breakdowns</span>
-                  </span>
-                  <span className="flex items-start gap-1">
-                    <span className="mt-[2px] text-emerald-600 text-xs">✓</span>
-                    <span>Grade-level analysis</span>
-                  </span>
-                  <span className="flex items-start gap-1">
-                    <span className="mt-[2px] text-emerald-600 text-xs">✓</span>
-                    <span>Comparative benchmarks (national, regional)</span>
-                  </span>
-                  <span className="flex items-start gap-1">
-                    <span className="mt-[2px] text-emerald-600 text-xs">✓</span>
-                    <span>Quarterly growth tracking</span>
-                  </span>
-                  <span className="flex items-start gap-1">
-                    <span className="mt-[2px] text-emerald-600 text-xs">✓</span>
-                    <span>Prioritized recommendations</span>
-                  </span>
-                </div>
-                <p
-                  className="mt-3 text-base sm:text-lg font-bold"
-                  style={{ color: GYS_BLUE }}
-                >
-                  {SCHOOL_INSTITUTIONAL_PRICE_LANDING.standard}
-                </p>
-              </div>
+                {SCHOOL_PACKAGE_COMPARISON.map((section) => {
+                  const groupBand =
+                    section.group === 'assessments'
+                      ? 'bg-gradient-to-r from-sky-50 via-indigo-50/60 to-transparent border-l-[3px] sm:border-l-4'
+                      : section.group === 'analytics'
+                        ? 'bg-gradient-to-r from-teal-50/90 via-transparent to-transparent border-l-[3px] border-l-teal-300/80 sm:border-l-4'
+                        : 'bg-gradient-to-r from-purple-50/90 via-transparent to-transparent border-l-[3px] border-l-purple-300/80 sm:border-l-4';
 
-              {/* Premium */}
-              <div className="flex flex-col rounded-2xl bg-white px-4 py-4 shadow-sm ring-1 ring-slate-200 sm:px-5 sm:py-5">
-                <h4 className="text-sm font-semibold text-slate-900 sm:text-base">Premium</h4>
-                <p className="mt-1.5 text-xs font-semibold text-slate-800">
-                  {INSTITUTIONAL_PLAN_STUDENT_LIMIT.premium}
-                </p>
-                <div className="mt-2 flex flex-col gap-1 text-xs text-slate-600 sm:text-sm">
-                  <span className="flex items-start gap-1">
-                    <span className="mt-[2px] text-emerald-600 text-xs">✓</span>
-                    <span>Everything in Standard</span>
-                  </span>
-                  <span className="flex items-start gap-1">
-                    <span className="mt-[2px] text-emerald-600 text-xs">✓</span>
-                    <span>All grades &amp; custom cohorts</span>
-                  </span>
-                  <span className="flex items-start gap-1">
-                    <span className="mt-[2px] text-emerald-600 text-xs">✓</span>
-                    <span>Cohort analysis &amp; cluster insights</span>
-                  </span>
-                  <span className="flex items-start gap-1">
-                    <span className="mt-[2px] text-emerald-600 text-xs">✓</span>
-                    <span>Consulting-style action plans</span>
-                  </span>
-                  <span className="flex items-start gap-1">
-                    <span className="mt-[2px] text-emerald-600 text-xs">✓</span>
-                    <span>Dedicated account manager</span>
-                  </span>
-                  <span className="flex items-start gap-1">
-                    <span className="mt-[2px] text-emerald-600 text-xs">✓</span>
-                    <span>Marketing toolkit (tier badges, parent comms)</span>
-                  </span>
-                </div>
-                <p
-                  className="mt-3 text-base sm:text-lg font-bold"
-                  style={{ color: GYS_BLUE }}
-                >
-                  {SCHOOL_INSTITUTIONAL_PRICE_LANDING.premium}
+                  return (
+                    <div key={section.group}>
+                      <div
+                        className={`${groupBand} border-slate-200/80 px-3 py-2 sm:px-4`}
+                        style={section.group === 'assessments' ? { borderLeftColor: GYS_BLUE } : undefined}
+                      >
+                        <p className="text-xs font-bold text-slate-800 sm:text-sm">{section.title}</p>
+                        <p className="text-[0.65rem] text-slate-600 sm:text-xs">{section.hint}</p>
+                      </div>
+                      {section.rows.map((row) => (
+                        <div
+                          key={row.label}
+                          className="grid grid-cols-[minmax(0,1fr)_repeat(3,minmax(0,4.75rem))] items-center gap-x-0.5 border-b border-slate-100 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_repeat(3,minmax(0,6rem))] sm:gap-x-1"
+                        >
+                          <div className="min-w-0 px-3 py-2 sm:px-4 sm:py-2">
+                            <span className="text-sm font-semibold leading-tight text-slate-900">{row.label}</span>
+                            {row.desc ? (
+                              <p className="mt-0.5 text-[0.7rem] leading-snug text-slate-500 sm:text-xs">
+                                {row.desc}
+                              </p>
+                            ) : null}
+                          </div>
+                          {'tierText' in row
+                            ? row.tierText.map((text, i) => (
+                                <div
+                                  key={SCHOOL_PLAN_TIER_HEADERS[i].key}
+                                  className="flex h-full min-h-[2.75rem] items-center justify-center px-0.5 sm:min-h-0 sm:py-2 sm:px-1"
+                                  aria-label={`${row.label} for ${SCHOOL_PLAN_TIER_HEADERS[i].title}: ${text}`}
+                                >
+                                  <span className="hyphens-auto text-center text-[0.62rem] font-semibold leading-tight text-slate-800 sm:text-[0.7rem]">
+                                    {text}
+                                  </span>
+                                </div>
+                              ))
+                            : row.inPlan.map((on, i) => (
+                                <div
+                                  key={SCHOOL_PLAN_TIER_HEADERS[i].key}
+                                  className="flex h-full min-h-[2.75rem] items-center justify-center sm:min-h-0 sm:py-2"
+                                  aria-label={
+                                    on
+                                      ? `${row.label} included in ${SCHOOL_PLAN_TIER_HEADERS[i].title}`
+                                      : `${row.label} not in ${SCHOOL_PLAN_TIER_HEADERS[i].title}`
+                                  }
+                                >
+                                  <span
+                                    className={`text-lg font-bold sm:text-xl ${on ? 'text-emerald-600' : 'text-slate-200'}`}
+                                    aria-hidden="true"
+                                  >
+                                    {on ? '✓' : '-'}
+                                  </span>
+                                </div>
+                              ))}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
+
+                <p className="border-t border-slate-100 bg-slate-50 px-3 py-2 text-center text-[0.65rem] leading-relaxed text-slate-600 sm:text-xs">
+                  <span className="font-semibold text-slate-800">Premium</span> includes everything in{' '}
+                  <span className="font-semibold text-slate-800">Standard</span>, plus Assessments 4–5, cohort depth,
+                  consulting-style support, and partnership benefits listed above.
                 </p>
               </div>
             </div>
           </section>
+
+          <section data-landing-reveal className="mt-10 sm:mt-12">
+            <h4 className="text-center text-2xl font-bold text-slate-900 sm:text-3xl">Plans &amp; pricing</h4>
+            <p className="mx-auto mt-2 max-w-xl text-center text-xs text-slate-600 sm:text-sm">
+              Three annual tiers. Higher plans unlock more assessments, analytics, and institutional support.
+            </p>
+
+            <div className="mt-8 grid grid-cols-1 gap-3 sm:mt-10 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
+              {SCHOOL_INSTITUTIONAL_PLAN_MATRIX.map((row) => {
+                const ui = INSTITUTIONAL_PLAN_CARD_UI[row.id];
+                return (
+                <div
+                  key={row.id}
+                  className={`relative flex h-full min-h-0 flex-col rounded-2xl px-4 py-3 shadow-sm ring-1 ring-slate-100 transition-all duration-300 ease-out hover:scale-[1.01] hover:shadow-md hover:ring-2 hover:ring-[#1e3a8a]/30 sm:px-5 sm:py-4 ${ui.bg} ${
+                    ui.popular ? 'ring-2 ring-[#1e3a8a]/50 shadow-md' : ''
+                  }`}
+                >
+                  {ui.popular ? (
+                    <div className="absolute -top-3 right-4 rounded-full bg-[#fbbf24] px-3 py-0.5 text-xs font-semibold uppercase tracking-[0.16em] text-slate-900 shadow">
+                      Popular
+                    </div>
+                  ) : null}
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900 sm:text-base">{row.name}</p>
+                    <p className="mt-1 text-xs text-slate-600 sm:text-sm">{INSTITUTIONAL_PLAN_STUDENT_LIMIT[row.id]}</p>
+                  </div>
+                  <p className="mt-3 text-base font-semibold sm:text-lg" style={{ color: GYS_BLUE }}>
+                    {SCHOOL_INSTITUTIONAL_PRICE_LANDING[row.id]}
+                  </p>
+                  <p className="mt-2 text-xs leading-relaxed text-slate-600 sm:text-sm">
+                    {INSTITUTIONAL_LANDING_PLAN_CARD_BLURBS[row.id]}
+                  </p>
+                </div>
+                );
+              })}
+            </div>
+            <p className="mt-6 text-center text-xs text-slate-500 sm:text-sm">
+              Applicable taxes may be added at checkout. Final roster terms are confirmed during registration.
+            </p>
+          </section>
+          </div>
 
          
 

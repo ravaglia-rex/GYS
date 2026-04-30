@@ -37,10 +37,11 @@ import {
 } from '../../db/schoolAdminCollection';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import { useSchoolAdminBelowNav } from '../../layouts/schoolAdminBelowNavContext';
-import { summarizeSchoolTier123 } from '../../utils/schoolAdminTierAnalytics';
+import { summarizeSchoolTier123, summarizeNationalPerformanceTiers } from '../../utils/schoolAdminTierAnalytics';
 import { normalizeTierSlugForDashboard } from '../../utils/achievementTier';
 import { displaySubscriptionPlan } from '../../utils/displaySubscriptionPlan';
 import { ProficiencyTier123Overview } from '../../components/school_admin/ProficiencyTier123Overview';
+import { NationalPerformanceTierOverview } from '../../components/school_admin/NationalPerformanceTierOverview';
 import {
   buildGreenfieldPreviewStudentRows,
   GREENFIELD_ANALYTICS_SNAPSHOT,
@@ -75,11 +76,19 @@ function getDashboardQuickActions(routeBase: string): DashboardQuickAction[] {
   ];
 }
 
-const TIER_CONFIG: Record<string, { color: string; bg: string; label: string; bar: string }> = {
-  gold:     { color: '#d97706', bg: 'rgba(245,158,11,0.12)', label: 'Gold',     bar: ip.tierBar.gold },
-  silver:   { color: '#64748b', bg: 'rgba(100,116,139,0.12)', label: 'Silver',  bar: ip.tierBar.silver },
-  bronze:   { color: '#9a3412', bg: 'rgba(194,65,12,0.12)',   label: 'Bronze',   bar: ip.tierBar.bronze },
-  explorer: { color: '#6b7280', bg: 'rgba(209,213,219,0.35)', label: 'Explorer', bar: ip.tierBar.explorer },
+const TIER_CONFIG: Record<string, { color: string; bg: string; label: string; bar: string; emoji: string }> = {
+  diamond: { color: '#5b21b6', bg: 'rgba(91,33,182,0.14)', label: 'Diamond', bar: ip.tierBar.diamond, emoji: '💎' },
+  platinum: {
+    color: '#0369a1',
+    bg: 'rgba(3,105,161,0.12)',
+    label: 'Platinum',
+    bar: ip.tierBar.platinum,
+    emoji: '✦',
+  },
+  gold: { color: '#d97706', bg: 'rgba(245,158,11,0.12)', label: 'Gold', bar: ip.tierBar.gold, emoji: '🥇' },
+  silver: { color: '#64748b', bg: 'rgba(100,116,139,0.12)', label: 'Silver', bar: ip.tierBar.silver, emoji: '🥈' },
+  bronze: { color: '#9a3412', bg: 'rgba(194,65,12,0.12)', label: 'Bronze', bar: ip.tierBar.bronze, emoji: '🥉' },
+  explorer: { color: '#6b7280', bg: 'rgba(209,213,219,0.35)', label: 'Explorer', bar: ip.tierBar.explorer, emoji: '🧭' },
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -199,7 +208,7 @@ function InstitutionHeroStrip(props: {
   schoolCity: string;
   schoolBoard: string;
   subscriptionPlan: string;
-  institutionalTierCfg: { label: string; color: string; bg: string; bar: string };
+  institutionalTierCfg: { label: string; color: string; bg: string; bar: string; emoji: string };
   institutionalRank: number | null;
   rankChangeQ1: number | null;
   performance: PerformanceMetrics;
@@ -302,7 +311,7 @@ function InstitutionHeroStrip(props: {
             >
               <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 0.75, justifyContent: 'center', flexWrap: 'wrap' }}>
                 <Typography component="span" sx={{ fontSize: { xs: '1.35rem', sm: '1.5rem' }, lineHeight: 1 }} aria-hidden>
-                  🥇
+                  {institutionalTierCfg.emoji}
                 </Typography>
                 <Typography
                   sx={{
@@ -452,6 +461,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
     avgPercentileChange: 0, goldPlusChange: 0, inBronzeChange: 0, completionChange: 0,
   });
   const [proficiencyTier123, setProficiencyTier123] = useState({ tier1: 0, tier2: 0, tier3: 0, total: 0 });
+  const [nationalPerfTiers, setNationalPerfTiers] = useState(() => summarizeNationalPerformanceTiers([]));
   const [totalAssessmentsCompleted, setTotalAssessmentsCompleted] = useState(0);
   const [institutionalRank, setInstitutionalRank] = useState<number | null>(null);
   const [rankChangeQ1, setRankChangeQ1] = useState<number | null>(null);
@@ -477,6 +487,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
       setTotalAssessmentsCompleted(countAssessmentsCompleted(allStudents));
       const tier123 = summarizeSchoolTier123(allStudents);
       setProficiencyTier123(tier123);
+      setNationalPerfTiers(summarizeNationalPerformanceTiers(allStudents));
       const total = allStudents.length || 1;
       setInstitutionalRank(GREENFIELD_ANALYTICS_SNAPSHOT.institutional_rank);
       setRankChangeQ1(GREENFIELD_ANALYTICS_SNAPSHOT.rank_change_q1);
@@ -512,7 +523,11 @@ const SchoolAdminDashboardPage: React.FC = () => {
         const schoolData = schoolSnap.data() ?? {};
         setSchoolName(schoolData.school_name ?? schoolData.name ?? 'Your School');
         setSchoolCity(schoolData.city ?? schoolData.location ?? '');
-        setSchoolBoard(schoolData.board ?? schoolData.affiliation ?? '');
+        setSchoolBoard(
+          Array.isArray(schoolData.boards) && schoolData.boards.length > 0
+            ? schoolData.boards.join(', ')
+            : (schoolData.board ?? schoolData.affiliation ?? '')
+        );
         setSchoolTier(normalizeTierSlugForDashboard(schoolData.institutional_tier ?? schoolData.tier ?? 'gold'));
         setSubscriptionPlan(
           displaySubscriptionPlan(schoolData.subscription_plan ?? schoolData.plan ?? 'Standard Subscription')
@@ -552,6 +567,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
 
         const tier123 = summarizeSchoolTier123(allStudents);
         setProficiencyTier123(tier123);
+        setNationalPerfTiers(summarizeNationalPerformanceTiers(allStudents));
 
         const total = allStudents.length || 1;
 
@@ -587,7 +603,8 @@ const SchoolAdminDashboardPage: React.FC = () => {
       setBelowNav(null);
       return;
     }
-    const tierCfg = TIER_CONFIG[normalizeTierSlugForDashboard(schoolTier)] ?? TIER_CONFIG.gold;
+    const tierCfg =
+      TIER_CONFIG[normalizeTierSlugForDashboard(schoolTier)] ?? TIER_CONFIG.explorer;
     setBelowNav(
       <InstitutionHeroStrip
         schoolName={schoolName}
@@ -817,12 +834,28 @@ const SchoolAdminDashboardPage: React.FC = () => {
             Performance overview
           </Typography>
           <Typography variant="body2" sx={{ color: ip.subtext, mb: 1, lineHeight: 1.55 }}>
-            For each student we only look at assessments they’ve <strong>started or completed</strong>. Their overall proficiency is the{' '}
+            <strong>GYS performance tiers</strong> are the nationwide normed bands from each student&apos;s profile (Explorer through Diamond).
+            Separately, <strong>proficiency levels</strong> summarize per-assessment progress as three difficulty bands—useful for where to focus{' '}
+            instruction next.
+          </Typography>
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="body2" sx={{ color: ip.heading, fontWeight: 600, mb: 0.5 }}>
+              National performance tiers (GYS)
+            </Typography>
+            <NationalPerformanceTierOverview
+              counts={nationalPerfTiers.counts}
+              total={nationalPerfTiers.total}
+              subtitle="Each student is counted once, by their current GYS performance tier from the roster (achievement_tier on each student profile). Same roster as below."
+            />
+          </Box>
+          <Typography variant="body2" sx={{ color: ip.subtext, mb: 1, lineHeight: 1.55 }}>
+            For proficiency, we only look at assessments students have <strong>started or completed</strong>. Their overall proficiency band is the{' '}
             <strong>lowest</strong> level among those—so if they’re strong in one subject but still in Level 1 on another, they count in Level 1
             (that’s the gap to close first).
           </Typography>
           <Typography variant="caption" sx={{ color: ip.subtext, mb: 2, display: 'block', lineHeight: 1.5 }}>
-            <strong>How to read levels:</strong> Level 1 = Bronze, Level 2 = Silver, Level 3+ = Gold. Everyone on your school roster is included.
+            <strong>Proficiency ladder (not tier names):</strong> Level 1 / 2 / 3 correspond to foundational / intermediate / advanced difficulty on
+            each assessment. Everyone on your school roster is included.
           </Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
             <StatCard
@@ -833,14 +866,14 @@ const SchoolAdminDashboardPage: React.FC = () => {
               icon={<MiniBarChartIcon sx={{ fontSize: '1.15rem', color: ip.statBlue }} />}
             />
             <StatCard
-              label="At Gold (Level 3+)"
+              label="At proficiency Level 3+"
               value={`${performance.goldPlusPct}%`}
               change={performance.goldPlusChange !== 0 ? { value: performance.goldPlusChange, label: '% from Q1' } : undefined}
               accent="#d97706"
               icon={<StarsIcon sx={{ fontSize: '1.15rem', color: '#f59e0b' }} />}
             />
             <StatCard
-              label="In Bronze (Level 1)"
+              label="At proficiency Level 1"
               value={`${performance.inBronzePct}%`}
               change={performance.inBronzeChange !== 0 ? { value: performance.inBronzeChange, label: '% from Q1' } : undefined}
               accent="#b45309"
@@ -857,11 +890,11 @@ const SchoolAdminDashboardPage: React.FC = () => {
 
           <Box>
             <Typography variant="body2" sx={{ color: ip.heading, fontWeight: 600, mb: 0.5 }}>
-              Student proficiency (levels 1–3)
+              Student proficiency bands (levels 1–3)
             </Typography>
             <ProficiencyTier123Overview
               summary={proficiencyTier123}
-              subtitle="Same rule as above: lowest level among that student’s active assessments. Level 1 = Bronze • Level 2 = Silver • Level 3+ = Gold."
+              subtitle="Same rule as above: lowest proficiency among that student’s active assessments. Levels 1 / 2 / 3 refer to difficulty bands on each assessment (see legend labels)."
             />
           </Box>
         </CardContent>

@@ -41,7 +41,8 @@ function round2(x: number): number {
 
 function patternLogicProgressFromPerfTier(perfTier: string, studentIndex: number): AssessmentProgress {
   const t = String(perfTier).toLowerCase();
-  if (t === 'gold') {
+  /** Top nationwide tiers use the same proficiency profile as Gold for mock progress. */
+  if (t === 'platinum' || t === 'diamond' || t === 'gold') {
     return {
       proficiency_tier: 4,
       status: 'tier_advanced',
@@ -80,7 +81,7 @@ function patternLogicProgressFromPerfTier(perfTier: string, studentIndex: number
 
 function verbalProgressFromPerfTier(perfTier: string, studentIndex: number): AssessmentProgress {
   const t = String(perfTier).toLowerCase();
-  if (t === 'gold') {
+  if (t === 'platinum' || t === 'diamond' || t === 'gold') {
     return {
       proficiency_tier: 4,
       status: 'tier_advanced',
@@ -118,7 +119,7 @@ function verbalProgressFromPerfTier(perfTier: string, studentIndex: number): Ass
 
 function mathProgressFromPerfTier(perfTier: string, studentIndex: number): AssessmentProgress {
   const t = String(perfTier).toLowerCase();
-  if (t === 'gold') {
+  if (t === 'platinum' || t === 'diamond' || t === 'gold') {
     return {
       proficiency_tier: 4,
       status: 'tier_advanced',
@@ -231,8 +232,11 @@ function applyTier1PatchSubset(students: StudentRow[]): void {
     ...g6.slice(0, GREENFIELD_TIER1_PATCH_GRADE6_COUNT).map((s) => s.uid),
     ...g7.slice(0, GREENFIELD_TIER1_PATCH_GRADE7_COUNT).map((s) => s.uid),
   ]);
+  /** Keep one student as Explorer so the preview shows all six tiers (Diamond stays violet — Explorer teal in UI). */
+  const SKIP_TIER1_FOR_EXPLORER_PREVIEW_UID = 'greenfield_preview_0000';
   for (const s of students) {
     if (!targets.has(s.uid)) continue;
+    if (s.uid === SKIP_TIER1_FOR_EXPLORER_PREVIEW_UID) continue;
     s.assessment_progress = forceOverallTier1PatternLogic(s.assessment_progress);
     s.achievement_tier = 'bronze';
     s.membership_level = 2;
@@ -243,10 +247,12 @@ function applyTier1PatchSubset(students: StudentRow[]): void {
 export function buildGreenfieldPreviewStudentRows(): StudentRow[] {
   const grades = [...Array(50).fill(6), ...Array(52).fill(7), ...Array(40).fill(8)] as number[];
   const patternLogicPerfTiers = [
-    ...Array(26).fill('gold'),
-    ...Array(54).fill('silver'),
+    ...Array(20).fill('explorer'),
     ...Array(38).fill('bronze'),
-    ...Array(24).fill('explorer'),
+    ...Array(48).fill('silver'),
+    ...Array(22).fill('gold'),
+    ...Array(10).fill('platinum'),
+    ...Array(4).fill('diamond'),
   ] as string[];
   const verbalPerfTiers = [
     ...Array(10).fill('gold'),
@@ -281,7 +287,8 @@ export function buildGreenfieldPreviewStudentRows(): StudentRow[] {
       first_name,
       last_name,
       grade,
-      membership_level: achievementTier === 'explorer' ? 1 : achievementTier === 'bronze' ? 2 : 4,
+      membership_level:
+        achievementTier === 'explorer' ? 1 : achievementTier === 'bronze' ? 2 : 4,
       approval_status: 'approved',
       achievement_tier: achievementTier,
       assessment_progress,

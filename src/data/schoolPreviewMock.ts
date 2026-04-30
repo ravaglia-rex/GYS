@@ -34,6 +34,11 @@ export const GREENFIELD_ANALYTICS_SNAPSHOT = {
   rank_change_q1: null as number | null,
 };
 
+/** Same bucket as other public Argus assets; override if your sample PDF lives elsewhere. */
+const PREVIEW_SAMPLE_REPORT_PDF_URL =
+  process.env.REACT_APP_SCHOOL_PREVIEW_SAMPLE_REPORT_PDF_URL ||
+  'https://argus-s3-bucket.s3.us-east-1.amazonaws.com/school-reports/greenfield_international_bangalore/2026_q4.pdf';
+
 export const GREENFIELD_QUARTERLY_REPORTS: QuarterlyReportListItem[] = [
   {
     quarterKey: '2026-Q4',
@@ -48,6 +53,7 @@ export const GREENFIELD_QUARTERLY_REPORTS: QuarterlyReportListItem[] = [
     hasPdf: true,
     generatedAt: null,
     isLatest: true,
+    previewPublicPdfUrl: PREVIEW_SAMPLE_REPORT_PDF_URL,
   },
   {
     quarterKey: '2026-Q2',

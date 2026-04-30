@@ -7,19 +7,38 @@ import {
   CheckCircle, 
   Clock,
   Target,
-  BarChart3
+  BarChart3,
+  Lock,
 } from 'lucide-react';
 import { Notifications as NotificationsIcon } from '@mui/icons-material';
 import { auth } from '../../firebase/firebase';
 import { getStudent } from '../../db/studentCollection';
 import { getSchoolDetails } from '../../db/schoolCollection';
 import { getPayments } from '../../db/studentPaymentMappings';
-import { normalizeMembershipLevel, NON_COMPETITIVE_CHART_ASSESSMENT_IDS } from '../../utils/assessmentGating';
+import {
+  normalizeMembershipLevel,
+  membershipLevelForAssessmentGate,
+  NON_COMPETITIVE_CHART_ASSESSMENT_IDS,
+  DASHBOARD_CHART_EXAM_IDS,
+  ASSESSMENT_NAMES,
+  EXAM_MAX_SCORE_POINTS,
+  tierPercentToExamPoints,
+  type AssessmentChartRow,
+} from '../../utils/assessmentGating';
 import {
   ACHIEVEMENT_TIER_EXPLORER,
   formatAchievementTierLabel,
   normalizeAchievementTierId,
 } from '../../utils/achievementTier';
+
+export type { AssessmentChartRow } from '../../utils/assessmentGating';
+
+const CHART_FALLBACK_EXAMS: AssessmentChartRow[] = DASHBOARD_CHART_EXAM_IDS.map((id) => ({
+  subject: ASSESSMENT_NAMES[id] ?? id,
+  score: 0,
+  assessmentId: id,
+  locked: true,
+}));
 
 /**
  * When the student doc has no level, infer tier from last payment (GST-inclusive totals).
@@ -32,48 +51,50 @@ function membershipLabelFromPaymentAmountInr(amount: number): string {
   return 'Discovery (Early offer • ₹299)';
 }
 
-export type AssessmentChartRow = { subject: string; score: number; assessmentId?: string };
-
-/** Program assessments pass score as 0–100 (best tier %). */
+/** Program assessments: chart score 0–100 from latest attempt (or legacy best); labels show points out of {@link EXAM_MAX_SCORE_POINTS}. */
 const ColumnChart: React.FC<{ data: AssessmentChartRow[] }> = ({ data }) => {
   const programBarPalette = [
     '#5eead4', '#93c5fd', '#fcd34d', '#f9a8d4', '#c4b5fd', '#67e8f9', '#86efac', '#fca5a5',
   ];
 
-  if (!data || data.length === 0) {
-    return (
-      <Box sx={{ textAlign: 'center', py: 4 }}>
-        <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-          No assessment results available yet
-        </Typography>
-      </Box>
-    );
-  }
+  const rows = data?.length === 5 ? data : CHART_FALLBACK_EXAMS;
 
-  const dataWithPercentages = data.map((item, index) => {
-    const percentage = Math.max(0, Math.min(100, Math.round(item.score)));
+  const dataWithPoints = rows.map((item, index) => {
+    const locked = item.locked === true;
+    const tierPct = locked ? 0 : Math.max(0, Math.min(100, Math.round(item.score)));
+    const points = locked ? 0 : tierPercentToExamPoints(tierPct);
     const isNonCompetitive =
-      !!item.assessmentId && NON_COMPETITIVE_CHART_ASSESSMENT_IDS.has(item.assessmentId);
+      !locked &&
+      !!item.assessmentId &&
+      NON_COMPETITIVE_CHART_ASSESSMENT_IDS.has(item.assessmentId);
     return {
       ...item,
-      percentage,
+      points,
       barColor: programBarPalette[index % programBarPalette.length],
       isNonCompetitive,
     };
   });
 
-  const chartMax = 100;
+  const chartMax = EXAM_MAX_SCORE_POINTS;
+  /** Total vertical slot for the chart column (must match Y-axis height). */
   const BAR_AREA_PX = 260;
+  /** Fixed band for the score text + margin so tall bars never overflow into the level label below. */
+  const SCORE_LABEL_BAND_PX = 44;
+  const SCORE_TO_BAR_GAP_PX = 4;
+  /** Pixel height available for the colored bar (proportional to score). */
+  const BAR_SCALE_HEIGHT = BAR_AREA_PX - SCORE_LABEL_BAND_PX - SCORE_TO_BAR_GAP_PX;
   const BAR_WIDTH_PX = 72;
+  /** Keeps exam titles aligned when a column has no Level row (locked / empty meta). */
+  const LEVEL_META_ROW_MIN_PX = 30;
 
-  const baseTicks = [100, 75, 50, 25, 0];
-  const topTick = chartMax <= 100 ? [chartMax] : [];
+  const baseTicks = [1000, 750, 500, 250, 0];
+  const topTick = chartMax <= 1000 ? [chartMax] : [];
   const ticks = Array.from(new Set([...topTick, ...baseTicks].filter((v) => v <= chartMax))).sort((a, b) => b - a);
 
   return (
     <Box sx={{ p: { xs: 1.5, sm: 2 }, width: '100%', overflow: 'hidden' }}>
       <Typography variant="h6" sx={{ color: 'white', mb: 2, textAlign: 'center' }}>
-        Best tier score by assessment
+        Latest level score by assessment (out of {EXAM_MAX_SCORE_POINTS})
       </Typography>
       <Box sx={{ width: '100%', pb: 0.5 }}>
         <Box
@@ -86,36 +107,50 @@ const ColumnChart: React.FC<{ data: AssessmentChartRow[] }> = ({ data }) => {
             mx: 'auto',
           }}
         >
-          {/* Y-axis */}
+          {/* Y-axis: tick band height must match BAR_SCALE_HEIGHT so 0–1000 aligns with bar pixels (not the full column). */}
           <Box
             sx={{
-              position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
               width: 36,
               flexShrink: 0,
               height: BAR_AREA_PX,
               pr: 0.5,
             }}
           >
-            {ticks.map((value) => {
-              const pct = Math.max(0, Math.min(100, (value / chartMax) * 100));
-              return (
-                <Typography
-                  key={`tick-${value}`}
-                  variant="caption"
-                  sx={{
-                    position: 'absolute',
-                    bottom: `${pct}%`,
-                    right: 0,
-                    transform: 'translateY(50%)',
-                    color: 'rgba(255, 255, 255, 0.5)',
-                    fontSize: '0.7rem',
-                    lineHeight: 1,
-                  }}
-                >
-                  {value}%
-                </Typography>
-              );
-            })}
+            <Box
+              sx={{ flexShrink: 0, height: SCORE_LABEL_BAND_PX + SCORE_TO_BAR_GAP_PX }}
+              aria-hidden
+            />
+            <Box
+              sx={{
+                position: 'relative',
+                flexShrink: 0,
+                height: BAR_SCALE_HEIGHT,
+                width: '100%',
+              }}
+            >
+              {ticks.map((value) => {
+                const pct = Math.max(0, Math.min(100, (value / chartMax) * 100));
+                return (
+                  <Typography
+                    key={`tick-${value}`}
+                    variant="caption"
+                    sx={{
+                      position: 'absolute',
+                      bottom: `${pct}%`,
+                      right: 0,
+                      transform: 'translateY(50%)',
+                      color: 'rgba(255, 255, 255, 0.5)',
+                      fontSize: '0.7rem',
+                      lineHeight: 1,
+                    }}
+                  >
+                    {value}
+                  </Typography>
+                );
+              })}
+            </Box>
           </Box>
 
           {/* Bars + labels (assessment names below bars, not on the bars) */}
@@ -126,15 +161,19 @@ const ColumnChart: React.FC<{ data: AssessmentChartRow[] }> = ({ data }) => {
               alignItems: 'flex-start',
               justifyContent: 'center',
               gap: 0.5,
-              minHeight: BAR_AREA_PX + 72,
+              minHeight: BAR_AREA_PX + 96,
               py: 0,
               minWidth: 0,
             }}
           >
-            {dataWithPercentages.map((item, index) => {
+            {dataWithPoints.map((item, index) => {
+              const locked = item.locked === true;
               const barHeight = item.isNonCompetitive
-                ? Math.round(BAR_AREA_PX * 0.88)
-                : Math.min(BAR_AREA_PX, Math.max(4, (item.percentage / chartMax) * BAR_AREA_PX));
+                ? Math.round(BAR_SCALE_HEIGHT * 0.88)
+                : Math.min(
+                    BAR_SCALE_HEIGHT,
+                    Math.max(4, (item.points / chartMax) * BAR_SCALE_HEIGHT)
+                  );
               const color = item.barColor ?? programBarPalette[index % programBarPalette.length];
 
               return (
@@ -156,46 +195,115 @@ const ColumnChart: React.FC<{ data: AssessmentChartRow[] }> = ({ data }) => {
                       flexDirection: 'column',
                       alignItems: 'center',
                       flexShrink: 0,
+                      overflow: 'hidden',
                     }}
                   >
-                    <Box sx={{ flex: 1, minHeight: 0, width: '100%' }} aria-hidden />
-                    <Box
-                      sx={{
-                        width: '100%',
-                        height: 36,
-                        flexShrink: 0,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        mb: 0.5,
-                      }}
-                    >
+                    {locked ? (
+                      <Box
+                        sx={{
+                          width: '100%',
+                          height: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                        }}
+                        aria-label="Locked"
+                      >
+                        <Lock size={28} color="rgba(255, 255, 255, 0.38)" strokeWidth={2} aria-hidden />
+                      </Box>
+                    ) : (
+                      <>
+                        <Box sx={{ flex: 1, minHeight: 0, width: '100%' }} aria-hidden />
+                        <Box
+                          sx={{
+                            width: '100%',
+                            height: SCORE_LABEL_BAND_PX,
+                            flexShrink: 0,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            mb: `${SCORE_TO_BAR_GAP_PX}px`,
+                            gap: 0.25,
+                            boxSizing: 'border-box',
+                          }}
+                        >
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: item.isNonCompetitive ? 'rgba(255,255,255,0.75)' : 'white',
+                              fontWeight: 700,
+                              fontSize: item.isNonCompetitive ? '0.72rem' : '0.8rem',
+                              lineHeight: 1.2,
+                              textAlign: 'center',
+                              px: 0.25,
+                            }}
+                          >
+                            {item.isNonCompetitive ? 'Completed' : `${item.points}`}
+                          </Typography>
+                        </Box>
+                        <Box
+                          sx={{
+                            width: BAR_WIDTH_PX,
+                            maxWidth: '100%',
+                            backgroundColor: color,
+                            borderRadius: '6px 6px 0 0',
+                            transition: 'height 0.3s ease',
+                            boxShadow: `0 4px 14px ${color}55`,
+                            flexShrink: 0,
+                          }}
+                          style={{ height: `${barHeight}px` }}
+                        />
+                      </>
+                    )}
+                  </Box>
+                  <Box
+                    sx={{
+                      mt: 0.75,
+                      minHeight: LEVEL_META_ROW_MIN_PX,
+                      width: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {!locked && !item.isNonCompetitive && item.chartLevel != null && (
                       <Typography
                         variant="caption"
+                        component="div"
                         sx={{
-                          color: item.isNonCompetitive ? 'rgba(255,255,255,0.75)' : 'white',
-                          fontWeight: 700,
-                          fontSize: item.isNonCompetitive ? '0.72rem' : '0.8rem',
-                          lineHeight: 1.2,
+                          px: 0.5,
                           textAlign: 'center',
-                          px: 0.25,
+                          color: 'rgba(147, 197, 253, 0.95)',
+                          fontSize: '0.74rem',
+                          fontWeight: 700,
+                          width: '100%',
+                          lineHeight: 1.25,
                         }}
                       >
-                        {item.isNonCompetitive ? 'Completed' : `${item.percentage}%`}
+                        Level {item.chartLevel}
                       </Typography>
-                    </Box>
-                    <Box
-                      sx={{
-                        width: BAR_WIDTH_PX,
-                        maxWidth: '100%',
-                        backgroundColor: color,
-                        borderRadius: '6px 6px 0 0',
-                        transition: 'height 0.3s ease',
-                        boxShadow: `0 4px 14px ${color}55`,
-                        flexShrink: 0,
-                      }}
-                      style={{ height: `${barHeight}px` }}
-                    />
+                    )}
+                    {!locked && !item.isNonCompetitive && item.chartScoreIsBestFallback && (
+                      <Typography
+                        variant="caption"
+                        component="div"
+                        sx={{
+                          px: 0.5,
+                          textAlign: 'center',
+                          color: 'rgba(148, 163, 184, 0.95)',
+                          fontSize: '0.7rem',
+                          fontWeight: 600,
+                          width: '100%',
+                          lineHeight: 1.25,
+                        }}
+                      >
+                        Best overall
+                      </Typography>
+                    )}
                   </Box>
                   <Typography
                     variant="caption"
@@ -444,7 +552,8 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             LEVEL_3: 'Membership 2 • Reasoning + Skills',
             LEVEL_4: 'Membership 3 • Guided Decision',
           };
-          const rawLevel = userData?.membership_level ?? userData?.plan_level ?? null;
+          const rawLevel =
+            userData?.membership_level ?? userData?.plan_level ?? null;
           const levelFromStudent: string | number | null =
             typeof rawLevel === 'number' ? normalizeMembershipLevel(rawLevel) : rawLevel;
           const levelNum =
@@ -453,6 +562,10 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
               : typeof levelFromStudent === 'string' && /^LEVEL_[1234]$/.test(levelFromStudent)
                 ? Number(levelFromStudent.replace('LEVEL_', ''))
                 : null;
+          /** Tier for badge copy: institutional floor (e.g. Premium school) can show Reasoning + Skills when applicable. */
+          const tierForBadge = membershipLevelForAssessmentGate(
+            userData as { membership_level?: number | null; assessment_gate_membership_level?: number | null }
+          );
 
           const resolveExpiry = (baseDate: Date) => {
             baseDate.setFullYear(baseDate.getFullYear() + 1);
@@ -476,7 +589,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
               // Determine level: student doc field > amount heuristic
               if (levelFromStudent != null && levelFromStudent !== '') {
                 if (typeof levelFromStudent === 'number' && levelFromStudent >= 1 && levelFromStudent <= 4) {
-                  setMembershipLevel(levelMap[`LEVEL_${levelFromStudent}` as 'LEVEL_1'] ?? `Level ${levelFromStudent}`);
+                  setMembershipLevel(levelMap[`LEVEL_${tierForBadge}` as 'LEVEL_1'] ?? `Level ${tierForBadge}`);
                 } else {
                   setMembershipLevel(levelMap[levelFromStudent as keyof typeof levelMap] ?? String(levelFromStudent));
                 }
@@ -491,12 +604,12 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
               // No payments - default new students to Level 1; respect explicit level on student doc
               if (levelFromStudent != null && levelFromStudent !== '') {
                 if (typeof levelFromStudent === 'number' && levelFromStudent >= 1 && levelFromStudent <= 4) {
-                  setMembershipLevel(levelMap[`LEVEL_${levelFromStudent}` as 'LEVEL_1'] ?? `Level ${levelFromStudent}`);
+                  setMembershipLevel(levelMap[`LEVEL_${tierForBadge}` as 'LEVEL_1'] ?? `Level ${tierForBadge}`);
                 } else {
                   setMembershipLevel(levelMap[levelFromStudent as keyof typeof levelMap] ?? String(levelFromStudent));
                 }
               } else if (levelNum != null && levelNum >= 1 && levelNum <= 4) {
-                setMembershipLevel(levelMap[`LEVEL_${levelNum}` as 'LEVEL_1']);
+                setMembershipLevel(levelMap[`LEVEL_${tierForBadge}` as 'LEVEL_1']);
               } else {
                 setMembershipLevel('Discovery (Early offer)');
               }
@@ -505,12 +618,12 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           } catch {
             if (levelFromStudent != null && levelFromStudent !== '') {
               if (typeof levelFromStudent === 'number' && levelFromStudent >= 1 && levelFromStudent <= 4) {
-                setMembershipLevel(levelMap[`LEVEL_${levelFromStudent}` as 'LEVEL_1'] ?? `Level ${levelFromStudent}`);
+                setMembershipLevel(levelMap[`LEVEL_${tierForBadge}` as 'LEVEL_1'] ?? `Level ${tierForBadge}`);
               } else {
                 setMembershipLevel(levelMap[levelFromStudent as keyof typeof levelMap] ?? String(levelFromStudent));
               }
             } else if (levelNum != null && levelNum >= 1 && levelNum <= 4) {
-              setMembershipLevel(levelMap[`LEVEL_${levelNum}` as 'LEVEL_1']);
+              setMembershipLevel(levelMap[`LEVEL_${tierForBadge}` as 'LEVEL_1']);
             } else {
               setMembershipLevel('Discovery (Early offer)');
             }
@@ -552,10 +665,10 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   };
 
   const getDisplayResults = () => {
-    if (latestAssessmentResults.length > 0) {
+    if (latestAssessmentResults.length === 5) {
       return { data: latestAssessmentResults };
     }
-    return { data: [] as AssessmentChartRow[] };
+    return { data: CHART_FALLBACK_EXAMS };
   };
 
   const displayResults = getDisplayResults();
@@ -574,7 +687,11 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           ? '🥈'
           : tierLabel === 'Gold'
             ? '🥇'
-            : '🏅';
+            : tierLabel === 'Platinum'
+              ? '✦'
+              : tierLabel === 'Diamond'
+                ? '💎'
+                : '🏅';
 
   const tierChipSx =
     tierLabel === 'Explorer'
@@ -585,7 +702,11 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           ? { bgcolor: '#f3f4f6', border: '1px solid #9ca3af', color: '#374151' }
           : tierLabel === 'Gold'
             ? { bgcolor: '#fef3c7', border: '1px solid #f59e0b', color: '#b45309' }
-            : { bgcolor: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.22)', color: '#e2e8f0' };
+            : tierLabel === 'Platinum'
+              ? { bgcolor: '#e0f2fe', border: '1px solid #38bdf8', color: '#0369a1' }
+              : tierLabel === 'Diamond'
+                ? { bgcolor: '#ede9fe', border: '1px solid #a78bfa', color: '#5b21b6' }
+                : { bgcolor: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.22)', color: '#e2e8f0' };
 
   const tierBadge = showStudentMeta && (
     <Box sx={{ alignSelf: { xs: 'flex-end', sm: 'flex-start' }, flexShrink: 0 }}>
@@ -782,7 +903,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                 </Typography>
                 <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '1rem' }}>
                   {displayResults.data.length > 0
-                    ? 'Your best tier scores on competitive assessments; non-scored programmes show completion only.'
+                    ? `Latest score from your most recent attempt at each exam (out of ${EXAM_MAX_SCORE_POINTS}); level is shown under each bar. Profiles without attempt history yet show best overall. Non-scored programmes show completion only.`
                     : 'Performance data will appear here once your assessments are evaluated'}
                 </Typography>
               </Box>

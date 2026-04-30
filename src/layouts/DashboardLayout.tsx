@@ -1,17 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Box, 
-  Drawer, 
-  AppBar, 
-  Toolbar, 
-  IconButton,
-  useTheme,
-  useMediaQuery,
-  Avatar,
-} from '@mui/material';
+import { Box, Drawer, IconButton, useTheme, useMediaQuery } from '@mui/material';
 import { Menu as MenuIcon } from '@mui/icons-material';
-import { auth } from '../firebase/firebase';
-import { useNavigate } from 'react-router-dom';
 import SidebarNavigation from '../layouts/SidebarNavigation';
 import NotificationsDialog from '../components/dashboard/NotificationsDialog';
 
@@ -34,8 +23,6 @@ export default function DashboardLayout({
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const currentUser = auth.currentUser;
-  const navigate = useNavigate();
 
   // Add this useEffect to handle viewport changes
   useEffect(() => {
@@ -61,10 +48,6 @@ export default function DashboardLayout({
 
   const handleNotificationsClose = () => {
     setNotificationsOpen(false);
-  };
-
-  const handleProfileNavigation = () => {
-    navigate('/profile');
   };
 
   return (
@@ -106,55 +89,28 @@ export default function DashboardLayout({
           marginLeft: 0,
         }}
       >
-        {/* Top App Bar */}
-        <AppBar
-          position="sticky"
-          sx={{
-            backgroundColor: 'rgba(15, 23, 42, 0.8)',
-            backdropFilter: 'blur(20px)',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-            boxShadow: 'none',
-          }}
-        >
-          <Toolbar sx={{ justifyContent: 'space-between', px: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              {isMobile && (
-                <IconButton
-                  color="inherit"
-                  aria-label="open drawer"
-                  onClick={handleDrawerToggle}
-                  edge="start"
-                  sx={{ mr: 2 }}
-                >
-                  <MenuIcon />
-                </IconButton>
-              )}
-           
-            </Box>
-
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              {/* User Avatar */}
-              <Avatar
-                sx={{
-                  width: 40,
-                  height: 40,
-                  backgroundColor: 'rgba(139, 92, 246, 0.2)',
-                  color: 'white',
-                  cursor: 'pointer',
-                  '&:hover': {
-                    backgroundColor: 'rgba(139, 92, 246, 0.3)',
-                  }
-                }}
-                onClick={handleProfileNavigation}
-              >
-                {currentUser?.email?.charAt(0).toUpperCase() || 'U'}
-              </Avatar>
-            </Box>
-          </Toolbar>
-        </AppBar>
+        {isMobile && (
+          <IconButton
+            color="inherit"
+            aria-label="open navigation menu"
+            onClick={handleDrawerToggle}
+            sx={{
+              position: 'fixed',
+              top: 12,
+              left: 12,
+              zIndex: theme.zIndex.appBar,
+              bgcolor: 'rgba(15, 23, 42, 0.92)',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              color: '#e2e8f0',
+              '&:hover': { bgcolor: 'rgba(30, 41, 59, 0.96)' },
+            }}
+          >
+            <MenuIcon />
+          </IconButton>
+        )}
 
         {/* Page Content */}
-        <Box sx={{ flexGrow: 1, p: 3 }}>
+        <Box sx={{ flexGrow: 1, px: 3, pb: 3, pt: { xs: 9, lg: 3 } }}>
           {children}
         </Box>
       </Box>

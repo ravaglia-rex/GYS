@@ -24,6 +24,8 @@ export interface SchoolEmailCheck {
   schoolName: string;
   verified: boolean;
   email: string;
+  /** True when Razorpay (or dev) marks registration fee as collected — required for dashboard access. */
+  registrationPaymentComplete: boolean;
 }
 
 export interface AssessmentProgress {
@@ -32,6 +34,8 @@ export interface AssessmentProgress {
   best_score: number | null;
   attempts_count: number;
   tiers_cleared?: Record<string, boolean>;
+  latest_attempt_level?: number | null;
+  latest_attempt_score?: number | null;
 }
 
 export interface StudentRow {
@@ -83,6 +87,8 @@ export interface QuarterlyReportListItem {
   hasPdf: boolean;
   generatedAt: string | null;
   isLatest: boolean;
+  /** Public HTTPS URL for sample PDFs on `/for-schools/preview` (no signed URL / auth). */
+  previewPublicPdfUrl?: string | null;
 }
 
 export interface QuarterlyReportsResponse {
@@ -178,8 +184,8 @@ export const getQuarterlyReportDownloadUrl = async (
   }
 };
 
-export const downloadQuarterlyReportPdf = async (quarterKey: string): Promise<void> => {
-  const { url, filename } = await getQuarterlyReportDownloadUrl(quarterKey);
+/** Download a PDF from a direct URL (e.g. public S3). Falls back to opening in a new tab if fetch/CORS fails. */
+export const downloadPdfFromUrl = async (url: string, downloadFilename: string): Promise<void> => {
   try {
     const res = await fetch(url, { mode: "cors" });
     if (!res.ok) {
@@ -189,7 +195,7 @@ export const downloadQuarterlyReportPdf = async (quarterKey: string): Promise<vo
     const href = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = href;
-    a.download = filename || `${quarterKey}.pdf`;
+    a.download = downloadFilename;
     a.rel = "noopener";
     document.body.appendChild(a);
     a.click();
@@ -198,6 +204,11 @@ export const downloadQuarterlyReportPdf = async (quarterKey: string): Promise<vo
   } catch {
     window.open(url, "_blank", "noopener,noreferrer");
   }
+};
+
+export const downloadQuarterlyReportPdf = async (quarterKey: string): Promise<void> => {
+  const { url, filename } = await getQuarterlyReportDownloadUrl(quarterKey);
+  await downloadPdfFromUrl(url, filename || `${quarterKey}.pdf`);
 };
 
 export const getBillingInvoiceDownloadUrl = async (): Promise<{

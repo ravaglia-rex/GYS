@@ -115,6 +115,19 @@ const EmailEntryForm: React.FC = () => {
             setIsSchoolOfficial(false);
             return;
           }
+
+          if (schoolData.registrationPaymentComplete !== true) {
+            toast({
+              variant: 'destructive',
+              title: 'Payment required',
+              description:
+                'Your school\'s subscription payment has not completed yet. Use the secure payment link in your registration confirmation email first, then sign in.',
+            });
+            setIsSubmitted(false);
+            setCheckingSchool(false);
+            setIsSchoolOfficial(false);
+            return;
+          }
           
           setSchoolInfo(schoolData);
           setEmail(data.email.toLowerCase());

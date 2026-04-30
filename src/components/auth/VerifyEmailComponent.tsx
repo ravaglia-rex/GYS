@@ -25,7 +25,11 @@ const VerifyEmail: React.FC<VerifyEmailProps> = ({ actionCode }) => {
         if (user?.email) {
           try {
             const schoolInfo = await checkSchoolEmail(user.email);
-            if (schoolInfo && !schoolInfo.verified) {
+            if (
+              schoolInfo &&
+              !schoolInfo.verified &&
+              schoolInfo.registrationPaymentComplete === true
+            ) {
               const authToken = await user.getIdToken();
               authTokenHandler.setAuthToken(authToken);
               await verifySchoolEmail(user.email);

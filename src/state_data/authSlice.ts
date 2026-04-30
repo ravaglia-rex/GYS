@@ -32,7 +32,10 @@ export const checkUserRole = createAsyncThunk(
             // If not in schooladmins collection, check if they're a verified school official (schools collection poc_email)
             if (!schoolAdmin) {
                 const schoolCheck = await checkSchoolEmail(email);
-                if (schoolCheck?.verified) {
+                if (
+                  schoolCheck?.verified &&
+                  schoolCheck.registrationPaymentComplete === true
+                ) {
                     schoolAdmin = {
                         email,
                         schoolId: schoolCheck.schoolId,

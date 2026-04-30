@@ -1,4 +1,4 @@
-import { ASSESSMENT_ORDER } from '../utils/assessmentGating';
+import { ASSESSMENT_ORDER, EXAM_MAX_SCORE_POINTS } from '../utils/assessmentGating';
 
 /** Programme exams 6–7 (personality / interest) are not comparable % score leaderboards. */
 const LEADERBOARD_EXCLUDED_IDS = new Set<string>([
@@ -48,7 +48,8 @@ export function clampToLeaderboardGrade(grade: unknown): LeaderboardGrade {
 export interface LeaderboardEntry {
   rank: number;
   studentName: string;
-  scorePercent: number;
+  /** Absolute score on the programme scale (each exam out of 1000 in the UI). */
+  scorePoints: number;
   /** ISO 8601 — best official attempt used for this row (that exam). */
   examTakenAtISO: string;
 }
@@ -111,7 +112,7 @@ function mulberry32(seed: number) {
   };
 }
 
-/** Small mean shift per exam so boards do not look copy-pasted (still plausible %). */
+/** Small mean shift per exam so boards do not look copy-pasted (still plausible tier-normalized scores before ×10). */
 const EXAM_SCORE_BIAS: Record<string, number> = {
   symbolic_reasoning: 0.5,
   verbal_reasoning: -0.8,
@@ -202,7 +203,12 @@ function buildTopTenForExam(grade: LeaderboardGrade, examIndex: number, examId: 
     const takenMs = Math.max(snapMs - daysMs - intraMs, snapMs - 200 * 86400000);
     const examTakenAtISO = new Date(takenMs).toISOString();
 
-    entries.push({ rank, studentName: name, scorePercent: scores[r], examTakenAtISO });
+    entries.push({
+      rank,
+      studentName: name,
+      scorePoints: Math.min(EXAM_MAX_SCORE_POINTS, Math.max(0, scores[r] * 10)),
+      examTakenAtISO,
+    });
   }
 
   return entries;

@@ -20,6 +20,7 @@ import {
 import { FileDownload as DownloadIcon } from '@mui/icons-material';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import {
+  downloadPdfFromUrl,
   downloadQuarterlyReportPdf,
   getQuarterlyReports,
   type QuarterlyReportListItem,
@@ -68,6 +69,17 @@ const SchoolAdminReportsPage: React.FC = () => {
     setRowError(null);
     if (!r.hasPdf || !r.quarterKey) {
       setRowError('No PDF is stored for this quarter yet.');
+      return;
+    }
+    if (isSchoolAdminPreview && r.previewPublicPdfUrl) {
+      setDownloadingKey(r.quarterKey);
+      try {
+        await downloadPdfFromUrl(r.previewPublicPdfUrl, r.pdfFilename || `${r.quarterKey}.pdf`);
+      } catch (e) {
+        setRowError((e as Error).message ?? 'Download failed.');
+      } finally {
+        setDownloadingKey(null);
+      }
       return;
     }
     if (!s3Configured) {
@@ -217,7 +229,12 @@ const SchoolAdminReportsPage: React.FC = () => {
                               <DownloadIcon sx={{ fontSize: '1.05rem' }} />
                             )
                           }
-                          disabled={!r.hasPdf || !s3Configured || downloadingKey !== null}
+                          disabled={
+                            isSchoolAdminPreview ||
+                            !r.hasPdf ||
+                            downloadingKey !== null ||
+                            (!isSchoolAdminPreview && !s3Configured)
+                          }
                           onClick={() => void onDownload(r)}
                           sx={{
                             borderColor: r.hasPdf ? ip.navy : ip.cardBorder,

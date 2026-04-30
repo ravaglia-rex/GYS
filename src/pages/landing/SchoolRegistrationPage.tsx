@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../components/ui/use-toast';
 import {
@@ -103,6 +103,14 @@ function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
+/** Single stored `school_name`: official name + optional ", Branch" (not a separate DB field). */
+function buildStoredSchoolName(base: string, branch: string): string {
+  const b = base.trim();
+  const br = branch.trim();
+  if (!br) return b;
+  return `${b}, ${br}`;
+}
+
 const SchoolRegistrationPage: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -119,11 +127,15 @@ const SchoolRegistrationPage: React.FC = () => {
   // Step 1: School Identity
   const [schoolName, setSchoolName] = useState('');
   const [confirmSchoolName, setConfirmSchoolName] = useState('');
+  /** Optional campus / city for multi-branch chains (stored appended to school name only). */
+  const [schoolBranch, setSchoolBranch] = useState('');
   const [abbreviations, setAbbreviations] = useState<string[]>(['']);
 
   // Step 2: School Details + Address
   const [udiseCode, setUdiseCode] = useState('');
-  const [board, setBoard] = useState('');
+  const [boards, setBoards] = useState<string[]>([]);
+  const [boardDropdownOpen, setBoardDropdownOpen] = useState(false);
+  const boardDropdownRef = useRef<HTMLDivElement>(null);
   const [stateBoardState, setStateBoardState] = useState('');
   const [referralSource, setReferralSource] = useState('');
   const [addressLine1, setAddressLine1] = useState('');
@@ -151,6 +163,38 @@ const SchoolRegistrationPage: React.FC = () => {
       return next;
     });
 
+  const storedSchoolName = useMemo(
+    () => buildStoredSchoolName(schoolName, schoolBranch),
+    [schoolName, schoolBranch]
+  );
+
+  useEffect(() => {
+    if (!boardDropdownOpen) return;
+    const closeOnOutside = (e: MouseEvent | TouchEvent) => {
+      const el = boardDropdownRef.current;
+      if (el && !el.contains(e.target as Node)) setBoardDropdownOpen(false);
+    };
+    const closeOnEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setBoardDropdownOpen(false);
+    };
+    document.addEventListener('mousedown', closeOnOutside);
+    document.addEventListener('touchstart', closeOnOutside, { passive: true });
+    window.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('mousedown', closeOnOutside);
+      document.removeEventListener('touchstart', closeOnOutside);
+      window.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [boardDropdownOpen]);
+
+  const toggleBoardOption = (b: string) => {
+    const next = boards.includes(b) ? boards.filter((x) => x !== b) : [...boards, b];
+    setBoards(next);
+    if (!next.includes('State Board')) setStateBoardState('');
+    clearError('board');
+    clearError('stateBoardState');
+  };
+
   // ── Step 1 ───────────────────────────────────────────────────────────────
 
   const handleAbbreviationChange = (index: number, value: string) => {
@@ -174,10 +218,16 @@ const SchoolRegistrationPage: React.FC = () => {
   const getStep1Errors = (): Record<string, string> => {
     const newErrors: Record<string, string> = {};
     const trimmed = schoolName.trim();
+    const stored = buildStoredSchoolName(schoolName, schoolBranch);
     if (!trimmed) {
       newErrors.schoolName = 'Please enter your school name.';
-    } else if (!partyNameLengthOk(trimmed)) {
-      newErrors.schoolName = `School name must be ${RAZORPAY_PARTY_NAME_MIN}–${RAZORPAY_PARTY_NAME_MAX} characters (required by our payment partner for billing).`;
+    } else if (!partyNameLengthOk(stored)) {
+      if (schoolBranch.trim()) {
+        newErrors.schoolBranch =
+          `School name and branch together must be ${RAZORPAY_PARTY_NAME_MIN}–${RAZORPAY_PARTY_NAME_MAX} characters (payment partner). Shorten the name or branch.`;
+      } else {
+        newErrors.schoolName = `School name must be ${RAZORPAY_PARTY_NAME_MIN}–${RAZORPAY_PARTY_NAME_MAX} characters (required by our payment partner for billing).`;
+      }
     }
     if (!confirmSchoolName.trim()) {
       newErrors.confirmSchoolName = 'Please re-type your school name to confirm.';
@@ -198,8 +248,9 @@ const SchoolRegistrationPage: React.FC = () => {
 
   const getStep2Errors = (): Record<string, string> => {
     const newErrors: Record<string, string> = {};
-    if (!board) newErrors.board = 'Please select your school board / curriculum.';
-    if (board === 'State Board' && !stateBoardState)
+    if (boards.length === 0)
+      newErrors.board = 'Please select at least one board / curriculum.';
+    if (boards.includes('State Board') && !stateBoardState)
       newErrors.stateBoardState = 'Please select your state board.';
     if (!referralSource) newErrors.referralSource = 'Please let us know how you heard about GYS.';
     const line1 = addressLine1.trim();
@@ -344,12 +395,12 @@ const SchoolRegistrationPage: React.FC = () => {
     try {
       setIsSubmitting(true);
       const payload = {
-        school_name: schoolName.trim(),
-        confirm_school_name: confirmSchoolName.trim(),
+        school_name: storedSchoolName,
+        confirm_school_name: storedSchoolName,
         abbreviations: abbrevList,
         udise_code: udiseCode.trim(),
-        board,
-        state_board_state: board === 'State Board' ? stateBoardState : '',
+        boards,
+        state_board_state: boards.includes('State Board') ? stateBoardState : '',
         referral_source: referralSource,
         address_line1: addressLine1.trim(),
         address_line2: addressLine2.trim(),
@@ -434,7 +485,7 @@ const SchoolRegistrationPage: React.FC = () => {
             </div>
             <h2 className="text-2xl font-bold text-slate-900">Registration received</h2>
             <p className="mt-3 text-sm text-slate-600 leading-relaxed">
-              Thank you. <span className="font-semibold">{schoolName}</span> is recorded for the{' '}
+              Thank you. <span className="font-semibold">{storedSchoolName}</span> is recorded for the{' '}
               <span className="font-semibold">{currentPlan.name}</span> plan (
               <span className="font-semibold">{currentPlan.price}</span>
               {schoolPlanPriceQualifierAfterAmount()} + GST as applicable).{' '}
@@ -495,7 +546,7 @@ const SchoolRegistrationPage: React.FC = () => {
             </div>
             <h2 className="text-2xl font-bold text-slate-900">Complete payment</h2>
             <p className="mt-3 text-sm text-slate-600 leading-relaxed">
-              <span className="font-semibold">{schoolName}</span> is registered for the{' '}
+              <span className="font-semibold">{storedSchoolName}</span> is registered for the{' '}
               <span className="font-semibold">{currentPlan.name}</span> plan (
               <span className="font-semibold">{currentPlan.price}</span>
               {schoolPlanPriceQualifierAfterAmount()} + GST as applicable). Pay below with UPI, cards, or net
@@ -578,7 +629,7 @@ const SchoolRegistrationPage: React.FC = () => {
             <SchoolRazorpayCheckout
               schoolId={registeredSchoolId}
               checkoutSecret={registeredCheckoutSecret}
-              schoolName={schoolName.trim()}
+              schoolName={storedSchoolName}
               pocEmail={registeredPocEmail ?? ''}
               planName={currentPlan.name}
               onSuccess={() => setPaymentComplete(true)}
@@ -614,7 +665,7 @@ const SchoolRegistrationPage: React.FC = () => {
             </div>
             <h2 className="text-2xl font-bold text-slate-900">Registration &amp; payment complete</h2>
             <p className="mt-3 text-sm text-slate-600 leading-relaxed">
-              Thank you. <span className="font-semibold">{schoolName}</span> is on the{' '}
+              Thank you. <span className="font-semibold">{storedSchoolName}</span> is on the{' '}
               <span className="font-semibold">{currentPlan.name}</span> plan and your Razorpay
               payment was recorded. Our team may follow up with onboarding and GST documentation.
             </p>
@@ -749,26 +800,25 @@ const SchoolRegistrationPage: React.FC = () => {
                     letterhead.
                   </p>
                   <p className="mt-1 text-xs text-slate-500">
-                    Billing name (payment partner):{' '}
+                  
                     <span className="font-medium text-slate-700">
                       {RAZORPAY_PARTY_NAME_MIN}–{RAZORPAY_PARTY_NAME_MAX} characters
                     </span>
                     .{' '}
                     <span className="text-slate-400">
-                      ({schoolName.trim().length}/{RAZORPAY_PARTY_NAME_MAX})
+                      ({storedSchoolName.length}/{RAZORPAY_PARTY_NAME_MAX})
                     </span>
                   </p>
                   <input
                     type="text"
                     value={schoolName}
-                    maxLength={RAZORPAY_PARTY_NAME_MAX}
-                    onChange={(e) => { setSchoolName(e.target.value); clearError('schoolName'); }}
+                    onChange={(e) => { setSchoolName(e.target.value); clearError('schoolName'); clearError('schoolBranch'); }}
                     className={`mt-1.5 w-full rounded-lg border px-3.5 py-2.5 text-sm sm:text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 ${
                       errors.schoolName
                         ? 'border-red-400 focus:border-red-400 focus:ring-red-300'
                         : 'border-slate-200 focus:border-slate-400 focus:ring-slate-400'
                     }`}
-                    placeholder="e.g. Delhi Public School, R.K. Puram"
+                    placeholder="e.g. Delhi Public School"
                     autoComplete="off"
                     required
                   />
@@ -783,8 +833,8 @@ const SchoolRegistrationPage: React.FC = () => {
                     Confirm School Name<span className="text-red-500"> *</span>
                   </label>
                   <p className="mt-0.5 text-xs text-slate-500">
-                    Type the school name again exactly as above. Copy-paste is disabled to prevent
-                    typos.
+                    Type the school name again exactly as above.
+                    
                   </p>
                   <input
                     type="text"
@@ -815,8 +865,40 @@ const SchoolRegistrationPage: React.FC = () => {
                   )}
                 </div>
 
-                {/* Abbreviations / aliases */}
+                {/* Optional branch / campus (stored as part of school name only) */}
                 <div>
+                  <label className="block text-xs sm:text-sm font-bold text-slate-700">
+                    Branch or campus
+                    <span className="ml-1 text-slate-400 font-normal">(optional)</span>
+                  </label>
+                  <p className="mt-0.5 text-xs text-slate-500 leading-relaxed">
+                    For schools with multiple locations, add your branch name. If you have already mentioned the branch name in the school name field, please do not add it here.
+                   
+                  </p>
+                  <input
+                    type="text"
+                    value={schoolBranch}
+                    maxLength={RAZORPAY_PARTY_NAME_MAX}
+                    onChange={(e) => {
+                      setSchoolBranch(e.target.value);
+                      clearError('schoolBranch');
+                      clearError('schoolName');
+                    }}
+                    className={`mt-1.5 w-full rounded-lg border px-3.5 py-2.5 text-sm sm:text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 ${
+                      errors.schoolBranch
+                        ? 'border-red-400 focus:border-red-400 focus:ring-red-300'
+                        : 'border-slate-200 focus:border-slate-400 focus:ring-slate-400'
+                    }`}
+                    placeholder="e.g. Gurgaon, Kolkata, Borivalli"
+                    autoComplete="off"
+                  />
+                  {errors.schoolBranch && (
+                    <p className="mt-1 text-xs text-red-600">{errors.schoolBranch}</p>
+                  )}
+                </div>
+
+                {/* Abbreviations / aliases */}
+                {/* <div>
                   <label className="block text-xs sm:text-sm font-bold text-slate-700">
                     School Abbreviations / Common Names
                     <span className="ml-1 text-slate-400 font-normal">(optional)</span>
@@ -863,7 +945,7 @@ const SchoolRegistrationPage: React.FC = () => {
                       + Add another abbreviation
                     </button>
                   )}
-                </div>
+                </div> */}
               </div>
 
               <button
@@ -910,35 +992,80 @@ const SchoolRegistrationPage: React.FC = () => {
                   />
                 </div>
 
-                {/* Board / Curriculum */}
-                <div>
-                  <label className="block text-xs sm:text-sm font-bold text-slate-700">
+                {/* Board / Curriculum — dropdown + checkboxes (mobile-friendly) */}
+                <div className="relative" ref={boardDropdownRef}>
+                  <span
+                    id="school-registration-boards-label"
+                    className="block text-xs sm:text-sm font-bold text-slate-700"
+                  >
                     Board / Curriculum<span className="text-red-500"> *</span>
-                  </label>
-                  <select
-                    value={board}
-                    onChange={(e) => {
-                      setBoard(e.target.value);
-                      setStateBoardState('');
-                      clearError('board');
-                      clearError('stateBoardState');
-                    }}
-                    className={`mt-1.5 w-full rounded-lg border px-3.5 py-2.5 text-sm sm:text-base text-slate-900 focus:outline-none focus:ring-1 ${
+                  </span>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    Tap the field below and check all that apply (at least one).
+                  </p>
+                  <button
+                    type="button"
+                    id="school-registration-boards-trigger"
+                    aria-haspopup="listbox"
+                    aria-expanded={boardDropdownOpen}
+                    aria-labelledby="school-registration-boards-label school-registration-boards-trigger"
+                    onClick={() => setBoardDropdownOpen((o) => !o)}
+                    className={`mt-1.5 flex min-h-[2.75rem] w-full items-center justify-between gap-2 rounded-lg border px-3.5 py-2.5 text-left text-sm sm:text-base text-slate-900 focus:outline-none focus:ring-1 ${
                       errors.board
                         ? 'border-red-400 focus:border-red-400 focus:ring-red-300'
                         : 'border-slate-200 focus:border-slate-400 focus:ring-slate-400'
-                    }`}
-                    required
+                    } ${boards.length === 0 ? 'text-slate-400' : ''}`}
                   >
-                    <option value="">Select board / curriculum</option>
-                    {BOARDS.map((b) => (
-                      <option key={b} value={b}>{b}</option>
-                    ))}
-                  </select>
+                    <span className="min-w-0 flex-1 break-words">
+                      {boards.length === 0
+                        ? 'Select board / curriculum'
+                        : boards.join(', ')}
+                    </span>
+                    <svg
+                      className={`h-5 w-5 shrink-0 text-slate-500 transition-transform ${
+                        boardDropdownOpen ? 'rotate-180' : ''
+                      }`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                      stroke="currentColor"
+                      aria-hidden
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {boardDropdownOpen && (
+                    <div
+                      role="listbox"
+                      aria-multiselectable="true"
+                      aria-labelledby="school-registration-boards-label"
+                      className="absolute left-0 right-0 top-full z-40 mt-1 max-h-[min(320px,calc(100vh-12rem))] overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg ring-1 ring-black/5"
+                    >
+                      {BOARDS.map((b) => {
+                        const checked = boards.includes(b);
+                        return (
+                          <label
+                            key={b}
+                            className={`flex cursor-pointer items-start gap-3 px-3 py-3.5 text-sm text-slate-900 active:bg-slate-50 sm:py-3 ${
+                              checked ? 'bg-blue-50/80' : 'hover:bg-slate-50'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              className="mt-0.5 h-[1.125rem] w-[1.125rem] shrink-0 rounded border-slate-300 text-[#1e3a8a] focus:ring-[#1e3a8a]"
+                              checked={checked}
+                              onChange={() => toggleBoardOption(b)}
+                            />
+                            <span className="leading-snug">{b}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
                   {errors.board && <p className="mt-1 text-xs text-red-600">{errors.board}</p>}
 
                   {/* State Board sub-selector */}
-                  {board === 'State Board' && (
+                  {boards.includes('State Board') && (
                     <div className="mt-3">
                       <label className="block text-xs font-semibold text-slate-600 mb-1">
                         Which state board?<span className="text-red-500"> *</span>
@@ -1358,16 +1485,16 @@ const SchoolRegistrationPage: React.FC = () => {
                 </p>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-slate-700">
-                    {schoolName} - {currentPlan.name} Plan
+                    {storedSchoolName} - {currentPlan.name} Plan
                   </span>
                   <span className="font-bold" style={{ color: GYS_BLUE }}>
                     {schoolPlanAnnualLabel(currentPlan)}
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-slate-500">
-                  {board === 'State Board' && stateBoardState
-                    ? `State Board - ${stateBoardState}`
-                    : board}
+                  {boards.includes('State Board') && stateBoardState
+                    ? [...boards.filter((b) => b !== 'State Board'), `State Board (${stateBoardState})`].join(', ')
+                    : boards.join(', ')}
                 </p>
                 {udiseCode && (
                   <p className="mt-1 text-xs text-slate-500">UDISE: {udiseCode}</p>

@@ -19,9 +19,12 @@ import {
   ASSESSMENT_ORDER,
   ASSESSMENT_NAMES,
   computeGate,
-  normalizeMembershipLevel,
+  membershipLevelForAssessmentGate,
   defaultAssessmentProgress,
   isAssessmentFullyComplete,
+  EXAM_MAX_SCORE_POINTS,
+  tierPercentToExamPoints,
+  pickLatestOrBestAssessmentScore,
 } from '../../utils/assessmentGating';
 import { countClearedTiersFromProgress } from '../../utils/tierProgression';
 import { getReasoningExamSubcategories } from '../../data/reasoningExamSubcategories';
@@ -156,7 +159,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
 
   const isLocked = gate.locked;
   const currentTier = progress.proficiency_tier; // 1-indexed: 1 = take level 1, 2 = take level 2, 3 = all done
-  const bestScore = progress.best_score;
+  const scoreDisplay = pickLatestOrBestAssessmentScore(progress);
   const attemptsCount = progress.attempts_count;
   const totalTiers = assessment.tiers.length;
   const tiersDone =
@@ -174,6 +177,18 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
   const progressDone = totalTiers > 0 ? tiersDone : Math.max(currentTier - 1, 0);
   const progressPercent = progressTotal > 0 ? Math.min(100, (progressDone / progressTotal) * 100) : 0;
 
+  /** Tier of last graded attempt (when backend stores it). Used so “Start L3” vs “Retake L3” matches focus vs history. */
+  const latestAttemptLevelNum =
+    typeof progress.latest_attempt_level === 'number' && !Number.isNaN(progress.latest_attempt_level)
+      ? progress.latest_attempt_level
+      : null;
+  /** First time opening the current focus tier (last graded attempt was an earlier tier). */
+  const startCurrentTierFirstTime =
+    attemptsCount > 0 &&
+    latestAttemptLevelNum != null &&
+    latestAttemptLevelNum < currentTier &&
+    currentTier <= totalTiers;
+
   const reqLevel = gate.requiredMembershipLevel ?? 3;
   const requiredPackageLabel =
     reqLevel <= 1 ? 'Trial / Discovery' : `Membership ${Math.max(1, reqLevel - 1)}`;
@@ -190,7 +205,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
   const reasoningSubcategories = getReasoningExamSubcategories(assessment.id);
 
   /** Fixed slots so device chips, tier bar, and stats line up across cards in the same grid row */
-  const STATS_ROW_SLOT_MIN = 42;
+  const STATS_ROW_SLOT_MIN = 68;
   const hasStats = !isLocked && (attemptsCount > 0 || tiersDone > 0);
 
   return (
@@ -343,23 +358,66 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
           >
             {hasStats ? (
               <Box sx={{ display: 'flex', gap: 3 }}>
-                {bestScore !== null && (
+                {scoreDisplay !== null && (
                   <Box>
+                    <Tooltip title="Points are from your most recently graded attempt. The level line is that attempt’s tier — it can differ from “levels cleared” until you submit your current tier.">
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: '#475569',
+                          fontSize: '0.7rem',
+                          display: 'block',
+                          textTransform: 'uppercase',
+                          letterSpacing: 0.4,
+                          cursor: 'help',
+                          borderBottom: '1px dotted rgba(71, 85, 105, 0.6)',
+                          width: 'fit-content',
+                          maxWidth: '100%',
+                        }}
+                      >
+                        Latest level score
+                      </Typography>
+                    </Tooltip>
                     <Typography
-                      variant="caption"
                       sx={{
-                        color: '#475569',
-                        fontSize: '0.7rem',
-                        display: 'block',
-                        textTransform: 'uppercase',
-                        letterSpacing: 0.4,
+                        color: '#e2e8f0',
+                        fontWeight: 700,
+                        fontSize: '0.98rem',
+                        whiteSpace: 'nowrap',
+                        fontVariantNumeric: 'tabular-nums',
                       }}
                     >
-                      Best Score
+                      {tierPercentToExamPoints(scoreDisplay.score0to100)} on {EXAM_MAX_SCORE_POINTS}
                     </Typography>
-                    <Typography sx={{ color: '#e2e8f0', fontWeight: 700, fontSize: '0.98rem' }}>
-                      {Math.round(bestScore * 100)}%
-                    </Typography>
+                    {scoreDisplay.chartLevel != null && (
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          display: 'block',
+                          color: 'rgba(147, 197, 253, 0.88)',
+                          fontSize: '0.65rem',
+                          fontWeight: 600,
+                          mt: 0.35,
+                          letterSpacing: 0.02,
+                        }}
+                      >
+                        Level {scoreDisplay.chartLevel}
+                      </Typography>
+                    )}
+                    {scoreDisplay.chartScoreIsBestFallback && (
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          display: 'block',
+                          color: 'rgba(148, 163, 184, 0.85)',
+                          fontSize: '0.62rem',
+                          fontWeight: 500,
+                          mt: 0.35,
+                        }}
+                      >
+                        Best overall
+                      </Typography>
+                    )}
                   </Box>
                 )}
                 <Box>
@@ -386,10 +444,21 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
         <Box>
         {showLevelProgress ? (
           <Box sx={{ mb: 2.25 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-              <Typography variant="caption" sx={{ color: '#94a3b8', fontSize: '0.73rem' }}>
-                Level progress
-              </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5, alignItems: 'baseline', gap: 1 }}>
+              <Tooltip title="How many levels you’ve passed in this assessment.">
+                <Typography
+                  variant="caption"
+                  component="span"
+                  sx={{
+                    color: '#94a3b8',
+                    fontSize: '0.73rem',
+                    cursor: 'help',
+                    borderBottom: '1px dotted rgba(148, 163, 184, 0.45)',
+                  }}
+                >
+                  Levels cleared
+                </Typography>
+              </Tooltip>
               <Typography variant="caption" sx={{ color: '#94a3b8', fontSize: '0.73rem' }}>
                 {progressDone} / {progressTotal}
               </Typography>
@@ -485,7 +554,9 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
           <Button
             fullWidth
             variant="contained"
-            startIcon={attemptsCount > 0 ? <RefreshIcon /> : <PlayArrowIcon />}
+            startIcon={
+              attemptsCount > 0 && !startCurrentTierFirstTime ? <RefreshIcon /> : <PlayArrowIcon />
+            }
             aria-disabled={previewStartBlocked}
             onClick={() => {
               if (previewStartBlocked) return;
@@ -505,7 +576,11 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
                 : { '&:hover': { opacity: 0.88 } }),
             }}
           >
-            {attemptsCount > 0 ? `Retake Level ${currentTier}` : `Start Assessment ${meta.assessmentNumber}`}
+            {attemptsCount === 0
+              ? `Start Assessment ${meta.assessmentNumber}`
+              : startCurrentTierFirstTime
+                ? `Start Level ${currentTier}`
+                : `Retake Level ${currentTier}`}
           </Button>
         ) : null}
         </Box>
@@ -579,7 +654,7 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
           return;
         }
 
-        setMembershipLevel(normalizeMembershipLevel(studentData?.membership_level));
+        setMembershipLevel(membershipLevelForAssessmentGate(studentData));
         setStudentGrade(
           typeof studentData?.grade === 'number' && !Number.isNaN(studentData.grade)
             ? studentData.grade

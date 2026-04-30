@@ -5,6 +5,10 @@ import {
   FAQ_SCHOOL_DASHBOARD_PREVIEW,
   FAQ_SAMPLE_ASSESSMENT,
 } from './previewFaqLinks';
+import {
+  INSTITUTIONAL_PLAN_STUDENT_LIMIT,
+  SCHOOL_INSTITUTIONAL_PRICE_LANDING,
+} from '../../../utils/schoolRegistrationPlans';
 
 export const schoolFaqSections: { heading: string; items: LandingFaqItem[] }[] = [
   {
@@ -143,19 +147,20 @@ This approach allows schools to understand academic readiness and skill developm
             <p>GYS offers three institutional packages:</p>
             <ul>
               <li>
-                <strong>Pilot</strong> - ₹2 lakh per year (up to ~200 students). Includes Exam 1
-                (Symbolic Reasoning) for all students, basic institutional reporting, and quarterly
-                performance updates.
+                <strong>Entry</strong> — {SCHOOL_INSTITUTIONAL_PRICE_LANDING.entry} (
+                {INSTITUTIONAL_PLAN_STUDENT_LIMIT.entry}). Includes Assessment 1 (Pattern and Logic) for
+                rostered students, basic institutional reporting, and quarterly performance updates.
               </li>
               <li>
-                <strong>Standard</strong> - ₹3 lakh per year (up to ~500 students). Includes Exams
-                1–3 (the full reasoning triad), detailed analytics, comparative peer analysis, and
-                student-level and class-level breakdowns.
+                <strong>Standard</strong> — {SCHOOL_INSTITUTIONAL_PRICE_LANDING.standard} (
+                {INSTITUTIONAL_PLAN_STUDENT_LIMIT.standard}). Includes Exams 1–3 (the full reasoning triad),
+                detailed analytics, comparative peer analysis, and student-level and class-level breakdowns.
               </li>
               <li>
-                <strong>Partner/Flagship</strong> - ₹5 lakh per year (no student cap). Same assessment
-                access as Standard, plus stream-selection insights, dedicated support, and
-                implementation assistance.
+                <strong>Premium</strong> — {SCHOOL_INSTITUTIONAL_PRICE_LANDING.premium} (
+                {INSTITUTIONAL_PLAN_STUDENT_LIMIT.premium}). Includes Exams 1–5 (reasoning triad plus English
+                proficiency and AI proficiency), cohort and partnership benefits in the institutional matrix,
+                plus dedicated support and implementation assistance.
               </li>
             </ul>
           </>

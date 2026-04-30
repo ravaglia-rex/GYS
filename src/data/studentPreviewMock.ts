@@ -2,7 +2,11 @@
  * Static mock learner dashboard - no Firestore, no auth.
  */
 import type { AssessmentType } from '../db/assessmentCollection';
-import { ASSESSMENT_ORDER, type AssessmentProgress } from '../utils/assessmentGating';
+import {
+  buildDashboardExamChartRows,
+  type AssessmentChartRow,
+  type AssessmentProgress,
+} from '../utils/assessmentGating';
 
 const mkTiers = (n: number) =>
   Array.from({ length: n }, (_, i) => ({
@@ -22,7 +26,7 @@ export const PREVIEW_STUDENT_PROFILE = {
 export const PREVIEW_DASHBOARD_STATS = {
   totalAssessments: 7,
   completedAssessments: 3,
-  averageScore: 81,
+  averageScore: 810,
   availableAssessments: 1,
 };
 
@@ -37,7 +41,8 @@ export const PREVIEW_ASSESSMENT_TYPES: AssessmentType[] = [
 ];
 
 /**
- * Reasoning + Skills package. Reasoning triad complete; English on level 3 (retake).
+ * Reasoning + Skills package. Reasoning triad complete; English passed L1–L2, focused on L3
+ * (latest graded attempt was still L2 — clears “2/3 levels” vs “Level” under score).
  * AI level 1 not yet attempted - comprehensive stays prerequisite-locked until AI is finished.
  */
 export const PREVIEW_ASSESSMENT_PROGRESS: Record<string, AssessmentProgress> = {
@@ -46,24 +51,33 @@ export const PREVIEW_ASSESSMENT_PROGRESS: Record<string, AssessmentProgress> = {
     status: 'tier_advanced',
     best_score: 0.82,
     attempts_count: 2,
+    latest_attempt_level: 3,
+    latest_attempt_score: 0.79,
   },
   verbal_reasoning: {
     proficiency_tier: 4,
     status: 'tier_advanced',
     best_score: 0.76,
     attempts_count: 1,
+    latest_attempt_level: 3,
+    latest_attempt_score: 0.76,
   },
   mathematical_reasoning: {
     proficiency_tier: 4,
     status: 'tier_advanced',
     best_score: 0.88,
     attempts_count: 1,
+    latest_attempt_level: 3,
+    latest_attempt_score: 0.88,
   },
   english_proficiency: {
     proficiency_tier: 3,
     status: 'tier_advanced',
     best_score: 0.72,
     attempts_count: 3,
+    tiers_cleared: { '1': true, '2': true },
+    latest_attempt_level: 2,
+    latest_attempt_score: 0.72,
   },
   ai_literacy: {
     proficiency_tier: 1,
@@ -87,22 +101,12 @@ export const PREVIEW_ASSESSMENT_PROGRESS: Record<string, AssessmentProgress> = {
 
 export const PREVIEW_MEMBERSHIP_LEVEL = 3;
 
-/** Chart rows for preview dashboard (assessmentId drives non-competitive labeling). */
-export function getPreviewAssessmentBestTierChartData(): {
-  subject: string;
-  score: number;
-  assessmentId: string;
-}[] {
-  const rows: { subject: string; score: number; assessmentId: string }[] = [];
-  for (const id of ASSESSMENT_ORDER) {
-    const p = PREVIEW_ASSESSMENT_PROGRESS[id];
-    const a = PREVIEW_ASSESSMENT_TYPES.find((x) => x.id === id);
-    if (!p || !a || p.best_score == null || p.attempts_count < 1) continue;
-    rows.push({
-      subject: a.name,
-      score: Math.round(p.best_score * 100),
-      assessmentId: id,
-    });
-  }
-  return rows;
+/** Chart rows for preview dashboard — same Exam 1–5 slots as the live dashboard. */
+export function getPreviewAssessmentBestTierChartData(): AssessmentChartRow[] {
+  return buildDashboardExamChartRows(
+    PREVIEW_ASSESSMENT_TYPES,
+    PREVIEW_ASSESSMENT_PROGRESS,
+    PREVIEW_MEMBERSHIP_LEVEL,
+    PREVIEW_STUDENT_PROFILE.grade
+  );
 }

@@ -49,11 +49,13 @@ import {
   assessmentDisplayName,
   PROF_TIER_COLORS,
   summarizeExamGradeTier123,
+  summarizeNationalPerformanceTiers,
   summarizeSchoolTier123,
   summarizeTier123ByGrade,
 } from '../../utils/schoolAdminTierAnalytics';
 import { ASSESSMENT_ORDER, NON_COMPETITIVE_CHART_ASSESSMENT_IDS } from '../../utils/assessmentGating';
 import { ProficiencyTier123Overview } from '../../components/school_admin/ProficiencyTier123Overview';
+import { NationalPerformanceTierOverview } from '../../components/school_admin/NationalPerformanceTierOverview';
 import { FAKE_SCORE_DISTRIBUTION_BY_EXAM } from '../../data/schoolAdminScoreSubcategoryMock';
 import { buildGreenfieldPreviewStudentRows } from '../../data/schoolPreviewMock';
 
@@ -137,6 +139,10 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
 
   const tierSchoolSummary = useMemo(
     () => summarizeSchoolTier123(tierAnalyticsStudents),
+    [tierAnalyticsStudents]
+  );
+  const nationalPerfTiersSummary = useMemo(
+    () => summarizeNationalPerformanceTiers(tierAnalyticsStudents),
     [tierAnalyticsStudents]
   );
   const tierByGradeRows = useMemo(
@@ -431,59 +437,33 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
             </Card>
           </Box>
 
+          {/* Nationwide GYS performance tiers (achievement_tier) */}
+          <Card sx={{ bgcolor: '#ffffff', boxShadow: 'none', border: `1px solid ${ip.cardBorder}`, mb: 4 }}>
+            <CardContent>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: '#1E293B', mb: 0.5 }}>
+                National performance tiers (GYS)
+              </Typography>
+              <Typography variant="body2" sx={{ color: '#94a3b8', mb: 2, lineHeight: 1.55 }}>
+                Explorer → Diamond: normed tiers from each student&apos;s profile. 
+              </Typography>
+              <NationalPerformanceTierOverview
+                counts={nationalPerfTiersSummary.counts}
+                total={nationalPerfTiersSummary.total}
+                subtitle="Each student counted once by current GYS performance tier (achievement_tier on each profile). Same roster as proficiency analytics."
+                barHeight={36}
+              />
+            </CardContent>
+          </Card>
+
           {/* Proficiency levels 1–3 (assessment progress) */}
           <Card sx={{ bgcolor: '#ffffff', boxShadow: 'none', border: `1px solid ${ip.cardBorder}`, mb: 4 }}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, color: '#1E293B', mb: 0.5 }}>
                 Proficiency level analytics
               </Typography>
-              <Typography variant="body2" sx={{ color: '#94a3b8', mb: 2, lineHeight: 1.55 }}>
-                For each student we use the <strong>lowest</strong> level among assessments they’ve started or completed (that’s their bottleneck).
-                <strong> Level 1 = Bronze, Level 2 = Silver, Level 3+ = Gold.</strong> Whole-school and grade views include everyone on the roster;
-                the exam × grade table only counts students with progress on the assessment you pick.
-              </Typography>
-              <ToggleButtonGroup
-                exclusive
-                value={proficiencyView}
-                onChange={(_, v) => v && setProficiencyView(v)}
-                size="small"
-                sx={{ mb: 2 }}
-              >
-                <ToggleButton value="school">Whole school</ToggleButton>
-                <ToggleButton value="grade">By grade</ToggleButton>
-              </ToggleButtonGroup>
+             
 
-              {proficiencyView === 'school' && (
-                <ProficiencyTier123Overview
-                  summary={tierSchoolSummary}
-                  subtitle={`${tierSchoolSummary.total} students. Same methodology as the institution overview.`}
-                  barHeight={36}
-                />
-              )}
-
-              {proficiencyView === 'grade' && (
-                <Box sx={{ width: '100%', height: 340, minHeight: 280 }}>
-                  {gradeBarChartData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={gradeBarChartData} margin={{ top: 12, right: 16, left: 8, bottom: 8 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                        <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                        <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                        <Tooltip />
-                        <Legend />
-                        <Bar dataKey="tier1" name="Level 1" stackId="t" fill={PROF_TIER_COLORS.tier1} />
-                        <Bar dataKey="tier2" name="Level 2" stackId="t" fill={PROF_TIER_COLORS.tier2} />
-                        <Bar dataKey="tier3" name="Level 3+" stackId="t" fill={PROF_TIER_COLORS.tier3} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <Typography variant="body2" sx={{ color: '#94a3b8', py: 4 }}>
-                      No grade or progress data yet.
-                    </Typography>
-                  )}
-                </Box>
-              )}
-
+           
               <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#1E293B', mt: 3, mb: 1 }}>
                 By exam × grade × level
               </Typography>
