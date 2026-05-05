@@ -24,7 +24,7 @@ export interface SchoolEmailCheck {
   schoolName: string;
   verified: boolean;
   email: string;
-  /** True when Razorpay (or dev) marks registration fee as collected — required for dashboard access. */
+  /** True when Razorpay (or dev) marks registration fee as collected - required for dashboard access. */
   registrationPaymentComplete: boolean;
 }
 

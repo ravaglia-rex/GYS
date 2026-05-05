@@ -45,7 +45,7 @@ export interface GateResult {
 }
 
 /**
- * Rev 13 — Level 1 Discovery (Exam 1); Level 2 Reasoning Triad (1–3); Level 3 Reasoning + Skills (1–5);
+ * Rev 13 - Level 1 Discovery (Exam 1); Level 2 Reasoning Triad (1–3); Level 3 Reasoning + Skills (1–5);
  * Level 4 Guided Decision (+ Insight: personality + career discovery).
  */
 export const MEMBERSHIP_ALLOWED: Record<number, string[]> = {
@@ -62,12 +62,12 @@ export const MEMBERSHIP_ALLOWED: Record<number, string[]> = {
   4: [...ASSESSMENT_ORDER],
 };
 
-/** Product copy: three annual packages (API membership levels 2–4) plus Discovery as Early offer (API level 1). */
+/** Product copy: three annual packages (API 2–4) plus Trial/Discovery entry (API 1). */
 export const MEMBERSHIP_LEVEL_LABELS: Record<number, string> = {
-  1: 'Discovery (Early offer)',
-  2: 'Membership 1 • Reasoning Triad',
-  3: 'Membership 2 • Reasoning + Skills',
-  4: 'Membership 3 • Guided Decision',
+  1: 'Trial - Discovery',
+  2: 'Reasoning Triad',
+  3: 'Reasoning + Skills',
+  4: 'Guided Decision',
 };
 
 /** Shown on the dashboard chart without a numeric % (non-competitive / profile assessments). */
@@ -207,7 +207,7 @@ export type AssessmentChartRow = {
   score: number;
   assessmentId: string;
   locked: boolean;
-  /** Level (1-indexed) for the displayed score — last graded attempt when backend fields exist. */
+  /** Level (1-indexed) for the displayed score - last graded attempt when backend fields exist. */
   chartLevel?: number | null;
   /** True when the bar uses legacy best_score (no latest attempt snapshot yet). */
   chartScoreIsBestFallback?: boolean;

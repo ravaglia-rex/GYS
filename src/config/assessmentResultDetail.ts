@@ -73,7 +73,7 @@ export function nextAssessmentNudge(assessmentId: string): { title: string; subt
     },
     comprehensive_personality: {
       title: 'Next: Interest & Career Discovery',
-      subtitle: 'Finish the Insight group after personality — Guided Decision.',
+      subtitle: 'Finish the Insight group after personality - Guided Decision.',
       path: '/assessments/career_interest_inventory/tier/1/detail',
     },
   };

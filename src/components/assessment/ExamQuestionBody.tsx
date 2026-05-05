@@ -28,6 +28,49 @@ export function inferQuestionInteraction(
   return 'visual_mcq';
 }
 
+/** Secondary stem line (canonical `presentation.instruction`). */
+const InstructionLine: React.FC<{ text: string }> = ({ text }) => (
+  <Typography variant="body2" sx={{ color: '#475569', mb: 2, whiteSpace: 'pre-wrap', lineHeight: 1.55 }}>
+    {text}
+  </Typography>
+);
+
+/** Fallback display for structured pattern-logic stimuli until a dedicated renderer exists. */
+const StimulusBlock: React.FC<{ q: ExamQuestion; border: string }> = ({ q, border }) => {
+  if (q.stimulus == null) return null;
+  const text =
+    typeof q.stimulus === 'string' ? q.stimulus : JSON.stringify(q.stimulus, null, 2);
+  return (
+    <Box
+      sx={{
+        mb: 2.5,
+        p: 2,
+        bgcolor: '#f8fafc',
+        borderRadius: 2,
+        border: `1px solid ${border}`,
+        maxHeight: 320,
+        overflow: 'auto',
+      }}
+    >
+      <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 1 }}>
+        {q.stimulus_type ? `Stimulus (${q.stimulus_type})` : 'Stimulus'}
+      </Typography>
+      <Typography
+        component="pre"
+        sx={{
+          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+          fontSize: '0.78rem',
+          m: 0,
+          whiteSpace: 'pre-wrap',
+          color: '#334155',
+        }}
+      >
+        {text}
+      </Typography>
+    </Box>
+  );
+};
+
 interface OptionPickerProps {
   options: string[];
   selectedOption: number | null;
@@ -174,6 +217,8 @@ const ListeningMcqInner: React.FC<{
           {question.prompt}
         </Typography>
       )}
+      {question.instruction && <InstructionLine text={question.instruction} />}
+      <StimulusBlock q={question} border={borderMuted} />
       <Button
         startIcon={playing ? <StopIcon /> : <PlayArrowIcon />}
         variant="outlined"
@@ -267,6 +312,8 @@ const SpokenResponseInner: React.FC<{
           {question.prompt}
         </Typography>
       )}
+      {question.instruction && <InstructionLine text={question.instruction} />}
+      <StimulusBlock q={question} border={borderMuted} />
       <Box sx={{ bgcolor: '#f8fafc', borderRadius: 2, p: 2, mb: 2, border: `1px solid ${borderMuted}` }}>
         <Typography sx={{ fontSize: '0.8rem', color: '#64748b', mb: 1.5 }}>
           Record your spoken response (practice). Select the option that best matches your response for scoring.
@@ -347,6 +394,8 @@ export const ExamQuestionBody: React.FC<ExamQuestionBodyProps> = ({
             {question.prompt}
           </Typography>
         )}
+        {question.instruction && <InstructionLine text={question.instruction} />}
+        <StimulusBlock q={question} border={borderMuted} />
         <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 0.75, mb: 1, flexWrap: 'nowrap' }}>
           {scale.map((i) => (
             <Button
@@ -439,6 +488,8 @@ export const ExamQuestionBody: React.FC<ExamQuestionBodyProps> = ({
             {question.prompt}
           </Typography>
         )}
+        {question.instruction && <InstructionLine text={question.instruction} />}
+        <StimulusBlock q={question} border={borderMuted} />
         <OptionPicker
           options={opts}
           selectedOption={selectedOption}
@@ -466,6 +517,8 @@ export const ExamQuestionBody: React.FC<ExamQuestionBodyProps> = ({
           {question.prompt}
         </Typography>
       )}
+      {question.instruction && <InstructionLine text={question.instruction} />}
+      <StimulusBlock q={question} border={borderMuted} />
       {question.image_url && (
         <Box
           sx={{

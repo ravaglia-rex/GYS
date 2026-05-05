@@ -1,10 +1,30 @@
-import React from 'react';
-import { Avatar, Box, Typography } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { Alert, Avatar, Box, Typography } from '@mui/material';
 import EmojiEvents from '@mui/icons-material/EmojiEvents';
 import * as Sentry from '@sentry/react';
 import DashboardLayout from '../../layouts/DashboardLayout';
+import StudentLeaderboardPanel from '../../components/dashboard/StudentLeaderboardPanel';
+import { auth } from '../../firebase/firebase';
+import { getStudent } from '../../db/studentCollection';
+import { clampToLeaderboardGrade, type LeaderboardGrade } from '../../data/leaderboardMock';
 
 const LeaderboardPage: React.FC = () => {
+  const [initialGrade, setInitialGrade] = useState<LeaderboardGrade>(10);
+
+  useEffect(() => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+    let cancelled = false;
+    void getStudent(uid)
+      .then((student) => {
+        if (!cancelled) setInitialGrade(clampToLeaderboardGrade(student?.grade));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <Sentry.ErrorBoundary beforeCapture={(s) => s.setTag('location', 'LeaderboardPage')}>
       <DashboardLayout>
@@ -45,12 +65,17 @@ const LeaderboardPage: React.FC = () => {
                   School Leaderboard
                 </Typography>
                 <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.72)', mt: 0.5 }}>
-                  See how you compare with classmates at your school on each exam, by grade — not national rankings. Available when your school’s cohort data is published.
+                  See how you compare with classmates at your school on each exam, by grade - not national rankings. Available when your school’s cohort data is published.
                 </Typography>
               </Box>
             </Box>
           
           </Box>
+
+          <Alert severity="info" sx={{ mb: 2, bgcolor: 'rgba(59, 130, 246, 0.12)', color: '#e2e8f0', border: '1px solid rgba(59, 130, 246, 0.35)', '& .MuiAlert-icon': { color: '#93c5fd' } }}>
+            Official cohort rankings may not be loaded yet for your account. The table below shows the layout of school
+            standings by exam and grade when data is published.
+          </Alert>
 
           <Box
             sx={{
@@ -60,16 +85,7 @@ const LeaderboardPage: React.FC = () => {
               border: '1px solid rgba(255, 255, 255, 0.1)',
             }}
           >
-            <Typography variant="h6" sx={{ color: 'white', fontWeight: 600, mb: 1.5 }}>
-              No leaderboard data yet
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.78)', mb: 1.5 }}>
-              There is no leaderboard information to show for your account right now. Official cohort rankings are not
-              loaded in the portal yet, or your programme has not published them for your cohort.
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-              Check back later, or ask your school coordinator if rankings should be available for your batch.
-            </Typography>
+            <StudentLeaderboardPanel initialGrade={initialGrade} />
           </Box>
         </Box>
       </DashboardLayout>

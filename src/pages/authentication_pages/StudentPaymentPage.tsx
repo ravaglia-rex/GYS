@@ -59,7 +59,7 @@ const StudentPaymentPage: React.FC = () => {
   const state = (locationState || {}) as SignupFlowState;
   const { toast } = useToast();
 
-  const membershipName = state.membershipName || 'Membership 1 • Reasoning Triad';
+  const membershipName = state.membershipName || 'Reasoning Triad';
   const membershipPrice = state.membershipPrice || '₹899';
   const membershipLevelCode = state.membershipLevel;
   const numericLevel = useMemo(

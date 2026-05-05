@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import ResendVerificationButton from './ResendVerificationButton';
 import { UserCredential, reload, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { useNavigate, Link } from 'react-router-dom';
@@ -29,10 +29,52 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { LoadingSpinner as Spinner } from '../ui/spinner';
 import { useToast } from '../ui/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../ui/dialog';
+import {
+  createFreshStudentSession,
+  clearLocalSessionId,
+  getLocalSessionId,
+  readRemoteSessionId,
+  setLocalSessionId,
+  takeoverRemoteSession,
+} from '../../services/studentActiveSession';
 
 const signinSchema = z.object({
     password: z.string().min(6, 'Password must be at least 6 characters'),
 });
+
+/** Firestore client errors from user_sessions read/write during student sign-in. */
+function describeSignInError(error: unknown): string {
+  const code =
+    typeof error === 'object' && error !== null && 'code' in error
+      ? String((error as { code?: string }).code)
+      : '';
+  const message = error instanceof Error ? error.message : '';
+  if (
+    code === 'permission-denied' ||
+    /missing or insufficient permissions/i.test(message)
+  ) {
+    return 'Your account signed in, but the app could not read or write the session document in Firestore. Deploy Firestore rules that allow user_sessions/{uid} for request.auth.uid == uid, and ensure the web app uses the same Firebase project as that database.';
+  }
+  return message || 'An error occurred. Please try again.';
+}
+
+async function revertPartialStudentSignIn(): Promise<void> {
+  try {
+    await signOut(auth);
+  } catch {
+    /* ignore */
+  }
+  authTokenHandler.clearToken();
+  clearLocalSessionId();
+}
 
 interface SignInFormProps {
     email: string;
@@ -51,7 +93,22 @@ const SignInForm: React.FC<SignInFormProps> = ({ email, isSchoolAdmin, schoolInf
     const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
     const [loadResendVerification, setLoadResendVerification] = useState<boolean>(false);
     const [userCred, setUserCredential] = useState<UserCredential | null>(null);
+    const [sessionTakeoverOpen, setSessionTakeoverOpen] = useState(false);
+    const [pendingCredential, setPendingCredential] = useState<UserCredential | null>(null);
     const dispatch = useDispatch<AppDispatch>();
+
+    const completeStudentSignIn = useCallback(
+      async (userCredential: UserCredential) => {
+        await dispatch(checkUserRole(userCredential.user.email || ''));
+        toast({
+          variant: 'default',
+          title: 'Signed in successfully!',
+          description: `Welcome back, ${userCredential.user.email}`,
+        });
+        navigate('/dashboard');
+      },
+      [dispatch, navigate, toast]
+    );
 
     const signIn = async (data: z.infer<typeof signinSchema>) => {
         setIsSubmitted(true);
@@ -135,29 +192,103 @@ const SignInForm: React.FC<SignInFormProps> = ({ email, isSchoolAdmin, schoolInf
                 return;
             }
             
-            // Check user role and redirect accordingly
-            await dispatch(checkUserRole(userCredential.user.email || ''));
-            
-            toast({
-                variant: 'default',
-                title: 'Signed in successfully!',
-                description: `Welcome back, ${userCredential.user.email}`,
-            });
-            
-            navigate('/dashboard');
-        } catch (error: any) {
+            const uid = userCredential.user.uid;
+            const remote = await readRemoteSessionId(uid);
+            const local = getLocalSessionId();
+            if (remote && remote !== local) {
+              setPendingCredential(userCredential);
+              setSessionTakeoverOpen(true);
+              setIsSubmitted(false);
+              return;
+            }
+            if (!remote) {
+              await createFreshStudentSession(uid);
+            } else {
+              setLocalSessionId(remote);
+            }
+            await completeStudentSignIn(userCredential);
+        } catch (error: unknown) {
             console.error('Sign in error:', error);
+            await revertPartialStudentSignIn();
             toast({
                 variant: 'destructive',
                 title: 'Sign in failed',
-                description: error.message || 'An error occurred. Please try again.',
+                description: describeSignInError(error),
             });
             setIsSubmitted(false);
         }
     };
 
+    const onSessionTakeoverConfirm = async () => {
+      if (!pendingCredential) return;
+      setIsSubmitted(true);
+      try {
+        const cred = pendingCredential;
+        await takeoverRemoteSession(cred.user.uid);
+        setSessionTakeoverOpen(false);
+        setPendingCredential(null);
+        await completeStudentSignIn(cred);
+      } catch (e: unknown) {
+        await revertPartialStudentSignIn();
+        toast({
+          variant: 'destructive',
+          title: 'Session error',
+          description: describeSignInError(e),
+        });
+      } finally {
+        setIsSubmitted(false);
+      }
+    };
+
+    const onSessionTakeoverCancel = async () => {
+      setSessionTakeoverOpen(false);
+      setPendingCredential(null);
+      try {
+        await signOut(auth);
+        authTokenHandler.clearToken();
+        clearLocalSessionId();
+      } catch {
+        /* ignore */
+      }
+      setIsSubmitted(false);
+    };
+
     return (
         <div className="rounded-2xl border border-slate-200 bg-white px-6 py-7 shadow-lg sm:px-7 sm:py-8">
+            <Dialog open={sessionTakeoverOpen} onOpenChange={(open) => !open && void onSessionTakeoverCancel()}>
+              <DialogContent
+                className="sm:max-w-md [&>button.absolute]:hidden"
+                onPointerDownOutside={(e) => e.preventDefault()}
+                onEscapeKeyDown={(e) => e.preventDefault()}
+              >
+                <DialogHeader>
+                  <DialogTitle>Account already active elsewhere</DialogTitle>
+                  <DialogDescription className="text-left space-y-3 pt-2">
+                    <span className="block text-slate-700">
+                      This account has an open session in another tab or device. If you continue here, that
+                      session will end immediately. Unsaved progress (including work in an assessment) may be
+                      lost, and repeated or suspicious session switching may be treated as a policy violation.
+                    </span>
+                    <span className="block font-medium text-slate-900">
+                      Do you want to sign in here and end the other session?
+                    </span>
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="gap-2 sm:gap-0">
+                  <Button type="button" variant="outline" onClick={() => void onSessionTakeoverCancel()} disabled={isSubmitted}>
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600"
+                    onClick={() => void onSessionTakeoverConfirm()}
+                    disabled={isSubmitted}
+                  >
+                    {isSubmitted ? <Spinner /> : 'Yes, sign in here'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
             <h2 className="text-2xl font-semibold text-center mb-6 text-slate-900">Sign in to Argus</h2>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(signIn)} className="space-y-6">

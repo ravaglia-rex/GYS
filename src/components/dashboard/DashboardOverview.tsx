@@ -30,6 +30,7 @@ import {
   formatAchievementTierLabel,
   normalizeAchievementTierId,
 } from '../../utils/achievementTier';
+import { MEMBERSHIP_LEVEL_LABEL } from '../../utils/studentMembershipPricing';
 
 export type { AssessmentChartRow } from '../../utils/assessmentGating';
 
@@ -45,10 +46,10 @@ const CHART_FALLBACK_EXAMS: AssessmentChartRow[] = DASHBOARD_CHART_EXAM_IDS.map(
  * Rev 13 list + GST: ~₹353 / ~₹1,061 / ~₹2,123 / ~₹3,185; legacy tiers ~₹589 / ~₹1,533 / ~₹2,949 / ~₹3,185.
  */
 function membershipLabelFromPaymentAmountInr(amount: number): string {
-  if (amount >= 2700) return 'Membership 3 • Guided Decision';
-  if (amount >= 1900) return 'Membership 2 • Reasoning + Skills';
-  if (amount >= 1200) return 'Membership 1 • Reasoning Triad';
-  return 'Discovery (Early offer • ₹299)';
+  if (amount >= 2700) return MEMBERSHIP_LEVEL_LABEL[4];
+  if (amount >= 1900) return MEMBERSHIP_LEVEL_LABEL[3];
+  if (amount >= 1200) return MEMBERSHIP_LEVEL_LABEL[2];
+  return `${MEMBERSHIP_LEVEL_LABEL[1]} • ₹299`;
 }
 
 /** Program assessments: chart score 0–100 from latest attempt (or legacy best); labels show points out of {@link EXAM_MAX_SCORE_POINTS}. */
@@ -547,10 +548,10 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
           // Derive membership level + expiry from payments, fall back to account creation date
           const levelMap: Record<string, string> = {
-            LEVEL_1: 'Discovery (Early offer)',
-            LEVEL_2: 'Membership 1 • Reasoning Triad',
-            LEVEL_3: 'Membership 2 • Reasoning + Skills',
-            LEVEL_4: 'Membership 3 • Guided Decision',
+            LEVEL_1: MEMBERSHIP_LEVEL_LABEL[1],
+            LEVEL_2: MEMBERSHIP_LEVEL_LABEL[2],
+            LEVEL_3: MEMBERSHIP_LEVEL_LABEL[3],
+            LEVEL_4: MEMBERSHIP_LEVEL_LABEL[4],
           };
           const rawLevel =
             userData?.membership_level ?? userData?.plan_level ?? null;
@@ -611,7 +612,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
               } else if (levelNum != null && levelNum >= 1 && levelNum <= 4) {
                 setMembershipLevel(levelMap[`LEVEL_${tierForBadge}` as 'LEVEL_1']);
               } else {
-                setMembershipLevel('Discovery (Early offer)');
+                setMembershipLevel(MEMBERSHIP_LEVEL_LABEL[1]);
               }
               setMembershipExpiry(creationExpiry());
             }
@@ -625,7 +626,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             } else if (levelNum != null && levelNum >= 1 && levelNum <= 4) {
               setMembershipLevel(levelMap[`LEVEL_${tierForBadge}` as 'LEVEL_1']);
             } else {
-              setMembershipLevel('Discovery (Early offer)');
+              setMembershipLevel(MEMBERSHIP_LEVEL_LABEL[1]);
             }
             setMembershipExpiry(creationExpiry());
           }
@@ -741,7 +742,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
   return (
     <Box sx={{ mb: 4, ml: 1 }}>
-      {/* Welcome Section — title left, performance tier badge top-right */}
+      {/* Welcome Section - title left, performance tier badge top-right */}
       <Box sx={{ mb: 4 }}>
         <Box
           sx={{
@@ -772,7 +773,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           {tierBadge}
         </Box>
 
-        {/* Grade / school / membership — below title row */}
+        {/* Grade / school / membership - below title row */}
         {showStudentMeta && (studentGrade || schoolName || membershipLevel || membershipExpiry) && (
           <Box
             sx={{

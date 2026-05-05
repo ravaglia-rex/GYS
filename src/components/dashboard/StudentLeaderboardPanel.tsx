@@ -21,6 +21,7 @@ import {
   MOCK_LEADERBOARD_BY_GRADE,
   MOCK_LEADERBOARD_LAST_UPDATED,
   formatLeaderboardDateTime,
+  leaderboardScoreLevelHeadingSuffix,
   type LeaderboardGrade,
 } from '../../data/leaderboardMock';
 import { EXAM_MAX_SCORE_POINTS } from '../../utils/assessmentGating';
@@ -159,7 +160,7 @@ export default function StudentLeaderboardPanel({ initialGrade = 10 }: StudentLe
                   {section.examName}
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
-                  Top 10 at your school — best official score (out of {EXAM_MAX_SCORE_POINTS}). “Exam taken” is when that
+                  Top 10 at your school - best official score (out of {EXAM_MAX_SCORE_POINTS}). “Exam taken” is when that
                   score was earned.
                 </Typography>
               </Box>
@@ -176,7 +177,10 @@ export default function StudentLeaderboardPanel({ initialGrade = 10 }: StudentLe
                         align="right"
                         sx={{ color: '#94a3b8', fontWeight: 600, minWidth: 108, whiteSpace: 'nowrap' }}
                       >
-                        Score
+                        Score{' '}
+                        <Box component="span" sx={{ fontWeight: 500, color: 'rgba(148, 163, 184, 0.88)' }}>
+                          {leaderboardScoreLevelHeadingSuffix(grade)}
+                        </Box>
                       </TableCell>
                     </TableRow>
                   </TableHead>

@@ -289,18 +289,21 @@ const MembershipUpgradeSection: React.FC = () => {
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
         <TrendingUp size={22} color="#a78bfa" />
         <Typography variant="h6" sx={{ color: 'white', fontWeight: 600 }}>
-          Membership upgrade
+          Membership packages
         </Typography>
       </Box>
       <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.72)', mb: 2 }}>
-        Three annual membership levels (plus Discovery as a one-time entry). Current plan:{' '}
+        Four packages: <Box component="span" sx={{ fontWeight: 600 }}>Trial</Box> (Discovery entry, one-time) and three
+        annual options - <Box component="span" sx={{ fontWeight: 600 }}>Reasoning Triad</Box>,{' '}
+        <Box component="span" sx={{ fontWeight: 600 }}>Reasoning + Skills</Box>, and{' '}
+        <Box component="span" sx={{ fontWeight: 600 }}>Guided Decision</Box>. Current plan:{' '}
         <Box component="span" sx={{ color: '#e9d5ff', fontWeight: 600 }}>
           {membershipLevel === 0
-            ? 'No paid tier yet'
+            ? 'No paid package yet'
             : MEMBERSHIP_LEVEL_LABEL[membershipLevel as 1 | 2 | 3 | 4]}
         </Box>
-        . Prices include 18% GST; you only pay the difference when moving up. Discovery is credited toward
-        higher tiers the same way - list difference only.
+        . Prices include 18% GST; you only pay the difference when moving up. Trial (Discovery) is credited toward
+        higher packages the same way - list-price difference only.
       </Typography>
 
       {upgrades.length === 0 ? (

@@ -70,7 +70,7 @@ export interface Tier123Counts {
   total: number;
 }
 
-/** Bar + legend colors for national GYS performance tiers (Explorer teal — distinct from Diamond violet). */
+/** Bar + legend colors for national GYS performance tiers (Explorer teal - distinct from Diamond violet). */
 export const NATIONAL_PERFORMANCE_TIER_COLORS: Record<
   (typeof CANONICAL_ACHIEVEMENT_TIER_IDS)[number],
   string
@@ -135,7 +135,7 @@ export function summarizeNationalPerformanceTiers(
 
 /**
  * Counts students by overall proficiency band: min band across active assessment slots (see `studentOverallProficiencyBand`).
- * UI legend uses “Level 1 (Bronze)…” as shorthand—this is the per-assessment proficiency ladder only, not Explorer→Diamond GYS tiers.
+ * UI legend uses “Level 1 (Bronze)…” as shorthand-this is the per-assessment proficiency ladder only, not Explorer→Diamond GYS tiers.
  */
 export function summarizeSchoolTier123(students: StudentRow[]): Tier123Counts {
   const list = students;

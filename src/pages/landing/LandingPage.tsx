@@ -376,7 +376,7 @@ const LandingPage: React.FC = () => {
         <h3 className="text-xl font-bold text-slate-900 sm:text-2xl">What Is GYS?</h3>
         <div className="mt-6 space-y-4 text-justify text-xs leading-relaxed text-slate-600 sm:text-sm">
           <p>
-            <span className="font-semibold text-slate-800">Global Young Scholar (GYS)</span> is an assessment and guidance platform for schools and students in Classes 6–12. Across seven adaptive assessments, GYS builds a multi-dimensional profile of each student, measuring aptitude, academic readiness, personality, and future-facing skills — then translating those results into practical guidance on strengths, growth areas, streams, careers, and university fit.
+            <span className="font-semibold text-slate-800">Global Young Scholar (GYS)</span> is an assessment and guidance platform for schools and students in Classes 6–12. Across seven adaptive assessments, GYS builds a multi-dimensional profile of each student, measuring aptitude, academic readiness, personality, and future-facing skills - then translating those results into practical guidance on strengths, growth areas, streams, careers, and university fit.
           </p>
           <p>
             The seven assessments are grouped into three tracks: Reasoning, Skills, and Insights.
@@ -492,7 +492,7 @@ const LandingPage: React.FC = () => {
           </h3>
           <div className="mx-auto mt-2 max-w-3xl space-y-4 text-justify text-sm leading-relaxed text-gray-600">
             <p>
-              Every student earns a GYS Performance Tier that reflects their achievement against a growing national cohort. Tiers give schools, students, and families a clear way to understand performance beyond raw marks — from Explorer through Diamond.
+              Every student earns a GYS Performance Tier that reflects their achievement against a growing national cohort. Tiers give schools, students, and families a clear way to understand performance beyond raw marks - from Explorer through Diamond.
             </p>
             <p>
               Students can improve their tier over time by retaking assessments and demonstrating higher levels of mastery. School leaderboards highlight the top-performing students by exam and class, helping schools recognize excellence and celebrate student achievement.
@@ -633,7 +633,7 @@ const LandingPage: React.FC = () => {
           <div className="mx-auto max-w-2xl text-center">
             <h3 className="text-xl font-bold text-slate-900 sm:text-2xl">What Makes GYS Different</h3>
             <p className="mt-3 text-xs font-medium leading-relaxed text-slate-700 sm:text-sm">
-              Most assessments produce a score. GYS helps schools and families understand what that score means — and what students are ready for next. With adaptive exams, trusted norms, optional practice, and guidance across academics, skills, personality, and career direction, GYS gives schools a more complete picture of student readiness.
+              Most assessments produce a score. GYS helps schools and families understand what that score means - and what students are ready for next. With adaptive exams, trusted norms, optional practice, and guidance across academics, skills, personality, and career direction, GYS gives schools a more complete picture of student readiness.
             </p>
           </div>
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">

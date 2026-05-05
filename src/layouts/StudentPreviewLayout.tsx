@@ -242,9 +242,37 @@ export default function StudentPreviewLayout() {
         </List>
       </Collapse>
 
+      <ListItemButton
+        disabled
+        selected={isActive('/students/preview/reports')}
+        sx={{
+          borderRadius: 1.5,
+          mb: 0.5,
+          py: 1.1,
+          pl: 2,
+          cursor: 'default',
+          borderLeft: isActive('/students/preview/reports') ? '3px solid #f59e0b' : '3px solid transparent',
+          bgcolor: isActive('/students/preview/reports') ? '#f59e0b14' : 'transparent',
+          '&.Mui-disabled': { opacity: 0.72 },
+        }}
+      >
+        <ListItemIcon sx={{ minWidth: 40, color: '#f59e0b' }}>
+          <AssignmentIcon sx={iconSx} />
+        </ListItemIcon>
+        <ListItemText
+          primary="Reports"
+          slotProps={{
+            primary: {
+              fontWeight: isActive('/students/preview/reports') ? 600 : 500,
+              fontSize: '0.9rem',
+              color: '#e2e8f0',
+            },
+          }}
+        />
+      </ListItemButton>
+
       {(
         [
-          { title: 'Reports', path: '/students/preview/reports', icon: <AssignmentIcon sx={iconSx} />, color: '#f59e0b' },
           { title: 'Billing & Payments', path: '/students/preview/payments', icon: <PaymentIcon sx={iconSx} />, color: '#22c55e' },
           { title: 'Settings', path: '/students/preview/settings', icon: <SettingsIcon sx={iconSx} />, color: '#94a3b8' },
         ] as const
@@ -253,19 +281,20 @@ export default function StudentPreviewLayout() {
         return (
           <ListItemButton
             key={item.path}
-            disabled
             selected={active}
+            onClick={() => {
+              navigate(item.path);
+              if (isMobile) setMobileOpen(false);
+            }}
             sx={{
               borderRadius: 1.5,
               mb: 0.5,
               py: 1.1,
               pl: 2,
-              cursor: 'default',
               borderLeft: active ? `3px solid ${item.color}` : '3px solid transparent',
               bgcolor: active ? `${item.color}14` : 'transparent',
               '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' },
               '&.Mui-selected': { bgcolor: `${item.color}18` },
-              '&.Mui-disabled': { opacity: 0.72 },
             }}
           >
             <ListItemIcon sx={{ minWidth: 40, color: item.color }}>{item.icon}</ListItemIcon>

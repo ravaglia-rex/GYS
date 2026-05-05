@@ -44,9 +44,10 @@ export function formatInrFromPaise(paise: number): string {
   }).format(paise / 100);
 }
 
+/** User-facing package names (API still uses numeric levels 1–4). */
 export const MEMBERSHIP_LEVEL_LABEL: Record<1 | 2 | 3 | 4, string> = {
-  1: 'Discovery (Early offer)',
-  2: 'Membership 1 • Reasoning Triad',
-  3: 'Membership 2 • Reasoning + Skills',
-  4: 'Membership 3 • Guided Decision',
+  1: 'Trial - Discovery',
+  2: 'Reasoning Triad',
+  3: 'Reasoning + Skills',
+  4: 'Guided Decision',
 };

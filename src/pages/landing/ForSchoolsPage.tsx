@@ -19,7 +19,7 @@ import {
   type RegisterPlanId,
 } from '../../utils/schoolRegistrationPlans';
 
-/** Background / popular ribbon — layout only; caps & prices come from {@link SCHOOL_INSTITUTIONAL_PLAN_MATRIX}. */
+/** Background / popular ribbon - layout only; caps & prices come from {@link SCHOOL_INSTITUTIONAL_PLAN_MATRIX}. */
 const INSTITUTIONAL_PLAN_CARD_UI: Record<RegisterPlanId, { bg: string; popular: boolean }> = {
   entry: { bg: 'bg-[#e5f3ff]', popular: false },
   standard: { bg: 'bg-[#fff7e0]', popular: true },
@@ -51,13 +51,13 @@ type SchoolComparisonRow =
   | {
       label: string;
       desc?: string;
-      /** Entry, Standard, Premium — ✓ / − */
+      /** Entry, Standard, Premium - ✓ / − */
       inPlan: [boolean, boolean, boolean];
     }
   | {
       label: string;
       desc?: string;
-      /** Entry, Standard, Premium — short text (e.g. roster caps) */
+      /** Entry, Standard, Premium - short text (e.g. roster caps) */
       tierText: [string, string, string];
     };
 

@@ -260,7 +260,7 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
       'Inputs for longitudinal counseling',
     ],
     beforeBegin: [
-      { icon: 'bolt', text: 'No right or wrong answers — candor improves recommendations.' },
+      { icon: 'bolt', text: 'No right or wrong answers - candor improves recommendations.' },
       { icon: 'chart', text: 'Pairs with Guided Decision counseling when you opt in.' },
     ],
     theme: 'purple',

@@ -14,7 +14,7 @@ const StudentWelcomePage: React.FC = () => {
     clearSignupDraft();
   }, []);
 
-  const membershipName = (state as any).membershipName || 'Membership 1 • Reasoning Triad';
+  const membershipName = (state as any).membershipName || 'Reasoning Triad';
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">

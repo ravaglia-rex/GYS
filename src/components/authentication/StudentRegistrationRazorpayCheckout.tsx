@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
+import { createPortal, flushSync } from 'react-dom';
 import { useToast } from '../ui/use-toast';
+import { LoadingSpinner } from '../ui/spinner';
 import {
   createStudentRegistrationOrder,
   devBypassStudentSignupPaymentClaim,
@@ -56,6 +58,7 @@ const StudentRegistrationRazorpayCheckout: React.FC<StudentRegistrationRazorpayC
   onPaymentVerified,
 }) => {
   const [busy, setBusy] = useState(false);
+  const [confirmingPayment, setConfirmingPayment] = useState(false);
   const { toast } = useToast();
 
   const startCheckout = async () => {
@@ -131,15 +134,18 @@ const StudentRegistrationRazorpayCheckout: React.FC<StudentRegistrationRazorpayC
             return;
           }
           try {
+            flushSync(() => {
+              setConfirmingPayment(true);
+            });
             await verifyStudentRegistrationPayment({
               email: email.trim().toLowerCase(),
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
             });
-            setBusy(false);
             await onPaymentVerified(response.razorpay_payment_id);
           } catch (err: unknown) {
+            setConfirmingPayment(false);
             setBusy(false);
             const message = err instanceof Error ? err.message : 'Verification or signup failed';
             Sentry.withScope((scope) => {
@@ -200,8 +206,37 @@ const StudentRegistrationRazorpayCheckout: React.FC<StudentRegistrationRazorpayC
     }
   };
 
+  const confirmingOverlay =
+    confirmingPayment &&
+    typeof document !== 'undefined' &&
+    createPortal(
+      <div
+        className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/65 px-4 backdrop-blur-[2px]"
+        role="alertdialog"
+        aria-busy="true"
+        aria-live="polite"
+        aria-labelledby="student-rzp-confirm-title"
+        aria-describedby="student-rzp-confirm-desc"
+      >
+        <div className="max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-xl">
+          <div className="mb-4 flex justify-center text-[#1e3a8a]">
+            <LoadingSpinner size={40} className="opacity-90" />
+          </div>
+          <h2 id="student-rzp-confirm-title" className="text-lg font-semibold text-slate-900">
+            Confirming your payment
+          </h2>
+          <p id="student-rzp-confirm-desc" className="mt-2 text-sm leading-relaxed text-slate-600">
+            Please wait while we complete your signup. Do not refresh or close this page.
+          </p>
+        </div>
+      </div>,
+      document.body
+    );
+
   return (
-    <button
+    <>
+      {confirmingOverlay}
+      <button
       type="button"
       onClick={() => void startCheckout()}
       disabled={busy}
@@ -216,6 +251,7 @@ const StudentRegistrationRazorpayCheckout: React.FC<StudentRegistrationRazorpayC
           ? `Dev: skip Razorpay - continue as ${planLabel}`
           : `Pay ${planLabel} securely with Razorpay`}
     </button>
+    </>
   );
 };
 

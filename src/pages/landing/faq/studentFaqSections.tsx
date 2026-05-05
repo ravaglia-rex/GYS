@@ -60,19 +60,19 @@ export const studentFaqSections: { heading: string; items: LandingFaqItem[] }[] 
             <p>GYS offers one entry-level option and three annual memberships:</p>
             <ul className="mt-3 list-disc pl-5 space-y-2">
               <li>
-                <strong>Discovery</strong> — ₹299 one-time. Includes Exam 1: Symbolic Reasoning. This is a limited
+                <strong>Discovery</strong> - ₹299 one-time. Includes Exam 1: Symbolic Reasoning. This is a limited
                 entry option and does not include the full Reasoning Triad or a national performance tier.
               </li>
               <li>
-                <strong>Reasoning Triad</strong> — ₹899/year. Includes Exams 1–3: Symbolic, Verbal, and Mathematical
+                <strong>Reasoning Triad</strong> - ₹899/year. Includes Exams 1–3: Symbolic, Verbal, and Mathematical
                 Reasoning. Students who complete the triad may earn a national GYS Performance Tier.
               </li>
               <li>
-                <strong>Reasoning + Skills</strong> — ₹1,799/year. Includes Exams 1–5, adding English &amp;
+                <strong>Reasoning + Skills</strong> - ₹1,799/year. Includes Exams 1–5, adding English &amp;
                 Communication and AI Proficiency.
               </li>
               <li>
-                <strong>Guided Decision</strong> — ₹2,699/year. Includes all seven exams, including personality,
+                <strong>Guided Decision</strong> - ₹2,699/year. Includes all seven exams, including personality,
                 interests, career discovery, and ongoing AI-supported guidance.
               </li>
             </ul>
@@ -162,8 +162,8 @@ export const studentFaqSections: { heading: string; items: LandingFaqItem[] }[] 
           <p>
             Yes. GYS collects only the information needed to provide assessments, reports, and guidance. Personal
             data is not sold. GYS does not share student data with third parties without appropriate consent.
-            Counseling and Insights data — including personality, interests, motivations, and career-discovery
-            information — is private to the student by default and is shared only when the student or family chooses
+            Counseling and Insights data - including personality, interests, motivations, and career-discovery
+            information - is private to the student by default and is shared only when the student or family chooses
             to share it. If your child participates through a school institutional package, the school may receive
             Reasoning and Skills assessment data for students in that program. Insights data remains private to the
             student unless the student or family chooses to share it.
@@ -214,7 +214,7 @@ export const studentFaqSections: { heading: string; items: LandingFaqItem[] }[] 
           <p>
             Yes. Families can try a{' '}
             <FaqLink to={FAQ_SAMPLE_ASSESSMENT}>live sample assessment</FaqLink> of approximately 10 questions and
-            view a <FaqLink to={FAQ_STUDENT_DASHBOARD_PREVIEW}>sample student dashboard</FaqLink> — or use the{' '}
+            view a <FaqLink to={FAQ_STUDENT_DASHBOARD_PREVIEW}>sample student dashboard</FaqLink> - or use the{' '}
             <FaqLink to={FAQ_PREVIEW_HUB}>interactive preview hub</FaqLink> for all preview options. No account or
             payment is required. The sample helps students and families understand the exam format and reporting
             experience before choosing a package.

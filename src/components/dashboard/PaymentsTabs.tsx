@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { Box, CircularProgress, Typography } from "@mui/material";
 
 import {
   Tabs,
@@ -35,7 +36,15 @@ const PaymentsTabs: React.FC<PaymentsTabsProps> = ({ uid, highlightPaymentsEntry
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("pendingPayments");
 
-  const transformPaymentData = (paymentData: any) => {
+  const transformPaymentData = (paymentData: {
+    paid_on: string;
+    payment_method: string;
+    payment_status: string;
+    transaction_id: string;
+    uid: string;
+    form_id: string;
+    amount: number;
+  }) => {
     return {
       paidOn: new Date(paymentData.paid_on),
       paymentMethod: paymentData.payment_method,
@@ -48,31 +57,38 @@ const PaymentsTabs: React.FC<PaymentsTabsProps> = ({ uid, highlightPaymentsEntry
   };
 
   useEffect(() => {
+    if (!uid?.trim()) {
+      setLoading(false);
+      return;
+    }
+
+    const needPayments = !paymentsLoaded;
+    const needExams = !examDetailsLoaded;
+    if (!needPayments && !needExams) {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
     const loadPayments = async () => {
       const startTime = performance.now();
       try {
         const paymentsData = await getPayments(uid);
-        if(paymentsData.length === 0) {
-          dispatch(setPayments([]));
-          setLoading(false);
-          return;
-        }
-        const transformedData = paymentsData.map(transformPaymentData);
-        dispatch(setPayments(transformedData));
-        setLoading(false);
-      } catch (error: any) {
+        const transformed =
+          paymentsData.length === 0 ? [] : paymentsData.map(transformPaymentData);
+        dispatch(setPayments(transformed));
+      } catch (error: unknown) {
         Sentry.withScope((scope) => {
           scope.setTag('location', 'PaymentsTabs.loadPayments');
           scope.setExtra('email', auth.currentUser?.email);
           Sentry.captureException(error);
         });
-        setError(error.message);
-        setLoading(false);
+        throw error;
       } finally {
         const endTime = performance.now();
-        const fetchTime = endTime - startTime;
         segment.track('Fetch Payments Data Time', {
-          fetchTime: fetchTime,
+          fetchTime: endTime - startTime,
           email: auth.currentUser?.email,
           url: window.location.href
         });
@@ -83,83 +99,123 @@ const PaymentsTabs: React.FC<PaymentsTabsProps> = ({ uid, highlightPaymentsEntry
       const startTime = performance.now();
       try {
         const { formLinks, completed, eligibility_at, result } = await getExamIds(uid);
-        if (formLinks.length > 0) {
-          const details = await getExamDetails(formLinks);
-          const validDetails: ExamDetailsPayload[] = details
-            .filter((detail: any): detail is any => detail !== null && typeof detail === 'object')
-            .map((detail: any, index: number) => ({
-              formId: formLinks[index],
-              additionalInstructions: detail.additional_instructions,
-              examDetails: detail.exam_details,
-              cardTitle: detail.card_title,
-              cardDescription: detail.card_description,
-              paymentNeeded: detail.payment_needed,
-              completed: completed[index],
-              cost: detail.cost,
-              currency: detail.currency,
-              isProctored: detail.is_proctored,
-              eligibility_at: eligibility_at[index],
-              result: result[index],
-              type_questions: detail.type_questions ? JSON.parse(detail.type_questions) : {},
-              duration: detail.duration,
-            }));
-
-          dispatch(setExamDetails({ examDetails: validDetails, examDetailsLoaded: true }));
+        if (formLinks.length === 0) {
+          dispatch(setExamDetails({ examDetails: [], examDetailsLoaded: true }));
+          return;
         }
-        setLoading(false);
-      } catch (error: any) {
+        const details = await getExamDetails(formLinks);
+        const validDetails: ExamDetailsPayload[] = details
+          .filter((detail: unknown): detail is Record<string, unknown> => detail !== null && typeof detail === 'object')
+          .map((detail: Record<string, unknown>, index: number) => ({
+            formId: formLinks[index],
+            additionalInstructions: detail.additional_instructions as string[],
+            examDetails: detail.exam_details as string[],
+            cardTitle: detail.card_title as string,
+            cardDescription: detail.card_description as string,
+            paymentNeeded: detail.payment_needed as boolean,
+            completed: completed[index],
+            cost: detail.cost as number,
+            currency: detail.currency as string,
+            isProctored: detail.is_proctored as boolean,
+            eligibility_at: eligibility_at[index],
+            result: result[index],
+            type_questions: detail.type_questions ? JSON.parse(detail.type_questions as string) : {},
+            duration: detail.duration as number | undefined,
+          }));
+
+        dispatch(setExamDetails({ examDetails: validDetails, examDetailsLoaded: true }));
+      } catch (error: unknown) {
         Sentry.withScope((scope) => {
           scope.setTag('location', 'PaymentsTabs.loadExamDetails');
           scope.setExtra('email', auth.currentUser?.email);
           Sentry.captureException(error);
         });
-        setError(error.message);
-        setLoading(false);
+        throw error;
       } finally {
         const endTime = performance.now();
-        const fetchTime = endTime - startTime;
         segment.track('Fetch Assessment Details Data Time', {
-          fetchTime: fetchTime,
+          fetchTime: endTime - startTime,
           email: auth.currentUser?.email,
           url: window.location.href
         });
       }
     };
 
-    if (!paymentsLoaded) {
-      loadPayments();
-    }
+    const run = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        await Promise.all([
+          needPayments ? loadPayments() : Promise.resolve(),
+          needExams ? loadExamDetails() : Promise.resolve(),
+        ]);
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : 'Something went wrong';
+        if (!cancelled) setError(message);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
 
-    if (!examDetailsLoaded) {
-      loadExamDetails();
-    }
+    void run();
+    return () => {
+      cancelled = true;
+    };
   }, [uid, dispatch, paymentsLoaded, examDetailsLoaded]);
 
-  if (loading) return <p>Loading...</p>;
-  if (error) return <p>Error: {error}</p>;
+  if (!uid?.trim()) {
+    return (
+      <Box sx={{ py: 3, textAlign: 'center' }}>
+        <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.75)' }}>
+          Sign in to load your payments.
+        </Typography>
+      </Box>
+    );
+  }
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, py: 6 }}>
+        <CircularProgress size={28} sx={{ color: '#8b5cf6' }} />
+        <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+          Loading payments…
+        </Typography>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ py: 2 }}>
+        <Typography variant="body2" sx={{ color: '#fecaca' }}>
+          {error}
+        </Typography>
+      </Box>
+    );
+  }
 
   const paidExamIds = payments.map(payment => payment.formId);
   const pendingPayments = examDetails.filter(exam => !paidExamIds.includes(exam.formId) && exam.paymentNeeded);
 
   return (
     <div className="w-full payments-tabs">
-     
+
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 bg-[rgba(30,41,59,0.6)] border-b border-[rgba(255,255,255,0.1)] relative">
-          <TabsTrigger 
-            value="pendingPayments" 
+          <TabsTrigger
+            value="pendingPayments"
             className="data-[state=active]:text-[#8b5cf6] data-[state=active]:!bg-transparent text-[rgba(255,255,255,0.7)] hover:text-white transition-colors relative z-10"
           >
             Pending Payments
           </TabsTrigger>
-          <TabsTrigger 
+          <TabsTrigger
             value="paymentsHistory"
             className="data-[state=active]:text-[#8b5cf6] data-[state=active]:!bg-transparent text-[rgba(255,255,255,0.7)] hover:text-white transition-colors relative z-10"
           >
             Payments History
           </TabsTrigger>
           {/* Active tab indicator */}
-          <div className="absolute bottom-0 h-0.5 bg-[#8b5cf6] transition-all duration-300 ease-in-out z-0" 
+          <div className="absolute bottom-0 h-0.5 bg-[#8b5cf6] transition-all duration-300 ease-in-out z-0"
                style={{
                  width: '50%',
                  transform: activeTab === 'pendingPayments' ? 'translateX(0%)' : 'translateX(100%)'

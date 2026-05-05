@@ -17,7 +17,7 @@ export const GREENFIELD_SCHOOL_DISPLAY = {
   city: 'Bangalore',
   state: 'Karnataka',
   board: 'CBSE',
-  udise: '29290300301',
+  udise_code: '29290300301',
   subscriptionPlan: 'Standard (₹3 lakh / yr)',
   institutionalTier: 'gold',
 };

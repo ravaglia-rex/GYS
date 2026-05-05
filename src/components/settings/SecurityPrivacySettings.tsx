@@ -37,8 +37,9 @@ import {
   Bell,
   Globe,
 } from 'lucide-react';
-import { updatePassword, signOut } from 'firebase/auth';
+import { updatePassword } from 'firebase/auth';
 import { auth } from '../../firebase/firebase';
+import { signOutStudentAndClearSession } from '../../services/studentActiveSession';
 import { useNavigate } from 'react-router-dom';
 
 const SecurityPrivacySettings: React.FC = () => {
@@ -171,7 +172,7 @@ const SecurityPrivacySettings: React.FC = () => {
 
   const handleReauthRedirect = async () => {
     try {
-      await signOut(auth);
+      await signOutStudentAndClearSession();
       navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);

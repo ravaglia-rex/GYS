@@ -81,11 +81,19 @@ export interface ExamQuestion {
   id: string;
   prompt: string;
   options: string[];
+  /** Extra stem line from canonical `presentation.instruction`. */
+  instruction?: string;
+  /** Canonical pattern-logic payload for richer renderers (optional). */
+  stimulus?: unknown;
+  stimulus_type?: string;
+  option_layout?: string;
   image_url?: string;
   difficulty?: number;
   passage?: string;
   audio_url?: string;
   question_type?: QuestionInteractionType;
+  /** Original nested presentation when present (answer fields stripped server-side). */
+  presentation?: Record<string, unknown>;
 }
 
 export interface RecordAnswerResponse {
@@ -176,11 +184,15 @@ export const completeExam = async (uid: string, attempt_id: string): Promise<Com
   return response.data;
 };
 
-export const abandonExam = async (uid: string, attempt_id: string): Promise<AbandonExamResponse> => {
+export const abandonExam = async (
+  uid: string,
+  attempt_id: string,
+  abandon_reason?: 'user_confirmed_exit' | 'extended_background'
+): Promise<AbandonExamResponse> => {
   const authToken = await authTokenHandler.getAuthToken();
   const response = await axios.post(
     `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${ASSESSMENTS_APIS}${ABANDON_EXAM}`,
-    { uid, attempt_id },
+    { uid, attempt_id, ...(abandon_reason ? { abandon_reason } : {}) },
     { headers: { Authorization: `Bearer ${authToken}` } }
   );
   return response.data;

@@ -232,7 +232,7 @@ function applyTier1PatchSubset(students: StudentRow[]): void {
     ...g6.slice(0, GREENFIELD_TIER1_PATCH_GRADE6_COUNT).map((s) => s.uid),
     ...g7.slice(0, GREENFIELD_TIER1_PATCH_GRADE7_COUNT).map((s) => s.uid),
   ]);
-  /** Keep one student as Explorer so the preview shows all six tiers (Diamond stays violet — Explorer teal in UI). */
+  /** Keep one student as Explorer so the preview shows all six tiers (Diamond stays violet - Explorer teal in UI). */
   const SKIP_TIER1_FOR_EXPLORER_PREVIEW_UID = 'greenfield_preview_0000';
   for (const s of students) {
     if (!targets.has(s.uid)) continue;

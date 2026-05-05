@@ -4,6 +4,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../firebase/firebase';
 import BigSpinner from '../ui/BigSpinner';
 import analytics from '../../segment/segment';
+import StudentSessionSync from './StudentSessionSync';
 
 interface ProtectedProps {
   children: ReactNode;
@@ -49,7 +50,12 @@ const Protected: React.FC<ProtectedProps> = ({ children }) => {
     return <BigSpinner/>;
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      <StudentSessionSync />
+      {children}
+    </>
+  );
 };
 
 export default Protected;

@@ -27,13 +27,13 @@ export const MOCK_LEADERBOARD_LAST_UPDATED = new Date();
 export function formatLeaderboardDateTime(d: Date | string | number): string {
   try {
     const date = d instanceof Date ? d : new Date(d);
-    if (Number.isNaN(date.getTime())) return '—';
+    if (Number.isNaN(date.getTime())) return '-';
     return new Intl.DateTimeFormat(undefined, {
       dateStyle: 'medium',
       timeStyle: 'short',
     }).format(date);
   } catch {
-    return '—';
+    return '-';
   }
 }
 
@@ -45,12 +45,28 @@ export function clampToLeaderboardGrade(grade: unknown): LeaderboardGrade {
   return c as LeaderboardGrade;
 }
 
+/**
+ * Score comparisons use the cohort difficulty level for the grade band:
+ * grades 6–7 → Level 1, 8–9 → Level 2, 10–12 → Level 3.
+ */
+export function leaderboardScoreLevelForGrade(grade: number): 1 | 2 | 3 {
+  const g = Math.round(grade);
+  if (g <= 7) return 1;
+  if (g <= 9) return 2;
+  return 3;
+}
+
+/** Shown next to the “Score” column heading (updates when the grade toggle changes). */
+export function leaderboardScoreLevelHeadingSuffix(grade: number): string {
+  return `(Level ${leaderboardScoreLevelForGrade(grade)})`;
+}
+
 export interface LeaderboardEntry {
   rank: number;
   studentName: string;
   /** Absolute score on the programme scale (each exam out of 1000 in the UI). */
   scorePoints: number;
-  /** ISO 8601 — best official attempt used for this row (that exam). */
+  /** ISO 8601 - best official attempt used for this row (that exam). */
   examTakenAtISO: string;
 }
 
@@ -132,7 +148,7 @@ function buildTopTenForExam(grade: LeaderboardGrade, examIndex: number, examId: 
   const gradeLift = (grade - LEADERBOARD_GRADE_MIN) * 0.35;
   const examBias = EXAM_SCORE_BIAS[examId] ?? 0;
 
-  // #10 anchor — still a solid score; older grades nudge slightly higher
+  // #10 anchor - still a solid score; older grades nudge slightly higher
   let tenth = Math.round(76 + rand() * 8 + gradeLift + examBias);
   tenth = Math.min(88, Math.max(70, tenth));
 

@@ -835,7 +835,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
           </Typography>
           <Typography variant="body2" sx={{ color: ip.subtext, mb: 1, lineHeight: 1.55 }}>
             <strong>GYS performance tiers</strong> are the nationwide normed bands from each student&apos;s profile (Explorer through Diamond).
-            Separately, <strong>proficiency levels</strong> summarize per-assessment progress as three difficulty bands—useful for where to focus{' '}
+            Separately, <strong>proficiency levels</strong> summarize per-assessment progress as three difficulty bands-useful for where to focus{' '}
             instruction next.
           </Typography>
           <Box sx={{ mb: 3 }}>
@@ -850,7 +850,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
           </Box>
           <Typography variant="body2" sx={{ color: ip.subtext, mb: 1, lineHeight: 1.55 }}>
             For proficiency, we only look at assessments students have <strong>started or completed</strong>. Their overall proficiency band is the{' '}
-            <strong>lowest</strong> level among those—so if they’re strong in one subject but still in Level 1 on another, they count in Level 1
+            <strong>lowest</strong> level among those-so if they’re strong in one subject but still in Level 1 on another, they count in Level 1
             (that’s the gap to close first).
           </Typography>
           <Typography variant="caption" sx={{ color: ip.subtext, mb: 2, display: 'block', lineHeight: 1.5 }}>

@@ -96,7 +96,7 @@ const ASSESSMENT_META: Record<string, {
     color: '#a855f7',
     gradient: 'linear-gradient(135deg, #a855f7 0%, #6d28d9 100%)',
     icon: '🧭',
-    description: 'Interest inventory and career discovery — Guided Decision; completes after personality.',
+    description: 'Interest inventory and career discovery - Guided Decision; completes after personality.',
     languages: [],
   },
 };
@@ -360,7 +360,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
               <Box sx={{ display: 'flex', gap: 3 }}>
                 {scoreDisplay !== null && (
                   <Box>
-                    <Tooltip title="Points are from your most recently graded attempt. The level line is that attempt’s tier — it can differ from “levels cleared” until you submit your current tier.">
+                    <Tooltip title="Points are from your most recently graded attempt. The level line is that attempt’s tier - it can differ from “levels cleared” until you submit your current tier.">
                       <Typography
                         variant="caption"
                         sx={{

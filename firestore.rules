@@ -43,5 +43,10 @@ service cloud.firestore {
       allow read, update, delete: if request.auth != null && request.auth.uid == studentUid;
       allow create: if request.auth != null && request.auth.uid == studentUid;
     }
+
+    // Single active session marker for student portal (client sync only; doc id = Firebase uid).
+    match /user_sessions/{uid} {
+      allow read, write, delete: if request.auth != null && request.auth.uid == uid;
+    }
   }
 }

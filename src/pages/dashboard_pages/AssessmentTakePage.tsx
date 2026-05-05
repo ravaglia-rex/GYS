@@ -229,7 +229,7 @@ export default function AssessmentTakePage() {
     async (message: string) => {
       if (!attemptId || !uid) return;
       try {
-        const res = await abandonExam(uid, attemptId);
+        const res = await abandonExam(uid, attemptId, 'extended_background');
         if (res.suspended && res.suspended_until_ms) {
           window.alert(
             `Your account is temporarily suspended from starting new assessments until ${new Date(res.suspended_until_ms).toLocaleString()}.`
@@ -382,7 +382,7 @@ export default function AssessmentTakePage() {
     }
     setAbandoning(true);
     try {
-      const res = await abandonExam(uid, attemptId);
+      const res = await abandonExam(uid, attemptId, 'user_confirmed_exit');
       setLeaveDialogOpen(false);
       if (res.suspended && res.suspended_until_ms) {
         window.alert(

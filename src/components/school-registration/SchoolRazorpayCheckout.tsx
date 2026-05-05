@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
+import { createPortal, flushSync } from 'react-dom';
 import { useToast } from '../ui/use-toast';
+import { LoadingSpinner } from '../ui/spinner';
 import {
   createSchoolRazorpayOrder,
   verifySchoolRazorpayPayment,
@@ -75,6 +77,8 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
   onSuccess,
 }) => {
   const [busy, setBusy] = useState(false);
+  /** Full-screen overlay while the Razorpay modal is gone but we are verifying / handing off to success UI. */
+  const [confirmingPayment, setConfirmingPayment] = useState(false);
   const [checkoutPhone, setCheckoutPhone] = useState('');
   const [checkoutPan, setCheckoutPan] = useState('');
   const [fieldErrors, setFieldErrors] = useState<{ phone?: string; pan?: string }>({});
@@ -207,19 +211,22 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
             return;
           }
           try {
+            flushSync(() => {
+              setConfirmingPayment(true);
+            });
             await verifySchoolRazorpayPayment({
               school_id: schoolId,
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
             });
-            setBusy(false);
             toast({
               title: 'Payment successful',
               description: 'Your institutional package payment was confirmed.',
             });
             onSuccess();
           } catch (err: unknown) {
+            setConfirmingPayment(false);
             setBusy(false);
             const message = err instanceof Error ? err.message : 'Verification failed';
             Sentry.withScope((scope) => {
@@ -285,9 +292,36 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
     }
   };
 
+  const confirmingOverlay =
+    confirmingPayment &&
+    typeof document !== 'undefined' &&
+    createPortal(
+      <div
+        className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/65 px-4 backdrop-blur-[2px]"
+        role="alertdialog"
+        aria-busy="true"
+        aria-live="polite"
+        aria-labelledby="school-rzp-confirm-title"
+        aria-describedby="school-rzp-confirm-desc"
+      >
+        <div className="max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-xl">
+          <div className="mb-4 flex justify-center text-[#1e3a8a]">
+            <LoadingSpinner size={40} className="opacity-90" />
+          </div>
+          <h2 id="school-rzp-confirm-title" className="text-lg font-semibold text-slate-900">
+            Confirming your payment
+          </h2>
+          <p id="school-rzp-confirm-desc" className="mt-2 text-sm leading-relaxed text-slate-600">
+            Please wait while we secure your registration. Do not refresh or close this page.
+          </p>
+        </div>
+      </div>,
+      document.body
+    );
+
   return (
     <div className="mt-4 w-full space-y-4 text-left">
-    
+      {confirmingOverlay}
       <div>
         <label className="block text-xs font-semibold text-slate-700 mb-1">
           India mobile number<span className="text-red-500"> *</span>

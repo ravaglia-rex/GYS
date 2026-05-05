@@ -288,8 +288,8 @@ function SchoolAdminSubscriptionPage() {
             </Typography>
             <Typography sx={{ mt: 0.75, color: '#1e293b', fontSize: { xs: '0.9375rem', sm: '1rem' }, lineHeight: 1.6 }}>
               India&apos;s most trusted name in school assessment and ranking. Your data, our expertise.
-              For the past 20 years, the annual EducationWorld India School Rankings — the world&apos;s
-              largest and most comprehensive schools survey — has stimulated and motivated institutional
+              For the past 20 years, the annual EducationWorld India School Rankings - the world&apos;s
+              largest and most comprehensive schools survey - has stimulated and motivated institutional
               managements to strive for delivering balanced holistic education and benchmark themselves
               with globally admired schools.
             </Typography>

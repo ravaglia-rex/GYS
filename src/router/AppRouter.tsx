@@ -37,6 +37,12 @@ const StudentPreviewLeaderboardPage = React.lazy(
 const StudentPreviewPracticePage = React.lazy(
   () => import('../pages/landing/preview/StudentPreviewPracticePage')
 );
+const StudentPreviewBillingPage = React.lazy(
+  () => import('../pages/landing/preview/StudentPreviewBillingPage')
+);
+const StudentPreviewSettingsPage = React.lazy(
+  () => import('../pages/landing/preview/StudentPreviewSettingsPage')
+);
 
 /*
 AUTHENTICATION PAGES: These are the pages that are used for the signup and login process
@@ -247,23 +253,17 @@ const AppRouter: React.FC = () => {
           <Route
             path="payments"
             element={
-              <PreviewStubPage
-                title="Billing & Payments"
-                body="Manage membership and payment history in the live portal after you create an account."
-                backPath="/students/preview/dashboard"
-                backLabel="Back to Dashboard"
-              />
+              <Suspense fallback={<BigSpinner />}>
+                <StudentPreviewBillingPage />
+              </Suspense>
             }
           />
           <Route
             path="settings"
             element={
-              <PreviewStubPage
-                title="Settings"
-                body="Update your profile, password, and preferences here once you are logged in."
-                backPath="/students/preview/dashboard"
-                backLabel="Back to Dashboard"
-              />
+              <Suspense fallback={<BigSpinner />}>
+                <StudentPreviewSettingsPage />
+              </Suspense>
             }
           />
         </Route>

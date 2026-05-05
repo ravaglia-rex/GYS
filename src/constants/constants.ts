@@ -35,6 +35,7 @@ export const SCHOOLS_APIS = '/schools';
 export const SCHOOL_ADMINS_APIS = '/schooladmins';
 export const STUDENTS_APIS = '/students';
 export const ASSESSMENTS_APIS = '/assessments';
+export const PRACTICE_APIS = '/practice';
 export const RAZORPAY_APIS = '/razorpay';
 export const EMAIL_CHECK_APIS = '/emailCheck';
 
@@ -72,6 +73,10 @@ export const INITIALIZE_EXAM='/initializeExam';
 export const RECORD_ANSWER='/recordAnswer';
 export const COMPLETE_EXAM='/completeExam';
 export const ABANDON_EXAM='/abandonExam';
+
+// Practice bank (skill drills – authenticated)
+export const GET_PRACTICE_POOL_COUNTS='/poolCounts';
+export const GET_PRACTICE_QUESTIONS='/questions';
 
 // Razorpay
 export const CREATE_RAZORPAY_CUSTOMER='/createCustomer';

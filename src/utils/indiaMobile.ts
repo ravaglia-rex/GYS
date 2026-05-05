@@ -1,4 +1,4 @@
-/** Same rules as backend `normalizeIndiaMobileE164` — E.164 India mobile. */
+/** Same rules as backend `normalizeIndiaMobileE164` - E.164 India mobile. */
 export function normalizeIndiaMobileE164(raw: string): string | null {
   const s = raw.trim().replace(/\s/g, '');
   if (!s) return null;

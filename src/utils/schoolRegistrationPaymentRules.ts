@@ -5,7 +5,7 @@
 export const RAZORPAY_PARTY_NAME_MIN = 5;
 export const RAZORPAY_PARTY_NAME_MAX = 50;
 
-/** Shipping address line1 — Razorpay input_validation_failed if too short/long. */
+/** Shipping address line1 - Razorpay input_validation_failed if too short/long. */
 export const RAZORPAY_SHIP_LINE1_MIN = 5;
 export const RAZORPAY_SHIP_LINE1_MAX = 255;
 

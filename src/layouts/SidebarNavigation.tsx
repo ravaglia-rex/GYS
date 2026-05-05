@@ -13,6 +13,7 @@ import {
   Button
 } from '@mui/material';
 import {
+  Home as HomeIcon,
   Dashboard as DashboardIcon,
   School as SchoolIcon,
   Assessment as AssessmentIcon,
@@ -29,7 +30,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../firebase/firebase';
-import { signOut } from 'firebase/auth';
+import { signOutStudentAndClearSession } from '../services/studentActiveSession';
 
 interface SidebarNavigationProps {
   collapsed: boolean;
@@ -45,6 +46,11 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
+  {
+    title: 'Home',
+    path: '/',
+    icon: <HomeIcon sx={{ color: '#38bdf8' }} />,
+  },
   {
     title: 'Dashboard',
     path: '/dashboard',
@@ -108,7 +114,7 @@ export default function SidebarNavigation({ collapsed, onCollapse, onClose }: Si
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
+      await signOutStudentAndClearSession();
       navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);
@@ -116,6 +122,9 @@ export default function SidebarNavigation({ collapsed, onCollapse, onClose }: Si
   };
 
   const isActive = (path: string) => {
+    if (path === '/') {
+      return location.pathname === '/';
+    }
     return location.pathname === path || location.pathname.startsWith(path + '/');
   };
 

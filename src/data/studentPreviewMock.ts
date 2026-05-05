@@ -15,12 +15,40 @@ const mkTiers = (n: number) =>
     name: `Level ${i + 1}`,
   }));
 
+/**
+ * Single fictional learner for all `/students/preview/*` pages (dashboard, settings, billing copy).
+ * `membershipExpiryLabel` is the date/month phrase only - dashboard UI adds “Active until ”.
+ */
 export const PREVIEW_STUDENT_PROFILE = {
   firstName: 'Aanya',
+  /** Full name on preview settings (same student as `firstName`). */
+  displayName: 'Aanya Sharma',
+  email: 'aanya.preview@example.com',
+  phoneNumber: '+91 98765 43210',
   grade: 10,
+  /** Matches `grade` for settings dropdowns */
+  gradeLabel: '10th Grade' as const,
   schoolName: 'Navrion Future Academy',
-  membershipLevelLabel: 'Membership 2 • Reasoning + Skills',
-  membershipExpiryLabel: 'Active until Mar 2027',
+  membershipLevelLabel: 'Reasoning + Skills',
+  membershipExpiryLabel: 'Mar 2027',
+  parentName: 'Neha Sharma',
+  parentEmail: 'neha.sharma@example.com',
+  parentPhone: '+91 91234 56780',
+  about:
+    'Grade 10 learner at Navrion Future Academy - same sample profile as the preview dashboard.',
+};
+
+/** Profile form defaults for preview settings - derived from {@link PREVIEW_STUDENT_PROFILE}. */
+export const PREVIEW_SETTINGS_FORM_INITIAL = {
+  displayName: PREVIEW_STUDENT_PROFILE.displayName,
+  email: PREVIEW_STUDENT_PROFILE.email,
+  phoneNumber: PREVIEW_STUDENT_PROFILE.phoneNumber,
+  schoolName: PREVIEW_STUDENT_PROFILE.schoolName,
+  grade: PREVIEW_STUDENT_PROFILE.gradeLabel,
+  parentName: PREVIEW_STUDENT_PROFILE.parentName,
+  parentEmail: PREVIEW_STUDENT_PROFILE.parentEmail,
+  parentPhone: PREVIEW_STUDENT_PROFILE.parentPhone,
+  about: PREVIEW_STUDENT_PROFILE.about,
 };
 
 export const PREVIEW_DASHBOARD_STATS = {
@@ -42,7 +70,7 @@ export const PREVIEW_ASSESSMENT_TYPES: AssessmentType[] = [
 
 /**
  * Reasoning + Skills package. Reasoning triad complete; English passed L1–L2, focused on L3
- * (latest graded attempt was still L2 — clears “2/3 levels” vs “Level” under score).
+ * (latest graded attempt was still L2 - clears “2/3 levels” vs “Level” under score).
  * AI level 1 not yet attempted - comprehensive stays prerequisite-locked until AI is finished.
  */
 export const PREVIEW_ASSESSMENT_PROGRESS: Record<string, AssessmentProgress> = {
@@ -101,7 +129,7 @@ export const PREVIEW_ASSESSMENT_PROGRESS: Record<string, AssessmentProgress> = {
 
 export const PREVIEW_MEMBERSHIP_LEVEL = 3;
 
-/** Chart rows for preview dashboard — same Exam 1–5 slots as the live dashboard. */
+/** Chart rows for preview dashboard - same Exam 1–5 slots as the live dashboard. */
 export function getPreviewAssessmentBestTierChartData(): AssessmentChartRow[] {
   return buildDashboardExamChartRows(
     PREVIEW_ASSESSMENT_TYPES,

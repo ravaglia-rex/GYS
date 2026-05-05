@@ -100,9 +100,6 @@ export type CreateSchoolRazorpayOrderResponse = {
   /** Razorpay Import Flow - pass to Standard Checkout options. */
   customer_id?: string;
   plan_id: string;
-  test_mode_amounts?: boolean;
-  /** True when API uses ₹1/₹2/₹3 micro test amounts (SCHOOL_RAZORPAY_MICRO_TEST). */
-  test_micro_amounts?: boolean;
   /** When API sets RAZORPAY_CHECKOUT_CONFIG_ID - pass through to Checkout options. */
   checkout_config_id?: string;
 };

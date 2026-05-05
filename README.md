@@ -21,5 +21,5 @@ Output is in `build/`. Production deploys for the public site are handled by **V
 
 ## Other
 
-- `npm test` — Jest in watch mode (see [CRA testing](https://create-react-app.dev/docs/running-tests/)).
-- `npm run eject` — optional; permanently exposes CRA config. Not required for normal work.
+- `npm test` - Jest in watch mode (see [CRA testing](https://create-react-app.dev/docs/running-tests/)).
+- `npm run eject` - optional; permanently exposes CRA config. Not required for normal work.

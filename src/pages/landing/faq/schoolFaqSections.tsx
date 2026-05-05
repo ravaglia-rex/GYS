@@ -18,7 +18,7 @@ export const schoolFaqSections: { heading: string; items: LandingFaqItem[] }[] =
         question: 'What is GYS?',
         answer: (
           <p>
-            Global Young Scholar (GYS) is a sequential assessment and guidance program for students in Classes 6–12. It helps identify students who show exceptional promise for higher education while giving schools a clearer view of student performance — individually, by class, and in aggregate — against national and international benchmarks.
+            Global Young Scholar (GYS) is a sequential assessment and guidance program for students in Classes 6–12. It helps identify students who show exceptional promise for higher education while giving schools a clearer view of student performance - individually, by class, and in aggregate - against national and international benchmarks.
 
 The GYS suite includes seven assessments across three tracks: Reasoning, Skills, and Insights. These assess symbolic reasoning, verbal reasoning, mathematical reasoning, English and communication skills, AI proficiency, personality, interests, and career discovery.
 
@@ -32,7 +32,7 @@ Students earn GYS Performance Tiers that signal academic readiness, growth, and 
           <p>
             GYS assessment data contributes approximately 15% to a school’s EducationWorld India School Ranking, serving as an assessment-backed input into the ranking methodology.
 
-EducationWorld considers both participation — how many eligible students complete GYS assessments — and performance — how students perform across the assessment suite. Participating schools receive a GYS performance designation, updated periodically, that feeds into the EducationWorld rankings framework.
+EducationWorld considers both participation - how many eligible students complete GYS assessments - and performance - how students perform across the assessment suite. Participating schools receive a GYS performance designation, updated periodically, that feeds into the EducationWorld rankings framework.
 
 For schools seeking to improve or maintain their ranking position, GYS provides a clear, actionable way to demonstrate student achievement through structured, comparable assessment data.
           </p>
@@ -106,7 +106,7 @@ A certified proctored version may be introduced in the future if needed.
           <p>
            Students can register using personal email addresses, including Gmail or other commonly used accounts.
 
-Schools can provide a list of student email addresses — school-issued or personal — so registered students can be associated with the correct school. Alternatively, GYS can provide a school-specific tagged registration link to share with families. Students who register through that link are automatically associated with your school.
+Schools can provide a list of student email addresses - school-issued or personal - so registered students can be associated with the correct school. Alternatively, GYS can provide a school-specific tagged registration link to share with families. Students who register through that link are automatically associated with your school.
           </p>
         ),
       },
@@ -116,7 +116,7 @@ Schools can provide a list of student email addresses — school-issued or perso
           <p>
             For students whose assessment access is provided through your school’s institutional package, your school receives reporting on Reasoning and Skills assessments, including scores, subscores, performance tiers, and aggregate/class-level insights.
 
-The Insights assessments — including personality, interests, motivations, and career-discovery information — are private to students by default. Students may choose to share this information with their school, parents, or counselors, but it is not automatically included in school-facing reports.
+The Insights assessments - including personality, interests, motivations, and career-discovery information - are private to students by default. Students may choose to share this information with their school, parents, or counselors, but it is not automatically included in school-facing reports.
 
 For students who subscribe independently through their families, school-level attribution may still count toward participation and recognition where applicable, but individual student data is not shared with the school unless the student or family has provided the required consent.
 
@@ -147,17 +147,17 @@ This approach allows schools to understand academic readiness and skill developm
             <p>GYS offers three institutional packages:</p>
             <ul>
               <li>
-                <strong>Entry</strong> — {SCHOOL_INSTITUTIONAL_PRICE_LANDING.entry} (
+                <strong>Entry</strong> - {SCHOOL_INSTITUTIONAL_PRICE_LANDING.entry} (
                 {INSTITUTIONAL_PLAN_STUDENT_LIMIT.entry}). Includes Assessment 1 (Pattern and Logic) for
                 rostered students, basic institutional reporting, and quarterly performance updates.
               </li>
               <li>
-                <strong>Standard</strong> — {SCHOOL_INSTITUTIONAL_PRICE_LANDING.standard} (
+                <strong>Standard</strong> - {SCHOOL_INSTITUTIONAL_PRICE_LANDING.standard} (
                 {INSTITUTIONAL_PLAN_STUDENT_LIMIT.standard}). Includes Exams 1–3 (the full reasoning triad),
                 detailed analytics, comparative peer analysis, and student-level and class-level breakdowns.
               </li>
               <li>
-                <strong>Premium</strong> — {SCHOOL_INSTITUTIONAL_PRICE_LANDING.premium} (
+                <strong>Premium</strong> - {SCHOOL_INSTITUTIONAL_PRICE_LANDING.premium} (
                 {INSTITUTIONAL_PLAN_STUDENT_LIMIT.premium}). Includes Exams 1–5 (reasoning triad plus English
                 proficiency and AI proficiency), cohort and partnership benefits in the institutional matrix,
                 plus dedicated support and implementation assistance.
