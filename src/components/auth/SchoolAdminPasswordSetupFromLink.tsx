@@ -12,7 +12,7 @@ import {
   FormMessage,
 } from "../ui/form";
 import { Button } from "../ui/button";
-import { Input } from "../ui/input";
+import { PasswordInput } from "../ui/password-input";
 import { LoadingSpinner as Spinner } from "../ui/spinner";
 import { useToast } from "../ui/use-toast";
 import { checkActionCode, confirmPasswordReset, signInWithEmailAndPassword, signOut, verifyPasswordResetCode } from "firebase/auth";
@@ -176,9 +176,9 @@ const SchoolAdminPasswordSetupFromLink: React.FC<SchoolAdminPasswordSetupFromLin
               <FormItem>
                 <FormLabel className="text-sm font-medium text-slate-200">Password</FormLabel>
                 <FormControl>
-                  <Input
+                  <PasswordInput
+                    variant="dark"
                     className="h-11 border-white/15 bg-slate-950/50 text-base text-white placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    type="password"
                     autoComplete="new-password"
                     placeholder="Create your password"
                     {...field}
@@ -196,9 +196,9 @@ const SchoolAdminPasswordSetupFromLink: React.FC<SchoolAdminPasswordSetupFromLin
               <FormItem>
                 <FormLabel className="text-sm font-medium text-slate-200">Confirm password</FormLabel>
                 <FormControl>
-                  <Input
+                  <PasswordInput
+                    variant="dark"
                     className="h-11 border-white/15 bg-slate-950/50 text-base text-white placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    type="password"
                     autoComplete="new-password"
                     placeholder="Confirm your password"
                     {...field}

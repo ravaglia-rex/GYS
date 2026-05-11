@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Box, Button, CircularProgress, Paper, Typography } from '@mui/material';
+import { Box, Button, CircularProgress, Paper, Tooltip, Typography } from '@mui/material';
 import { TrendingUp } from 'lucide-react';
 import { auth } from '../../firebase/firebase';
 import { getStudent, StudentProfileError } from '../../db/studentCollection';
@@ -46,6 +46,34 @@ function razorpayPaymentFailedUserMessage(payload: unknown): string {
 }
 
 const TARGETS: Array<1 | 2 | 3 | 4> = [1, 2, 3, 4];
+
+/** Same layout copy as the dashboard billing preview – package names come from `MEMBERSHIP_LEVEL_LABEL`. */
+const MEMBERSHIP_PACKAGE_CARDS: Array<{
+  level: 1 | 2 | 3 | 4;
+  blurb: string;
+  note: string;
+}> = [
+  {
+    level: 1,
+    blurb: 'One-time Trial entry - Symbolic Reasoning (Exam 1).',
+    note: 'Not annual',
+  },
+  {
+    level: 2,
+    blurb: 'Annual - Exams 1–3 (Reasoning track).',
+    note: 'Annual billing',
+  },
+  {
+    level: 3,
+    blurb: 'Annual - adds English & AI (Exams 4–5).',
+    note: 'Annual billing',
+  },
+  {
+    level: 4,
+    blurb: 'Annual - Insight exams & counseling features (6–7).',
+    note: 'Annual billing',
+  },
+];
 
 const MembershipUpgradeSection: React.FC = () => {
   const { toast } = useToast();
@@ -271,86 +299,167 @@ const MembershipUpgradeSection: React.FC = () => {
     );
   }
 
-  const upgrades = TARGETS.map((t) => {
-    const paise = studentMembershipUpgradeAmountPaise(membershipLevel, t);
-    return paise === null ? null : { target: t, paise };
-  }).filter((x): x is { target: 1 | 2 | 3 | 4; paise: number } => x !== null);
+  const atHighestTier =
+    membershipLevel === 4 ||
+    TARGETS.every((t) => studentMembershipUpgradeAmountPaise(membershipLevel, t) === null);
 
   return (
     <Paper
       sx={{
-        backgroundColor: 'rgba(30, 41, 59, 0.8)',
-        backdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
         p: 3,
         mb: 4,
+        backgroundColor: 'rgba(30, 41, 59, 0.85)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
         <TrendingUp size={22} color="#a78bfa" />
         <Typography variant="h6" sx={{ color: 'white', fontWeight: 600 }}>
-          Membership packages
+          Membership Packages
         </Typography>
       </Box>
-      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.72)', mb: 2 }}>
-        Four packages: <Box component="span" sx={{ fontWeight: 600 }}>Trial</Box> (Discovery entry, one-time) and three
-        annual options - <Box component="span" sx={{ fontWeight: 600 }}>Reasoning Triad</Box>,{' '}
-        <Box component="span" sx={{ fontWeight: 600 }}>Reasoning + Skills</Box>, and{' '}
-        <Box component="span" sx={{ fontWeight: 600 }}>Guided Decision</Box>. Current plan:{' '}
-        <Box component="span" sx={{ color: '#e9d5ff', fontWeight: 600 }}>
-          {membershipLevel === 0
-            ? 'No paid package yet'
-            : MEMBERSHIP_LEVEL_LABEL[membershipLevel as 1 | 2 | 3 | 4]}
-        </Box>
-        . Prices include 18% GST; you only pay the difference when moving up. Trial (Discovery) is credited toward
-        higher packages the same way - list-price difference only.
+      <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)', mb: 2 }}>
+        Trial first, then three annual packages - Reasoning Triad, Reasoning + Skills, and Guided Decision. Your current
+        package is highlighted. Amounts shown are list prices (excluding GST); applicable tax is added on the Razorpay
+        payment screen. When upgrading you pay only the list-price difference (Trial Discovery credits toward higher
+        tiers the same way).
       </Typography>
-
-      {upgrades.length === 0 ? (
-        <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.65)' }}>
+      {atHighestTier ? (
+        <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.65)', mb: 2 }}>
           You already have the highest package. Exam fees and other billing are below.
         </Typography>
-      ) : (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-          {upgrades.map(({ target, paise }) => (
-            <Box
-              key={target}
+      ) : null}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' },
+          gap: 2,
+        }}
+      >
+        {MEMBERSHIP_PACKAGE_CARDS.map((pkg) => {
+          const paise = studentMembershipUpgradeAmountPaise(membershipLevel, pkg.level);
+          const isCurrent = membershipLevel === pkg.level;
+          const isLowerTier = membershipLevel > pkg.level;
+          const upgradePriceLabel =
+            paise !== null ? formatInrFromPaise(paise) : null;
+          const checkoutBusy = busyTarget !== null;
+
+          return (
+            <Paper
+              key={pkg.level}
+              elevation={0}
               sx={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 2,
-                py: 1.5,
-                px: 2,
+                p: 2,
+                position: 'relative',
+                bgcolor: isCurrent ? 'rgba(139, 92, 246, 0.14)' : 'rgba(15, 23, 42, 0.6)',
+                border: isCurrent
+                  ? '2px solid rgba(167, 139, 250, 0.75)'
+                  : '1px solid rgba(139, 92, 246, 0.25)',
                 borderRadius: 2,
-                bgcolor: 'rgba(15, 23, 42, 0.5)',
-                border: '1px solid rgba(148, 163, 184, 0.2)',
+                boxShadow: isCurrent ? '0 0 24px rgba(139, 92, 246, 0.18)' : undefined,
               }}
             >
-              <Box>
-                <Typography sx={{ color: 'white', fontWeight: 600 }}>{MEMBERSHIP_LEVEL_LABEL[target]}</Typography>
-                <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.55)' }}>
-                  {formatInrFromPaise(paise)} today
+              {isCurrent ? (
+                <Typography
+                  sx={{
+                    position: 'absolute',
+                    top: 10,
+                    right: 10,
+                    fontSize: '0.65rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.06em',
+                    color: '#c4b5fd',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Current
                 </Typography>
-              </Box>
-              <Button
-                variant="contained"
-                disabled={busyTarget !== null}
-                onClick={() => void startUpgrade(target)}
+              ) : null}
+              <Typography
                 sx={{
-                  fontWeight: 700,
-                  borderRadius: 2,
-                  background: 'linear-gradient(45deg, #7c3aed, #2563eb)',
-                  '&:hover': { background: 'linear-gradient(45deg, #6d28d9, #1d4ed8)' },
+                  color: '#94a3b8',
+                  fontWeight: 600,
+                  fontSize: '0.7rem',
+                  letterSpacing: '0.06em',
+                  textTransform: 'uppercase',
                 }}
               >
-                {busyTarget === target ? 'Opening checkout…' : `Pay ${formatInrFromPaise(paise)}`}
-              </Button>
-            </Box>
-          ))}
-        </Box>
-      )}
+                {pkg.note}
+              </Typography>
+              <Typography
+                variant="subtitle1"
+                sx={{
+                  color: 'white',
+                  fontWeight: 700,
+                  mt: 0.75,
+                  lineHeight: 1.3,
+                  pr: isCurrent ? 5 : 0,
+                }}
+              >
+                {MEMBERSHIP_LEVEL_LABEL[pkg.level]}
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)', mb: 2, minHeight: 44 }}>
+                {pkg.blurb}
+              </Typography>
+              {isCurrent ? (
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  disabled
+                  sx={{
+                    borderColor: 'rgba(167, 139, 250, 0.6)',
+                    color: '#e9d5ff',
+                    fontWeight: 600,
+                  }}
+                >
+                  Current plan
+                </Button>
+              ) : isLowerTier ? (
+                <Tooltip title="You've already moved past this package.">
+                  <span>
+                    <Button fullWidth variant="outlined" disabled sx={{ borderColor: '#64748b', color: '#94a3b8' }}>
+                      Upgrade
+                    </Button>
+                  </span>
+                </Tooltip>
+              ) : paise !== null ? (
+                <Button
+                  fullWidth
+                  variant="contained"
+                  disabled={checkoutBusy}
+                  onClick={() => void startUpgrade(pkg.level)}
+                  sx={{
+                    fontWeight: 700,
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    color: '#fff',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 45%, #2563eb 100%)',
+                    boxShadow: '0 4px 14px rgba(124, 58, 237, 0.45)',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #6d28d9 0%, #4338ca 45%, #1d4ed8 100%)',
+                      boxShadow: '0 6px 18px rgba(124, 58, 237, 0.55)',
+                    },
+                    '&:disabled': {
+                      color: 'rgba(255,255,255,0.85)',
+                      background: 'linear-gradient(135deg, rgba(124,58,237,0.45), rgba(37,99,235,0.45))',
+                      boxShadow: 'none',
+                    },
+                  }}
+                >
+                  {busyTarget === pkg.level
+                    ? 'Opening checkout…'
+                    : `Pay ${upgradePriceLabel}`}
+                </Button>
+              ) : (
+                <Button fullWidth variant="outlined" disabled sx={{ borderColor: '#64748b', color: '#94a3b8' }}>
+                  —
+                </Button>
+              )}
+            </Paper>
+          );
+        })}
+      </Box>
     </Paper>
   );
 };

@@ -67,7 +67,7 @@ const PastPaymentsTable: React.FC<{ payments: Payment[] }> = ({ payments }) => {
             </TableBody>
             <TableFooter className="bg-[rgba(30,41,59,0.6)] border-t border-[rgba(255,255,255,0.1)]">
               <TableCell colSpan={4} className="text-[rgba(255,255,255,0.7)] text-center py-4">
-                If the status is "failed", please retry payment after an hour. If the issue persists, please contact support at <a href="mailto:hello@argus.ai" className="text-[#8b5cf6] hover:underline">email</a>.
+                If the status is "failed", please retry payment after an hour. If the issue persists, please contact support at <a href="mailto:globalyoungscholar@argus.ai" className="text-[#8b5cf6] hover:underline">email</a>.
               </TableCell>
             </TableFooter>
           </Table>

@@ -39,7 +39,8 @@ import {
 } from 'lucide-react';
 import { updatePassword } from 'firebase/auth';
 import { auth } from '../../firebase/firebase';
-import { signOutStudentAndClearSession } from '../../services/studentActiveSession';
+import { signOut } from 'firebase/auth';
+import authTokenHandler from '../../functions/auth_token/auth_token_handler';
 import { useNavigate } from 'react-router-dom';
 
 const SecurityPrivacySettings: React.FC = () => {
@@ -172,7 +173,8 @@ const SecurityPrivacySettings: React.FC = () => {
 
   const handleReauthRedirect = async () => {
     try {
-      await signOutStudentAndClearSession();
+      authTokenHandler.clearToken();
+      await signOut(auth);
       navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);

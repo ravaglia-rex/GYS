@@ -35,14 +35,14 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-/** Membership purchases only (Rev 13 list + GST - illustrative). Newest first. */
+/** Membership purchases only — Rev 13 list prices (excl. GST). Illustrative. Newest first. */
 const MOCK_PAID = [
   {
     transactionId: 'rzp_preview_skills_upgrade',
-    lineName: `Upgrade to ${MEMBERSHIP_LEVEL_LABEL[3]} (annual, difference incl. GST)`,
+    lineName: `Upgrade to ${MEMBERSHIP_LEVEL_LABEL[3]} (annual list-price difference)`,
     paidOn: new Date('2026-03-18'),
     status: 'Paid',
-    amount: 1062,
+    amount: 900,
     currency: 'INR',
   },
   {
@@ -50,7 +50,7 @@ const MOCK_PAID = [
     lineName: `${MEMBERSHIP_LEVEL_LABEL[2]} - Membership`,
     paidOn: new Date('2026-01-09'),
     status: 'Paid',
-    amount: 1061,
+    amount: 899,
     currency: 'INR',
   },
 ];

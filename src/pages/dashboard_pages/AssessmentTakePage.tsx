@@ -30,6 +30,7 @@ import {
   recordAnswer,
   completeExam,
   abandonExam,
+  abandonExamOnTabUnload,
   getAssessmentConfig,
   ExamQuestion,
   AssessmentType,
@@ -219,6 +220,8 @@ export default function AssessmentTakePage() {
   const [integrityGateOk, setIntegrityGateOk] = useState(needsPreExamStep);
   const [screenshotNudge, setScreenshotNudge] = useState(false);
   const questionStartTimeRef = useRef<number>(Date.now());
+  /** True after submit, confirmed leave, integrity abandon, or tab-unload beacon — skips duplicate fail-on-unload. */
+  const examEndedRef = useRef(false);
 
   const flow = assessmentId ? getAssessmentFlowDefinition(assessmentId) : getAssessmentFlowDefinition('');
   const assessmentConfig = configTypes.find((a) => a.id === assessmentId);
@@ -230,6 +233,7 @@ export default function AssessmentTakePage() {
       if (!attemptId || !uid) return;
       try {
         const res = await abandonExam(uid, attemptId, 'extended_background');
+        examEndedRef.current = true;
         if (res.suspended && res.suspended_until_ms) {
           window.alert(
             `Your account is temporarily suspended from starting new assessments until ${new Date(res.suspended_until_ms).toLocaleString()}.`
@@ -344,6 +348,18 @@ export default function AssessmentTakePage() {
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
   }, [stage, attemptId]);
 
+  /** Closing the tab/window or navigating away marks the attempt failed (keepalive request). Skip bfcache restores. */
+  useEffect(() => {
+    if (stage !== 'taking' || !attemptId || !uid) return;
+    const onPageHide = (e: PageTransitionEvent) => {
+      if (e.persisted) return;
+      if (examEndedRef.current) return;
+      abandonExamOnTabUnload(uid, attemptId);
+    };
+    window.addEventListener('pagehide', onPageHide);
+    return () => window.removeEventListener('pagehide', onPageHide);
+  }, [stage, attemptId, uid]);
+
   // Keyboard refresh (F5, Ctrl/Cmd+R, hard reload) → same leave dialog. Toolbar refresh only hits beforeunload (browser-native prompt).
   useEffect(() => {
     if (stage !== 'taking' || !attemptId) return;
@@ -383,6 +399,7 @@ export default function AssessmentTakePage() {
     setAbandoning(true);
     try {
       const res = await abandonExam(uid, attemptId, 'user_confirmed_exit');
+      examEndedRef.current = true;
       setLeaveDialogOpen(false);
       if (res.suspended && res.suspended_until_ms) {
         window.alert(
@@ -415,6 +432,7 @@ export default function AssessmentTakePage() {
 
       if (response.done) {
         const result = await completeExam(uid, attemptId);
+        examEndedRef.current = true;
         setStage('complete');
         navigate(`/assessments/${assessmentId}/result`, {
           state: {
@@ -571,6 +589,9 @@ export default function AssessmentTakePage() {
       onSelectOption={setSelectedOption}
       theme={flow.theme}
       renderMath={mathExam}
+      questionReport={
+        uid && attemptId && currentQuestion ? { kind: 'official', uid, attemptId } : null
+      }
     />
   );
 

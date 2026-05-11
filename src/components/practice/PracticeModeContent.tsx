@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Alert,
   Avatar,
@@ -7,6 +8,12 @@ import {
   Card,
   CardContent,
   Chip,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   Divider,
   LinearProgress,
   Snackbar,
@@ -19,6 +26,7 @@ import {
   CheckCircleOutline as CheckCircleOutlineIcon,
   Lock as LockIcon,
   PlayArrow as PlayArrowIcon,
+  RestartAlt as RestartAltIcon,
   Schedule as ScheduleIcon,
   School as SchoolIcon,
   Science as ScienceIcon,
@@ -37,9 +45,11 @@ import {
   getPracticeStats,
   recommendedLevelLabel,
   recommendedPracticeLevel,
+  clearPracticeTakeSession,
+  resetLocalPracticeProgress,
   setActivePracticeSession,
 } from './practiceModeConfig';
-import { fetchPracticePoolCounts } from '../../db/practiceBank';
+import { fetchPracticePoolCounts, PRACTICE_SESSION_BATCH_SIZE, resetPracticeProgress } from '../../db/practiceBank';
 
 /** Official exam progress + tier counts - used to cap practice difficulty per exam. */
 export interface PracticeUnlockContext {
@@ -60,6 +70,8 @@ export interface PracticeModeContentProps {
    * counts so unlock matches official tier progression for each exam.
    */
   practiceUnlock?: PracticeUnlockContext;
+  /** Firebase uid for authenticated features (e.g. report problem). Omit in landing preview. */
+  studentUid?: string;
 }
 
 const LEVELS: PracticeLevel[] = [1, 2, 3];
@@ -119,7 +131,9 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
   grade,
   embedded = false,
   practiceUnlock,
+  studentUid = '',
 }) => {
+  const navigate = useNavigate();
   const recLevel = useMemo(() => recommendedPracticeLevel(grade), [grade]);
   const assessmentGate = practiceUnlock?.assessmentGate;
 
@@ -201,33 +215,86 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
 
   const refreshStorage = useCallback(() => setSessionRev((x) => x + 1), []);
 
-  const canResume =
-    stats.activeSession != null &&
-    stats.activeSession.examId === selectedExamId &&
-    stats.activeSession.level === selectedLevel &&
-    selectedLevel <= maxUnlocked;
-
   const progressRatio = stats.pool > 0 ? Math.min(1, stats.completed / stats.pool) : 0;
 
   const [toast, setToast] = useState<string | null>(null);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [startConfirmOpen, setStartConfirmOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
-  const handleStart = () => {
+  const performStartPractice = useCallback(() => {
     if (selectedLevel > maxUnlocked) return;
+    clearPracticeTakeSession(storageScope, selectedExamId, selectedLevel);
     setActivePracticeSession(storageScope, {
       examId: selectedExamId,
       level: selectedLevel,
       startedAt: new Date().toISOString(),
     });
     refreshStorage();
+    if (selectedExamId === 'symbolic_reasoning') {
+      if (!studentUid) {
+        setToast('Sign in to open the full-page practice session.');
+        return;
+      }
+      navigate(`/practice-test/session/${selectedExamId}/${selectedLevel}`, {
+        state: { storageScope },
+      });
+      setToast(null);
+      return;
+    }
     setToast(
-      'Practice session saved. The interactive question experience will open here in a future update - your progress is stored locally for now.'
+      'Practice session saved. Interactive drills are available for Pattern & Logic (Exam 1) first — other pools will follow.'
     );
+  }, [
+    maxUnlocked,
+    navigate,
+    refreshStorage,
+    selectedExamId,
+    selectedLevel,
+    storageScope,
+    studentUid,
+  ]);
+
+  const handleStartPractice = () => {
+    if (selectedLevel > maxUnlocked) return;
+    if (selectedExamId === 'symbolic_reasoning') {
+      setStartConfirmOpen(true);
+      return;
+    }
+    performStartPractice();
   };
 
-  const handleResume = () => {
-    setToast(
-      'Resuming your saved session. Questions will load here when the practice engine is connected.'
-    );
+  const confirmStartPractice = () => {
+    if (selectedLevel > maxUnlocked) return;
+    setStartConfirmOpen(false);
+    performStartPractice();
+  };
+
+  const handleResetProgressClick = () => {
+    if (selectedLevel > maxUnlocked) return;
+    setResetDialogOpen(true);
+  };
+
+  const confirmResetProgress = async () => {
+    if (selectedLevel > maxUnlocked || resetting) return;
+    setResetting(true);
+    try {
+      if (selectedExamId === 'symbolic_reasoning') {
+        if (!studentUid) {
+          setToast('Sign in to reset practice progress.');
+          return;
+        }
+        await resetPracticeProgress({ examId: selectedExamId, level: selectedLevel });
+      }
+      resetLocalPracticeProgress(storageScope, selectedExamId, selectedLevel);
+      refreshStorage();
+      setResetDialogOpen(false);
+      setToast('Practice progress reset.');
+    } catch {
+      setToast('Could not reset practice progress. Check your connection and try again.');
+    } finally {
+      setResetting(false);
+    }
   };
 
   return (
@@ -706,10 +773,10 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
               </Box>
               <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.38)', display: 'block', mt: 1.5 }}>
                 {selectedExamId === 'symbolic_reasoning' && livePoolByLevel != null
-                  ? 'Pool size is the live count from your Pattern & Logic practice bank in Firebase. Completed items are tracked locally until the full practice player ships.'
+                  ? 'Pool size is the total number of questions in the practice pool. Completed items reflect the number of questions you have completed.'
                   : selectedExamId === 'symbolic_reasoning'
-                    ? 'Upload items to practice_bank (see backend script) to show live pool sizes. Completed items are tracked locally for now.'
-                    : 'Pool sizes are placeholders until each exam has a practice bank wired; completed count updates when you finish items (stored locally for now).'}
+                    ? 'Upload items to practice_bank to show live pool sizes. Completed items reflect the number of questions you have completed.'
+                    : 'Pool sizes are placeholders until each exam has a practice bank wired; completed count updates when you finish items.'}
               </Typography>
             </Box>
             <Stack spacing={1.25} sx={{ minWidth: { sm: 220 } }}>
@@ -717,25 +784,27 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
                 variant="contained"
                 size="large"
                 startIcon={<PlayArrowIcon />}
-                disabled={!canResume}
-                onClick={handleResume}
+                disabled={selectedLevel > maxUnlocked}
+                onClick={handleStartPractice}
                 sx={{
                   py: 1.25,
                   fontWeight: 700,
                   borderRadius: 2,
-                  background: canResume
+                  background:
+                    selectedLevel <= maxUnlocked
                     ? 'linear-gradient(90deg, #6366f1, #38bdf8)'
                     : 'rgba(255,255,255,0.12)',
-                  color: canResume ? 'white' : 'rgba(255,255,255,0.35)',
+                  color: selectedLevel <= maxUnlocked ? 'white' : 'rgba(255,255,255,0.35)',
                 }}
               >
-                Resume practice
+                Start practice
               </Button>
               <Button
                 variant="outlined"
                 size="large"
-                onClick={handleStart}
-                disabled={selectedLevel > maxUnlocked}
+                startIcon={resetting ? <CircularProgress size={18} color="inherit" /> : <RestartAltIcon />}
+                onClick={handleResetProgressClick}
+                disabled={selectedLevel > maxUnlocked || resetting}
                 sx={{
                   py: 1.25,
                   fontWeight: 700,
@@ -745,7 +814,7 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
                   '&:hover': { borderColor: '#a78bfa', bgcolor: 'rgba(167, 139, 250, 0.08)' },
                 }}
               >
-                Start / restart
+                Reset progress
               </Button>
             </Stack>
           </Stack>
@@ -799,11 +868,11 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
             </Stack>
             <Stack spacing={1} component="ul" sx={{ pl: 2.25, m: 0, color: 'rgba(255,255,255,0.75)' }}>
               <Typography component="li" variant="body2">
-                Practice draws from a <strong>separate pool</strong>, outcomes stay out of official scoring.
+                Questions are drawn 10 at a time from a <strong>practice pool</strong>, outcomes stay out of official scoring.
               </Typography>
               <Typography component="li" variant="body2">
                 Levels <strong>1 - 3</strong> align broadly with {recommendedLevelLabel(1)},{' '}
-                {recommendedLevelLabel(2)}, and {recommendedLevelLabel(3)} respectively; you may choose any level.
+                {recommendedLevelLabel(2)}, and {recommendedLevelLabel(3)} respectively.
               </Typography>
              
             </Stack>
@@ -812,6 +881,54 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
       </Box>
 
       <Divider sx={{ my: 3, borderColor: 'rgba(255,255,255,0.08)' }} />
+
+      <Dialog
+        open={startConfirmOpen}
+        onClose={() => setStartConfirmOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 800 }}>Start this practice set?</DialogTitle>
+        <DialogContent>
+          <DialogContentText component="div" sx={{ color: 'text.primary', typography: 'body2', lineHeight: 1.65 }}>
+            This starts a practice set of {PRACTICE_SESSION_BATCH_SIZE} questions. Try to work through all{' '}
+            {PRACTICE_SESSION_BATCH_SIZE} to finish the set, but you can still leave partway through if
+            you need to.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setStartConfirmOpen(false)} color="inherit">
+            Cancel
+          </Button>
+          <Button variant="contained" onClick={confirmStartPractice}>
+            Start practice
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={resetDialogOpen}
+        onClose={() => {
+          if (!resetting) setResetDialogOpen(false);
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 800 }}>Reset practice progress?</DialogTitle>
+        <DialogContent>
+          <DialogContentText component="div" sx={{ color: 'text.primary', typography: 'body2', lineHeight: 1.65 }}>
+            Are you sure you want to reset practice progress? This will let you start over from the beginning and practice all the questions again.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setResetDialogOpen(false)} color="inherit" disabled={resetting}>
+            Cancel
+          </Button>
+          <Button variant="contained" onClick={confirmResetProgress} disabled={resetting}>
+            {resetting ? 'Resetting…' : 'Reset progress'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar
         open={Boolean(toast)}

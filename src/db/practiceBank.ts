@@ -1,11 +1,18 @@
 import axios from 'axios';
 import type { ExamQuestion } from './assessmentCollection';
 import authTokenHandler from '../functions/auth_token/auth_token_handler';
+import { auth } from '../firebase/firebase';
 import {
   GET_PRACTICE_POOL_COUNTS,
   GET_PRACTICE_QUESTIONS,
   PRACTICE_APIS,
+  RECORD_PRACTICE_OUTCOME,
+  RECORD_PRACTICE_SESSION_OUTCOMES,
+  RESET_PRACTICE_PROGRESS,
 } from '../constants/constants';
+
+/** Matches backend default batch size for one practice start. */
+export const PRACTICE_SESSION_BATCH_SIZE = 10;
 
 export interface PracticePoolCountsResponse {
   exam_id: string;
@@ -17,6 +24,8 @@ export interface PracticeQuestionsResponse {
   level: number;
   total_in_level: number;
   returned: number;
+  draw_seen_count?: number;
+  draw_remaining_after_returned?: number;
   questions: ExamQuestion[];
 }
 
@@ -38,20 +47,137 @@ export async function fetchPracticePoolCounts(examId: string): Promise<PracticeP
   return response.data;
 }
 
-/** Random sample of normalized practice questions (no answer keys). */
+/** Random sample of normalized practice questions (includes correct index + solution_steps for feedback). */
 export async function fetchPracticeQuestions(
   examId: string,
   level: 1 | 2 | 3,
-  limit = 15
+  limit = PRACTICE_SESSION_BATCH_SIZE
 ): Promise<PracticeQuestionsResponse> {
   const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS;
   if (!base) {
     throw new Error('REACT_APP_GOOGLE_CLOUD_FUNCTIONS is not set.');
   }
-  const authToken = await authTokenHandler.getAuthToken();
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error('You must be signed in to load practice questions.');
+  }
+  const authToken = await user.getIdToken();
+  authTokenHandler.setAuthToken(authToken);
   const response = await axios.get(`${base}${PRACTICE_APIS}${GET_PRACTICE_QUESTIONS}`, {
     headers: { Authorization: `Bearer ${authToken}` },
     params: { exam_id: examId, level: String(level), limit },
   });
+  return response.data;
+}
+
+export interface RecordPracticeOutcomeResponse {
+  ok: boolean;
+  outcome_id?: string;
+  correct?: boolean;
+}
+
+/** Persist one practice attempt to the student profile (server writes Firestore). */
+export async function recordPracticeItemOutcome(params: {
+  examId: string;
+  level: 1 | 2 | 3;
+  itemId: string;
+  selectedOptionIndex: number;
+  timeToFirstCheckMs: number;
+}): Promise<RecordPracticeOutcomeResponse> {
+  const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS;
+  if (!base) {
+    throw new Error('REACT_APP_GOOGLE_CLOUD_FUNCTIONS is not set.');
+  }
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error('You must be signed in to record practice outcomes.');
+  }
+  const authToken = await user.getIdToken();
+  authTokenHandler.setAuthToken(authToken);
+  const response = await axios.post(
+    `${base}${PRACTICE_APIS}${RECORD_PRACTICE_OUTCOME}`,
+    {
+      exam_id: params.examId,
+      level: String(params.level),
+      item_id: params.itemId,
+      selected_option_index: params.selectedOptionIndex,
+      time_to_first_check_ms: params.timeToFirstCheckMs,
+    },
+    { headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' } }
+  );
+  return response.data;
+}
+
+export interface PracticeSessionResultRow {
+  item_id: string;
+  selected_option_index: number;
+  time_to_first_check_ms: number;
+}
+
+export interface RecordPracticeSessionOutcomesResponse {
+  ok: boolean;
+  recorded?: number;
+  correct_count?: number;
+}
+
+/** Persist a full practice session in one request (student outcomes + bank analytics). */
+export async function recordPracticeSessionOutcomes(params: {
+  examId: string;
+  level: 1 | 2 | 3;
+  results: PracticeSessionResultRow[];
+}): Promise<RecordPracticeSessionOutcomesResponse> {
+  const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS;
+  if (!base) {
+    throw new Error('REACT_APP_GOOGLE_CLOUD_FUNCTIONS is not set.');
+  }
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error('You must be signed in to record practice outcomes.');
+  }
+  const authToken = await user.getIdToken();
+  authTokenHandler.setAuthToken(authToken);
+  const response = await axios.post(
+    `${base}${PRACTICE_APIS}${RECORD_PRACTICE_SESSION_OUTCOMES}`,
+    {
+      exam_id: params.examId,
+      level: String(params.level),
+      results: params.results,
+    },
+    { headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' } }
+  );
+  return response.data;
+}
+
+export interface ResetPracticeProgressResponse {
+  ok: boolean;
+  exam_id: string;
+  level: number;
+  draw_seen_count?: number;
+  historical_seen_count?: number;
+}
+
+/** Clear seen items for this exam level (server updates seen_item_ids_by_level on practice_outcomes/{examId}). */
+export async function resetPracticeProgress(params: {
+  examId: string;
+  level: 1 | 2 | 3;
+}): Promise<ResetPracticeProgressResponse> {
+  const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS;
+  if (!base) {
+    throw new Error('REACT_APP_GOOGLE_CLOUD_FUNCTIONS is not set.');
+  }
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error('You must be signed in to reset practice progress.');
+  }
+  const authToken = await user.getIdToken();
+  authTokenHandler.setAuthToken(authToken);
+  const response = await axios.post(
+    `${base}${PRACTICE_APIS}${RESET_PRACTICE_PROGRESS}`,
+    {
+      exam_id: params.examId,
+      level: String(params.level),
+    },
+    { headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' } }
+  );
   return response.data;
 }

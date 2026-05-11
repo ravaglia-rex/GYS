@@ -77,7 +77,7 @@ const ResetPasswordForm: React.FC = () => {
                                     <Input 
                                         className="bg-gray-900/60 border-white/10 focus-visible:ring-purple-600 placeholder:text-gray-500 text-white" 
                                         type="email" 
-                                        placeholder="hello@argus.ai" 
+                                        placeholder="globalyoungscholar@argus.ai" 
                                         {...field} 
                                     />
                                 </FormControl>

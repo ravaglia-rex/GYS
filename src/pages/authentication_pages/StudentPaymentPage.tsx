@@ -288,15 +288,15 @@ const StudentPaymentPage: React.FC = () => {
                 <p className="text-base sm:text-xl font-semibold text-slate-900">{membershipName}</p>
                 <p className="mt-1 text-xs sm:text-sm text-slate-600">
                   {numericLevel === 1
-                    ? 'One-time purchase (non-renewable) • Charged in INR (includes 18% GST at checkout)'
-                    : 'Annual subscription • Charged in INR (includes 18% GST at checkout)'}
+                    ? 'One-time purchase (non-renewable) • List price in INR (excluding GST)'
+                    : 'Annual subscription • List price in INR (excluding GST)'}
                 </p>
               </div>
               <div className="text-right">
                 <p className="text-xl sm:text-2xl font-semibold" style={{ color: GYS_BLUE }}>
                   {membershipPrice}
                 </p>
-                <p className="text-xs text-slate-500 mt-1">+ GST in Razorpay total</p>
+                <p className="text-xs text-slate-500 mt-1">GST is calculated when you pay (total shown in Razorpay)</p>
               </div>
             </div>
           </div>

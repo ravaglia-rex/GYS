@@ -3,7 +3,8 @@ import { auth } from '../../firebase/firebase';
 import { checkSingleTab } from './sessionHandler';
 import Protected from './Protected';
 import UnsupportedBrowserPage from '../../pages/UnsupportedBrowserPage';
-import { signOutStudentAndClearSession } from '../../services/studentActiveSession';
+import { signOut } from 'firebase/auth';
+import authTokenHandler from '../../functions/auth_token/auth_token_handler';
 
 interface SuperProtectedProps {
     children: ReactNode;
@@ -15,7 +16,8 @@ const SuperProtected: React.FC<SuperProtectedProps> = ({ children }) => {
     const handleTabClose = async () => {
         const user = auth.currentUser;
         if (user) {
-            await signOutStudentAndClearSession();
+            authTokenHandler.clearToken();
+            await signOut(auth);
         }
     };
 
@@ -23,7 +25,8 @@ const SuperProtected: React.FC<SuperProtectedProps> = ({ children }) => {
         const user = auth.currentUser;
         if (user) {
             alert('Uh oh! No backsies! Please log back in to appear for the test. You will be logged out now.');
-            await signOutStudentAndClearSession();
+            authTokenHandler.clearToken();
+            await signOut(auth);
         }
     };
 

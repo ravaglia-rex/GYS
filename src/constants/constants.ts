@@ -73,10 +73,14 @@ export const INITIALIZE_EXAM='/initializeExam';
 export const RECORD_ANSWER='/recordAnswer';
 export const COMPLETE_EXAM='/completeExam';
 export const ABANDON_EXAM='/abandonExam';
+export const REPORT_QUESTION_PROBLEM='/reportQuestionProblem';
 
 // Practice bank (skill drills – authenticated)
 export const GET_PRACTICE_POOL_COUNTS='/poolCounts';
 export const GET_PRACTICE_QUESTIONS='/questions';
+export const RECORD_PRACTICE_OUTCOME='/recordOutcome';
+export const RECORD_PRACTICE_SESSION_OUTCOMES='/recordSessionOutcomes';
+export const RESET_PRACTICE_PROGRESS='/resetProgress';
 
 // Razorpay
 export const CREATE_RAZORPAY_CUSTOMER='/createCustomer';

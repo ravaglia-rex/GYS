@@ -4,6 +4,7 @@ import { fetchSignInMethodsForEmail } from 'firebase/auth';
 import { checkEmailExists } from '../../db/emailMappingCollection';
 import { auth } from '../../firebase/firebase';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
+import { PasswordInput } from '../../components/ui/password-input';
 import { useToast } from '../../components/ui/use-toast';
 import { useStudentSignupExit } from '../../contexts/StudentSignupExitContext';
 import { useStudentSignupExitGuard } from '../../hooks/useStudentSignupExitGuard';
@@ -270,12 +271,12 @@ const StudentRegistrationPage: React.FC = () => {
               <label className="block text-xs sm:text-sm font-bold text-slate-700">
                 Password<span className="text-red-500"> *</span>
               </label>
-              <input
-                type="password"
+              <PasswordInput
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="mt-1.5 w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm sm:text-base text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                className="mt-1.5 h-auto rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm sm:text-base text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
                 placeholder="Password"
+                autoComplete="new-password"
                 required
               />
             </div>

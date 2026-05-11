@@ -4,7 +4,7 @@ import DashboardLayout from '../../layouts/DashboardLayout';
 import * as Sentry from '@sentry/react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../firebase/firebase';
-import { getStudent } from '../../db/studentCollection';
+import { getStudent, StudentProfileError } from '../../db/studentCollection';
 import { getAssessmentConfig } from '../../db/assessmentCollection';
 import type { AssessmentType } from '../../db/assessmentCollection';
 import PracticeModeContent, { type PracticeUnlockContext } from '../../components/practice/PracticeModeContent';
@@ -31,8 +31,23 @@ const PracticeTestPage: React.FC = () => {
     const load = async () => {
       try {
         setLoading(true);
-        const [student, config] = await Promise.all([getStudent(uid), getAssessmentConfig()]);
+        const config = await getAssessmentConfig();
         if (cancelled) return;
+
+        let student: Awaited<ReturnType<typeof getStudent>> | null = null;
+        try {
+          student = await getStudent(uid);
+        } catch (err) {
+          if (!(err instanceof StudentProfileError && err.code === 'NOT_FOUND')) {
+            Sentry.withScope((scope) => {
+              scope.setTag('location', 'PracticeTestPage.getStudent');
+              scope.setExtra('uid', uid);
+              Sentry.captureException(err);
+            });
+          }
+        }
+        if (cancelled) return;
+
         const g =
           typeof student?.grade === 'number' && !Number.isNaN(student.grade) ? student.grade : 8;
         setGrade(g);
@@ -46,7 +61,7 @@ const PracticeTestPage: React.FC = () => {
           return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
         });
         const progress = (student?.assessment_progress ?? {}) as Record<string, AssessmentProgress>;
-        const membershipLevel = membershipLevelForAssessmentGate(student);
+        const membershipLevel = membershipLevelForAssessmentGate(student ?? {});
         setPracticeUnlock({
           progressByExam: progress,
           officialTierCountByExam,
@@ -91,7 +106,12 @@ const PracticeTestPage: React.FC = () => {
             <BigSpinner />
           </Box>
         ) : (
-          <PracticeModeContent storageScope={storageScope} grade={grade} practiceUnlock={practiceUnlock} />
+          <PracticeModeContent
+            storageScope={storageScope}
+            grade={grade}
+            practiceUnlock={practiceUnlock}
+            studentUid={uid}
+          />
         )}
       </DashboardLayout>
     </Sentry.ErrorBoundary>

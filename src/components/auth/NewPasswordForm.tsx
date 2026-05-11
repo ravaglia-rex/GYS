@@ -24,7 +24,7 @@ import {
   FormMessage,
 } from "../ui/form";
 import { Button } from "../ui/button";
-import { Input } from "../ui/input";
+import { PasswordInput } from "../ui/password-input";
 import { LoadingSpinner as Spinner } from "../ui/spinner";
 
 import * as Sentry from "@sentry/react";
@@ -173,10 +173,10 @@ const NewPasswordForm: React.FC<PasswordResetProps> = ({ actionCode }) => {
               <FormItem>
                 <FormLabel className="text-sm font-medium text-slate-200">New password</FormLabel>
                 <FormControl>
-                  <Input
+                  <PasswordInput
+                    variant="dark"
                     className="h-11 border-white/15 bg-slate-950/50 text-base text-white placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-indigo-500"
                     {...field}
-                    type="password"
                     autoComplete="new-password"
                     placeholder="Enter a new password"
                   />
@@ -195,10 +195,10 @@ const NewPasswordForm: React.FC<PasswordResetProps> = ({ actionCode }) => {
               <FormItem>
                 <FormLabel className="text-sm font-medium text-slate-200">Confirm new password</FormLabel>
                 <FormControl>
-                  <Input
+                  <PasswordInput
+                    variant="dark"
                     className="h-11 border-white/15 bg-slate-950/50 text-base text-white placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-indigo-500"
                     {...field}
-                    type="password"
                     autoComplete="new-password"
                     placeholder="Confirm your new password"
                   />

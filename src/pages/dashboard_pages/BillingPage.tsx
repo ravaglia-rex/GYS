@@ -67,7 +67,8 @@ const BillingPage: React.FC = () => {
               Billing Overview
             </Typography>
             <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 3 }}>
-              All exam payments are processed securely through our payment partners. You can view your complete payment history below.
+              Exam fees and membership upgrades are processed securely through our payment partners when you are signed in.
+              View pending exam payments and your full payment history below.
             </Typography>
             
             <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.1)', my: 2 }} />
@@ -106,13 +107,20 @@ const BillingPage: React.FC = () => {
             <MembershipUpgradeSection />
           </Box>
 
-          {/* Payment Management */}
-          <Box sx={{ mb: 4 }}>
-            <Typography variant="h5" sx={{ color: 'white', fontWeight: 600, mb: 3 }}>
-              Payment Management
-            </Typography>
-            <PaymentsTabs uid={auth.currentUser?.uid || ""} />
-          </Box>
+          {/* Payment Management — outer Paper matches billing preview layout */}
+          <Typography variant="h5" sx={{ color: 'white', fontWeight: 600, mb: 2 }}>
+            Payment Management
+          </Typography>
+          <Paper
+            sx={{
+              backgroundColor: 'rgba(30, 41, 59, 0.8)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              mb: 4,
+              overflow: 'hidden',
+            }}
+          >
+            <PaymentsTabs uid={auth.currentUser?.uid || ''} />
+          </Paper>
         </Box>
       </DashboardLayout>
     </Sentry.ErrorBoundary>

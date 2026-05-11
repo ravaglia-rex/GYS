@@ -30,7 +30,8 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../firebase/firebase';
-import { signOutStudentAndClearSession } from '../services/studentActiveSession';
+import { signOut } from 'firebase/auth';
+import authTokenHandler from '../functions/auth_token/auth_token_handler';
 
 interface SidebarNavigationProps {
   collapsed: boolean;
@@ -45,12 +46,13 @@ interface NavItem {
   children?: NavItem[];
 }
 
+const homeNavItem: NavItem = {
+  title: 'Home',
+  path: '/',
+  icon: <HomeIcon sx={{ color: '#38bdf8' }} />,
+};
+
 const navItems: NavItem[] = [
-  {
-    title: 'Home',
-    path: '/',
-    icon: <HomeIcon sx={{ color: '#38bdf8' }} />,
-  },
   {
     title: 'Dashboard',
     path: '/dashboard',
@@ -114,7 +116,8 @@ export default function SidebarNavigation({ collapsed, onCollapse, onClose }: Si
 
   const handleLogout = async () => {
     try {
-      await signOutStudentAndClearSession();
+      authTokenHandler.clearToken();
+      await signOut(auth);
       navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);
@@ -295,6 +298,13 @@ export default function SidebarNavigation({ collapsed, onCollapse, onClose }: Si
       <Box sx={{ flex: 1, overflow: 'auto', py: 2 }}>
         <List>
           {navItems.map((item) => renderNavItem(item))}
+        </List>
+      </Box>
+
+      {/* Home — directly above logout */}
+      <Box sx={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+        <List sx={{ py: 1 }}>
+          {renderNavItem(homeNavItem)}
         </List>
       </Box>
 

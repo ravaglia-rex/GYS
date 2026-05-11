@@ -1,4 +1,4 @@
-import type { AssessmentType } from '../../db/assessmentCollection';
+import type { AssessmentType, ExamQuestion } from '../../db/assessmentCollection';
 import {
   ASSESSMENT_NAMES,
   ASSESSMENT_ORDER,
@@ -195,6 +195,136 @@ export function clearActivePracticeSession(scope: string): void {
   save(scope, persisted);
 }
 
+// ─── Full-page practice session (question batch + cursor) — interactive exams only ─────────
+
+const TAKE_SESSION_PREFIX = 'argus_practice_take_v1_';
+
+/** Firestore doc id for outcomes/reports; bank payloads may carry a bad/null `id` that must not win. */
+export function resolvePracticeItemId(q: ExamQuestion | null | undefined): string | undefined {
+  if (!q) return undefined;
+  if (typeof q.id === 'string' && q.id.trim().length > 0) return q.id.trim();
+  const legacy = (q as { item_id?: unknown }).item_id;
+  if (typeof legacy === 'string' && legacy.trim().length > 0) return legacy.trim();
+  return undefined;
+}
+
+function takeSessionStorageKey(scope: string, examId: string, level: PracticeLevel): string {
+  return `${TAKE_SESSION_PREFIX}${scope}_${examId}_L${level}`;
+}
+
+/** Answers already submitted locally for this batch (synced to Firestore when the session completes). */
+export interface PracticeTakePendingOutcome {
+  itemId: string;
+  selectedOptionIndex: number;
+  timeToFirstCheckMs: number;
+}
+
+interface PracticeTakePersistedV1 {
+  v: 1;
+  examId: string;
+  level: PracticeLevel;
+  questions: ExamQuestion[];
+  index: number;
+  totalInLevel?: number;
+  pendingOutcomes?: PracticeTakePendingOutcome[];
+}
+
+function parsePendingOutcomes(raw: unknown): PracticeTakePendingOutcome[] {
+  if (!Array.isArray(raw)) return [];
+  const out: PracticeTakePendingOutcome[] = [];
+  for (const row of raw) {
+    if (!row || typeof row !== 'object') continue;
+    const o = row as Record<string, unknown>;
+    const itemId = typeof o.itemId === 'string' ? o.itemId.trim() : '';
+    const sel = o.selectedOptionIndex;
+    const t = o.timeToFirstCheckMs;
+    if (
+      !itemId ||
+      typeof sel !== 'number' ||
+      !Number.isInteger(sel) ||
+      sel < 0 ||
+      sel > 3 ||
+      typeof t !== 'number' ||
+      !Number.isFinite(t) ||
+      t < 0
+    ) {
+      continue;
+    }
+    out.push({ itemId, selectedOptionIndex: sel, timeToFirstCheckMs: Math.floor(t) });
+  }
+  return out;
+}
+
+/** Persist the drawn practice batch and position so Resume continues unanswered items (same batch). */
+export function savePracticeTakeSession(
+  scope: string,
+  examId: string,
+  level: PracticeLevel,
+  payload: {
+    questions: ExamQuestion[];
+    index: number;
+    totalInLevel?: number;
+    pendingOutcomes?: PracticeTakePendingOutcome[];
+  }
+): void {
+  try {
+    const data: PracticeTakePersistedV1 = {
+      v: 1,
+      examId,
+      level,
+      questions: payload.questions,
+      index: payload.index,
+      totalInLevel: payload.totalInLevel,
+      ...(payload.pendingOutcomes && payload.pendingOutcomes.length > 0
+        ? { pendingOutcomes: payload.pendingOutcomes }
+        : {}),
+    };
+    localStorage.setItem(takeSessionStorageKey(scope, examId, level), JSON.stringify(data));
+  } catch {
+    /* quota / private mode */
+  }
+}
+
+export function loadPracticeTakeSession(
+  scope: string,
+  examId: string,
+  level: PracticeLevel
+): {
+  questions: ExamQuestion[];
+  index: number;
+  totalInLevel?: number;
+  pendingOutcomes: PracticeTakePendingOutcome[];
+} | null {
+  try {
+    const raw = localStorage.getItem(takeSessionStorageKey(scope, examId, level));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<PracticeTakePersistedV1>;
+    if (parsed.v !== 1 || parsed.examId !== examId || parsed.level !== level) return null;
+    if (!Array.isArray(parsed.questions) || parsed.questions.length === 0) return null;
+    const idx =
+      typeof parsed.index === 'number' && Number.isFinite(parsed.index)
+        ? Math.max(0, Math.floor(parsed.index))
+        : 0;
+    if (idx >= parsed.questions.length) return null;
+    return {
+      questions: parsed.questions as ExamQuestion[],
+      index: idx,
+      totalInLevel: typeof parsed.totalInLevel === 'number' ? parsed.totalInLevel : undefined,
+      pendingOutcomes: parsePendingOutcomes(parsed.pendingOutcomes),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function clearPracticeTakeSession(scope: string, examId: string, level: PracticeLevel): void {
+  try {
+    localStorage.removeItem(takeSessionStorageKey(scope, examId, level));
+  } catch {
+    /* ignore */
+  }
+}
+
 /** Optional hook for when question engine lands - increments completed count for an exam/level. */
 export function recordPracticeQuestionsCompleted(
   scope: string,
@@ -213,6 +343,16 @@ export function recordPracticeQuestionsCompleted(
   const prev = persisted.completedByKey[k] ?? 0;
   persisted.completedByKey[k] = Math.min(pool, prev + delta);
   save(scope, persisted);
+}
+
+export function resetLocalPracticeProgress(scope: string, examId: string, level: PracticeLevel): void {
+  const persisted = load(scope);
+  persisted.completedByKey[storageKeyForExamLevel(examId, level)] = 0;
+  if (persisted.activeSession?.examId === examId && persisted.activeSession.level === level) {
+    persisted.activeSession = null;
+  }
+  save(scope, persisted);
+  clearPracticeTakeSession(scope, examId, level);
 }
 
 export function getAssessmentDisplayName(id: string): string {

@@ -8,6 +8,7 @@ import {
   RECORD_ANSWER,
   COMPLETE_EXAM,
   ABANDON_EXAM,
+  REPORT_QUESTION_PROBLEM,
 } from '../constants/constants';
 import authTokenHandler from '../functions/auth_token/auth_token_handler';
 
@@ -52,7 +53,8 @@ export interface AttemptRecord {
   attempt_id: string;
   assessment_id: string;
   proficiency_tier: number;
-  status: 'in_progress' | 'completed' | 'abandoned';
+  /** Legacy docs may still have `abandoned`; new exits use `failed`. */
+  status: 'in_progress' | 'completed' | 'failed' | 'abandoned';
   score: number | null;
   passed: boolean | null;
   started_at: any;
@@ -94,6 +96,10 @@ export interface ExamQuestion {
   question_type?: QuestionInteractionType;
   /** Original nested presentation when present (answer fields stripped server-side). */
   presentation?: Record<string, unknown>;
+  /** Practice bank only: 0–3 correct MCQ index (never sent for official timed exams). */
+  correct_option_index?: number;
+  /** Practice bank only: step-by-step explanation from authoring / `scoring.solution_steps`. */
+  solution_steps?: string[];
 }
 
 export interface RecordAnswerResponse {
@@ -184,15 +190,65 @@ export const completeExam = async (uid: string, attempt_id: string): Promise<Com
   return response.data;
 };
 
+export type AbandonExamReason =
+  | 'user_confirmed_exit'
+  | 'extended_background'
+  | 'tab_unload';
+
 export const abandonExam = async (
   uid: string,
   attempt_id: string,
-  abandon_reason?: 'user_confirmed_exit' | 'extended_background'
+  abandon_reason?: AbandonExamReason
 ): Promise<AbandonExamResponse> => {
   const authToken = await authTokenHandler.getAuthToken();
   const response = await axios.post(
     `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${ASSESSMENTS_APIS}${ABANDON_EXAM}`,
     { uid, attempt_id, ...(abandon_reason ? { abandon_reason } : {}) },
+    { headers: { Authorization: `Bearer ${authToken}` } }
+  );
+  return response.data;
+};
+
+/**
+ * Fire-and-forget abandon when the tab/window is closing. Uses fetch({ keepalive: true })
+ * so the request can finish after unload; requires a cached ID token in AuthTokenHandler.
+ */
+export function abandonExamOnTabUnload(uid: string, attempt_id: string): void {
+  const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS;
+  if (!base) return;
+  const token = authTokenHandler.getState().authToken;
+  if (!token) return;
+  const url = `${base}${ASSESSMENTS_APIS}${ABANDON_EXAM}`;
+  const body = JSON.stringify({
+    uid,
+    attempt_id,
+    abandon_reason: 'tab_unload',
+  });
+  try {
+    void fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body,
+      keepalive: true,
+    });
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Backend persists `problem_report_count` + `problem_report_texts[]` on the item document. */
+export type QuestionReportPayload =
+  | { source: 'official'; uid: string; attempt_id: string; item_id: string; text: string }
+  | { source: 'practice'; uid: string; exam_id: string; level: number; item_id: string; text: string };
+
+export const reportQuestionProblem = async (payload: QuestionReportPayload): Promise<{ ok: boolean }> => {
+  const authToken = await authTokenHandler.getAuthToken();
+  const response = await axios.post(
+    `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${ASSESSMENTS_APIS}${REPORT_QUESTION_PROBLEM}`,
+    payload,
     { headers: { Authorization: `Bearer ${authToken}` } }
   );
   return response.data;

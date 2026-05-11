@@ -4,8 +4,10 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import StopIcon from '@mui/icons-material/Stop';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import type { ExamQuestion, QuestionInteractionType } from '../../db/assessmentCollection';
+import { resolvePracticeItemId } from '../practice/practiceModeConfig';
 import { getAssessmentFlowDefinition } from '../../config/assessmentFlowUI';
 import { ExamMathBlock, ExamMathText } from './ExamMathText';
+import { QuestionProblemReport, type QuestionReportFrame } from './QuestionProblemReport';
 
 const LIKERT_LEFT = 'Strongly disagree';
 const LIKERT_MID = 'Neutral';
@@ -35,38 +37,268 @@ const InstructionLine: React.FC<{ text: string }> = ({ text }) => (
   </Typography>
 );
 
-/** Fallback display for structured pattern-logic stimuli until a dedicated renderer exists. */
-const StimulusBlock: React.FC<{ q: ExamQuestion; border: string }> = ({ q, border }) => {
-  if (q.stimulus == null) return null;
-  const text =
-    typeof q.stimulus === 'string' ? q.stimulus : JSON.stringify(q.stimulus, null, 2);
+function humanizeFieldKey(key: string): string {
+  const spaced = key.replace(/_/g, ' ');
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+function formatStimulusLeafValue(value: unknown): string {
+  if (value === null || value === undefined) return '—';
+  if (Array.isArray(value)) {
+    return value.map((x) => (typeof x === 'object' && x !== null ? JSON.stringify(x) : String(x))).join(', ');
+  }
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
+}
+
+function normalizeStemCompare(s: string): string {
+  return s.replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+/**
+ * Item banks often repeat `question` / `setup` inside `stimulus` for authoring pipelines while the same
+ * text is already shown as {@link ExamQuestion.prompt} above this block — skip those duplicates.
+ */
+function stimulusFieldDuplicatesPrompt(fieldKey: string, value: unknown, prompt: string | undefined): boolean {
+  const stemTrim = (prompt ?? '').trim();
+  /* Short task line (e.g. "Which box is green?") is almost never substring of the long stem — hide whenever we already show a stem. */
+  if (fieldKey === 'question' && stemTrim.length > 0) {
+    return true;
+  }
+  if (!['setup'].includes(fieldKey) || typeof value !== 'string') return false;
+  const stem = normalizeStemCompare(prompt ?? '');
+  const vs = normalizeStemCompare(value);
+  if (!stem || !vs) return false;
+  return vs === stem || stem.includes(vs) || vs.includes(stem);
+}
+
+/** Turn constraints string (often "a., b., c.") or array into separate lines for display. */
+function splitConstraintLines(raw: unknown): string[] {
+  if (Array.isArray(raw)) {
+    return raw.map((x) => String(x).trim()).filter(Boolean);
+  }
+  if (typeof raw !== 'string') return [];
+  const s = raw.trim();
+  if (!s) return [];
+  const byPeriodComma = s
+    .split(/\.\s*,\s*/)
+    .map((t) => t.trim())
+    .filter(Boolean);
+  if (byPeriodComma.length > 1) {
+    return byPeriodComma.map((t) => (/\.$/.test(t) ? t : `${t}.`));
+  }
+  if (s.includes(';')) return s.split(/\s*;\s*/).map((t) => t.trim()).filter(Boolean);
+  if (s.includes('\n')) return s.split(/\n+/).map((t) => t.trim()).filter(Boolean);
+  return [s];
+}
+
+type BlankSlot =
+  | { kind: 'none' }
+  | { kind: 'start'; caption: string }
+  | { kind: 'end'; caption: string }
+  | { kind: 'beforeIndex'; zeroBased: number; caption: string }
+  | { kind: 'unknown'; caption: string };
+
+/** Where the missing term sits — item banks often use `end`; show plain language + a "?" tile. */
+function blankSlotFromStimulus(raw: unknown): BlankSlot {
+  if (raw === null || raw === undefined) return { kind: 'none' };
+  const s = String(raw).trim().toLowerCase();
+  if (s === 'end' || s === 'last' || s === 'after_last') {
+    return {
+      kind: 'end',
+      caption: 'Choose the shape that comes next — right after the last symbol in the row.',
+    };
+  }
+  if (s === 'start' || s === 'first' || s === 'before_first') {
+    return {
+      kind: 'start',
+      caption: 'Choose the shape that belongs at the beginning, before the first symbol.',
+    };
+  }
+  const n = parseInt(s, 10);
+  if (Number.isFinite(n) && n >= 1) {
+    return {
+      kind: 'beforeIndex',
+      zeroBased: n - 1,
+      caption: `Choose the shape that belongs at position ${n} in the sequence (counting from the left).`,
+    };
+  }
+  return { kind: 'unknown', caption: `Missing item placement: ${String(raw)}.` };
+}
+
+function interleaveBlankSlot(syms: unknown[], blank: BlankSlot): Array<{ kind: 'sym'; v: string } | { kind: 'blank' }> {
+  const out: Array<{ kind: 'sym'; v: string } | { kind: 'blank' }> = [];
+  const list = syms.map((x) => String(x));
+  if (blank.kind === 'none' || blank.kind === 'unknown') {
+    for (const v of list) out.push({ kind: 'sym', v });
+    return out;
+  }
+  if (blank.kind === 'start') {
+    out.push({ kind: 'blank' });
+    for (const v of list) out.push({ kind: 'sym', v });
+    return out;
+  }
+  if (blank.kind === 'end') {
+    for (const v of list) out.push({ kind: 'sym', v });
+    out.push({ kind: 'blank' });
+    return out;
+  }
+  const z = blank.zeroBased;
+  for (let i = 0; i < list.length; i++) {
+    if (i === z) out.push({ kind: 'blank' });
+    out.push({ kind: 'sym', v: list[i] });
+  }
+  if (z === list.length) out.push({ kind: 'blank' });
+  return out;
+}
+
+/** Pattern-logic and generic structured stimuli — readable layout instead of raw JSON. */
+const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string }> = ({ q, border }) => {
+  const stimulus = q.stimulus;
+  const stimulusType = q.stimulus_type;
+
+  if (stimulus == null) return null;
+
+  if (typeof stimulus === 'string') {
+    const text = stimulus.trim();
+    if (!text) return null;
+    return (
+      <Box sx={{ mb: 2.5, p: 2, bgcolor: '#f8fafc', borderRadius: 2, border: `1px solid ${border}` }}>
+        <Typography sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.65, color: '#334155', fontSize: '0.95rem' }}>
+          {text}
+        </Typography>
+      </Box>
+    );
+  }
+
+  if (typeof stimulus !== 'object' || Array.isArray(stimulus)) return null;
+
+  const obj = stimulus as Record<string, unknown>;
+  const seqCandidate = obj.input_sequence ?? obj.sequence;
+  const seq = Array.isArray(seqCandidate) ? seqCandidate : null;
+  const rulesRaw = obj.rules;
+  const hasSeq = seq !== null && seq.length > 0;
+  const rulesArr = Array.isArray(rulesRaw) ? rulesRaw : [];
+  const hasRules = rulesArr.some((r) => String(r ?? '').trim());
+  const blankMeta = hasSeq ? blankSlotFromStimulus(obj.blank_position) : ({ kind: 'none' } as BlankSlot);
+  const interleaved = hasSeq && seq ? interleaveBlankSlot(seq, blankMeta) : [];
+  const blankHelp = 'caption' in blankMeta ? blankMeta.caption : null;
+
+  if (hasSeq || hasRules) {
+    const symTileSx = {
+      fontSize: '1.65rem',
+      lineHeight: 1,
+      minWidth: 44,
+      textAlign: 'center' as const,
+      px: 1.25,
+      py: 1,
+      color: '#0f172a',
+      bgcolor: '#fff',
+      borderRadius: 1.5,
+      border: `1px solid ${border}`,
+      boxShadow: '0 1px 2px rgba(15,23,42,0.06)',
+    };
+
+    return (
+      <Box sx={{ mb: 2.5, p: 2.5, bgcolor: '#f8fafc', borderRadius: 2, border: `1px solid ${border}` }}>
+        {hasSeq && (
+          <Box sx={{ mb: hasRules ? 2.25 : 0 }}>
+            <Typography
+              variant="caption"
+              sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 1.25, letterSpacing: 0.02 }}
+            >
+              Sequence
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25, alignItems: 'center' }}>
+              {interleaved.map((cell, i) =>
+                cell.kind === 'blank' ? (
+                  <Box
+                    key={`blank-${i}`}
+                    sx={{
+                      ...symTileSx,
+                      borderStyle: 'dashed',
+                      bgcolor: '#f1f5f9',
+                      color: '#64748b',
+                      fontWeight: 800,
+                      fontSize: '1.35rem',
+                    }}
+                    aria-label="Missing item"
+                  >
+                    ?
+                  </Box>
+                ) : (
+                  <Box key={`sym-${i}`} sx={symTileSx}>
+                    {cell.v}
+                  </Box>
+                )
+              )}
+            </Box>
+            {blankHelp && (
+              <Typography variant="body2" sx={{ mt: 1.35, color: '#475569', lineHeight: 1.55, maxWidth: 520 }}>
+                {blankHelp}
+              </Typography>
+            )}
+          </Box>
+        )}
+        {hasRules && (
+          <Box>
+            <Typography
+              variant="caption"
+              sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 1, letterSpacing: 0.02 }}
+            >
+              {stimulusType === 'symbol_sequence' || stimulusType === 'transformation'
+                ? 'Apply these rules'
+                : 'Rules to apply'}
+            </Typography>
+            <Box component="ul" sx={{ m: 0, pl: 2.25, color: '#334155', '& li': { mb: 0.5 } }}>
+              {rulesArr.map((r, i) => (
+                <Typography component="li" key={i} sx={{ fontSize: '0.95rem', lineHeight: 1.55 }}>
+                  {String(r ?? '')
+                    .replace(/^Rule:\s*/i, '')
+                    .trim()}
+                </Typography>
+              ))}
+            </Box>
+          </Box>
+        )}
+      </Box>
+    );
+  }
+
+  const entries = Object.entries(obj).filter(
+    ([key, value]) =>
+      key !== '__proto__' && !stimulusFieldDuplicatesPrompt(key, value, q.prompt)
+  );
+  if (entries.length === 0) return null;
+
   return (
-    <Box
-      sx={{
-        mb: 2.5,
-        p: 2,
-        bgcolor: '#f8fafc',
-        borderRadius: 2,
-        border: `1px solid ${border}`,
-        maxHeight: 320,
-        overflow: 'auto',
-      }}
-    >
-      <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 1 }}>
-        {q.stimulus_type ? `Stimulus (${q.stimulus_type})` : 'Stimulus'}
-      </Typography>
-      <Typography
-        component="pre"
-        sx={{
-          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-          fontSize: '0.78rem',
-          m: 0,
-          whiteSpace: 'pre-wrap',
-          color: '#334155',
-        }}
-      >
-        {text}
-      </Typography>
+    <Box sx={{ mb: 2.5, p: 2, bgcolor: '#f8fafc', borderRadius: 2, border: `1px solid ${border}`, maxHeight: 320, overflow: 'auto' }}>
+      {entries.map(([key, value]) =>
+        key === 'constraints' ? (
+          <Box key={key} sx={{ mb: 1.5 }}>
+            <Typography
+              variant="caption"
+              sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 1, letterSpacing: 0.02 }}
+            >
+              Constraints
+            </Typography>
+            <Box component="ul" sx={{ m: 0, pl: 2.25, color: '#334155', '& li': { mb: 0.65 } }}>
+              {splitConstraintLines(value).map((line, i) => (
+                <Typography component="li" key={i} sx={{ fontSize: '0.92rem', lineHeight: 1.55 }}>
+                  {line}
+                </Typography>
+              ))}
+            </Box>
+          </Box>
+        ) : (
+          <Typography key={key} sx={{ fontSize: '0.9rem', color: '#334155', mb: 0.85, lineHeight: 1.45 }}>
+            <Box component="span" sx={{ fontWeight: 700, color: '#475569' }}>
+              {humanizeFieldKey(key)}:{' '}
+            </Box>
+            {formatStimulusLeafValue(value)}
+          </Typography>
+        )
+      )}
     </Box>
   );
 };
@@ -79,6 +311,8 @@ interface OptionPickerProps {
   primarySoft: string;
   borderMuted: string;
   mathWrap?: boolean;
+  selectionLocked?: boolean;
+  answerFeedback?: { correctIndex: number; selectedIndex: number } | null;
 }
 
 function OptionPicker({
@@ -89,77 +323,118 @@ function OptionPicker({
   primarySoft,
   borderMuted,
   mathWrap,
+  selectionLocked = false,
+  answerFeedback = null,
 }: OptionPickerProps) {
   return (
     <FormControl component="fieldset" fullWidth>
       <RadioGroup
         value={selectedOption !== null ? String(selectedOption) : ''}
-        onChange={(e) => onSelect(parseInt(e.target.value, 10))}
+        onChange={(e) => {
+          if (selectionLocked) return;
+          onSelect(parseInt(e.target.value, 10));
+        }}
       >
-        {options.map((option, idx) => (
-          <FormControlLabel
-            key={idx}
-            value={String(idx)}
-            control={<Radio sx={{ display: 'none' }} />}
-            onClick={() => onSelect(idx)}
-            label={
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
-                <Box
-                  sx={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: '50%',
-                    bgcolor: selectedOption === idx ? primaryColor : '#f1f5f9',
-                    border: `2px solid ${selectedOption === idx ? primaryColor : borderMuted}`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  <Typography sx={{ fontSize: '0.75rem', fontWeight: 800, color: selectedOption === idx ? '#fff' : '#64748b' }}>
-                    {String.fromCharCode(65 + idx)}
-                  </Typography>
-                </Box>
-                {mathWrap ? (
-                  <ExamMathText
-                    inline
-                    sx={{
-                      color: selectedOption === idx ? '#0f172a' : '#475569',
-                      fontSize: '0.92rem',
-                      fontWeight: selectedOption === idx ? 700 : 500,
-                    }}
-                  >
-                    {option}
-                  </ExamMathText>
-                ) : (
-                  <Typography
-                    sx={{
-                      color: selectedOption === idx ? '#0f172a' : '#475569',
-                      fontSize: '0.92rem',
-                      fontWeight: selectedOption === idx ? 700 : 500,
-                      lineHeight: 1.45,
-                    }}
-                  >
-                    {option}
-                  </Typography>
-                )}
-              </Box>
+        {options.map((option, idx) => {
+          const fb = answerFeedback;
+          let rowBorder = selectedOption === idx ? primaryColor : borderMuted;
+          let rowBg = selectedOption === idx ? primarySoft : '#fff';
+          let letterBg = selectedOption === idx ? primaryColor : '#f1f5f9';
+          let letterBorder = selectedOption === idx ? primaryColor : borderMuted;
+          let letterFg = selectedOption === idx ? '#fff' : '#64748b';
+          let labelStrong = selectedOption === idx;
+          if (fb) {
+            if (idx === fb.correctIndex) {
+              rowBorder = '#059669';
+              rowBg = 'rgba(5, 150, 105, 0.1)';
+              letterBg = '#059669';
+              letterBorder = '#059669';
+              letterFg = '#fff';
+              labelStrong = true;
+            } else if (idx === fb.selectedIndex && idx !== fb.correctIndex) {
+              rowBorder = '#dc2626';
+              rowBg = 'rgba(220, 38, 38, 0.07)';
+              letterBg = '#dc2626';
+              letterBorder = '#dc2626';
+              letterFg = '#fff';
+              labelStrong = true;
+            } else {
+              rowBorder = borderMuted;
+              rowBg = '#fff';
+              letterBg = '#f1f5f9';
+              letterBorder = borderMuted;
+              letterFg = '#64748b';
+              labelStrong = false;
             }
-            sx={{
-              m: 0,
-              mb: 1.25,
-              p: '14px 16px',
-              borderRadius: 2,
-              border: `2px solid ${selectedOption === idx ? primaryColor : borderMuted}`,
-              bgcolor: selectedOption === idx ? primarySoft : '#fff',
-              cursor: 'pointer',
-              alignItems: 'center',
-              transition: 'all 0.15s',
-              '&:hover': { borderColor: `${primaryColor}99` },
-            }}
-          />
-        ))}
+          }
+          return (
+            <FormControlLabel
+              key={idx}
+              value={String(idx)}
+              control={<Radio sx={{ display: 'none' }} />}
+              onClick={() => {
+                if (selectionLocked) return;
+                onSelect(idx);
+              }}
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
+                  <Box
+                    sx={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: '50%',
+                      bgcolor: letterBg,
+                      border: `2px solid ${letterBorder}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Typography sx={{ fontSize: '0.75rem', fontWeight: 800, color: letterFg }}>
+                      {String.fromCharCode(65 + idx)}
+                    </Typography>
+                  </Box>
+                  {mathWrap ? (
+                    <ExamMathText
+                      inline
+                      sx={{
+                        color: labelStrong ? '#0f172a' : '#475569',
+                        fontSize: '0.92rem',
+                        fontWeight: labelStrong ? 700 : 500,
+                      }}
+                    >
+                      {option}
+                    </ExamMathText>
+                  ) : (
+                    <Typography
+                      sx={{
+                        color: labelStrong ? '#0f172a' : '#475569',
+                        fontSize: '0.92rem',
+                        fontWeight: labelStrong ? 700 : 500,
+                        lineHeight: 1.45,
+                      }}
+                    >
+                      {option}
+                    </Typography>
+                  )}
+                </Box>
+              }
+              sx={{
+                m: 0,
+                mb: 1.25,
+                p: '14px 16px',
+                borderRadius: 2,
+                border: `2px solid ${rowBorder}`,
+                bgcolor: rowBg,
+                cursor: selectionLocked ? 'default' : 'pointer',
+                alignItems: 'center',
+                transition: 'all 0.15s',
+                '&:hover': selectionLocked ? {} : { borderColor: `${primaryColor}99` },
+              }}
+            />
+          );
+        })}
       </RadioGroup>
     </FormControl>
   );
@@ -175,6 +450,9 @@ const ListeningMcqInner: React.FC<{
   primarySoft: string;
   borderMuted: string;
   renderMath?: boolean;
+  footer?: React.ReactNode;
+  selectionLocked?: boolean;
+  answerFeedback?: { correctIndex: number; selectedIndex: number } | null;
 }> = ({
   question,
   questionNumber,
@@ -185,6 +463,9 @@ const ListeningMcqInner: React.FC<{
   primarySoft,
   borderMuted,
   renderMath,
+  footer,
+  selectionLocked = false,
+  answerFeedback = null,
 }) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -218,7 +499,7 @@ const ListeningMcqInner: React.FC<{
         </Typography>
       )}
       {question.instruction && <InstructionLine text={question.instruction} />}
-      <StimulusBlock q={question} border={borderMuted} />
+      <HumanFriendlyStimulus q={question} border={borderMuted} />
       <Button
         startIcon={playing ? <StopIcon /> : <PlayArrowIcon />}
         variant="outlined"
@@ -235,7 +516,10 @@ const ListeningMcqInner: React.FC<{
         primarySoft={primarySoft}
         borderMuted={borderMuted}
         mathWrap={renderMath}
+        selectionLocked={selectionLocked}
+        answerFeedback={answerFeedback}
       />
+      {footer}
     </Box>
   );
 };
@@ -250,6 +534,9 @@ const SpokenResponseInner: React.FC<{
   primarySoft: string;
   borderMuted: string;
   renderMath?: boolean;
+  footer?: React.ReactNode;
+  selectionLocked?: boolean;
+  answerFeedback?: { correctIndex: number; selectedIndex: number } | null;
 }> = ({
   question,
   questionNumber,
@@ -260,6 +547,9 @@ const SpokenResponseInner: React.FC<{
   primarySoft,
   borderMuted,
   renderMath,
+  footer,
+  selectionLocked = false,
+  answerFeedback = null,
 }) => {
   const [rec, setRec] = useState<MediaRecorder | null>(null);
   const chunks = useRef<Blob[]>([]);
@@ -313,7 +603,7 @@ const SpokenResponseInner: React.FC<{
         </Typography>
       )}
       {question.instruction && <InstructionLine text={question.instruction} />}
-      <StimulusBlock q={question} border={borderMuted} />
+      <HumanFriendlyStimulus q={question} border={borderMuted} />
       <Box sx={{ bgcolor: '#f8fafc', borderRadius: 2, p: 2, mb: 2, border: `1px solid ${borderMuted}` }}>
         <Typography sx={{ fontSize: '0.8rem', color: '#64748b', mb: 1.5 }}>
           Record your spoken response (practice). Select the option that best matches your response for scoring.
@@ -339,7 +629,10 @@ const SpokenResponseInner: React.FC<{
         primarySoft={primarySoft}
         borderMuted={borderMuted}
         mathWrap={renderMath}
+        selectionLocked={selectionLocked}
+        answerFeedback={answerFeedback}
       />
+      {footer}
     </Box>
   );
 };
@@ -354,6 +647,12 @@ interface ExamQuestionBodyProps {
   theme: 'blue' | 'purple';
   /** When true, prompt/options/passage use MathJax (requires MathJaxContext ancestor). */
   renderMath?: boolean;
+  /** Enables “Report a problem” for signed-in official or practice sessions */
+  questionReport?: QuestionReportFrame | null;
+  /** Practice immediate feedback: lock choice after “check answer”. */
+  selectionLocked?: boolean;
+  /** Practice immediate feedback: highlight correct vs selected incorrect option. */
+  answerFeedback?: { correctIndex: number; selectedIndex: number } | null;
 }
 
 export const ExamQuestionBody: React.FC<ExamQuestionBodyProps> = ({
@@ -365,6 +664,9 @@ export const ExamQuestionBody: React.FC<ExamQuestionBodyProps> = ({
   onSelectOption,
   theme,
   renderMath = false,
+  questionReport = null,
+  selectionLocked = false,
+  answerFeedback = null,
 }) => {
   const primary = theme === 'purple' ? '#7b1fa2' : '#0d47a1';
   const primarySoft = theme === 'purple' ? 'rgba(123,31,162,0.08)' : 'rgba(13,71,161,0.06)';
@@ -374,6 +676,12 @@ export const ExamQuestionBody: React.FC<ExamQuestionBodyProps> = ({
 
   const mode = inferQuestionInteraction(assessmentId, question);
   const opts = question.options ?? [];
+
+  const reportItemId = resolvePracticeItemId(question);
+  const problemReportBlock =
+    questionReport && reportItemId ? (
+      <QuestionProblemReport frame={questionReport} itemId={reportItemId} accent={primary} />
+    ) : null;
 
   if (mode === 'likert' && opts.length >= 5) {
     const scale = [0, 1, 2, 3, 4];
@@ -395,7 +703,7 @@ export const ExamQuestionBody: React.FC<ExamQuestionBodyProps> = ({
           </Typography>
         )}
         {question.instruction && <InstructionLine text={question.instruction} />}
-        <StimulusBlock q={question} border={borderMuted} />
+        <HumanFriendlyStimulus q={question} border={borderMuted} />
         <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 0.75, mb: 1, flexWrap: 'nowrap' }}>
           {scale.map((i) => (
             <Button
@@ -428,6 +736,7 @@ export const ExamQuestionBody: React.FC<ExamQuestionBodyProps> = ({
             There are no right or wrong answers. Be honest - this helps us understand you better.
           </Typography>
         </Box>
+        {problemReportBlock}
       </Box>
     );
   }
@@ -444,6 +753,9 @@ export const ExamQuestionBody: React.FC<ExamQuestionBodyProps> = ({
         primarySoft={primarySoft}
         borderMuted={borderMuted}
         renderMath={renderMath}
+        footer={problemReportBlock}
+        selectionLocked={selectionLocked}
+        answerFeedback={answerFeedback}
       />
     );
   }
@@ -460,6 +772,9 @@ export const ExamQuestionBody: React.FC<ExamQuestionBodyProps> = ({
         primarySoft={primarySoft}
         borderMuted={borderMuted}
         renderMath={renderMath}
+        footer={problemReportBlock}
+        selectionLocked={selectionLocked}
+        answerFeedback={answerFeedback}
       />
     );
   }
@@ -489,7 +804,7 @@ export const ExamQuestionBody: React.FC<ExamQuestionBodyProps> = ({
           </Typography>
         )}
         {question.instruction && <InstructionLine text={question.instruction} />}
-        <StimulusBlock q={question} border={borderMuted} />
+        <HumanFriendlyStimulus q={question} border={borderMuted} />
         <OptionPicker
           options={opts}
           selectedOption={selectedOption}
@@ -498,7 +813,10 @@ export const ExamQuestionBody: React.FC<ExamQuestionBodyProps> = ({
           primarySoft={primarySoft}
           borderMuted={borderMuted}
           mathWrap={renderMath}
+          selectionLocked={selectionLocked}
+          answerFeedback={answerFeedback}
         />
+        {problemReportBlock}
       </Box>
     );
   }
@@ -518,7 +836,7 @@ export const ExamQuestionBody: React.FC<ExamQuestionBodyProps> = ({
         </Typography>
       )}
       {question.instruction && <InstructionLine text={question.instruction} />}
-      <StimulusBlock q={question} border={borderMuted} />
+      <HumanFriendlyStimulus q={question} border={borderMuted} />
       {question.image_url && (
         <Box
           sx={{
@@ -543,7 +861,10 @@ export const ExamQuestionBody: React.FC<ExamQuestionBodyProps> = ({
         primarySoft={primarySoft}
         borderMuted={borderMuted}
         mathWrap={renderMath}
+        selectionLocked={selectionLocked}
+        answerFeedback={answerFeedback}
       />
+      {problemReportBlock}
     </Box>
   );
 };

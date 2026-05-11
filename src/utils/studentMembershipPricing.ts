@@ -1,6 +1,7 @@
 /**
  * Mirrors argus-backend/functions/src/utils/studentSignupPlans.ts for UI copy only.
- * Charged amounts always come from the server order.
+ * List prices below exclude GST; tax is applied when the backend creates the Razorpay order.
+ * Charged totals always come from the server order response.
  * GYS Consumer Pricing Rev 13 (April 22, 2026).
  */
 
@@ -19,6 +20,7 @@ export function normalizeStudentMembershipLevel(value: unknown): 0 | 1 | 2 | 3 |
   return 0;
 }
 
+/** Upgrade delta in paise (₹ × 100), list price only — same basis as `STUDENT_SIGNUP_BASE_INR`; GST not included. */
 export function studentMembershipUpgradeAmountPaise(
   currentLevel: unknown,
   targetLevel: 1 | 2 | 3 | 4
@@ -32,7 +34,7 @@ export function studentMembershipUpgradeAmountPaise(
   if (deltaBase <= 0) {
     return null;
   }
-  return Math.round(deltaBase * 1.18 * 100);
+  return Math.round(deltaBase * 100);
 }
 
 export function formatInrFromPaise(paise: number): string {

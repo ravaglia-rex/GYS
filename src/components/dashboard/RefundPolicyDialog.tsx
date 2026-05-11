@@ -35,7 +35,7 @@ const RefundPolicyDialog: React.FC<RefundPolicyDialogProps> = ({ isOpen, onClose
             <p><strong>2. How to Request a Refund:</strong></p>
             <ul className="pl-4 list-disc space-y-2">
               <li>Refund requests must be submitted within 7 days of purchase.</li>
-              <li>Contact us at <a href="mailto:hello@argus.ai" className="text-blue-500 underline">hello@argus.ai</a> with your purchase details and the reason for your request.</li>
+              <li>Contact us at <a href="mailto:globalyoungscholar@argus.ai" className="text-blue-500 underline">globalyoungscholar@argus.ai</a> with your purchase details and the reason for your request.</li>
             </ul>
             <p><strong>3. Refund Timeline and Method:</strong></p>
             <ul className="pl-4 list-disc space-y-2">
@@ -47,7 +47,7 @@ const RefundPolicyDialog: React.FC<RefundPolicyDialogProps> = ({ isOpen, onClose
             </ul>
             <p><strong>5. Customer Support and Grievance Handling:</strong></p>
             <ul className="pl-4 list-disc space-y-2">
-              <li>For refund inquiries, contact our Grievance Officer at <a href="mailto:hello@argus.ai" className="text-blue-500 underline">hello@argus.ai</a>.</li>
+              <li>For refund inquiries, contact our Grievance Officer at <a href="mailto:globalyoungscholar@argus.ai" className="text-blue-500 underline">globalyoungscholar@argus.ai</a>.</li>
               <li>A tracking number will be issued to keep you updated on the status of your request.</li>
             </ul>
             <p><strong>6. Force Majeure Policy:</strong></p>

@@ -82,6 +82,7 @@ const BillingPage = React.lazy(() => import('../pages/dashboard_pages/BillingPag
 const ReportsPage = React.lazy(() => import('../pages/dashboard_pages/ReportsPage'));
 const LeaderboardPage = React.lazy(() => import('../pages/dashboard_pages/LeaderboardPage'));
 const PracticeTestPage = React.lazy(() => import('../pages/dashboard_pages/PracticeTestPage'));
+const PracticeTakePage = React.lazy(() => import('../pages/dashboard_pages/PracticeTakePage'));
 const AssessmentTakePage = React.lazy(() => import('../pages/dashboard_pages/AssessmentTakePage'));
 const AssessmentResultPage = React.lazy(() => import('../pages/dashboard_pages/AssessmentResultPage'));
 const AssessmentDetailPage = React.lazy(() => import('../pages/dashboard_pages/AssessmentDetailPage'));
@@ -440,6 +441,18 @@ const AppRouter: React.FC = () => {
             <Protected>
               <Suspense fallback={<BigSpinner />}>
                 <LeaderboardPage />
+              </Suspense>
+            </Protected>
+          }
+          errorElement={<NotFoundPage />}
+        />
+
+        <Route
+          path="/practice-test/session/:examId/:level"
+          element={
+            <Protected>
+              <Suspense fallback={<BigSpinner />}>
+                <PracticeTakePage />
               </Suspense>
             </Protected>
           }

@@ -4,7 +4,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../firebase/firebase';
 import BigSpinner from '../ui/BigSpinner';
 import analytics from '../../segment/segment';
-import StudentSessionSync from './StudentSessionSync';
+import authTokenHandler from '../../functions/auth_token/auth_token_handler';
 
 interface ProtectedProps {
   children: ReactNode;
@@ -26,13 +26,20 @@ const Protected: React.FC<ProtectedProps> = ({ children }) => {
   }
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
+        try {
+          const token = await user.getIdToken();
+          authTokenHandler.setAuthToken(token);
+        } catch {
+          /* Handler refresh on API calls still works via getAuthToken */
+        }
         analytics.identify(user.uid, {
           email: user.email,
         });
         setLoading(false);
       } else {
+        authTokenHandler.clearToken();
         navigate('/');
       }
     });
@@ -50,12 +57,7 @@ const Protected: React.FC<ProtectedProps> = ({ children }) => {
     return <BigSpinner/>;
   }
 
-  return (
-    <>
-      <StudentSessionSync />
-      {children}
-    </>
-  );
+  return <>{children}</>;
 };
 
 export default Protected;

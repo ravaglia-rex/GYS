@@ -27,7 +27,6 @@ import {
   Settings as SettingsIcon,
   Close as CloseIcon,
   Login as LoginIcon,
-  Home as HomeIcon,
   ExpandLess,
   ExpandMore,
   School as SchoolIcon,
@@ -447,14 +446,6 @@ export default function StudentPreviewLayout() {
           }}
         >
           <Toolbar sx={{ justifyContent: 'space-between', gap: 1, minHeight: { xs: 56, sm: 64 } }}>
-            <Button
-              color="inherit"
-              onClick={() => navigate('/')}
-              startIcon={<HomeIcon />}
-              sx={{ color: '#e2e8f0', fontWeight: 600, textTransform: 'none' }}
-            >
-              Home
-            </Button>
             <Box sx={{ flex: 1 }} />
             <Box sx={{ display: { xs: 'none', lg: 'flex' }, alignItems: 'center' }}>
               <Button
