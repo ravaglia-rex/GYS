@@ -45,7 +45,7 @@ const AuthActionPage: React.FC = () => {
       >
         <PasswordActionLayout
           title="Create your password"
-          description="Choose a strong password for your Argus account. If you’re a school official, this step completes your first-time access after your school registered with us."
+          description="Choose a strong password for your Argus account."
         >
           <NewPasswordForm actionCode={oobCode!} />
         </PasswordActionLayout>

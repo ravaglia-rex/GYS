@@ -14,6 +14,7 @@ import {
   studentMembershipUpgradeAmountPaise,
 } from '../../utils/studentMembershipPricing';
 import { useToast } from '../ui/use-toast';
+import { gysPaymentInvoiceNumberFromOrderId } from '../../utils/gysPaymentInvoiceNumber';
 import * as Sentry from '@sentry/react';
 
 const loadScript = (src: string): Promise<boolean> =>
@@ -165,6 +166,7 @@ const MembershipUpgradeSection: React.FC = () => {
         image: 'https://argus-s3-bucket.s3.us-east-1.amazonaws.com/logos/argus.png',
         prefill: email ? { email } : {},
         notes: {
+          invoice_number: gysPaymentInvoiceNumberFromOrderId(order.order_id),
           purpose: 'student_membership_upgrade',
           target_membership_level: String(targetLevel),
         },
@@ -219,11 +221,17 @@ const MembershipUpgradeSection: React.FC = () => {
       const rzp = new RazorpayCtor(options);
       rzp.on('payment.failed', (response: unknown) => {
         setBusyTarget(null);
+        const err =
+          response && typeof response === 'object' && 'error' in response
+            ? (response as { error?: Record<string, unknown> }).error
+            : undefined;
         const detail = razorpayPaymentFailedUserMessage(response);
-        toast({
-          variant: 'destructive',
-          title: 'Payment failed',
-          description: detail || 'The transaction did not complete.',
+        Sentry.withScope((scope) => {
+          scope.setTag('location', 'MembershipUpgradeSection.payment.failed');
+          scope.setContext('razorpay', { error: err });
+          Sentry.captureMessage(
+            detail ? `Razorpay payment.failed: ${detail}` : 'Razorpay payment.failed'
+          );
         });
       });
       rzp.open();

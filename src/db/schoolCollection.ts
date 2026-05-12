@@ -87,7 +87,7 @@ export const resumeSchoolCheckout = async (
       throw new Error(String(e.response.data.error));
     }
     throw new Error(
-      "Could not resume checkout. Try again or contact schools@globalyoungscholar.com."
+      "Could not resume checkout. Try again or contact globalyoungscholar@argus.ai."
     );
   }
 };
@@ -139,7 +139,7 @@ export const createSchoolRazorpayOrder = async (
         throw new Error(bits.join(" - "));
       }
     }
-    throw new Error("Could not start payment. Please try again or contact schools@globalyoungscholar.com.");
+    throw new Error("Could not start payment. Please try again or contact globalyoungscholar@argus.ai.");
   }
 };
 
@@ -159,7 +159,7 @@ export const verifySchoolRazorpayPayment = async (body: {
     if (axios.isAxiosError(e) && e.response?.data?.message) {
       throw new Error(String(e.response.data.message));
     }
-    throw new Error("Payment verification failed. If you were charged, contact schools@globalyoungscholar.com.");
+    throw new Error("Payment verification failed. If you were charged, contact globalyoungscholar@argus.ai.");
   }
 };
 
@@ -212,7 +212,7 @@ export const registerSchool = async (
       }
     }
     throw new Error(
-      'Could not complete registration. Please try again or contact schools@globalyoungscholar.com.'
+      'Could not complete registration. Please try again or contact globalyoungscholar@argus.ai.'
     );
   }
 };
@@ -239,7 +239,7 @@ export const amendSchoolRegistration = async (
       }
     }
     throw new Error(
-      "Could not update registration. Please try again or contact schools@globalyoungscholar.com."
+      "Could not update registration. Please try again or contact globalyoungscholar@argus.ai."
     );
   }
 };
@@ -254,7 +254,7 @@ export const createExpeditedSchool = async (school: expeditedSchool) => {
         const data = response.data;
         return data.id;
     } catch (e) {
-        throw new Error(`Error creating ${school.school_name}. Please contact talentsearch@argus.ai`);
+        throw new Error(`Error creating ${school.school_name}. Please contact globalyoungscholar@argus.ai`);
     }
 }
 
@@ -265,7 +265,7 @@ export const fetchSchoolNamesAndIds = async (): Promise<{ id: string; name: stri
     const data = await response.data;
     return data;
   } catch (e) {
-    throw new Error(`Error fetching schools. Please contact talentsearch@argus.ai`);
+    throw new Error(`Error fetching schools. Please contact globalyoungscholar@argus.ai`);
   }
 };
 
@@ -293,7 +293,7 @@ export const resolveRegistrationSchool = async (
       schoolName: response.data?.schoolName ?? null,
     };
   } catch {
-    throw new Error('Could not verify school for your email. Please contact talentsearch@argus.ai');
+    throw new Error('Could not verify school for your email. Please contact globalyoungscholar@argus.ai');
   }
 };
 
@@ -303,6 +303,6 @@ export const getSchoolDetails = async (school_id: string) => {
         const data = await response.data;
         return data;
     } catch (e) {
-        throw new Error(`Error fetching school. Please contact talentsearch@argus.ai`);
+        throw new Error(`Error fetching school. Please contact globalyoungscholar@argus.ai`);
     }
 };

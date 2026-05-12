@@ -108,7 +108,7 @@ const EmailEntryForm: React.FC = () => {
             toast({
               variant: 'destructive',
               title: 'Access Denied',
-              description: 'You are not allowed to access this portal. Please contact us at talentsearch@argus.ai',
+              description: 'You are not allowed to access this portal. Please contact us at globalyoungscholar@argus.ai',
             });
             setIsSubmitted(false);
             setCheckingSchool(false);

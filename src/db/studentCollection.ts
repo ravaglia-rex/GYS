@@ -40,7 +40,7 @@ export const getStudent = async (userId: string) => {
       if (status === 404) {
         throw new StudentProfileError(
           'NOT_FOUND',
-          'No student profile found for your account. If you just registered, wait a minute and refresh. Otherwise contact talentsearch@argus.ai.'
+          'No student profile found for your account. If you just registered, wait a minute and refresh. Otherwise contact globalyoungscholar@argus.ai.'
         );
       }
       if (status === 401) {
@@ -70,7 +70,7 @@ export const getStudent = async (userId: string) => {
     }
     throw new StudentProfileError(
       'SERVER',
-      `Could not load your profile. Please contact talentsearch@argus.ai`
+      `Could not load your profile. Please contact globalyoungscholar@argus.ai`
     );
   }
 };
@@ -92,6 +92,6 @@ export const updateStudent = async (user_id: string, student: {first_name?: stri
         await axios.request(config);
         return;
     } catch (error) {
-        throw new Error(`Error updating student for user ${user_id}. Please contact talentsearch@argus.ai`);
+        throw new Error(`Error updating student for user ${user_id}. Please contact globalyoungscholar@argus.ai`);
     }
 }

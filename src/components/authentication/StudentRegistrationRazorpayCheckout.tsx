@@ -7,6 +7,7 @@ import {
   devBypassStudentSignupPaymentClaim,
   verifyStudentRegistrationPayment,
 } from '../../db/studentRegistrationPayment';
+import { gysPaymentInvoiceNumberFromOrderId } from '../../utils/gysPaymentInvoiceNumber';
 import * as Sentry from '@sentry/react';
 
 function isStudentSignupRazorpayDevBypass(): boolean {
@@ -111,6 +112,7 @@ const StudentRegistrationRazorpayCheckout: React.FC<StudentRegistrationRazorpayC
           email: email.trim().toLowerCase(),
         },
         notes: {
+          invoice_number: gysPaymentInvoiceNumberFromOrderId(order.order_id),
           purpose: 'student_registration',
           membership_level: String(membershipLevel),
         },
@@ -177,18 +179,14 @@ const StudentRegistrationRazorpayCheckout: React.FC<StudentRegistrationRazorpayC
             ? (response as { error?: Record<string, unknown> }).error
             : undefined;
         const detail = razorpayPaymentFailedUserMessage(response);
-        if (detail) {
-          Sentry.withScope((scope) => {
-            scope.setTag('location', 'StudentRegistrationRazorpayCheckout.payment.failed');
-            scope.setContext('razorpay', { error: err });
-            Sentry.captureMessage(`Razorpay payment.failed: ${detail}`);
-          });
-        }
-        toast({
-          variant: 'destructive',
-          title: 'Payment failed',
-          description: detail || 'The transaction did not complete.',
+        Sentry.withScope((scope) => {
+          scope.setTag('location', 'StudentRegistrationRazorpayCheckout.payment.failed');
+          scope.setContext('razorpay', { error: err });
+          Sentry.captureMessage(
+            detail ? `Razorpay payment.failed: ${detail}` : 'Razorpay payment.failed'
+          );
         });
+        // Razorpay modal already explains the failure; do not surface raw gateway strings in a toast.
       });
       rzp.open();
     } catch (err: unknown) {

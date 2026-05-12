@@ -8,44 +8,48 @@ interface PasswordActionLayoutProps {
 
 /**
  * Full-viewport layout for /auth/action password flows (not Firebase’s default small hosted card).
+ * Root is viewport-height with no document scroll; the main region scrolls only when content overflows.
  */
 const PasswordActionLayout: React.FC<PasswordActionLayoutProps> = ({ title, description, children }) => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950/50 to-slate-950 text-slate-100">
-      <div className="flex min-h-screen flex-col">
-        <header className="shrink-0 border-b border-white/10 bg-black/25 px-4 py-5 sm:px-8">
-          <div className="mx-auto flex max-w-2xl items-center gap-3">
-            <img src="/argus_A_logo.png" alt="" className="h-10 w-10 rounded-lg shadow-lg" width={40} height={40} />
-            <div>
-              <span className="text-lg font-semibold tracking-tight text-white">Argus Assessment Portal</span>
-              <p className="text-xs text-slate-400">School &amp; student access</p>
-            </div>
+    <div className="flex h-dvh max-h-dvh flex-col overflow-hidden bg-gradient-to-br from-slate-950 via-indigo-950/50 to-slate-950 text-slate-100">
+      <header className="shrink-0 border-b border-white/10 bg-black/25 px-4 py-3 sm:px-8 sm:py-4">
+        <div className="mx-auto flex max-w-2xl items-center gap-3">
+          <img src="/argus-logo.png" alt="" className="h-9 w-9 shrink-0 rounded-lg shadow-lg sm:h-10 sm:w-10" width={40} height={40} />
+          <div className="min-w-0">
+            <span className="block truncate text-base font-semibold tracking-tight text-white sm:text-lg">
+              Argus Assessment Portal
+            </span>
+            <p className="text-xs text-slate-400">School &amp; student access</p>
           </div>
-        </header>
+        </div>
+      </header>
 
-        <main className="flex flex-1 flex-col items-center justify-center px-4 py-10 sm:px-6 sm:py-14">
-          <div className="w-full max-w-xl">
-            <div className="mb-8 text-center sm:mb-10">
-              <h1 className="text-balance text-2xl font-semibold tracking-tight text-white sm:text-3xl">{title}</h1>
-              <p className="mx-auto mt-3 max-w-lg text-pretty text-sm leading-relaxed text-slate-400 sm:text-base">
-                {description}
-              </p>
-            </div>
-            {children}
+      <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-4 py-2 sm:px-6 sm:py-5">
+        <div className="mx-auto flex min-h-full w-full max-w-xl flex-col items-center justify-center py-1">
+          <div className="mb-4 w-full text-center sm:mb-6">
+            <h1 className="text-balance text-xl font-semibold tracking-tight text-white sm:text-3xl">{title}</h1>
+            <p className="mx-auto mt-2 max-w-lg text-pretty text-sm leading-snug text-slate-400 sm:mt-3 sm:text-base sm:leading-relaxed">
+              {description}
+            </p>
           </div>
-        </main>
+          {children}
+        </div>
+      </main>
 
-        <footer className="shrink-0 border-t border-white/10 bg-black/20 px-4 py-6 text-center text-xs text-slate-500 sm:px-8">
-          <p>Thank you for working with Argus.</p>
-          <p className="mt-1">
-            Questions?{" "}
-            <a href="mailto:talentsearch@argus.ai" className="font-medium text-indigo-300 hover:text-indigo-200 hover:underline">
-              talentsearch@argus.ai
-            </a>
-          </p>
-          <p className="mt-3 text-slate-600">- The Argus Team</p>
-        </footer>
-      </div>
+      <footer className="shrink-0 border-t border-white/10 bg-black/20 px-4 py-3 text-center text-xs leading-relaxed text-slate-500 sm:px-8 sm:py-5 sm:leading-normal">
+        <p>Thank you for working with Argus.</p>
+        <p className="mt-0.5 sm:mt-1">
+          Questions?{" "}
+          <a
+            href="mailto:globalyoungscholar@argus.ai"
+            className="font-medium text-indigo-300 hover:text-indigo-200 hover:underline"
+          >
+            globalyoungscholar@argus.ai
+          </a>
+        </p>
+      
+      </footer>
     </div>
   );
 };

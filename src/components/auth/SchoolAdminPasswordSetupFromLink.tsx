@@ -156,7 +156,7 @@ const SchoolAdminPasswordSetupFromLink: React.FC<SchoolAdminPasswordSetupFromLin
   };
 
   const cardClass =
-    "w-full rounded-2xl border border-white/15 bg-white/[0.06] p-8 shadow-2xl backdrop-blur-md sm:p-10";
+    "w-full rounded-2xl border border-white/15 bg-white/[0.06] p-6 shadow-2xl backdrop-blur-md sm:p-10";
 
   return (
     <div className={cardClass}>

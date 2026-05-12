@@ -7,9 +7,10 @@ import {
   verifySchoolRazorpayPayment,
 } from '../../db/schoolCollection';
 import { isValidIndiaMobile, normalizeIndiaMobileE164 } from '../../utils/indiaMobile';
+import { gysPaymentInvoiceNumberFromOrderId } from '../../utils/gysPaymentInvoiceNumber';
 import * as Sentry from '@sentry/react';
 
-/** Best-effort string for Razorpay `payment.failed` payloads (shape varies by version). */
+/** Best-effort string for Razorpay `payment.failed` payloads (shape varies by version). Used for Sentry only. */
 function razorpayPaymentFailedUserMessage(payload: unknown): string {
   const err =
     payload && typeof payload === 'object' && 'error' in payload
@@ -34,16 +35,6 @@ function razorpayPaymentFailedUserMessage(payload: unknown): string {
     }
   }
   return bits.filter((b, i) => bits.indexOf(b) === i).join(' - ');
-}
-
-/** US test keys route through Razorpay cross-border test APIs 502/currency errors are often Razorpay-side. */
-function paymentFailedToastDescription(detail: string, keyId: string): string {
-  const low = detail.toLowerCase();
-  const usKey = typeof keyId === 'string' && keyId.includes('_us_');
-  if (usKey && low.includes('currency is invalid')) {
-    return `${detail} If you see 502 on payments_cross_border_test …/cb_flows, that is Razorpay’s cross-border test stack, not your order JSON. Try India test keys (no “_us_”) for INR-only checks, or contact Razorpay with the 502 timestamp.`;
-  }
-  return detail;
 }
 
 const loadScript = (src: string): Promise<boolean> =>
@@ -129,7 +120,7 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
         throw new Error('Could not load Razorpay checkout');
       }
 
-      const invoiceNumber = `${order.order_id.replace(/[^a-zA-Z0-9_]/g, '_').slice(0, 30)}_gys`;
+      const invoiceNumber = gysPaymentInvoiceNumberFromOrderId(order.order_id);
 
       const RazorpayCtor = (window as unknown as {
         Razorpay?: new (o: object) => { open: () => void; on: (e: string, fn: (r: unknown) => void) => void };
@@ -247,8 +238,6 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
         },
       };
 
-      const diagnosticKeyId = typeof order.key_id === 'string' ? order.key_id : '';
-
       const rzp = new RazorpayCtor(options);
       rzp.on('payment.failed', (response: unknown) => {
         setBusy(false);
@@ -260,21 +249,14 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
             ? (response as { error?: Record<string, unknown> }).error
             : undefined;
         const detail = razorpayPaymentFailedUserMessage(response);
-        if (detail) {
-          Sentry.withScope((scope) => {
-            scope.setTag('location', 'SchoolRazorpayCheckout.payment.failed');
-            scope.setContext('razorpay', { error: err });
-            Sentry.captureMessage(`Razorpay payment.failed: ${detail}`);
-          });
-        }
-        const base =
-          detail ||
-          'The transaction did not complete. Check Razorpay Dashboard → Payments for the error code, or try UPI test mode.';
-        toast({
-          variant: 'destructive',
-          title: 'Payment failed',
-          description: paymentFailedToastDescription(base, diagnosticKeyId),
+        Sentry.withScope((scope) => {
+          scope.setTag('location', 'SchoolRazorpayCheckout.payment.failed');
+          scope.setContext('razorpay', { error: err });
+          Sentry.captureMessage(
+            detail ? `Razorpay payment.failed: ${detail}` : 'Razorpay payment.failed'
+          );
         });
+        // Razorpay modal already shows a user-friendly failure message; avoid duplicate dev-style toasts.
       });
       rzp.open();
     } catch (err: unknown) {

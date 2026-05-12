@@ -236,8 +236,30 @@ export default function SidebarNavigation({ collapsed, onCollapse, onClose }: Si
         pb: 2
       }}>
         {!collapsed && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <SchoolIcon sx={{ color: '#8b5cf6', fontSize: 28 }} />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, minWidth: 0 }}>
+            <Box
+              sx={{
+                width: 40,
+                height: 40,
+                flexShrink: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Box
+                component="img"
+                src="/argus-student-logo.png"
+                alt=""
+                sx={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 1,
+                  objectFit: 'contain',
+                  display: 'block',
+                }}
+              />
+            </Box>
             <Typography variant="h6" sx={{ color: 'white', fontWeight: 700 }}>
               Argus
             </Typography>

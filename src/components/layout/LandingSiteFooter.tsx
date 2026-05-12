@@ -21,7 +21,7 @@ const LandingSiteFooter: React.FC = () => {
           >
             Assessments
           </button>
-          <a href="mailto:schools@globalyoungscholar.com" className="text-gray-600 hover:text-gray-900">
+          <a href="mailto:globalyoungscholar@argus.ai" className="text-gray-600 hover:text-gray-900">
             Contact
           </a>
         </nav>

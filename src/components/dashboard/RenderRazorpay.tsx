@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { useToast } from '../ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { markPaymentPending } from '../../functions/payment_handling/razorpay_functions';
+import { gysPaymentInvoiceNumberFromOrderId } from '../../utils/gysPaymentInvoiceNumber';
 
 import * as Sentry from '@sentry/react';
 
@@ -167,7 +168,7 @@ const RenderRazorpay: React.FC<RenderRazorpayProps> = ({
       contact: payee_contact,
     },
     notes: {
-      invoice_number: order_id.replace('order_', 'argus'),
+      invoice_number: gysPaymentInvoiceNumberFromOrderId(order_id),
       email: email,
       user_id: uid,
       address_line_1: address_line_1,

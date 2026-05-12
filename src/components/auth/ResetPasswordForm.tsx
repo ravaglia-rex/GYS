@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { auth, getAuthActionCodeSettings } from '../../firebase/firebase';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useToast } from '../ui/use-toast';
 import * as Sentry from '@sentry/react';
 
@@ -62,9 +62,11 @@ const ResetPasswordForm: React.FC = () => {
         }
     };
 
+    const cardClass =
+        "w-full rounded-2xl border border-white/15 bg-white/[0.06] p-6 shadow-2xl backdrop-blur-md sm:p-10";
+
     return (
-        <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-gray-900/60 to-gray-900/40 backdrop-blur-xl p-8 shadow-2xl">
-            <h2 className="text-2xl font-semibold text-center mb-6 text-white">Reset Your Password</h2>
+        <div className={cardClass}>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(sendResetEmail)} className="space-y-6">
                     <FormField
@@ -72,37 +74,40 @@ const ResetPasswordForm: React.FC = () => {
                         name="email"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="text-sm text-gray-300">Email Address</FormLabel>
+                                <FormLabel className="text-sm font-medium text-slate-200">Email address</FormLabel>
                                 <FormControl>
-                                    <Input 
-                                        className="bg-gray-900/60 border-white/10 focus-visible:ring-purple-600 placeholder:text-gray-500 text-white" 
-                                        type="email" 
-                                        placeholder="globalyoungscholar@argus.ai" 
-                                        {...field} 
+                                    <Input
+                                        className="h-11 border-white/15 bg-slate-950/50 text-base text-white placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-indigo-500"
+                                        type="email"
+                                        autoComplete="email"
+                                        placeholder="you@school.edu"
+                                        {...field}
                                     />
                                 </FormControl>
-                                <FormDescription className="text-xs text-gray-500">Enter the email address associated with your account.</FormDescription>
-                                <FormMessage className="text-red-400">{form.formState.errors.email?.message}</FormMessage>
+                                <FormDescription className="text-xs text-slate-500">
+                                    Use the same email as your Argus account (student or school admin).
+                                </FormDescription>
+                                <FormMessage className="text-red-400" />
                             </FormItem>
                         )}
                     />
-                    <Button 
-                        type="submit" 
-                        disabled={isSubmitted} 
-                        className="w-full py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-md font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25"
+                    <Button
+                        type="submit"
+                        disabled={isSubmitted}
+                        className="h-12 w-full text-base font-semibold shadow-lg transition-all bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500"
                     >
-                        {isSubmitted ? <Spinner /> : 'Send Reset Link'}
+                        {isSubmitted ? <Spinner /> : "Send reset link"}
                     </Button>
                 </form>
             </Form>
-            
-            <div className='text-center mt-4'>
-                <button 
-                    onClick={() => navigate('/')} 
-                    className='text-sm text-purple-400 hover:text-purple-300 hover:underline transition-colors duration-300'
+
+            <div className="mt-6 text-center">
+                <Link
+                    to="/"
+                    className="text-sm font-medium text-indigo-300 hover:text-indigo-200 hover:underline"
                 >
-                    Back to Sign In
-                </button>
+                    Back to sign in
+                </Link>
             </div>
         </div>
     );

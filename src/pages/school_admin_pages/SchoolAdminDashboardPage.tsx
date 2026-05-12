@@ -51,7 +51,7 @@ import {
 
 // ─── Tier config ─────────────────────────────────────────────────────────────
 const SCHOOL_ADMIN_HELP_HREF =
-  'mailto:talentsearch@argus.ai?subject=' + encodeURIComponent('Argus school portal - help');
+  'mailto:globalyoungscholar@argus.ai?subject=' + encodeURIComponent('Argus school portal - help');
 
 type DashboardQuickAction =
   | { key: string; icon: React.ReactElement; label: string; subcaption: string; path: string }

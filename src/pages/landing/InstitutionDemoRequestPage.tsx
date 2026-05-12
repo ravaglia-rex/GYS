@@ -18,6 +18,16 @@ const DEMO_NAV = [
 
 const DEMO_SECTION_IDS_JOIN = DEMO_NAV.map((s) => s.id).join('|');
 
+/** Same slugs as the previous single-select; stored in Firestore as `boards`. */
+const DEMO_BOARD_OPTIONS = [
+  { value: 'cbse', label: 'CBSE' },
+  { value: 'icse', label: 'ICSE' },
+  { value: 'state', label: 'State Board' },
+  { value: 'ib', label: 'IB' },
+  { value: 'cambridge', label: 'Cambridge (IGCSE / A-Levels)' },
+  { value: 'other', label: 'Other / Mixed' },
+] as const;
+
 interface FormState {
   name: string;
   role: string;
@@ -25,7 +35,7 @@ interface FormState {
   udisecode: string;
   city: string;
   state: string;
-  board: string;
+  boards: string[];
   totalStudents: string;
   email: string;
   phone: string;
@@ -41,7 +51,7 @@ const initialFormState: FormState = {
   udisecode: '',
   city: '',
   state: '',
-  board: '',
+  boards: [],
   totalStudents: '',
   email: '',
   phone: '',
@@ -76,6 +86,20 @@ const InstitutionDemoRequestPage: React.FC = () => {
     }));
   };
 
+  const toggleBoard = (value: string) => {
+    setForm((prev) => {
+      const has = prev.boards.includes(value);
+      const boards = has ? prev.boards.filter((b) => b !== value) : [...prev.boards, value];
+      return { ...prev, boards };
+    });
+    setErrors((prev) => {
+      if (!prev.board) return prev;
+      const next = { ...prev };
+      delete next.board;
+      return next;
+    });
+  };
+
   const validate = () => {
     const newErrors: Record<string, string> = {};
 
@@ -84,7 +108,7 @@ const InstitutionDemoRequestPage: React.FC = () => {
     if (!form.schoolName.trim()) newErrors.schoolName = 'Required';
     if (!form.city.trim()) newErrors.city = 'Required';
     if (!form.state.trim()) newErrors.state = 'Required';
-    if (!form.board.trim()) newErrors.board = 'Required';
+    if (form.boards.length === 0) newErrors.board = 'Select at least one board';
     if (!form.email.trim()) newErrors.email = 'Required';
     if (!form.phone.trim()) newErrors.phone = 'Required';
 
@@ -254,10 +278,10 @@ const InstitutionDemoRequestPage: React.FC = () => {
                 <p className="mt-6 text-center text-xs text-slate-500 sm:text-sm">
                   Questions? Contact us at{' '}
                   <a
-                    href="mailto:schools@globalyoungscholar.com"
+                    href="mailto:globalyoungscholar@argus.ai"
                     className="font-medium text-slate-700 underline"
                   >
-                    schools@globalyoungscholar.com
+                    globalyoungscholar@argus.ai
                   </a>
                   .
                 </p>
@@ -401,25 +425,39 @@ const InstitutionDemoRequestPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Board / curriculum */}
+                {/* Board / curriculum (multi-select) */}
                 <div>
-                  <label className="block text-sm font-semibold text-slate-800 sm:text-[15px]">
+                  <span className="block text-sm font-semibold text-slate-800 sm:text-[15px]">
                     Board / Curriculum<span className="text-red-500"> *</span>
-                  </label>
-                  <select
-                    name="board"
-                    value={form.board}
-                    onChange={handleChange}
-                    className="mt-1 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-200"
+                  </span>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    Select all that apply at your school.
+                  </p>
+                  <div
+                    className={`mt-2 grid grid-cols-1 gap-2 rounded-xl border p-3 sm:grid-cols-2 ${
+                      errors.board ? 'border-red-300 bg-red-50/40' : 'border-slate-200 bg-slate-50/80'
+                    }`}
                   >
-                    <option value="">Select board</option>
-                    <option value="cbse">CBSE</option>
-                    <option value="icse">ICSE</option>
-                    <option value="state">State Board</option>
-                    <option value="ib">IB</option>
-                    <option value="cambridge">Cambridge (IGCSE / A-Levels)</option>
-                    <option value="other">Other / Mixed</option>
-                  </select>
+                    {DEMO_BOARD_OPTIONS.map(({ value, label }) => {
+                      const checked = form.boards.includes(value);
+                      return (
+                        <label
+                          key={value}
+                          className={`flex cursor-pointer items-start gap-2.5 rounded-lg px-2 py-2 text-sm text-slate-900 ${
+                            checked ? 'bg-white ring-1 ring-slate-200' : 'hover:bg-white/60'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-slate-700 focus:ring-slate-500"
+                            checked={checked}
+                            onChange={() => toggleBoard(value)}
+                          />
+                          <span className="leading-snug">{label}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
                   {errors.board && (
                     <p className="mt-0.5 text-xs text-red-500">{errors.board}</p>
                   )}

@@ -4,6 +4,9 @@
  * and INSTITUTIONAL_PLAN_ASSESSMENT_GATE_MIN_LEVEL (backend) for assessment floors.
  */
 
+/** Same rate as backend `schoolRegistrationPlans.SCHOOL_REGISTRATION_GST_RATE` / invoice PDF. */
+export const SCHOOL_REGISTRATION_GST_RATE = 0.18 as const;
+
 export const REGISTER_PLAN_IDS = ['entry', 'standard', 'premium'] as const;
 export type RegisterPlanId = (typeof REGISTER_PLAN_IDS)[number];
 
@@ -16,6 +19,40 @@ const PRODUCTION_INR: Record<RegisterPlanId, number> = {
 
 function formatInr(amount: number): string {
   return `₹${amount.toLocaleString('en-IN')}`;
+}
+
+function formatInrFromPaise(paise: number): string {
+  const rupees = paise / 100;
+  return `₹${rupees.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+}
+
+export type SchoolRegistrationTotalsPaise = {
+  basePaise: number;
+  gstPaise: number;
+  totalPaise: number;
+};
+
+/** Matches backend `getSchoolRegistrationAmountPaise` (list INR × 100 × (1 + GST), rounded). */
+export function schoolRegistrationTotalsFromBaseInr(baseInr: number): SchoolRegistrationTotalsPaise {
+  const basePaise = Math.round(baseInr * 100);
+  const totalPaise = Math.round(basePaise * (1 + SCHOOL_REGISTRATION_GST_RATE));
+  const gstPaise = totalPaise - basePaise;
+  return { basePaise, gstPaise, totalPaise };
+}
+
+export function schoolRegistrationCheckoutSummaryFromBaseInr(baseInr: number): {
+  baseDisplay: string;
+  gstDisplay: string;
+  totalDisplay: string;
+  gstRatePct: number;
+} {
+  const { gstPaise, totalPaise } = schoolRegistrationTotalsFromBaseInr(baseInr);
+  return {
+    baseDisplay: formatInr(baseInr),
+    gstDisplay: formatInrFromPaise(gstPaise),
+    totalDisplay: formatInrFromPaise(totalPaise),
+    gstRatePct: Math.round(SCHOOL_REGISTRATION_GST_RATE * 100),
+  };
 }
 
 export type SchoolPlanDisplay = {
@@ -86,7 +123,7 @@ function buildPlans(): SchoolPlanDisplay[] {
   });
 }
 
-/** Plan cards for the school registration flow (list prices match API order amounts). */
+/** Plan cards for the school registration flow (list prices excl. GST; Razorpay charges total incl. GST). */
 export const SCHOOL_REGISTRATION_PLANS: SchoolPlanDisplay[] = buildPlans();
 
 /** Single line for order summary / headers: price + period without duplicating "/yr" */

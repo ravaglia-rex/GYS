@@ -26,7 +26,7 @@ import { useLandingScrollProgress } from '../../hooks/useLandingPageScroll';
 import SchoolRazorpayCheckout from '../../components/school-registration/SchoolRazorpayCheckout';
 import {
   SCHOOL_REGISTRATION_PLANS as PLANS,
-  schoolPlanAnnualLabel,
+  schoolRegistrationCheckoutSummaryFromBaseInr,
 } from '../../utils/schoolRegistrationPlans';
 
 const GYS_BLUE = '#1e3a8a';
@@ -95,7 +95,7 @@ const MAX_EMAILS = 5;
 const TOTAL_STEPS = 4;
 
 /** When true: skip embedded Razorpay; onboarding emails a payment link. Set false for Razorpay checkout after submit. */
-const SCHOOL_SIGNUP_TEMP_PAYMENT_LINK = true;
+const SCHOOL_SIGNUP_TEMP_PAYMENT_LINK = false;
 
 function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
@@ -445,6 +445,10 @@ const SchoolRegistrationPage: React.FC = () => {
   );
 
   const currentPlan = PLANS.find((p) => p.id === selectedPlan)!;
+  const institutionalCheckoutSummary = useMemo(
+    () => schoolRegistrationCheckoutSummaryFromBaseInr(currentPlan.priceNum),
+    [currentPlan.priceNum]
+  );
 
   // ── Post-submit: payment link (temporary) or Razorpay checkout ───────────────
 
@@ -463,8 +467,8 @@ const SchoolRegistrationPage: React.FC = () => {
             <p className="mt-3 text-sm text-slate-600 leading-relaxed">
               Thank you. <span className="font-semibold">{storedSchoolName}</span> is recorded for the{' '}
               <span className="font-semibold">{currentPlan.name}</span> plan (
-              <span className="font-semibold">{currentPlan.price}</span>
-              /yr + GST as applicable).{' '}
+              <span className="font-semibold">{institutionalCheckoutSummary.totalDisplay}</span>
+              /yr incl. {institutionalCheckoutSummary.gstRatePct}% GST).{' '}
               <span className="font-semibold">
                 We will email a secure Razorpay payment link
               </span>{' '}
@@ -479,11 +483,11 @@ const SchoolRegistrationPage: React.FC = () => {
             <p className="mt-4 text-xs text-slate-500 leading-relaxed">
               Didn&apos;t get the email? Check spam, or write to{' '}
               <a
-                href="mailto:schools@globalyoungscholar.com"
+                href="mailto:globalyoungscholar@argus.ai"
                 className="font-medium underline underline-offset-2"
                 style={{ color: GYS_BLUE }}
               >
-                schools@globalyoungscholar.com
+                globalyoungscholar@argus.ai
               </a>{' '}
               with your school name and reference.
             </p>
@@ -522,10 +526,35 @@ const SchoolRegistrationPage: React.FC = () => {
             <h2 className="text-2xl font-bold text-slate-900">Complete payment</h2>
             <p className="mt-3 text-sm text-slate-600 leading-relaxed">
               <span className="font-semibold">{storedSchoolName}</span> is registered for the{' '}
-              <span className="font-semibold">{currentPlan.name}</span> plan (
-              <span className="font-semibold">{currentPlan.price}</span>
-              /yr + GST as applicable). Pay below with UPI, cards, or net banking.
+              <span className="font-semibold">{currentPlan.name}</span> plan. You will pay{' '}
+              <span className="font-semibold">{institutionalCheckoutSummary.totalDisplay}</span> for the first year
+              (list {institutionalCheckoutSummary.baseDisplay} + GST @ {institutionalCheckoutSummary.gstRatePct}%:{' '}
+              {institutionalCheckoutSummary.gstDisplay}). Pay below with UPI, cards, or net banking.
             </p>
+            <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+                Price summary
+              </p>
+              <div className="space-y-1.5 text-sm text-slate-800">
+                <div className="flex justify-between gap-3">
+                  <span className="text-slate-600">Annual fee (excl. GST)</span>
+                  <span className="font-medium tabular-nums">{institutionalCheckoutSummary.baseDisplay}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-slate-600">GST @ {institutionalCheckoutSummary.gstRatePct}%</span>
+                  <span className="font-medium tabular-nums">{institutionalCheckoutSummary.gstDisplay}</span>
+                </div>
+                <div className="mt-2 flex justify-between gap-3 border-t border-slate-200 pt-2 font-semibold text-slate-900">
+                  <span>Total due (incl. GST)</span>
+                  <span className="tabular-nums" style={{ color: GYS_BLUE }}>
+                    {institutionalCheckoutSummary.totalDisplay}
+                  </span>
+                </div>
+              </div>
+              <p className="mt-2 text-[11px] text-slate-500 leading-relaxed">
+                Razorpay will charge this total; your receipt PDF matches these figures.
+              </p>
+            </div>
             <div className="mt-2 space-y-2 text-left">
               <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-950 leading-relaxed">
                 <span className="font-semibold">Razorpay test mode:</span> use India test guides for{' '}
@@ -597,11 +626,11 @@ const SchoolRegistrationPage: React.FC = () => {
             <p className="mt-4 text-xs text-slate-500 leading-relaxed">
               Problems with checkout? Email{' '}
               <a
-                href="mailto:schools@globalyoungscholar.com"
+                href="mailto:globalyoungscholar@argus.ai"
                 className="font-medium underline underline-offset-2"
                 style={{ color: GYS_BLUE }}
               >
-                schools@globalyoungscholar.com
+                globalyoungscholar@argus.ai
               </a>{' '}
               with your school name and reference.
             </p>
@@ -637,11 +666,11 @@ const SchoolRegistrationPage: React.FC = () => {
             <p className="mt-3 text-xs text-slate-500 leading-relaxed">
               Questions?{' '}
               <a
-                href="mailto:schools@globalyoungscholar.com"
+                href="mailto:globalyoungscholar@argus.ai"
                 className="font-medium underline underline-offset-2"
                 style={{ color: GYS_BLUE }}
               >
-                schools@globalyoungscholar.com
+                globalyoungscholar@argus.ai
               </a>
             </p>
             <button
@@ -714,8 +743,8 @@ const SchoolRegistrationPage: React.FC = () => {
               <span className="font-mono text-[11px]">resumeSchoolCheckout</span> and your latest{' '}
               <span className="font-mono text-[11px]">registerSchool</span> code, then try again. Or
               contact{' '}
-              <a href="mailto:schools@globalyoungscholar.com" className="underline" style={{ color: GYS_BLUE }}>
-                schools@globalyoungscholar.com
+              <a href="mailto:globalyoungscholar@argus.ai" className="underline" style={{ color: GYS_BLUE }}>
+                globalyoungscholar@argus.ai
               </a>
               .
             </p>
@@ -1442,12 +1471,9 @@ const SchoolRegistrationPage: React.FC = () => {
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
                   Order Summary
                 </p>
-                <div className="flex items-center justify-between text-sm">
+                <div className="flex items-start justify-between gap-3 text-sm">
                   <span className="text-slate-700">
                     {storedSchoolName} - {currentPlan.name} Plan
-                  </span>
-                  <span className="font-bold" style={{ color: GYS_BLUE }}>
-                    {schoolPlanAnnualLabel(currentPlan)}
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-slate-500">
@@ -1461,9 +1487,21 @@ const SchoolRegistrationPage: React.FC = () => {
                 <p className="mt-1 text-xs text-slate-500">
                   {addressLine1}{addressLine2 ? `, ${addressLine2}` : ''}, {city}, {addressState} - {zipCode}
                 </p>
-                <div className="mt-2 border-t border-slate-200 pt-2 flex justify-between text-sm font-semibold text-slate-900">
-                  <span>Annual fee (excl. GST)</span>
-                  <span style={{ color: GYS_BLUE }}>{schoolPlanAnnualLabel(currentPlan)} + GST</span>
+                <div className="mt-3 space-y-1.5 border-t border-slate-200 pt-2 text-sm">
+                  <div className="flex justify-between gap-3 text-slate-700">
+                    <span>Annual fee (excl. GST)</span>
+                    <span className="font-medium tabular-nums">{institutionalCheckoutSummary.baseDisplay}</span>
+                  </div>
+                  <div className="flex justify-between gap-3 text-slate-700">
+                    <span>GST @ {institutionalCheckoutSummary.gstRatePct}%</span>
+                    <span className="font-medium tabular-nums">{institutionalCheckoutSummary.gstDisplay}</span>
+                  </div>
+                  <div className="flex justify-between gap-3 pt-1 text-sm font-semibold text-slate-900">
+                    <span>Total (incl. GST)</span>
+                    <span className="tabular-nums" style={{ color: GYS_BLUE }}>
+                      {institutionalCheckoutSummary.totalDisplay}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -1473,14 +1511,12 @@ const SchoolRegistrationPage: React.FC = () => {
                   {SCHOOL_SIGNUP_TEMP_PAYMENT_LINK ? (
                     <>
                       Submitting registers your school and chosen plan. Our team will send a Razorpay
-                      payment link to your contact email(s) for the plan fee (plus GST as shown on the
-                      link).
+                      payment link to your contact email(s) for the total due (incl. GST as on the link).
                     </>
                   ) : (
                     <>
                       Submitting registers your school and chosen plan. The next screen opens Razorpay
-                      checkout for the plan fee (plus GST as shown at payment). You can use test cards in
-                      Razorpay test mode.
+                      checkout for the total due (incl. GST). You can use test cards in Razorpay test mode.
                     </>
                   )}
                 </p>

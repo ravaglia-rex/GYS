@@ -45,6 +45,6 @@ export const runSignUpTransaction = async (student: NewStudent) => {
                 throw new Error(msg);
             }
         }
-        throw new Error(`Error creating account for ${student.first_name} ${student.last_name}. Please contact talentsearch@argus.ai`);
+        throw new Error(`Error creating account for ${student.first_name} ${student.last_name}. Please contact globalyoungscholar@argus.ai`);
     }
 };

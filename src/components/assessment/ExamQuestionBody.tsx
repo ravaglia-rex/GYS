@@ -72,6 +72,81 @@ function stimulusFieldDuplicatesPrompt(fieldKey: string, value: unknown, prompt:
   return vs === stem || stem.includes(vs) || vs.includes(stem);
 }
 
+/** Bank authoring keys — never show raw blobs (e.g. structured `items[]`) to students. */
+const STIMULUS_KEYS_HIDDEN_FROM_LEARNER = new Set(['items']);
+
+/**
+ * When true, do not surface authoring rules (students infer them — e.g. odd-one-out).
+ * Toggle via `stimulus.hide_shared_rule` / `stimulus.show_rule`, or `stimulus_type` naming.
+ */
+function shouldHideSharedLearnerRule(stimulusType: string | undefined, obj: Record<string, unknown>): boolean {
+  if (obj.hide_shared_rule === true) return true;
+  if (obj.show_rule === false) return true;
+  const t = typeof stimulusType === 'string' ? stimulusType.trim().toLowerCase().replace(/-/g, '_') : '';
+  if (!t) return false;
+  if (
+    t === 'odd_one_out' ||
+    t === 'pick_odd' ||
+    t === 'outlier' ||
+    t === 'visual_odd_one_out' ||
+    t === 'odd_one'
+  ) {
+    return true;
+  }
+  if (t.includes('odd') && (t.includes('out') || t.endsWith('_one') || t.includes('one_out'))) return true;
+  return false;
+}
+
+/** Stimulus keys treated as “the rule” for learners — omitted when {@link shouldHideSharedLearnerRule} applies. */
+function hiddenRuleKeysWhenConcealed(): Set<string> {
+  return new Set([
+    'rules',
+    'rule',
+    'shared_rule',
+    'source_rule',
+    'correct_rule',
+    'classification_rule',
+    'domain_rule',
+    'answer_rule',
+    'logic_rule',
+  ]);
+}
+
+function coerceStimulusSequence(raw: unknown): string[] {
+  if (raw == null) return [];
+  if (Array.isArray(raw)) return raw.map((x) => String(x));
+  if (typeof raw === 'string') {
+    return raw
+      .split(/,\s*/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  return [];
+}
+
+function isIoExamplePair(x: unknown): x is { input: unknown; output: unknown } {
+  if (!x || typeof x !== 'object') return false;
+  const o = x as Record<string, unknown>;
+  return 'input' in o && 'output' in o;
+}
+
+/** Shared tile style for symbol / shape stimuli (sequence, examples, pattern transfer). */
+function stimulusSymbolTileSx(border: string) {
+  return {
+    fontSize: '1.65rem',
+    lineHeight: 1,
+    minWidth: 44,
+    textAlign: 'center' as const,
+    px: 1.25,
+    py: 1,
+    color: '#0f172a',
+    bgcolor: '#fff',
+    borderRadius: 1.5,
+    border: `1px solid ${border}`,
+    boxShadow: '0 1px 2px rgba(15,23,42,0.06)',
+  };
+}
+
 /** Turn constraints string (often "a., b., c.") or array into separate lines for display. */
 function splitConstraintLines(raw: unknown): string[] {
   if (Array.isArray(raw)) {
@@ -174,6 +249,149 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string }> = ({ 
   if (typeof stimulus !== 'object' || Array.isArray(stimulus)) return null;
 
   const obj = stimulus as Record<string, unknown>;
+  const hideSharedRule = shouldHideSharedLearnerRule(stimulusType, obj);
+
+  /** Transformation drills: paired inputs/outputs + optional test row (not raw JSON). */
+  const examplesRaw = obj.examples;
+  if (Array.isArray(examplesRaw) && examplesRaw.length > 0) {
+    const pairs = examplesRaw.filter(isIoExamplePair);
+    if (pairs.length > 0) {
+      const symTileSx = stimulusSymbolTileSx(border);
+      const testRaw =
+        obj.test_input ?? obj.test_query ?? obj.query_input ?? obj.test_case ?? obj.query;
+      const testStr =
+        testRaw !== null && testRaw !== undefined && String(testRaw).trim() !== ''
+          ? String(testRaw).trim()
+          : '';
+
+      return (
+        <Box sx={{ mb: 2.5, p: 2.5, bgcolor: '#f8fafc', borderRadius: 2, border: `1px solid ${border}` }}>
+          {pairs.map((row, i) => (
+            <Box key={i} sx={{ mb: i < pairs.length - 1 || testStr ? 2 : 0 }}>
+              <Typography
+                variant="caption"
+                sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 1, letterSpacing: 0.02 }}
+              >
+                Example {i + 1}
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25, alignItems: 'center' }}>
+                <Box sx={symTileSx}>{String(row.input)}</Box>
+                <Typography sx={{ color: '#64748b', fontWeight: 700, fontSize: '1.1rem' }} aria-hidden>
+                  →
+                </Typography>
+                <Box sx={symTileSx}>{String(row.output)}</Box>
+              </Box>
+            </Box>
+          ))}
+          {testStr ? (
+            <Box
+              sx={{
+                pt: pairs.length ? 2 : 0,
+                mt: pairs.length ? 0 : 0,
+                borderTop: pairs.length ? `1px solid ${border}` : 'none',
+              }}
+            >
+              <Typography
+                variant="caption"
+                sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 1, letterSpacing: 0.02 }}
+              >
+                Test input
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25, alignItems: 'center' }}>
+                <Box sx={symTileSx}>{testStr}</Box>
+                <Typography sx={{ color: '#64748b', fontWeight: 700, fontSize: '1.1rem' }} aria-hidden>
+                  →
+                </Typography>
+                <Box
+                  sx={{
+                    ...symTileSx,
+                    borderStyle: 'dashed',
+                    bgcolor: '#f1f5f9',
+                    color: '#64748b',
+                    fontWeight: 800,
+                    fontSize: '1.35rem',
+                  }}
+                  aria-label="Missing output"
+                >
+                  ?
+                </Box>
+              </Box>
+            </Box>
+          ) : null}
+        </Box>
+      );
+    }
+  }
+
+  /** Number rule → shape pattern (bank `source_*` / `target_stem`); hides raw `items` via dedicated layout. */
+  const sourceRule = typeof obj.source_rule === 'string' ? obj.source_rule.trim() : '';
+  const sourceSeq = coerceStimulusSequence(obj.source_sequence);
+  const targetStemRaw = typeof obj.target_stem === 'string' ? obj.target_stem.trim() : '';
+  const shapeTokens =
+    targetStemRaw.length === 0
+      ? []
+      : targetStemRaw.includes(',')
+        ? targetStemRaw.split(',').map((s) => s.trim()).filter(Boolean)
+        : [targetStemRaw];
+  const showPatternTransfer =
+    sourceSeq.length > 0 ||
+    shapeTokens.length > 0 ||
+    (sourceRule.length > 0 && !hideSharedRule);
+
+  if (showPatternTransfer) {
+    const symTileSx = stimulusSymbolTileSx(border);
+    const showRuleBlock = sourceRule.length > 0 && !hideSharedRule;
+    return (
+      <Box sx={{ mb: 2.5, p: 2.5, bgcolor: '#f8fafc', borderRadius: 2, border: `1px solid ${border}` }}>
+        {sourceSeq.length > 0 ? (
+          <Box sx={{ mb: shapeTokens.length > 0 ? 2.25 : showRuleBlock ? 2.25 : 1.5 }}>
+            <Typography
+              variant="caption"
+              sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 1.25, letterSpacing: 0.02 }}
+            >
+              Number pattern
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25, alignItems: 'center' }}>
+              {sourceSeq.map((v, i) => (
+                <Box key={i} sx={{ ...symTileSx, fontSize: '1.2rem', fontWeight: 700 }}>
+                  {v}
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        ) : null}
+        {showRuleBlock ? (
+          <Box sx={{ mb: shapeTokens.length > 0 ? 2.25 : 0 }}>
+            <Typography
+              variant="caption"
+              sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 1, letterSpacing: 0.02 }}
+            >
+              Rule
+            </Typography>
+            <Typography sx={{ fontSize: '0.95rem', color: '#334155', lineHeight: 1.55 }}>{sourceRule}</Typography>
+          </Box>
+        ) : null}
+        {shapeTokens.length > 0 ? (
+          <Box>
+            <Typography
+              variant="caption"
+              sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 1.25, letterSpacing: 0.02 }}
+            >
+              Shape pattern
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25, alignItems: 'center' }}>
+              {shapeTokens.map((s, i) => (
+                <Box key={i} sx={symTileSx}>
+                  {s}
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        ) : null}
+      </Box>
+    );
+  }
+
   const seqCandidate = obj.input_sequence ?? obj.sequence;
   const seq = Array.isArray(seqCandidate) ? seqCandidate : null;
   const rulesRaw = obj.rules;
@@ -184,25 +402,13 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string }> = ({ 
   const interleaved = hasSeq && seq ? interleaveBlankSlot(seq, blankMeta) : [];
   const blankHelp = 'caption' in blankMeta ? blankMeta.caption : null;
 
-  if (hasSeq || hasRules) {
-    const symTileSx = {
-      fontSize: '1.65rem',
-      lineHeight: 1,
-      minWidth: 44,
-      textAlign: 'center' as const,
-      px: 1.25,
-      py: 1,
-      color: '#0f172a',
-      bgcolor: '#fff',
-      borderRadius: 1.5,
-      border: `1px solid ${border}`,
-      boxShadow: '0 1px 2px rgba(15,23,42,0.06)',
-    };
+  if (hasSeq || (hasRules && !hideSharedRule)) {
+    const symTileSx = stimulusSymbolTileSx(border);
 
     return (
       <Box sx={{ mb: 2.5, p: 2.5, bgcolor: '#f8fafc', borderRadius: 2, border: `1px solid ${border}` }}>
         {hasSeq && (
-          <Box sx={{ mb: hasRules ? 2.25 : 0 }}>
+          <Box sx={{ mb: hasRules && !hideSharedRule ? 2.25 : 0 }}>
             <Typography
               variant="caption"
               sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 1.25, letterSpacing: 0.02 }}
@@ -240,7 +446,7 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string }> = ({ 
             )}
           </Box>
         )}
-        {hasRules && (
+        {hasRules && !hideSharedRule && (
           <Box>
             <Typography
               variant="caption"
@@ -265,9 +471,13 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string }> = ({ 
     );
   }
 
+  const concealedRuleKeys = hideSharedRule ? hiddenRuleKeysWhenConcealed() : null;
   const entries = Object.entries(obj).filter(
     ([key, value]) =>
-      key !== '__proto__' && !stimulusFieldDuplicatesPrompt(key, value, q.prompt)
+      key !== '__proto__' &&
+      !STIMULUS_KEYS_HIDDEN_FROM_LEARNER.has(key) &&
+      !(concealedRuleKeys?.has(key) ?? false) &&
+      !stimulusFieldDuplicatesPrompt(key, value, q.prompt)
   );
   if (entries.length === 0) return null;
 

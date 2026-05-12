@@ -18,8 +18,8 @@ const InvalidAuthAction: React.FC = () => {
         </p>
         <p className="mt-6 text-xs text-slate-500">
           Need help?{" "}
-          <a href="mailto:talentsearch@argus.ai" className="font-medium text-indigo-300 hover:underline">
-            talentsearch@argus.ai
+          <a href="mailto:globalyoungscholar@argus.ai" className="font-medium text-indigo-300 hover:underline">
+            globalyoungscholar@argus.ai
           </a>
         </p>
       </div>

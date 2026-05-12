@@ -105,10 +105,10 @@ const SchoolAdminSchoolSelect: React.FC<SchoolAdminSchoolSelectProps> = ({ email
           <p className="mx-auto max-w-md border-t border-slate-200 pt-6 text-sm leading-relaxed text-slate-600">
             Didn&apos;t receive the email? Check your spam folder or contact us at{' '}
             <a
-              href="mailto:talentsearch@argus.ai"
+              href="mailto:globalyoungscholar@argus.ai"
               className="font-medium text-blue-700 underline-offset-2 hover:text-blue-800 hover:underline"
             >
-              talentsearch@argus.ai
+              globalyoungscholar@argus.ai
             </a>
           </p>
           <p className="mx-auto mt-6 max-w-md text-center text-sm text-slate-600">

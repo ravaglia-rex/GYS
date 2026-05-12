@@ -110,7 +110,7 @@ export const getSchoolAdmin = async (email: string): Promise<SchoolAdmin | null>
     if (axios.isAxiosError(error) && error.response?.status === 404) {
       return null;
     }
-    throw new Error(`Error fetching school admin for email ${email}. Please contact talentsearch@argus.ai`);
+    throw new Error(`Error fetching school admin for email ${email}. Please contact globalyoungscholar@argus.ai`);
   }
 };
 
@@ -274,7 +274,7 @@ export const getSchoolDashboard = async (schoolId: string): Promise<SchoolDashbo
     }
     return (await res.json()) as SchoolDashboardResponse;
   } catch {
-    throw new Error("Error fetching school dashboard. Please contact talentsearch@argus.ai");
+    throw new Error("Error fetching school dashboard. Please contact globalyoungscholar@argus.ai");
   }
 };
 
@@ -290,7 +290,7 @@ export const checkSchoolEmail = async (email: string): Promise<SchoolEmailCheck 
       if (error.response?.status === 404) return null;
       console.error("checkSchoolEmail error:", error.response?.data);
     }
-    throw new Error("Error checking school email. Please contact talentsearch@argus.ai");
+    throw new Error("Error checking school email. Please contact globalyoungscholar@argus.ai");
   }
 };
 
@@ -331,9 +331,9 @@ export const verifySchoolAdminAndSendPasswordSetup = async (email: string, schoo
         throw new Error(error.response?.data?.error || "Email does not match the selected school.");
       }
       if (error.response?.status === 404) {
-        throw new Error("School not found. Please contact us at talentsearch@argus.ai");
+        throw new Error("School not found. Please contact us at globalyoungscholar@argus.ai");
       }
     }
-    throw new Error(`Error verifying school admin: ${error.message ?? "Unknown error"}. Please contact talentsearch@argus.ai`);
+    throw new Error(`Error verifying school admin: ${error.message ?? "Unknown error"}. Please contact globalyoungscholar@argus.ai`);
   }
 };
