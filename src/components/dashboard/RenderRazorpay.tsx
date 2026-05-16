@@ -3,6 +3,7 @@ import { useToast } from '../ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { markPaymentPending } from '../../functions/payment_handling/razorpay_functions';
 import { gysPaymentInvoiceNumberFromOrderId } from '../../utils/gysPaymentInvoiceNumber';
+import { RAZORPAY_CHECKOUT_METHOD } from '../../utils/razorpayCheckoutMethods';
 
 import * as Sentry from '@sentry/react';
 
@@ -191,6 +192,7 @@ const RenderRazorpay: React.FC<RenderRazorpayProps> = ({
     theme: {
       color: '#000000',
     },
+    method: RAZORPAY_CHECKOUT_METHOD,
   };
 
   useEffect(() => {

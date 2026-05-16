@@ -30,11 +30,12 @@ import { handleCreateCustomer } from "../../functions/payment_handling/razorpay_
 
 import { Button } from "../ui/button";
 import { useToast } from "../ui/use-toast";
-import CountriesInput from "../autocomplete/CountriesInput";
 
 import { LoadingSpinner as Spinner } from "../ui/spinner";
-
 import * as Sentry from "@sentry/react";
+
+/** Razorpay shipping / customer notes use ISO 3166-1 alpha-3 (India = IND). */
+const PAYEE_COUNTRY_IND = "IND" as const;
 
 interface Payee {
     id: string;
@@ -63,7 +64,7 @@ const payeeSchema = z.object({
   payee_address_line2: z.string().min(2, "Address is required"),
   payee_city: z.string().min(2, "City is required"),
   payee_state: z.string().min(2, "State is required"),
-  payee_country: z.string().length(3, "Country code must be 3 characters long"),
+  payee_country: z.literal(PAYEE_COUNTRY_IND),
   payee_zipcode: z.string().min(6, "Zipcode is required"),
 });
 
@@ -79,7 +80,7 @@ const AddPayeeDialog: React.FC<AddPayeeDialogProps> = ({ isOpen, onClose, onAddP
       payee_address_line2: "",
       payee_city: "",
       payee_state: "",
-      payee_country: "",
+      payee_country: PAYEE_COUNTRY_IND,
       payee_zipcode: "",
     },
   });
@@ -250,10 +251,25 @@ const AddPayeeDialog: React.FC<AddPayeeDialogProps> = ({ isOpen, onClose, onAddP
                             name="payee_country"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel style={{display: 'block'}} className="text-white">Country</FormLabel>
-                                    <FormControl style={{display: 'block'}}>
-                                        <CountriesInput onSelect={(country) => field.onChange(country)} />
+                                    <FormLabel style={{ display: "block" }} className="text-white">
+                                        Country
+                                    </FormLabel>
+                                    <FormControl style={{ display: "block" }}>
+                                        <Input
+                                            readOnly
+                                            disabled
+                                            value="India"
+                                            aria-label="Country (India only)"
+                                            className="cursor-not-allowed bg-slate-800/80 border-slate-600 text-slate-300"
+                                        />
                                     </FormControl>
+                                    <input type="hidden" {...field} value={PAYEE_COUNTRY_IND} />
+                                    <p className="text-xs text-slate-400 mt-1">
+                                        Address must be in India for billing.
+                                    </p>
+                                    <FormMessage className="text-red-400">
+                                        {form.formState.errors.payee_country?.message}
+                                    </FormMessage>
                                 </FormItem>
                             )}
                         />

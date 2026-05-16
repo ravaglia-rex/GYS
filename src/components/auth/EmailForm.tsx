@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { checkEmailExists } from '../../db/emailMappingCollection';
-import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../firebase/firebase';
 import { useNavigate } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -86,10 +85,33 @@ const EmailEntryForm: React.FC = () => {
   });
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) navigate('/dashboard');
+    // Only redirect users who arrive at /login while ALREADY signed in.
+    // Do NOT subscribe to ongoing auth-state changes here: SignInForm handles
+    // post-sign-in routing (including the school-admin path), and a live
+    // listener would race with it and flash the student dashboard.
+    let cancelled = false;
+    void auth.authStateReady().then(async () => {
+      if (cancelled) return;
+      const user = auth.currentUser;
+      if (!user) return;
+      try {
+        const schoolCheck = await checkSchoolEmail(user.email || '');
+        if (cancelled) return;
+        if (
+          schoolCheck?.verified &&
+          schoolCheck.registrationPaymentComplete === true
+        ) {
+          navigate('/school-admin/dashboard', { replace: true });
+          return;
+        }
+      } catch {
+        /* fall through to student dashboard */
+      }
+      if (!cancelled) navigate('/dashboard', { replace: true });
     });
-    return () => unsubscribe();
+    return () => {
+      cancelled = true;
+    };
   }, [navigate]);
   const onSubmit = async (data: z.infer<typeof EmailSchema>) => {
     // Never navigate to school-admin/dashboard from here. All users must go through SignInForm and enter password.

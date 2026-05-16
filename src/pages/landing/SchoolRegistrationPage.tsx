@@ -555,54 +555,7 @@ const SchoolRegistrationPage: React.FC = () => {
                 Razorpay will charge this total; your receipt PDF matches these figures.
               </p>
             </div>
-            <div className="mt-2 space-y-2 text-left">
-              <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-950 leading-relaxed">
-                <span className="font-semibold">Razorpay test mode:</span> use India test guides for{' '}
-                <a
-                  href="https://razorpay.com/docs/payments/payments/test-card-details/?preferred-country=IN"
-                  className="font-medium underline underline-offset-2"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  cards
-                </a>
-                {' • '}
-                <a
-                  href="https://razorpay.com/docs/payments/payments/test-card-upi-details/?preferred-country=IN"
-                  className="font-medium underline underline-offset-2"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  UPI
-                </a>
-                . When Checkout asks for a mobile number, use a <span className="font-semibold">real-looking</span>{' '}
-                one (not all identical digits). US merchants:{' '}
-                <a
-                  href="https://razorpay.com/docs/payments/international-payments/?preferred-country=US"
-                  className="font-medium underline underline-offset-2"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  international payments
-                </a>
-                .
-              </p>
-              {process.env.NODE_ENV === 'development' && (
-                <p className="rounded-lg border border-amber-200/80 bg-white px-3 py-2 text-[11px] text-slate-700 leading-relaxed font-mono">
-                  Dev: Checkout uses <span className="text-slate-900">key_id</span> from{' '}
-                  <span className="text-slate-900">createSchoolOrder</span> (
-                  <span className="text-slate-900">RAZORPAY_KEY_ID</span>
-                  /SECRET on the API), not <span className="text-slate-900">REACT_APP_RAZORPAY_KEY_ID</span>.
-                  US/cross-border: no dummy phone in Checkout prefill;{' '}
-                  <span className="text-slate-900">rzp_test_us_*</span> keys are normal for that product. Optional:{' '}
-                  <span className="text-slate-900">RAZORPAY_CHECKOUT_CONFIG_ID</span> on API - echoed to Checkout when
-                  set.
-                </p>
-              )}
-            </div>
-            <p className="mt-2 text-xs text-slate-500 font-mono break-all">
-              Reference: {registeredSchoolId}
-            </p>
+           
             <button
               type="button"
               onClick={() => {
@@ -623,7 +576,12 @@ const SchoolRegistrationPage: React.FC = () => {
               planName={currentPlan.name}
               onSuccess={() => setPaymentComplete(true)}
             />
-            <p className="mt-4 text-xs text-slate-500 leading-relaxed">
+            {registeredSchoolId && (
+              <p className="mt-4 text-xs text-slate-500 font-mono break-all">
+                Reference: {registeredSchoolId}
+              </p>
+            )}
+            <p className="mt-3 text-xs text-slate-500 leading-relaxed">
               Problems with checkout? Email{' '}
               <a
                 href="mailto:globalyoungscholar@argus.ai"
@@ -1125,6 +1083,7 @@ const SchoolRegistrationPage: React.FC = () => {
                         City: {RAZORPAY_CITY_MIN}–{RAZORPAY_CITY_MAX} characters
                       </li>
                       <li>PIN: exactly 6 digits</li>
+                      <li>Country: India (used for payment checkout)</li>
                     </ul>
                   </div>
 
@@ -1224,6 +1183,22 @@ const SchoolRegistrationPage: React.FC = () => {
                           <p className="mt-1 text-xs text-red-600">{errors.addressState}</p>
                         )}
                       </div>
+                    </div>
+
+                    {/* Country — fixed India for Razorpay / domestic checkout */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">
+                        Country
+                      </label>
+                      <input
+                        type="text"
+                        value="India"
+                        readOnly
+                        disabled
+                        aria-label="Country — India only"
+                        className="w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-100 px-3.5 py-2.5 text-sm text-slate-600"
+                      />
+                     
                     </div>
 
                     {/* PIN Code */}
@@ -1505,22 +1480,7 @@ const SchoolRegistrationPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="mt-6 rounded-xl border border-amber-100 bg-amber-50/80 px-4 py-3">
-                <p className="text-xs text-amber-950 leading-relaxed">
-                  <span className="font-semibold">Payment</span>{' '}
-                  {SCHOOL_SIGNUP_TEMP_PAYMENT_LINK ? (
-                    <>
-                      Submitting registers your school and chosen plan. Our team will send a Razorpay
-                      payment link to your contact email(s) for the total due (incl. GST as on the link).
-                    </>
-                  ) : (
-                    <>
-                      Submitting registers your school and chosen plan. The next screen opens Razorpay
-                      checkout for the total due (incl. GST). You can use test cards in Razorpay test mode.
-                    </>
-                  )}
-                </p>
-              </div>
+           
 
               <div className="mt-5 flex gap-3 items-start">
                 <input
@@ -1567,9 +1527,6 @@ const SchoolRegistrationPage: React.FC = () => {
                 </button>
               </div>
 
-              <p className="mt-4 text-center text-xs text-slate-500">
-                All prices are exclusive of applicable GST. Annual institutional license.
-              </p>
             </section>
           )}
 

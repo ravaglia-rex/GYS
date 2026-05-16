@@ -11,6 +11,25 @@ import {
 } from "../constants/constants";
 import authTokenHandler from "../functions/auth_token/auth_token_handler";
 
+const GYS_SUPPORT_EMAIL = "globalyoungscholar@argus.ai";
+
+/** Shown in UI for any PDF download failure; details go to console only. */
+const PDF_DOWNLOAD_USER_MESSAGE = `Something went wrong with your download. Please try again later. If it keeps happening, contact us at ${GYS_SUPPORT_EMAIL}.`;
+
+function parseS3ErrorCode(body: string): string | null {
+  const m = body.match(/<Code>([^<]+)<\/Code>/);
+  return m?.[1] ?? null;
+}
+
+function logUrlPathOnly(url: string): string {
+  try {
+    const u = new URL(url);
+    return `${u.origin}${u.pathname}`;
+  } catch {
+    return "[invalid-url]";
+  }
+}
+
 export interface SchoolAdmin {
   adminId?: string;
   email: string;
@@ -82,6 +101,7 @@ export interface QuarterlyReportListItem {
   studentsAssessed: number | null;
   subscriptionTier: string | null;
   institutionalTier: string | null;
+  /** Full S3 object key in `AWS_S3_REPORTS_BUCKET` (convention: `school-reports/{schoolId}/{year}_q{n}.pdf`). */
   pdfS3Key: string | null;
   pdfFilename: string | null;
   hasPdf: boolean;
@@ -177,19 +197,28 @@ export const getQuarterlyReportDownloadUrl = async (
     );
     return response.data;
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.data?.error) {
-      throw new Error(String(error.response.data.error));
-    }
-    throw new Error("Could not get download link for this report.");
+    console.error("[getQuarterlyReportDownloadUrl]", {quarterKey, error});
+    throw new Error(PDF_DOWNLOAD_USER_MESSAGE);
   }
 };
 
-/** Download a PDF from a direct URL (e.g. public S3). Falls back to opening in a new tab if fetch/CORS fails. */
+/**
+ * Download a PDF from an HTTPS URL (presigned S3 or public).
+ * Logs failures to the console; callers should show only `message` from thrown Error to users.
+ */
 export const downloadPdfFromUrl = async (url: string, downloadFilename: string): Promise<void> => {
   try {
     const res = await fetch(url, { mode: "cors" });
     if (!res.ok) {
-      throw new Error(String(res.status));
+      const body = await res.text();
+      console.error("[downloadPdfFromUrl] HTTP error", {
+        status: res.status,
+        s3Code: parseS3ErrorCode(body),
+        bodySnippet: body.slice(0, 800),
+        urlPath: logUrlPathOnly(url),
+        downloadFilename,
+      });
+      throw new Error(PDF_DOWNLOAD_USER_MESSAGE);
     }
     const blob = await res.blob();
     const href = URL.createObjectURL(blob);
@@ -201,8 +230,16 @@ export const downloadPdfFromUrl = async (url: string, downloadFilename: string):
     a.click();
     a.remove();
     URL.revokeObjectURL(href);
-  } catch {
-    window.open(url, "_blank", "noopener,noreferrer");
+  } catch (e) {
+    if (e instanceof Error && e.message === PDF_DOWNLOAD_USER_MESSAGE) {
+      throw e;
+    }
+    console.error("[downloadPdfFromUrl] failed", {
+      err: e,
+      urlPath: logUrlPathOnly(url),
+      downloadFilename,
+    });
+    throw new Error(PDF_DOWNLOAD_USER_MESSAGE);
   }
 };
 
@@ -224,33 +261,14 @@ export const getBillingInvoiceDownloadUrl = async (): Promise<{
     );
     return response.data as { url: string; filename: string; invoice_number: string | null };
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.data?.error) {
-      throw new Error(String(error.response.data.error));
-    }
-    throw new Error("Could not get billing invoice download link.");
+    console.error("[getBillingInvoiceDownloadUrl]", error);
+    throw new Error(PDF_DOWNLOAD_USER_MESSAGE);
   }
 };
 
 export const downloadBillingInvoicePdf = async (): Promise<void> => {
   const { url, filename } = await getBillingInvoiceDownloadUrl();
-  try {
-    const res = await fetch(url, { mode: "cors" });
-    if (!res.ok) {
-      throw new Error(String(res.status));
-    }
-    const blob = await res.blob();
-    const href = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = href;
-    a.download = filename || "invoice.pdf";
-    a.rel = "noopener";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(href);
-  } catch {
-    window.open(url, "_blank", "noopener,noreferrer");
-  }
+  await downloadPdfFromUrl(url, filename || "invoice.pdf");
 };
 
 export const getSchoolDashboard = async (schoolId: string): Promise<SchoolDashboardResponse> => {

@@ -33,14 +33,14 @@ import { EXAM_MATHJAX_CONFIG } from '../../components/assessment/examMathJaxConf
 import {
   clearActivePracticeSession,
   clearPracticeTakeSession,
+  isInteractivePracticeExam,
   loadPracticeTakeSession,
   recordPracticeQuestionsCompleted,
   resolvePracticeItemId,
+  saveLastPracticeSelection,
   savePracticeTakeSession,
   type PracticeTakePendingOutcome,
 } from '../../components/practice/practiceModeConfig';
-
-const INTERACTIVE_PRACTICE_EXAMS = new Set(['symbolic_reasoning']);
 
 function parsePracticeLevel(raw: string | undefined): 1 | 2 | 3 | null {
   const n = parseInt(raw ?? '', 10);
@@ -56,6 +56,27 @@ function formatQuestionElapsed(ms: number): string {
   const s = totalSec % 60;
   if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+/** `Step 1` / `step 2` (any case) and whole word `Answer` / `answer` in solution copy — rendered bold. */
+function solutionStepLineWithBoldStepLabels(text: string, lineKey: string | number): React.ReactNode {
+  const re = /\b(step\s+\d+|answer)\b/gi;
+  const parts: React.ReactNode[] = [];
+  let last = 0;
+  let m: RegExpExecArray | null;
+  let frag = 0;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) parts.push(text.slice(last, m.index));
+    parts.push(
+      <Box component="strong" key={`${lineKey}-b${frag++}`} sx={{ fontWeight: 800 }}>
+        {m[0]}
+      </Box>
+    );
+    last = m.index + m[0].length;
+  }
+  if (parts.length === 0) return text;
+  if (last < text.length) parts.push(text.slice(last));
+  return parts;
 }
 
 /**
@@ -78,7 +99,17 @@ export default function PracticeTakePage() {
     (location.state as { storageScope?: string } | null)?.storageScope ?? (authUid || 'practice_session');
 
   const practiceLevel = parsePracticeLevel(levelParam);
-  const supported = INTERACTIVE_PRACTICE_EXAMS.has(examId);
+  const supported = isInteractivePracticeExam(examId);
+
+  const goToPracticeHub = useCallback(() => {
+    if (examId && practiceLevel) {
+      saveLastPracticeSelection(storageScope, { examId, level: practiceLevel });
+    }
+    navigate('/practice-test', {
+      replace: true,
+      state: examId && practiceLevel ? { examId, level: practiceLevel } : undefined,
+    });
+  }, [examId, practiceLevel, navigate, storageScope]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -201,7 +232,7 @@ export default function PracticeTakePage() {
       recordPracticeQuestionsCompleted(storageScope, examId, practiceLevel, completedDelta, poolCap);
       clearPracticeTakeSession(storageScope, examId, practiceLevel);
       clearActivePracticeSession(storageScope);
-      navigate('/practice-test', { replace: true });
+      goToPracticeHub();
     };
 
     if (!isLast) {
@@ -259,7 +290,7 @@ export default function PracticeTakePage() {
     poolCap,
     index,
     totalQuestions,
-    navigate,
+    goToPracticeHub,
     authUid,
     questions,
     sessionSubmitting,
@@ -311,7 +342,7 @@ export default function PracticeTakePage() {
 
   const confirmLeave = () => {
     setLeaveOpen(false);
-    navigate('/practice-test', { replace: true });
+    goToPracticeHub();
   };
 
   const questionReport =
@@ -325,7 +356,7 @@ export default function PracticeTakePage() {
         <Alert severity="info" sx={{ maxWidth: 480 }}>
           This exam does not have an interactive practice session yet, or the link is invalid.
         </Alert>
-        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/practice-test')} sx={{ color: '#475569' }}>
+        <Button startIcon={<ArrowBackIcon />} onClick={goToPracticeHub} sx={{ color: '#475569' }}>
           Back to practice hub
         </Button>
       </Box>
@@ -349,7 +380,7 @@ export default function PracticeTakePage() {
         <Alert severity="error" sx={{ maxWidth: 500, width: '100%' }}>
           {error ?? 'No items to show.'}
         </Alert>
-        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/practice-test')} sx={{ color: '#475569' }}>
+        <Button startIcon={<ArrowBackIcon />} onClick={goToPracticeHub} sx={{ color: '#475569' }}>
           Back to practice hub
         </Button>
       </Box>
@@ -522,7 +553,7 @@ export default function PracticeTakePage() {
                 <Box component="ul" sx={{ m: 0, pl: 2.25, mb: 0 }}>
                   {solutionSteps.map((step, i) => (
                     <Typography component="li" key={i} sx={{ fontSize: '0.9rem', lineHeight: 1.55, color: 'inherit' }}>
-                      {step}
+                      {solutionStepLineWithBoldStepLabels(step, i)}
                     </Typography>
                   ))}
                 </Box>

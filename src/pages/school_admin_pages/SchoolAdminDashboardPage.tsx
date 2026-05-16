@@ -29,6 +29,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebase/firebase';
 import { LoadingSpinner } from '../../components/ui/spinner';
 import {
+  downloadPdfFromUrl,
   downloadQuarterlyReportPdf,
   getQuarterlyReports,
   getSchoolDashboard,
@@ -504,7 +505,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
       setLatestQuarterly(
         GREENFIELD_QUARTERLY_REPORTS.find(r => r.isLatest) ?? GREENFIELD_QUARTERLY_REPORTS[0] ?? null
       );
-      // Preview uses mock metadata (hasPdf) but cannot call the signed-URL API without a real school-admin session.
+      // Preview PDFs use `previewPublicPdfUrl` (public sample asset); signed-URL API is not used on this route.
       setQuarterlyS3Configured(false);
       setLoading(false);
       return;
@@ -634,12 +635,25 @@ const SchoolAdminDashboardPage: React.FC = () => {
   const latestReportAccent = ip.statBlue;
   const latestReportLabel = latestQuarterly?.title ?? 'Institutional report';
   const canDownloadQuarterlyPdf = Boolean(
-    latestQuarterly?.hasPdf && latestQuarterly?.quarterKey && quarterlyS3Configured
+    latestQuarterly?.hasPdf &&
+      latestQuarterly?.quarterKey &&
+      (quarterlyS3Configured || Boolean(latestQuarterly.previewPublicPdfUrl))
   );
 
   const handleLatestReportClick = async () => {
     setReportDownloadError(null);
     if (!latestQuarterly?.hasPdf || !latestQuarterly.quarterKey) {
+      return;
+    }
+    if (isSchoolAdminPreview && latestQuarterly.previewPublicPdfUrl) {
+      try {
+        await downloadPdfFromUrl(
+          latestQuarterly.previewPublicPdfUrl,
+          latestQuarterly.pdfFilename || `${latestQuarterly.quarterKey}.pdf`
+        );
+      } catch (e) {
+        setReportDownloadError((e as Error).message ?? 'Download failed.');
+      }
       return;
     }
     if (!quarterlyS3Configured) {

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Alert,
   Avatar,
@@ -37,6 +37,7 @@ import {
   PRACTICE_ELIGIBLE_EXAM_IDS,
   PRACTICE_EXAM_CARD_STYLE,
   firstUnlockedPracticeEligibleExamId,
+  isInteractivePracticeExam,
   maxUnlockedPracticeLevel,
   practiceExamGate,
   practiceExamIsUnlocked,
@@ -47,7 +48,10 @@ import {
   recommendedPracticeLevel,
   clearPracticeTakeSession,
   resetLocalPracticeProgress,
+  resolvePracticeHubSelection,
+  saveLastPracticeSelection,
   setActivePracticeSession,
+  type PracticeHubSelection,
 } from './practiceModeConfig';
 import { fetchPracticePoolCounts, PRACTICE_SESSION_BATCH_SIZE, resetPracticeProgress } from '../../db/practiceBank';
 
@@ -134,23 +138,40 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
   studentUid = '',
 }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const recLevel = useMemo(() => recommendedPracticeLevel(grade), [grade]);
   const assessmentGate = practiceUnlock?.assessmentGate;
 
-  const [selectedExamId, setSelectedExamId] = useState<string>(() =>
-    firstUnlockedPracticeEligibleExamId(practiceUnlock?.assessmentGate)
+  const hubSelectionFromLocation = useMemo((): PracticeHubSelection | null => {
+    const st = location.state as { examId?: unknown; level?: unknown } | null;
+    if (!st || typeof st.examId !== 'string') return null;
+    const level = st.level;
+    if (level !== 1 && level !== 2 && level !== 3) return null;
+    return { examId: st.examId, level };
+  }, [location.state]);
+
+  const initialHubSelection = useMemo(
+    () =>
+      resolvePracticeHubSelection(
+        storageScope,
+        assessmentGate,
+        grade,
+        practiceUnlock?.progressByExam,
+        practiceUnlock?.officialTierCountByExam,
+        hubSelectionFromLocation
+      ),
+    [
+      storageScope,
+      assessmentGate,
+      grade,
+      practiceUnlock?.progressByExam,
+      practiceUnlock?.officialTierCountByExam,
+      hubSelectionFromLocation,
+    ]
   );
-  const [selectedLevel, setSelectedLevel] = useState<PracticeLevel>(() => {
-    const exam = firstUnlockedPracticeEligibleExamId(practiceUnlock?.assessmentGate);
-    const max0 =
-      practiceUnlock != null
-        ? maxUnlockedPracticeLevel(
-            practiceUnlock.progressByExam[exam],
-            practiceUnlock.officialTierCountByExam[exam] ?? 3
-          )
-        : 1;
-    return Math.min(recommendedPracticeLevel(grade), max0) as PracticeLevel;
-  });
+
+  const [selectedExamId, setSelectedExamId] = useState<string>(() => initialHubSelection.examId);
+  const [selectedLevel, setSelectedLevel] = useState<PracticeLevel>(() => initialHubSelection.level);
 
   useEffect(() => {
     if (!assessmentGate) return;
@@ -160,20 +181,25 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
     }
   }, [assessmentGate, selectedExamId]);
   const [sessionRev, setSessionRev] = useState(0);
-  /** Pattern & Logic: live counts from Firestore `practice_bank` (when API succeeds). */
+  /** Live counts per level from Firestore `practice_bank/{examId}` (when API succeeds). */
   const [livePoolByLevel, setLivePoolByLevel] = useState<Partial<
     Record<PracticeLevel, number>
   > | null>(null);
 
+  const selectedExamHasPracticeBank = (PRACTICE_ELIGIBLE_EXAM_IDS as readonly string[]).includes(
+    selectedExamId
+  );
+
   useEffect(() => {
     let cancelled = false;
-    if (selectedExamId !== 'symbolic_reasoning') {
+    if (!selectedExamHasPracticeBank) {
       setLivePoolByLevel(null);
       return () => {
         cancelled = true;
       };
     }
-    fetchPracticePoolCounts('symbolic_reasoning')
+    setLivePoolByLevel(null);
+    fetchPracticePoolCounts(selectedExamId)
       .then((res) => {
         if (cancelled) return;
         const c = res.counts ?? {};
@@ -189,7 +215,7 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [selectedExamId]);
+  }, [selectedExamId, selectedExamHasPracticeBank]);
 
   const maxUnlocked = useMemo((): PracticeLevel => {
     if (!practiceUnlock) return 1;
@@ -199,9 +225,12 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
   }, [practiceUnlock, selectedExamId]);
 
   useEffect(() => {
-    const rec = recommendedPracticeLevel(grade);
-    setSelectedLevel(Math.min(rec, maxUnlocked) as PracticeLevel);
-  }, [selectedExamId, grade, maxUnlocked]);
+    setSelectedLevel((prev) => (prev <= maxUnlocked ? prev : maxUnlocked) as PracticeLevel);
+  }, [maxUnlocked]);
+
+  useEffect(() => {
+    saveLastPracticeSelection(storageScope, { examId: selectedExamId, level: selectedLevel });
+  }, [storageScope, selectedExamId, selectedLevel]);
 
   const stats = useMemo(() => {
     void sessionRev;
@@ -209,9 +238,16 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
       storageScope,
       selectedExamId,
       selectedLevel,
-      selectedExamId === 'symbolic_reasoning' ? livePoolByLevel : null
+      selectedExamHasPracticeBank ? livePoolByLevel : null
     );
-  }, [storageScope, selectedExamId, selectedLevel, sessionRev, livePoolByLevel]);
+  }, [
+    storageScope,
+    selectedExamId,
+    selectedLevel,
+    sessionRev,
+    livePoolByLevel,
+    selectedExamHasPracticeBank,
+  ]);
 
   const refreshStorage = useCallback(() => setSessionRev((x) => x + 1), []);
 
@@ -225,13 +261,14 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
   const performStartPractice = useCallback(() => {
     if (selectedLevel > maxUnlocked) return;
     clearPracticeTakeSession(storageScope, selectedExamId, selectedLevel);
+    saveLastPracticeSelection(storageScope, { examId: selectedExamId, level: selectedLevel });
     setActivePracticeSession(storageScope, {
       examId: selectedExamId,
       level: selectedLevel,
       startedAt: new Date().toISOString(),
     });
     refreshStorage();
-    if (selectedExamId === 'symbolic_reasoning') {
+    if (isInteractivePracticeExam(selectedExamId)) {
       if (!studentUid) {
         setToast('Sign in to open the full-page practice session.');
         return;
@@ -242,9 +279,7 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
       setToast(null);
       return;
     }
-    setToast(
-      'Practice session saved. Interactive drills are available for Pattern & Logic (Exam 1) first — other pools will follow.'
-    );
+    setToast('Practice session saved. Full-page interactive drills are not available for this exam yet.');
   }, [
     maxUnlocked,
     navigate,
@@ -257,7 +292,7 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
 
   const handleStartPractice = () => {
     if (selectedLevel > maxUnlocked) return;
-    if (selectedExamId === 'symbolic_reasoning') {
+    if (isInteractivePracticeExam(selectedExamId)) {
       setStartConfirmOpen(true);
       return;
     }
@@ -279,7 +314,7 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
     if (selectedLevel > maxUnlocked || resetting) return;
     setResetting(true);
     try {
-      if (selectedExamId === 'symbolic_reasoning') {
+      if (isInteractivePracticeExam(selectedExamId)) {
         if (!studentUid) {
           setToast('Sign in to reset practice progress.');
           return;
@@ -405,7 +440,9 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
             <Card
               elevation={0}
               onClick={() => {
-                if (canSelect) setSelectedExamId(id);
+                if (!canSelect) return;
+                setSelectedExamId(id);
+                saveLastPracticeSelection(storageScope, { examId: id, level: selectedLevel });
               }}
               sx={{
                 position: 'relative',
@@ -772,9 +809,9 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
                 />
               </Box>
               <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.38)', display: 'block', mt: 1.5 }}>
-                {selectedExamId === 'symbolic_reasoning' && livePoolByLevel != null
+                {selectedExamHasPracticeBank && livePoolByLevel != null
                   ? 'Pool size is the total number of questions in the practice pool. Completed items reflect the number of questions you have completed.'
-                  : selectedExamId === 'symbolic_reasoning'
+                  : selectedExamHasPracticeBank
                     ? 'Upload items to practice_bank to show live pool sizes. Completed items reflect the number of questions you have completed.'
                     : 'Pool sizes are placeholders until each exam has a practice bank wired; completed count updates when you finish items.'}
               </Typography>

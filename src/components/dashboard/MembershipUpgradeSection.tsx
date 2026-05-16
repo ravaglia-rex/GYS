@@ -14,7 +14,9 @@ import {
   studentMembershipUpgradeAmountPaise,
 } from '../../utils/studentMembershipPricing';
 import { useToast } from '../ui/use-toast';
+import RazorpayTestAmountBanner from '../payment/RazorpayTestAmountBanner';
 import { gysPaymentInvoiceNumberFromOrderId } from '../../utils/gysPaymentInvoiceNumber';
+import { RAZORPAY_CHECKOUT_METHOD } from '../../utils/razorpayCheckoutMethods';
 import * as Sentry from '@sentry/react';
 
 const loadScript = (src: string): Promise<boolean> =>
@@ -171,6 +173,7 @@ const MembershipUpgradeSection: React.FC = () => {
           target_membership_level: String(targetLevel),
         },
         theme: { color: '#1e3a8a' },
+        method: RAZORPAY_CHECKOUT_METHOD,
         handler: async (response: {
           razorpay_order_id?: string;
           razorpay_payment_id?: string;
@@ -325,6 +328,9 @@ const MembershipUpgradeSection: React.FC = () => {
         <Typography variant="h6" sx={{ color: 'white', fontWeight: 600 }}>
           Membership Packages
         </Typography>
+      </Box>
+      <Box sx={{ mb: 2 }}>
+        <RazorpayTestAmountBanner />
       </Box>
       <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)', mb: 2 }}>
         Trial first, then three annual packages - Reasoning Triad, Reasoning + Skills, and Guided Decision. Your current

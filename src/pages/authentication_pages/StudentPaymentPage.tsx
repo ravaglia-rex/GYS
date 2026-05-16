@@ -11,6 +11,7 @@ import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
 import { useStudentSignupExitGuard } from '../../hooks/useStudentSignupExitGuard';
 import { clearSignupDraft, mergeSignupState, writeSignupDraft } from '../../utils/studentSignupDraft';
 import StudentRegistrationRazorpayCheckout from '../../components/authentication/StudentRegistrationRazorpayCheckout';
+import RazorpayTestAmountBanner from '../../components/payment/RazorpayTestAmountBanner';
 import { auth, getAuthActionCodeSettings } from '../../firebase/firebase';
 import { runSignUpTransaction } from '../../db/signupTransaction';
 import { useToast } from '../../components/ui/use-toast';
@@ -18,10 +19,6 @@ import { LoadingSpinner as Spinner } from '../../components/ui/spinner';
 import analytics from '../../segment/segment';
 
 const GYS_BLUE = '#1e3a8a';
-
-const studentSignupRazorpayDevBypassOn = ['true', '1', 'yes'].includes(
-  (process.env.REACT_APP_DEV_BYPASS_STUDENT_RAZORPAY ?? '').trim().toLowerCase()
-);
 
 type MembershipLevelCode = 'LEVEL_1' | 'LEVEL_2' | 'LEVEL_3' | 'LEVEL_4';
 
@@ -267,17 +264,7 @@ const StudentPaymentPage: React.FC = () => {
       </header>
 
       <main className="mx-auto flex max-w-3xl flex-col px-4 pb-12 pt-6 sm:px-6">
-        {studentSignupRazorpayDevBypassOn ? (
-          <div
-            className="mb-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950"
-            role="status"
-          >
-            <strong className="font-semibold">Dev mode:</strong> Razorpay is bypassed for student signup. Turn off{' '}
-            <code className="rounded bg-amber-100/80 px-1">REACT_APP_DEV_BYPASS_STUDENT_RAZORPAY</code> (frontend) and{' '}
-            <code className="rounded bg-amber-100/80 px-1">DEV_BYPASS_RAZORPAY_STUDENT_SIGNUP</code> (functions{' '}
-            <code className="rounded bg-amber-100/80 px-1">.env</code>) to test real checkout with Razorpay.
-          </div>
-        ) : null}
+        <RazorpayTestAmountBanner />
         <section className="rounded-2xl bg-white p-5 sm:p-7 shadow-md ring-1 ring-slate-100">
           <p className="text-sm sm:text-base font-semibold uppercase tracking-wide text-slate-500">
             Order summary

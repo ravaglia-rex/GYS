@@ -821,4 +821,3 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
 };
 
 export { EnhancedAssessmentCardsGroup };
-export default EnhancedAssessmentCardsGroup;

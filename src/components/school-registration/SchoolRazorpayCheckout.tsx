@@ -8,6 +8,8 @@ import {
 } from '../../db/schoolCollection';
 import { isValidIndiaMobile, normalizeIndiaMobileE164 } from '../../utils/indiaMobile';
 import { gysPaymentInvoiceNumberFromOrderId } from '../../utils/gysPaymentInvoiceNumber';
+import { RAZORPAY_CHECKOUT_METHOD } from '../../utils/razorpayCheckoutMethods';
+import RazorpayTestAmountBanner from '../payment/RazorpayTestAmountBanner';
 import * as Sentry from '@sentry/react';
 
 /** Best-effort string for Razorpay `payment.failed` payloads (shape varies by version). Used for Sentry only. */
@@ -56,7 +58,7 @@ export type SchoolRazorpayCheckoutProps = {
 };
 
 /**
- * Import Flow: phone + PAN collected here → POST createSchoolOrder with customer + customer_details.
+ * Import Flow: India mobile collected here → POST createSchoolOrder with customer + customer_details.
  * Razorpay US/cross-border: avoid dummy contacts (all same digits); use plausible numbers for tests.
  */
 const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
@@ -71,8 +73,7 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
   /** Full-screen overlay while the Razorpay modal is gone but we are verifying / handing off to success UI. */
   const [confirmingPayment, setConfirmingPayment] = useState(false);
   const [checkoutPhone, setCheckoutPhone] = useState('');
-  const [checkoutPan, setCheckoutPan] = useState('');
-  const [fieldErrors, setFieldErrors] = useState<{ phone?: string; pan?: string }>({});
+  const [fieldErrors, setFieldErrors] = useState<{ phone?: string }>({});
   const { toast } = useToast();
 
   const startCheckout = async () => {
@@ -82,13 +83,8 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
         : !isValidIndiaMobile(checkoutPhone)
           ? 'Use 10 digits (6–9…) or +91XXXXXXXXXX.'
           : undefined;
-    const panTrim = checkoutPan.trim().toUpperCase().replace(/\s/g, '');
-    const panErr =
-      panTrim.length > 0 && !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(panTrim)
-        ? 'PAN must look like ABCDE1234F or leave blank.'
-        : undefined;
-    setFieldErrors({ phone: phoneErr, pan: panErr });
-    if (phoneErr || panErr) {
+    setFieldErrors({ phone: phoneErr });
+    if (phoneErr) {
       return;
     }
 
@@ -98,7 +94,6 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
         schoolId,
         checkoutSecret,
         poc_phone: checkoutPhone.trim(),
-        ...(panTrim.length > 0 ? { institution_pan: panTrim } : {}),
       });
 
       if (process.env.NODE_ENV === 'development' && typeof order.key_id === 'string') {
@@ -183,6 +178,7 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
           plan: planName,
         },
         theme: { color: '#1e3a8a' },
+        method: RAZORPAY_CHECKOUT_METHOD,
         handler: async (response: {
           razorpay_order_id?: string;
           razorpay_payment_id?: string;
@@ -304,13 +300,12 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
   return (
     <div className="mt-4 w-full space-y-4 text-left">
       {confirmingOverlay}
+      <RazorpayTestAmountBanner />
       <div>
         <label className="block text-xs font-semibold text-slate-700 mb-1">
           India mobile number<span className="text-red-500"> *</span>
         </label>
-        <p className="mb-1.5 text-[11px] text-slate-500 leading-relaxed">
-          Required for Razorpay Import Flow.
-        </p>
+       
         <input
           type="tel"
           value={checkoutPhone}
@@ -329,33 +324,6 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
           inputMode="tel"
         />
         {fieldErrors.phone && <p className="mt-1 text-xs text-red-600">{fieldErrors.phone}</p>}
-      </div>
-
-      <div>
-        <label className="block text-xs font-semibold text-slate-700 mb-1">
-          Institution PAN <span className="text-slate-400 font-normal">(optional)</span>
-        </label>
-        <p className="mb-1.5 text-[11px] text-slate-500 leading-relaxed">
-          Recommended for Import Flow tax identity - format ABCDE1234F.
-        </p>
-        <input
-          type="text"
-          value={checkoutPan}
-          onChange={(e) => {
-            setCheckoutPan(e.target.value.toUpperCase());
-            setFieldErrors((f) => ({ ...f, pan: undefined }));
-          }}
-          disabled={busy}
-          className={`w-full max-w-xs rounded-lg border px-3.5 py-2.5 text-sm font-mono text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 ${
-            fieldErrors.pan
-              ? 'border-red-400 focus:border-red-400 focus:ring-red-300'
-              : 'border-slate-200 focus:border-slate-400 focus:ring-slate-400'
-          }`}
-          placeholder="ABCDE1234F"
-          autoComplete="off"
-          maxLength={10}
-        />
-        {fieldErrors.pan && <p className="mt-1 text-xs text-red-600">{fieldErrors.pan}</p>}
       </div>
 
       <button

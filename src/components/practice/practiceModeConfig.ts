@@ -28,6 +28,19 @@ export const PRACTICE_ELIGIBLE_EXAM_IDS = ASSESSMENT_ORDER.slice(0, 5) as readon
 
 export const NON_PRACTICE_EXAM_IDS = ASSESSMENT_ORDER.slice(5, 7) as readonly string[];
 
+/** Reasoning triad: full-page interactive practice (practice_bank API + PracticeTakePage). */
+export const INTERACTIVE_PRACTICE_EXAM_IDS = [
+  'symbolic_reasoning',
+  'verbal_reasoning',
+  'mathematical_reasoning',
+] as const;
+
+const INTERACTIVE_PRACTICE_EXAM_SET = new Set<string>(INTERACTIVE_PRACTICE_EXAM_IDS);
+
+export function isInteractivePracticeExam(examId: string): boolean {
+  return INTERACTIVE_PRACTICE_EXAM_SET.has(examId);
+}
+
 /** First practice-eligible exam the student may access (same order as Step 1 cards). */
 export function firstUnlockedPracticeEligibleExamId(gate: PracticeAssessmentGateInput | undefined): string {
   if (!gate) return PRACTICE_ELIGIBLE_EXAM_IDS[0];
@@ -109,10 +122,17 @@ export interface PracticeActiveSession {
   startedAt: string;
 }
 
+/** Last exam + level the student used on the practice hub (restored after a session). */
+export interface PracticeHubSelection {
+  examId: string;
+  level: PracticeLevel;
+}
+
 interface PracticeModePersisted {
   v: 1;
   completedByKey: Record<string, number>;
   activeSession: PracticeActiveSession | null;
+  lastSelection: PracticeHubSelection | null;
 }
 
 const STORAGE_KEY_PREFIX = 'argus_practice_mode_v1_';
@@ -125,12 +145,18 @@ function load(scope: string): PracticeModePersisted {
   try {
     const raw = localStorage.getItem(key(scope));
     if (!raw) {
-      return { v: 1, completedByKey: {}, activeSession: null };
+      return { v: 1, completedByKey: {}, activeSession: null, lastSelection: null };
     }
     const parsed = JSON.parse(raw) as Partial<PracticeModePersisted>;
     if (parsed.v !== 1 || typeof parsed.completedByKey !== 'object' || parsed.completedByKey == null) {
-      return { v: 1, completedByKey: {}, activeSession: null };
+      return { v: 1, completedByKey: {}, activeSession: null, lastSelection: null };
     }
+    const lastSelection =
+      parsed.lastSelection &&
+      typeof parsed.lastSelection.examId === 'string' &&
+      [1, 2, 3].includes(parsed.lastSelection.level as number)
+        ? { examId: parsed.lastSelection.examId, level: parsed.lastSelection.level as PracticeLevel }
+        : null;
     return {
       v: 1,
       completedByKey: { ...parsed.completedByKey },
@@ -140,10 +166,87 @@ function load(scope: string): PracticeModePersisted {
         [1, 2, 3].includes(parsed.activeSession.level as number)
           ? parsed.activeSession
           : null,
+      lastSelection,
     };
   } catch {
-    return { v: 1, completedByKey: {}, activeSession: null };
+    return { v: 1, completedByKey: {}, activeSession: null, lastSelection: null };
   }
+}
+
+function parsePracticeHubSelection(raw: unknown): PracticeHubSelection | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const o = raw as Record<string, unknown>;
+  const examId = typeof o.examId === 'string' ? o.examId.trim() : '';
+  const level = o.level;
+  if (!examId || !(level === 1 || level === 2 || level === 3)) return null;
+  return { examId, level };
+}
+
+export function getLastPracticeSelection(scope: string): PracticeHubSelection | null {
+  return load(scope).lastSelection;
+}
+
+export function saveLastPracticeSelection(scope: string, selection: PracticeHubSelection): void {
+  const persisted = load(scope);
+  persisted.lastSelection = selection;
+  save(scope, persisted);
+}
+
+export function isValidPracticeHubSelection(
+  selection: PracticeHubSelection,
+  gate: PracticeAssessmentGateInput | undefined,
+  progressByExam: Record<string, AssessmentProgress | { proficiency_tier?: number }> | undefined,
+  officialTierCountByExam: Record<string, number> | undefined
+): boolean {
+  if (!(PRACTICE_ELIGIBLE_EXAM_IDS as readonly string[]).includes(selection.examId)) return false;
+  if (gate && !practiceExamIsUnlocked(selection.examId, gate)) return false;
+  const maxLevel =
+    progressByExam != null
+      ? maxUnlockedPracticeLevel(
+          progressByExam[selection.examId],
+          officialTierCountByExam?.[selection.examId] ?? 3
+        )
+      : 1;
+  return selection.level >= 1 && selection.level <= maxLevel;
+}
+
+export function defaultPracticeHubSelection(
+  gate: PracticeAssessmentGateInput | undefined,
+  grade: number,
+  progressByExam?: Record<string, AssessmentProgress | { proficiency_tier?: number }>,
+  officialTierCountByExam?: Record<string, number>
+): PracticeHubSelection {
+  const examId = firstUnlockedPracticeEligibleExamId(gate);
+  const max0 =
+    progressByExam != null
+      ? maxUnlockedPracticeLevel(
+          progressByExam[examId],
+          officialTierCountByExam?.[examId] ?? 3
+        )
+      : 1;
+  const level = Math.min(recommendedPracticeLevel(grade), max0) as PracticeLevel;
+  return { examId, level };
+}
+
+/** Prefer navigation state, then persisted hub selection, then program defaults. */
+export function resolvePracticeHubSelection(
+  scope: string,
+  gate: PracticeAssessmentGateInput | undefined,
+  grade: number,
+  progressByExam?: Record<string, AssessmentProgress | { proficiency_tier?: number }>,
+  officialTierCountByExam?: Record<string, number>,
+  override?: PracticeHubSelection | null
+): PracticeHubSelection {
+  const candidates = [override, getLastPracticeSelection(scope)];
+  for (const candidate of candidates) {
+    if (
+      candidate &&
+      isValidPracticeHubSelection(candidate, gate, progressByExam, officialTierCountByExam)
+    ) {
+      return candidate;
+    }
+  }
+  return defaultPracticeHubSelection(gate, grade, progressByExam, officialTierCountByExam);
 }
 
 function save(scope: string, data: PracticeModePersisted): void {

@@ -36,7 +36,6 @@ export type RegisterSchoolPayload = {
   contact_emails: string[];
   /** Optional at signup - required on Razorpay checkout step if not stored. */
   poc_phone?: string;
-  institution_pan?: string;
   selected_plan_id: string;
   commit_to_pay: boolean;
 };
@@ -109,7 +108,6 @@ export type CreateSchoolRazorpayOrderParams = {
   checkoutSecret: string;
   /** India mobile - Import Flow customer + order customer_details. */
   poc_phone: string;
-  institution_pan?: string;
 };
 
 export const createSchoolRazorpayOrder = async (
@@ -124,9 +122,6 @@ export const createSchoolRazorpayOrder = async (
       school_id: params.schoolId,
       checkout_secret: params.checkoutSecret,
       poc_phone: params.poc_phone.trim(),
-      ...(params.institution_pan?.trim()
-        ? {institution_pan: params.institution_pan.trim().toUpperCase()}
-        : {}),
     });
     return response.data;
   } catch (e) {

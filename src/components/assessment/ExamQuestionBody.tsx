@@ -55,6 +55,218 @@ function normalizeStemCompare(s: string): string {
   return s.replace(/\s+/g, ' ').trim().toLowerCase();
 }
 
+/** `X→Y` edges for logic items; skips plain ASCII letter pairs (e.g. stray “word→word”). */
+function extractLogicTransitionSet(text: string): Set<string> {
+  const out = new Set<string>();
+  const re = /(\S)\s*→\s*(\S)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    const a = m[1];
+    const b = m[2];
+    const asciiLetter = (c: string) => /^[a-zA-Z]$/.test(c);
+    if (asciiLetter(a) || asciiLetter(b)) continue;
+    out.add(`${a}→${b}`);
+  }
+  return out;
+}
+
+/** Internal delimiter after normalizing `\rightarrow`, `->`, etc. (not expected in authored math). */
+const ARROW_TOKEN = '\u2192';
+
+function unifyArrowSyntax(text: string): string {
+  return text
+    .replace(/\\rightarrow\b/gi, ARROW_TOKEN)
+    .replace(/\\Rightarrow\b/gi, ARROW_TOKEN)
+    .replace(/\\to\b/gi, ARROW_TOKEN)
+    .replace(/⇒/g, ARROW_TOKEN)
+    .replace(/->/g, ARROW_TOKEN)
+    .replace(/→/g, ARROW_TOKEN);
+}
+
+/**
+ * TeX fragments so prose around “Rule:” does not break arrow-token splits.
+ * Banks use `$...$`, `\\(...\\)`, or `\\[...\\]` (see {@link ExamMathText}).
+ */
+function texMathFragmentsOrFullText(text: string): string {
+  const inner: string[] = [];
+  let m: RegExpExecArray | null;
+  const dollar = /\$([^$]+)\$/g;
+  while ((m = dollar.exec(text)) !== null) {
+    if (m[1]?.trim()) inner.push(m[1].trim());
+  }
+  const paren = /\\\(([\s\S]*?)\\\)/g;
+  while ((m = paren.exec(text)) !== null) {
+    if (m[1]?.trim()) inner.push(m[1].trim());
+  }
+  const brack = /\\\[([\s\S]*?)\\\]/g;
+  while ((m = brack.exec(text)) !== null) {
+    if (m[1]?.trim()) inner.push(m[1].trim());
+  }
+  return inner.length > 0 ? inner.join('\n') : text;
+}
+
+function cleanRuleEdgeToken(p: string): string {
+  return normalizeStemCompare(
+    p
+      .replace(/\$/g, '')
+      .replace(/\\\(/g, '')
+      .replace(/\\\)/g, '')
+      .replace(/\\\[/g, '')
+      .replace(/\\\]/g, '')
+      .trim()
+  );
+}
+
+/**
+ * One endpoint of `… → …` after splitting a chain. Prose like “Rule: … forward: ■” must resolve to `■`, not the whole prefix.
+ */
+function arrowEdgeTokenFromPiece(piece: string): string {
+  let s = piece.replace(/^rule\s*\d*\s*:\s*/i, '').trim();
+  s = s.replace(/^\$|\$$/g, '').trim();
+  if (!s) return '';
+  const flat = cleanRuleEdgeToken(s);
+  if (flat && flat.length <= 40 && !flat.includes(':') && !flat.includes(' ')) {
+    return flat;
+  }
+  const words = s.split(/\s+/).filter(Boolean);
+  if (!words.length) return '';
+  let last = words[words.length - 1];
+  last = last.replace(/^[('"($]+/, '').replace(/[.,;:)+?'"`]+$/g, '');
+  return normalizeStemCompare(last);
+}
+
+/**
+ * Directed edges from `A → B` chains and comma-separated pairs (LaTeX-safe: `\Delta \rightarrow \Box`).
+ * Used to detect when `presentation.instruction` repeats `stimulus.rules` under “Apply these rules”.
+ */
+function tokenSequenceEdges(text: string): Set<string> {
+  const edges = new Set<string>();
+  const core = unifyArrowSyntax(texMathFragmentsOrFullText(text));
+  const segments = core.split(/[,;\n]/).map((x) => x.trim()).filter(Boolean);
+  for (const segRaw of segments) {
+    const seg = segRaw.replace(/^rule\s*\d*\s*:\s*/i, '').replace(/^\$|\$$/g, '').trim();
+    if (!seg.includes(ARROW_TOKEN)) continue;
+    const rawParts = seg.split(ARROW_TOKEN).map((p) => p.trim()).filter(Boolean);
+    if (rawParts.length < 2) continue;
+    const parts = rawParts.map((p) => arrowEdgeTokenFromPiece(p)).filter(Boolean);
+    if (parts.length < 2) continue;
+    for (let i = 0; i < parts.length - 1; i++) {
+      edges.add(`${parts[i]}→${parts[i + 1]}`);
+    }
+  }
+  return edges;
+}
+
+function sameStringSet(a: Set<string>, b: Set<string>): boolean {
+  if (a.size !== b.size) return false;
+  const keys = Array.from(a);
+  for (let i = 0; i < keys.length; i++) {
+    if (!b.has(keys[i])) return false;
+  }
+  return true;
+}
+
+type StimulusRulesCtx = { joined: string; rulesArr: string[] };
+
+function gatherStimulusRulesContext(q: ExamQuestion): StimulusRulesCtx | null {
+  const stimulus = q.stimulus;
+  if (typeof stimulus !== 'object' || stimulus === null || Array.isArray(stimulus)) return null;
+  const obj = stimulus as Record<string, unknown>;
+  if (shouldHideSharedLearnerRule(q.stimulus_type, obj, q.prompt, q.instruction)) return null;
+  const rulesRaw = obj.rules;
+  const rulesArr = Array.isArray(rulesRaw)
+    ? rulesRaw.map((r) => String(r ?? '').trim()).filter(Boolean)
+    : [];
+  if (!rulesArr.length) return null;
+  return { joined: rulesArr.join('\n'), rulesArr };
+}
+
+function bankRuleBodyNormalized(raw: string): string {
+  return normalizeStemCompare(
+    raw.replace(/^Rule\s*\d*\s*:\s*/i, '').replace(/^Rule:\s*/i, '').trim()
+  );
+}
+
+/** True when `text` repeats the same rule mapping already listed under “Apply these rules”. */
+function textDuplicatesStimulusRules(text: string, ctx: StimulusRulesCtx): boolean {
+  const inst = text.trim();
+  if (!inst) return false;
+  const { joined, rulesArr } = ctx;
+
+  const instNorm = normalizeStemCompare(inst);
+  const instBodyNorm = normalizeStemCompare(inst.replace(/^\s*rule\s*[:\-–]\s*/i, ''));
+
+  for (const r of rulesArr) {
+    const ruleNorm = bankRuleBodyNormalized(String(r ?? '').trim());
+    if (!ruleNorm) continue;
+    if (instNorm === ruleNorm || instBodyNorm === ruleNorm) return true;
+    if (instBodyNorm.length >= 12 && (instBodyNorm.includes(ruleNorm) || ruleNorm.includes(instBodyNorm))) return true;
+  }
+
+  const instChainEdges = tokenSequenceEdges(inst);
+  const ruleChainEdges = tokenSequenceEdges(joined);
+  if (
+    instChainEdges.size >= 2 &&
+    ruleChainEdges.size >= 2 &&
+    sameStringSet(instChainEdges, ruleChainEdges)
+  ) {
+    return true;
+  }
+
+  if (!/^\s*rule\s*[:\-–]/i.test(inst)) return false;
+
+  const instEdges =
+    instChainEdges.size >= 2 ? instChainEdges : extractLogicTransitionSet(inst);
+  const ruleEdges =
+    ruleChainEdges.size >= 2 ? ruleChainEdges : extractLogicTransitionSet(joined);
+  if (instEdges.size === 0 || ruleEdges.size === 0) return false;
+  return sameStringSet(instEdges, ruleEdges);
+}
+
+/**
+ * Omit `presentation.instruction` when it repeats rule text already shown under “Apply these rules”
+ * (exact overlap, long substring overlap, or same directed-symbol cycle).
+ */
+function shouldSuppressInstructionAsDuplicateRule(q: ExamQuestion): boolean {
+  const inst = (q.instruction ?? '').trim();
+  if (!inst) return false;
+  const ctx = gatherStimulusRulesContext(q);
+  if (!ctx) return false;
+  return textDuplicatesStimulusRules(inst, ctx);
+}
+
+/** Split prompt so a trailing “Rule: …” line/paragraph can be dropped when it duplicates `stimulus.rules`. */
+function splitPromptSegmentsForRuleDedup(raw: string): string[] {
+  const t = raw.trim();
+  if (!t) return [];
+  const byNlRule = t.split(/\n(?=\s*Rule\s*[:\-–])/i).map((s) => s.trim()).filter(Boolean);
+  if (byNlRule.length > 1) return byNlRule;
+  const bySpRule = t.split(/\s+(?=Rule\s*[:\-–])/i).map((s) => s.trim()).filter(Boolean);
+  if (bySpRule.length > 1) return bySpRule;
+  const byPara = t.split(/\n{2,}/).map((s) => s.trim()).filter(Boolean);
+  if (byPara.length > 1) return byPara;
+  return [t];
+}
+
+/** Prompt shown above the grey stimulus box — omits example/test copy, rule dedup, then dual-pattern narrative (shown in box). */
+function examPromptWithoutRedundantRuleBlock(q: ExamQuestion): string {
+  let raw = (q.prompt ?? '').trim();
+  if (!raw) return q.prompt ?? '';
+  raw = stripDuplicateExampleProseFromPrompt(raw, q);
+  const ctx = gatherStimulusRulesContext(q);
+  if (ctx) {
+    const parts = splitPromptSegmentsForRuleDedup(raw);
+    const kept = parts.filter((p) => !textDuplicatesStimulusRules(p, ctx));
+    raw = kept.join('\n\n').trim() || raw;
+  }
+  const dual = dualPatternNarrativeSplit(raw);
+  if (dual && patternTransferStimulusPresent(q)) {
+    raw = dual.remainder.trim() || raw;
+  }
+  const out = raw.length > 0 ? raw : (q.prompt ?? '').trim();
+  return formatDualPatternPromptLinebreaks(out);
+}
+
 /**
  * Item banks often repeat `question` / `setup` inside `stimulus` for authoring pipelines while the same
  * text is already shown as {@link ExamQuestion.prompt} above this block — skip those duplicates.
@@ -72,16 +284,96 @@ function stimulusFieldDuplicatesPrompt(fieldKey: string, value: unknown, prompt:
   return vs === stem || stem.includes(vs) || vs.includes(stem);
 }
 
-/** Bank authoring keys — never show raw blobs (e.g. structured `items[]`) to students. */
+/**
+ * Bank authoring keys — omit from the generic key/value dump.
+ * `items` is still used by {@link parseStimulusGridMatrix} to render the puzzle grid (not raw JSON).
+ */
 const STIMULUS_KEYS_HIDDEN_FROM_LEARNER = new Set(['items']);
 
+/** With a `grid` stimulus or a parsed `items` matrix, row/column counts are redundant for learners. */
+function hideGridDimensionStimulusKeys(key: string, obj: Record<string, unknown>, hasParsedItemGrid: boolean): boolean {
+  if (key !== 'rows' && key !== 'cols') return false;
+  const g = obj.grid;
+  if (g !== undefined && g !== null) return true;
+  return hasParsedItemGrid;
+}
+
+/** Odd-one-out stems often ship with `stimulus_type` left as default (e.g. `symbol_sequence`); infer from wording. */
+function promptIndicatesOddOneOut(prompt: string | undefined): boolean {
+  const p = (prompt ?? '').trim().toLowerCase();
+  if (!p) return false;
+  if (p.includes('odd one out')) return true;
+  if (p.includes('not belong') || p.includes("doesn't belong") || p.includes('does not belong')) return true;
+  if (p.includes('not fit') || p.includes("doesn't fit") || p.includes('does not fit')) return true;
+  if (/\bwhich (one )?(is )?different\b/.test(p)) return true;
+  if (p.includes('unlike the other')) return true;
+  /* “Which one does NOT follow the same rule as the other three?” — same intent as odd-one-out. */
+  if (p.includes('not follow the same rule') || p.includes("doesn't follow the same rule")) return true;
+  if (p.includes('same rule as the other')) return true;
+  if (/\bother three\b/.test(p) && /\bsame rule\b/.test(p)) return true;
+  /* “Three share a hidden structural rule — which does NOT follow that rule?” */
+  if (p.includes('hidden structural rule')) return true;
+  if (p.includes('not follow that rule') || p.includes("doesn't follow that rule")) return true;
+  if (/\bthree of the following\b/.test(p) && /\bshare\b/.test(p) && /\brule\b/.test(p)) return true;
+  if (/\bwhich one does not follow\b/.test(p) && /\brule\b/.test(p)) return true;
+  return false;
+}
+
+/** Pattern A → Pattern B / “same rule connects both” items — learner must infer `source_rule` (e.g. `double_each_step`). */
+function promptIndicatesPatternTransferInferRule(prose: string | undefined): boolean {
+  const p = (prose ?? '').trim().toLowerCase();
+  if (!p) return false;
+  if (p.includes('same structural rule')) return true;
+  if (p.includes('connects both patterns')) return true;
+  if (p.includes('structural rule') && (p.includes('both patterns') || p.includes('pattern b'))) return true;
+  if (/\bpattern a\b/.test(p) && /\bpattern b\b/.test(p) && /\bwhat comes next\b/.test(p)) return true;
+  return false;
+}
+
+function learnerRuleHintProse(prompt?: string, instruction?: string): string {
+  return [prompt, instruction].filter(Boolean).join('\n');
+}
+
+/** Prompt + instruction ask the student to infer the authoring rule (hide `source_rule` / shared rules). */
+function promptSaysInferAuthoringRule(prompt?: string, instruction?: string): boolean {
+  const p = learnerRuleHintProse(prompt, instruction).trim().toLowerCase();
+  if (!p) return false;
+  if (p.includes('find the rule')) return true;
+  if (p.includes('figure out the rule')) return true;
+  if (p.includes('discover the rule')) return true;
+  if (/\bfind\s+the\s+.{0,40}\brule\b/.test(p)) return true;
+  return false;
+}
+
+/** Stem points learners at listed constraints in the stimulus — do not infer-hide those payloads. */
+function promptExpectsListedConstraintsInStimulus(prose: string): boolean {
+  const p = prose.trim().toLowerCase();
+  if (!p) return false;
+  if (/\bthe\s+constraints\s+below\b/.test(p)) return true;
+  if (/\busing\s+the\s+constraints\b/.test(p)) return true;
+  if (/\bconstraints\s+below\b/.test(p)) return true;
+  if (/\bgiven\s+the\s+constraints\b/.test(p)) return true;
+  if (/\bfrom\s+the\s+constraints\b/.test(p)) return true;
+  return false;
+}
+
 /**
- * When true, do not surface authoring rules (students infer them — e.g. odd-one-out).
- * Toggle via `stimulus.hide_shared_rule` / `stimulus.show_rule`, or `stimulus_type` naming.
+ * When true, do not surface authoring rules (students infer them — e.g. odd-one-out, pattern transfer).
+ * Toggle via `stimulus.hide_shared_rule` / `stimulus.show_rule`, `stimulus_type` naming, or prompt wording.
  */
-function shouldHideSharedLearnerRule(stimulusType: string | undefined, obj: Record<string, unknown>): boolean {
+function shouldHideSharedLearnerRule(
+  stimulusType: string | undefined,
+  obj: Record<string, unknown>,
+  prompt?: string,
+  instruction?: string
+): boolean {
+  const prose = learnerRuleHintProse(prompt, instruction);
   if (obj.hide_shared_rule === true) return true;
   if (obj.show_rule === false) return true;
+  if (promptExpectsListedConstraintsInStimulus(prose)) return false;
+  if (promptIndicatesOddOneOut(prose)) return true;
+  if (promptIndicatesPatternTransferInferRule(prose)) return true;
+  if (promptSaysInferAuthoringRule(prompt, instruction)) return true;
   const t = typeof stimulusType === 'string' ? stimulusType.trim().toLowerCase().replace(/-/g, '_') : '';
   if (!t) return false;
   if (
@@ -104,6 +396,7 @@ function hiddenRuleKeysWhenConcealed(): Set<string> {
     'rule',
     'shared_rule',
     'source_rule',
+    'target_rule',
     'correct_rule',
     'classification_rule',
     'domain_rule',
@@ -124,10 +417,154 @@ function coerceStimulusSequence(raw: unknown): string[] {
   return [];
 }
 
+/** Number-pattern + shape `target_stem` layout for “first pattern / second pattern” items. */
+function patternTransferStimulusPresent(q: ExamQuestion): boolean {
+  const stimulus = q.stimulus;
+  if (typeof stimulus !== 'object' || stimulus === null || Array.isArray(stimulus)) return false;
+  const obj = stimulus as Record<string, unknown>;
+  const sourceSeq = coerceStimulusSequence(obj.source_sequence);
+  const targetStemRaw = typeof obj.target_stem === 'string' ? obj.target_stem.trim() : '';
+  const shapeTokens =
+    targetStemRaw.length === 0
+      ? []
+      : targetStemRaw.includes(',')
+        ? targetStemRaw.split(',').map((s) => s.trim()).filter(Boolean)
+        : [targetStemRaw];
+  return sourceSeq.length > 0 && shapeTokens.length > 0;
+}
+
+/** Split “Look at the first pattern … second pattern …” from the trailing “What comes next …” question line. */
+function dualPatternNarrativeSplit(prompt: string): { narrative: string; remainder: string } | null {
+  const p = prompt.trim();
+  const low = p.toLowerCase();
+  if (!/\bfirst pattern\b/.test(low) || !/\bsecond pattern\b/.test(low)) return null;
+  const kw = /\bwhat comes next\b/i;
+  const m = kw.exec(p);
+  if (!m || m.index < 30) return null;
+  const narrative = p.slice(0, m.index).trim();
+  const remainder = p.slice(m.index).trim();
+  if (narrative.length < 20 || remainder.length < 10) return null;
+  return { narrative, remainder };
+}
+
+/** Insert blank lines between the usual three sentences (first pattern / second pattern / what comes next). */
+function formatDualPatternPromptLinebreaks(text: string): string {
+  const s = text.trim();
+  if (!s) return s;
+  const low = s.toLowerCase();
+  if (!/\bfirst pattern\b/.test(low) || !/\bsecond pattern\b/.test(low)) return s;
+  return s
+    .replace(/\s+(?=Now\s+look\s+at(?:\s+the)?\s+second\s+pattern)/gi, '\n\n')
+    .replace(/\s+(?=What\s+comes\s+next\b)/gi, '\n\n');
+}
+
 function isIoExamplePair(x: unknown): x is { input: unknown; output: unknown } {
   if (!x || typeof x !== 'object') return false;
   const o = x as Record<string, unknown>;
   return 'input' in o && 'output' in o;
+}
+
+type ExamplesIoCtx = { pairs: Array<{ input: string; output: string }>; test: string };
+
+/** When non-null, {@link HumanFriendlyStimulus} renders the examples + “Test input” grey box. */
+function gatherExamplesIoContext(q: ExamQuestion): ExamplesIoCtx | null {
+  const stimulus = q.stimulus;
+  if (typeof stimulus !== 'object' || stimulus === null || Array.isArray(stimulus)) return null;
+  const obj = stimulus as Record<string, unknown>;
+  const examplesRaw = obj.examples;
+  if (!Array.isArray(examplesRaw) || examplesRaw.length === 0) return null;
+  const pairs = examplesRaw.filter(isIoExamplePair).map((row) => {
+    const r = row as Record<string, unknown>;
+    return { input: String(r.input ?? '').trim(), output: String(r.output ?? '').trim() };
+  });
+  if (!pairs.length) return null;
+  const testRaw =
+    obj.test_input ?? obj.test_query ?? obj.query_input ?? obj.test_case ?? obj.query;
+  const test =
+    testRaw !== null && testRaw !== undefined && String(testRaw).trim() !== ''
+      ? String(testRaw).trim()
+      : '';
+  return { pairs, test };
+}
+
+/** Collapse whitespace and arrow spellings for “does prompt repeat this row?” checks. */
+function glyphKey(s: string): string {
+  return normalizeStemCompare(s)
+    .replace(/\s+/g, '')
+    .replace(/\\rightarrow|\\to|->|⇒/gi, '')
+    .replace(/→/g, '')
+    .replace(/\$/g, '');
+}
+
+function lineLooksLikeNumberedExampleLine(line: string): boolean {
+  const t = line.trim();
+  if (!t) return false;
+  if (/^\*{0,3}\s*example\s*\d+/i.test(t)) return true;
+  if (/\bexample\s*\d+\s*:/i.test(t) && (/→/.test(t) || /\\rightarrow/i.test(t))) return true;
+  return false;
+}
+
+function lineDuplicatesIoPairRow(line: string, pairs: ExamplesIoCtx['pairs']): boolean {
+  const g = glyphKey(line);
+  if (g.length < 4) return false;
+  for (const { input, output } of pairs) {
+    const a = glyphKey(input);
+    const b = glyphKey(output);
+    if (a.length < 1 || b.length < 1) continue;
+    if (g.includes(a) && g.includes(b) && (/→/.test(line) || /\\rightarrow/i.test(line))) return true;
+  }
+  return false;
+}
+
+function stripTrailingTestGlyphsFromPromptLine(line: string, test: string): string {
+  const t = test.trim();
+  if (!t) return line;
+  let out = line.trimEnd();
+  if (out.endsWith(t)) {
+    return out
+      .slice(0, out.length - t.length)
+      .replace(/[:\s*]+$/, '')
+      .trim();
+  }
+  const gT = glyphKey(t);
+  if (gT.length < 2) return line;
+  for (let i = out.length; i >= 1; i--) {
+    const suf = out.slice(i);
+    if (glyphKey(suf) === gT) {
+      return out.slice(0, i).replace(/[:\s*]+$/, '').trim();
+    }
+  }
+  return line;
+}
+
+/** Remove prose lines that repeat what the examples / test-input grey box already shows. */
+function stripDuplicateExampleProseFromPrompt(raw: string, q: ExamQuestion): string {
+  const ctx = gatherExamplesIoContext(q);
+  if (!ctx) return raw;
+  const broken = raw
+    .replace(/\s+(?=\*{0,3}\s*Example\s*\d)/gi, '\n')
+    .replace(/\s+(?=\*{0,3}\s*What is the output for)/gi, '\n')
+    .replace(/\s+(?=\*{0,3}\s*What's the output for)/gi, '\n');
+  const lines = broken.split(/\r?\n/);
+  const kept: string[] = [];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    if (lineLooksLikeNumberedExampleLine(trimmed)) continue;
+    if (lineDuplicatesIoPairRow(trimmed, ctx.pairs)) continue;
+    if (ctx.test && glyphKey(trimmed) === glyphKey(ctx.test) && trimmed.length < 80) continue;
+    if (
+      ctx.test &&
+      /what is the output for|what's the output for|output for\s*\?/i.test(trimmed) &&
+      glyphKey(trimmed).endsWith(glyphKey(ctx.test))
+    ) {
+      kept.push(stripTrailingTestGlyphsFromPromptLine(trimmed, ctx.test));
+      continue;
+    }
+    kept.push(line);
+  }
+  const out = kept.join('\n').trim();
+  return out.length > 0 ? out : raw;
 }
 
 /** Shared tile style for symbol / shape stimuli (sequence, examples, pattern transfer). */
@@ -145,6 +582,146 @@ function stimulusSymbolTileSx(border: string) {
     border: `1px solid ${border}`,
     boxShadow: '0 1px 2px rgba(15,23,42,0.06)',
   };
+}
+
+/**
+ * Resolves a row-major symbol grid from practice-bank stimuli.
+ * Firestore upload may stringify inner rows as JSON strings (nested arrays are not allowed).
+ */
+function parseStimulusGridMatrix(obj: Record<string, unknown>): string[][] | null {
+  const rowsHint = Number(obj.rows);
+  const colsHint = Number(obj.cols);
+
+  const normalizeRow = (row: unknown): string[] | null => {
+    if (Array.isArray(row)) return row.map((c) => String(c ?? '').trim());
+    if (typeof row === 'string') {
+      const t = row.trim();
+      if (!t) return [];
+      if (t.startsWith('[')) {
+        try {
+          const p = JSON.parse(t) as unknown;
+          if (Array.isArray(p)) return p.map((c) => String(c ?? '').trim());
+        } catch {
+          return null;
+        }
+      }
+      if (t.includes(',')) return t.split(/,\s*/).map((x) => x.trim());
+      return [t];
+    }
+    return null;
+  };
+
+  const fromRowsArray = (raw: unknown[]): string[][] | null => {
+    const rows: string[][] = [];
+    for (const r of raw) {
+      const nr = normalizeRow(r);
+      if (nr === null) return null;
+      rows.push(nr);
+    }
+    if (!rows.length) return null;
+    const w = Math.max(1, ...rows.map((r) => r.length));
+    return rows.map((r) => {
+      const copy = [...r];
+      while (copy.length < w) copy.push('');
+      return copy;
+    });
+  };
+
+  const gridRaw = obj.grid;
+  if (gridRaw != null && typeof gridRaw === 'object' && !Array.isArray(gridRaw)) {
+    const g = gridRaw as Record<string, unknown>;
+    const cells = g.cells ?? g.items;
+    if (Array.isArray(cells)) {
+      const m = fromRowsArray(cells);
+      if (m) return m;
+    }
+  }
+  if (Array.isArray(gridRaw)) {
+    const m = fromRowsArray(gridRaw);
+    if (m) return m;
+  }
+
+  const items = obj.items;
+  if (!Array.isArray(items) || !items.length) return null;
+
+  const allScalars = items.every(
+    (x) => x !== null && (typeof x === 'string' || typeof x === 'number' || typeof x === 'boolean')
+  );
+  if (
+    allScalars &&
+    Number.isFinite(rowsHint) &&
+    Number.isFinite(colsHint) &&
+    rowsHint > 0 &&
+    colsHint > 0 &&
+    items.length === rowsHint * colsHint
+  ) {
+    const cells = items.map((x) => String(x ?? '').trim());
+    const rows: string[][] = [];
+    for (let r = 0; r < rowsHint; r++) rows.push(cells.slice(r * colsHint, (r + 1) * colsHint));
+    return rows;
+  }
+
+  return fromRowsArray(items);
+}
+
+function StimulusGridMatrixView(props: {
+  matrix: string[][];
+  border: string;
+  renderMath: boolean;
+}): React.ReactNode {
+  const { matrix, border, renderMath } = props;
+  if (!matrix.length) return null;
+  const cols = Math.max(1, ...matrix.map((r) => r.length));
+  const symTileSx = stimulusSymbolTileSx(border);
+  return (
+    <Box
+      sx={{
+        display: 'grid',
+        gridTemplateColumns: `repeat(${cols}, minmax(2.75rem, 1fr))`,
+        gap: 1.1,
+        maxWidth: `min(100%, ${cols * 5.5}rem)`,
+        mb: 2.25,
+        mt: 0.5,
+      }}
+      role="img"
+      aria-label="Puzzle grid"
+    >
+      {matrix.flatMap((row, ri) =>
+        row.map((cell, ci) => {
+          const display = String(cell ?? '').trim();
+          const isBlank = !display || display === '?' || display === '??' || display === '…';
+          const key = `g-${ri}-${ci}`;
+          const show = isBlank ? '?' : display;
+          return (
+            <Box
+              key={key}
+              sx={{
+                ...symTileSx,
+                minHeight: 50,
+                minWidth: 50,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                ...(isBlank
+                  ? { borderStyle: 'dashed', bgcolor: '#f1f5f9', color: '#64748b', fontWeight: 800 }
+                  : {}),
+              }}
+            >
+              {renderMath && !isBlank ? (
+                <ExamMathText inline sx={{ fontSize: '1.35rem', fontWeight: 600 }}>
+                  {show}
+                </ExamMathText>
+              ) : (
+                <Typography sx={{ fontSize: '1.35rem', fontWeight: isBlank ? 800 : 600, lineHeight: 1 }}>
+                  {show}
+                </Typography>
+              )}
+            </Box>
+          );
+        })
+      )}
+    </Box>
+  );
 }
 
 /** Turn constraints string (often "a., b., c.") or array into separate lines for display. */
@@ -165,6 +742,76 @@ function splitConstraintLines(raw: unknown): string[] {
   if (s.includes(';')) return s.split(/\s*;\s*/).map((t) => t.trim()).filter(Boolean);
   if (s.includes('\n')) return s.split(/\n+/).map((t) => t.trim()).filter(Boolean);
   return [s];
+}
+
+/**
+ * Pattern-transfer layout returns before the generic stimulus map, so `constraints` / `rules`
+ * (e.g. C2–C6) never rendered. Append them when present (and allow `rules` through when the stem
+ * references “constraints below” even if infer-hide is on).
+ */
+function stimulusConstraintsAppendixForPatternTransferBox(
+  obj: Record<string, unknown>,
+  border: string,
+  hideSharedRule: boolean,
+  q: ExamQuestion
+): React.ReactNode {
+  const prose = learnerRuleHintProse(q.prompt, q.instruction);
+  const forceConstraints = promptExpectsListedConstraintsInStimulus(prose);
+  const authorHide = obj.hide_shared_rule === true;
+
+  const rulesRaw = obj.rules;
+  const rulesArr = Array.isArray(rulesRaw) ? rulesRaw : [];
+  const hasRules = rulesArr.some((r) => String(r ?? '').trim());
+  const rawCons = obj.constraints;
+  const hasCons =
+    (typeof rawCons === 'string' && rawCons.trim()) ||
+    (Array.isArray(rawCons) && rawCons.some((x) => String(x ?? '').trim()));
+
+  const showRules = hasRules && !authorHide && (!hideSharedRule || forceConstraints);
+  if (!hasCons && !showRules) return null;
+
+  const capSx = {
+    fontWeight: 700,
+    color: '#64748b',
+    display: 'block',
+    mb: 1,
+    letterSpacing: 0.02,
+  } as const;
+
+  return (
+    <Box sx={{ mt: 2.5, pt: 2, borderTop: `1px solid ${border}` }}>
+      {hasCons ? (
+        <Box sx={{ mb: showRules ? 2.25 : 0 }}>
+          <Typography variant="caption" sx={capSx}>
+            Constraints
+          </Typography>
+          <Box component="ul" sx={{ m: 0, pl: 2.25, color: '#334155', '& li': { mb: 0.65 } }}>
+            {splitConstraintLines(rawCons).map((line, i) => (
+              <Typography component="li" key={`pt-cons-${i}`} sx={{ fontSize: '0.92rem', lineHeight: 1.55 }}>
+                {line}
+              </Typography>
+            ))}
+          </Box>
+        </Box>
+      ) : null}
+      {showRules ? (
+        <Box sx={{ mt: hasCons ? 2 : 0 }}>
+          <Typography variant="caption" sx={{ ...capSx, mb: 1 }}>
+            {forceConstraints ? 'Constraints' : 'Apply these rules'}
+          </Typography>
+          <Box component="ul" sx={{ m: 0, pl: 2.25, color: '#334155', '& li': { mb: 0.5 } }}>
+            {rulesArr.map((r, i) => (
+              <Typography component="li" key={`pt-rule-${i}`} sx={{ fontSize: '0.95rem', lineHeight: 1.55 }}>
+                {String(r ?? '')
+                  .replace(/^Rule:\s*/i, '')
+                  .trim()}
+              </Typography>
+            ))}
+          </Box>
+        </Box>
+      ) : null}
+    </Box>
+  );
 }
 
 type BlankSlot =
@@ -228,7 +875,11 @@ function interleaveBlankSlot(syms: unknown[], blank: BlankSlot): Array<{ kind: '
 }
 
 /** Pattern-logic and generic structured stimuli — readable layout instead of raw JSON. */
-const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string }> = ({ q, border }) => {
+const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string; renderMath?: boolean }> = ({
+  q,
+  border,
+  renderMath = false,
+}) => {
   const stimulus = q.stimulus;
   const stimulusType = q.stimulus_type;
 
@@ -249,7 +900,7 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string }> = ({ 
   if (typeof stimulus !== 'object' || Array.isArray(stimulus)) return null;
 
   const obj = stimulus as Record<string, unknown>;
-  const hideSharedRule = shouldHideSharedLearnerRule(stimulusType, obj);
+  const hideSharedRule = shouldHideSharedLearnerRule(stimulusType, obj, q.prompt, q.instruction);
 
   /** Transformation drills: paired inputs/outputs + optional test row (not raw JSON). */
   const examplesRaw = obj.examples;
@@ -341,8 +992,40 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string }> = ({ 
   if (showPatternTransfer) {
     const symTileSx = stimulusSymbolTileSx(border);
     const showRuleBlock = sourceRule.length > 0 && !hideSharedRule;
+    const dualNarr = dualPatternNarrativeSplit(q.prompt ?? '');
+    const showDualNarrative = dualNarr !== null && patternTransferStimulusPresent(q);
     return (
       <Box sx={{ mb: 2.5, p: 2.5, bgcolor: '#f8fafc', borderRadius: 2, border: `1px solid ${border}` }}>
+        {showDualNarrative ? (
+          <Box sx={{ mb: 2.5 }}>
+            {renderMath ? (
+              <ExamMathText
+                inline={false}
+                sx={{
+                  fontWeight: 700,
+                  color: '#0f172a',
+                  fontSize: '0.97rem',
+                  lineHeight: 1.55,
+                  whiteSpace: 'pre-line',
+                }}
+              >
+                {formatDualPatternPromptLinebreaks(dualNarr.narrative)}
+              </ExamMathText>
+            ) : (
+              <Typography
+                sx={{
+                  fontWeight: 700,
+                  color: '#0f172a',
+                  fontSize: '0.97rem',
+                  lineHeight: 1.55,
+                  whiteSpace: 'pre-line',
+                }}
+              >
+                {formatDualPatternPromptLinebreaks(dualNarr.narrative)}
+              </Typography>
+            )}
+          </Box>
+        ) : null}
         {sourceSeq.length > 0 ? (
           <Box sx={{ mb: shapeTokens.length > 0 ? 2.25 : showRuleBlock ? 2.25 : 1.5 }}>
             <Typography
@@ -388,6 +1071,7 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string }> = ({ 
             </Box>
           </Box>
         ) : null}
+        {stimulusConstraintsAppendixForPatternTransferBox(obj, border, hideSharedRule, q)}
       </Box>
     );
   }
@@ -472,17 +1156,29 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string }> = ({ 
   }
 
   const concealedRuleKeys = hideSharedRule ? hiddenRuleKeysWhenConcealed() : null;
+  const gridMatrix = parseStimulusGridMatrix(obj);
   const entries = Object.entries(obj).filter(
     ([key, value]) =>
       key !== '__proto__' &&
       !STIMULUS_KEYS_HIDDEN_FROM_LEARNER.has(key) &&
+      !hideGridDimensionStimulusKeys(key, obj, gridMatrix !== null) &&
       !(concealedRuleKeys?.has(key) ?? false) &&
       !stimulusFieldDuplicatesPrompt(key, value, q.prompt)
   );
-  if (entries.length === 0) return null;
+  if (entries.length === 0 && !gridMatrix) return null;
 
   return (
-    <Box sx={{ mb: 2.5, p: 2, bgcolor: '#f8fafc', borderRadius: 2, border: `1px solid ${border}`, maxHeight: 320, overflow: 'auto' }}>
+    <Box
+      sx={{
+        mb: 2.5,
+        p: 2,
+        bgcolor: '#f8fafc',
+        borderRadius: 2,
+        border: `1px solid ${border}`,
+        maxHeight: gridMatrix ? 520 : 320,
+        overflow: 'auto',
+      }}
+    >
       {entries.map(([key, value]) =>
         key === 'constraints' ? (
           <Box key={key} sx={{ mb: 1.5 }}>
@@ -509,6 +1205,9 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string }> = ({ 
           </Typography>
         )
       )}
+      {gridMatrix ? (
+        <StimulusGridMatrixView matrix={gridMatrix} border={border} renderMath={renderMath} />
+      ) : null}
     </Box>
   );
 };
@@ -701,15 +1400,17 @@ const ListeningMcqInner: React.FC<{
       </Typography>
       {renderMath ? (
         <Box sx={{ mb: 2, fontWeight: 700, color: '#0f172a', fontSize: { xs: '1.05rem', sm: '1.2rem' } }}>
-          <ExamMathText inline={false}>{question.prompt}</ExamMathText>
+          <ExamMathText inline={false} sx={{ whiteSpace: 'pre-line' }}>{examPromptWithoutRedundantRuleBlock(question)}</ExamMathText>
         </Box>
       ) : (
-        <Typography variant="h6" sx={{ fontWeight: 700, color: '#0f172a', mb: 2, fontSize: { xs: '1.05rem', sm: '1.2rem' } }}>
-          {question.prompt}
+        <Typography variant="h6" sx={{ fontWeight: 700, color: '#0f172a', mb: 2, fontSize: { xs: '1.05rem', sm: '1.2rem' }, whiteSpace: 'pre-line' }}>
+          {examPromptWithoutRedundantRuleBlock(question)}
         </Typography>
       )}
-      {question.instruction && <InstructionLine text={question.instruction} />}
-      <HumanFriendlyStimulus q={question} border={borderMuted} />
+      {question.instruction && !shouldSuppressInstructionAsDuplicateRule(question) && (
+        <InstructionLine text={question.instruction} />
+      )}
+      <HumanFriendlyStimulus q={question} border={borderMuted} renderMath={!!renderMath} />
       <Button
         startIcon={playing ? <StopIcon /> : <PlayArrowIcon />}
         variant="outlined"
@@ -805,15 +1506,17 @@ const SpokenResponseInner: React.FC<{
       </Typography>
       {renderMath ? (
         <Box sx={{ mb: 2, fontWeight: 700, color: '#0f172a', fontSize: { xs: '1.05rem', sm: '1.2rem' } }}>
-          <ExamMathText inline={false}>{question.prompt}</ExamMathText>
+          <ExamMathText inline={false} sx={{ whiteSpace: 'pre-line' }}>{examPromptWithoutRedundantRuleBlock(question)}</ExamMathText>
         </Box>
       ) : (
-        <Typography variant="h6" sx={{ fontWeight: 700, color: '#0f172a', mb: 2, fontSize: { xs: '1.05rem', sm: '1.2rem' } }}>
-          {question.prompt}
+        <Typography variant="h6" sx={{ fontWeight: 700, color: '#0f172a', mb: 2, fontSize: { xs: '1.05rem', sm: '1.2rem' }, whiteSpace: 'pre-line' }}>
+          {examPromptWithoutRedundantRuleBlock(question)}
         </Typography>
       )}
-      {question.instruction && <InstructionLine text={question.instruction} />}
-      <HumanFriendlyStimulus q={question} border={borderMuted} />
+      {question.instruction && !shouldSuppressInstructionAsDuplicateRule(question) && (
+        <InstructionLine text={question.instruction} />
+      )}
+      <HumanFriendlyStimulus q={question} border={borderMuted} renderMath={!!renderMath} />
       <Box sx={{ bgcolor: '#f8fafc', borderRadius: 2, p: 2, mb: 2, border: `1px solid ${borderMuted}` }}>
         <Typography sx={{ fontSize: '0.8rem', color: '#64748b', mb: 1.5 }}>
           Record your spoken response (practice). Select the option that best matches your response for scoring.
@@ -905,15 +1608,17 @@ export const ExamQuestionBody: React.FC<ExamQuestionBodyProps> = ({
         </Typography>
         {renderMath ? (
           <Box sx={{ lineHeight: 1.5, mb: 3, fontWeight: 700, color: '#0f172a', fontSize: { xs: '1.05rem', sm: '1.2rem' } }}>
-            <ExamMathText inline={false}>{question.prompt}</ExamMathText>
+            <ExamMathText inline={false} sx={{ whiteSpace: 'pre-line' }}>{examPromptWithoutRedundantRuleBlock(question)}</ExamMathText>
           </Box>
         ) : (
-          <Typography variant="h6" sx={{ fontWeight: 700, color: '#0f172a', lineHeight: 1.5, mb: 3, fontSize: { xs: '1.05rem', sm: '1.2rem' } }}>
-            {question.prompt}
+          <Typography variant="h6" sx={{ fontWeight: 700, color: '#0f172a', lineHeight: 1.5, mb: 3, fontSize: { xs: '1.05rem', sm: '1.2rem' }, whiteSpace: 'pre-line' }}>
+            {examPromptWithoutRedundantRuleBlock(question)}
           </Typography>
         )}
-        {question.instruction && <InstructionLine text={question.instruction} />}
-        <HumanFriendlyStimulus q={question} border={borderMuted} />
+        {question.instruction && !shouldSuppressInstructionAsDuplicateRule(question) && (
+          <InstructionLine text={question.instruction} />
+        )}
+        <HumanFriendlyStimulus q={question} border={borderMuted} renderMath={!!renderMath} />
         <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 0.75, mb: 1, flexWrap: 'nowrap' }}>
           {scale.map((i) => (
             <Button
@@ -1006,15 +1711,17 @@ export const ExamQuestionBody: React.FC<ExamQuestionBodyProps> = ({
         </Box>
         {renderMath ? (
           <Box sx={{ fontWeight: 800, color: '#0f172a', mb: 2, lineHeight: 1.5 }}>
-            <ExamMathText inline={false}>{question.prompt}</ExamMathText>
+            <ExamMathText inline={false} sx={{ whiteSpace: 'pre-line' }}>{examPromptWithoutRedundantRuleBlock(question)}</ExamMathText>
           </Box>
         ) : (
-          <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#0f172a', mb: 2, lineHeight: 1.5 }}>
-            {question.prompt}
+          <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#0f172a', mb: 2, lineHeight: 1.5, whiteSpace: 'pre-line' }}>
+            {examPromptWithoutRedundantRuleBlock(question)}
           </Typography>
         )}
-        {question.instruction && <InstructionLine text={question.instruction} />}
-        <HumanFriendlyStimulus q={question} border={borderMuted} />
+        {question.instruction && !shouldSuppressInstructionAsDuplicateRule(question) && (
+          <InstructionLine text={question.instruction} />
+        )}
+        <HumanFriendlyStimulus q={question} border={borderMuted} renderMath={!!renderMath} />
         <OptionPicker
           options={opts}
           selectedOption={selectedOption}
@@ -1038,15 +1745,17 @@ export const ExamQuestionBody: React.FC<ExamQuestionBodyProps> = ({
       </Typography>
       {renderMath ? (
         <Box sx={{ fontWeight: 700, color: '#0f172a', mb: 2.5, lineHeight: 1.5, fontSize: { xs: '1.05rem', sm: '1.2rem' } }}>
-          <ExamMathText inline={false}>{question.prompt}</ExamMathText>
+          <ExamMathText inline={false} sx={{ whiteSpace: 'pre-line' }}>{examPromptWithoutRedundantRuleBlock(question)}</ExamMathText>
         </Box>
       ) : (
-        <Typography variant="h6" sx={{ fontWeight: 700, color: '#0f172a', mb: 2.5, lineHeight: 1.5, fontSize: { xs: '1.05rem', sm: '1.2rem' } }}>
-          {question.prompt}
+        <Typography variant="h6" sx={{ fontWeight: 700, color: '#0f172a', mb: 2.5, lineHeight: 1.2, fontSize: { xs: '1.0rem', sm: '1rem' }, whiteSpace: 'pre-line' }}>
+          {examPromptWithoutRedundantRuleBlock(question)}
         </Typography>
       )}
-      {question.instruction && <InstructionLine text={question.instruction} />}
-      <HumanFriendlyStimulus q={question} border={borderMuted} />
+      {question.instruction && !shouldSuppressInstructionAsDuplicateRule(question) && (
+        <InstructionLine text={question.instruction} />
+      )}
+      <HumanFriendlyStimulus q={question} border={borderMuted} renderMath={!!renderMath} />
       {question.image_url && (
         <Box
           sx={{
