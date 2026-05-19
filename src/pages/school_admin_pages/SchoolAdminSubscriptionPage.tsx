@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { SvgIconProps } from '@mui/material';
 import {
-  Box, Card, CardContent, Typography, Button, Chip, Divider,
+  Box, Card, CardContent, Typography, Button, Chip, Divider, CircularProgress,
 } from '@mui/material';
 import {
   CheckCircle as CheckIcon,
@@ -9,6 +9,7 @@ import {
   School as StandardIcon,
   ArrowForward as ArrowIcon,
   LooksOne as EntryIcon,
+  FileDownload as DownloadIcon,
 } from '@mui/icons-material';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import { useSelector } from 'react-redux';
@@ -55,20 +56,23 @@ const PLAN_ACCENTS: Record<'entry' | 'standard' | 'premium', string> = {
   premium: '#8b5cf6',
 };
 
-const PLANS: Plan[] = SCHOOL_INSTITUTIONAL_PLAN_MATRIX.map((row) => ({
-  id: row.id,
-  name: row.name,
-  price: row.annualPriceRupeeDisplay,
-  per: '/yr',
-  rosterCap: row.rosterGuidance,
-  features: [...row.features],
-  accent: PLAN_ACCENTS[row.id],
-  Icon: PLAN_ICONS[row.id],
-  popular: row.popular,
-  current: row.id === 'standard',
-}));
-
-function SchoolAdminSubscriptionPage() {
+export function SchoolAdminSubscriptionPage() {
+  const plans = useMemo<Plan[]>(
+    () =>
+      SCHOOL_INSTITUTIONAL_PLAN_MATRIX.map((row) => ({
+        id: row.id,
+        name: row.name,
+        price: row.annualPriceRupeeDisplay,
+        per: '/yr',
+        rosterCap: row.rosterGuidance,
+        features: [...row.features],
+        accent: PLAN_ACCENTS[row.id],
+        Icon: PLAN_ICONS[row.id],
+        popular: row.popular,
+        current: row.id === 'standard',
+      })),
+    []
+  );
   const schoolId = useSelector((state: RootState) => state.auth.schoolAdmin?.schoolId ?? '').trim();
   const [billingMeta, setBillingMeta] = useState<{
     billing: SchoolDashboardBilling | null;
@@ -160,7 +164,7 @@ function SchoolAdminSubscriptionPage() {
         gap: 2.5,
         mb: 4,
       }}>
-        {PLANS.map(plan => (
+        {plans.map(plan => (
           <Card
             key={plan.id}
             sx={{
@@ -308,8 +312,10 @@ function SchoolAdminSubscriptionPage() {
                 label: 'Payment method',
                 value: billingMeta.billing?.has_invoice_pdf ? 'Razorpay (card / UPI / netbanking)' : 'See your completed checkout',
               },
-              { label: 'GST number', value: 'Registered institution' },
               { label: 'Next renewal', value: '1 January 2028' },
+              ...(billingMeta.billing?.invoice_number
+                ? [{ label: 'Invoice reference', value: billingMeta.billing.invoice_number, mono: true }]
+                : []),
             ].map(item => (
               <Box key={item.label} sx={{ flex: '1 1 180px', minWidth: 0, maxWidth: { xs: '100%', sm: 'calc(50% - 8px)', md: 'calc(25% - 12px)' } }}>
                 <Typography variant="caption" sx={{ color: ip.subtext, textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: 0.5 }}>
@@ -317,34 +323,19 @@ function SchoolAdminSubscriptionPage() {
                 </Typography>
                 <Typography
                   variant="body2"
-                  sx={{ color: ip.heading, fontWeight: 500, mt: 0.3, overflowWrap: 'anywhere' }}
+                  sx={{
+                    color: ip.heading,
+                    fontWeight: 500,
+                    mt: 0.3,
+                    overflowWrap: 'anywhere',
+                    wordBreak: 'break-word',
+                    ...('mono' in item && item.mono ? { fontFamily: 'ui-monospace, monospace' } : {}),
+                  }}
                 >
                   {item.value}
                 </Typography>
               </Box>
             ))}
-            {billingMeta.billing?.invoice_number && (
-              <Box sx={{ flex: '1 1 100%', minWidth: 0, width: '100%', pt: 0.5 }}>
-                <Typography variant="caption" sx={{ color: ip.subtext, textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: 0.5 }}>
-                  Invoice reference
-                </Typography>
-                <Typography
-                  variant="body2"
-                  component="p"
-                  sx={{
-                    color: ip.heading,
-                    fontWeight: 500,
-                    mt: 0.3,
-                    mb: 0,
-                    fontFamily: 'ui-monospace, monospace',
-                    overflowWrap: 'anywhere',
-                    wordBreak: 'break-word',
-                  }}
-                >
-                  {billingMeta.billing.invoice_number}
-                </Typography>
-              </Box>
-            )}
           </Box>
           {billingLoading && (
             <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mt: 1 }}>
@@ -361,11 +352,34 @@ function SchoolAdminSubscriptionPage() {
             <Button
               variant="outlined"
               size="small"
+              startIcon={
+                invoiceDownloading ? (
+                  <CircularProgress size={14} sx={{ color: ip.navy }} />
+                ) : (
+                  <DownloadIcon sx={{ fontSize: '1.05rem' }} />
+                )
+              }
               disabled={!canDownloadInvoice || invoiceDownloading}
               onClick={() => void handleDownloadInvoice()}
-              sx={{ borderColor: ip.cardBorder, color: ip.subtext, '&:hover': { bgcolor: ip.cardMutedBg }, borderRadius: 1.5 }}
+              sx={{
+                borderColor: canDownloadInvoice ? ip.navy : ip.cardBorder,
+                color: canDownloadInvoice ? ip.navy : ip.subtext,
+                fontWeight: 600,
+                textTransform: 'none',
+                minWidth: 200,
+                borderRadius: 1.5,
+                '&:hover': canDownloadInvoice
+                  ? { borderColor: ip.navy, bgcolor: 'rgba(16, 64, 139, 0.06)' }
+                  : { bgcolor: ip.cardMutedBg },
+                '&.Mui-disabled': {
+                  opacity: 1,
+                  borderColor: ip.cardBorder,
+                  color: ip.subtext,
+                  bgcolor: '#f8fafc',
+                },
+              }}
             >
-              {invoiceDownloading ? 'Preparing download…' : 'Download invoice (PDF)'}
+              Download invoice (PDF)
             </Button>
             <Button variant="outlined" size="small" sx={{ borderColor: ip.cardBorder, color: ip.subtext, '&:hover': { bgcolor: ip.cardMutedBg }, borderRadius: 1.5 }}>
               Update billing details
@@ -384,5 +398,3 @@ function SchoolAdminSubscriptionPage() {
     </Box>
   );
 }
-
-export default SchoolAdminSubscriptionPage;

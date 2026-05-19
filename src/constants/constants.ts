@@ -62,6 +62,7 @@ export const FETCH_PAYEE_DETAILS='/getPayeeDetails';
 export const FETCH_SCHOOL_ADMIN_DATA='/getSchoolAdminDetails';
 export const FETCH_SCHOOL_DASHBOARD='/getSchoolDashboard';
 export const STUDENT_REGISTRATION_EMAILS='/studentRegistrationEmails';
+export const UPDATE_SCHOOL_PROFILE='/schoolProfile';
 export const QUARTERLY_REPORTS='/quarterlyReports';
 export const QUARTERLY_REPORT_DOWNLOAD_URL='/quarterlyReportDownloadUrl';
 export const BILLING_INVOICE_DOWNLOAD_URL='/billingInvoiceDownloadUrl';

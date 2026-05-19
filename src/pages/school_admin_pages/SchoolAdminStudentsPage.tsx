@@ -77,6 +77,7 @@ type RosterInvited = {
 type RosterRow = RosterRegistered | RosterInvited;
 
 type AssessmentsCompletedFilter = 'all' | '0' | '1' | '2' | '3_plus';
+type StatusFilter = 'all' | 'registered' | 'invited';
 type SortField = 'firstName' | 'lastName' | 'grade' | 'assessmentsCompleted' | 'email';
 type SortDirection = 'asc' | 'desc';
 
@@ -96,9 +97,15 @@ const ASSESSMENTS_FILTER_LABELS: Record<AssessmentsCompletedFilter, string> = {
   '3_plus': '3+',
 };
 
+const STATUS_FILTER_LABELS: Record<StatusFilter, string> = {
+  all: 'All',
+  registered: 'Registered',
+  invited: 'Invited',
+};
+
 /** Search, sort, sort-direction, and Filters - one visual height */
 const ROSTER_TOOLBAR_H = 40;
-/** Grade + Assessments filter dropdowns share width */
+/** Status, grade, and assessments filter dropdowns share width */
 const ROSTER_FILTER_SELECT_MIN_W = 200;
 
 const rosterToolbarSelectSx = (minWidth: number) => ({
@@ -203,6 +210,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
   const [savingEmails, setSavingEmails] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [gradeFilter, setGradeFilter] = useState<number | 'all'>('all');
   const [assessmentsCompletedFilter, setAssessmentsCompletedFilter] =
     useState<AssessmentsCompletedFilter>('all');
@@ -352,6 +360,10 @@ const SchoolAdminStudentsPage: React.FC = () => {
           if (!blob.includes(q)) return false;
         } else if (!r.email.toLowerCase().includes(q)) return false;
       }
+      if (statusFilter !== 'all') {
+        if (statusFilter === 'registered' && r.kind !== 'registered') return false;
+        if (statusFilter === 'invited' && r.kind !== 'invited') return false;
+      }
       if (gradeFilter !== 'all') {
         if (r.kind !== 'registered' || r.grade !== gradeFilter) return false;
       }
@@ -417,6 +429,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
   }, [
     rows,
     searchTerm,
+    statusFilter,
     gradeFilter,
     assessmentsCompletedFilter,
     sortField,
@@ -432,10 +445,14 @@ const SchoolAdminStudentsPage: React.FC = () => {
   ).sort((a, b) => a - b);
 
   const hasActiveFilters =
-    !!searchTerm.trim() || gradeFilter !== 'all' || assessmentsCompletedFilter !== 'all';
+    !!searchTerm.trim() ||
+    statusFilter !== 'all' ||
+    gradeFilter !== 'all' ||
+    assessmentsCompletedFilter !== 'all';
 
   const handleClearFilters = () => {
     setSearchTerm('');
+    setStatusFilter('all');
     setGradeFilter('all');
     setAssessmentsCompletedFilter('all');
   };
@@ -706,6 +723,29 @@ const SchoolAdminStudentsPage: React.FC = () => {
                     alignItems: 'center',
                   }}
                 >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography
+                      component="label"
+                      htmlFor="students-status-filter"
+                      variant="body2"
+                      sx={{ color: ip.subtext, fontWeight: 500, whiteSpace: 'nowrap', flexShrink: 0 }}
+                    >
+                      Status
+                    </Typography>
+                    <Select
+                      id="students-status-filter"
+                      size="small"
+                      value={statusFilter}
+                      onChange={e => setStatusFilter(e.target.value as StatusFilter)}
+                      renderValue={v => STATUS_FILTER_LABELS[v as StatusFilter]}
+                      MenuProps={{ PaperProps: { sx: rosterSelectMenuPaperSx } }}
+                      sx={rosterFilterSelectSx}
+                    >
+                      <MenuItem value="all">All</MenuItem>
+                      <MenuItem value="registered">Registered</MenuItem>
+                      <MenuItem value="invited">Invited</MenuItem>
+                    </Select>
+                  </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Typography
                       component="label"

@@ -98,7 +98,11 @@ const SchoolAdminAnalyticsPage = React.lazy(() => import('../pages/school_admin_
 const SchoolAdminSettingsPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminSettingsPage'));
 const SchoolAdminReportsPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminReportsPage'));
 const SchoolAdminAlertsPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminAlertsPage'));
-const SchoolAdminSubscriptionPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminSubscriptionPage'));
+const SchoolAdminSubscriptionPage = React.lazy(() =>
+  import('../pages/school_admin_pages/SchoolAdminSubscriptionPage').then((m) => ({
+    default: m.SchoolAdminSubscriptionPage,
+  }))
+);
 const SchoolAdminStudentDetailPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminStudentDetailPage'));
 
 /*

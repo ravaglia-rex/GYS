@@ -8,6 +8,7 @@ import {
   SCHOOL_ADMINS_APIS,
   SCHOOLS_APIS,
   STUDENT_REGISTRATION_EMAILS,
+  UPDATE_SCHOOL_PROFILE,
 } from "../constants/constants";
 import authTokenHandler from "../functions/auth_token/auth_token_handler";
 
@@ -149,6 +150,32 @@ export const getStudentRegistrationEmails = async (): Promise<string[]> => {
       throw new Error(String(error.response.data.error));
     }
     throw new Error("Could not load student registration emails.");
+  }
+};
+
+export type UpdateSchoolProfilePayload = {
+  school_name: string;
+  school_address?: string;
+  phone?: string;
+  website?: string;
+};
+
+export const putSchoolProfile = async (
+  payload: UpdateSchoolProfilePayload
+): Promise<{ success: boolean; school_name: string; poc_email: string }> => {
+  try {
+    const authToken = await authTokenHandler.getAuthToken();
+    const response = await axios.put(
+      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${UPDATE_SCHOOL_PROFILE}`,
+      payload,
+      { headers: { Authorization: `Bearer ${authToken}` } }
+    );
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data?.error) {
+      throw new Error(String(error.response.data.error));
+    }
+    throw new Error("Could not save school settings. Please try again.");
   }
 };
 
