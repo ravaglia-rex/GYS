@@ -151,12 +151,7 @@ function load(scope: string): PracticeModePersisted {
     if (parsed.v !== 1 || typeof parsed.completedByKey !== 'object' || parsed.completedByKey == null) {
       return { v: 1, completedByKey: {}, activeSession: null, lastSelection: null };
     }
-    const lastSelection =
-      parsed.lastSelection &&
-      typeof parsed.lastSelection.examId === 'string' &&
-      [1, 2, 3].includes(parsed.lastSelection.level as number)
-        ? { examId: parsed.lastSelection.examId, level: parsed.lastSelection.level as PracticeLevel }
-        : null;
+    const lastSelection = parsePracticeHubSelection(parsed.lastSelection);
     return {
       v: 1,
       completedByKey: { ...parsed.completedByKey },

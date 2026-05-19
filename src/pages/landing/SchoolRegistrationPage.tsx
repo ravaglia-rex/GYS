@@ -272,12 +272,6 @@ const SchoolRegistrationPage: React.FC = () => {
     return newErrors;
   };
 
-  const validateStep1 = (): boolean => {
-    const newErrors = getStep1Errors();
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
   // ── Step 2 ───────────────────────────────────────────────────────────────
 
   const getStep2Errors = (): Record<string, string> => {
@@ -324,12 +318,6 @@ const SchoolRegistrationPage: React.FC = () => {
     return newErrors;
   };
 
-  const validateStep2 = (): boolean => {
-    const newErrors = getStep2Errors();
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
   // ── Step 3 ───────────────────────────────────────────────────────────────
 
   const handleEmailChange = (index: number, value: string) => {
@@ -371,12 +359,6 @@ const SchoolRegistrationPage: React.FC = () => {
     if (new Set(trimmed).size !== trimmed.length)
       newErrors.emails = 'Please remove duplicate email addresses.';
     return newErrors;
-  };
-
-  const validateStep3 = (): boolean => {
-    const newErrors = getStep3Errors();
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
   };
 
   // ── Step 4 ───────────────────────────────────────────────────────────────
