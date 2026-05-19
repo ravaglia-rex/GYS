@@ -39,7 +39,7 @@ import {
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import { useSchoolAdminBelowNav } from '../../layouts/schoolAdminBelowNavContext';
 import { summarizeSchoolTier123, summarizeNationalPerformanceTiers } from '../../utils/schoolAdminTierAnalytics';
-import { normalizeTierSlugForDashboard } from '../../utils/achievementTier';
+import { normalizeTierSlugForDashboard, parseInstitutionalTierSlug } from '../../utils/achievementTier';
 import { displaySubscriptionPlan } from '../../utils/displaySubscriptionPlan';
 import { ProficiencyTier123Overview } from '../../components/school_admin/ProficiencyTier123Overview';
 import { NationalPerformanceTierOverview } from '../../components/school_admin/NationalPerformanceTierOverview';
@@ -209,7 +209,7 @@ function InstitutionHeroStrip(props: {
   schoolCity: string;
   schoolBoard: string;
   subscriptionPlan: string;
-  institutionalTierCfg: { label: string; color: string; bg: string; bar: string; emoji: string };
+  institutionalTierCfg: { label: string; color: string; bg: string; bar: string; emoji: string } | null;
   institutionalRank: number | null;
   rankChangeQ1: number | null;
   performance: PerformanceMetrics;
@@ -225,6 +225,7 @@ function InstitutionHeroStrip(props: {
     performance,
   } = props;
 
+  const tierLabel = institutionalTierCfg?.label ?? '—';
   const rankShort =
     institutionalRank != null && institutionalRank > 0 ? ordinal(institutionalRank) : '-';
 
@@ -311,9 +312,11 @@ function InstitutionHeroStrip(props: {
               }}
             >
               <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 0.75, justifyContent: 'center', flexWrap: 'wrap' }}>
-                <Typography component="span" sx={{ fontSize: { xs: '1.35rem', sm: '1.5rem' }, lineHeight: 1 }} aria-hidden>
-                  {institutionalTierCfg.emoji}
-                </Typography>
+                {institutionalTierCfg ? (
+                  <Typography component="span" sx={{ fontSize: { xs: '1.35rem', sm: '1.5rem' }, lineHeight: 1 }} aria-hidden>
+                    {institutionalTierCfg.emoji}
+                  </Typography>
+                ) : null}
                 <Typography
                   sx={{
                     color: '#fff',
@@ -322,7 +325,7 @@ function InstitutionHeroStrip(props: {
                     lineHeight: 1.2,
                   }}
                 >
-                  {institutionalTierCfg.label}
+                  {tierLabel}
                 </Typography>
               </Box>
               <Typography
@@ -452,7 +455,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
   const [schoolName, setSchoolName] = useState('');
   const [schoolCity, setSchoolCity] = useState('');
   const [schoolBoard, setSchoolBoard] = useState('');
-  const [schoolTier, setSchoolTier] = useState('gold');
+  const [schoolTier, setSchoolTier] = useState<string | null>(null);
   const [subscriptionPlan, setSubscriptionPlan] = useState('Standard Subscription');
   const [studentCount, setStudentCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -482,7 +485,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
         [GREENFIELD_SCHOOL_DISPLAY.city, GREENFIELD_SCHOOL_DISPLAY.state].filter(Boolean).join(', ')
       );
       setSchoolBoard(GREENFIELD_SCHOOL_DISPLAY.board);
-      setSchoolTier(normalizeTierSlugForDashboard(GREENFIELD_SCHOOL_DISPLAY.institutionalTier));
+      setSchoolTier(parseInstitutionalTierSlug(GREENFIELD_SCHOOL_DISPLAY.institutionalTier));
       setSubscriptionPlan(GREENFIELD_SCHOOL_DISPLAY.subscriptionPlan);
       setStudentCount(allStudents.length);
       setTotalAssessmentsCompleted(countAssessmentsCompleted(allStudents));
@@ -529,7 +532,6 @@ const SchoolAdminDashboardPage: React.FC = () => {
             ? schoolData.boards.join(', ')
             : (schoolData.board ?? schoolData.affiliation ?? '')
         );
-        setSchoolTier(normalizeTierSlugForDashboard(schoolData.institutional_tier ?? schoolData.tier ?? 'gold'));
         setSubscriptionPlan(
           displaySubscriptionPlan(schoolData.subscription_plan ?? schoolData.plan ?? 'Standard Subscription')
         );
@@ -562,6 +564,15 @@ const SchoolAdminDashboardPage: React.FC = () => {
           console.warn('getQuarterlyReports:', e);
           setLatestQuarterly(null);
         }
+
+        setSchoolTier(
+          parseInstitutionalTierSlug(
+            schoolData.institutional_tier ??
+              schoolData.institutional_performance_tier ??
+              analyticsData.institutional_tier ??
+              analyticsData.institutional_performance_tier
+          )
+        );
 
         setTotalAssessmentsCompleted(countAssessmentsCompleted(allStudents));
         setStudentCount(allStudents.length);
@@ -605,7 +616,9 @@ const SchoolAdminDashboardPage: React.FC = () => {
       return;
     }
     const tierCfg =
-      TIER_CONFIG[normalizeTierSlugForDashboard(schoolTier)] ?? TIER_CONFIG.explorer;
+      schoolTier != null
+        ? TIER_CONFIG[normalizeTierSlugForDashboard(schoolTier)] ?? TIER_CONFIG.explorer
+        : null;
     setBelowNav(
       <InstitutionHeroStrip
         schoolName={schoolName}

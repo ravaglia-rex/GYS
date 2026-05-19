@@ -11,7 +11,6 @@ import DevModePayment from "./DevModePayment";
 import AddPayeeDialog from "./AddPayeeDialog";
 import RefundPolicyDialog from "./RefundPolicyDialog";
 import PayeesInput from "../autocomplete/PayeesInput";
-import RazorpayTestAmountBanner from "../payment/RazorpayTestAmountBanner";
 import { useToast } from '../ui/use-toast';
 import * as Sentry from '@sentry/react';
 
@@ -222,7 +221,6 @@ const PayeeDetailsForm: React.FC<PayeeDetailsFormProps> = ({
         onClose={() => setIsAddPayeeOpen(false)}
         onAddPayee={handleAddPayee}
       />
-      <RazorpayTestAmountBanner />
       <div>
         <label htmlFor="payee-select" className="mb-2 block font-medium text-white text-lg">
           Select Payer:

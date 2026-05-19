@@ -635,9 +635,7 @@ const SchoolRegistrationPage: React.FC = () => {
                   </span>
                 </div>
               </div>
-              <p className="mt-2 text-[11px] text-slate-500 leading-relaxed">
-                Razorpay will charge this total; your receipt PDF matches these figures.
-              </p>
+             
             </div>
            
             <button

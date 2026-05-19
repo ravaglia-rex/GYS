@@ -59,6 +59,8 @@ export interface AssessmentProgress {
 
 export interface StudentRow {
   uid: string;
+  /** Normalized signup email when present on the student doc. */
+  email?: string;
   first_name: string;
   last_name: string;
   grade: number;

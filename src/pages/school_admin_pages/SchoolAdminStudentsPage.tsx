@@ -38,8 +38,6 @@ import {
 } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../../firebase/firebase';
 import {
   getSchoolDashboard,
   getStudentRegistrationEmails,
@@ -265,52 +263,25 @@ const SchoolAdminStudentsPage: React.FC = () => {
       }
       reg = (reg ?? []).map(normalizeRosterEmail);
 
-      const studentsSnap = await getDocs(query(collection(db, 'students'), where('school_id', '==', schoolId)));
-      setHasNoStudentsInDb(studentsSnap.empty);
+      const dash = await getSchoolDashboard(schoolId);
+      const dashboardStudents = dash.students ?? [];
+      setHasNoStudentsInDb(dashboardStudents.length === 0 && reg.length === 0);
 
-      let dashboardStudents: StudentRow[] = [];
-      try {
-        const dash = await getSchoolDashboard(schoolId);
-        dashboardStudents = dash.students ?? [];
-      } catch (e) {
-        console.warn('getSchoolDashboard', e);
-      }
-      const dashByUid = new Map(dashboardStudents.map(s => [s.uid, s]));
-
-      const registered: RosterRegistered[] = studentsSnap.docs.map(d => {
-        const data = d.data() as Record<string, unknown>;
-        const uid = d.id;
-        const dr = dashByUid.get(uid) ?? null;
-        const firstName = String(data.first_name ?? '');
-        const lastName = String(data.last_name ?? '');
-        let grade = 0;
-        if (typeof data.grade === 'number') grade = data.grade;
-        else if (typeof data.class === 'number') grade = data.class;
-        if (dr && typeof dr.grade === 'number' && dr.grade > 0) grade = dr.grade;
-
-        const assessmentsCompleted = dr
-          ? countAssessmentsFromProgress(dr.assessment_progress)
-          : 0;
-
-        const emailFromDoc = normalizeRosterEmail(
-          String((data.email as string) ?? (data.email_normalized as string) ?? '')
-        );
-
-        const tierRaw =
-          dr?.achievement_tier ??
-          ((typeof data.achievement_tier === 'string' ? data.achievement_tier : null) as string | null);
+      const registered: RosterRegistered[] = dashboardStudents.map(dr => {
+        const emailFromDoc = normalizeRosterEmail(String(dr.email ?? ''));
+        const grade = typeof dr.grade === 'number' && dr.grade > 0 ? dr.grade : 0;
 
         return {
           kind: 'registered' as const,
-          uid,
-          email: emailFromDoc || '',
-          firstName,
-          lastName,
+          uid: dr.uid,
+          email: emailFromDoc,
+          firstName: String(dr.first_name ?? ''),
+          lastName: String(dr.last_name ?? ''),
           grade,
-          assessmentsCompleted,
-          achievementTier: normalizeAchievementTierId(tierRaw ?? undefined),
-          membershipLevel: dr?.membership_level ?? 0,
-          approvalStatus: dr?.approval_status ?? 'pending',
+          assessmentsCompleted: countAssessmentsFromProgress(dr.assessment_progress),
+          achievementTier: normalizeAchievementTierId(dr.achievement_tier),
+          membershipLevel: dr.membership_level ?? 0,
+          approvalStatus: dr.approval_status ?? 'pending',
           dashboardRow: dr,
         };
       });

@@ -42,6 +42,12 @@ export function normalizeTierSlugForDashboard(raw: unknown): string {
   return 'explorer';
 }
 
+/** Institutional tier from Firestore/API; null until the school has an assigned band. */
+export function parseInstitutionalTierSlug(raw: unknown): string | null {
+  if (raw == null || String(raw).trim() === '') return null;
+  return normalizeTierSlugForDashboard(raw);
+}
+
 /** True if `id` is one of the four canonical achievement bands. */
 export function isCanonicalAchievementTierId(id: string): id is CanonicalAchievementTierId {
   return CANONICAL_SET.has(id);

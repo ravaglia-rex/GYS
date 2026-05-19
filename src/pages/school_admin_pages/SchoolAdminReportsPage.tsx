@@ -127,11 +127,7 @@ const SchoolAdminReportsPage: React.FC = () => {
             </Box>
           ) : reports.length === 0 ? (
             <Typography variant="body2" sx={{ color: ip.subtext, py: 2 }}>
-              No quarterly reports in Firestore yet. Run the seed script for your school or add documents under{' '}
-              <Typography component="span" variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
-                schools/&lt;id&gt;/quarterly_reports
-              </Typography>
-              .
+              No quarterly reports are available yet.
             </Typography>
           ) : (
             <TableContainer

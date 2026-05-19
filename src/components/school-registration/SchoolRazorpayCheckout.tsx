@@ -8,8 +8,6 @@ import {
 } from '../../db/schoolCollection';
 import { isValidIndiaMobile, normalizeIndiaMobileE164 } from '../../utils/indiaMobile';
 import { gysPaymentInvoiceNumberFromOrderId } from '../../utils/gysPaymentInvoiceNumber';
-import { RAZORPAY_CHECKOUT_METHOD } from '../../utils/razorpayCheckoutMethods';
-import RazorpayTestAmountBanner from '../payment/RazorpayTestAmountBanner';
 import * as Sentry from '@sentry/react';
 
 /** Best-effort string for Razorpay `payment.failed` payloads (shape varies by version). Used for Sentry only. */
@@ -58,7 +56,7 @@ export type SchoolRazorpayCheckoutProps = {
 };
 
 /**
- * Import Flow: India mobile collected here → POST createSchoolOrder with customer + customer_details.
+ * Import Flow: phone collected here → POST createSchoolOrder with customer + customer_details.
  * Razorpay US/cross-border: avoid dummy contacts (all same digits); use plausible numbers for tests.
  */
 const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
@@ -178,7 +176,6 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
           plan: planName,
         },
         theme: { color: '#1e3a8a' },
-        method: RAZORPAY_CHECKOUT_METHOD,
         handler: async (response: {
           razorpay_order_id?: string;
           razorpay_payment_id?: string;
@@ -300,12 +297,13 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
   return (
     <div className="mt-4 w-full space-y-4 text-left">
       {confirmingOverlay}
-      <RazorpayTestAmountBanner />
       <div>
         <label className="block text-xs font-semibold text-slate-700 mb-1">
           India mobile number<span className="text-red-500"> *</span>
         </label>
-       
+        <p className="mb-1.5 text-[11px] text-slate-500 leading-relaxed">
+          Required for Razorpay Import Flow.
+        </p>
         <input
           type="tel"
           value={checkoutPhone}

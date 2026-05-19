@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
-  Box, Card, CardContent, Typography, Chip, Button, Divider, IconButton,
+  Box, Card, CardContent, Typography, Chip, Button, Divider, IconButton, CircularProgress,
 } from '@mui/material';
 import {
   Assessment as ReportIcon,
@@ -9,6 +10,10 @@ import {
   Close as DismissIcon,
 } from '@mui/icons-material';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
+import {
+  getQuarterlyReports,
+  type QuarterlyReportListItem,
+} from '../../db/schoolAdminCollection';
 
 interface Alert {
   id: string;
@@ -19,7 +24,8 @@ interface Alert {
   read: boolean;
 }
 
-const INITIAL_ALERTS: Alert[] = [
+/** Interactive preview only (`/for-schools/preview`). */
+const PREVIEW_ALERTS: Alert[] = [
   { id: 'a3', type: 'report_ready', title: 'Q2 Performance Report Ready', body: 'Your Q2 2027 institutional performance report has been generated and is available for download.', time: '1 Mar 2027 • 12:00 PM', read: false },
   { id: 'a5', type: 'report_ready', title: 'Q1 → Q2 Growth Report Ready', body: 'Your quarter-over-quarter growth report is available. Overall percentile improved by 5 points.', time: '1 Mar 2027 • 12:00 PM', read: true },
 ];
@@ -34,8 +40,67 @@ const ALERT_COLOR: Record<string, string> = {
   system: '#8b5cf6',
 };
 
+function quarterLabel(quarterKey: string): string {
+  const match = /^(\d{4})-Q(\d)$/i.exec(quarterKey);
+  if (!match) return quarterKey;
+  return `Q${match[2]} ${match[1]}`;
+}
+
+function formatAlertTime(iso: string | null): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const datePart = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  const timePart = d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
+  return `${datePart} • ${timePart}`;
+}
+
+function reportsToAlerts(reports: QuarterlyReportListItem[]): Alert[] {
+  return [...reports]
+    .filter((r) => r.hasPdf)
+    .sort((a, b) => b.quarterKey.localeCompare(a.quarterKey))
+    .map((r) => ({
+      id: r.quarterKey,
+      type: 'report_ready' as const,
+      title: `${quarterLabel(r.quarterKey)} Performance Report Ready`,
+      body: r.assessmentPeriodLabel
+        ? `Your ${r.assessmentPeriodLabel} institutional performance report has been generated and is available for download.`
+        : `Your ${quarterLabel(r.quarterKey)} institutional performance report is available for download.`,
+      time: formatAlertTime(r.generatedAt),
+      read: !r.isLatest,
+    }));
+}
+
 const SchoolAdminAlertsPage: React.FC = () => {
-  const [alerts, setAlerts] = useState<Alert[]>(INITIAL_ALERTS);
+  const location = useLocation();
+  const isSchoolAdminPreview = location.pathname.startsWith('/for-schools/preview');
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    if (isSchoolAdminPreview) {
+      setAlerts([...PREVIEW_ALERTS]);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getQuarterlyReports();
+      setAlerts(reportsToAlerts(data.reports ?? []));
+    } catch (e) {
+      setError((e as Error).message ?? 'Could not load alerts.');
+      setAlerts([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [isSchoolAdminPreview]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const unreadCount = alerts.filter(a => !a.read).length;
 
@@ -47,6 +112,14 @@ const SchoolAdminAlertsPage: React.FC = () => {
 
   const markAllRead = () =>
     setAlerts(prev => prev.map(a => ({ ...a, read: true })));
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
+        <CircularProgress sx={{ color: ip.navy }} />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ maxWidth: 800, mx: 'auto', pb: 6 }}>
@@ -69,6 +142,12 @@ const SchoolAdminAlertsPage: React.FC = () => {
           </Button>
         )}
       </Box>
+
+      {error && (
+        <Typography variant="body2" sx={{ color: '#ef4444', mb: 2 }}>
+          {error}
+        </Typography>
+      )}
 
       {/* Alerts list */}
       {alerts.length > 0 ? (
@@ -102,7 +181,9 @@ const SchoolAdminAlertsPage: React.FC = () => {
                       <Typography variant="body2" sx={{ color: ip.subtext, mb: 0.8, lineHeight: 1.5 }}>
                         {alert.body}
                       </Typography>
-                      <Typography variant="caption" sx={{ color: ip.subtext }}>{alert.time}</Typography>
+                      {alert.time ? (
+                        <Typography variant="caption" sx={{ color: ip.subtext }}>{alert.time}</Typography>
+                      ) : null}
                     </Box>
                     <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
                       {!alert.read && (

@@ -311,21 +311,36 @@ function SchoolAdminSubscriptionPage() {
               { label: 'GST number', value: 'Registered institution' },
               { label: 'Next renewal', value: '1 January 2028' },
             ].map(item => (
-              <Box key={item.label} sx={{ flex: 1, minWidth: 180 }}>
+              <Box key={item.label} sx={{ flex: '1 1 180px', minWidth: 0, maxWidth: { xs: '100%', sm: 'calc(50% - 8px)', md: 'calc(25% - 12px)' } }}>
                 <Typography variant="caption" sx={{ color: ip.subtext, textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: 0.5 }}>
                   {item.label}
                 </Typography>
-                <Typography variant="body2" sx={{ color: ip.heading, fontWeight: 500, mt: 0.3 }}>
+                <Typography
+                  variant="body2"
+                  sx={{ color: ip.heading, fontWeight: 500, mt: 0.3, overflowWrap: 'anywhere' }}
+                >
                   {item.value}
                 </Typography>
               </Box>
             ))}
             {billingMeta.billing?.invoice_number && (
-              <Box sx={{ flex: 1, minWidth: 180 }}>
+              <Box sx={{ flex: '1 1 100%', minWidth: 0, width: '100%', pt: 0.5 }}>
                 <Typography variant="caption" sx={{ color: ip.subtext, textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: 0.5 }}>
                   Invoice reference
                 </Typography>
-                <Typography variant="body2" sx={{ color: ip.heading, fontWeight: 500, mt: 0.3, fontFamily: 'ui-monospace, monospace' }}>
+                <Typography
+                  variant="body2"
+                  component="p"
+                  sx={{
+                    color: ip.heading,
+                    fontWeight: 500,
+                    mt: 0.3,
+                    mb: 0,
+                    fontFamily: 'ui-monospace, monospace',
+                    overflowWrap: 'anywhere',
+                    wordBreak: 'break-word',
+                  }}
+                >
                   {billingMeta.billing.invoice_number}
                 </Typography>
               </Box>

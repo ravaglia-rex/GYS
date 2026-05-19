@@ -5,8 +5,6 @@
  * GYS Consumer Pricing Rev 13 (April 22, 2026).
  */
 
-import { getReactAppRazorpayTestAmountPaise } from './razorpayTestAmountEnv';
-
 export const STUDENT_SIGNUP_BASE_INR: Record<1 | 2 | 3 | 4, number> = {
   1: 299,
   2: 899,
@@ -36,9 +34,7 @@ export function studentMembershipUpgradeAmountPaise(
   if (deltaBase <= 0) {
     return null;
   }
-  const computed = Math.round(deltaBase * 100);
-  const testPaise = getReactAppRazorpayTestAmountPaise();
-  return testPaise !== null ? testPaise : computed;
+  return Math.round(deltaBase * 100);
 }
 
 export function formatInrFromPaise(paise: number): string {
