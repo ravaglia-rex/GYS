@@ -31,14 +31,17 @@ import { ExamQuestionBody, inferQuestionInteraction } from '../../components/ass
 import { getAssessmentFlowDefinition } from '../../config/assessmentFlowUI';
 import { EXAM_MATHJAX_CONFIG } from '../../components/assessment/examMathJaxConfig';
 import {
+  buildPracticeSessionResults,
   clearActivePracticeSession,
   clearPracticeTakeSession,
+  dedupePracticePendingOutcomes,
   isInteractivePracticeExam,
   loadPracticeTakeSession,
   recordPracticeQuestionsCompleted,
   resolvePracticeItemId,
   saveLastPracticeSelection,
   savePracticeTakeSession,
+  upsertPracticePendingOutcome,
   type PracticeTakePendingOutcome,
 } from '../../components/practice/practiceModeConfig';
 
@@ -123,6 +126,8 @@ export default function PracticeTakePage() {
   const [questionElapsedMs, setQuestionElapsedMs] = useState(0);
   /** Outcomes for the current batch; synced to Firestore once when the session completes. */
   const pendingOutcomesRef = useRef<PracticeTakePendingOutcome[]>([]);
+  const advancingQuestionRef = useRef(false);
+  const sessionSubmitInFlightRef = useRef(false);
   const [sessionSubmitting, setSessionSubmitting] = useState(false);
   const [sessionSubmitError, setSessionSubmitError] = useState<string | null>(null);
   /** Wall-clock start of current question (for analytics: time until first “Check answer”). */
@@ -143,7 +148,9 @@ export default function PracticeTakePage() {
 
     const saved = loadPracticeTakeSession(storageScope, examId, practiceLevel);
     if (saved && saved.questions.length > 0 && saved.index < saved.questions.length) {
-      pendingOutcomesRef.current = saved.pendingOutcomes.map((r) => ({ ...r }));
+      pendingOutcomesRef.current = dedupePracticePendingOutcomes(
+        saved.pendingOutcomes.map((r) => ({ ...r }))
+      );
       setQuestions(saved.questions);
       setIndex(saved.index);
       setPoolCap(saved.totalInLevel);
@@ -205,82 +212,97 @@ export default function PracticeTakePage() {
   const questionNumber = index + 1;
 
   const advanceToNextQuestion = useCallback(() => {
-    if (selectedOption === null || !practiceLevel || !supported || sessionSubmitting) return;
-    const currentQ = questions[index];
-    const itemId = resolvePracticeItemId(currentQ);
-    if (!itemId) {
-      setError('This question is missing an identifier. Exit and start the session again.');
+    if (
+      selectedOption === null ||
+      !practiceLevel ||
+      !supported ||
+      sessionSubmitting ||
+      advancingQuestionRef.current ||
+      sessionSubmitInFlightRef.current
+    ) {
       return;
     }
-    const row: PracticeTakePendingOutcome = {
-      itemId,
-      selectedOptionIndex: selectedOption,
-      timeToFirstCheckMs: Math.max(0, Math.round(timeToFirstCheckMsRef.current)),
-    };
-    const isLast = index >= totalQuestions - 1;
+    advancingQuestionRef.current = true;
+    try {
+      const currentQ = questions[index];
+      const itemId = resolvePracticeItemId(currentQ);
+      if (!itemId) {
+        setError('This question is missing an identifier. Exit and start the session again.');
+        return;
+      }
+      const row: PracticeTakePendingOutcome = {
+        itemId,
+        selectedOptionIndex: selectedOption,
+        timeToFirstCheckMs: Math.max(0, Math.round(timeToFirstCheckMsRef.current)),
+      };
+      const isLast = index >= totalQuestions - 1;
 
-    const persistTake = () => {
-      savePracticeTakeSession(storageScope, examId, practiceLevel, {
-        questions,
-        index: isLast ? index : index + 1,
-        totalInLevel: poolCap,
-        pendingOutcomes: pendingOutcomesRef.current.slice(),
-      });
-    };
+      pendingOutcomesRef.current = upsertPracticePendingOutcome(pendingOutcomesRef.current, row);
 
-    const finishLocal = (completedDelta: number) => {
-      recordPracticeQuestionsCompleted(storageScope, examId, practiceLevel, completedDelta, poolCap);
-      clearPracticeTakeSession(storageScope, examId, practiceLevel);
-      clearActivePracticeSession(storageScope);
-      goToPracticeHub();
-    };
+      const persistTake = () => {
+        savePracticeTakeSession(storageScope, examId, practiceLevel, {
+          questions,
+          index: isLast ? index : index + 1,
+          totalInLevel: poolCap,
+          pendingOutcomes: pendingOutcomesRef.current.slice(),
+        });
+      };
 
-    if (!isLast) {
-      pendingOutcomesRef.current = [...pendingOutcomesRef.current, row];
+      const finishLocal = (completedDelta: number) => {
+        recordPracticeQuestionsCompleted(storageScope, examId, practiceLevel, completedDelta, poolCap);
+        clearPracticeTakeSession(storageScope, examId, practiceLevel);
+        clearActivePracticeSession(storageScope);
+        goToPracticeHub();
+      };
+
+      if (!isLast) {
+        persistTake();
+        setIndex((i) => i + 1);
+        setSelectedOption(null);
+        setAnswerChecked(false);
+        return;
+      }
+
       persistTake();
-      setIndex((i) => i + 1);
-      setSelectedOption(null);
-      setAnswerChecked(false);
-      return;
-    }
 
-    const alreadyHas = pendingOutcomesRef.current.some((o) => o.itemId === itemId);
-    if (!alreadyHas) {
-      pendingOutcomesRef.current = [...pendingOutcomesRef.current, row];
-    }
-    persistTake();
+      const results = buildPracticeSessionResults(questions, pendingOutcomesRef.current);
+      if (results.length > PRACTICE_SESSION_BATCH_SIZE) {
+        setSessionSubmitError(
+          'Could not save: too many answers recorded for this set. Exit and start a new practice session.'
+        );
+        return;
+      }
 
-    const results = pendingOutcomesRef.current.map((r) => ({
-      item_id: r.itemId,
-      selected_option_index: r.selectedOptionIndex,
-      time_to_first_check_ms: r.timeToFirstCheckMs,
-    }));
-
-    if (!authUid.trim()) {
-      finishLocal(results.length);
-      return;
-    }
-
-    setSessionSubmitting(true);
-    setSessionSubmitError(null);
-    recordPracticeSessionOutcomes({ examId, level: practiceLevel, results })
-      .then(() => {
+      if (!authUid.trim()) {
         finishLocal(results.length);
-      })
-      .catch((e) => {
-        Sentry.captureException(e);
-        let msg = 'Could not save your practice session. Check your connection and tap Done again.';
-        if (axios.isAxiosError(e) && e.response?.data && typeof e.response.data === 'object') {
-          const err = (e.response.data as { error?: unknown }).error;
-          if (typeof err === 'string' && err.trim()) {
-            msg = `Could not save: ${err.trim()}`;
+        return;
+      }
+
+      sessionSubmitInFlightRef.current = true;
+      setSessionSubmitting(true);
+      setSessionSubmitError(null);
+      recordPracticeSessionOutcomes({ examId, level: practiceLevel, results })
+        .then(() => {
+          finishLocal(results.length);
+        })
+        .catch((e) => {
+          Sentry.captureException(e);
+          let msg = 'Could not save your practice session. Check your connection and tap Done again.';
+          if (axios.isAxiosError(e) && e.response?.data && typeof e.response.data === 'object') {
+            const err = (e.response.data as { error?: unknown }).error;
+            if (typeof err === 'string' && err.trim()) {
+              msg = `Could not save: ${err.trim()}`;
+            }
           }
-        }
-        setSessionSubmitError(msg);
-      })
-      .finally(() => {
-        setSessionSubmitting(false);
-      });
+          setSessionSubmitError(msg);
+        })
+        .finally(() => {
+          sessionSubmitInFlightRef.current = false;
+          setSessionSubmitting(false);
+        });
+    } finally {
+      advancingQuestionRef.current = false;
+    }
   }, [
     selectedOption,
     practiceLevel,
@@ -346,7 +368,7 @@ export default function PracticeTakePage() {
   };
 
   const questionReport =
-    authUid.trim().length > 0 && practiceLevel
+    authUid.trim().length > 0 && practiceLevel && supported
       ? { kind: 'practice' as const, uid: authUid, examId, level: practiceLevel }
       : null;
 

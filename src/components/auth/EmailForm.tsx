@@ -143,7 +143,7 @@ const EmailEntryForm: React.FC = () => {
               variant: 'destructive',
               title: 'Payment required',
               description:
-                'Your school\'s subscription payment has not completed yet. Use the secure payment link in your registration confirmation email first, then sign in.',
+                'Your school\'s subscription payment has not completed yet. Finish checkout on the school registration page (/for-schools/register), then sign in here.',
             });
             setIsSubmitted(false);
             setCheckingSchool(false);

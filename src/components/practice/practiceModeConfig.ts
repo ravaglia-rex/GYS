@@ -305,9 +305,12 @@ const TAKE_SESSION_PREFIX = 'argus_practice_take_v1_';
 /** Firestore doc id for outcomes/reports; bank payloads may carry a bad/null `id` that must not win. */
 export function resolvePracticeItemId(q: ExamQuestion | null | undefined): string | undefined {
   if (!q) return undefined;
-  if (typeof q.id === 'string' && q.id.trim().length > 0) return q.id.trim();
+  const id = q.id as unknown;
+  if (typeof id === 'string' && id.trim().length > 0) return id.trim();
+  if (typeof id === 'number' && Number.isFinite(id)) return String(id);
   const legacy = (q as { item_id?: unknown }).item_id;
   if (typeof legacy === 'string' && legacy.trim().length > 0) return legacy.trim();
+  if (typeof legacy === 'number' && Number.isFinite(legacy)) return String(legacy);
   return undefined;
 }
 
@@ -320,6 +323,60 @@ export interface PracticeTakePendingOutcome {
   itemId: string;
   selectedOptionIndex: number;
   timeToFirstCheckMs: number;
+}
+
+/** Replace an existing row for the same item, or append — avoids duplicate counts when revisiting questions. */
+export function upsertPracticePendingOutcome(
+  outcomes: PracticeTakePendingOutcome[],
+  row: PracticeTakePendingOutcome
+): PracticeTakePendingOutcome[] {
+  const i = outcomes.findIndex((o) => o.itemId === row.itemId);
+  if (i >= 0) {
+    const next = outcomes.slice();
+    next[i] = row;
+    return next;
+  }
+  return [...outcomes, row];
+}
+
+/** Keep the latest answer per item (e.g. after resuming a corrupted local session). */
+export function dedupePracticePendingOutcomes(
+  outcomes: PracticeTakePendingOutcome[]
+): PracticeTakePendingOutcome[] {
+  const byId = new Map<string, PracticeTakePendingOutcome>();
+  for (const o of outcomes) {
+    byId.set(o.itemId, o);
+  }
+  return Array.from(byId.values());
+}
+
+export interface PracticeSessionResultRow {
+  item_id: string;
+  selected_option_index: number;
+  time_to_first_check_ms: number;
+}
+
+/** Outcomes for API submit, one row per question in the current batch (deduped, in question order). */
+export function buildPracticeSessionResults(
+  questions: ExamQuestion[],
+  pending: PracticeTakePendingOutcome[]
+): PracticeSessionResultRow[] {
+  const byId = new Map(
+    dedupePracticePendingOutcomes(pending).map((o) => [o.itemId, o] as const)
+  );
+  const results: PracticeSessionResultRow[] = [];
+  for (const q of questions) {
+    const itemId = resolvePracticeItemId(q);
+    if (!itemId) continue;
+    const row = byId.get(itemId);
+    if (!row) continue;
+    results.push({
+      item_id: row.itemId,
+      selected_option_index: row.selectedOptionIndex,
+      time_to_first_check_ms: row.timeToFirstCheckMs,
+    });
+  }
+  return results;
 }
 
 interface PracticeTakePersistedV1 {
@@ -355,7 +412,7 @@ function parsePendingOutcomes(raw: unknown): PracticeTakePendingOutcome[] {
     }
     out.push({ itemId, selectedOptionIndex: sel, timeToFirstCheckMs: Math.floor(t) });
   }
-  return out;
+  return dedupePracticePendingOutcomes(out);
 }
 
 /** Persist the drawn practice batch and position so Resume continues unanswered items (same batch). */

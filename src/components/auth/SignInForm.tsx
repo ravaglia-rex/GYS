@@ -100,7 +100,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ email, isSchoolAdmin, schoolInf
                   variant: 'destructive',
                   title: 'Payment required',
                   description:
-                    'School dashboard unlocks after your registration payment completes. Finish checkout using the link in your confirmation email.',
+                    'School dashboard unlocks after your registration payment completes. Finish checkout on the school registration page (/for-schools/register), then sign in.',
                 });
                 await signOut(auth);
                 setIsSubmitted(false);

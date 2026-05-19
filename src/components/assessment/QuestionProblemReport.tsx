@@ -18,6 +18,7 @@ import {
   Typography,
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import axios from 'axios';
 import * as Sentry from '@sentry/react';
 import { reportQuestionProblem, type QuestionReportPayload } from '../../db/assessmentCollection';
 
@@ -132,7 +133,14 @@ export const QuestionProblemReport: React.FC<QuestionProblemReportProps> = ({
       setDone(true);
     } catch (e) {
       Sentry.captureException(e);
-      setError('Could not send your report. Check your connection and try again.');
+      const apiMsg =
+        axios.isAxiosError(e) && typeof e.response?.data?.error === 'string'
+          ? e.response.data.error
+          : null;
+      setError(
+        apiMsg ??
+          'Could not send your report. Check your connection and try again.'
+      );
     } finally {
       setSending(false);
     }

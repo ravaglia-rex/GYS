@@ -93,7 +93,7 @@ const SchoolAdminPasswordSetupFromLink: React.FC<SchoolAdminPasswordSetupFromLin
           variant: "destructive",
           title: "Payment required",
           description:
-            "Complete your school’s subscription using the secure payment link in your registration confirmation email before setting a password.",
+            "Complete your school’s subscription on the school registration page (/for-schools/register) before setting a password.",
         });
         setIsSubmitted(false);
         clearPasswordResetInProgress();
