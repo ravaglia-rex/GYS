@@ -57,6 +57,9 @@ export const FETCH_STUDENT_DATA='/getStudentDetails';
 export const UPDATE_STUDENT_DATA='/updateStudentDetails';
 export const FETCH_PAYMENTS='/getPayments';
 export const FETCH_PAYEE_DETAILS='/getPayeeDetails';
+export const FETCH_STUDENT_SCHOOL_LEADERBOARD='/schoolLeaderboard';
+export const LIST_STUDENT_REPORTS='/listReports';
+export const STUDENT_REPORT_DOWNLOAD_URL='/reportDownloadUrl';
 
 // School admins
 export const FETCH_SCHOOL_ADMIN_DATA='/getSchoolAdminDetails';
@@ -90,6 +93,8 @@ export const MARK_PAYMENT_PENDING='/markPaymentPending';
 export const DEV_MODE_PAYMENT='/devModePayment';
 export const CREATE_SCHOOL_RAZORPAY_ORDER='/createSchoolOrder';
 export const VERIFY_SCHOOL_RAZORPAY_PAYMENT='/verifySchoolPayment';
+export const CREATE_SCHOOL_UPGRADE_ORDER='/createSchoolUpgradeOrder';
+export const VERIFY_SCHOOL_UPGRADE_PAYMENT='/verifySchoolUpgradePayment';
 export const CREATE_STUDENT_REGISTRATION_ORDER = '/createStudentRegistrationOrder';
 export const VERIFY_STUDENT_REGISTRATION_PAYMENT = '/verifyStudentRegistrationPayment';
 export const CREATE_STUDENT_UPGRADE_ORDER = '/createStudentUpgradeOrder';
@@ -97,3 +102,6 @@ export const VERIFY_STUDENT_UPGRADE_PAYMENT = '/verifyStudentUpgradePayment';
 
 // Email check
 export const CHECK_EMAIL_EXISTS='/checkEmailExists';
+
+// Temporary launch gate: keep official student exams hidden until real question banks are ready.
+export const STUDENT_OFFICIAL_ASSESSMENTS_ENABLED = false;

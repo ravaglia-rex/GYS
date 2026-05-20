@@ -2,7 +2,7 @@ import axios from 'axios';
 import { STUDENTS_APIS, SIGN_UP_TRANSACTION } from '../constants/constants';
 
 export type NewStudent = {
-    uid: string;
+    uid?: string;
     first_name: string;
     last_name: string;
     email: string;

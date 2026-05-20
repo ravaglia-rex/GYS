@@ -40,6 +40,7 @@ import { getAssessmentFlowDefinition } from '../../config/assessmentFlowUI';
 import { EXAM_MATHJAX_CONFIG } from '../../components/assessment/examMathJaxConfig';
 import { ExamQuestionBody, inferQuestionInteraction } from '../../components/assessment/ExamQuestionBody';
 import { useExamIntegrity } from '../../hooks/useExamIntegrity';
+import { STUDENT_OFFICIAL_ASSESSMENTS_ENABLED } from '../../constants/constants';
 import * as Sentry from '@sentry/react';
 
 const NEEDS_MIC = new Set(['english_proficiency']);
@@ -489,6 +490,19 @@ export default function AssessmentTakePage() {
   if (!assessmentId) {
     navigate('/assessments');
     return null;
+  }
+
+  if (!STUDENT_OFFICIAL_ASSESSMENTS_ENABLED) {
+    return (
+      <Box sx={{ minHeight: '100vh', bgcolor: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, p: 3 }}>
+        <Alert severity="info" sx={{ maxWidth: 500, width: '100%' }}>
+          Official exams are not open yet because the real question banks are still being prepared. Practice mode remains available.
+        </Alert>
+        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(`/assessments/${assessmentId}/tier/${tier}/detail`)} sx={{ color: '#475569' }}>
+          Back
+        </Button>
+      </Box>
+    );
   }
 
   if (stage === 'pre_exam') {

@@ -43,10 +43,7 @@ const AuthActionPage: React.FC = () => {
           scope.setTag("location", "NewPasswordForm");
         }}
       >
-        <PasswordActionLayout
-          title="Create your password"
-          description="Choose a strong password for your Argus account."
-        >
+        <PasswordActionLayout title="Create your password">
           <NewPasswordForm actionCode={oobCode!} />
         </PasswordActionLayout>
       </Sentry.ErrorBoundary>

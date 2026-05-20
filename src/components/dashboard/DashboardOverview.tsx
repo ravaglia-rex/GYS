@@ -19,8 +19,6 @@ import {
   normalizeMembershipLevel,
   membershipLevelForAssessmentGate,
   NON_COMPETITIVE_CHART_ASSESSMENT_IDS,
-  DASHBOARD_CHART_EXAM_IDS,
-  ASSESSMENT_NAMES,
   EXAM_MAX_SCORE_POINTS,
   tierPercentToExamPoints,
   type AssessmentChartRow,
@@ -33,13 +31,6 @@ import {
 import { MEMBERSHIP_LEVEL_LABEL } from '../../utils/studentMembershipPricing';
 
 export type { AssessmentChartRow } from '../../utils/assessmentGating';
-
-const CHART_FALLBACK_EXAMS: AssessmentChartRow[] = DASHBOARD_CHART_EXAM_IDS.map((id) => ({
-  subject: ASSESSMENT_NAMES[id] ?? id,
-  score: 0,
-  assessmentId: id,
-  locked: true,
-}));
 
 /**
  * When the student doc has no level, infer tier from last payment (GST-inclusive totals).
@@ -58,7 +49,7 @@ const ColumnChart: React.FC<{ data: AssessmentChartRow[] }> = ({ data }) => {
     '#5eead4', '#93c5fd', '#fcd34d', '#f9a8d4', '#c4b5fd', '#67e8f9', '#86efac', '#fca5a5',
   ];
 
-  const rows = data?.length === 5 ? data : CHART_FALLBACK_EXAMS;
+  const rows = data ?? [];
 
   const dataWithPoints = rows.map((item, index) => {
     const locked = item.locked === true;
@@ -666,10 +657,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   };
 
   const getDisplayResults = () => {
-    if (latestAssessmentResults.length === 5) {
-      return { data: latestAssessmentResults };
-    }
-    return { data: CHART_FALLBACK_EXAMS };
+    return { data: latestAssessmentResults };
   };
 
   const displayResults = getDisplayResults();

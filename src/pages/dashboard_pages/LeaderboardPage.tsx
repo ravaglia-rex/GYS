@@ -4,22 +4,42 @@ import EmojiEvents from '@mui/icons-material/EmojiEvents';
 import * as Sentry from '@sentry/react';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import StudentLeaderboardPanel from '../../components/dashboard/StudentLeaderboardPanel';
-import { auth } from '../../firebase/firebase';
-import { getStudent } from '../../db/studentCollection';
-import { clampToLeaderboardGrade, type LeaderboardGrade } from '../../data/leaderboardMock';
+import BigSpinner from '../../components/ui/BigSpinner';
+import { getStudentSchoolLeaderboard } from '../../db/studentLeaderboardCollection';
+import { type ExamLeaderboardSection, type LeaderboardGrade } from '../../utils/leaderboard';
 
 const LeaderboardPage: React.FC = () => {
   const [initialGrade, setInitialGrade] = useState<LeaderboardGrade>(10);
+  const [sections, setSections] = useState<ExamLeaderboardSection[]>([]);
+  const [lastUpdatedISO, setLastUpdatedISO] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    const uid = auth.currentUser?.uid;
-    if (!uid) return;
     let cancelled = false;
-    void getStudent(uid)
-      .then((student) => {
-        if (!cancelled) setInitialGrade(clampToLeaderboardGrade(student?.grade));
+    setLoading(true);
+    void getStudentSchoolLeaderboard()
+      .then((data) => {
+        if (cancelled) return;
+        setInitialGrade(data.grade);
+        setSections(data.sections);
+        setLastUpdatedISO(data.lastUpdatedISO);
+        setError('');
       })
-      .catch(() => {});
+      .catch((err) => {
+        Sentry.withScope((scope) => {
+          scope.setTag('location', 'LeaderboardPage.load');
+          scope.captureException(err);
+        });
+        if (!cancelled) {
+          setSections([]);
+          setLastUpdatedISO(null);
+          setError('Could not load official school leaderboard data. Please try again later.');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
     return () => {
       cancelled = true;
     };
@@ -65,17 +85,12 @@ const LeaderboardPage: React.FC = () => {
                   School Leaderboard
                 </Typography>
                 <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.72)', mt: 0.5 }}>
-                  See how you compare with classmates at your school on each exam, by grade - not national rankings. Available when your school’s cohort data is published.
+                  See how you compare with classmates at your school on each exam. Available when your school’s cohort data is published.
                 </Typography>
               </Box>
             </Box>
           
           </Box>
-
-          <Alert severity="info" sx={{ mb: 2, bgcolor: 'rgba(59, 130, 246, 0.12)', color: '#e2e8f0', border: '1px solid rgba(59, 130, 246, 0.35)', '& .MuiAlert-icon': { color: '#93c5fd' } }}>
-            Official cohort rankings may not be loaded yet for your account. The table below shows the layout of school
-            standings by exam and grade when data is published.
-          </Alert>
 
           <Box
             sx={{
@@ -85,7 +100,25 @@ const LeaderboardPage: React.FC = () => {
               border: '1px solid rgba(255, 255, 255, 0.1)',
             }}
           >
-            <StudentLeaderboardPanel initialGrade={initialGrade} />
+            {loading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+                <BigSpinner />
+              </Box>
+            ) : (
+              <>
+                {error && (
+                  <Alert severity="error" sx={{ mb: 2 }}>
+                    {error}
+                  </Alert>
+                )}
+                <StudentLeaderboardPanel
+                  initialGrade={initialGrade}
+                  sections={sections}
+                  lastUpdatedISO={lastUpdatedISO}
+                  showGradeToggle={false}
+                />
+              </>
+            )}
           </Box>
         </Box>
       </DashboardLayout>

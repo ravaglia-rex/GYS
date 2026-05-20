@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography } from '@mui/material';
+import { Alert, Box, Typography } from '@mui/material';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../firebase/firebase';
@@ -18,6 +18,7 @@ import {
   buildDashboardExamChartRows,
   type AssessmentChartRow,
 } from '../../utils/assessmentGating';
+import { STUDENT_OFFICIAL_ASSESSMENTS_ENABLED } from '../../constants/constants';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -49,6 +50,7 @@ const Dashboard: React.FC = () => {
   });
   const [scoresByAssessment, setScoresByAssessment] = useState<AssessmentChartRow[]>([]);
   const [assessmentScopeLine, setAssessmentScopeLine] = useState<string>('');
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, user => {
@@ -64,6 +66,7 @@ const Dashboard: React.FC = () => {
       try {
         setLoading(true);
         const [student, configFromBackend] = await Promise.all([getStudent(uid), getAssessmentConfig()]);
+        setLoadError('');
         const progress: Record<string, AssessmentProgress> = student?.assessment_progress ?? {};
         const membershipLevel = membershipLevelForAssessmentGate(student);
         const studentGrade =
@@ -114,6 +117,9 @@ const Dashboard: React.FC = () => {
           buildDashboardExamChartRows(sorted, progress, membershipLevel, studentGrade)
         );
       } catch (err) {
+        setLoadError('Could not load your dashboard data. Please refresh or try again later.');
+        setScoresByAssessment([]);
+        setAssessmentScopeLine('');
         Sentry.withScope((scope) => {
           scope.setTag('location', 'DashboardPage.load');
           scope.setExtra('uid', uid);
@@ -148,6 +154,10 @@ const Dashboard: React.FC = () => {
                 Fetching your assessment progress
               </Typography>
             </Box>
+          ) : loadError ? (
+            <Alert severity="error" sx={{ bgcolor: 'rgba(239, 68, 68, 0.12)', color: '#fecaca', border: '1px solid rgba(239, 68, 68, 0.35)', '& .MuiAlert-icon': { color: '#fca5a5' } }}>
+              {loadError}
+            </Alert>
           ) : (
             <>
               <DashboardOverview
@@ -171,7 +181,9 @@ const Dashboard: React.FC = () => {
                   )}
                 </Box>
                 <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.65)', mb: 2, maxWidth: 720 }}>
-                  All assessments are listed below. Complete them in sequence where your membership allows - Reasoning Triad covers Exams 1-3; Reasoning + Skills adds English and AI Proficiency (4-5); Guided Decision adds the Insight group (6-7) and ongoing AI career counseling that begins after that baseline and grows as you log new experiences. Practice Mode uses a separate pool and does not change official scores.
+                  {STUDENT_OFFICIAL_ASSESSMENTS_ENABLED
+                    ? 'All assessments are listed below. Complete them in sequence where your membership allows - Reasoning Triad covers Exams 1-3; Reasoning + Skills adds English and AI Proficiency (4-5); Guided Decision adds the Insight group (6-7) and ongoing AI career counseling that begins after that baseline and grows as you log new experiences. Practice Mode uses a separate pool and does not change official scores.'
+                    : 'Official exams are listed for reference, but they are not open yet while the real question banks are being prepared. Practice Mode remains available and uses a separate pool that does not change official scores.'}
                 </Typography>
                 <EnhancedAssessmentCardsGroup uid={uid} filterType="all" />
               </Box>

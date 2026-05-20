@@ -39,6 +39,7 @@ import {
   BeforeBeginIconKey,
 } from '../../config/assessmentFlowUI';
 import { mergeStatGridWithTier } from '../../components/assessment/mergeStatGridWithTier';
+import { STUDENT_OFFICIAL_ASSESSMENTS_ENABLED } from '../../constants/constants';
 
 const EXAM_TOTAL = 7;
 
@@ -559,9 +560,11 @@ const AssessmentDetailPage: React.FC = () => {
           <Button
             fullWidth
             variant="contained"
-            disabled={!tierAttemptAllowed}
+            disabled={!tierAttemptAllowed || !STUDENT_OFFICIAL_ASSESSMENTS_ENABLED}
             onClick={() =>
-              tierAttemptAllowed && navigate(`/assessments/${assessmentId}/tier/${tier}/take`)
+              tierAttemptAllowed &&
+              STUDENT_OFFICIAL_ASSESSMENTS_ENABLED &&
+              navigate(`/assessments/${assessmentId}/tier/${tier}/take`)
             }
             sx={{
               py: { xs: 1.5, md: 1.65 },
@@ -573,8 +576,17 @@ const AssessmentDetailPage: React.FC = () => {
               textTransform: 'none',
             }}
           >
-            {flow.isComprehensivePersonality ? 'Begin comprehensive assessment →' : 'Begin assessment →'}
+            {!STUDENT_OFFICIAL_ASSESSMENTS_ENABLED
+              ? 'Official exams coming soon'
+              : flow.isComprehensivePersonality
+                ? 'Begin comprehensive assessment →'
+                : 'Begin assessment →'}
           </Button>
+          {!STUDENT_OFFICIAL_ASSESSMENTS_ENABLED && (
+            <Typography sx={{ textAlign: 'center', fontSize: '0.72rem', color: '#94a3b8', mt: 1.25 }}>
+              Real exam question banks are being prepared. Practice mode remains available.
+            </Typography>
+          )}
           {flow.detailFooterFinePrint && (
             <Typography sx={{ textAlign: 'center', fontSize: '0.72rem', color: '#94a3b8', mt: 1.25 }}>
               {flow.detailFooterFinePrint}

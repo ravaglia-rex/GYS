@@ -268,6 +268,9 @@ export const fetchSchoolNamesAndIds = async (): Promise<{ id: string; name: stri
 export type ResolveRegistrationSchoolResult = {
   schoolId: string | null;
   schoolName: string | null;
+  schoolPaymentComplete?: boolean;
+  schoolPlanId?: string | null;
+  schoolCoveredMembershipLevel?: number;
 };
 
 /** Matches signup email to this school’s `student_registration_emails` (and legacy allowlist). */
@@ -286,6 +289,12 @@ export const resolveRegistrationSchool = async (
     return {
       schoolId: response.data?.schoolId ?? null,
       schoolName: response.data?.schoolName ?? null,
+      schoolPaymentComplete: response.data?.schoolPaymentComplete === true,
+      schoolPlanId: response.data?.schoolPlanId ?? null,
+      schoolCoveredMembershipLevel:
+        typeof response.data?.schoolCoveredMembershipLevel === 'number'
+          ? response.data.schoolCoveredMembershipLevel
+          : 0,
     };
   } catch {
     throw new Error('Could not verify school for your email. Please contact globalyoungscholar@argus.ai');

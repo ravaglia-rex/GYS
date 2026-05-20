@@ -39,7 +39,7 @@ import { useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   getSchoolDashboard,
-  getStudentRegistrationEmails,
+  getStudentRegistrationEmailLists,
   putStudentRegistrationEmails,
   type StudentRow,
 } from '../../db/schoolAdminCollection';
@@ -71,12 +71,13 @@ type RosterRegistered = {
 type RosterInvited = {
   kind: 'invited';
   email: string;
+  status: 'invited' | 'revoked';
 };
 
 type RosterRow = RosterRegistered | RosterInvited;
 
 type AssessmentsCompletedFilter = 'all' | '0' | '1' | '2' | '3_plus';
-type StatusFilter = 'all' | 'registered' | 'invited';
+type StatusFilter = 'all' | 'registered' | 'invited' | 'revoked';
 type SortField = 'firstName' | 'lastName' | 'grade' | 'assessmentsCompleted' | 'email';
 type SortDirection = 'asc' | 'desc';
 
@@ -100,6 +101,7 @@ const STATUS_FILTER_LABELS: Record<StatusFilter, string> = {
   all: 'All',
   registered: 'Registered',
   invited: 'Invited',
+  revoked: 'Revoked',
 };
 
 /** Search, sort, sort-direction, and Filters - one visual height */
@@ -201,6 +203,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
   const { schoolAdmin } = useSelector((state: RootState) => state.auth);
 
   const [registrationEmails, setRegistrationEmails] = useState<string[]>([]);
+  const [revokedRegistrationEmails, setRevokedRegistrationEmails] = useState<string[]>([]);
   const [rows, setRows] = useState<RosterRow[]>([]);
   const [hasNoStudentsInDb, setHasNoStudentsInDb] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -221,13 +224,18 @@ const SchoolAdminStudentsPage: React.FC = () => {
   const [bulkText, setBulkText] = useState('');
   const [uploadNotice, setUploadNotice] = useState<string | null>(null);
   const [revokingEmail, setRevokingEmail] = useState<string | null>(null);
+  const [resendingEmail, setResendingEmail] = useState<string | null>(null);
+  const [revokeConfirmEmail, setRevokeConfirmEmail] = useState<string | null>(null);
+  const [resendConfirmEmail, setResendConfirmEmail] = useState<string | null>(null);
 
   const refreshRegistrationEmails = useCallback(async () => {
     try {
-      const list = await getStudentRegistrationEmails();
-      setRegistrationEmails(Array.isArray(list) ? list.map(normalizeRosterEmail) : []);
+      const lists = await getStudentRegistrationEmailLists();
+      setRegistrationEmails(lists.emails.map(normalizeRosterEmail));
+      setRevokedRegistrationEmails(lists.revokedEmails.map(normalizeRosterEmail));
     } catch {
       setRegistrationEmails([]);
+      setRevokedRegistrationEmails([]);
     }
   }, []);
 
@@ -250,6 +258,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
         dashboardRow: dr,
       }));
       setRegistrationEmails([]);
+      setRevokedRegistrationEmails([]);
       setHasNoStudentsInDb(false);
       setRows(registered);
       setLoading(false);
@@ -264,16 +273,20 @@ const SchoolAdminStudentsPage: React.FC = () => {
     setLoadError(null);
     try {
       let reg: string[] = [];
+      let revoked: string[] = [];
       try {
-        reg = await getStudentRegistrationEmails();
+        const lists = await getStudentRegistrationEmailLists();
+        reg = lists.emails;
+        revoked = lists.revokedEmails;
       } catch (e) {
-        console.warn('getStudentRegistrationEmails', e);
+        console.warn('getStudentRegistrationEmailLists', e);
       }
       reg = (reg ?? []).map(normalizeRosterEmail);
+      revoked = (revoked ?? []).map(normalizeRosterEmail);
 
       const dash = await getSchoolDashboard(schoolId);
       const dashboardStudents = dash.students ?? [];
-      setHasNoStudentsInDb(dashboardStudents.length === 0 && reg.length === 0);
+      setHasNoStudentsInDb(dashboardStudents.length === 0 && reg.length === 0 && revoked.length === 0);
 
       const registered: RosterRegistered[] = dashboardStudents.map(dr => {
         const emailFromDoc = normalizeRosterEmail(String(dr.email ?? ''));
@@ -294,16 +307,23 @@ const SchoolAdminStudentsPage: React.FC = () => {
         };
       });
 
+      const registeredEmails = new Set(registered.map(r => normalizeRosterEmail(r.email)).filter(Boolean));
+      const activeEmailSet = new Set(reg);
       const invited: RosterInvited[] = reg
         .map(e => normalizeRosterEmail(e))
         .filter(email => {
           if (!email) return false;
-          return !registered.some(r => normalizeRosterEmail(r.email) === email);
+          return !registeredEmails.has(email);
         })
-        .map(email => ({ kind: 'invited' as const, email }));
+        .map(email => ({ kind: 'invited' as const, email, status: 'invited' as const }));
+      const revokedRows: RosterInvited[] = revoked
+        .map(e => normalizeRosterEmail(e))
+        .filter(email => email && !registeredEmails.has(email) && !activeEmailSet.has(email))
+        .map(email => ({ kind: 'invited' as const, email, status: 'revoked' as const }));
 
       setRegistrationEmails(reg);
-      setRows([...registered, ...invited]);
+      setRevokedRegistrationEmails(revoked);
+      setRows([...registered, ...invited, ...revokedRows]);
     } catch (e) {
       setLoadError((e as Error).message ?? 'Could not load roster.');
       setRows([]);
@@ -325,12 +345,17 @@ const SchoolAdminStudentsPage: React.FC = () => {
     setUploadNotice(null);
     try {
       let current: string[] = [];
+      let revoked: string[] = [];
       try {
-        current = await getStudentRegistrationEmails();
+        const lists = await getStudentRegistrationEmailLists();
+        current = lists.emails;
+        revoked = lists.revokedEmails;
       } catch {
         current = registrationEmails;
+        revoked = revokedRegistrationEmails;
       }
       current = (current ?? []).map(normalizeRosterEmail);
+      revoked = (revoked ?? []).map(normalizeRosterEmail);
       const merged = mergeRegistrationEmailLists(current, additions);
       const currentSet = new Set(current);
       const newInvitations = merged.filter(email => !currentSet.has(email));
@@ -340,7 +365,9 @@ const SchoolAdminStudentsPage: React.FC = () => {
         setAddDialogOpen(false);
         return;
       }
-      await putStudentRegistrationEmails(merged);
+      const newInvitationSet = new Set(newInvitations);
+      const nextRevoked = revoked.filter(email => !newInvitationSet.has(email));
+      await putStudentRegistrationEmails(merged, nextRevoked);
       setUploadNotice(
         `Sent invitation${newInvitations.length === 1 ? '' : 's'} to ${newInvitations.length} student${newInvitations.length === 1 ? '' : 's'}.`
       );
@@ -363,20 +390,57 @@ const SchoolAdminStudentsPage: React.FC = () => {
     setUploadNotice(null);
     try {
       let current: string[] = [];
+      let revoked: string[] = [];
       try {
-        current = await getStudentRegistrationEmails();
+        const lists = await getStudentRegistrationEmailLists();
+        current = lists.emails;
+        revoked = lists.revokedEmails;
       } catch {
         current = registrationEmails;
+        revoked = revokedRegistrationEmails;
       }
       const next = (current ?? []).map(normalizeRosterEmail).filter(e => e && e !== target);
-      await putStudentRegistrationEmails(next);
+      const nextRevoked = mergeRegistrationEmailLists(revoked, [target]).filter(e => !next.includes(e));
+      await putStudentRegistrationEmails(next, nextRevoked);
       setUploadNotice(`Revoked invitation for ${target}.`);
+      setRevokeConfirmEmail(null);
       await refreshRegistrationEmails();
       await loadRoster();
     } catch (e) {
       setRegistrationError((e as Error).message ?? 'Could not revoke invitation.');
     } finally {
       setRevokingEmail(null);
+    }
+  };
+
+  const handleResendInvitation = async (email: string) => {
+    const target = normalizeRosterEmail(email);
+    if (!target) return;
+    setResendingEmail(target);
+    setRegistrationError(null);
+    setUploadNotice(null);
+    try {
+      let current: string[] = [];
+      let revoked: string[] = [];
+      try {
+        const lists = await getStudentRegistrationEmailLists();
+        current = lists.emails;
+        revoked = lists.revokedEmails;
+      } catch {
+        current = registrationEmails;
+        revoked = revokedRegistrationEmails;
+      }
+      const next = mergeRegistrationEmailLists(current, [target]);
+      const nextRevoked = (revoked ?? []).map(normalizeRosterEmail).filter(e => e && e !== target);
+      await putStudentRegistrationEmails(next, nextRevoked);
+      setUploadNotice(`Resent invitation to ${target}.`);
+      setResendConfirmEmail(null);
+      await refreshRegistrationEmails();
+      await loadRoster();
+    } catch (e) {
+      setRegistrationError((e as Error).message ?? 'Could not resend invitation.');
+    } finally {
+      setResendingEmail(null);
     }
   };
 
@@ -391,7 +455,8 @@ const SchoolAdminStudentsPage: React.FC = () => {
       }
       if (statusFilter !== 'all') {
         if (statusFilter === 'registered' && r.kind !== 'registered') return false;
-        if (statusFilter === 'invited' && r.kind !== 'invited') return false;
+        if (statusFilter === 'invited' && (r.kind !== 'invited' || r.status !== 'invited')) return false;
+        if (statusFilter === 'revoked' && (r.kind !== 'invited' || r.status !== 'revoked')) return false;
       }
       if (gradeFilter !== 'all') {
         if (r.kind !== 'registered' || r.grade !== gradeFilter) return false;
@@ -466,7 +531,8 @@ const SchoolAdminStudentsPage: React.FC = () => {
   ]);
 
   const registeredCount = useMemo(() => rows.filter(r => r.kind === 'registered').length, [rows]);
-  const invitedCount = useMemo(() => rows.filter(r => r.kind === 'invited').length, [rows]);
+  const invitedCount = useMemo(() => rows.filter(r => r.kind === 'invited' && r.status === 'invited').length, [rows]);
+  const revokedCount = useMemo(() => rows.filter(r => r.kind === 'invited' && r.status === 'revoked').length, [rows]);
   const listTotal = registrationEmails.length;
 
   const uniqueGrades = Array.from(
@@ -607,6 +673,16 @@ const SchoolAdminStudentsPage: React.FC = () => {
             border: `1px solid ${ip.cardBorder}`,
           }}
         />
+        <Chip
+          label={`Revoked: ${revokedCount}`}
+          size="small"
+          sx={{
+            fontWeight: 600,
+            bgcolor: ip.cardMutedBg,
+            color: ip.heading,
+            border: `1px solid ${ip.cardBorder}`,
+          }}
+        />
       </Box>
 
       {showEmptyOnboarding ? (
@@ -626,7 +702,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
               onClick={() => setAddDialogOpen(true)}
               sx={{ mb: 2 }}
             >
-              Paste student emails
+              Add student emails
             </Button>
             <Typography variant="caption" display="block" sx={{ color: ip.subtext }}>
               You can add more any time using <strong>Add students</strong> above once your roster is active.
@@ -778,6 +854,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
                       <MenuItem value="all">All</MenuItem>
                       <MenuItem value="registered">Registered</MenuItem>
                       <MenuItem value="invited">Invited</MenuItem>
+                      <MenuItem value="revoked">Revoked</MenuItem>
                     </Select>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -981,14 +1058,19 @@ const SchoolAdminStudentsPage: React.FC = () => {
                             <TableCell>
                               <Typography sx={{ fontWeight: 600, color: ip.heading }}>{r.email}</Typography>
                               <Typography variant="caption" sx={{ color: ip.subtext, display: 'block' }}>
-                                Invited - not registered yet
+                                {r.status === 'revoked' ? 'Invitation revoked' : 'Invited - not registered yet'}
                               </Typography>
                             </TableCell>
                             <TableCell>
                               <Chip
                                 size="small"
-                                label="Invited"
-                                sx={{
+                                label={r.status === 'revoked' ? 'Revoked' : 'Invited'}
+                                sx={r.status === 'revoked' ? {
+                                  fontWeight: 600,
+                                  bgcolor: '#f1f5f9',
+                                  color: '#475569',
+                                  border: '1px solid #cbd5e1',
+                                } : {
                                   fontWeight: 600,
                                   bgcolor: 'rgba(245, 158, 11, 0.14)',
                                   color: '#9a3412',
@@ -1000,15 +1082,26 @@ const SchoolAdminStudentsPage: React.FC = () => {
                             <TableCell sx={{ color: ip.subtext }}>-</TableCell>
                             <TableCell sx={{ color: ip.subtext }}>-</TableCell>
                             <TableCell align="right">
-                              <Button
-                                size="small"
-                                color="error"
-                                disabled={revokingEmail === r.email}
-                                onClick={() => void handleRevokeInvitation(r.email)}
-                                sx={{ fontWeight: 600, textTransform: 'none' }}
-                              >
-                                Revoke invitation
-                              </Button>
+                              {r.status === 'revoked' ? (
+                                <Button
+                                  size="small"
+                                  disabled={resendingEmail === r.email}
+                                  onClick={() => setResendConfirmEmail(r.email)}
+                                  sx={{ color: ip.statBlue, fontWeight: 600, textTransform: 'none' }}
+                                >
+                                  {resendingEmail === r.email ? 'Sending...' : 'Resend invitation'}
+                                </Button>
+                              ) : (
+                                <Button
+                                  size="small"
+                                  color="error"
+                                  disabled={revokingEmail === r.email}
+                                  onClick={() => setRevokeConfirmEmail(r.email)}
+                                  sx={{ fontWeight: 600, textTransform: 'none' }}
+                                >
+                                  {revokingEmail === r.email ? 'Revoking...' : 'Revoke invitation'}
+                                </Button>
+                              )}
                             </TableCell>
                           </TableRow>
                         )
@@ -1147,6 +1240,101 @@ const SchoolAdminStudentsPage: React.FC = () => {
             }}
           >
             Send invitation
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={!!revokeConfirmEmail}
+        onClose={() => !revokingEmail && setRevokeConfirmEmail(null)}
+        maxWidth="xs"
+        fullWidth
+        slotProps={{
+          paper: {
+            sx: {
+              bgcolor: '#ffffff',
+              color: ip.heading,
+              borderRadius: 2,
+              border: `1px solid ${ip.cardBorder}`,
+            },
+          },
+        }}
+      >
+        <DialogTitle sx={{ color: ip.heading, fontWeight: 700 }}>
+          Revoke invitation?
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ color: ip.subtext, lineHeight: 1.6 }}>
+            This will remove {revokeConfirmEmail} from your active student email list. They will not be able to register
+            under your school unless you resend the invitation.
+          </Typography>
+          {revokingEmail && <LinearProgress sx={{ mt: 2, borderRadius: 1, bgcolor: ip.cardMutedBg, '& .MuiLinearProgress-bar': { bgcolor: ip.navy } }} />}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+          <Button
+            onClick={() => setRevokeConfirmEmail(null)}
+            disabled={!!revokingEmail}
+            sx={{ textTransform: 'none', fontWeight: 600, color: ip.heading }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            disabled={!revokeConfirmEmail || !!revokingEmail}
+            onClick={() => revokeConfirmEmail && void handleRevokeInvitation(revokeConfirmEmail)}
+            sx={{ textTransform: 'none', fontWeight: 600, boxShadow: 'none' }}
+          >
+            {revokingEmail ? 'Revoking...' : 'Revoke invitation'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={!!resendConfirmEmail}
+        onClose={() => !resendingEmail && setResendConfirmEmail(null)}
+        maxWidth="xs"
+        fullWidth
+        slotProps={{
+          paper: {
+            sx: {
+              bgcolor: '#ffffff',
+              color: ip.heading,
+              borderRadius: 2,
+              border: `1px solid ${ip.cardBorder}`,
+            },
+          },
+        }}
+      >
+        <DialogTitle sx={{ color: ip.heading, fontWeight: 700 }}>
+          Resend invitation?
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ color: ip.subtext, lineHeight: 1.6 }}>
+            This will move {resendConfirmEmail} back to Invited status, add them to your active student email list, and
+            send a new invitation email.
+          </Typography>
+          {resendingEmail && <LinearProgress sx={{ mt: 2, borderRadius: 1, bgcolor: ip.cardMutedBg, '& .MuiLinearProgress-bar': { bgcolor: ip.navy } }} />}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+          <Button
+            onClick={() => setResendConfirmEmail(null)}
+            disabled={!!resendingEmail}
+            sx={{ textTransform: 'none', fontWeight: 600, color: ip.heading }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            disabled={!resendConfirmEmail || !!resendingEmail}
+            onClick={() => resendConfirmEmail && void handleResendInvitation(resendConfirmEmail)}
+            sx={{
+              textTransform: 'none',
+              fontWeight: 600,
+              bgcolor: ip.navy,
+              boxShadow: 'none',
+              '&:hover': { bgcolor: '#0c356f', boxShadow: 'none' },
+            }}
+          >
+            {resendingEmail ? 'Sending...' : 'Resend invitation'}
           </Button>
         </DialogActions>
       </Dialog>

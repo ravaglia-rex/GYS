@@ -1,7 +1,8 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import StudentLeaderboardPanel from '../../../components/dashboard/StudentLeaderboardPanel';
-import { clampToLeaderboardGrade } from '../../../data/leaderboardMock';
+import { MOCK_LEADERBOARD_BY_GRADE, MOCK_LEADERBOARD_LAST_UPDATED } from '../../../data/leaderboardMock';
+import { clampToLeaderboardGrade } from '../../../utils/leaderboard';
 import { PREVIEW_STUDENT_PROFILE } from '../../../data/studentPreviewMock';
 
 const StudentPreviewLeaderboardPage: React.FC = () => {
@@ -15,7 +16,12 @@ const StudentPreviewLeaderboardPage: React.FC = () => {
       <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)', mb: 2.5, maxWidth: 640 }}>
         Sample school leaderboard: standings for each exam at  <Box component="span" sx={{ fontWeight: 700, color: '#e9d5ff' }}>your school</Box> only (not national). Grade defaults to the preview profile (Grade {initial}).
       </Typography>
-      <StudentLeaderboardPanel initialGrade={initial} />
+      <StudentLeaderboardPanel
+        initialGrade={initial}
+        sections={MOCK_LEADERBOARD_BY_GRADE[initial]}
+        lastUpdatedISO={MOCK_LEADERBOARD_LAST_UPDATED.toISOString()}
+        showGradeToggle={false}
+      />
     </Box>
   );
 };

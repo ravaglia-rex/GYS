@@ -1,7 +1,19 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { SvgIconProps } from '@mui/material';
 import {
-  Box, Card, CardContent, Typography, Button, Chip, Divider, CircularProgress,
+  Alert,
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Button,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  CircularProgress,
 } from '@mui/material';
 import {
   CheckCircle as CheckIcon,
@@ -18,11 +30,21 @@ import {
   downloadBillingInvoicePdf,
   getSchoolDashboard,
   type SchoolDashboardBilling,
+  type SchoolDashboardPaymentHistoryItem,
 } from '../../db/schoolAdminCollection';
 import {
+  SCHOOL_INSTITUTIONAL_BASE_INR,
   SCHOOL_INSTITUTIONAL_PLAN_MATRIX,
   SCHOOL_INSTITUTIONAL_PRICE_LANDING,
+  SCHOOL_REGISTRATION_GST_RATE,
+  type RegisterPlanId,
 } from '../../utils/schoolRegistrationPlans';
+import {
+  createSchoolUpgradeOrder,
+  verifySchoolUpgradePayment,
+} from '../../db/schoolSubscriptionUpgradePayment';
+import { gysPaymentInvoiceNumberFromOrderId } from '../../utils/gysPaymentInvoiceNumber';
+import { auth } from '../../firebase/firebase';
 
 const POPULAR_PLAN_BADGE_GOLD = '#fbbf24';
 const STANDARD_RING = 'rgba(30, 58, 138, 0.7)';
@@ -56,6 +78,56 @@ const PLAN_ACCENTS: Record<'entry' | 'standard' | 'premium', string> = {
   premium: '#8b5cf6',
 };
 
+const PLAN_ORDER: Record<RegisterPlanId, number> = {
+  entry: 1,
+  standard: 2,
+  premium: 3,
+};
+
+const loadScript = (src: string): Promise<boolean> =>
+  new Promise((resolve) => {
+    const script = document.createElement('script');
+    script.src = src;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+
+function formatInr(amount: number): string {
+  return `₹${amount.toLocaleString('en-IN')}`;
+}
+
+function formatInrFromPaise(paise: number): string {
+  return `₹${(paise / 100).toLocaleString('en-IN', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function formatDateLabel(iso: string | null | undefined, fallback = 'Not available'): string {
+  if (!iso) return fallback;
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return fallback;
+  return new Intl.DateTimeFormat('en-IN', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(d);
+}
+
+function formatPaymentMethod(raw: string | null | undefined): string {
+  const method = (raw ?? '').trim();
+  if (!method) return 'Razorpay checkout';
+  if (method === 'dev_mode') return 'Development mode';
+  if (method === 'online') return 'Razorpay checkout';
+  return method;
+}
+
+function normalizePlanId(raw: unknown): RegisterPlanId {
+  if (raw === 'entry' || raw === 'standard' || raw === 'premium') return raw;
+  return 'standard';
+}
+
 export function SchoolAdminSubscriptionPage() {
   const plans = useMemo<Plan[]>(
     () =>
@@ -69,7 +141,6 @@ export function SchoolAdminSubscriptionPage() {
         accent: PLAN_ACCENTS[row.id],
         Icon: PLAN_ICONS[row.id],
         popular: row.popular,
-        current: row.id === 'standard',
       })),
     []
   );
@@ -77,10 +148,22 @@ export function SchoolAdminSubscriptionPage() {
   const [billingMeta, setBillingMeta] = useState<{
     billing: SchoolDashboardBilling | null;
     s3Configured: boolean;
-  }>({ billing: null, s3Configured: false });
+    selectedPlanId: RegisterPlanId;
+    subscriptionPlan: string;
+    paymentHistory: SchoolDashboardPaymentHistoryItem[];
+  }>({
+    billing: null,
+    s3Configured: false,
+    selectedPlanId: 'standard',
+    subscriptionPlan: 'Standard',
+    paymentHistory: [],
+  });
   const [billingLoading, setBillingLoading] = useState(false);
   const [invoiceDownloading, setInvoiceDownloading] = useState(false);
   const [invoiceDownloadErr, setInvoiceDownloadErr] = useState<string | null>(null);
+  const [upgradeTarget, setUpgradeTarget] = useState<Plan | null>(null);
+  const [upgradeBusy, setUpgradeBusy] = useState<RegisterPlanId | null>(null);
+  const [upgradeErr, setUpgradeErr] = useState<string | null>(null);
 
   useEffect(() => {
     if (!schoolId) return;
@@ -92,10 +175,23 @@ export function SchoolAdminSubscriptionPage() {
         setBillingMeta({
           billing: dash.billing ?? null,
           s3Configured: dash.s3_invoice_download_configured === true,
+          selectedPlanId: normalizePlanId(dash.selected_plan_id),
+          subscriptionPlan: dash.subscription_plan || SCHOOL_INSTITUTIONAL_PLAN_MATRIX.find(
+            (p) => p.id === normalizePlanId(dash.selected_plan_id)
+          )?.name || 'Standard',
+          paymentHistory: Array.isArray(dash.payment_history) ? dash.payment_history : [],
         });
       })
       .catch(() => {
-        if (!cancelled) setBillingMeta({ billing: null, s3Configured: false });
+        if (!cancelled) {
+          setBillingMeta({
+            billing: null,
+            s3Configured: false,
+            selectedPlanId: 'standard',
+            subscriptionPlan: 'Standard',
+            paymentHistory: [],
+          });
+        }
       })
       .finally(() => {
         if (!cancelled) setBillingLoading(false);
@@ -107,6 +203,22 @@ export function SchoolAdminSubscriptionPage() {
 
   const canDownloadInvoice =
     Boolean(billingMeta.billing?.has_invoice_pdf) && billingMeta.s3Configured;
+  const currentPlanId = billingMeta.selectedPlanId;
+  const currentPlanName =
+    SCHOOL_INSTITUTIONAL_PLAN_MATRIX.find((p) => p.id === currentPlanId)?.name || billingMeta.subscriptionPlan;
+  const currentPlanPrice = SCHOOL_INSTITUTIONAL_BASE_INR[currentPlanId];
+  const latestPayment = billingMeta.paymentHistory[0];
+  const nextRenewalLabel = formatDateLabel(latestPayment?.renewal_date, '1 January 2028');
+  const planNameForHistory = (planId: string | null) => {
+    if (!planId) return currentPlanName;
+    const normalized = normalizePlanId(planId);
+    return SCHOOL_INSTITUTIONAL_PLAN_MATRIX.find((p) => p.id === normalized)?.name || currentPlanName;
+  };
+  const upgradeDeltaBaseInr = upgradeTarget
+    ? Math.max(0, SCHOOL_INSTITUTIONAL_BASE_INR[upgradeTarget.id as RegisterPlanId] - currentPlanPrice)
+    : 0;
+  const upgradeDeltaGstPaise = Math.round(upgradeDeltaBaseInr * 100 * SCHOOL_REGISTRATION_GST_RATE);
+  const upgradeDeltaTotalPaise = Math.round(upgradeDeltaBaseInr * 100) + upgradeDeltaGstPaise;
 
   const handleDownloadInvoice = async () => {
     setInvoiceDownloadErr(null);
@@ -117,6 +229,110 @@ export function SchoolAdminSubscriptionPage() {
       setInvoiceDownloadErr(e instanceof Error ? e.message : 'Could not download invoice.');
     } finally {
       setInvoiceDownloading(false);
+    }
+  };
+
+  const refreshBilling = async () => {
+    if (!schoolId) return;
+    const dash = await getSchoolDashboard(schoolId);
+    setBillingMeta({
+      billing: dash.billing ?? null,
+      s3Configured: dash.s3_invoice_download_configured === true,
+      selectedPlanId: normalizePlanId(dash.selected_plan_id),
+      subscriptionPlan: dash.subscription_plan || SCHOOL_INSTITUTIONAL_PLAN_MATRIX.find(
+        (p) => p.id === normalizePlanId(dash.selected_plan_id)
+      )?.name || 'Standard',
+      paymentHistory: Array.isArray(dash.payment_history) ? dash.payment_history : [],
+    });
+  };
+
+  const startUpgradeCheckout = async () => {
+    if (!upgradeTarget || !schoolId) return;
+    const targetPlanId = upgradeTarget.id as RegisterPlanId;
+    setUpgradeErr(null);
+    setUpgradeBusy(targetPlanId);
+    try {
+      const order = await createSchoolUpgradeOrder(schoolId, targetPlanId);
+      const scriptOk = await loadScript('https://checkout.razorpay.com/v1/checkout.js');
+      if (!scriptOk) {
+        throw new Error('Could not load Razorpay checkout');
+      }
+
+      const RazorpayCtor = (window as unknown as {
+        Razorpay?: new (o: object) => { open: () => void; on: (e: string, fn: (r: unknown) => void) => void };
+      }).Razorpay;
+      if (!RazorpayCtor) {
+        throw new Error('Razorpay SDK unavailable');
+      }
+
+      const amountPaise = Math.round(Number(order.amount));
+      if (!Number.isFinite(amountPaise) || amountPaise <= 0) {
+        throw new Error('Invalid payment amount from server');
+      }
+      const currencyRaw = typeof order.currency === 'string' ? order.currency.trim().toUpperCase() : '';
+      const currency = currencyRaw.length === 3 ? currencyRaw : 'INR';
+      const checkoutConfigId =
+        typeof order.checkout_config_id === 'string' ? order.checkout_config_id.trim() : '';
+      const customerId =
+        typeof order.customer_id === 'string' && order.customer_id.startsWith('cust_') ? order.customer_id : '';
+      const email = auth.currentUser?.email?.trim() ?? '';
+
+      const rzp = new RazorpayCtor({
+        key: order.key_id,
+        order_id: order.order_id,
+        amount: String(amountPaise),
+        currency,
+        ...(customerId ? { customer_id: customerId } : {}),
+        ...(checkoutConfigId ? { checkout_config_id: checkoutConfigId } : {}),
+        name: 'Global Young Scholar',
+        description: `Upgrade ${order.from_plan_name} to ${order.target_plan_name}`,
+        image: 'https://argus-s3-bucket.s3.us-east-1.amazonaws.com/logos/argus.png',
+        prefill: email ? { email } : {},
+        notes: {
+          invoice_number: gysPaymentInvoiceNumberFromOrderId(order.order_id),
+          purpose: 'school_plan_upgrade',
+          school_id: schoolId,
+          target_plan_id: targetPlanId,
+        },
+        theme: { color: '#1e3a8a' },
+        handler: async (response: {
+          razorpay_order_id?: string;
+          razorpay_payment_id?: string;
+          razorpay_signature?: string;
+        }) => {
+          if (!response.razorpay_payment_id || !response.razorpay_order_id || !response.razorpay_signature) {
+            setUpgradeBusy(null);
+            setUpgradeErr('Missing payment details from Razorpay. Please try again.');
+            return;
+          }
+          try {
+            await verifySchoolUpgradePayment({
+              school_id: schoolId,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+            setUpgradeTarget(null);
+            setUpgradeBusy(null);
+            await refreshBilling();
+          } catch (err: unknown) {
+            setUpgradeBusy(null);
+            setUpgradeErr(err instanceof Error ? err.message : 'Verification failed.');
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setUpgradeBusy(null);
+          },
+        },
+      });
+      rzp.on('payment.failed', () => {
+        setUpgradeBusy(null);
+      });
+      rzp.open();
+    } catch (err: unknown) {
+      setUpgradeBusy(null);
+      setUpgradeErr(err instanceof Error ? err.message : 'Payment could not start.');
     }
   };
 
@@ -145,10 +361,10 @@ export function SchoolAdminSubscriptionPage() {
           </Box>
           <Box>
             <Typography variant="body1" sx={{ color: ip.heading, fontWeight: 700 }}>
-              Standard
+              {currentPlanName}
             </Typography>
             <Typography variant="body2" sx={{ color: ip.subtext }}>
-              Renews annually • {SCHOOL_INSTITUTIONAL_PRICE_LANDING.standard} • Next renewal: 1 Jan 2028
+              Renews annually • {SCHOOL_INSTITUTIONAL_PRICE_LANDING[currentPlanId]} • Next renewal: {nextRenewalLabel}
             </Typography>
           </Box>
         </Box>
@@ -158,32 +374,44 @@ export function SchoolAdminSubscriptionPage() {
       <Typography variant="h6" sx={{ color: ip.heading, fontWeight: 700, mb: 2 }}>
         Available plans
       </Typography>
+      <Typography variant="body2" sx={{ color: ip.subtext, mb: 2 }}>
+        Upgrades are prorated as the plan difference. From {currentPlanName}, you only pay the difference to move to a
+        higher package; GST is added at checkout.
+      </Typography>
       <Box sx={{
         display: 'grid',
         gridTemplateColumns: { xs: '1fr', sm: '1fr', md: 'repeat(3, 1fr)' },
         gap: 2.5,
         mb: 4,
       }}>
-        {plans.map(plan => (
-          <Card
-            key={plan.id}
-            sx={{
-              bgcolor: '#fff',
-              boxShadow: plan.popular ? 2 : 'none',
-              border: plan.popular
-                ? `2px solid ${STANDARD_RING}`
-                : `1px solid ${ip.cardBorder}`,
-              borderRadius: 2.5,
-              position: 'relative',
-              overflow: 'visible',
-              transition: 'all 0.18s',
-              pt: plan.popular ? 1.5 : 0,
-              '&:hover': {
-                border: `2px solid ${plan.accent}`,
-                transform: 'translateY(-2px)',
-              },
-            }}
-          >
+        {plans.map(plan => {
+          const planId = plan.id as RegisterPlanId;
+          const isCurrentPlan = planId === currentPlanId;
+          const isLowerPlan = PLAN_ORDER[planId] < PLAN_ORDER[currentPlanId];
+          const canUpgrade = PLAN_ORDER[planId] > PLAN_ORDER[currentPlanId];
+          const deltaBase = Math.max(0, SCHOOL_INSTITUTIONAL_BASE_INR[planId] - currentPlanPrice);
+          const deltaTotalPaise = Math.round(deltaBase * 100 * (1 + SCHOOL_REGISTRATION_GST_RATE));
+          const isBusy = upgradeBusy === planId;
+          return (
+            <Card
+              key={plan.id}
+              sx={{
+                bgcolor: '#fff',
+                boxShadow: plan.popular ? 2 : 'none',
+                border: plan.popular
+                  ? `2px solid ${STANDARD_RING}`
+                  : `1px solid ${ip.cardBorder}`,
+                borderRadius: 2.5,
+                position: 'relative',
+                overflow: 'visible',
+                transition: 'all 0.18s',
+                pt: plan.popular ? 1.5 : 0,
+                '&:hover': {
+                  border: `2px solid ${plan.accent}`,
+                  transform: 'translateY(-2px)',
+                },
+              }}
+            >
             {plan.popular && (
               <Box
                 sx={{
@@ -230,7 +458,7 @@ export function SchoolAdminSubscriptionPage() {
                   </Box>
                 ))}
               </Box>
-              {plan.current ? (
+              {isCurrentPlan ? (
                 <Button
                   fullWidth
                   variant="outlined"
@@ -239,7 +467,32 @@ export function SchoolAdminSubscriptionPage() {
                 >
                   Current plan
                 </Button>
-              ) : plan.id === 'entry' ? (
+              ) : isLowerPlan ? (
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  disabled
+                  sx={{ borderColor: ip.cardBorder, color: ip.heading, borderRadius: 1.5, fontWeight: 600, '&:hover': { bgcolor: ip.cardMutedBg } }}
+                >
+                  Lower plan
+                </Button>
+              ) : canUpgrade ? (
+                <Button
+                  fullWidth
+                  variant="contained"
+                  endIcon={<ArrowIcon />}
+                  disabled={upgradeBusy !== null}
+                  onClick={() => {
+                    setUpgradeErr(null);
+                    setUpgradeTarget(plan);
+                  }}
+                  sx={{ bgcolor: plan.accent, fontWeight: 700, borderRadius: 1.5, '&:hover': { bgcolor: plan.accent, filter: 'brightness(0.9)' } }}
+                >
+                  {isBusy
+                    ? 'Opening checkout…'
+                    : `Upgrade for ${formatInrFromPaise(deltaTotalPaise)}`}
+                </Button>
+              ) : (
                 <Button
                   fullWidth
                   variant="outlined"
@@ -247,19 +500,11 @@ export function SchoolAdminSubscriptionPage() {
                 >
                   Contact sales
                 </Button>
-              ) : (
-                <Button
-                  fullWidth
-                  variant="contained"
-                  endIcon={<ArrowIcon />}
-                  sx={{ bgcolor: plan.accent, fontWeight: 700, borderRadius: 1.5, '&:hover': { bgcolor: plan.accent, filter: 'brightness(0.9)' } }}
-                >
-                  Upgrade to {plan.name}
-                </Button>
               )}
             </CardContent>
           </Card>
-        ))}
+          );
+        })}
       </Box>
 
       {/* EducationWorld strip - matches public For Schools page */}
@@ -310,9 +555,9 @@ export function SchoolAdminSubscriptionPage() {
               { label: 'Billing contact', value: 'Principal / Academic Director' },
               {
                 label: 'Payment method',
-                value: billingMeta.billing?.has_invoice_pdf ? 'Razorpay (card / UPI / netbanking)' : 'See your completed checkout',
+                value: latestPayment ? formatPaymentMethod(latestPayment.payment_method) : 'See your completed checkout',
               },
-              { label: 'Next renewal', value: '1 January 2028' },
+              { label: 'Next renewal', value: nextRenewalLabel },
               ...(billingMeta.billing?.invoice_number
                 ? [{ label: 'Invoice reference', value: billingMeta.billing.invoice_number, mono: true }]
                 : []),
@@ -347,6 +592,63 @@ export function SchoolAdminSubscriptionPage() {
               Invoice PDF is on file; downloads require S3 signing to be configured on the API (AWS keys + bucket).
             </Typography>
           )}
+          <Box sx={{ mt: 3 }}>
+            <Typography variant="subtitle2" sx={{ color: ip.heading, fontWeight: 700, mb: 1.5 }}>
+              Payment history
+            </Typography>
+            {billingLoading ? (
+              <Typography variant="body2" sx={{ color: ip.subtext }}>
+                Loading payment history…
+              </Typography>
+            ) : billingMeta.paymentHistory.length > 0 ? (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+                {billingMeta.paymentHistory.map((payment) => (
+                  <Box
+                    key={payment.payment_id}
+                    sx={{
+                      border: `1px solid ${ip.cardBorder}`,
+                      borderRadius: 1.5,
+                      p: 1.75,
+                      display: 'grid',
+                      gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', md: 'repeat(5, minmax(0, 1fr))' },
+                      gap: 1.5,
+                      bgcolor: '#f8fafc',
+                    }}
+                  >
+                    {[
+                      { label: 'Paid on', value: formatDateLabel(payment.paid_at) },
+                      { label: 'Package', value: planNameForHistory(payment.plan_id) },
+                      {
+                        label: 'Amount',
+                        value: payment.amount_paise !== null ? formatInrFromPaise(payment.amount_paise) : 'Not available',
+                      },
+                      { label: 'Payment method', value: formatPaymentMethod(payment.payment_method) },
+                      { label: 'Renewal date', value: formatDateLabel(payment.renewal_date) },
+                    ].map((item) => (
+                      <Box key={item.label} sx={{ minWidth: 0 }}>
+                        <Typography
+                          variant="caption"
+                          sx={{ color: ip.subtext, textTransform: 'uppercase', fontSize: '0.62rem', letterSpacing: 0.5 }}
+                        >
+                          {item.label}
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{ color: ip.heading, fontWeight: 600, overflowWrap: 'anywhere', mt: 0.25 }}
+                        >
+                          {item.value}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                ))}
+              </Box>
+            ) : (
+              <Typography variant="body2" sx={{ color: ip.subtext }}>
+                No completed school payments found yet.
+              </Typography>
+            )}
+          </Box>
           <Divider sx={{ borderColor: ip.cardBorder, my: 2 }} />
           <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
             <Button
@@ -381,12 +683,9 @@ export function SchoolAdminSubscriptionPage() {
             >
               Download invoice (PDF)
             </Button>
-            <Button variant="outlined" size="small" sx={{ borderColor: ip.cardBorder, color: ip.subtext, '&:hover': { bgcolor: ip.cardMutedBg }, borderRadius: 1.5 }}>
-              Update billing details
-            </Button>
-            <Button variant="text" size="small" sx={{ color: ip.statBlue, fontWeight: 600, fontSize: '0.8rem' }}>
-              Contact sales for custom pricing →
-            </Button>
+            <Typography variant="caption" sx={{ color: ip.subtext, fontWeight: 600 }}>
+              Contact sales for custom pricing
+            </Typography>
           </Box>
           {invoiceDownloadErr && (
             <Typography variant="caption" sx={{ color: 'error.main', display: 'block', mt: 1.5 }}>
@@ -395,6 +694,164 @@ export function SchoolAdminSubscriptionPage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog
+        open={Boolean(upgradeTarget)}
+        onClose={() => {
+          if (!upgradeBusy) setUpgradeTarget(null);
+        }}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            overflow: 'hidden',
+            boxShadow: '0 24px 80px rgba(15, 23, 42, 0.35)',
+          },
+        }}
+        BackdropProps={{
+          sx: {
+            bgcolor: 'rgba(15, 23, 42, 0.58)',
+            backdropFilter: 'blur(2px)',
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            bgcolor: '#FFFFFF',
+            color: ip.heading,
+            fontWeight: 800,
+            px: 3,
+            py: 2.25,
+            borderBottom: `1px solid ${ip.cardBorder}`,
+          }}
+        >
+          Confirm Subscription Upgrade
+        </DialogTitle>
+        <DialogContent sx={{ bgcolor: '#FFFFFF', px: 3, py: 0 }}>
+          <Box sx={{ pt: 2.5, pb: 2.5 }}>
+          <Box
+            sx={{
+              border: `1px solid ${ip.cardBorder}`,
+              borderRadius: 2,
+              bgcolor: ip.cardMutedBg,
+              px: 2,
+              py: 1.5,
+              mb: 2,
+            }}
+          >
+            <Typography variant="body2" sx={{ color: ip.heading, fontWeight: 700 }}>
+              {currentPlanName} → {upgradeTarget?.name}
+            </Typography>
+            <Typography variant="body2" sx={{ color: ip.subtext, mt: 0.5, lineHeight: 1.5 }}>
+              You only pay the difference between the two annual package prices. GST is added at checkout.
+            </Typography>
+          </Box>
+          <Box
+            sx={{
+              border: `1px solid ${ip.cardBorder}`,
+              borderRadius: 2,
+              overflow: 'hidden',
+              mb: 2,
+              bgcolor: '#FFFFFF',
+            }}
+          >
+            {[
+              { label: `${upgradeTarget?.name ?? 'Target'} annual price`, value: formatInr(upgradeTarget ? SCHOOL_INSTITUTIONAL_BASE_INR[upgradeTarget.id as RegisterPlanId] : 0) },
+              { label: `${currentPlanName} already paid`, value: `-${formatInr(currentPlanPrice)}` },
+              { label: 'Upgrade difference before GST', value: formatInr(upgradeDeltaBaseInr) },
+              { label: `GST @ ${Math.round(SCHOOL_REGISTRATION_GST_RATE * 100)}%`, value: formatInrFromPaise(upgradeDeltaGstPaise) },
+              { label: 'Total due now', value: formatInrFromPaise(upgradeDeltaTotalPaise), strong: true },
+            ].map((row) => (
+              <Box
+                key={row.label}
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  gap: 2,
+                  px: 2,
+                  py: row.strong ? 1.4 : 1.15,
+                  bgcolor: row.strong ? ip.cardMutedBg : '#fff',
+                  borderTop: row.strong ? `1px solid ${ip.cardBorder}` : 'none',
+                }}
+              >
+                <Typography
+                  variant="body2"
+                  sx={{ color: row.strong ? ip.heading : '#475569', fontWeight: row.strong ? 800 : 600 }}
+                >
+                  {row.label}
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{ color: ip.heading, fontWeight: row.strong ? 900 : 700, whiteSpace: 'nowrap' }}
+                >
+                  {row.value}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+          {upgradeErr && (
+            <Alert
+              severity="error"
+              sx={{
+                mb: 0,
+                borderRadius: 2,
+                bgcolor: '#fef2f2',
+                color: '#991b1b',
+                border: '1px solid #fecaca',
+                '& .MuiAlert-icon': { color: '#dc2626' },
+                '& .MuiAlert-message': { color: '#991b1b', fontWeight: 500 },
+              }}
+            >
+              {upgradeErr}
+            </Alert>
+          )}
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ bgcolor: '#FFFFFF', px: 3, py: 2, borderTop: `1px solid ${ip.cardBorder}` }}>
+          <Button
+            onClick={() => setUpgradeTarget(null)}
+            disabled={upgradeBusy !== null}
+            sx={{
+              color: ip.subtext,
+              fontWeight: 700,
+              textTransform: 'none',
+              '&.Mui-disabled': { color: '#94a3b8' },
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => void startUpgradeCheckout()}
+            disabled={upgradeBusy !== null || !upgradeTarget}
+            sx={{
+              bgcolor: upgradeTarget?.accent ?? ip.statBlue,
+              color: '#FFFFFF',
+              fontWeight: 700,
+              textTransform: 'none',
+              borderRadius: 1.5,
+              px: 2.5,
+              minWidth: 230,
+              '&:hover': { bgcolor: upgradeTarget?.accent ?? ip.statBlue, filter: 'brightness(0.9)' },
+              '&.Mui-disabled': {
+                bgcolor: upgradeTarget?.accent ?? ip.statBlue,
+                color: '#FFFFFF',
+                opacity: 0.78,
+              },
+            }}
+          >
+            {upgradeBusy ? (
+              <>
+                <CircularProgress size={16} sx={{ color: '#fff', mr: 1 }} />
+                Opening checkout…
+              </>
+            ) : (
+              'Confirm and pay difference'
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

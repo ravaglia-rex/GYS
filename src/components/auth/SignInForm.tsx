@@ -1,5 +1,4 @@
 import React, { useCallback, useState } from 'react';
-import ResendVerificationButton from './ResendVerificationButton';
 import { UserCredential, reload, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { useNavigate, Link } from 'react-router-dom';
 import { auth } from '../../firebase/firebase';
@@ -34,9 +33,27 @@ const signinSchema = z.object({
     password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
-function describeSignInError(error: unknown): string {
+function getFirebaseAuthErrorCode(error: unknown): string {
+  return typeof error === 'object' && error !== null && 'code' in error
+    ? String((error as { code?: unknown }).code)
+    : '';
+}
+
+function describeSignInError(error: unknown, isSchoolAdmin?: boolean): { title: string; description: string } {
+  const code = getFirebaseAuthErrorCode(error);
+  if (!isSchoolAdmin && ['auth/invalid-credential', 'auth/invalid-login-credentials'].includes(code)) {
+    return {
+      title: 'Set up your password first',
+      description:
+        'Before signing in, create your password using the setup link we sent to your email. If the link expired, use Forgot password to get a new one.',
+    };
+  }
+
   const message = error instanceof Error ? error.message : '';
-  return message || 'An error occurred. Please try again.';
+  return {
+    title: 'Sign in failed',
+    description: message || 'An error occurred. Please try again.',
+  };
 }
 
 async function revertPartialStudentSignIn(): Promise<void> {
@@ -63,8 +80,6 @@ const SignInForm: React.FC<SignInFormProps> = ({ email, isSchoolAdmin, schoolInf
         },
     });
     const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
-    const [loadResendVerification, setLoadResendVerification] = useState<boolean>(false);
-    const [userCred, setUserCredential] = useState<UserCredential | null>(null);
     const dispatch = useDispatch<AppDispatch>();
 
     const completeStudentSignIn = useCallback(
@@ -96,7 +111,6 @@ const SignInForm: React.FC<SignInFormProps> = ({ email, isSchoolAdmin, schoolInf
         setIsSubmitted(true);
         try {
             const userCredential = await signInWithEmailAndPassword(auth, email, data.password);
-            setUserCredential(userCredential);
             const authToken = await userCredential.user.getIdToken();
             authTokenHandler.setAuthToken(authToken);
             
@@ -162,18 +176,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ email, isSchoolAdmin, schoolInf
               return;
             }
     
-            // Existing student flow...
-            if (!userCredential.user.emailVerified) {
-                toast({
-                    variant: 'destructive',
-                    title: 'Email not verified',
-                    description: 'Please verify your email to continue.',
-                });
-                setLoadResendVerification(true);
-                setIsSubmitted(false);
-                return;
-            }
-
+            // Password setup links prove mailbox access for student accounts created during signup.
             const signedInAsStudent = await completeStudentSignIn(userCredential);
             if (!signedInAsStudent) {
                 setIsSubmitted(false);
@@ -181,10 +184,11 @@ const SignInForm: React.FC<SignInFormProps> = ({ email, isSchoolAdmin, schoolInf
         } catch (error: unknown) {
             console.error('Sign in error:', error);
             await revertPartialStudentSignIn();
+            const signInError = describeSignInError(error, isSchoolAdmin);
             toast({
                 variant: 'destructive',
-                title: 'Sign in failed',
-                description: describeSignInError(error),
+                title: signInError.title,
+                description: signInError.description,
             });
             setIsSubmitted(false);
         }
@@ -225,7 +229,6 @@ const SignInForm: React.FC<SignInFormProps> = ({ email, isSchoolAdmin, schoolInf
             </Form>
             
             <div className='text-center mt-4'>
-                {loadResendVerification && <ResendVerificationButton userCredential={userCred}/>}
                 <Link to='/reset-password' className='text-sm text-blue-600 hover:text-blue-700 hover:underline transition-colors duration-300'>
                     Forgot password?
                 </Link>

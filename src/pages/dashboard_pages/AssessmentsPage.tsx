@@ -6,6 +6,7 @@ import DashboardLayout from '../../layouts/DashboardLayout';
 import { EnhancedAssessmentCardsGroup } from '../../components/dashboard/EnhancedAssessmentCardsGroup';
 import { auth } from '../../firebase/firebase';
 import * as Sentry from '@sentry/react';
+import { STUDENT_OFFICIAL_ASSESSMENTS_ENABLED } from '../../constants/constants';
 
 
 interface TabPanelProps {
@@ -104,7 +105,9 @@ const AssessmentsPage: React.FC = () => {
                   Assessments
                 </Typography>
                 <Typography variant="h6" sx={{ color: 'rgba(255, 255, 255, 0.8)', fontWeight: 400 }}>
-                  Take assessments, view results, and track your progress
+                  {STUDENT_OFFICIAL_ASSESSMENTS_ENABLED
+                    ? 'Take assessments, view results, and track your progress'
+                    : 'Official exams are coming soon; practice mode remains available'}
                 </Typography>
               </Box>
             </Box>
@@ -150,7 +153,11 @@ const AssessmentsPage: React.FC = () => {
                 uid={uid} 
                 filterType="available" 
                 showDashboardOverview={false}
-                description="These are the assessments currently available for you to take. Make sure your device meets all requirements before starting."
+                description={
+                  STUDENT_OFFICIAL_ASSESSMENTS_ENABLED
+                    ? 'These are the assessments currently available for you to take. Make sure your device meets all requirements before starting.'
+                    : 'Official exams are shown for reference, but they are not open yet while the real question banks are being prepared.'
+                }
               />
             </Box>
           </TabPanel>

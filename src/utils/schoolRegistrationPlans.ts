@@ -17,6 +17,8 @@ const PRODUCTION_INR: Record<RegisterPlanId, number> = {
   premium: 500_000,
 };
 
+export const SCHOOL_INSTITUTIONAL_BASE_INR: Readonly<Record<RegisterPlanId, number>> = PRODUCTION_INR;
+
 function formatInr(amount: number): string {
   return `₹${amount.toLocaleString('en-IN')}`;
 }

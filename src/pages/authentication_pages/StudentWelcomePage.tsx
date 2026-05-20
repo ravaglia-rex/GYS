@@ -48,55 +48,39 @@ const StudentWelcomePage: React.FC = () => {
             </span>
           </div>
           <h2 className="mt-4 text-center text-2xl sm:text-3xl font-semibold text-slate-900">
-            Welcome to GYS!
+            Setup complete
           </h2>
           <p className="mt-2 text-center text-sm sm:text-base text-slate-600">
-            Your {membershipName} membership is active. You&apos;re ready to begin your first
-            assessment.
+            Your {membershipName} membership is ready. We&apos;ve sent an email with your account
+            confirmation, payment details if applicable, and a secure link to set your password.
           </p>
 
           <div className="mt-5 rounded-2xl bg-sky-50 px-4 py-4 sm:px-5 sm:py-5">
             <p className="text-xs sm:text-sm font-semibold text-slate-800 mb-3">
-              Your membership includes
+              Next steps
             </p>
             <ul className="space-y-1.5 text-sm sm:text-base text-slate-800">
               <li className="flex items-center gap-2">
-                <span aria-hidden="true">🧠</span>
-                <span>Pattern and Logic Assessment</span>
+                <span aria-hidden="true">1.</span>
+                <span>Open the email we sent to your registered email address.</span>
               </li>
               <li className="flex items-center gap-2">
-                <span aria-hidden="true">📚</span>
-                <span>Verbal Reasoning Assessment</span>
+                <span aria-hidden="true">2.</span>
+                <span>Use the secure password setup link to create your password.</span>
               </li>
               <li className="flex items-center gap-2">
-                <span aria-hidden="true">📐</span>
-                <span>Mathematical Reasoning Assessment</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <span aria-hidden="true">🧩</span>
-                <span>Personality Profile</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <span aria-hidden="true">💬</span>
-                <span>Conversational English Fluency</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <span aria-hidden="true">📊</span>
-                <span>Cross-Synthesis Reports</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <span aria-hidden="true">📈</span>
-                <span>Year-over-Year Growth Tracking</span>
+                <span aria-hidden="true">3.</span>
+                <span>Sign in and start using your student dashboard.</span>
               </li>
             </ul>
           </div>
 
           <button
             type="button"
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/login')}
             className="mt-6 inline-flex w-full items-center justify-center rounded-2xl bg-amber-400 px-4 py-3 text-sm sm:text-base font-semibold text-slate-900 shadow-md hover:bg-amber-500 transition-colors duration-200"
           >
-            Go to Dashboard →
+            Go to Sign In →
           </button>
 
           <button

@@ -958,10 +958,17 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
         onClose={() => setStartConfirmOpen(false)}
         maxWidth="sm"
         fullWidth
+        PaperProps={{
+          sx: {
+            bgcolor: '#475569',
+            backgroundImage: 'none',
+            color: '#FFFFFF',
+          },
+        }}
       >
         <DialogTitle sx={{ fontWeight: 800 }}>Start this practice set?</DialogTitle>
         <DialogContent>
-          <DialogContentText component="div" sx={{ color: 'text.primary', typography: 'body2', lineHeight: 1.65 }}>
+          <DialogContentText component="div" sx={{ color: '#FFFFFF', typography: 'body2', lineHeight: 1.65 }}>
             This starts a practice set of {PRACTICE_SESSION_BATCH_SIZE} questions. Try to work through all{' '}
             {PRACTICE_SESSION_BATCH_SIZE} to finish the set, but you can still leave partway through if
             you need to.

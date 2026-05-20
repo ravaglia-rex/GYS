@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
+  Alert,
   Box,
   Table,
   TableBody,
@@ -18,20 +19,28 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import {
   LEADERBOARD_DEFAULT_EXPANDED_EXAM_IDS,
   LEADERBOARD_GRADES,
-  MOCK_LEADERBOARD_BY_GRADE,
-  MOCK_LEADERBOARD_LAST_UPDATED,
   formatLeaderboardDateTime,
+  leaderboardScoreScaleLabel,
   leaderboardScoreLevelHeadingSuffix,
+  type ExamLeaderboardSection,
   type LeaderboardGrade,
-} from '../../data/leaderboardMock';
+} from '../../utils/leaderboard';
 import { EXAM_MAX_SCORE_POINTS } from '../../utils/assessmentGating';
 
 export interface StudentLeaderboardPanelProps {
   /** Default grade shown in the toggle (e.g. signed-in student grade when wired to profile). */
   initialGrade?: LeaderboardGrade;
+  sections: ExamLeaderboardSection[];
+  lastUpdatedISO?: string | null;
+  showGradeToggle?: boolean;
 }
 
-export default function StudentLeaderboardPanel({ initialGrade = 10 }: StudentLeaderboardPanelProps) {
+export default function StudentLeaderboardPanel({
+  initialGrade = 10,
+  sections,
+  lastUpdatedISO,
+  showGradeToggle = true,
+}: StudentLeaderboardPanelProps) {
   const [grade, setGrade] = useState<LeaderboardGrade>(initialGrade);
   const [expandedExamIds, setExpandedExamIds] = useState<Set<string>>(
     () => new Set(LEADERBOARD_DEFAULT_EXPANDED_EXAM_IDS)
@@ -39,13 +48,16 @@ export default function StudentLeaderboardPanel({ initialGrade = 10 }: StudentLe
   useEffect(() => {
     setGrade(initialGrade);
   }, [initialGrade]);
-  const sections = useMemo(() => MOCK_LEADERBOARD_BY_GRADE[grade], [grade]);
 
   const handleGrade = (_: React.SyntheticEvent, value: LeaderboardGrade | null) => {
     if (value != null) setGrade(value);
   };
 
-  const lastUpdatedText = formatLeaderboardDateTime(MOCK_LEADERBOARD_LAST_UPDATED);
+  const visibleSections = sections.filter((section) => section.entries.length > 0);
+  const hasExamTakenDates = visibleSections.some((section) =>
+    section.entries.some((row) => Boolean(row.examTakenAtISO))
+  );
+  const lastUpdatedText = lastUpdatedISO ? formatLeaderboardDateTime(lastUpdatedISO) : null;
 
   return (
     <Box>
@@ -75,56 +87,70 @@ export default function StudentLeaderboardPanel({ initialGrade = 10 }: StudentLe
         <Typography variant="subtitle2" sx={{ color: 'rgba(255,255,255,0.55)', fontWeight: 600 }}>
           Grade
         </Typography>
-        <Typography
-          variant="caption"
-          component="div"
+        {lastUpdatedText && (
+          <Typography
+            variant="caption"
+            component="div"
+            sx={{
+              color: 'rgba(255,255,255,0.5)',
+              textAlign: { xs: 'left', sm: 'right' },
+              maxWidth: 280,
+              lineHeight: 1.45,
+            }}
+          >
+            Last updated{' '}
+            <Box component="span" sx={{ color: '#e2e8f0', fontWeight: 600 }}>
+              {lastUpdatedText}
+            </Box>
+          </Typography>
+        )}
+      </Box>
+      {showGradeToggle ? (
+        <ToggleButtonGroup
+          exclusive
+          value={grade}
+          onChange={handleGrade}
+          aria-label="Leaderboard grade"
           sx={{
-            color: 'rgba(255,255,255,0.5)',
-            textAlign: { xs: 'left', sm: 'right' },
-            maxWidth: 280,
-            lineHeight: 1.45,
+            flexWrap: 'wrap',
+            gap: 0.75,
+            mb: 3,
+            '& .MuiToggleButtonGroup-grouped': {
+              border: '1px solid rgba(255,255,255,0.15) !important',
+              borderRadius: '8px !important',
+              mx: 0,
+              px: 1.75,
+              py: 0.75,
+              color: 'rgba(255,255,255,0.75)',
+              '&.Mui-selected': {
+                bgcolor: 'rgba(139, 92, 246, 0.28)',
+                color: '#e9d5ff',
+                borderColor: 'rgba(167, 139, 250, 0.5) !important',
+              },
+              '&:hover': { bgcolor: 'rgba(255,255,255,0.06)' },
+            },
           }}
         >
-          Last updated{' '}
-          <Box component="span" sx={{ color: '#e2e8f0', fontWeight: 600 }}>
-            {lastUpdatedText}
-          </Box>
+          {LEADERBOARD_GRADES.map((g) => (
+            <ToggleButton key={g} value={g}>
+              Grade {g}
+            </ToggleButton>
+          ))}
+        </ToggleButtonGroup>
+      ) : (
+        <Typography variant="body2" sx={{ color: '#e2e8f0', mb: 3, fontWeight: 600 }}>
+          Your school cohort
         </Typography>
-      </Box>
-      <ToggleButtonGroup
-        exclusive
-        value={grade}
-        onChange={handleGrade}
-        aria-label="Leaderboard grade"
-        sx={{
-          flexWrap: 'wrap',
-          gap: 0.75,
-          mb: 3,
-          '& .MuiToggleButtonGroup-grouped': {
-            border: '1px solid rgba(255,255,255,0.15) !important',
-            borderRadius: '8px !important',
-            mx: 0,
-            px: 1.75,
-            py: 0.75,
-            color: 'rgba(255,255,255,0.75)',
-            '&.Mui-selected': {
-              bgcolor: 'rgba(139, 92, 246, 0.28)',
-              color: '#e9d5ff',
-              borderColor: 'rgba(167, 139, 250, 0.5) !important',
-            },
-            '&:hover': { bgcolor: 'rgba(255,255,255,0.06)' },
-          },
-        }}
-      >
-        {LEADERBOARD_GRADES.map((g) => (
-          <ToggleButton key={g} value={g}>
-            Grade {g}
-          </ToggleButton>
-        ))}
-      </ToggleButtonGroup>
+      )}
+
+      {visibleSections.length === 0 && (
+        <Alert severity="info" sx={{ bgcolor: 'rgba(59, 130, 246, 0.12)', color: '#e2e8f0', border: '1px solid rgba(59, 130, 246, 0.35)', '& .MuiAlert-icon': { color: '#93c5fd' } }}>
+          No official school leaderboard data yet. This will be updated periodically as students at your school take the test.
+        </Alert>
+      )}
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-        {sections.map((section) => (
+        {visibleSections.map((section) => (
           <Accordion
             key={section.examId}
             expanded={expandedExamIds.has(section.examId)}
@@ -160,8 +186,7 @@ export default function StudentLeaderboardPanel({ initialGrade = 10 }: StudentLe
                   {section.examName}
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
-                  Top 10 at your school - best official score (out of {EXAM_MAX_SCORE_POINTS}). “Exam taken” is when that
-                  score was earned.
+                  Top 10 at your school - best official score ({leaderboardScoreScaleLabel}).
                 </Typography>
               </Box>
             </AccordionSummary>
@@ -172,7 +197,9 @@ export default function StudentLeaderboardPanel({ initialGrade = 10 }: StudentLe
                     <TableRow>
                       <TableCell sx={{ color: '#94a3b8', fontWeight: 600, width: 48 }}>#</TableCell>
                       <TableCell sx={{ color: '#94a3b8', fontWeight: 600 }}>Student</TableCell>
-                      <TableCell sx={{ color: '#94a3b8', fontWeight: 600, whiteSpace: 'nowrap' }}>Exam taken</TableCell>
+                      {hasExamTakenDates && (
+                        <TableCell sx={{ color: '#94a3b8', fontWeight: 600, whiteSpace: 'nowrap' }}>Exam taken</TableCell>
+                      )}
                       <TableCell
                         align="right"
                         sx={{ color: '#94a3b8', fontWeight: 600, minWidth: 108, whiteSpace: 'nowrap' }}
@@ -189,9 +216,11 @@ export default function StudentLeaderboardPanel({ initialGrade = 10 }: StudentLe
                       <TableRow key={row.rank} hover sx={{ '&:hover': { bgcolor: 'rgba(255,255,255,0.03)' } }}>
                         <TableCell sx={{ color: rankColor(row.rank), fontWeight: 700 }}>{row.rank}</TableCell>
                         <TableCell sx={{ color: '#e2e8f0' }}>{row.studentName}</TableCell>
-                        <TableCell sx={{ color: 'rgba(226,232,240,0.92)', fontSize: '0.8125rem', whiteSpace: 'nowrap' }}>
-                          {formatLeaderboardDateTime(row.examTakenAtISO)}
-                        </TableCell>
+                        {hasExamTakenDates && (
+                          <TableCell sx={{ color: 'rgba(226,232,240,0.92)', fontSize: '0.8125rem', whiteSpace: 'nowrap' }}>
+                            {row.examTakenAtISO ? formatLeaderboardDateTime(row.examTakenAtISO) : '-'}
+                          </TableCell>
+                        )}
                         <TableCell align="right" sx={{ color: '#f8fafc', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
                           {row.scorePoints} on {EXAM_MAX_SCORE_POINTS}
                         </TableCell>

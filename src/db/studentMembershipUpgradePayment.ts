@@ -16,6 +16,15 @@ export type CreateStudentUpgradeOrderResponse = {
   checkout_config_id?: string;
 };
 
+export type StudentUpgradeBillingDetails = {
+  contact: string;
+  line1: string;
+  line2?: string;
+  city: string;
+  state: string;
+  zipcode: string;
+};
+
 function messageFromAxios(e: unknown): string | null {
   if (axios.isAxiosError(e) && e.response?.data && typeof (e.response.data as { message?: unknown }).message === 'string') {
     return (e.response.data as { message: string }).message;
@@ -24,7 +33,8 @@ function messageFromAxios(e: unknown): string | null {
 }
 
 export async function createStudentUpgradeOrder(
-  targetLevel: 1 | 2 | 3 | 4
+  targetLevel: 1 | 2 | 3 | 4,
+  billingDetails?: StudentUpgradeBillingDetails
 ): Promise<CreateStudentUpgradeOrderResponse> {
   const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS ?? '';
   if (!base) {
@@ -37,7 +47,10 @@ export async function createStudentUpgradeOrder(
   try {
     const response = await axios.post(
       `${base}${RAZORPAY_APIS}${CREATE_STUDENT_UPGRADE_ORDER}`,
-      { target_membership_level: targetLevel },
+      {
+        target_membership_level: targetLevel,
+        ...(billingDetails ? { billing_details: billingDetails } : {}),
+      },
       { headers: { Authorization: `Bearer ${authToken}` } }
     );
     return response.data;

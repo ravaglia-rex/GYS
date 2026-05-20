@@ -78,8 +78,22 @@ export interface SchoolDashboardBilling {
   has_invoice_pdf: boolean;
 }
 
+export interface SchoolDashboardPaymentHistoryItem {
+  payment_id: string;
+  order_id: string | null;
+  kind: "captured" | "school_plan_upgrade";
+  paid_at: string | null;
+  amount_paise: number | null;
+  plan_id: string | null;
+  invoice_number: string | null;
+  payment_method: string;
+  renewal_date: string | null;
+}
+
 export interface SchoolDashboardResponse {
   schoolId: string;
+  selected_plan_id?: string | null;
+  subscription_plan?: string | null;
   live: {
     total_students: number;
     pending_approval: number;
@@ -92,6 +106,7 @@ export interface SchoolDashboardResponse {
   students: StudentRow[];
   analytics: Record<string, any>;
   billing?: SchoolDashboardBilling;
+  payment_history?: SchoolDashboardPaymentHistoryItem[];
   /** Mirrors backend S3 signing readiness for institutional invoice PDF downloads. */
   s3_invoice_download_configured?: boolean;
 }
@@ -137,14 +152,22 @@ export const getSchoolAdmin = async (email: string): Promise<SchoolAdmin | null>
   }
 };
 
-export const getStudentRegistrationEmails = async (): Promise<string[]> => {
+export type StudentRegistrationEmailLists = {
+  emails: string[];
+  revokedEmails: string[];
+};
+
+export const getStudentRegistrationEmailLists = async (): Promise<StudentRegistrationEmailLists> => {
   try {
     const authToken = await authTokenHandler.getAuthToken();
     const response = await axios.get(
       `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${STUDENT_REGISTRATION_EMAILS}`,
       { headers: { Authorization: `Bearer ${authToken}` } }
     );
-    return Array.isArray(response.data?.emails) ? response.data.emails : [];
+    return {
+      emails: Array.isArray(response.data?.emails) ? response.data.emails : [],
+      revokedEmails: Array.isArray(response.data?.revokedEmails) ? response.data.revokedEmails : [],
+    };
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data?.error) {
       throw new Error(String(error.response.data.error));
@@ -153,13 +176,24 @@ export const getStudentRegistrationEmails = async (): Promise<string[]> => {
   }
 };
 
+export const getStudentRegistrationEmails = async (): Promise<string[]> => {
+  const lists = await getStudentRegistrationEmailLists();
+  return lists.emails;
+};
+
 export type UpdateSchoolProfilePayload = {
   phone?: string;
   website?: string;
+  udise_code?: string;
   boards?: string[];
   board?: string;
   abbreviations?: string[];
   referral_source?: string;
+  address_line1?: string;
+  address_line2?: string;
+  city?: string;
+  state?: string;
+  postal_code?: string;
   additional_contact_emails?: string[];
 };
 
@@ -183,13 +217,14 @@ export const putSchoolProfile = async (
 };
 
 export const putStudentRegistrationEmails = async (
-  emails: string[]
+  emails: string[],
+  revokedEmails?: string[]
 ): Promise<{ success: boolean; count: number }> => {
   try {
     const authToken = await authTokenHandler.getAuthToken();
     const response = await axios.put(
       `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${STUDENT_REGISTRATION_EMAILS}`,
-      { emails },
+      revokedEmails ? { emails, revokedEmails } : { emails },
       { headers: { Authorization: `Bearer ${authToken}` } }
     );
     return response.data ?? { success: true, count: emails.length };

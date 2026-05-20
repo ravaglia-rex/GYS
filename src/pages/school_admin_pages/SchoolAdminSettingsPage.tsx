@@ -10,7 +10,8 @@ import {
   Alert,
   Paper,
   Avatar,
-  Chip
+  Chip,
+  CircularProgress
 } from '@mui/material';
 import {
   Security as SecurityIcon,
@@ -137,20 +138,34 @@ function registrationDisplayFromSchoolDoc(data: Record<string, unknown>): School
 
 const settingsFieldSx = {
   '& .MuiOutlinedInput-root': {
+    bgcolor: '#FFFFFF',
     '& fieldset': { borderColor: ip.cardBorder },
     '&:hover fieldset': { borderColor: '#3b82f6' },
     '&.Mui-focused fieldset': { borderColor: '#3b82f6' },
   },
-  '& .MuiInputBase-input': { color: '#1E293B' },
-  '& .MuiInputLabel-root': { color: '#94a3b8' },
-  '& .MuiInputLabel-root.Mui-focused': { color: '#3b82f6' },
+  '& .MuiInputBase-input': {
+    color: '#1E293B',
+    fontSize: '0.95rem',
+    py: 1.35,
+  },
+  '& .MuiInputBase-input::placeholder': {
+    color: '#94a3b8',
+    opacity: 1,
+  },
+  '& .MuiFormHelperText-root': {
+    mx: 0,
+    mt: 0.75,
+    color: ip.subtext,
+  },
 };
 
 const readOnlyFieldSx = {
   ...settingsFieldSx,
-  '& .MuiInputBase-input.Mui-disabled': {
-    WebkitTextFillColor: '#1E293B',
-    color: '#1E293B',
+  '& .MuiOutlinedInput-root': {
+    bgcolor: ip.cardMutedBg,
+    '& fieldset': { borderColor: ip.cardBorder },
+    '&:hover fieldset': { borderColor: ip.cardBorder },
+    '&.Mui-focused fieldset': { borderColor: ip.cardBorder },
   },
 };
 
@@ -194,26 +209,46 @@ const SettingsField: React.FC<SettingsFieldProps> = ({
   rows,
   gridColumn,
   startAdornment,
-}) => (
-  <TextField
-    label={label}
-    value={value}
-    onChange={onChange}
-    fullWidth
-    disabled={readOnly}
-    helperText={helperText}
-    multiline={multiline}
-    rows={rows}
-    InputProps={{
-      readOnly: readOnly || undefined,
-      startAdornment,
-    }}
-    sx={{
-      ...(readOnly ? readOnlyFieldSx : settingsFieldSx),
-      ...(gridColumn ? { gridColumn } : {}),
-    }}
-  />
-);
+}) => {
+  const fieldId = React.useId();
+
+  return (
+    <Box sx={{ ...(gridColumn ? { gridColumn } : {}) }}>
+      <Typography
+        component="label"
+        htmlFor={fieldId}
+        sx={{
+          display: 'block',
+          mb: 0.75,
+          color: ip.heading,
+          fontSize: '0.8rem',
+          fontWeight: 700,
+          letterSpacing: '0.01em',
+        }}
+      >
+        {label}
+      </Typography>
+      <TextField
+        id={fieldId}
+        value={value}
+        onChange={onChange}
+        fullWidth
+        helperText={helperText}
+        multiline={multiline}
+        rows={rows}
+        placeholder={readOnly ? 'Not provided' : label}
+        InputProps={{
+          readOnly: readOnly || undefined,
+          startAdornment,
+        }}
+        inputProps={{
+          'aria-label': label,
+        }}
+        sx={readOnly ? readOnlyFieldSx : settingsFieldSx}
+      />
+    </Box>
+  );
+};
 
 const SchoolAdminSettingsPage: React.FC = () => {
   const location = useLocation();
@@ -369,12 +404,13 @@ const SchoolAdminSettingsPage: React.FC = () => {
     fetchSchoolData();
   }, [schoolAdmin, authLoading, hasTriedLoading, isSchoolAdminPreview]);
 
-  const handleSchoolInfoChange = (field: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSchoolInfo({
-      ...schoolInfo,
-      [field]: event.target.value
-    });
-  };
+  const handleSchoolInfoChange =
+    (field: keyof typeof schoolInfo) => (event: React.ChangeEvent<HTMLInputElement>) => {
+      setSchoolInfo({
+        ...schoolInfo,
+        [field]: event.target.value,
+      });
+    };
 
   const handleRegistrationChange =
     (field: keyof SchoolRegistrationDisplay) => (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -396,12 +432,17 @@ const SchoolAdminSettingsPage: React.FC = () => {
     try {
       const boards = splitCommaSeparated(registration.boards);
       await putSchoolProfile({
-        phone: schoolInfo.phone.trim(),
         website: schoolInfo.website.trim(),
+        udise_code: registration.udiseCode.trim(),
         boards,
         board: boards.join(', '),
         abbreviations: splitCommaSeparated(registration.abbreviations),
         referral_source: registration.referralSource.trim(),
+        address_line1: registration.addressLine1.trim(),
+        address_line2: registration.addressLine2.trim(),
+        city: registration.city.trim(),
+        state: registration.state.trim(),
+        postal_code: registration.postalCode.trim(),
         additional_contact_emails: splitContactEmails(registration.additionalContactEmails),
       });
       setShowSuccess(true);
@@ -445,9 +486,9 @@ const SchoolAdminSettingsPage: React.FC = () => {
   }
 
   return (
-    <Box sx={{ maxWidth: '100%', mx: 'auto' }}>
+    <Box sx={{ width: '100%', maxWidth: 1120, mx: 'auto' }}>
       {/* Header */}
-      <Box sx={{ mb: 4 }}>
+      <Box sx={{ mb: 3 }}>
         <Typography variant="h4" sx={{ fontWeight: 600, color: '#1E293B', mb: 1 }}>
           Settings
         </Typography>
@@ -468,14 +509,15 @@ const SchoolAdminSettingsPage: React.FC = () => {
         </Alert>
       )}
 
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
         {/* School Information */}
         <Card sx={{ 
           bgcolor: '#ffffff', 
-          boxShadow: 'none',
-          border: `1px solid ${ip.cardBorder}`
+          boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+          border: `1px solid ${ip.cardBorder}`,
+          borderRadius: 3,
         }}>
-          <CardContent>
+          <CardContent sx={{ p: { xs: 2, sm: 3 }, '&:last-child': { pb: { xs: 2, sm: 3 } } }}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
               <Avatar sx={{ bgcolor: '#3b82f6', mr: 2 }}>
                 <SchoolIcon />
@@ -485,7 +527,7 @@ const SchoolAdminSettingsPage: React.FC = () => {
                   School Information
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#94a3b8' }}>
-                  School identity details. Only phone and website can be edited here.
+                  School identity and subscription details. Contact support to update locked fields.
                 </Typography>
               </Box>
               {schoolInfo.verified && (
@@ -507,7 +549,7 @@ const SchoolAdminSettingsPage: React.FC = () => {
 
             <Divider sx={{ mb: 3, borderColor: ip.cardBorder }} />
 
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2.5 }}>
               <SettingsField
                 label="School Name"
                 value={schoolInfo.name}
@@ -523,46 +565,47 @@ const SchoolAdminSettingsPage: React.FC = () => {
               <SettingsField
                 label="Phone"
                 value={schoolInfo.phone}
-                onChange={handleSchoolInfoChange('phone')}
-                helperText="POC mobile from registration"
+                readOnly
+                helperText="POC mobile from registration. Contact support to update."
               />
               <SettingsField
-                label="Website"
-                value={schoolInfo.website}
-                onChange={handleSchoolInfoChange('website')}
+                label="Subscription plan"
+                value={displayOrDash(registration.subscriptionPlan)}
+                readOnly
               />
             </Box>
           </CardContent>
         </Card>
 
-        {/* Registration details (read-only) */}
+        {/* Registration details */}
         <Card
           sx={{
             bgcolor: '#ffffff',
-            boxShadow: 'none',
+            boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
             border: `1px solid ${ip.cardBorder}`,
+            borderRadius: 3,
           }}
         >
-          <CardContent>
+          <CardContent sx={{ p: { xs: 2, sm: 3 }, '&:last-child': { pb: { xs: 2, sm: 3 } } }}>
             <Typography variant="h6" sx={{ fontWeight: 600, color: ip.heading, mb: 0.5 }}>
               Registration details
             </Typography>
             <Typography variant="body2" sx={{ color: '#94a3b8', mb: 3 }}>
-              Registration information from when your school joined GYS. Locked fields require{' '}
-              <Box component="span" sx={{ color: ip.navy, fontWeight: 500 }}>
-                globalyoungscholar@argus.ai
-              </Box>{' '}
-              to update.
+              Update the registration details shown in your school profile.
             </Typography>
 
             <Divider sx={{ mb: 3, borderColor: ip.cardBorder }} />
 
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
-              <SettingsField label="UDISE code" value={displayOrDash(registration.udiseCode)} readOnly />
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2.5 }}>
               <SettingsField
-                label="Subscription plan"
-                value={displayOrDash(registration.subscriptionPlan)}
-                readOnly
+                label="UDISE code"
+                value={registration.udiseCode}
+                onChange={handleRegistrationChange('udiseCode')}
+              />
+              <SettingsField
+                label="Website"
+                value={schoolInfo.website}
+                onChange={handleSchoolInfoChange('website')}
               />
               <SettingsField
                 label="Curriculum / boards"
@@ -586,22 +629,30 @@ const SchoolAdminSettingsPage: React.FC = () => {
               />
               <SettingsField
                 label="Address line 1"
-                value={displayOrDash(registration.addressLine1)}
-                readOnly
+                value={registration.addressLine1}
+                onChange={handleRegistrationChange('addressLine1')}
                 gridColumn={{ xs: '1', md: '1 / -1' }}
               />
               <SettingsField
                 label="Address line 2"
-                value={displayOrDash(registration.addressLine2)}
-                readOnly
+                value={registration.addressLine2}
+                onChange={handleRegistrationChange('addressLine2')}
                 gridColumn={{ xs: '1', md: '1 / -1' }}
               />
-              <SettingsField label="City" value={displayOrDash(registration.city)} readOnly />
-              <SettingsField label="State" value={displayOrDash(registration.state)} readOnly />
+              <SettingsField
+                label="City"
+                value={registration.city}
+                onChange={handleRegistrationChange('city')}
+              />
+              <SettingsField
+                label="State"
+                value={registration.state}
+                onChange={handleRegistrationChange('state')}
+              />
               <SettingsField
                 label="PIN / postal code"
-                value={displayOrDash(registration.postalCode)}
-                readOnly
+                value={registration.postalCode}
+                onChange={handleRegistrationChange('postalCode')}
               />
               <SettingsField
                 label="Additional contact emails"
@@ -619,10 +670,11 @@ const SchoolAdminSettingsPage: React.FC = () => {
         {/* Security Settings */}
         <Card sx={{ 
           bgcolor: '#ffffff', 
-          boxShadow: 'none',
-          border: `1px solid ${ip.cardBorder}`
+          boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+          border: `1px solid ${ip.cardBorder}`,
+          borderRadius: 3,
         }}>
-          <CardContent>
+          <CardContent sx={{ p: { xs: 2, sm: 3 }, '&:last-child': { pb: { xs: 2, sm: 3 } } }}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
               <Avatar sx={{ bgcolor: '#ef4444', mr: 2 }}>
                 <SecurityIcon />
@@ -673,15 +725,17 @@ const SchoolAdminSettingsPage: React.FC = () => {
         {/* Action Buttons */}
         <Card sx={{ 
           bgcolor: '#ffffff', 
-          boxShadow: 'none',
-          border: `1px solid ${ip.cardBorder}`
+          boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+          border: `1px solid ${ip.cardBorder}`,
+          borderRadius: 3,
         }}>
-          <CardContent>
+          <CardContent sx={{ p: { xs: 2, sm: 3 }, '&:last-child': { pb: { xs: 2, sm: 3 } } }}>
             <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
               <Button
                 variant="outlined"
                 startIcon={<CancelIcon />}
                 onClick={handleCancel}
+                disabled={saving}
                 sx={{ 
                   borderColor: ip.cardBorder, 
                   color: ip.subtext,
@@ -695,12 +749,21 @@ const SchoolAdminSettingsPage: React.FC = () => {
               </Button>
               <Button
                 variant="contained"
-                startIcon={<SaveIcon />}
+                startIcon={
+                  saving ? <CircularProgress size={18} thickness={5} sx={{ color: '#FFFFFF' }} /> : <SaveIcon />
+                }
                 onClick={handleSave}
                 disabled={saving}
                 sx={{ 
+                  minWidth: 160,
                   bgcolor: ip.navy, 
-                  '&:hover': { bgcolor: '#0c356f' } 
+                  color: '#FFFFFF',
+                  '&:hover': { bgcolor: '#0c356f' },
+                  '&.Mui-disabled': {
+                    bgcolor: ip.navy,
+                    color: '#FFFFFF',
+                    opacity: 0.78,
+                  },
                 }}
               >
                 {saving ? 'Saving…' : 'Save Changes'}

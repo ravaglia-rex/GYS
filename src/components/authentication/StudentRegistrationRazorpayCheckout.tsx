@@ -4,6 +4,7 @@ import { useToast } from '../ui/use-toast';
 import { LoadingSpinner } from '../ui/spinner';
 import {
   createStudentRegistrationOrder,
+  StudentRegistrationBillingDetails,
   verifyStudentRegistrationPayment,
 } from '../../db/studentRegistrationPayment';
 import { gysPaymentInvoiceNumberFromOrderId } from '../../utils/gysPaymentInvoiceNumber';
@@ -41,16 +42,24 @@ function razorpayPaymentFailedUserMessage(payload: unknown): string {
 
 export type StudentRegistrationRazorpayCheckoutProps = {
   email: string;
+  studentName: string;
   membershipLevel: 1 | 2 | 3 | 4;
   planLabel: string;
+  schoolId?: string;
+  billingDetails: StudentRegistrationBillingDetails;
+  disabled?: boolean;
   /** Called after server verifies payment; create Firebase user + runSignUpTransaction here. */
   onPaymentVerified: (razorpayPaymentId: string) => Promise<void>;
 };
 
 const StudentRegistrationRazorpayCheckout: React.FC<StudentRegistrationRazorpayCheckoutProps> = ({
   email,
+  studentName,
   membershipLevel,
   planLabel,
+  schoolId,
+  billingDetails,
+  disabled,
   onPaymentVerified,
 }) => {
   const [busy, setBusy] = useState(false);
@@ -60,7 +69,14 @@ const StudentRegistrationRazorpayCheckout: React.FC<StudentRegistrationRazorpayC
   const startCheckout = async () => {
     setBusy(true);
     try {
-      const order = await createStudentRegistrationOrder(email, membershipLevel);
+      const normalizedStudentName = studentName.trim();
+      const order = await createStudentRegistrationOrder(
+        email,
+        membershipLevel,
+        schoolId,
+        normalizedStudentName,
+        billingDetails
+      );
 
       if (process.env.NODE_ENV === 'development' && typeof order.key_id === 'string') {
         console.info('[StudentSignupRazorpay] key_id prefix:', order.key_id.slice(0, 16));
@@ -97,7 +113,9 @@ const StudentRegistrationRazorpayCheckout: React.FC<StudentRegistrationRazorpayC
         description: `${planLabel} - membership`,
         image: 'https://argus-s3-bucket.s3.us-east-1.amazonaws.com/logos/argus.png',
         prefill: {
+          ...(normalizedStudentName ? { name: normalizedStudentName } : {}),
           email: email.trim().toLowerCase(),
+          contact: billingDetails.contact,
         },
         notes: {
           invoice_number: gysPaymentInvoiceNumberFromOrderId(order.order_id),
@@ -226,11 +244,11 @@ const StudentRegistrationRazorpayCheckout: React.FC<StudentRegistrationRazorpayC
       <button
       type="button"
       onClick={() => void startCheckout()}
-      disabled={busy}
+      disabled={busy || disabled}
       className="mt-4 inline-flex w-full items-center justify-center rounded-2xl px-4 py-3 text-base sm:text-lg font-semibold text-white shadow-md hover:brightness-110 active:scale-[0.99] transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60"
       style={{ backgroundColor: '#1e3a8a' }}
     >
-      {busy ? 'Opening secure checkout…' : `Pay ${planLabel} securely with Razorpay`}
+      {busy ? 'Opening secure checkout…' : disabled ? 'Complete billing details to proceed' : 'Proceed to payment'}
     </button>
     </>
   );

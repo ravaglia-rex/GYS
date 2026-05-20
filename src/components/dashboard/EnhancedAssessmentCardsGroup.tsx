@@ -28,6 +28,7 @@ import {
 } from '../../utils/assessmentGating';
 import { countClearedTiersFromProgress } from '../../utils/tierProgression';
 import { getReasoningExamSubcategories } from '../../data/reasoningExamSubcategories';
+import { STUDENT_OFFICIAL_ASSESSMENTS_ENABLED } from '../../constants/constants';
 
 // ─── Assessment metadata ──────────────────────────────────────────────────────
 
@@ -138,6 +139,8 @@ interface AssessmentCardProps {
   previewSampleExitTo?: string;
   /** Preview: Start button shown but click is a no-op */
   previewStartBlocked?: boolean;
+  /** Live student gate while official question banks are not ready */
+  officialStartPaused?: boolean;
 }
 
 const AssessmentCard: React.FC<AssessmentCardProps> = ({
@@ -148,6 +151,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
   previewFallbackPath,
   previewSampleExitTo,
   previewStartBlocked = false,
+  officialStartPaused = false,
 }) => {
   const navigate = useNavigate();
   const goPreviewSample = (path: string) =>
@@ -550,6 +554,24 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
             sx={{ borderColor: '#1e3a2f', color: '#10b981', borderRadius: 1.5, fontSize: '0.875rem' }}>
             All levels completed
           </Button>
+        ) : officialStartPaused ? (
+          <Button
+            fullWidth
+            variant="outlined"
+            disabled
+            sx={{
+              borderColor: '#475569',
+              color: '#94a3b8',
+              borderRadius: 1.5,
+              fontSize: '0.875rem',
+              '&.Mui-disabled': {
+                borderColor: '#334155',
+                color: '#64748b',
+              },
+            }}
+          >
+            Official exams coming soon
+          </Button>
         ) : canStart ? (
           <Button
             fullWidth
@@ -676,6 +698,9 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
   }, [uid, previewBundle]);
 
   const handleStart = (assessmentId: string, tierNumber: number) => {
+    if (!STUDENT_OFFICIAL_ASSESSMENTS_ENABLED && !previewBundle) {
+      return;
+    }
     if (previewBundle?.previewDisableStartNavigation) {
       return;
     }
@@ -811,6 +836,7 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
                   previewBundle?.previewDisableStartNavigation ||
                     previewBundle?.previewBlockStartForIds?.includes(assessment.id)
                 )}
+                officialStartPaused={!previewBundle && !STUDENT_OFFICIAL_ASSESSMENTS_ENABLED}
               />
             </Box>
           ))}

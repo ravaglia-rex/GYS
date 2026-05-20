@@ -4,31 +4,15 @@ import { fetchSignInMethodsForEmail } from 'firebase/auth';
 import { checkEmailExists } from '../../db/emailMappingCollection';
 import { auth } from '../../firebase/firebase';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
-import { PasswordInput } from '../../components/ui/password-input';
-import { useToast } from '../../components/ui/use-toast';
 import { useStudentSignupExit } from '../../contexts/StudentSignupExitContext';
 import { useStudentSignupExitGuard } from '../../hooks/useStudentSignupExitGuard';
 import { mergeSignupState, writeSignupDraft } from '../../utils/studentSignupDraft';
 
 const GYS_BLUE = '#1e3a8a';
 
-/** Student signup: date of birth calendar year must be in this range (inclusive). */
-const STUDENT_SIGNUP_DOB_YEAR_MIN = 1995;
-const STUDENT_SIGNUP_DOB_YEAR_MAX = 2020;
-const STUDENT_SIGNUP_DOB_MIN = `${STUDENT_SIGNUP_DOB_YEAR_MIN}-01-01`;
-const STUDENT_SIGNUP_DOB_MAX = `${STUDENT_SIGNUP_DOB_YEAR_MAX}-12-31`;
-
-function isStudentSignupDobYearInRange(isoDate: string): boolean {
-  if (!isoDate) return true;
-  const y = parseInt(isoDate.slice(0, 4), 10);
-  if (Number.isNaN(y)) return false;
-  return y >= STUDENT_SIGNUP_DOB_YEAR_MIN && y <= STUDENT_SIGNUP_DOB_YEAR_MAX;
-}
-
 const StudentRegistrationPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { toast } = useToast();
   const locationState = (location.state || {}) as any;
 
   const regInitial = useMemo(() => {
@@ -38,41 +22,28 @@ const StudentRegistrationPage: React.FC = () => {
       firstName: String(m.firstName ?? p.firstName ?? ''),
       lastName: String(m.lastName ?? p.lastName ?? ''),
       email: String(m.email ?? p.email ?? ''),
-      password: String(m.password ?? ''),
       grade: String(m.grade ?? p.grade ?? ''),
-      dob: String(m.dob ?? p.dob ?? ''),
-      cityState: String(m.cityState ?? p.cityState ?? ''),
     };
   }, [location.state]);
 
   const [firstName, setFirstName] = useState(regInitial.firstName);
   const [lastName, setLastName] = useState(regInitial.lastName);
   const [email, setEmail] = useState(regInitial.email);
-  const [password, setPassword] = useState(regInitial.password);
-  const [confirmPassword, setConfirmPassword] = useState(regInitial.password);
   const [grade, setGrade] = useState(regInitial.grade);
-  const [dob, setDob] = useState(regInitial.dob);
-  const [cityState, setCityState] = useState(regInitial.cityState);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [isContinuing, setIsContinuing] = useState(false);
 
   useEffect(() => {
     setFirstName(regInitial.firstName);
     setLastName(regInitial.lastName);
     setEmail(regInitial.email);
-    setPassword(regInitial.password);
-    setConfirmPassword(regInitial.password);
     setGrade(regInitial.grade);
-    setDob(regInitial.dob);
-    setCityState(regInitial.cityState);
   }, [
     location.key,
     regInitial.firstName,
     regInitial.lastName,
     regInitial.email,
-    regInitial.password,
     regInitial.grade,
-    regInitial.dob,
-    regInitial.cityState,
   ]);
   const [emailInUseOpen, setEmailInUseOpen] = useState<boolean>(!!locationState?.emailInUse);
   /** Which check blocked signup production Auth/Firestore are used even when the API runs on localhost. */
@@ -90,13 +61,6 @@ const StudentRegistrationPage: React.FC = () => {
     }
   }, [locationState?.emailInUse]);
 
-  useEffect(() => {
-    const d = regInitial.dob;
-    if (d && !isStudentSignupDobYearInRange(d)) {
-      setDob('');
-    }
-  }, [regInitial.dob]);
-
   const handleBack = () => {
     navigate(-1);
   };
@@ -107,60 +71,51 @@ const StudentRegistrationPage: React.FC = () => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    if (password !== confirmPassword) {
-      toast({
-        variant: 'destructive',
-        title: 'Passwords do not match',
-        description: 'Please make sure both password fields are the same.',
-      });
-      return;
-    }
+    setIsContinuing(true);
+    let didNavigate = false;
 
-    let blockReason: 'auth' | 'student' | 'schooladmin' | null = null;
-
-    // Production Firebase Auth (no emulator in firebase.ts) user can exist here without a students/* doc.
     try {
-      const methods = await fetchSignInMethodsForEmail(auth, normalizedEmail);
-      if (methods && methods.length > 0) {
-        blockReason = 'auth';
+      let blockReason: 'auth' | 'student' | 'schooladmin' | null = null;
+
+      // Production Firebase Auth (no emulator in firebase.ts) user can exist here without a students/* doc.
+      try {
+        const methods = await fetchSignInMethodsForEmail(auth, normalizedEmail);
+        if (methods && methods.length > 0) {
+          blockReason = 'auth';
+        }
+      } catch {
+        // ignore and fall back to API check
       }
-    } catch {
-      // ignore and fall back to API check
-    }
 
-    if (!blockReason) {
-      const emailCheck = await checkEmailExists(normalizedEmail);
-      if (emailCheck.exists) {
-        blockReason = emailCheck.type === 'schooladmin' ? 'schooladmin' : 'student';
+      if (!blockReason) {
+        const emailCheck = await checkEmailExists(normalizedEmail);
+        if (emailCheck.exists) {
+          blockReason = emailCheck.type === 'schooladmin' ? 'schooladmin' : 'student';
+        }
+      }
+
+      if (blockReason) {
+        setEmailInUseReason(blockReason);
+        setEmailInUseOpen(true);
+        return;
+      }
+
+      const nextState = {
+        firstName,
+        lastName,
+        email: normalizedEmail,
+        grade,
+        dob: undefined,
+        cityState: undefined,
+      };
+      writeSignupDraft(nextState as Record<string, unknown>);
+      didNavigate = true;
+      navigate('/students/register/school', { state: nextState });
+    } finally {
+      if (!didNavigate) {
+        setIsContinuing(false);
       }
     }
-
-    if (blockReason) {
-      setEmailInUseReason(blockReason);
-      setEmailInUseOpen(true);
-      return;
-    }
-
-    if (dob && !isStudentSignupDobYearInRange(dob)) {
-      toast({
-        variant: 'destructive',
-        title: 'Invalid date of birth',
-        description: `Birth year must be between ${STUDENT_SIGNUP_DOB_YEAR_MIN} and ${STUDENT_SIGNUP_DOB_YEAR_MAX}.`,
-      });
-      return;
-    }
-
-    const nextState = {
-      firstName,
-      lastName,
-      email: normalizedEmail,
-      password,
-      grade,
-      dob,
-      cityState,
-    };
-    writeSignupDraft(nextState as Record<string, unknown>);
-    navigate('/students/register/school', { state: nextState });
   };
 
   return (
@@ -283,78 +238,23 @@ const StudentRegistrationPage: React.FC = () => {
 
             <div>
               <label className="block text-xs sm:text-sm font-bold text-slate-700">
-                Password<span className="text-red-500"> *</span>
+                Student Grade<span className="text-red-500"> *</span>
               </label>
-              <PasswordInput
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="mt-1.5 h-auto rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm sm:text-base text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
-                placeholder="Password"
-                autoComplete="new-password"
+              <select
+                value={grade}
+                onChange={(event) => setGrade(event.target.value)}
+                className="mt-1.5 w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm sm:text-base text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
                 required
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs sm:text-sm font-bold text-slate-700">
-                Confirm Password<span className="text-red-500"> *</span>
-              </label>
-              <PasswordInput
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-                className="mt-1.5 h-auto rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm sm:text-base text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
-                placeholder="Confirm password"
-                autoComplete="new-password"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 sm:gap-4">
-              <div>
-                <label className="block text-xs sm:text-sm font-bold text-slate-700">
-                  Student Grade<span className="text-red-500"> *</span>
-                </label>
-                <select
-                  value={grade}
-                  onChange={(event) => setGrade(event.target.value)}
-                  className="mt-1.5 w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm sm:text-base text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
-                  required
-                >
-                  <option value="">Select Grade</option>
-                  <option value="6">6th Grade</option>
-                  <option value="7">7th Grade</option>
-                  <option value="8">8th Grade</option>
-                  <option value="9">9th Grade</option>
-                  <option value="10">10th Grade</option>
-                  <option value="11">11th Grade</option>
-                  <option value="12">12th Grade</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs sm:text-sm font-bold text-slate-700">
-                  Date of Birth
-                </label>
-                <input
-                  type="date"
-                  min={STUDENT_SIGNUP_DOB_MIN}
-                  max={STUDENT_SIGNUP_DOB_MAX}
-                  value={dob}
-                  onChange={(event) => setDob(event.target.value)}
-                  className="mt-1.5 w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm sm:text-base text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
-                />
-                
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs sm:text-sm font-bold text-slate-700">City / State</label>
-              <input
-                type="text"
-                value={cityState}
-                onChange={(event) => setCityState(event.target.value)}
-                className="mt-1.5 w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm sm:text-base text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
-                placeholder="Bangalore, Karnataka"
-              />
+              >
+                <option value="">Select Grade</option>
+                <option value="6">6th Grade</option>
+                <option value="7">7th Grade</option>
+                <option value="8">8th Grade</option>
+                <option value="9">9th Grade</option>
+                <option value="10">10th Grade</option>
+                <option value="11">11th Grade</option>
+                <option value="12">12th Grade</option>
+              </select>
             </div>
 
             <label className="mt-1 flex items-start gap-2 text-xs text-slate-600">
@@ -396,11 +296,11 @@ const StudentRegistrationPage: React.FC = () => {
               </button>
               <button
                 type="submit"
-                disabled={!acceptedTerms}
+                disabled={!acceptedTerms || isContinuing}
                 className="inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm sm:text-base font-semibold text-white shadow-md hover:bg-slate-900/90 disabled:cursor-not-allowed disabled:bg-slate-400"
-                style={{ backgroundColor: acceptedTerms ? GYS_BLUE : undefined }}
+                style={{ backgroundColor: acceptedTerms && !isContinuing ? GYS_BLUE : undefined }}
               >
-                Next: School & profile →
+                {isContinuing ? 'Loading...' : 'Continue →'}
               </button>
             </div>
 

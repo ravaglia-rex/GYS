@@ -29,38 +29,11 @@ import analytics from '../../segment/segment';
 import SignInForm from './SignInForm';
 import SchoolAdminSchoolSelect from './SchoolAdminSchoolSelect';
 
-const PERSONAL_EMAIL_DOMAINS = new Set([
-  'gmail.com',
-  'googlemail.com',
-  'yahoo.com',
-  'yahoo.co.in',
-  'yahoo.in',
-  'outlook.com',
-  'hotmail.com',
-  'live.com',
-  'msn.com',
-  'icloud.com',
-  'me.com',
-  'aol.com',
-  'proton.me',
-  'protonmail.com',
-  'zoho.com',
-]);
-
-const getEmailDomain = (email: string) => {
-  const at = email.lastIndexOf('@');
-  if (at === -1) return '';
-  return email.slice(at + 1).trim().toLowerCase();
-};
-
 const EmailSchema = z.object({
   email: z
     .string()
     .email()
-    .min(1, 'Email is required')
-    .refine((value) => !PERSONAL_EMAIL_DOMAINS.has(getEmailDomain(value)), {
-      message: 'Please use your school email address (not Gmail/Yahoo/etc.).',
-    }),
+    .min(1, 'Email is required'),
   isSchoolOfficial: z.boolean().optional(),
 });
 
@@ -244,12 +217,12 @@ const EmailEntryForm: React.FC = () => {
                 <p>
                   We couldn&apos;t find an account for{' '}
                   <span className="font-semibold text-slate-800">{email}</span>. You can create a student
-                  account with this school email, or try a different email if you already have access.
+                  account with this email, or try a different email if you already have access.
                 </p>
                 <p>
-                  If your school has signed up with Argus and asked you to complete this, you must use your{' '}
-                  <span className="font-semibold text-slate-800">official school email</span>. If you are
-                  not sure what that address is, contact your school.
+                  If your school has signed up with Argus and asked you to complete this, use the email
+                  address listed in your school records. Ideally that is a school email, but some schools may
+                  use a personal email address.
                 </p>
               </div>
             </DialogDescription>
@@ -298,7 +271,7 @@ const EmailEntryForm: React.FC = () => {
                     />
                   </FormControl>
                   <FormDescription className="text-xs text-slate-500">
-                    Students should use their <span className="font-semibold">school email address</span> (not Gmail/Yahoo/etc.).
+                    Students should use the email address in their school records, ideally a school email.
                   </FormDescription>
                   <FormMessage className="text-red-500">{form.formState.errors.email?.message}</FormMessage>
                 </FormItem>

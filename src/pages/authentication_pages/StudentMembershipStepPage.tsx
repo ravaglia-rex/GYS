@@ -3,42 +3,79 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
 import { useStudentSignupExit } from '../../contexts/StudentSignupExitContext';
 import { useStudentSignupExitGuard } from '../../hooks/useStudentSignupExitGuard';
+import {
+  formatInrFromPaise,
+  MEMBERSHIP_LEVEL_LABEL,
+  normalizeStudentMembershipLevel,
+  studentMembershipUpgradeAmountPaise,
+} from '../../utils/studentMembershipPricing';
 import { mergeSignupState, writeSignupDraft } from '../../utils/studentSignupDraft';
 
 const GYS_BLUE = '#1e3a8a';
 
 type MembershipLevel = 'LEVEL_1' | 'LEVEL_2' | 'LEVEL_3' | 'LEVEL_4';
 
+function membershipCodeToNumericLevel(code: MembershipLevel): 1 | 2 | 3 | 4 {
+  if (code === 'LEVEL_1') return 1;
+  if (code === 'LEVEL_2') return 2;
+  if (code === 'LEVEL_3') return 3;
+  return 4;
+}
+
+function numericLevelToMembershipCode(level: 1 | 2 | 3 | 4): MembershipLevel {
+  if (level === 1) return 'LEVEL_1';
+  if (level === 2) return 'LEVEL_2';
+  if (level === 3) return 'LEVEL_3';
+  return 'LEVEL_4';
+}
+
 const StudentMembershipStepPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const merged = useMemo(
-    () => mergeSignupState(location.state) as { membershipLevel?: MembershipLevel },
+    () =>
+      mergeSignupState(location.state) as {
+        membershipLevel?: MembershipLevel;
+        schoolCoveredMembershipLevel?: number;
+        schoolPaymentComplete?: boolean;
+        schoolName?: string;
+      },
     [location]
   );
-
-  const initialLevel: MembershipLevel =
+  const schoolCoveredLevel = normalizeStudentMembershipLevel(merged.schoolCoveredMembershipLevel);
+  const effectiveCoveredLevel = merged.schoolPaymentComplete === true ? schoolCoveredLevel : 0;
+  const savedMembershipLevel: MembershipLevel | undefined =
     merged.membershipLevel === 'LEVEL_1' ||
     merged.membershipLevel === 'LEVEL_2' ||
     merged.membershipLevel === 'LEVEL_3' ||
     merged.membershipLevel === 'LEVEL_4'
       ? merged.membershipLevel
+      : undefined;
+
+  const defaultLevel: MembershipLevel =
+    savedMembershipLevel &&
+    (effectiveCoveredLevel < 1 || membershipCodeToNumericLevel(savedMembershipLevel) >= effectiveCoveredLevel)
+      ? savedMembershipLevel
+      : effectiveCoveredLevel >= 1
+      ? numericLevelToMembershipCode(effectiveCoveredLevel as 1 | 2 | 3 | 4)
       : 'LEVEL_3';
 
-  const [selectedLevel, setSelectedLevel] = useState<MembershipLevel>(initialLevel);
+  const [selectedLevel, setSelectedLevel] = useState<MembershipLevel>(defaultLevel);
 
   useEffect(() => {
-    const m = mergeSignupState(location.state) as { membershipLevel?: MembershipLevel };
-    if (
-      m.membershipLevel === 'LEVEL_1' ||
-      m.membershipLevel === 'LEVEL_2' ||
-      m.membershipLevel === 'LEVEL_3' ||
-      m.membershipLevel === 'LEVEL_4'
-    ) {
-      setSelectedLevel(m.membershipLevel);
-    }
-  }, [location]);
+    setSelectedLevel(defaultLevel);
+  }, [defaultLevel, location]);
   const [showComparison, setShowComparison] = useState(true);
+  const [isContinuing, setIsContinuing] = useState(false);
+
+  useEffect(() => {
+    if (
+      effectiveCoveredLevel >= 1 &&
+      membershipCodeToNumericLevel(selectedLevel) < effectiveCoveredLevel
+    ) {
+      setSelectedLevel(numericLevelToMembershipCode(effectiveCoveredLevel as 1 | 2 | 3 | 4));
+    }
+  }, [effectiveCoveredLevel, selectedLevel]);
 
   const { requestLeave } = useStudentSignupExit();
 
@@ -47,6 +84,7 @@ const StudentMembershipStepPage: React.FC = () => {
   const levels = [
     {
       id: 'LEVEL_1' as MembershipLevel,
+      numericLevel: 1 as const,
       label: 'Early offer',
       name: 'Discovery',
       price: '₹299',
@@ -67,6 +105,7 @@ const StudentMembershipStepPage: React.FC = () => {
     },
     {
       id: 'LEVEL_2' as MembershipLevel,
+      numericLevel: 2 as const,
       label: 'Membership 1',
       name: 'Reasoning Triad',
       price: '₹899',
@@ -87,6 +126,7 @@ const StudentMembershipStepPage: React.FC = () => {
     },
     {
       id: 'LEVEL_3' as MembershipLevel,
+      numericLevel: 3 as const,
       label: 'Membership 2',
       name: 'Reasoning + Skills',
       price: '₹1,799',
@@ -106,6 +146,7 @@ const StudentMembershipStepPage: React.FC = () => {
     },
     {
       id: 'LEVEL_4' as MembershipLevel,
+      numericLevel: 4 as const,
       label: 'Membership 3',
       name: 'Guided Decision',
       price: '₹2,699',
@@ -134,16 +175,52 @@ const StudentMembershipStepPage: React.FC = () => {
     },
   ];
 
+  const visibleLevels = levels;
   const selected = levels.find((l) => l.id === selectedLevel)!;
+  const selectedNumericLevel = membershipCodeToNumericLevel(selected.id);
+  const selectedCoveredBySchool =
+    effectiveCoveredLevel >= 1 && selectedNumericLevel <= effectiveCoveredLevel;
+  const selectedUpgradeAmountPaise =
+    effectiveCoveredLevel >= 1 && selectedNumericLevel > effectiveCoveredLevel
+      ? studentMembershipUpgradeAmountPaise(effectiveCoveredLevel, selectedNumericLevel)
+      : null;
+  const coveredLabel =
+    effectiveCoveredLevel >= 1
+      ? MEMBERSHIP_LEVEL_LABEL[effectiveCoveredLevel as 1 | 2 | 3 | 4]
+      : null;
+
+  const persistMembershipSelection = (level: (typeof levels)[number]) => {
+    const numericLevel = level.numericLevel;
+    const coveredBySchool =
+      effectiveCoveredLevel >= 1 && numericLevel <= effectiveCoveredLevel;
+    const upgradeAmountPaise =
+      effectiveCoveredLevel >= 1 && numericLevel > effectiveCoveredLevel
+        ? studentMembershipUpgradeAmountPaise(effectiveCoveredLevel, numericLevel)
+        : null;
+
+    setSelectedLevel(level.id);
+    writeSignupDraft({
+      membershipLevel: level.id,
+      membershipName: level.name,
+      membershipPrice: level.price,
+      schoolCoveredMembershipLevel: effectiveCoveredLevel,
+      membershipCoveredBySchool: coveredBySchool,
+      membershipUpgradeAmountPaise: upgradeAmountPaise,
+    });
+  };
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
+    setIsContinuing(true);
     const base = mergeSignupState(location.state) as Record<string, unknown>;
     const nextState = {
       ...base,
       membershipLevel: selected.id,
       membershipName: selected.name,
       membershipPrice: selected.price,
+      schoolCoveredMembershipLevel: effectiveCoveredLevel,
+      membershipCoveredBySchool: selectedCoveredBySchool,
+      membershipUpgradeAmountPaise: selectedUpgradeAmountPaise,
     };
     writeSignupDraft(nextState);
     navigate('/students/register/payment', { state: nextState });
@@ -222,90 +299,138 @@ const StudentMembershipStepPage: React.FC = () => {
             one-time entry, not counted as an annual package. You can upgrade anytime and pay only the
             difference.
           </p>
+          {coveredLabel && (
+            <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950">
+              <p className="font-semibold">Your school has already paid for {coveredLabel}.</p>
+              <p className="mt-1 text-xs leading-relaxed sm:text-sm">
+                You can continue with this school-covered package at no cost, or choose a higher
+                package and pay only the difference now.
+              </p>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="mt-5 space-y-4 sm:space-y-5">
             <div className="space-y-3">
-              {levels.map((level) => {
+              {visibleLevels.map((level) => {
                 const isSelected = selectedLevel === level.id;
-                const ringColor = isSelected ? 'ring-2 ring-blue-500' : 'ring-1 ring-slate-200';
+                const includedBySchool =
+                  effectiveCoveredLevel >= 1 && level.numericLevel <= effectiveCoveredLevel;
+                const isLowerIncludedTier =
+                  effectiveCoveredLevel >= 1 && level.numericLevel < effectiveCoveredLevel;
+                const isCurrentSchoolPackage =
+                  effectiveCoveredLevel >= 1 && level.numericLevel === effectiveCoveredLevel;
+                const upgradeAmount =
+                  effectiveCoveredLevel >= 1 && level.numericLevel > effectiveCoveredLevel
+                    ? studentMembershipUpgradeAmountPaise(effectiveCoveredLevel, level.numericLevel)
+                    : null;
+                const priceLabel = includedBySchool
+                  ? 'Included'
+                  : upgradeAmount != null
+                    ? formatInrFromPaise(upgradeAmount)
+                    : level.price;
+                const priceSuffix = includedBySchool
+                  ? 'by school'
+                  : upgradeAmount != null
+                    ? 'upgrade'
+                    : level.priceSuffix;
 
                 return (
                   <button
                     key={level.id}
                     type="button"
-                    onClick={() => setSelectedLevel(level.id)}
-                    className={`w-full text-left rounded-2xl border ${level.borderColor} ${level.background} ${ringColor} px-4 py-4 sm:px-5 sm:py-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200`}
+                    disabled={isLowerIncludedTier}
+                    onClick={() => persistMembershipSelection(level)}
+                    className={`relative w-full rounded-xl border-2 px-4 py-3 text-left transition-all duration-200 ${
+                      isSelected
+                        ? 'border-[#1e3a8a] bg-blue-50 shadow-sm'
+                        : isLowerIncludedTier
+                          ? 'cursor-not-allowed border-slate-200 bg-slate-50 opacity-75'
+                          : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                    }`}
                   >
+                    {level.badge && (
+                      <span className="absolute -top-2.5 right-3 rounded-full bg-[#fbbf24] px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-slate-900 shadow-sm">
+                        Popular
+                      </span>
+                    )}
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-3">
+                      <div className="flex items-start gap-2.5">
                         <span
-                          className={`mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full border ${
-                            isSelected ? 'border-blue-600 bg-blue-600' : 'border-slate-400 bg-white'
+                          className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+                            isSelected ? 'border-[#1e3a8a]' : 'border-slate-300'
                           }`}
                         >
-                          <span className="h-2.5 w-2.5 rounded-full bg-white" />
+                          {isSelected && (
+                            <span
+                              className="h-2 w-2 rounded-full"
+                              style={{ backgroundColor: GYS_BLUE }}
+                            />
+                          )}
                         </span>
                         <div>
-                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            {level.label}
-                          </p>
-                          <p className="text-sm sm:text-base font-semibold text-slate-900">
-                            {level.name}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-base sm:text-lg font-semibold text-slate-900">
-                          {level.price}
-                        </p>
-                        <p className="text-xs text-slate-500">{level.priceSuffix}</p>
-                      </div>
-                    </div>
-                    {level.badge && (
-                      <div className="mt-2 inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
-                        {level.badge}
-                      </div>
-                    )}
-                    <ul className="mt-3 space-y-1.5 text-xs sm:text-sm">
-                      {level.features.map((feature) => (
-                        <li key={feature.text} className="flex items-start gap-2">
-                          <span
-                            className={`mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full ${
-                              feature.included ? 'bg-emerald-500 text-white' : 'bg-slate-300 text-white'
+                          <p
+                            className={`text-xs font-semibold uppercase tracking-wide ${
+                              isSelected ? 'text-blue-800' : 'text-slate-500'
                             }`}
                           >
-                            {feature.included ? (
-                              <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                                <path
-                                  d="M3.5 8.2 6.4 11 12.5 5"
-                                  stroke="currentColor"
-                                  strokeWidth="2.2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
-                              </svg>
-                            ) : (
-                              <svg className="h-2.5 w-2.5" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                                <path
-                                  d="M4 8h8"
-                                  stroke="currentColor"
-                                  strokeWidth="2.2"
-                                  strokeLinecap="round"
-                                />
-                              </svg>
-                            )}
-                          </span>
-                          <span className={feature.included ? 'text-slate-700' : 'text-slate-400'}>
-                            {feature.text}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                    {level.footer && (
-                      <p className="mt-3 rounded-lg bg-slate-900/5 px-3 py-2 text-xs font-medium text-slate-800">
-                        {level.footer}
+                            {level.label}
+                          </p>
+                          <p className="text-sm font-bold text-slate-900 sm:text-base">
+                            {level.name}
+                          </p>
+                          <p className="mt-0.5 text-xs text-slate-500">
+                            {level.oneTime ? 'One-time entry plan' : 'Annual membership'}
+                          </p>
+                          {isCurrentSchoolPackage && (
+                            <p className="mt-1 inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-emerald-800">
+                              Current school package
+                            </p>
+                          )}
+                          {isLowerIncludedTier && (
+                            <p className="mt-1 inline-flex rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+                              Included in school package
+                            </p>
+                          )}
+                          <div
+                            className={`grid transition-all duration-300 ease-out ${
+                              isSelected
+                                ? 'mt-2 grid-rows-[1fr] opacity-100'
+                                : 'mt-0 grid-rows-[0fr] opacity-0'
+                            }`}
+                          >
+                            <div className="overflow-hidden">
+                              <ul className="mt-2 space-y-0.5">
+                                {level.features.filter((feature) => feature.included).map((feature) => (
+                                  <li
+                                    key={feature.text}
+                                    className="flex items-start gap-1 text-xs text-slate-600"
+                                  >
+                                    <span className="mt-px text-emerald-600">
+                                      ✓
+                                    </span>
+                                    {feature.text}
+                                  </li>
+                                ))}
+                              </ul>
+                              {level.footer && (
+                                <p className="mt-3 rounded-lg bg-white/70 px-3 py-2 text-xs font-medium text-slate-800 ring-1 ring-blue-100">
+                                  {level.footer}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <p
+                        className="shrink-0 text-base font-bold sm:text-lg"
+                        style={{ color: GYS_BLUE }}
+                      >
+                        {priceLabel}
+                        <span className="block text-right text-xs font-normal text-slate-500">
+                          {priceSuffix}
+                        </span>
                       </p>
-                    )}
+                    </div>
                   </button>
                 );
               })}
@@ -396,13 +521,22 @@ const StudentMembershipStepPage: React.FC = () => {
               </div>
             )}
 
-            <button
-              type="submit"
-              className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-blue-600 px-4 py-3 text-sm sm:text-base font-semibold text-white shadow-md hover:bg-blue-700 transition-colors duration-200"
-            >
-              Next: Payment - {selected.name} (
-              {selected.oneTime ? selected.price : `${selected.price}/yr`}) →
-            </button>
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={goBackToSchoolStep}
+                className="inline-flex w-full items-center justify-center rounded-2xl border-2 border-slate-300 bg-white px-4 py-3 text-sm sm:text-base font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:border-slate-400 hover:bg-slate-50 active:scale-95"
+              >
+                ← Back
+              </button>
+              <button
+                type="submit"
+                disabled={isContinuing}
+                className="inline-flex w-full items-center justify-center rounded-2xl bg-blue-600 px-4 py-3 text-sm sm:text-base font-semibold text-white shadow-md transition-colors duration-200 hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+              >
+                {isContinuing ? 'Loading...' : 'Continue →'}
+              </button>
+            </div>
 
             <p className="pt-1 text-center text-xs text-slate-500">
               Secure payment via Razorpay, UPI, cards, and net banking accepted.

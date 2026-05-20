@@ -15,15 +15,17 @@ interface LocationState {
   firstName: string;
   lastName: string;
   email: string;
-  password: string;
   grade: string;
-  dob: string;
-  cityState: string;
+  dob?: string;
   signupSchoolName?: string;
   homeLanguage?: string;
   aspiration?: string;
   heardFrom?: string;
   schoolId?: string;
+  schoolName?: string;
+  schoolCoveredMembershipLevel?: number;
+  schoolPaymentComplete?: boolean;
+  schoolPlanId?: string | null;
   membershipLevel?: string;
   membershipName?: string;
   membershipPrice?: string;
@@ -38,20 +40,23 @@ const StudentSchoolStepPage: React.FC = () => {
   );
 
   const [selectedSchoolId, setSelectedSchoolId] = useState('');
-  const [lockedSchool, setLockedSchool] = useState<{ id: string; name: string } | null>(null);
+  const [lockedSchool, setLockedSchool] = useState<{
+    id: string;
+    name: string;
+    coveredMembershipLevel: number;
+    paymentComplete: boolean;
+    planId: string | null;
+  } | null>(null);
   /** When email is not on any school list: free-text school name; stored with signup as school_id not-listed. */
   const [typedSchoolName, setTypedSchoolName] = useState(
     typeof merged.signupSchoolName === 'string' ? merged.signupSchoolName : ''
   );
-  const [homeLanguage, setHomeLanguage] = useState(merged.homeLanguage || '');
-  const [aspiration, setAspiration] = useState(merged.aspiration || '');
   const [heardFrom, setHeardFrom] = useState(merged.heardFrom || '');
   const [isLoading, setIsLoading] = useState(true);
+  const [isContinuing, setIsContinuing] = useState(false);
 
   useEffect(() => {
     const m = mergeSignupState(location.state) as Partial<LocationState>;
-    setHomeLanguage(m.homeLanguage || '');
-    setAspiration(m.aspiration || '');
     setHeardFrom(m.heardFrom || '');
     setTypedSchoolName(typeof m.signupSchoolName === 'string' ? m.signupSchoolName : '');
   }, [location]);
@@ -74,9 +79,18 @@ const StudentSchoolStepPage: React.FC = () => {
         const resolved = await resolveRegistrationSchool(email).catch(() => ({
           schoolId: null as string | null,
           schoolName: null as string | null,
+          schoolPaymentComplete: false,
+          schoolPlanId: null,
+          schoolCoveredMembershipLevel: 0,
         }));
         if (resolved.schoolId && resolved.schoolName) {
-          setLockedSchool({ id: resolved.schoolId, name: resolved.schoolName });
+          setLockedSchool({
+            id: resolved.schoolId,
+            name: resolved.schoolName,
+            coveredMembershipLevel: resolved.schoolCoveredMembershipLevel ?? 0,
+            paymentComplete: resolved.schoolPaymentComplete === true,
+            planId: resolved.schoolPlanId ?? null,
+          });
           setSelectedSchoolId(resolved.schoolId);
           setTypedSchoolName('');
         } else {
@@ -105,7 +119,7 @@ const StudentSchoolStepPage: React.FC = () => {
     ? selectedSchoolId
     : 'not-listed';
   const canContinue =
-    emailMatchedSchool ? Boolean(selectedSchoolId) : typedSchoolName.trim().length > 0;
+    !isLoading && !isContinuing && (emailMatchedSchool ? Boolean(selectedSchoolId) : typedSchoolName.trim().length > 0);
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -116,13 +130,10 @@ const StudentSchoolStepPage: React.FC = () => {
       firstName,
       lastName,
       email,
-      password,
       grade,
-      dob,
-      cityState,
     } = base;
 
-    if (!email || !password || !firstName || !lastName || !grade) {
+    if (!email || !firstName || !lastName || !grade) {
       toast({
         variant: 'destructive',
         title: 'Missing information',
@@ -133,19 +144,22 @@ const StudentSchoolStepPage: React.FC = () => {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
+    setIsContinuing(true);
 
     const nextState: Partial<LocationState> & Record<string, unknown> = {
       ...base,
       firstName,
       lastName,
       email: normalizedEmail,
-      password,
       grade,
-      dob,
-      cityState,
+      dob: undefined,
       schoolId: schoolIdForSignup,
-      homeLanguage,
-      aspiration,
+      ...(lockedSchool?.name && { schoolName: lockedSchool.name }),
+      schoolPaymentComplete: lockedSchool?.paymentComplete === true,
+      schoolPlanId: lockedSchool?.planId ?? null,
+      schoolCoveredMembershipLevel: lockedSchool?.coveredMembershipLevel ?? 0,
+      homeLanguage: undefined,
+      aspiration: undefined,
       heardFrom,
     };
     if (!emailMatchedSchool && typedSchoolName.trim()) {
@@ -165,17 +179,12 @@ const StudentSchoolStepPage: React.FC = () => {
         firstName: m.firstName,
         lastName: m.lastName,
         email: m.email,
-        password: m.password,
         grade: m.grade,
-        dob: m.dob,
-        cityState: m.cityState,
         prefill: {
           firstName: m.firstName,
           lastName: m.lastName,
           email: m.email,
           grade: m.grade,
-          dob: m.dob,
-          cityState: m.cityState,
         },
       },
     });
@@ -263,7 +272,7 @@ const StudentSchoolStepPage: React.FC = () => {
               ) : (
                 <input
                   type="text"
-                  value={typedSchoolName}
+                  value={isLoading ? 'Loading...' : typedSchoolName}
                   onChange={(event) => setTypedSchoolName(event.target.value)}
                   disabled={isLoading}
                   className="mt-1.5 w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm sm:text-base text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 disabled:bg-slate-100"
@@ -274,8 +283,10 @@ const StudentSchoolStepPage: React.FC = () => {
               )}
             </div>
             {lockedSchool && (
-              <p className="text-xs text-slate-600">
-                Your email is on this school&apos;s registration list, so your school is set automatically.
+              <p className="rounded-lg bg-blue-50 px-3 py-2 text-xs leading-relaxed text-blue-900">
+                Your email is on this school&apos;s registration list.
+                If the school name, branch, campus, city, or any other detail looks wrong, please contact
+                globalyoungscholar@argus.ai before continuing. Otherwise, press Continue to choose your membership.
               </p>
             )}
             {!emailMatchedSchool && !isLoading && (
@@ -283,47 +294,6 @@ const StudentSchoolStepPage: React.FC = () => {
                 We couldn&apos;t match your email to a school list. Enter your school name as it should appear on your profile.
               </p>
             )}
-
-            <div>
-              <label className="block text-xs sm:text-sm font-bold text-slate-700">
-                Primary Language at Home
-              </label>
-              <select
-                value={homeLanguage}
-                onChange={(event) => setHomeLanguage(event.target.value)}
-                className="mt-1.5 w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm sm:text-base text-slate-900 bg-white focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
-              >
-                <option value="">Select Language</option>
-                <option value="English">English</option>
-                <option value="Hindi">Hindi</option>
-                <option value="Punjabi">Punjabi</option>
-                <option value="Gujarati">Gujarati</option>
-                <option value="Tamil">Tamil</option>
-                <option value="Telugu">Telugu</option>
-                <option value="Marathi">Marathi</option>
-                <option value="Bengali">Bengali</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs sm:text-sm font-bold text-slate-700">
-                Educational Aspirations
-              </label>
-              <select
-                value={aspiration}
-                onChange={(event) => setAspiration(event.target.value)}
-                className="mt-1.5 w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm sm:text-base text-slate-900 bg-white focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
-              >
-                <option value="">Select Primary Goal</option>
-                <option value="STUDY_ABROAD">Study abroad (US/UK/Canada/Australia)</option>
-                <option value="TOP_INDIAN">
-                  Top Indian university (IIT/IIM/AIIMS/etc.)
-                </option>
-                <option value="BOTH">Both international and Indian options</option>
-                <option value="EXPLORING">Still exploring</option>
-              </select>
-            </div>
 
             <div>
               <label className="block text-xs sm:text-sm font-bold text-slate-700">
@@ -344,14 +314,23 @@ const StudentSchoolStepPage: React.FC = () => {
               </select>
             </div>
 
-            <button
-              type="submit"
-              disabled={!canContinue}
-              className="mt-2 inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm sm:text-base font-semibold text-white shadow-md hover:bg-slate-900/90 disabled:cursor-not-allowed disabled:bg-slate-400"
-              style={{ backgroundColor: canContinue ? GYS_BLUE : undefined }}
-            >
-              Next: Choose membership →
-            </button>
+            <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={goBackToAccountStep}
+                className="inline-flex w-full items-center justify-center rounded-xl border-2 border-slate-300 bg-white px-4 py-3 text-sm sm:text-base font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:border-slate-400 hover:bg-slate-50 active:scale-95"
+              >
+                ← Back
+              </button>
+              <button
+                type="submit"
+                disabled={!canContinue}
+                className="inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm sm:text-base font-semibold text-white shadow-md hover:bg-slate-900/90 disabled:cursor-not-allowed disabled:bg-slate-400"
+                style={{ backgroundColor: canContinue ? GYS_BLUE : undefined }}
+              >
+                {isLoading ? 'Checking school...' : isContinuing ? 'Loading...' : 'Continue →'}
+              </button>
+            </div>
 
             <p className="pt-1 text-center text-xs text-slate-500">
               You can update this later from your dashboard.

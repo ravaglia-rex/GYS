@@ -236,7 +236,12 @@ const SettingsPage: React.FC = () => {
           <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)', mb: 1 }}>
             Need help with your settings?
           </Typography>
-          <Typography variant="body2" sx={{ color: '#8b5cf6', cursor: 'pointer', textDecoration: 'underline' }}>
+          <Typography
+            component="a"
+            href="mailto:globalyoungscholar@argus.ai"
+            variant="body2"
+            sx={{ color: '#8b5cf6', cursor: 'pointer', textDecoration: 'underline' }}
+          >
             Contact Support
           </Typography>
         </Box>

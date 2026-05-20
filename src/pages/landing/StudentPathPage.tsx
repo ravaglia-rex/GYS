@@ -218,9 +218,9 @@ const StudentPathPage: React.FC = () => {
           <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
-              disabled
-              className="px-5 py-2.5 rounded-xl text-sm font-medium shrink-0 border-2 bg-slate-200 text-slate-500 cursor-not-allowed shadow-none"
-              aria-label="Student sign up (temporarily unavailable)"
+              onClick={() => navigate('/students/register')}
+              className="px-5 py-2.5 rounded-xl text-sm font-medium shrink-0 border-2 border-transparent text-white shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-transform duration-150"
+              style={{ backgroundColor: GYS_BLUE }}
             >
               Sign up
             </button>
@@ -624,15 +624,14 @@ const StudentPathPage: React.FC = () => {
           <div className="mx-auto flex max-w-xl flex-col items-center gap-3">
             <button
               type="button"
-              disabled
-              className="inline-flex w-full cursor-not-allowed items-center justify-center rounded-2xl border border-slate-200 bg-slate-200 px-14 py-3.5 text-sm font-semibold text-slate-500 shadow-none sm:text-base"
-              aria-label="Student sign up (temporarily unavailable)"
+              onClick={() => navigate('/students/register')}
+              className="inline-flex w-full items-center justify-center rounded-2xl px-14 py-3.5 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.99] sm:text-base"
+              style={{ backgroundColor: GYS_BLUE }}
             >
-              Sign up - Coming soon!
+              Sign up now
             </button>
             <p className="text-center text-sm text-slate-600 sm:text-base">
-              Student registration is paused for a short time. Try the sample dashboard above to explore the
-              experience, or check back soon.
+              Create your GYS student account, choose a membership, and complete secure payment to begin.
             </p>
           </div>
         </section>

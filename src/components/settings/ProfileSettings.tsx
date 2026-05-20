@@ -16,11 +16,26 @@ import {
   Phone, 
   School, 
   Save,
-  Edit
+  Edit,
+  Calendar,
+  MapPin,
+  Languages,
+  Target,
+  Megaphone
 } from 'lucide-react';
 import { auth } from '../../firebase/firebase';
 import { getStudent, updateStudent } from '../../db/studentCollection';
 import { getSchoolDetails } from '../../db/schoolCollection';
+
+const HEARD_FROM_OPTIONS = [
+  { value: '', label: 'Select' },
+  { value: 'SCHOOL', label: 'My school' },
+  { value: 'FRIEND_FAMILY', label: 'Friend or family' },
+  { value: 'ACCESS_USA', label: 'Access USA' },
+  { value: 'EDUCATIONWORLD', label: 'EducationWorld' },
+  { value: 'SOCIAL_MEDIA', label: 'Social media' },
+  { value: 'OTHER', label: 'Other' },
+];
 
 const ProfileSettings: React.FC = () => {
   const currentUser = auth.currentUser;
@@ -34,6 +49,10 @@ const ProfileSettings: React.FC = () => {
     school: '',
     grade: '',
     dateOfBirth: '',
+    cityState: '',
+    homeLanguage: '',
+    aspiration: '',
+    heardFrom: '',
     about: '',
     parentName: '',
     parentEmail: '',
@@ -59,7 +78,11 @@ const ProfileSettings: React.FC = () => {
             displayName: (userData.first_name || '') + ' ' + (userData.last_name || ''),
             school: userData.school_id || '', // Using school_id for now
             grade: userData.grade ? `${userData.grade}${getGradeSuffix(userData.grade)} Grade` : '',
-            dateOfBirth: userData.dateOfBirth || '',
+            dateOfBirth: userData.date_of_birth || '',
+            cityState: userData.city_state || '',
+            homeLanguage: userData.home_language || '',
+            aspiration: userData.aspiration || '',
+            heardFrom: userData.heard_from || '',
             about: userData.about_me || '',
             parentName: userData.parent_name || '',
             parentEmail: userData.parent_email || '',
@@ -136,10 +159,20 @@ const ProfileSettings: React.FC = () => {
       // Save parent information and about me changes
       if (currentUser?.uid) {
         const updates: any = {};
-        if (formData.parentName) updates.parent_name = formData.parentName;
-        if (formData.parentEmail) updates.parent_email = formData.parentEmail;
-        if (formData.parentPhone) updates.parent_phone = formData.parentPhone;
-        if (formData.phoneNumber) updates.phone_number = formData.phoneNumber;
+        const [firstName, ...lastNameParts] = formData.displayName.trim().split(/\s+/).filter(Boolean);
+        if (firstName) {
+          updates.first_name = firstName;
+          updates.last_name = lastNameParts.join(' ');
+        }
+        updates.phone_number = formData.phoneNumber.trim();
+        updates.date_of_birth = formData.dateOfBirth;
+        updates.city_state = formData.cityState.trim();
+        updates.home_language = formData.homeLanguage.trim();
+        updates.aspiration = formData.aspiration.trim();
+        updates.heard_from = formData.heardFrom;
+        updates.parent_name = formData.parentName.trim();
+        updates.parent_email = formData.parentEmail.trim();
+        updates.parent_phone = formData.parentPhone.trim();
         if (formData.about !== undefined) updates.about_me = formData.about;
         
         if (Object.keys(updates).length > 0) {
@@ -284,6 +317,73 @@ const ProfileSettings: React.FC = () => {
                 <Box>
                   <TextField
                     fullWidth
+                    label="Date of Birth"
+                    type="date"
+                    value={formData.dateOfBirth}
+                    onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
+                    disabled={!isEditing}
+                    InputLabelProps={{ shrink: true }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Calendar size={20} color="rgba(255, 255, 255, 0.7)" />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        color: 'white',
+                        fontSize: '1rem',
+                        '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
+                        '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.5)' },
+                        '&.Mui-focused fieldset': { borderColor: '#8b5cf6' },
+                      },
+                      '& .MuiInputLabel-root': { 
+                        color: 'rgba(255, 255, 255, 0.9)', 
+                        fontSize: '1rem',
+                        fontWeight: 500
+                      },
+                      '& .MuiInputLabel-root.Mui-focused': { color: '#8b5cf6' },
+                    }}
+                  />
+                </Box>
+
+                <Box>
+                  <TextField
+                    fullWidth
+                    label="City / State"
+                    value={formData.cityState}
+                    onChange={(e) => handleInputChange('cityState', e.target.value)}
+                    disabled={!isEditing}
+                    placeholder="Bengaluru, Karnataka"
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <MapPin size={20} color="rgba(255, 255, 255, 0.7)" />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        color: 'white',
+                        fontSize: '1rem',
+                        '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
+                        '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.5)' },
+                        '&.Mui-focused fieldset': { borderColor: '#8b5cf6' },
+                      },
+                      '& .MuiInputLabel-root': { 
+                        color: 'rgba(255, 255, 255, 0.9)', 
+                        fontSize: '1rem',
+                        fontWeight: 500
+                      },
+                      '& .MuiInputLabel-root.Mui-focused': { color: '#8b5cf6' },
+                    }}
+                  />
+                </Box>
+
+                <Box>
+                  <TextField
+                    fullWidth
                     label="School"
                     value={schoolName || formData.school || 'No school assigned'}
                     disabled={true}
@@ -349,19 +449,18 @@ const ProfileSettings: React.FC = () => {
                   </TextField>
                 </Box>
 
-                {/* Date of Birth field - commented out for later use
                 <Box>
                   <TextField
                     fullWidth
-                    label="Date of Birth"
-                    type="date"
-                    value={formData.dateOfBirth}
-                    onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
+                    label="Language Spoken at Home"
+                    value={formData.homeLanguage}
+                    onChange={(e) => handleInputChange('homeLanguage', e.target.value)}
                     disabled={!isEditing}
+                    placeholder="English, Hindi, Tamil..."
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
-                          <Calendar size={20} color="rgba(255, 255, 255, 0.7)" />
+                          <Languages size={20} color="rgba(255, 255, 255, 0.7)" />
                         </InputAdornment>
                       ),
                     }}
@@ -382,7 +481,78 @@ const ProfileSettings: React.FC = () => {
                     }}
                   />
                 </Box>
-                */}
+
+                <Box>
+                  <TextField
+                    fullWidth
+                    label="Educational Aspiration"
+                    value={formData.aspiration}
+                    onChange={(e) => handleInputChange('aspiration', e.target.value)}
+                    disabled={!isEditing}
+                    placeholder="Engineering, medicine, design, undecided..."
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Target size={20} color="rgba(255, 255, 255, 0.7)" />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        color: 'white',
+                        fontSize: '1rem',
+                        '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
+                        '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.5)' },
+                        '&.Mui-focused fieldset': { borderColor: '#8b5cf6' },
+                      },
+                      '& .MuiInputLabel-root': { 
+                        color: 'rgba(255, 255, 255, 0.9)', 
+                        fontSize: '1rem',
+                        fontWeight: 500
+                      },
+                      '& .MuiInputLabel-root.Mui-focused': { color: '#8b5cf6' },
+                    }}
+                  />
+                </Box>
+
+                <Box>
+                  <TextField
+                    fullWidth
+                    label="How Did You Hear About GYS?"
+                    value={formData.heardFrom}
+                    onChange={(e) => handleInputChange('heardFrom', e.target.value)}
+                    disabled={!isEditing}
+                    select
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Megaphone size={20} color="rgba(255, 255, 255, 0.7)" />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        color: 'white',
+                        fontSize: '1rem',
+                        '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
+                        '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.5)' },
+                        '&.Mui-focused fieldset': { borderColor: '#8b5cf6' },
+                      },
+                      '& .MuiInputLabel-root': { 
+                        color: 'rgba(255, 255, 255, 0.9)', 
+                        fontSize: '1rem',
+                        fontWeight: 500
+                      },
+                      '& .MuiInputLabel-root.Mui-focused': { color: '#8b5cf6' },
+                    }}
+                  >
+                    {HEARD_FROM_OPTIONS.map((option) => (
+                      <MenuItem key={option.value || 'empty'} value={option.value}>
+                        {option.label}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Box>
 
                 {/* Parent Information Section */}
                 <Box>

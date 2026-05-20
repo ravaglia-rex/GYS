@@ -1,6 +1,13 @@
 import axios from "axios";
-import { STUDENTS_APIS, FETCH_STUDENT_DATA, UPDATE_STUDENT_DATA } from "../constants/constants";
+import {
+  STUDENTS_APIS,
+  FETCH_STUDENT_DATA,
+  UPDATE_STUDENT_DATA,
+  LIST_STUDENT_REPORTS,
+  STUDENT_REPORT_DOWNLOAD_URL,
+} from "../constants/constants";
 import authTokenHandler from "../functions/auth_token/auth_token_handler";
+import { downloadPdfFromUrl } from "./schoolAdminCollection";
 
 /** Thrown from getStudent so callers can show specific UI (404 = no Firestore profile, etc.). */
 export class StudentProfileError extends Error {
@@ -75,7 +82,23 @@ export const getStudent = async (userId: string) => {
   }
 };
 
-export const updateStudent = async (user_id: string, student: {first_name?: string, last_name?: string, about_me?: string, parent_name?: string, parent_email?: string, parent_phone?: string, phone_number?: string, grade?: number}) => {
+export type UpdateStudentPayload = {
+    first_name?: string;
+    last_name?: string;
+    about_me?: string;
+    parent_name?: string;
+    parent_email?: string;
+    parent_phone?: string;
+    phone_number?: string;
+    grade?: number;
+    date_of_birth?: string;
+    city_state?: string;
+    home_language?: string;
+    aspiration?: string;
+    heard_from?: string;
+};
+
+export const updateStudent = async (user_id: string, student: UpdateStudentPayload) => {
     try {
         const authToken = await authTokenHandler.getAuthToken();
         const config = {
@@ -95,3 +118,52 @@ export const updateStudent = async (user_id: string, student: {first_name?: stri
         throw new Error(`Error updating student for user ${user_id}. Please contact globalyoungscholar@argus.ai`);
     }
 }
+
+export interface StudentReportListItem {
+  reportId: string;
+  milestone: number | null;
+  generatedAt: string | null;
+  pdfFilename: string | null;
+  hasPdf: boolean;
+  completedAssessmentCount: number | null;
+}
+
+export interface StudentReportsResponse {
+  reports: StudentReportListItem[];
+  s3Configured: boolean;
+}
+
+export const getStudentReports = async (uid: string): Promise<StudentReportsResponse> => {
+  const authToken = await authTokenHandler.getAuthToken();
+  if (!authToken) {
+    throw new Error('You are not signed in. Please sign in again.');
+  }
+  const encodedUID = encodeURIComponent(uid);
+  const response = await axios.get(
+    `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${STUDENTS_APIS}${LIST_STUDENT_REPORTS}/${encodedUID}`,
+    { headers: { Authorization: `Bearer ${authToken}` } }
+  );
+  return response.data as StudentReportsResponse;
+};
+
+export const getStudentReportDownloadUrl = async (
+  uid: string,
+  reportId: string
+): Promise<{ url: string; filename: string; reportId: string }> => {
+  const authToken = await authTokenHandler.getAuthToken();
+  if (!authToken) {
+    throw new Error('You are not signed in. Please sign in again.');
+  }
+  const encodedUID = encodeURIComponent(uid);
+  const encodedReportId = encodeURIComponent(reportId);
+  const response = await axios.get(
+    `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${STUDENTS_APIS}${STUDENT_REPORT_DOWNLOAD_URL}/${encodedUID}/${encodedReportId}`,
+    { headers: { Authorization: `Bearer ${authToken}` } }
+  );
+  return response.data;
+};
+
+export const downloadStudentReport = async (uid: string, reportId: string): Promise<void> => {
+  const { url, filename } = await getStudentReportDownloadUrl(uid, reportId);
+  await downloadPdfFromUrl(url, filename || `${reportId}.pdf`);
+};

@@ -2,7 +2,7 @@ import React from "react";
 
 interface PasswordActionLayoutProps {
   title: string;
-  description: string;
+  description?: string;
   children: React.ReactNode;
 }
 
@@ -29,9 +29,11 @@ const PasswordActionLayout: React.FC<PasswordActionLayoutProps> = ({ title, desc
         <div className="mx-auto flex min-h-full w-full max-w-xl flex-col items-center justify-center py-1">
           <div className="mb-4 w-full text-center sm:mb-6">
             <h1 className="text-balance text-xl font-semibold tracking-tight text-white sm:text-3xl">{title}</h1>
-            <p className="mx-auto mt-2 max-w-lg text-pretty text-sm leading-snug text-slate-400 sm:mt-3 sm:text-base sm:leading-relaxed">
-              {description}
-            </p>
+            {description && (
+              <p className="mx-auto mt-2 max-w-lg text-pretty text-sm leading-snug text-slate-400 sm:mt-3 sm:text-base sm:leading-relaxed">
+                {description}
+              </p>
+            )}
           </div>
           {children}
         </div>
