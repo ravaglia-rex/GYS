@@ -69,13 +69,25 @@ const SignInForm: React.FC<SignInFormProps> = ({ email, isSchoolAdmin, schoolInf
 
     const completeStudentSignIn = useCallback(
       async (userCredential: UserCredential) => {
-        await dispatch(checkUserRole(userCredential.user.email || ''));
+        const roleResult = await dispatch(checkUserRole(userCredential.user.email || '')).unwrap();
+        if (roleResult.role === 'schooladmin') {
+          toast({
+            variant: 'destructive',
+            title: 'Use the school official sign-in',
+            description:
+              'This email is registered for a school official account and cannot be used to enter the student dashboard.',
+          });
+          await revertPartialStudentSignIn();
+          return false;
+        }
+
         toast({
           variant: 'default',
           title: 'Signed in successfully!',
           description: `Welcome back, ${userCredential.user.email}`,
         });
         navigate('/dashboard');
+        return true;
       },
       [dispatch, navigate, toast]
     );
@@ -162,7 +174,10 @@ const SignInForm: React.FC<SignInFormProps> = ({ email, isSchoolAdmin, schoolInf
                 return;
             }
 
-            await completeStudentSignIn(userCredential);
+            const signedInAsStudent = await completeStudentSignIn(userCredential);
+            if (!signedInAsStudent) {
+                setIsSubmitted(false);
+            }
         } catch (error: unknown) {
             console.error('Sign in error:', error);
             await revertPartialStudentSignIn();

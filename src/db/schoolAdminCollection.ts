@@ -154,10 +154,13 @@ export const getStudentRegistrationEmails = async (): Promise<string[]> => {
 };
 
 export type UpdateSchoolProfilePayload = {
-  school_name: string;
-  school_address?: string;
   phone?: string;
   website?: string;
+  boards?: string[];
+  board?: string;
+  abbreviations?: string[];
+  referral_source?: string;
+  additional_contact_emails?: string[];
 };
 
 export const putSchoolProfile = async (

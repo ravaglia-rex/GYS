@@ -158,6 +158,20 @@ function displayOrDash(value: string): string {
   return value.trim() || '—';
 }
 
+function splitCommaSeparated(value: string): string[] {
+  return value
+    .split(',')
+    .map((x) => x.trim())
+    .filter(Boolean);
+}
+
+function splitContactEmails(value: string): string[] {
+  return value
+    .split(/[\n,;]/)
+    .map((x) => x.trim().toLowerCase())
+    .filter(Boolean);
+}
+
 type SettingsFieldProps = {
   label: string;
   value: string;
@@ -362,6 +376,14 @@ const SchoolAdminSettingsPage: React.FC = () => {
     });
   };
 
+  const handleRegistrationChange =
+    (field: keyof SchoolRegistrationDisplay) => (event: React.ChangeEvent<HTMLInputElement>) => {
+      setRegistration({
+        ...registration,
+        [field]: event.target.value,
+      });
+    };
+
   const handleSave = async () => {
     if (isSchoolAdminPreview) {
       setShowSuccess(true);
@@ -369,19 +391,18 @@ const SchoolAdminSettingsPage: React.FC = () => {
       return;
     }
 
-    const trimmedName = schoolInfo.name.trim();
-    if (!trimmedName) {
-      setSaveError('School name is required.');
-      return;
-    }
-
     setSaving(true);
     setSaveError(null);
     try {
+      const boards = splitCommaSeparated(registration.boards);
       await putSchoolProfile({
-        school_name: trimmedName,
         phone: schoolInfo.phone.trim(),
         website: schoolInfo.website.trim(),
+        boards,
+        board: boards.join(', '),
+        abbreviations: splitCommaSeparated(registration.abbreviations),
+        referral_source: registration.referralSource.trim(),
+        additional_contact_emails: splitContactEmails(registration.additionalContactEmails),
       });
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
@@ -464,7 +485,7 @@ const SchoolAdminSettingsPage: React.FC = () => {
                   School Information
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#94a3b8' }}>
-                  Update display name, phone, and website. Registration details are shown below.
+                  School identity details. Only phone and website can be edited here.
                 </Typography>
               </Box>
               {schoolInfo.verified && (
@@ -490,7 +511,7 @@ const SchoolAdminSettingsPage: React.FC = () => {
               <SettingsField
                 label="School Name"
                 value={schoolInfo.name}
-                onChange={handleSchoolInfoChange('name')}
+                readOnly
               />
               <SettingsField
                 label="Primary contact email"
@@ -527,11 +548,11 @@ const SchoolAdminSettingsPage: React.FC = () => {
               Registration details
             </Typography>
             <Typography variant="body2" sx={{ color: '#94a3b8', mb: 3 }}>
-              Information submitted when your school joined GYS. Contact{' '}
+              Registration information from when your school joined GYS. Locked fields require{' '}
               <Box component="span" sx={{ color: ip.navy, fontWeight: 500 }}>
                 globalyoungscholar@argus.ai
               </Box>{' '}
-              to update these fields.
+              to update.
             </Typography>
 
             <Divider sx={{ mb: 3, borderColor: ip.cardBorder }} />
@@ -545,20 +566,22 @@ const SchoolAdminSettingsPage: React.FC = () => {
               />
               <SettingsField
                 label="Curriculum / boards"
-                value={displayOrDash(registration.boards)}
-                readOnly
+                value={registration.boards}
+                onChange={handleRegistrationChange('boards')}
+                helperText="Separate multiple boards with commas"
                 gridColumn={{ xs: '1', md: '1 / -1' }}
               />
               <SettingsField
                 label="School abbreviations"
-                value={displayOrDash(registration.abbreviations)}
-                readOnly
+                value={registration.abbreviations}
+                onChange={handleRegistrationChange('abbreviations')}
+                helperText="Separate aliases with commas"
                 gridColumn={{ xs: '1', md: '1 / -1' }}
               />
               <SettingsField
                 label="How you heard about GYS"
-                value={displayOrDash(registration.referralSource)}
-                readOnly
+                value={registration.referralSource}
+                onChange={handleRegistrationChange('referralSource')}
                 gridColumn={{ xs: '1', md: '1 / -1' }}
               />
               <SettingsField
@@ -582,8 +605,9 @@ const SchoolAdminSettingsPage: React.FC = () => {
               />
               <SettingsField
                 label="Additional contact emails"
-                value={displayOrDash(registration.additionalContactEmails)}
-                readOnly
+                value={registration.additionalContactEmails}
+                onChange={handleRegistrationChange('additionalContactEmails')}
+                helperText="Separate emails with commas or new lines. Primary login email remains unchanged."
                 multiline
                 rows={2}
                 gridColumn={{ xs: '1', md: '1 / -1' }}

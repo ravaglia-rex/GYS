@@ -14,6 +14,11 @@ import {
   stateOk,
   razorpayEmailOk,
   shipLineCharsError,
+  partyNameCharsOk,
+  partyNameCharsError,
+  sanitizePartyNameInput,
+  sanitizeShipLineInput,
+  sanitizeLatinNameInput,
   RAZORPAY_PARTY_NAME_MIN,
   RAZORPAY_PARTY_NAME_MAX,
   RAZORPAY_SHIP_LINE1_MIN,
@@ -262,6 +267,10 @@ const SchoolRegistrationPage: React.FC = () => {
       } else {
         newErrors.schoolName = `School name must be ${RAZORPAY_PARTY_NAME_MIN}–${RAZORPAY_PARTY_NAME_MAX} characters (required by our payment partner for billing).`;
       }
+    } else if (!partyNameCharsOk(trimmed)) {
+      newErrors.schoolName = partyNameCharsError('School name');
+    } else if (schoolBranch.trim() && !partyNameCharsOk(schoolBranch.trim())) {
+      newErrors.schoolBranch = partyNameCharsError('Branch or campus');
     }
     if (!confirmSchoolName.trim()) {
       newErrors.confirmSchoolName = 'Please re-type your school name to confirm.';
@@ -837,7 +846,7 @@ const SchoolRegistrationPage: React.FC = () => {
                     <span className="font-medium text-slate-700">
                       {RAZORPAY_PARTY_NAME_MIN}–{RAZORPAY_PARTY_NAME_MAX} characters
                     </span>
-                    .{' '}
+                    . English letters and spaces only; no commas or punctuation.{' '}
                     <span className="text-slate-400">
                       ({storedSchoolName.length}/{RAZORPAY_PARTY_NAME_MAX})
                     </span>
@@ -845,7 +854,8 @@ const SchoolRegistrationPage: React.FC = () => {
                   <input
                     type="text"
                     value={schoolName}
-                    onChange={(e) => { setSchoolName(e.target.value); clearError('schoolName'); clearError('schoolBranch'); }}
+                    maxLength={RAZORPAY_PARTY_NAME_MAX}
+                    onChange={(e) => { setSchoolName(sanitizePartyNameInput(e.target.value)); clearError('schoolName'); clearError('schoolBranch'); }}
                     className={`mt-1.5 w-full rounded-lg border px-3.5 py-2.5 text-sm sm:text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 ${
                       errors.schoolName
                         ? 'border-red-400 focus:border-red-400 focus:ring-red-300'
@@ -873,7 +883,7 @@ const SchoolRegistrationPage: React.FC = () => {
                     type="text"
                     value={confirmSchoolName}
                     maxLength={RAZORPAY_PARTY_NAME_MAX}
-                    onChange={(e) => { setConfirmSchoolName(e.target.value); clearError('confirmSchoolName'); }}
+                    onChange={(e) => { setConfirmSchoolName(sanitizePartyNameInput(e.target.value)); clearError('confirmSchoolName'); }}
                     onPaste={(e) => e.preventDefault()}
                     onCopy={(e) => e.preventDefault()}
                     onCut={(e) => e.preventDefault()}
@@ -913,7 +923,7 @@ const SchoolRegistrationPage: React.FC = () => {
                     value={schoolBranch}
                     maxLength={RAZORPAY_PARTY_NAME_MAX}
                     onChange={(e) => {
-                      setSchoolBranch(e.target.value);
+                      setSchoolBranch(sanitizePartyNameInput(e.target.value));
                       clearError('schoolBranch');
                       clearError('schoolName');
                     }}
@@ -1174,7 +1184,7 @@ const SchoolRegistrationPage: React.FC = () => {
                         maxLength={RAZORPAY_SHIP_LINE1_MAX}
                         aria-invalid={Boolean(errors.addressLine1)}
                         onChange={(e) => {
-                          setAddressLine1(e.target.value);
+                          setAddressLine1(sanitizeShipLineInput(e.target.value));
                           clearError('addressLine1');
                         }}
                         className={fieldInputClass(Boolean(errors.addressLine1))}
@@ -1199,7 +1209,7 @@ const SchoolRegistrationPage: React.FC = () => {
                         maxLength={RAZORPAY_SHIP_LINE2_MAX}
                         aria-invalid={Boolean(errors.addressLine2)}
                         onChange={(e) => {
-                          setAddressLine2(e.target.value);
+                          setAddressLine2(sanitizeShipLineInput(e.target.value));
                           clearError('addressLine2');
                         }}
                         className={fieldInputClass(Boolean(errors.addressLine2))}
@@ -1224,7 +1234,7 @@ const SchoolRegistrationPage: React.FC = () => {
                           maxLength={RAZORPAY_CITY_MAX}
                           aria-invalid={Boolean(errors.city)}
                           onChange={(e) => {
-                            setCity(e.target.value);
+                            setCity(sanitizeLatinNameInput(e.target.value));
                             clearError('city');
                           }}
                           className={fieldInputClass(Boolean(errors.city), 'text-sm')}

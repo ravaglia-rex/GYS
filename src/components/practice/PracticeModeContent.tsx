@@ -185,6 +185,7 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
   const [livePoolByLevel, setLivePoolByLevel] = useState<Partial<
     Record<PracticeLevel, number>
   > | null>(null);
+  const [livePoolCountsFailed, setLivePoolCountsFailed] = useState(false);
 
   const selectedExamHasPracticeBank = (PRACTICE_ELIGIBLE_EXAM_IDS as readonly string[]).includes(
     selectedExamId
@@ -194,11 +195,13 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
     let cancelled = false;
     if (!selectedExamHasPracticeBank) {
       setLivePoolByLevel(null);
+      setLivePoolCountsFailed(false);
       return () => {
         cancelled = true;
       };
     }
     setLivePoolByLevel(null);
+    setLivePoolCountsFailed(false);
     fetchPracticePoolCounts(selectedExamId)
       .then((res) => {
         if (cancelled) return;
@@ -210,7 +213,10 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
         });
       })
       .catch(() => {
-        if (!cancelled) setLivePoolByLevel(null);
+        if (!cancelled) {
+          setLivePoolByLevel(null);
+          setLivePoolCountsFailed(true);
+        }
       });
     return () => {
       cancelled = true;
@@ -251,7 +257,11 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
 
   const refreshStorage = useCallback(() => setSessionRev((x) => x + 1), []);
 
+  const livePoolCountsLoading =
+    selectedExamHasPracticeBank && livePoolByLevel == null && !livePoolCountsFailed;
   const progressRatio = stats.pool > 0 ? Math.min(1, stats.completed / stats.pool) : 0;
+  const poolCountText = livePoolCountsLoading ? 'Loading...' : String(stats.pool);
+  const completedCountText = livePoolCountsLoading ? 'Loading...' : String(stats.completed);
 
   const [toast, setToast] = useState<string | null>(null);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
@@ -768,20 +778,42 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
                 {getAssessmentDisplayName(selectedExamId)} · Level {selectedLevel}
               </Typography>
               <Stack direction="row" spacing={3} sx={{ mt: 2 }} flexWrap="wrap" useFlexGap>
-                <Box>
+                <Box sx={{ minWidth: { xs: 112, sm: 128 } }}>
                   <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
                     In pool
                   </Typography>
-                  <Typography variant="h5" sx={{ color: '#7dd3fc', fontWeight: 800 }}>
-                    {stats.pool}
+                  <Typography
+                    variant="h5"
+                    sx={{
+                      color: '#7dd3fc',
+                      fontWeight: 800,
+                      minHeight: 32,
+                      lineHeight: 1.2,
+                      display: 'flex',
+                      alignItems: 'center',
+                      fontSize: livePoolCountsLoading ? '1rem' : undefined,
+                    }}
+                  >
+                    {poolCountText}
                   </Typography>
                 </Box>
-                <Box>
+                <Box sx={{ minWidth: { xs: 112, sm: 128 } }}>
                   <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
                     You&apos;ve completed
                   </Typography>
-                  <Typography variant="h5" sx={{ color: '#a7f3d0', fontWeight: 800 }}>
-                    {stats.completed}
+                  <Typography
+                    variant="h5"
+                    sx={{
+                      color: '#a7f3d0',
+                      fontWeight: 800,
+                      minHeight: 32,
+                      lineHeight: 1.2,
+                      display: 'flex',
+                      alignItems: 'center',
+                      fontSize: livePoolCountsLoading ? '1rem' : undefined,
+                    }}
+                  >
+                    {completedCountText}
                   </Typography>
                 </Box>
               </Stack>
@@ -791,12 +823,12 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
                     Progress through pool
                   </Typography>
                   <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.55)' }}>
-                    {stats.completed} / {stats.pool}
+                    {livePoolCountsLoading ? 'Loading...' : `${stats.completed} / ${stats.pool}`}
                   </Typography>
                 </Stack>
                 <LinearProgress
-                  variant="determinate"
-                  value={progressRatio * 100}
+                  variant={livePoolCountsLoading ? 'indeterminate' : 'determinate'}
+                  value={livePoolCountsLoading ? undefined : progressRatio * 100}
                   sx={{
                     height: 8,
                     borderRadius: 99,
@@ -811,6 +843,8 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
               <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.38)', display: 'block', mt: 1.5 }}>
                 {selectedExamHasPracticeBank && livePoolByLevel != null
                   ? 'Pool size is the total number of questions in the practice pool. Completed items reflect the number of questions you have completed.'
+                  : livePoolCountsLoading
+                    ? 'Loading live practice pool size...'
                   : selectedExamHasPracticeBank
                     ? 'Upload items to practice_bank to show live pool sizes. Completed items reflect the number of questions you have completed.'
                     : 'Pool sizes are placeholders until each exam has a practice bank wired; completed count updates when you finish items.'}

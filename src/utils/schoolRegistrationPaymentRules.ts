@@ -25,6 +25,9 @@ export const INDIA_PIN_LENGTH = 6;
 /** City and state: English letters and spaces only. */
 export const RAZORPAY_LATIN_NAME_RE = /^[A-Za-z ]+$/;
 
+/** Razorpay customer/order party names are safest with English letters and spaces only. */
+export const RAZORPAY_PARTY_NAME_CHARS_RE = RAZORPAY_LATIN_NAME_RE;
+
 /** Address lines: alphanumeric plus Razorpay-allowed punctuation (no regional scripts). */
 export const RAZORPAY_SHIP_LINE_CHARS_RE = /^[A-Za-z0-9 *&/\-()#_+[\]:'",.]+$/;
 
@@ -34,6 +37,22 @@ function lengthOk(n: number, min: number, max: number): boolean {
 
 export function partyNameLengthOk(trimmed: string): boolean {
   return lengthOk(trimmed.length, RAZORPAY_PARTY_NAME_MIN, RAZORPAY_PARTY_NAME_MAX);
+}
+
+export function partyNameCharsOk(trimmed: string): boolean {
+  return RAZORPAY_PARTY_NAME_CHARS_RE.test(trimmed);
+}
+
+export function sanitizePartyNameInput(raw: string): string {
+  return raw.replace(/[^A-Za-z ]/g, '');
+}
+
+export function sanitizeShipLineInput(raw: string): string {
+  return raw.replace(/[^A-Za-z0-9 *&/\-()#_+[\]:'",.]/g, '');
+}
+
+export function sanitizeLatinNameInput(raw: string): string {
+  return raw.replace(/[^A-Za-z ]/g, '');
 }
 
 export function shipLine1Ok(trimmed: string): boolean {
@@ -76,4 +95,8 @@ export function razorpayEmailOk(email: string): boolean {
 
 export function shipLineCharsError(fieldLabel: string): string {
   return `${fieldLabel} may only use English letters, numbers, spaces, and these symbols: *&/-()#_+[]:'",.`;
+}
+
+export function partyNameCharsError(fieldLabel: string): string {
+  return `${fieldLabel} may only use English letters and spaces. Please remove numbers, commas, periods, apostrophes, and other symbols.`;
 }

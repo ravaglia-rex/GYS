@@ -23,7 +23,7 @@ const StudentMembershipStepPage: React.FC = () => {
     merged.membershipLevel === 'LEVEL_3' ||
     merged.membershipLevel === 'LEVEL_4'
       ? merged.membershipLevel
-      : 'LEVEL_2';
+      : 'LEVEL_3';
 
   const [selectedLevel, setSelectedLevel] = useState<MembershipLevel>(initialLevel);
 
@@ -72,9 +72,9 @@ const StudentMembershipStepPage: React.FC = () => {
       price: '₹899',
       priceSuffix: 'per year',
       oneTime: false,
-      badge: 'Most Popular',
-      borderColor: 'border-amber-400',
-      background: 'bg-amber-50',
+      badge: null as string | null,
+      borderColor: 'border-slate-200',
+      background: 'bg-white',
       accent: 'bg-emerald-500',
       features: [
         { text: 'Real talent positioning - full Reasoning group (Exams 1–3)', included: true },
@@ -92,8 +92,8 @@ const StudentMembershipStepPage: React.FC = () => {
       price: '₹1,799',
       priceSuffix: 'per year',
       oneTime: false,
-      badge: null as string | null,
-      borderColor: 'border-sky-200',
+      badge: 'Most Popular',
+      borderColor: 'border-slate-200',
       background: 'bg-white',
       accent: 'bg-sky-600',
       features: [
@@ -112,8 +112,8 @@ const StudentMembershipStepPage: React.FC = () => {
       priceSuffix: 'per year',
       oneTime: false,
       badge: null as string | null,
-      borderColor: 'border-orange-200',
-      background: 'bg-orange-50/80',
+      borderColor: 'border-slate-200',
+      background: 'bg-white',
       accent: 'bg-orange-500',
       features: [
         {
@@ -270,11 +270,30 @@ const StudentMembershipStepPage: React.FC = () => {
                       {level.features.map((feature) => (
                         <li key={feature.text} className="flex items-start gap-2">
                           <span
-                            className={`mt-0.5 inline-flex h-4 w-4 items-center justify-center rounded-full text-[11px] font-bold ${
+                            className={`mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full ${
                               feature.included ? 'bg-emerald-500 text-white' : 'bg-slate-300 text-white'
                             }`}
                           >
-                            {feature.included ? '✓' : ' - '}
+                            {feature.included ? (
+                              <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                <path
+                                  d="M3.5 8.2 6.4 11 12.5 5"
+                                  stroke="currentColor"
+                                  strokeWidth="2.2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            ) : (
+                              <svg className="h-2.5 w-2.5" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                <path
+                                  d="M4 8h8"
+                                  stroke="currentColor"
+                                  strokeWidth="2.2"
+                                  strokeLinecap="round"
+                                />
+                              </svg>
+                            )}
                           </span>
                           <span className={feature.included ? 'text-slate-700' : 'text-slate-400'}>
                             {feature.text}

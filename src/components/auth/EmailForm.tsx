@@ -181,6 +181,14 @@ const EmailEntryForm: React.FC = () => {
       if (!result.exists) {
         analytics.track('[DIRECT] New User Flow', { email: data.email });
         setShowNoAccountDialog(true);
+      } else if (result.type === 'schooladmin') {
+        toast({
+          variant: 'destructive',
+          title: 'Use the school official sign-in',
+          description:
+            'This email is registered for a school official account. Select the school official checkbox to access the school dashboard.',
+        });
+        setEmailExists(false);
       } else {
         setEmailExists(result.exists);
       }

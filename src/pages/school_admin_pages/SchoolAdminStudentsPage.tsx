@@ -34,7 +34,6 @@ import {
   ArrowDownward as ArrowDownwardIcon,
   Add as AddIcon,
   OpenInNew as OpenInNewIcon,
-  UploadFile as UploadFileIcon,
 } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -221,6 +220,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [bulkText, setBulkText] = useState('');
   const [uploadNotice, setUploadNotice] = useState<string | null>(null);
+  const [revokingEmail, setRevokingEmail] = useState<string | null>(null);
 
   const refreshRegistrationEmails = useCallback(async () => {
     try {
@@ -332,8 +332,18 @@ const SchoolAdminStudentsPage: React.FC = () => {
       }
       current = (current ?? []).map(normalizeRosterEmail);
       const merged = mergeRegistrationEmailLists(current, additions);
+      const currentSet = new Set(current);
+      const newInvitations = merged.filter(email => !currentSet.has(email));
+      if (newInvitations.length === 0) {
+        setUploadNotice('No new invitations were sent; those emails are already on your invite list.');
+        setBulkText('');
+        setAddDialogOpen(false);
+        return;
+      }
       await putStudentRegistrationEmails(merged);
-      setUploadNotice(`Saved ${merged.length} email${merged.length === 1 ? '' : 's'} on your invite list.`);
+      setUploadNotice(
+        `Sent invitation${newInvitations.length === 1 ? '' : 's'} to ${newInvitations.length} student${newInvitations.length === 1 ? '' : 's'}.`
+      );
       await refreshRegistrationEmails();
       await loadRoster();
       setBulkText('');
@@ -345,10 +355,29 @@ const SchoolAdminStudentsPage: React.FC = () => {
     }
   };
 
-  const handleCsvFile = async (file: File | null) => {
-    if (!file) return;
-    const text = await file.text();
-    setBulkText(prev => (prev ? `${prev}\n${text}` : text));
+  const handleRevokeInvitation = async (email: string) => {
+    const target = normalizeRosterEmail(email);
+    if (!target) return;
+    setRevokingEmail(target);
+    setRegistrationError(null);
+    setUploadNotice(null);
+    try {
+      let current: string[] = [];
+      try {
+        current = await getStudentRegistrationEmails();
+      } catch {
+        current = registrationEmails;
+      }
+      const next = (current ?? []).map(normalizeRosterEmail).filter(e => e && e !== target);
+      await putStudentRegistrationEmails(next);
+      setUploadNotice(`Revoked invitation for ${target}.`);
+      await refreshRegistrationEmails();
+      await loadRoster();
+    } catch (e) {
+      setRegistrationError((e as Error).message ?? 'Could not revoke invitation.');
+    } finally {
+      setRevokingEmail(null);
+    }
   };
 
   const filteredSorted = useMemo(() => {
@@ -524,7 +553,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
               boxShadow: 'none',
               '&:hover': { bgcolor: '#0c356f', boxShadow: '0 4px 12px rgba(16, 64, 139, 0.25)' },
             }}
-            aria-label="Add students - paste or upload emails"
+            aria-label="Add students - paste emails"
           >
             Add students
           </Button>
@@ -539,6 +568,11 @@ const SchoolAdminStudentsPage: React.FC = () => {
       {uploadNotice && (
         <Alert severity="success" sx={{ mb: 2 }} onClose={() => setUploadNotice(null)}>
           {uploadNotice}
+        </Alert>
+      )}
+      {registrationError && !addDialogOpen && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setRegistrationError(null)}>
+          {registrationError}
         </Alert>
       )}
 
@@ -582,17 +616,17 @@ const SchoolAdminStudentsPage: React.FC = () => {
               Add your students
             </Typography>
             <Typography variant="body2" sx={{ color: ip.subtext, mb: 2, maxWidth: 560, lineHeight: 1.6 }}>
-              There are no student accounts for your school yet. Upload a CSV of student email addresses (one per line,
-              or comma-separated). We’ll store them as your invite list so those students can register under your school.
+              There are no student accounts for your school yet. Paste student email addresses below, one per line or
+              comma-separated. If you prefer to send a CSV, email it to globalyoungscholar@argus.ai.
             </Typography>
             <Button
               variant="contained"
-              startIcon={<UploadFileIcon />}
+              startIcon={<AddIcon />}
               disabled={isSchoolAdminPreview}
               onClick={() => setAddDialogOpen(true)}
               sx={{ mb: 2 }}
             >
-              Upload or paste emails
+              Paste student emails
             </Button>
             <Typography variant="caption" display="block" sx={{ color: ip.subtext }}>
               You can add more any time using <strong>Add students</strong> above once your roster is active.
@@ -966,9 +1000,15 @@ const SchoolAdminStudentsPage: React.FC = () => {
                             <TableCell sx={{ color: ip.subtext }}>-</TableCell>
                             <TableCell sx={{ color: ip.subtext }}>-</TableCell>
                             <TableCell align="right">
-                              <Typography variant="caption" sx={{ color: ip.subtext }}>
-                                -
-                              </Typography>
+                              <Button
+                                size="small"
+                                color="error"
+                                disabled={revokingEmail === r.email}
+                                onClick={() => void handleRevokeInvitation(r.email)}
+                                sx={{ fontWeight: 600, textTransform: 'none' }}
+                              >
+                                Revoke invitation
+                              </Button>
                             </TableCell>
                           </TableRow>
                         )
@@ -1022,25 +1062,12 @@ const SchoolAdminStudentsPage: React.FC = () => {
             </Alert>
           )}
           <Typography variant="body2" sx={{ color: ip.heading, mb: 2, lineHeight: 1.55, fontSize: '0.95rem' }}>
-            Paste emails (one per line or comma-separated), or choose a CSV file. New addresses are merged with your
-            existing invite list.
+            Paste emails in the box below, one per line or comma-separated. New addresses are added to your school
+            student email list and invitation emails are sent automatically.
           </Typography>
-          <Button
-            variant="outlined"
-            component="label"
-            startIcon={<UploadFileIcon />}
-            sx={{
-              mb: 2,
-              textTransform: 'none',
-              fontWeight: 600,
-              borderColor: ip.navy,
-              color: ip.navy,
-              '&:hover': { borderColor: ip.navy, bgcolor: 'rgba(16, 64, 139, 0.06)' },
-            }}
-          >
-            Choose CSV
-            <input type="file" accept=".csv,text/csv,.txt,text/plain" hidden onChange={e => void handleCsvFile(e.target.files?.[0] ?? null)} />
-          </Button>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            You can also email a CSV file to globalyoungscholar@argus.ai and we will upload it for your school.
+          </Alert>
           <TextField
             multiline
             minRows={6}
@@ -1119,7 +1146,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
               },
             }}
           >
-            Save to invite list
+            Send invitation
           </Button>
         </DialogActions>
       </Dialog>

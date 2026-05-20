@@ -49,6 +49,7 @@ const StudentRegistrationPage: React.FC = () => {
   const [lastName, setLastName] = useState(regInitial.lastName);
   const [email, setEmail] = useState(regInitial.email);
   const [password, setPassword] = useState(regInitial.password);
+  const [confirmPassword, setConfirmPassword] = useState(regInitial.password);
   const [grade, setGrade] = useState(regInitial.grade);
   const [dob, setDob] = useState(regInitial.dob);
   const [cityState, setCityState] = useState(regInitial.cityState);
@@ -59,6 +60,7 @@ const StudentRegistrationPage: React.FC = () => {
     setLastName(regInitial.lastName);
     setEmail(regInitial.email);
     setPassword(regInitial.password);
+    setConfirmPassword(regInitial.password);
     setGrade(regInitial.grade);
     setDob(regInitial.dob);
     setCityState(regInitial.cityState);
@@ -95,11 +97,24 @@ const StudentRegistrationPage: React.FC = () => {
     }
   }, [regInitial.dob]);
 
+  const handleBack = () => {
+    navigate(-1);
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!acceptedTerms) return;
 
     const normalizedEmail = email.trim().toLowerCase();
+
+    if (password !== confirmPassword) {
+      toast({
+        variant: 'destructive',
+        title: 'Passwords do not match',
+        description: 'Please make sure both password fields are the same.',
+      });
+      return;
+    }
 
     let blockReason: 'auth' | 'student' | 'schooladmin' | null = null;
 
@@ -155,7 +170,7 @@ const StudentRegistrationPage: React.FC = () => {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-4 sm:gap-6">
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={handleBack}
             className="group flex items-center gap-1 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors duration-200 hover:bg-slate-100 rounded-lg px-1 py-0.5 -ml-1"
           >
             <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-300 text-xs transition-all duration-200 group-hover:border-slate-400">
@@ -262,8 +277,7 @@ const StudentRegistrationPage: React.FC = () => {
                 required
               />
               <p className="mt-1 text-xs text-slate-500">
-                Please use your <span className="font-semibold">school email ID</span>. Parent&apos;s school email
-                is recommended for students under 16.
+                Please use your <span className="font-semibold">school email ID</span>.
               </p>
             </div>
 
@@ -276,6 +290,20 @@ const StudentRegistrationPage: React.FC = () => {
                 onChange={(event) => setPassword(event.target.value)}
                 className="mt-1.5 h-auto rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm sm:text-base text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
                 placeholder="Password"
+                autoComplete="new-password"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs sm:text-sm font-bold text-slate-700">
+                Confirm Password<span className="text-red-500"> *</span>
+              </label>
+              <PasswordInput
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                className="mt-1.5 h-auto rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm sm:text-base text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                placeholder="Confirm password"
                 autoComplete="new-password"
                 required
               />
@@ -358,14 +386,23 @@ const StudentRegistrationPage: React.FC = () => {
               </span>
             </label>
 
-            <button
-              type="submit"
-              disabled={!acceptedTerms}
-              className="mt-2 inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm sm:text-base font-semibold text-white shadow-md hover:bg-slate-900/90 disabled:cursor-not-allowed disabled:bg-slate-400"
-              style={{ backgroundColor: acceptedTerms ? GYS_BLUE : undefined }}
-            >
-              Next: School & profile →
-            </button>
+            <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={handleBack}
+                className="inline-flex w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm sm:text-base font-semibold text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900"
+              >
+                ← Back
+              </button>
+              <button
+                type="submit"
+                disabled={!acceptedTerms}
+                className="inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm sm:text-base font-semibold text-white shadow-md hover:bg-slate-900/90 disabled:cursor-not-allowed disabled:bg-slate-400"
+                style={{ backgroundColor: acceptedTerms ? GYS_BLUE : undefined }}
+              >
+                Next: School & profile →
+              </button>
+            </div>
 
             <p className="pt-3 text-center text-xs text-slate-500">
               Your account is free. You&apos;ll select a membership level next.
