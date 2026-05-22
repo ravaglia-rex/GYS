@@ -11,6 +11,7 @@ import {
   useLandingScrollProgress,
   useLandingSectionSpy,
 } from '../../hooks/useLandingPageScroll';
+import { STUDENT_SIGNUP_ENABLED } from '../../constants/constants';
 import { studentFaqSections } from './faq/studentFaqSections';
 
 const STUDENT_NAV = [
@@ -216,14 +217,16 @@ const StudentPathPage: React.FC = () => {
             <PublicSamplesNavMenu />
           </nav>
           <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={() => navigate('/students/register')}
-              className="px-5 py-2.5 rounded-xl text-sm font-medium shrink-0 border-2 border-transparent text-white shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-transform duration-150"
-              style={{ backgroundColor: GYS_BLUE }}
-            >
-              Sign up
-            </button>
+            {STUDENT_SIGNUP_ENABLED && (
+              <button
+                type="button"
+                onClick={() => navigate('/students/register')}
+                className="px-5 py-2.5 rounded-xl text-sm font-medium shrink-0 border-2 border-transparent text-white shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-transform duration-150"
+                style={{ backgroundColor: GYS_BLUE }}
+              >
+                Sign up
+              </button>
+            )}
             <button
               type="button"
               onClick={() => navigate('/login')}
@@ -622,16 +625,24 @@ const StudentPathPage: React.FC = () => {
         {/* Final CTAs */}
         <section id="sp-signup" data-landing-reveal className="mt-12 sm:mt-16">
           <div className="mx-auto flex max-w-xl flex-col items-center gap-3">
-            <button
-              type="button"
-              onClick={() => navigate('/students/register')}
-              className="inline-flex w-full items-center justify-center rounded-2xl px-14 py-3.5 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.99] sm:text-base"
-              style={{ backgroundColor: GYS_BLUE }}
-            >
-              Sign up now
-            </button>
+            {STUDENT_SIGNUP_ENABLED ? (
+              <button
+                type="button"
+                onClick={() => navigate('/students/register')}
+                className="inline-flex w-full items-center justify-center rounded-2xl px-14 py-3.5 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.99] sm:text-base"
+                style={{ backgroundColor: GYS_BLUE }}
+              >
+                Sign up now
+              </button>
+            ) : (
+              <div className="inline-flex w-full items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 px-6 py-3.5 text-center text-sm font-semibold text-slate-700 sm:text-base">
+                Student sign up is temporarily unavailable
+              </div>
+            )}
             <p className="text-center text-sm text-slate-600 sm:text-base">
-              Create your GYS student account, choose a membership, and complete secure payment to begin.
+              {STUDENT_SIGNUP_ENABLED
+                ? 'Create your GYS student account, choose a membership, and complete secure payment to begin.'
+                : 'Existing students can still log in to access their dashboard.'}
             </p>
           </div>
         </section>

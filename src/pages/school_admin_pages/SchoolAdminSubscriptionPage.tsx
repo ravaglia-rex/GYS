@@ -120,6 +120,7 @@ function formatPaymentMethod(raw: string | null | undefined): string {
   if (!method) return 'Razorpay checkout';
   if (method === 'dev_mode') return 'Development mode';
   if (method === 'online') return 'Razorpay checkout';
+  if (method === 'wire_transfer') return 'Wire transfer';
   return method;
 }
 

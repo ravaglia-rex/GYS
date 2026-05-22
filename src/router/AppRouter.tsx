@@ -7,6 +7,7 @@ import NotFoundPage from '../pages/NotFoundPage';
 import BigSpinner from '../components/ui/BigSpinner';
 import PreviewStubPage from '../pages/landing/preview/PreviewStubPage';
 import StudentRegistrationFlowLayout from '../layouts/StudentRegistrationFlowLayout';
+import { STUDENT_SIGNUP_ENABLED } from '../constants/constants';
 
 /*
 LANDING AND PUBLIC PAGES
@@ -154,7 +155,7 @@ const AppRouter: React.FC = () => {
         />
         <Route
           path="/students/register"
-          element={<StudentRegistrationFlowLayout />}
+          element={STUDENT_SIGNUP_ENABLED ? <StudentRegistrationFlowLayout /> : <Navigate to="/login" replace />}
           errorElement={<NotFoundPage />}
         >
           <Route
@@ -193,9 +194,13 @@ const AppRouter: React.FC = () => {
         <Route
           path="/students/register/welcome"
           element={
-            <Suspense fallback={<BigSpinner/>}>
-              <StudentWelcomePage />
-            </Suspense>
+            STUDENT_SIGNUP_ENABLED ? (
+              <Suspense fallback={<BigSpinner/>}>
+                <StudentWelcomePage />
+              </Suspense>
+            ) : (
+              <Navigate to="/login" replace />
+            )
           }
           errorElement={<NotFoundPage />}
         />

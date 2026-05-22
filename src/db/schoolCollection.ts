@@ -11,6 +11,7 @@ import {
   RAZORPAY_APIS,
   CREATE_SCHOOL_RAZORPAY_ORDER,
   VERIFY_SCHOOL_RAZORPAY_PAYMENT,
+  MARK_SCHOOL_WIRE_TRANSFER_ATTEMPT,
 } from "../constants/constants";
 
 type expeditedSchool = {
@@ -155,6 +156,50 @@ export const verifySchoolRazorpayPayment = async (body: {
       throw new Error(String(e.response.data.message));
     }
     throw new Error("Payment verification failed. If you were charged, contact globalyoungscholar@argus.ai.");
+  }
+};
+
+export type MarkSchoolWireTransferAttemptParams = {
+  schoolId: string;
+  checkoutSecret: string;
+  poc_phone?: string;
+};
+
+export type MarkSchoolWireTransferAttemptResponse = {
+  success: boolean;
+  payment_id: string;
+  order_id: string;
+  amount: number;
+  currency: string;
+  plan_id: string;
+  invoice_number: string;
+};
+
+export const markSchoolWireTransferAttempt = async (
+  params: MarkSchoolWireTransferAttemptParams
+): Promise<MarkSchoolWireTransferAttemptResponse> => {
+  const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS ?? "";
+  if (!base) {
+    throw new Error("REACT_APP_GOOGLE_CLOUD_FUNCTIONS is not configured.");
+  }
+  try {
+    const response = await axios.post(`${base}${RAZORPAY_APIS}${MARK_SCHOOL_WIRE_TRANSFER_ATTEMPT}`, {
+      school_id: params.schoolId,
+      checkout_secret: params.checkoutSecret,
+      ...(params.poc_phone?.trim() ? { poc_phone: params.poc_phone.trim() } : {}),
+    });
+    return response.data;
+  } catch (e) {
+    if (axios.isAxiosError(e) && e.response?.data) {
+      const d = e.response.data as { message?: string; error?: string };
+      const bits = [d.message, d.error].filter(
+        (x): x is string => typeof x === "string" && x.trim().length > 0
+      );
+      if (bits.length > 0) {
+        throw new Error(bits.join(" - "));
+      }
+    }
+    throw new Error("Could not record wire transfer attempt. Please contact globalyoungscholar@argus.ai.");
   }
 };
 

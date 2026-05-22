@@ -93,6 +93,7 @@ export const MARK_PAYMENT_PENDING='/markPaymentPending';
 export const DEV_MODE_PAYMENT='/devModePayment';
 export const CREATE_SCHOOL_RAZORPAY_ORDER='/createSchoolOrder';
 export const VERIFY_SCHOOL_RAZORPAY_PAYMENT='/verifySchoolPayment';
+export const MARK_SCHOOL_WIRE_TRANSFER_ATTEMPT='/markSchoolWireTransferAttempt';
 export const CREATE_SCHOOL_UPGRADE_ORDER='/createSchoolUpgradeOrder';
 export const VERIFY_SCHOOL_UPGRADE_PAYMENT='/verifySchoolUpgradePayment';
 export const CREATE_STUDENT_REGISTRATION_ORDER = '/createStudentRegistrationOrder';
@@ -105,3 +106,6 @@ export const CHECK_EMAIL_EXISTS='/checkEmailExists';
 
 // Temporary launch gate: keep official student exams hidden until real question banks are ready.
 export const STUDENT_OFFICIAL_ASSESSMENTS_ENABLED = false;
+
+// Temporary registration gate: keep existing student sign-in available while pausing new student signups.
+export const STUDENT_SIGNUP_ENABLED = false;
