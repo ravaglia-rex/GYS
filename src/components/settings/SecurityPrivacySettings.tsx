@@ -42,6 +42,7 @@ import { auth } from '../../firebase/firebase';
 import { signOut } from 'firebase/auth';
 import authTokenHandler from '../../functions/auth_token/auth_token_handler';
 import { useNavigate } from 'react-router-dom';
+import { studentPageSubtitleSx, studentSectionHeadingSx } from '../../styles/studentTypography';
 
 const SecurityPrivacySettings: React.FC = () => {
   const navigate = useNavigate();
@@ -468,10 +469,10 @@ const SecurityPrivacySettings: React.FC = () => {
               <Shield size={32} />
             </Avatar>
             <Box>
-              <Typography variant="h4" sx={{ color: 'white', fontWeight: 600, mb: 1, fontSize: '1.8rem' }}>
+              <Typography variant="h5" sx={{ ...studentSectionHeadingSx, mb: 1 }}>
                 Security & Privacy
               </Typography>
-              <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.9)', mb: 2, fontSize: '1.1rem' }}>
+              <Typography variant="body1" sx={{ ...studentPageSubtitleSx, mb: 2 }}>
                 Protect your account and control your privacy settings
               </Typography>
               

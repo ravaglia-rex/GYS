@@ -103,7 +103,7 @@ const SchoolAdminSchoolSelect: React.FC<SchoolAdminSchoolSelectProps> = ({ email
             <strong className="font-semibold text-slate-900">{email}</strong>. Click the link in the email to set up your password and complete your account setup.
           </p>
           <p className="mx-auto max-w-md border-t border-slate-200 pt-6 text-sm leading-relaxed text-slate-600">
-            Didn&apos;t receive the email? Check your spam folder or contact us at{' '}
+            Didn&apos;t receive the email? Check your spam folder, mark the email as not spam if it lands there, or contact us at{' '}
             <a
               href="mailto:globalyoungscholar@argus.ai"
               className="font-medium text-blue-700 underline-offset-2 hover:text-blue-800 hover:underline"

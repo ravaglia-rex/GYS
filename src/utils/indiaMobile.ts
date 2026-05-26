@@ -25,3 +25,19 @@ export function normalizeIndiaMobileE164(raw: string): string | null {
 export function isValidIndiaMobile(raw: string): boolean {
   return normalizeIndiaMobileE164(raw) !== null;
 }
+
+export function toIndiaMobileNationalDigits(raw: string): string {
+  const digitsOnly = raw.replace(/\D/g, '');
+  if (digitsOnly.length >= 12 && digitsOnly.startsWith('91')) {
+    return digitsOnly.slice(2, 12);
+  }
+  if (digitsOnly.length >= 11 && digitsOnly.startsWith('0')) {
+    return digitsOnly.slice(1, 11);
+  }
+  return digitsOnly.slice(0, 10);
+}
+
+export function withIndiaCountryCode(nationalDigits: string): string {
+  const digits = toIndiaMobileNationalDigits(nationalDigits);
+  return digits ? `+91${digits}` : '';
+}

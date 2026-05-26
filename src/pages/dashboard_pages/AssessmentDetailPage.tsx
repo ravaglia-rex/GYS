@@ -32,6 +32,7 @@ import {
   defaultAssessmentProgress,
   ASSESSMENT_NAMES,
   MEMBERSHIP_LEVEL_LABELS,
+  isLevelBasedAssessment,
 } from '../../utils/assessmentGating';
 import { canAttemptTier } from '../../utils/tierProgression';
 import {
@@ -40,6 +41,7 @@ import {
 } from '../../config/assessmentFlowUI';
 import { mergeStatGridWithTier } from '../../components/assessment/mergeStatGridWithTier';
 import { STUDENT_OFFICIAL_ASSESSMENTS_ENABLED } from '../../constants/constants';
+import { formatCooldownDate, nextEligibleAtMsForLevel } from '../../utils/examAttemptCooldown';
 
 const EXAM_TOTAL = 7;
 
@@ -70,6 +72,7 @@ const AssessmentDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const uid = auth.currentUser?.uid ?? '';
   const tier = parseInt(tierNumber ?? '1', 10);
+  const levelBased = assessmentId ? isLevelBasedAssessment(assessmentId) : true;
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -104,8 +107,8 @@ const AssessmentDetailPage: React.FC = () => {
     [assessmentTypes, assessmentId]
   );
   const tierConfig = useMemo(
-    () => assessment?.tiers.find((t) => t.tier_number === tier),
-    [assessment, tier]
+    () => (levelBased ? assessment?.tiers.find((t) => t.tier_number === tier) : undefined),
+    [assessment, levelBased, tier]
   );
 
   const flow = assessmentId ? getAssessmentFlowDefinition(assessmentId) : getAssessmentFlowDefinition('');
@@ -114,9 +117,11 @@ const AssessmentDetailPage: React.FC = () => {
     : { locked: true, reason: 'membership' as const, requiredMembershipLevel: 3 };
 
   const progressForAssessment = assessmentId ? progressMap[assessmentId] ?? defaultAssessmentProgress : defaultAssessmentProgress;
-  const maxTierCount = assessment?.tiers?.length ?? 1;
+  const maxTierCount = levelBased ? assessment?.tiers?.length ?? 1 : 0;
   const tierAttemptAllowed =
-    !!assessment && canAttemptTier(progressForAssessment, tier, maxTierCount);
+    !!assessment && (!levelBased || canAttemptTier(progressForAssessment, tier, maxTierCount));
+  const cooldownNextEligibleMs = levelBased ? nextEligibleAtMsForLevel(progressForAssessment, tier) : null;
+  const cooldownActive = !gate.locked && tierAttemptAllowed && cooldownNextEligibleMs != null;
 
   const statGrid = useMemo(
     () => mergeStatGridWithTier(flow, tierConfig),
@@ -300,7 +305,7 @@ const AssessmentDetailPage: React.FC = () => {
   }
 
   // ── Level sequence (e.g. must clear level 1 before level 2); routes still use /tier/ ────────────────
-  if (!gate.locked && !tierAttemptAllowed) {
+  if (levelBased && !gate.locked && !tierAttemptAllowed) {
     return (
       <Box sx={{ minHeight: '100vh', bgcolor: '#f1f5f9', pb: 10 }}>
         <Box sx={{ bgcolor: '#fff', borderBottom: '1px solid #e2e8f0', px: 2, py: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -318,7 +323,7 @@ const AssessmentDetailPage: React.FC = () => {
             Level {tier} not available yet
           </Typography>
           <Typography sx={{ color: '#64748b', fontSize: '0.95rem', lineHeight: 1.65, mb: 3 }}>
-            Complete the previous level at your grade’s required score to unlock this one. You can still retake an earlier level from the assessments list.
+            Complete the previous level with a score of 75% or higher to unlock this one. You can still retake an earlier level from the assessments list.
           </Typography>
           <Button fullWidth variant="contained" onClick={goBack} sx={{ py: 1.5, borderRadius: 2, fontWeight: 700 }}>
             Back to assessments
@@ -560,9 +565,10 @@ const AssessmentDetailPage: React.FC = () => {
           <Button
             fullWidth
             variant="contained"
-            disabled={!tierAttemptAllowed || !STUDENT_OFFICIAL_ASSESSMENTS_ENABLED}
+            disabled={!tierAttemptAllowed || cooldownActive || !STUDENT_OFFICIAL_ASSESSMENTS_ENABLED}
             onClick={() =>
               tierAttemptAllowed &&
+              !cooldownActive &&
               STUDENT_OFFICIAL_ASSESSMENTS_ENABLED &&
               navigate(`/assessments/${assessmentId}/tier/${tier}/take`)
             }
@@ -578,10 +584,17 @@ const AssessmentDetailPage: React.FC = () => {
           >
             {!STUDENT_OFFICIAL_ASSESSMENTS_ENABLED
               ? 'Official exams coming soon'
+              : cooldownActive && cooldownNextEligibleMs != null
+                ? `Available ${formatCooldownDate(cooldownNextEligibleMs)}`
               : flow.isComprehensivePersonality
                 ? 'Begin comprehensive assessment →'
                 : 'Begin assessment →'}
           </Button>
+          {cooldownActive && cooldownNextEligibleMs != null && (
+            <Typography sx={{ textAlign: 'center', fontSize: '0.78rem', color: '#b45309', mt: 1.25 }}>
+              This exact assessment level can be retaken every 3 months. Try a new level or assessment, or return on {formatCooldownDate(cooldownNextEligibleMs)}.
+            </Typography>
+          )}
           {!STUDENT_OFFICIAL_ASSESSMENTS_ENABLED && (
             <Typography sx={{ textAlign: 'center', fontSize: '0.72rem', color: '#94a3b8', mt: 1.25 }}>
               Real exam question banks are being prepared. Practice mode remains available.

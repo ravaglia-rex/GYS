@@ -8,23 +8,15 @@ import {
 } from '../../db/schoolCollection';
 import {
   partyNameLengthOk,
-  shipLine1Ok,
-  shipLine2Ok,
   cityOk,
   stateOk,
   razorpayEmailOk,
-  shipLineCharsError,
   partyNameCharsOk,
   partyNameCharsError,
   sanitizePartyNameInput,
-  sanitizeShipLineInput,
   sanitizeLatinNameInput,
   RAZORPAY_PARTY_NAME_MIN,
   RAZORPAY_PARTY_NAME_MAX,
-  RAZORPAY_SHIP_LINE1_MIN,
-  RAZORPAY_SHIP_LINE1_MAX,
-  RAZORPAY_SHIP_LINE2_MIN,
-  RAZORPAY_SHIP_LINE2_MAX,
   RAZORPAY_CITY_MIN,
   RAZORPAY_CITY_MAX,
   RAZORPAY_STATE_MIN,
@@ -110,43 +102,15 @@ const TOTAL_STEPS = 4;
 /** When true: skip embedded Razorpay; onboarding emails a payment link. Set false for Razorpay checkout after submit. */
 const SCHOOL_SIGNUP_TEMP_PAYMENT_LINK = false;
 
-function FormFieldHint({ children }: { children: React.ReactNode }) {
-  return <p className="mt-0.5 mb-1.5 text-[11px] leading-snug text-slate-500">{children}</p>;
-}
-
-function FormFieldError({ message }: { message?: string }) {
-  if (!message) return null;
-  return (
-    <p className="mt-1.5 text-xs font-medium text-red-600" role="alert">
-      {message}
-    </p>
-  );
-}
-
-function fieldInputClass(hasError: boolean, extra = ''): string {
-  return [
-    'w-full rounded-lg border px-3.5 py-2.5 text-sm sm:text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2',
-    hasError
-      ? 'border-red-500 bg-red-50/50 focus:border-red-500 focus:ring-red-200'
-      : 'border-slate-200 focus:border-slate-400 focus:ring-slate-200',
-    extra,
-  ]
-    .filter(Boolean)
-    .join(' ');
-}
-
 const STEP1_FIELD_ORDER = ['schoolName', 'schoolBranch', 'confirmSchoolName'] as const;
 const STEP2_FIELD_ORDER = [
   'board',
   'stateBoardState',
-  'referralSource',
-  'addressLine1',
-  'addressLine2',
   'city',
   'addressState',
-  'zipCode',
+  'referralSource',
 ] as const;
-const STEP3_FIELD_ORDER = ['emails'] as const;
+const STEP3_FIELD_ORDER = ['registrantFirstName', 'registrantLastName', 'registrantDesignation', 'emails'] as const;
 
 function scrollToFirstError(
   errorRecord: Record<string, string>,
@@ -188,20 +152,20 @@ const SchoolRegistrationPage: React.FC = () => {
   /** Optional campus / city for multi-branch chains (stored appended to school name only). */
   const [schoolBranch, setSchoolBranch] = useState('');
 
-  // Step 2: School Details + Address
+  // Step 2: School Details
   const [udiseCode, setUdiseCode] = useState('');
   const [boards, setBoards] = useState<string[]>([]);
   const [boardDropdownOpen, setBoardDropdownOpen] = useState(false);
   const boardDropdownRef = useRef<HTMLDivElement>(null);
   const [stateBoardState, setStateBoardState] = useState('');
-  const [referralSource, setReferralSource] = useState('');
-  const [addressLine1, setAddressLine1] = useState('');
-  const [addressLine2, setAddressLine2] = useState('');
   const [city, setCity] = useState('');
   const [addressState, setAddressState] = useState('');
-  const [zipCode, setZipCode] = useState('');
+  const [referralSource, setReferralSource] = useState('');
 
-  // Step 3: Point of Contact Emails
+  // Step 3: Registrant details + Point of Contact Emails
+  const [registrantFirstName, setRegistrantFirstName] = useState('');
+  const [registrantLastName, setRegistrantLastName] = useState('');
+  const [registrantDesignation, setRegistrantDesignation] = useState('');
   const [emails, setEmails] = useState<string[]>(['']);
 
   // Step 4: Plan + payment intent (invoice / details sent later)
@@ -289,41 +253,20 @@ const SchoolRegistrationPage: React.FC = () => {
       newErrors.board = 'Please select at least one board / curriculum.';
     if (boards.includes('State Board') && !stateBoardState)
       newErrors.stateBoardState = 'Please select your state board.';
-    if (!referralSource) newErrors.referralSource = 'Please let us know how you heard about GYS.';
-    const line1 = addressLine1.trim();
-    if (!line1) {
-      newErrors.addressLine1 = 'Address line 1 is required.';
-    } else if (line1.length < RAZORPAY_SHIP_LINE1_MIN || line1.length > RAZORPAY_SHIP_LINE1_MAX) {
-      newErrors.addressLine1 = `Address line 1 must be ${RAZORPAY_SHIP_LINE1_MIN}–${RAZORPAY_SHIP_LINE1_MAX} characters (payment partner requirement).`;
-    } else if (!shipLine1Ok(line1)) {
-      newErrors.addressLine1 = shipLineCharsError('Address line 1');
-    }
-    const line2 = addressLine2.trim();
-    if (line2) {
-      if (line2.length < RAZORPAY_SHIP_LINE2_MIN || line2.length > RAZORPAY_SHIP_LINE2_MAX) {
-        newErrors.addressLine2 = `Address line 2 must be ${RAZORPAY_SHIP_LINE2_MIN}–${RAZORPAY_SHIP_LINE2_MAX} characters when provided.`;
-      } else if (!shipLine2Ok(line2)) {
-        newErrors.addressLine2 = shipLineCharsError('Address line 2');
-      }
-    }
     const cityTrim = city.trim();
     if (!cityTrim) {
       newErrors.city = 'City is required.';
     } else if (cityTrim.length < RAZORPAY_CITY_MIN || cityTrim.length > RAZORPAY_CITY_MAX) {
-      newErrors.city = `City must be ${RAZORPAY_CITY_MIN}–${RAZORPAY_CITY_MAX} characters.`;
+      newErrors.city = `City must be ${RAZORPAY_CITY_MIN}-${RAZORPAY_CITY_MAX} characters.`;
     } else if (!cityOk(cityTrim)) {
       newErrors.city = 'City may only contain English letters and spaces.';
     }
     if (!addressState) {
       newErrors.addressState = 'Please select your state.';
     } else if (!stateOk(addressState)) {
-      newErrors.addressState = `State must be ${RAZORPAY_STATE_MIN}–${RAZORPAY_STATE_MAX} English letters and spaces.`;
+      newErrors.addressState = `State must be ${RAZORPAY_STATE_MIN}-${RAZORPAY_STATE_MAX} English letters and spaces.`;
     }
-    if (!zipCode.trim()) {
-      newErrors.zipCode = 'PIN code is required.';
-    } else if (!/^\d{6}$/.test(zipCode.trim())) {
-      newErrors.zipCode = 'Please enter a valid 6-digit PIN code.';
-    }
+    if (!referralSource) newErrors.referralSource = 'Please let us know how you heard about GYS.';
     return newErrors;
   };
 
@@ -349,6 +292,15 @@ const SchoolRegistrationPage: React.FC = () => {
 
   const getStep3Errors = (): Record<string, string> => {
     const newErrors: Record<string, string> = {};
+    if (!registrantFirstName.trim()) {
+      newErrors.registrantFirstName = 'Please enter your first name.';
+    }
+    if (!registrantLastName.trim()) {
+      newErrors.registrantLastName = 'Please enter your last name.';
+    }
+    if (!registrantDesignation.trim()) {
+      newErrors.registrantDesignation = 'Please enter your designation.';
+    }
     const filled = emails.filter((e) => e.trim() !== '');
     if (filled.length === 0) {
       newErrors.emails = 'At least one point-of-contact email is required.';
@@ -439,8 +391,7 @@ const SchoolRegistrationPage: React.FC = () => {
       toast({
         variant: 'destructive',
         title: 'Check your details',
-        description:
-          'Fix the highlighted fields. Your school name and address must match what our payment partner accepts before we can create the order.',
+        description: 'Fix the highlighted fields before continuing to checkout.',
       });
       return;
     }
@@ -470,12 +421,12 @@ const SchoolRegistrationPage: React.FC = () => {
         udise_code: udiseCode.trim(),
         boards,
         state_board_state: boards.includes('State Board') ? stateBoardState : '',
-        referral_source: referralSource,
-        address_line1: addressLine1.trim(),
-        address_line2: addressLine2.trim(),
         city: city.trim(),
         state: addressState,
-        postal_code: zipCode.trim(),
+        referral_source: referralSource,
+        registrant_first_name: registrantFirstName.trim(),
+        registrant_last_name: registrantLastName.trim(),
+        registrant_designation: registrantDesignation.trim(),
         contact_emails: filledEmails,
         selected_plan_id: selectedPlan,
         commit_to_pay: commitToPay,
@@ -1002,7 +953,7 @@ const SchoolRegistrationPage: React.FC = () => {
             </section>
           )}
 
-          {/* ── STEP 2: School Details + Address ────────────────────────── */}
+          {/* ── STEP 2: School Details ──────────────────────────────────── */}
           {currentStep === 2 && (
             <section className="rounded-2xl bg-white p-5 sm:p-7 shadow-md ring-1 ring-slate-100">
               <h1 className="text-xl sm:text-2xl font-semibold text-slate-900">School Details</h1>
@@ -1137,6 +1088,61 @@ const SchoolRegistrationPage: React.FC = () => {
                   )}
                 </div>
 
+                {/* Location */}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div id="field-city">
+                    <label className="block text-xs sm:text-sm font-bold text-slate-700">
+                      City<span className="text-red-500"> *</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={city}
+                      onChange={(e) => {
+                        setCity(sanitizeLatinNameInput(e.target.value));
+                        clearError('city');
+                      }}
+                      className={`mt-1.5 w-full rounded-lg border px-3.5 py-2.5 text-sm sm:text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 ${
+                        errors.city
+                          ? 'border-red-400 focus:border-red-400 focus:ring-red-300'
+                          : 'border-slate-200 focus:border-slate-400 focus:ring-slate-400'
+                      }`}
+                      placeholder="City"
+                      autoComplete="address-level2"
+                    />
+                    {errors.city && (
+                      <p className="mt-1 text-xs text-red-600">{errors.city}</p>
+                    )}
+                  </div>
+
+                  <div id="field-addressState">
+                    <label className="block text-xs sm:text-sm font-bold text-slate-700">
+                      State / Union Territory<span className="text-red-500"> *</span>
+                    </label>
+                    <select
+                      value={addressState}
+                      onChange={(e) => {
+                        setAddressState(e.target.value);
+                        clearError('addressState');
+                      }}
+                      className={`mt-1.5 w-full rounded-lg border px-3.5 py-2.5 text-sm sm:text-base text-slate-900 focus:outline-none focus:ring-1 ${
+                        errors.addressState
+                          ? 'border-red-400 focus:border-red-400 focus:ring-red-300'
+                          : 'border-slate-200 focus:border-slate-400 focus:ring-slate-400'
+                      }`}
+                      autoComplete="address-level1"
+                      required
+                    >
+                      <option value="">Select state</option>
+                      {INDIAN_STATES.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                    {errors.addressState && (
+                      <p className="mt-1 text-xs text-red-600">{errors.addressState}</p>
+                    )}
+                  </div>
+                </div>
+
                 {/* How did you hear about GYS */}
                 <div id="field-referralSource">
                   <label className="block text-xs sm:text-sm font-bold text-slate-700">
@@ -1162,148 +1168,6 @@ const SchoolRegistrationPage: React.FC = () => {
                   )}
                 </div>
 
-                {/* ── School Address ─────────────────────────────────────── */}
-                <div className="pt-1">
-                  <p className="text-xs sm:text-sm font-bold text-slate-700 mb-1">
-                    School Address<span className="text-red-500"> *</span>
-                  </p>
-                
-
-                  <div className="space-y-3">
-                    <div id="field-addressLine1">
-                      <label className="block text-xs font-semibold text-slate-600">
-                        Address Line 1<span className="text-red-500"> *</span>
-                      </label>
-                      <FormFieldHint>
-                        {RAZORPAY_SHIP_LINE1_MIN}–{RAZORPAY_SHIP_LINE1_MAX} characters. English letters,
-                        numbers, and standard punctuation only.
-                      </FormFieldHint>
-                      <input
-                        type="text"
-                        value={addressLine1}
-                        maxLength={RAZORPAY_SHIP_LINE1_MAX}
-                        aria-invalid={Boolean(errors.addressLine1)}
-                        onChange={(e) => {
-                          setAddressLine1(sanitizeShipLineInput(e.target.value));
-                          clearError('addressLine1');
-                        }}
-                        className={fieldInputClass(Boolean(errors.addressLine1))}
-                        placeholder="Building / house no., street name"
-                        autoComplete="off"
-                      />
-                      <FormFieldError message={errors.addressLine1} />
-                    </div>
-
-                    <div id="field-addressLine2">
-                      <label className="block text-xs font-semibold text-slate-600">
-                        Address Line 2
-                        <span className="ml-1 text-slate-400 font-normal">(optional)</span>
-                      </label>
-                      <FormFieldHint>
-                        If filled: {RAZORPAY_SHIP_LINE2_MIN}–{RAZORPAY_SHIP_LINE2_MAX} characters, same
-                        rules as line 1.
-                      </FormFieldHint>
-                      <input
-                        type="text"
-                        value={addressLine2}
-                        maxLength={RAZORPAY_SHIP_LINE2_MAX}
-                        aria-invalid={Boolean(errors.addressLine2)}
-                        onChange={(e) => {
-                          setAddressLine2(sanitizeShipLineInput(e.target.value));
-                          clearError('addressLine2');
-                        }}
-                        className={fieldInputClass(Boolean(errors.addressLine2))}
-                        placeholder="Locality / area / landmark"
-                        autoComplete="off"
-                      />
-                      <FormFieldError message={errors.addressLine2} />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div id="field-city">
-                        <label className="block text-xs font-semibold text-slate-600">
-                          City<span className="text-red-500"> *</span>
-                        </label>
-                        <FormFieldHint>
-                          {RAZORPAY_CITY_MIN}–{RAZORPAY_CITY_MAX} characters. Letters and spaces.
-                        </FormFieldHint>
-                        <input
-                          type="text"
-                          value={city}
-                          minLength={RAZORPAY_CITY_MIN}
-                          maxLength={RAZORPAY_CITY_MAX}
-                          aria-invalid={Boolean(errors.city)}
-                          onChange={(e) => {
-                            setCity(sanitizeLatinNameInput(e.target.value));
-                            clearError('city');
-                          }}
-                          className={fieldInputClass(Boolean(errors.city), 'text-sm')}
-                          placeholder="e.g. New Delhi"
-                          autoComplete="off"
-                        />
-                        <FormFieldError message={errors.city} />
-                      </div>
-                      <div id="field-addressState">
-                        <label className="block text-xs font-semibold text-slate-600">
-                          State<span className="text-red-500"> *</span>
-                        </label>
-                        <FormFieldHint>Select the full state name from the list.</FormFieldHint>
-                        <select
-                          value={addressState}
-                          aria-invalid={Boolean(errors.addressState)}
-                          onChange={(e) => {
-                            setAddressState(e.target.value);
-                            clearError('addressState');
-                          }}
-                          className={fieldInputClass(Boolean(errors.addressState), 'text-sm')}
-                        >
-                          <option value="">Select state</option>
-                          {INDIAN_STATES.map((s) => (
-                            <option key={s} value={s}>
-                              {s}
-                            </option>
-                          ))}
-                        </select>
-                        <FormFieldError message={errors.addressState} />
-                      </div>
-                    </div>
-
-                    <div id="field-country">
-                      <label className="block text-xs font-semibold text-slate-600">Country</label>
-                      <FormFieldHint>India — required for payment checkout.</FormFieldHint>
-                      <input
-                        type="text"
-                        value="India"
-                        readOnly
-                        disabled
-                        aria-label="Country — India only"
-                        className="w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-100 px-3.5 py-2.5 text-sm text-slate-600"
-                      />
-                    </div>
-
-                    <div id="field-zipCode">
-                      <label className="block text-xs font-semibold text-slate-600">
-                        PIN Code<span className="text-red-500"> *</span>
-                      </label>
-                      <FormFieldHint>Exactly 6 digits (Indian PIN).</FormFieldHint>
-                      <input
-                        type="text"
-                        value={zipCode}
-                        aria-invalid={Boolean(errors.zipCode)}
-                        onChange={(e) => {
-                          setZipCode(e.target.value.replace(/\D/g, '').slice(0, 6));
-                          clearError('zipCode');
-                        }}
-                        className={fieldInputClass(Boolean(errors.zipCode))}
-                        placeholder="6-digit PIN code"
-                        autoComplete="off"
-                        inputMode="numeric"
-                        maxLength={6}
-                      />
-                      <FormFieldError message={errors.zipCode} />
-                    </div>
-                  </div>
-                </div>
               </div>
 
               <div className="mt-6 flex gap-3">
@@ -1333,10 +1197,9 @@ const SchoolRegistrationPage: React.FC = () => {
                 Points of Contact
               </h1>
               <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Add <span className="font-semibold">1 - 5 email addresses</span> for school officials
-                who should have access to your school's reports and data on the GYS portal. Each
-                address must be valid; the part before @ may be at most {RAZORPAY_EMAIL_LOCAL_MAX}{' '}
-                characters (payment partner limit).
+                Tell us who is filling out this registration, then add{' '}
+                <span className="font-semibold">1 - 5 email addresses</span> for school officials who
+                should have access to your school's reports and data on the GYS portal.
               </p>
 
               <div className="mt-4 rounded-xl bg-blue-50 border border-blue-100 px-4 py-3">
@@ -1347,12 +1210,88 @@ const SchoolRegistrationPage: React.FC = () => {
                   <span className="font-medium">principal@yourschool.edu.in</span>), or individual
                   addresses for the principal or administrator. Each address you add will be able to
                   use the school admin login flow: after registration is processed, they can sign in
-                  with their school email and set a password (we send a secure link via Firebase
-                  Auth) to access your institution&apos;s dashboard and reports.
+                  with their school email and set a password to access your institution&apos;s dashboard and reports.
                 </p>
               </div>
 
-              <div className="mt-5 space-y-3">
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                <div id="field-registrantFirstName">
+                  <label className="block text-xs sm:text-sm font-bold text-slate-700">
+                    Your first name<span className="text-red-500"> *</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={registrantFirstName}
+                    onChange={(e) => {
+                      setRegistrantFirstName(e.target.value);
+                      clearError('registrantFirstName');
+                    }}
+                    className={`mt-1.5 w-full rounded-lg border px-3.5 py-2.5 text-sm sm:text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 ${
+                      errors.registrantFirstName
+                        ? 'border-red-400 focus:border-red-400 focus:ring-red-300'
+                        : 'border-slate-200 focus:border-slate-400 focus:ring-slate-400'
+                    }`}
+                    placeholder="First name"
+                    autoComplete="given-name"
+                  />
+                  {errors.registrantFirstName && (
+                    <p className="mt-1 text-xs text-red-600">{errors.registrantFirstName}</p>
+                  )}
+                </div>
+
+                <div id="field-registrantLastName">
+                  <label className="block text-xs sm:text-sm font-bold text-slate-700">
+                    Your last name<span className="text-red-500"> *</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={registrantLastName}
+                    onChange={(e) => {
+                      setRegistrantLastName(e.target.value);
+                      clearError('registrantLastName');
+                    }}
+                    className={`mt-1.5 w-full rounded-lg border px-3.5 py-2.5 text-sm sm:text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 ${
+                      errors.registrantLastName
+                        ? 'border-red-400 focus:border-red-400 focus:ring-red-300'
+                        : 'border-slate-200 focus:border-slate-400 focus:ring-slate-400'
+                    }`}
+                    placeholder="Last name"
+                    autoComplete="family-name"
+                  />
+                  {errors.registrantLastName && (
+                    <p className="mt-1 text-xs text-red-600">{errors.registrantLastName}</p>
+                  )}
+                </div>
+
+                <div id="field-registrantDesignation" className="sm:col-span-2">
+                  <label className="block text-xs sm:text-sm font-bold text-slate-700">
+                    Your designation<span className="text-red-500"> *</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={registrantDesignation}
+                    onChange={(e) => {
+                      setRegistrantDesignation(e.target.value);
+                      clearError('registrantDesignation');
+                    }}
+                    className={`mt-1.5 w-full rounded-lg border px-3.5 py-2.5 text-sm sm:text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 ${
+                      errors.registrantDesignation
+                        ? 'border-red-400 focus:border-red-400 focus:ring-red-300'
+                        : 'border-slate-200 focus:border-slate-400 focus:ring-slate-400'
+                    }`}
+                    placeholder="Principal, school administrator, coordinator, etc."
+                    autoComplete="organization-title"
+                  />
+                  {errors.registrantDesignation && (
+                    <p className="mt-1 text-xs text-red-600">{errors.registrantDesignation}</p>
+                  )}
+                </div>
+              </div>
+
+              <div id="field-emails" className="mt-6 space-y-3">
+                <p className="text-xs sm:text-sm font-bold text-slate-700">
+                  School point-of-contact emails<span className="text-red-500"> *</span>
+                </p>
                 {emails.map((email, i) => (
                   <div key={i}>
                     <div className="flex items-center gap-2">
@@ -1445,10 +1384,7 @@ const SchoolRegistrationPage: React.FC = () => {
                 Select a plan
               </h1>
               <p className="mt-2 text-xs sm:text-sm text-slate-600">
-                Choose the institutional package that fits your school. After you submit this form,
-                {SCHOOL_SIGNUP_TEMP_PAYMENT_LINK
-                  ? ' we will email you a secure payment link to complete checkout (UPI, cards, net banking).'
-                  : ' you will complete payment securely via Razorpay (UPI, cards, net banking).'}
+                Choose the institutional package that fits your school. 
               </p>
 
               {/* Plan cards */}
@@ -1537,7 +1473,7 @@ const SchoolRegistrationPage: React.FC = () => {
                   <p className="mt-1 text-xs text-slate-500">UDISE: {udiseCode}</p>
                 )}
                 <p className="mt-1 text-xs text-slate-500">
-                  {addressLine1}{addressLine2 ? `, ${addressLine2}` : ''}, {city}, {addressState} - {zipCode}
+                  {city}, {addressState}
                 </p>
                 <div className="mt-3 space-y-1.5 border-t border-slate-200 pt-2 text-sm">
                   <div className="flex justify-between gap-3 text-slate-700">
@@ -1576,10 +1512,8 @@ const SchoolRegistrationPage: React.FC = () => {
                   <span className="font-semibold text-slate-900">Required.</span>{' '}
                   On behalf of our institution, we confirm that we intend to subscribe at the plan
                   selected above and{' '}
-                  <span className="font-semibold">will complete payment</span>{' '}
-                  {SCHOOL_SIGNUP_TEMP_PAYMENT_LINK
-                    ? 'using the secure payment link we receive by email.'
-                    : 'on the Razorpay step that follows this form.'}
+                  <span className="font-semibold">will complete the payment process.</span>{' '}
+                 
                 </label>
               </div>
               {errors.commitToPay && (

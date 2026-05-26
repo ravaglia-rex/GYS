@@ -5,9 +5,11 @@ import {
   UPDATE_STUDENT_DATA,
   LIST_STUDENT_REPORTS,
   STUDENT_REPORT_DOWNLOAD_URL,
+  SEND_NOTIFICATION_EMAILS,
 } from "../constants/constants";
 import authTokenHandler from "../functions/auth_token/auth_token_handler";
 import { downloadPdfFromUrl } from "./schoolAdminCollection";
+import type { CompletedAssessmentNotificationSource } from "../utils/dashboardNotifications";
 
 /** Thrown from getStudent so callers can show specific UI (404 = no Firestore profile, etc.). */
 export class StudentProfileError extends Error {
@@ -82,6 +84,12 @@ export const getStudent = async (userId: string) => {
   }
 };
 
+export type StudentTutorialUiPreferences = {
+    tutorials?: {
+        dismissed?: Record<string, boolean>;
+    };
+};
+
 export type UpdateStudentPayload = {
     first_name?: string;
     last_name?: string;
@@ -96,6 +104,7 @@ export type UpdateStudentPayload = {
     home_language?: string;
     aspiration?: string;
     heard_from?: string;
+    ui_preferences?: StudentTutorialUiPreferences;
 };
 
 export const updateStudent = async (user_id: string, student: UpdateStudentPayload) => {
@@ -118,6 +127,22 @@ export const updateStudent = async (user_id: string, student: UpdateStudentPaylo
         throw new Error(`Error updating student for user ${user_id}. Please contact globalyoungscholar@argus.ai`);
     }
 }
+
+export const sendNotificationEmails = async (params: {
+  notificationIds: string[];
+  availableAssessmentsCount: number;
+  completedAssessments: CompletedAssessmentNotificationSource[];
+}): Promise<void> => {
+  const authToken = await authTokenHandler.getAuthToken();
+  if (!authToken) {
+    return;
+  }
+  await axios.post(
+    `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${STUDENTS_APIS}${SEND_NOTIFICATION_EMAILS}`,
+    params,
+    { headers: { Authorization: `Bearer ${authToken}` } }
+  );
+};
 
 export interface StudentReportListItem {
   reportId: string;

@@ -3,10 +3,6 @@ import {
   Box,
   Button,
   CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   Paper,
   Tooltip,
   Typography,
@@ -16,7 +12,6 @@ import { auth } from '../../firebase/firebase';
 import { getStudent, StudentProfileError } from '../../db/studentCollection';
 import {
   createStudentUpgradeOrder,
-  type StudentUpgradeBillingDetails,
   verifyStudentUpgradePayment,
 } from '../../db/studentMembershipUpgradePayment';
 import {
@@ -24,24 +19,9 @@ import {
   normalizeStudentMembershipLevel,
   studentMembershipUpgradeAmountPaise,
 } from '../../utils/studentMembershipPricing';
-import { normalizeIndiaMobileE164 } from '../../utils/indiaMobile';
-import {
-  cityOk,
-  RAZORPAY_CITY_MAX,
-  RAZORPAY_CITY_MIN,
-  RAZORPAY_SHIP_LINE1_MAX,
-  RAZORPAY_SHIP_LINE1_MIN,
-  RAZORPAY_SHIP_LINE2_MAX,
-  RAZORPAY_SHIP_LINE2_MIN,
-  sanitizeLatinNameInput,
-  sanitizeShipLineInput,
-  shipLine1Ok,
-  shipLine2Ok,
-  shipLineCharsError,
-  stateOk,
-} from '../../utils/schoolRegistrationPaymentRules';
 import { useToast } from '../ui/use-toast';
 import { gysPaymentInvoiceNumberFromOrderId } from '../../utils/gysPaymentInvoiceNumber';
+import { assertRazorpayCheckoutKeyAllowed } from '../../utils/razorpayTestMode';
 import * as Sentry from '@sentry/react';
 
 const loadScript = (src: string): Promise<boolean> =>
@@ -78,150 +58,6 @@ function formatRsFromPaise(paise: number): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(paise / 100)}`;
-}
-
-type UpgradeBillingForm = {
-  billingPhone: string;
-  billingAddressLine1: string;
-  billingAddressLine2: string;
-  billingCity: string;
-  billingState: string;
-  billingPostalCode: string;
-};
-
-type UpgradeBillingErrors = Partial<Record<keyof UpgradeBillingForm, string>>;
-
-const EMPTY_BILLING_FORM: UpgradeBillingForm = {
-  billingPhone: '',
-  billingAddressLine1: '',
-  billingAddressLine2: '',
-  billingCity: '',
-  billingState: '',
-  billingPostalCode: '',
-};
-
-const INDIAN_STATES = [
-  'Andhra Pradesh',
-  'Arunachal Pradesh',
-  'Assam',
-  'Bihar',
-  'Chhattisgarh',
-  'Goa',
-  'Gujarat',
-  'Haryana',
-  'Himachal Pradesh',
-  'Jharkhand',
-  'Karnataka',
-  'Kerala',
-  'Madhya Pradesh',
-  'Maharashtra',
-  'Manipur',
-  'Meghalaya',
-  'Mizoram',
-  'Nagaland',
-  'Odisha',
-  'Punjab',
-  'Rajasthan',
-  'Sikkim',
-  'Tamil Nadu',
-  'Telangana',
-  'Tripura',
-  'Uttar Pradesh',
-  'Uttarakhand',
-  'West Bengal',
-  'Andaman and Nicobar Islands',
-  'Chandigarh',
-  'Dadra and Nagar Haveli and Daman and Diu',
-  'Delhi NCT',
-  'Jammu and Kashmir',
-  'Ladakh',
-  'Lakshadweep',
-  'Puducherry',
-];
-
-function FormFieldHint({ children }: { children: React.ReactNode }) {
-  return <p className="mt-0.5 text-[11px] leading-snug text-slate-300">{children}</p>;
-}
-
-function FormFieldError({ message }: { message?: string }) {
-  if (!message) return null;
-  return (
-    <p className="mt-1.5 text-xs font-medium text-red-300" role="alert">
-      {message}
-    </p>
-  );
-}
-
-function billingInputClass(hasError: boolean, extra = ''): string {
-  return [
-    'mt-1.5 w-full rounded-lg border px-3.5 py-2.5 text-sm text-slate-50',
-    'placeholder:text-slate-300/35 placeholder:opacity-100',
-    'bg-slate-700/90 focus:outline-none focus:ring-1',
-    '[&:-webkit-autofill]:[-webkit-text-fill-color:rgb(248_250_252)] [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_rgb(51_65_85)]',
-    hasError
-      ? 'border-red-400 focus:border-red-400 focus:ring-red-400/50'
-      : 'border-slate-500 focus:border-violet-400 focus:ring-violet-400/40',
-    extra,
-  ]
-    .filter(Boolean)
-    .join(' ');
-}
-
-function getBillingErrors(details: UpgradeBillingForm): UpgradeBillingErrors {
-  const errors: UpgradeBillingErrors = {};
-  const normalizedPhone = normalizeIndiaMobileE164(details.billingPhone);
-  const line1 = details.billingAddressLine1.trim();
-  const line2 = details.billingAddressLine2.trim();
-  const city = details.billingCity.trim();
-  const state = details.billingState.trim();
-  const postalCode = details.billingPostalCode.trim();
-
-  if (!normalizedPhone) {
-    errors.billingPhone = 'Enter a valid India mobile number: 10 digits starting with 6-9, or +91 followed by 10 digits.';
-  }
-  if (!line1) {
-    errors.billingAddressLine1 = 'Address line 1 is required.';
-  } else if (!shipLine1Ok(line1)) {
-    errors.billingAddressLine1 =
-      line1.length < RAZORPAY_SHIP_LINE1_MIN || line1.length > RAZORPAY_SHIP_LINE1_MAX
-        ? `Address line 1 must be ${RAZORPAY_SHIP_LINE1_MIN}-${RAZORPAY_SHIP_LINE1_MAX} characters.`
-        : shipLineCharsError('Address line 1');
-  }
-  if (line2 && !shipLine2Ok(line2)) {
-    errors.billingAddressLine2 =
-      line2.length < RAZORPAY_SHIP_LINE2_MIN || line2.length > RAZORPAY_SHIP_LINE2_MAX
-        ? `Address line 2 must be ${RAZORPAY_SHIP_LINE2_MIN}-${RAZORPAY_SHIP_LINE2_MAX} characters when provided.`
-        : shipLineCharsError('Address line 2');
-  }
-  if (!city) {
-    errors.billingCity = 'City is required.';
-  } else if (!cityOk(city)) {
-    errors.billingCity =
-      city.length < RAZORPAY_CITY_MIN || city.length > RAZORPAY_CITY_MAX
-        ? `City must be ${RAZORPAY_CITY_MIN}-${RAZORPAY_CITY_MAX} characters.`
-        : 'City may only contain English letters and spaces.';
-  }
-  if (!state || !INDIAN_STATES.includes(state) || !stateOk(state)) {
-    errors.billingState = 'Select the full Indian state or union territory name.';
-  }
-  if (!postalCode) {
-    errors.billingPostalCode = 'PIN code is required.';
-  } else if (!/^[1-9]\d{5}$/.test(postalCode)) {
-    errors.billingPostalCode = 'PIN code must be 6 digits and cannot start with 0.';
-  }
-
-  return errors;
-}
-
-function toUpgradeBillingDetails(details: UpgradeBillingForm): StudentUpgradeBillingDetails {
-  return {
-    contact: normalizeIndiaMobileE164(details.billingPhone) ?? details.billingPhone.trim(),
-    line1: details.billingAddressLine1.trim(),
-    line2: details.billingAddressLine2.trim(),
-    city: details.billingCity.trim(),
-    state: details.billingState.trim(),
-    zipcode: details.billingPostalCode.trim(),
-  };
 }
 
 const TARGETS: Array<1 | 2 | 3 | 4> = [1, 2, 3, 4];
@@ -261,9 +97,6 @@ const MembershipUpgradeSection: React.FC = () => {
   const [membershipLevel, setMembershipLevel] = useState<number>(0);
   const [busyTarget, setBusyTarget] = useState<1 | 2 | 3 | 4 | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [billingTarget, setBillingTarget] = useState<1 | 2 | 3 | 4 | null>(null);
-  const [billingDetails, setBillingDetails] = useState<UpgradeBillingForm>(EMPTY_BILLING_FORM);
-  const [showBillingErrors, setShowBillingErrors] = useState(false);
 
   const refreshProfile = useCallback(async () => {
     const u = auth.currentUser?.uid;
@@ -299,56 +132,7 @@ const MembershipUpgradeSection: React.FC = () => {
     void refreshProfile();
   }, [uid, refreshProfile]);
 
-  const billingErrors = getBillingErrors(billingDetails);
-  const billingReady = Object.keys(billingErrors).length === 0;
-
-  const openBillingPrompt = (targetLevel: 1 | 2 | 3 | 4) => {
-    setBillingTarget(targetLevel);
-    setShowBillingErrors(false);
-  };
-
-  const updateBillingDetails =
-    (field: keyof UpgradeBillingForm) =>
-      (event: React.ChangeEvent<HTMLInputElement>) => {
-        const value = event.target.value;
-        setBillingDetails((prev) => ({ ...prev, [field]: value }));
-      };
-
-  const updateBillingState = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = event.target.value;
-    setBillingDetails((prev) => ({ ...prev, billingState: value }));
-  };
-
-  const updateBillingAddressLine =
-    (field: 'billingAddressLine1' | 'billingAddressLine2') =>
-      (event: React.ChangeEvent<HTMLInputElement>) => {
-        const value = sanitizeShipLineInput(event.target.value);
-        setBillingDetails((prev) => ({ ...prev, [field]: value }));
-      };
-
-  const updateBillingCity = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = sanitizeLatinNameInput(event.target.value);
-    setBillingDetails((prev) => ({ ...prev, billingCity: value }));
-  };
-
-  const updateBillingPostalCode = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.value.replace(/\D/g, '').slice(0, 6);
-    setBillingDetails((prev) => ({ ...prev, billingPostalCode: value }));
-  };
-
-  const submitBillingPrompt = () => {
-    if (!billingTarget) return;
-    if (!billingReady) {
-      setShowBillingErrors(true);
-      return;
-    }
-    const targetLevel = billingTarget;
-    setBillingTarget(null);
-    setShowBillingErrors(false);
-    void startUpgrade(targetLevel, toUpgradeBillingDetails(billingDetails));
-  };
-
-  const startUpgrade = async (targetLevel: 1 | 2 | 3 | 4, billing: StudentUpgradeBillingDetails) => {
+  const startUpgrade = async (targetLevel: 1 | 2 | 3 | 4) => {
     const user = auth.currentUser;
     if (!user?.uid) {
       toast({
@@ -361,7 +145,8 @@ const MembershipUpgradeSection: React.FC = () => {
 
     setBusyTarget(targetLevel);
     try {
-      const order = await createStudentUpgradeOrder(targetLevel, billing);
+      const order = await createStudentUpgradeOrder(targetLevel);
+      assertRazorpayCheckoutKeyAllowed(order.key_id, 'student_membership_upgrade');
 
       const scriptOk = await loadScript('https://checkout.razorpay.com/v1/checkout.js');
       if (!scriptOk) {
@@ -664,7 +449,7 @@ const MembershipUpgradeSection: React.FC = () => {
                   fullWidth
                   variant="contained"
                   disabled={checkoutBusy}
-                  onClick={() => openBillingPrompt(pkg.level)}
+                  onClick={() => void startUpgrade(pkg.level)}
                   sx={{
                     fontWeight: 700,
                     borderRadius: 2,
@@ -697,213 +482,6 @@ const MembershipUpgradeSection: React.FC = () => {
           );
         })}
       </Box>
-      <Dialog
-        open={billingTarget !== null}
-        onClose={() => {
-          if (busyTarget === null) {
-            setBillingTarget(null);
-            setShowBillingErrors(false);
-          }
-        }}
-        fullWidth
-        maxWidth="sm"
-        PaperProps={{
-          sx: {
-            backgroundColor: '#1e293b',
-            color: '#f8fafc',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
-          },
-        }}
-      >
-        <DialogTitle sx={{ borderBottom: '1px solid rgba(255,255,255,0.1)', color: '#f8fafc' }}>
-          Billing details
-         
-        </DialogTitle>
-        <DialogContent sx={{ pt: '20px !important', color: '#e2e8f0' }}>
-          <div className="space-y-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-100">
-                Mobile number<span className="text-red-300"> *</span>
-              </label>
-              <FormFieldHint>
-                10-digit India mobile number starting with 6-9, or +91 followed by 10 digits.
-              </FormFieldHint>
-              <input
-                type="tel"
-                value={billingDetails.billingPhone}
-                onChange={updateBillingDetails('billingPhone')}
-                aria-invalid={Boolean((showBillingErrors || billingDetails.billingPhone) && billingErrors.billingPhone)}
-                className={billingInputClass(Boolean((showBillingErrors || billingDetails.billingPhone) && billingErrors.billingPhone))}
-                placeholder="+91 98765 43210"
-                autoComplete="tel"
-                required
-              />
-              <FormFieldError
-                message={(showBillingErrors || billingDetails.billingPhone) ? billingErrors.billingPhone : undefined}
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-100">
-                Address line 1<span className="text-red-300"> *</span>
-              </label>
-              <FormFieldHint>
-                {RAZORPAY_SHIP_LINE1_MIN}-{RAZORPAY_SHIP_LINE1_MAX} characters. English letters,
-                numbers, spaces, and standard symbols only.
-              </FormFieldHint>
-              <input
-                type="text"
-                value={billingDetails.billingAddressLine1}
-                maxLength={RAZORPAY_SHIP_LINE1_MAX}
-                aria-invalid={Boolean((showBillingErrors || billingDetails.billingAddressLine1) && billingErrors.billingAddressLine1)}
-                onChange={updateBillingAddressLine('billingAddressLine1')}
-                className={billingInputClass(Boolean((showBillingErrors || billingDetails.billingAddressLine1) && billingErrors.billingAddressLine1))}
-                placeholder="House / apartment, street"
-                autoComplete="address-line1"
-                required
-              />
-              <FormFieldError
-                message={(showBillingErrors || billingDetails.billingAddressLine1) ? billingErrors.billingAddressLine1 : undefined}
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-100">Address line 2</label>
-              <FormFieldHint>
-                Optional. If filled: {RAZORPAY_SHIP_LINE2_MIN}-{RAZORPAY_SHIP_LINE2_MAX} characters,
-                same character rules as line 1: English letters, numbers, spaces, and standard punctuation.
-              </FormFieldHint>
-              <input
-                type="text"
-                value={billingDetails.billingAddressLine2}
-                maxLength={RAZORPAY_SHIP_LINE2_MAX}
-                aria-invalid={Boolean((showBillingErrors || billingDetails.billingAddressLine2) && billingErrors.billingAddressLine2)}
-                onChange={updateBillingAddressLine('billingAddressLine2')}
-                className={billingInputClass(Boolean((showBillingErrors || billingDetails.billingAddressLine2) && billingErrors.billingAddressLine2))}
-                placeholder="Area / landmark"
-                autoComplete="address-line2"
-              />
-              <FormFieldError
-                message={(showBillingErrors || billingDetails.billingAddressLine2) ? billingErrors.billingAddressLine2 : undefined}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div>
-                <label className="block text-xs font-semibold text-slate-100">
-                  City<span className="text-red-300"> *</span>
-                </label>
-                <FormFieldHint>
-                  {RAZORPAY_CITY_MIN}-{RAZORPAY_CITY_MAX} characters. English letters and spaces only.
-                </FormFieldHint>
-                <input
-                  type="text"
-                  value={billingDetails.billingCity}
-                  minLength={RAZORPAY_CITY_MIN}
-                  maxLength={RAZORPAY_CITY_MAX}
-                  aria-invalid={Boolean((showBillingErrors || billingDetails.billingCity) && billingErrors.billingCity)}
-                  onChange={updateBillingCity}
-                  className={billingInputClass(Boolean((showBillingErrors || billingDetails.billingCity) && billingErrors.billingCity))}
-                  placeholder="Bengaluru"
-                  autoComplete="address-level2"
-                  required
-                />
-                <FormFieldError
-                  message={(showBillingErrors || billingDetails.billingCity) ? billingErrors.billingCity : undefined}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-100">
-                  State<span className="text-red-300"> *</span>
-                </label>
-                <FormFieldHint>Select the full Indian state or union territory name.</FormFieldHint>
-                <select
-                  value={billingDetails.billingState}
-                  aria-invalid={Boolean((showBillingErrors || billingDetails.billingState) && billingErrors.billingState)}
-                  onChange={updateBillingState}
-                  className={billingInputClass(
-                    Boolean((showBillingErrors || billingDetails.billingState) && billingErrors.billingState),
-                    billingDetails.billingState ? '' : 'text-slate-300/35',
-                  )}
-                  autoComplete="address-level1"
-                  required
-                >
-                  <option value="" className="text-slate-500">
-                    Select state
-                  </option>
-                  {INDIAN_STATES.map((stateName) => (
-                    <option key={stateName} value={stateName}>
-                      {stateName}
-                    </option>
-                  ))}
-                </select>
-                <FormFieldError
-                  message={(showBillingErrors || billingDetails.billingState) ? billingErrors.billingState : undefined}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-100">Country</label>
-              <FormFieldHint>India - required by Razorpay for this checkout.</FormFieldHint>
-              <input
-                type="text"
-                value="India"
-                readOnly
-                disabled
-                aria-label="Country - India only"
-                className="mt-1.5 w-full cursor-not-allowed rounded-lg border border-slate-500 bg-slate-700/50 px-3.5 py-2.5 text-sm text-slate-300"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-100">
-                PIN code<span className="text-red-300"> *</span>
-              </label>
-              <FormFieldHint>6 digits; first digit must be 1–9 (Indian PIN code).</FormFieldHint>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={billingDetails.billingPostalCode}
-                maxLength={6}
-                aria-invalid={Boolean((showBillingErrors || billingDetails.billingPostalCode) && billingErrors.billingPostalCode)}
-                onChange={updateBillingPostalCode}
-                className={billingInputClass(Boolean((showBillingErrors || billingDetails.billingPostalCode) && billingErrors.billingPostalCode))}
-                placeholder="560001"
-                autoComplete="postal-code"
-                required
-              />
-              <FormFieldError
-                message={(showBillingErrors || billingDetails.billingPostalCode) ? billingErrors.billingPostalCode : undefined}
-              />
-            </div>
-          </div>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 3 }}>
-          <Button
-            onClick={() => {
-              setBillingTarget(null);
-              setShowBillingErrors(false);
-            }}
-            disabled={busyTarget !== null}
-            sx={{ color: 'rgba(255,255,255,0.75)' }}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            disabled={busyTarget !== null}
-            onClick={submitBillingPrompt}
-            sx={{
-              textTransform: 'none',
-              fontWeight: 700,
-              background: 'linear-gradient(135deg, #6d28d9 0%, #4338ca 48%, #1d4ed8 100%)',
-            }}
-          >
-            {busyTarget !== null ? 'Opening checkout...' : 'Continue to Razorpay'}
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Paper>
   );
 };

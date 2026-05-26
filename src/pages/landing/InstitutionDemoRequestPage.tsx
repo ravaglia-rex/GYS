@@ -10,6 +10,11 @@ import {
 } from '../../hooks/useLandingPageScroll';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase/firebase';
+import {
+  normalizeIndiaMobileE164,
+  toIndiaMobileNationalDigits,
+  withIndiaCountryCode,
+} from '../../utils/indiaMobile';
 
 const DEMO_NAV = [
   { id: 'demo-intro', label: 'Start' },
@@ -78,7 +83,9 @@ const InstitutionDemoRequestPage: React.FC = () => {
     const nextValue =
       type === 'checkbox'
         ? (e.target as HTMLInputElement).checked
-        : value;
+        : name === 'phone'
+          ? toIndiaMobileNationalDigits(value)
+          : value;
 
     setForm((prev) => ({
       ...prev,
@@ -110,7 +117,11 @@ const InstitutionDemoRequestPage: React.FC = () => {
     if (!form.state.trim()) newErrors.state = 'Required';
     if (form.boards.length === 0) newErrors.board = 'Select at least one board';
     if (!form.email.trim()) newErrors.email = 'Required';
-    if (!form.phone.trim()) newErrors.phone = 'Required';
+    if (!form.phone.trim()) {
+      newErrors.phone = 'Required';
+    } else if (!normalizeIndiaMobileE164(form.phone)) {
+      newErrors.phone = 'Enter a valid 10-digit India mobile number starting with 6-9.';
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -124,6 +135,7 @@ const InstitutionDemoRequestPage: React.FC = () => {
     try {
       await addDoc(collection(db, 'institution_demo_requests'), {
         ...form,
+        phone: withIndiaCountryCode(form.phone),
         createdAt: serverTimestamp(),
         status: 'new',
         source: 'for-schools-landing',
@@ -530,14 +542,26 @@ const InstitutionDemoRequestPage: React.FC = () => {
                   <label className="block text-sm font-semibold text-slate-800 sm:text-[15px]">
                     Phone Number<span className="text-red-500"> *</span>
                   </label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={form.phone}
-                    onChange={handleChange}
-                    className="mt-1 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-900 shadow-xs focus:border-slate-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-200"
-                    placeholder="+91 98765 43210"
-                  />
+                  <div
+                    className={`mt-1 flex w-full overflow-hidden rounded-xl border bg-slate-50 text-sm text-slate-900 shadow-xs focus-within:border-slate-500 focus-within:bg-white focus-within:outline-none focus-within:ring-2 focus-within:ring-slate-200 ${
+                      errors.phone ? 'border-red-300' : 'border-slate-300'
+                    }`}
+                  >
+                    <span className="flex items-center border-r border-slate-300 bg-slate-100 px-3 font-medium text-slate-600">
+                      +91
+                    </span>
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      name="phone"
+                      value={form.phone}
+                      onChange={handleChange}
+                      className="w-full bg-transparent px-3 py-2 placeholder:text-slate-400 focus:outline-none"
+                      placeholder="98765 43210"
+                      autoComplete="tel-national"
+                      maxLength={10}
+                    />
+                  </div>
                   {errors.phone && (
                     <p className="mt-0.5 text-xs text-red-500">{errors.phone}</p>
                   )}

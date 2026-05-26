@@ -147,6 +147,19 @@ export const INSTITUTIONAL_PLAN_STUDENT_LIMIT: Record<RegisterPlanId, string> = 
   premium: 'No student cap (per campus)',
 };
 
+/** Hard roster cap by institutional package. `null` means no per-campus student cap. */
+export const INSTITUTIONAL_PLAN_STUDENT_CAP: Record<RegisterPlanId, number | null> = {
+  entry: 200,
+  standard: 500,
+  premium: null,
+};
+
+export function normalizeRegisterPlanId(raw: unknown): RegisterPlanId | null {
+  if (typeof raw !== 'string') return null;
+  const normalized = raw.trim().toLowerCase();
+  return REGISTER_PLAN_IDS.includes(normalized as RegisterPlanId) ? (normalized as RegisterPlanId) : null;
+}
+
 /** Production annual fee as card headline only (no "/yr") - same INR as {@link PRODUCTION_INR}. */
 export function institutionalAnnualPriceRupeesOnly(planId: RegisterPlanId): string {
   return formatInr(PRODUCTION_INR[planId]);

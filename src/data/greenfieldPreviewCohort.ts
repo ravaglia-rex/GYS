@@ -17,9 +17,22 @@ const CANONICAL_ASSESSMENT_IDS = [
   'career_interest_inventory',
 ] as const;
 
+const NON_LEVEL_ASSESSMENT_IDS = new Set<string>([
+  'comprehensive_personality',
+  'career_interest_inventory',
+]);
+
 function baseAssessmentProgress(): Record<string, AssessmentProgress> {
   const progress: Record<string, AssessmentProgress> = {};
   for (const id of CANONICAL_ASSESSMENT_IDS) {
+    if (NON_LEVEL_ASSESSMENT_IDS.has(id)) {
+      progress[id] = {
+        status: 'locked',
+        best_score: null,
+        attempts_count: 0,
+      };
+      continue;
+    }
     progress[id] = {
       proficiency_tier: 1,
       status: 'locked',

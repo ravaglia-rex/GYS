@@ -1,17 +1,8 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-
-interface Payment {
-  paidOn: Date;
-  paymentMethod: string;
-  paymentStatus: string;
-  transactionId: string;
-  uid: string;
-  formId: string;
-  amount: number;
-}
+import type { StudentPaymentHistoryItem } from '../db/studentPaymentMappings';
 
 interface PaymentsState {
-  payments: Payment[];
+  payments: StudentPaymentHistoryItem[];
   paymentsLoaded: boolean;
 }
 
@@ -24,7 +15,7 @@ const studentPaymentsSlice = createSlice({
   name: 'studentPayments',
   initialState,
   reducers: {
-    setPayments: (state, action: PayloadAction<Payment[]>) => {
+    setPayments: (state, action: PayloadAction<StudentPaymentHistoryItem[]>) => {
       state.payments = action.payload;
       state.paymentsLoaded = true;
     },

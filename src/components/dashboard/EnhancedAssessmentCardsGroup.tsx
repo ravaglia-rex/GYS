@@ -25,10 +25,13 @@ import {
   EXAM_MAX_SCORE_POINTS,
   tierPercentToExamPoints,
   pickLatestOrBestAssessmentScore,
+  isLevelBasedAssessment,
+  buildAssessmentLevelScoreBreakdown,
 } from '../../utils/assessmentGating';
 import { countClearedTiersFromProgress } from '../../utils/tierProgression';
 import { getReasoningExamSubcategories } from '../../data/reasoningExamSubcategories';
 import { STUDENT_OFFICIAL_ASSESSMENTS_ENABLED } from '../../constants/constants';
+import { formatCooldownDate, nextEligibleAtMsForLevel } from '../../utils/examAttemptCooldown';
 
 // ─── Assessment metadata ──────────────────────────────────────────────────────
 
@@ -162,7 +165,8 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
   };
 
   const isLocked = gate.locked;
-  const currentTier = progress.proficiency_tier; // 1-indexed: 1 = take level 1, 2 = take level 2, 3 = all done
+  const levelBased = isLevelBasedAssessment(assessment.id);
+  const currentTier = progress.proficiency_tier ?? 1; // 1-indexed for skill exams
   const scoreDisplay = pickLatestOrBestAssessmentScore(progress);
   const attemptsCount = progress.attempts_count;
   const totalTiers = assessment.tiers.length;
@@ -174,9 +178,11 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
         : 0;
   /** Each cleared tier implies at least one successful attempt; show the larger of stored count vs that floor */
   const displayAttempts = Math.max(attemptsCount, tiersDone);
-  const allTiersComplete = currentTier > totalTiers && totalTiers > 0;
+  const allTiersComplete = isAssessmentFullyComplete(assessment, progress);
   const canStart = !isLocked && !allTiersComplete;
-  const showLevelProgress = !isLocked;
+  const cooldownNextEligibleMs = levelBased ? nextEligibleAtMsForLevel(progress, currentTier) : null;
+  const cooldownActive = canStart && cooldownNextEligibleMs != null;
+  const showLevelProgress = !isLocked && levelBased;
   const progressTotal = totalTiers > 0 ? totalTiers : Math.max(currentTier, 1);
   const progressDone = totalTiers > 0 ? tiersDone : Math.max(currentTier - 1, 0);
   const progressPercent = progressTotal > 0 ? Math.min(100, (progressDone / progressTotal) * 100) : 0;
@@ -211,6 +217,14 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
   /** Fixed slots so device chips, tier bar, and stats line up across cards in the same grid row */
   const STATS_ROW_SLOT_MIN = 68;
   const hasStats = !isLocked && (attemptsCount > 0 || tiersDone > 0);
+  const levelScoreBreakdown =
+    !isLocked && levelBased
+      ? buildAssessmentLevelScoreBreakdown(progress, totalTiers)
+      : [];
+  const visibleLevelScoreBreakdown = allTiersComplete
+    ? levelScoreBreakdown
+    : levelScoreBreakdown.filter((row) => row.score0to100 != null);
+  const showLevelScoreBreakdown = visibleLevelScoreBreakdown.length > 0;
 
   return (
     <Card sx={{
@@ -364,7 +378,13 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
               <Box sx={{ display: 'flex', gap: 3 }}>
                 {scoreDisplay !== null && (
                   <Box>
-                    <Tooltip title="Points are from your most recently graded attempt. The level line is that attempt’s tier - it can differ from “levels cleared” until you submit your current tier.">
+                    <Tooltip
+                      title={
+                        levelBased
+                          ? 'Points are from your most recently graded attempt. The level line is that attempt’s tier - it can differ from “levels cleared” until you submit your current tier.'
+                          : 'This profile assessment has no skill levels; this is your latest submitted result.'
+                      }
+                    >
                       <Typography
                         variant="caption"
                         sx={{
@@ -379,7 +399,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
                           maxWidth: '100%',
                         }}
                       >
-                        Latest level score
+                        {levelBased ? 'Latest level score' : 'Latest result'}
                       </Typography>
                     </Tooltip>
                     <Typography
@@ -393,7 +413,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
                     >
                       {tierPercentToExamPoints(scoreDisplay.score0to100)} on {EXAM_MAX_SCORE_POINTS}
                     </Typography>
-                    {scoreDisplay.chartLevel != null && (
+                    {levelBased && scoreDisplay.chartLevel != null && (
                       <Typography
                         variant="caption"
                         sx={{
@@ -447,7 +467,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
 
         <Box>
         {showLevelProgress ? (
-          <Box sx={{ mb: 2.25 }}>
+          <Box sx={{ mb: showLevelScoreBreakdown ? 1.5 : 2.25 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5, alignItems: 'baseline', gap: 1 }}>
               <Tooltip title="How many levels you’ve passed in this assessment.">
                 <Typography
@@ -477,6 +497,64 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
                 '& .MuiLinearProgress-bar': { bgcolor: meta.color, borderRadius: 3 },
               }}
             />
+          </Box>
+        ) : null}
+        {showLevelScoreBreakdown ? (
+          <Box
+            sx={{
+              mb: 2,
+              p: 1.25,
+              borderRadius: 1.5,
+              bgcolor: 'rgba(15, 23, 42, 0.52)',
+              border: '1px solid rgba(148, 163, 184, 0.16)',
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{
+                color: '#94a3b8',
+                fontSize: '0.7rem',
+                display: 'block',
+                textTransform: 'uppercase',
+                letterSpacing: 0.4,
+                mb: 0.75,
+                fontWeight: 700,
+              }}
+            >
+              {allTiersComplete ? 'Score by level' : 'Completed level scores'}
+            </Typography>
+            <Box sx={{ display: 'grid', gap: 0.55 }}>
+              {visibleLevelScoreBreakdown.map((row) => (
+                <Box
+                  key={row.level}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 1,
+                    minWidth: 0,
+                  }}
+                >
+                  <Typography variant="caption" sx={{ color: '#cbd5e1', fontSize: '0.74rem', fontWeight: 600 }}>
+                    Level {row.level}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: row.score0to100 == null ? '#64748b' : '#e2e8f0',
+                      fontSize: '0.74rem',
+                      fontWeight: 700,
+                      fontVariantNumeric: 'tabular-nums',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {row.score0to100 == null
+                      ? 'No score recorded'
+                      : `${tierPercentToExamPoints(row.score0to100)} / ${EXAM_MAX_SCORE_POINTS}`}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
           </Box>
         ) : null}
         {meta.needsMic || meta.needsLaptop ? (
@@ -552,7 +630,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
         ) : allTiersComplete ? (
           <Button fullWidth variant="outlined" startIcon={<TrendingUpIcon />} disabled
             sx={{ borderColor: '#1e3a2f', color: '#10b981', borderRadius: 1.5, fontSize: '0.875rem' }}>
-            All levels completed
+            {levelBased ? 'All levels completed' : 'Assessment completed'}
           </Button>
         ) : officialStartPaused ? (
           <Button
@@ -572,6 +650,33 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
           >
             Official exams coming soon
           </Button>
+        ) : cooldownActive && cooldownNextEligibleMs != null ? (
+          <Box>
+            <Button
+              fullWidth
+              variant="outlined"
+              disabled
+              startIcon={<RefreshIcon />}
+              sx={{
+                borderColor: '#475569',
+                color: '#94a3b8',
+                borderRadius: 1.5,
+                fontSize: '0.875rem',
+                '&.Mui-disabled': {
+                  borderColor: '#334155',
+                  color: '#64748b',
+                },
+              }}
+            >
+              Available {formatCooldownDate(cooldownNextEligibleMs)}
+            </Button>
+            <Typography
+              variant="caption"
+              sx={{ display: 'block', color: '#94a3b8', fontSize: '0.72rem', mt: 0.75 }}
+            >
+              Same level retakes open every 3 months.
+            </Typography>
+          </Box>
         ) : canStart ? (
           <Button
             fullWidth
@@ -598,11 +703,15 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
                 : { '&:hover': { opacity: 0.88 } }),
             }}
           >
-            {attemptsCount === 0
-              ? `Start Assessment ${meta.assessmentNumber}`
-              : startCurrentTierFirstTime
-                ? `Start Level ${currentTier}`
-                : `Retake Level ${currentTier}`}
+            {!levelBased
+              ? attemptsCount === 0
+                ? `Start Assessment ${meta.assessmentNumber}`
+                : 'Retake Assessment'
+              : attemptsCount === 0
+                ? `Start Assessment ${meta.assessmentNumber}`
+                : startCurrentTierFirstTime
+                  ? `Start Level ${currentTier}`
+                  : `Retake Level ${currentTier}`}
           </Button>
         ) : null}
         </Box>
@@ -722,11 +831,11 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
     return { assessment: a, progress, gate };
   });
 
-  // Apply filterType - "available" lists every assessment not yet fully completed (including locked cards)
+  // Apply filterType - keep cards mutually exclusive between available and completed sections.
   const filtered = gatedAssessments.filter(({ assessment, progress }) => {
     const fullyComplete = isAssessmentFullyComplete(assessment, progress);
     if (filterType === 'available') return !fullyComplete;
-    if (filterType === 'completed') return progress.attempts_count > 0;
+    if (filterType === 'completed') return fullyComplete;
     return true;
   });
 

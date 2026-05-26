@@ -18,15 +18,14 @@ import {
 import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { doc, getDoc } from 'firebase/firestore';
 import { RootState } from '../../state_data/reducer';
-import { db } from '../../firebase/firebase';
-import { getSchoolDashboard, type StudentRow, type AssessmentProgress } from '../../db/schoolAdminCollection';
+import { getSchoolDashboard, getSchoolStudent, type StudentRow, type AssessmentProgress } from '../../db/schoolAdminCollection';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import { countAssessmentsFromProgress } from '../../utils/schoolAdminRosterUtils';
 import { buildGreenfieldPreviewStudentRows } from '../../data/schoolPreviewMock';
-import { ASSESSMENT_NAMES, ASSESSMENT_ORDER, EXAM_MAX_SCORE_POINTS, tierPercentToExamPoints } from '../../utils/assessmentGating';
+import { ASSESSMENT_NAMES, ASSESSMENT_ORDER, EXAM_MAX_SCORE_POINTS, isLevelBasedAssessment, tierPercentToExamPoints } from '../../utils/assessmentGating';
 import { formatAchievementTierLabel, normalizeAchievementTierId } from '../../utils/achievementTier';
+import PageTutorial from '../../components/tutorial/PageTutorial';
 
 const DEFAULT_LOCKED: AssessmentProgress = {
   proficiency_tier: 1,
@@ -40,6 +39,12 @@ const STATUS_LABEL: Record<string, string> = {
   locked: 'Locked',
   available: 'Available',
   tier_advanced: 'Advanced',
+  completed: 'Completed',
+};
+
+type StudentDetailLocationState = {
+  studentRow?: StudentRow;
+  email?: string;
 };
 
 /** Same interpretation as analytics `bestScorePercent`: 0–1 fraction or 0–100; display as points out of {@link EXAM_MAX_SCORE_POINTS}. */
@@ -58,7 +63,7 @@ function assessmentLabel(id: string): string {
 function statusChipSx(status: string): Record<string, unknown> {
   const st = status ?? 'locked';
   const base = { height: 28, fontWeight: 600, '& .MuiChip-label': { px: 1.25, fontSize: '0.75rem' } };
-  if (st === 'tier_advanced') {
+  if (st === 'tier_advanced' || st === 'completed') {
     return {
       ...base,
       border: '1px solid #16a34a',
@@ -89,6 +94,7 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
   const { studentId } = useParams<{ studentId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const routeState = location.state as StudentDetailLocationState | null;
   const isSchoolAdminPreview = location.pathname.startsWith('/for-schools/preview');
   const routeBase = isSchoolAdminPreview ? '/for-schools/preview' : '/school-admin';
   const { schoolAdmin } = useSelector((state: RootState) => state.auth);
@@ -121,61 +127,38 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
       try {
         const schoolId = String(schoolAdmin.schoolId).trim();
 
-        let srow: StudentRow | null = null;
+        let srow: StudentRow | null =
+          routeState?.studentRow?.uid === studentId
+            ? { ...routeState.studentRow, assessment_progress: routeState.studentRow.assessment_progress ?? {} }
+            : null;
         try {
           const dash = await getSchoolDashboard(schoolId);
-          srow = (dash.students ?? []).find(s => s.uid === studentId) ?? null;
+          srow = (dash.students ?? []).find(s => s.uid === studentId) ?? srow;
         } catch {
           /* dashboard optional */
         }
 
-        const stSnap = await getDoc(doc(db, 'students', studentId));
-        if (!stSnap.exists() && !srow) {
-          setRow(null);
-          setLoading(false);
-          return;
-        }
-
-        if (stSnap.exists()) {
-          const stData = stSnap.data() as Record<string, unknown>;
-          const sid = String(stData.school_id ?? stData.schoolId ?? '');
-          if (sid && sid !== schoolId && !srow) {
+        try {
+          const directStudent = await getSchoolStudent(studentId);
+          srow = { ...directStudent, assessment_progress: directStudent.assessment_progress ?? {} };
+        } catch (studentError) {
+          const message = (studentError as Error).message ?? '';
+          if (message.includes('not linked')) {
             setSchoolMismatch(true);
+            setRow(null);
+            setLoading(false);
+            return;
+          }
+          if (!srow) {
+            setError(message || 'Failed to load student.');
             setRow(null);
             setLoading(false);
             return;
           }
         }
 
-        if (!srow && stSnap.exists()) {
-          const stData = stSnap.data() as Record<string, unknown>;
-          let grade = 0;
-          if (typeof stData.grade === 'number') grade = stData.grade;
-          else if (typeof stData.class === 'number') grade = stData.class;
-          srow = {
-            uid: studentId,
-            first_name: String(stData.first_name ?? ''),
-            last_name: String(stData.last_name ?? ''),
-            grade,
-            membership_level: typeof stData.membership_level === 'number' ? stData.membership_level : 0,
-            approval_status: String(stData.approval_status ?? 'pending'),
-            achievement_tier: normalizeAchievementTierId(stData.achievement_tier as string | undefined),
-            assessment_progress: {},
-            created_at: stData.created_at ?? null,
-          };
-        }
-
         setRow(srow);
-
-        if (stSnap.exists()) {
-          const stData = stSnap.data() as Record<string, unknown>;
-          setEmail(
-            String((stData.email as string) ?? (stData.email_normalized as string) ?? '')
-              .trim()
-          );
-        } else {
-          setEmail('');
-        }
+        setEmail(String(srow?.email ?? routeState?.email ?? '').trim());
       } catch (e) {
         setError((e as Error).message ?? 'Failed to load student.');
         setRow(null);
@@ -184,7 +167,7 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
       }
     };
     void run();
-  }, [studentId, schoolAdmin?.schoolId, isSchoolAdminPreview]);
+  }, [studentId, schoolAdmin?.schoolId, isSchoolAdminPreview, routeState?.email, routeState?.studentRow]);
 
   if (!studentId) {
     return (
@@ -279,6 +262,7 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
 
   return (
     <Box sx={{ maxWidth: 960, mx: 'auto', pb: 6 }}>
+      <PageTutorial pageKey="school.studentDetail" ready={!loading} />
       <Button
         startIcon={<ArrowBackIcon />}
         onClick={() => navigate(`${routeBase}/students`)}
@@ -288,6 +272,7 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
       </Button>
 
       <Box
+        data-tutorial-id="school-student-detail-header"
         sx={{
           mb: 3,
           display: 'flex',
@@ -342,7 +327,7 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
       )}
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <Card sx={{ bgcolor: '#fff', border: `1px solid ${ip.cardBorder}`, boxShadow: 'none' }}>
+        <Card data-tutorial-id="school-student-detail-profile" sx={{ bgcolor: '#fff', border: `1px solid ${ip.cardBorder}`, boxShadow: 'none' }}>
           <CardContent>
             <Typography variant="h6" sx={{ fontWeight: 700, color: ip.heading, mb: 2 }}>
               Profile
@@ -372,14 +357,10 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card sx={{ bgcolor: '#fff', border: `1px solid ${ip.cardBorder}`, boxShadow: 'none' }}>
+        <Card data-tutorial-id="school-student-detail-billing" sx={{ bgcolor: '#fff', border: `1px solid ${ip.cardBorder}`, boxShadow: 'none' }}>
           <CardContent>
             <Typography variant="h6" sx={{ fontWeight: 700, color: ip.heading, mb: 1 }}>
               Levels &amp; billing
-            </Typography>
-            <Typography variant="body2" sx={{ color: ip.subtext, mb: 2, lineHeight: 1.6 }}>
-              Your school’s plan covers students through <strong>Reasoning Triad</strong> (Exams 1–3) for the roster.
-              <strong> Reasoning + Skills</strong> and <strong>Guided Decision</strong> are individual add-ons: families purchase them separately to unlock Skills (Exams 4–5) and Insight plus ongoing AI career counseling after the Insight baseline (Guided Decision).
             </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
               <Chip
@@ -412,7 +393,7 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card sx={{ bgcolor: '#fff', border: `1px solid ${ip.cardBorder}`, boxShadow: 'none' }}>
+        <Card data-tutorial-id="school-student-detail-assessments" sx={{ bgcolor: '#fff', border: `1px solid ${ip.cardBorder}`, boxShadow: 'none' }}>
           <CardContent>
             <Typography variant="h6" sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
               Assessments &amp; scores
@@ -454,7 +435,9 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
                     return (
                       <TableRow key={key} hover sx={{ '&:nth-of-type(even)': { bgcolor: ip.cardMutedBg } }}>
                         <TableCell sx={{ color: ip.heading, fontWeight: 600 }}>{assessmentLabel(key)}</TableCell>
-                        <TableCell sx={{ color: ip.heading }}>{p.proficiency_tier != null ? `Level ${p.proficiency_tier}` : '-'}</TableCell>
+                        <TableCell sx={{ color: ip.heading }}>
+                          {isLevelBasedAssessment(key) && p.proficiency_tier != null ? `Level ${p.proficiency_tier}` : '-'}
+                        </TableCell>
                         <TableCell>
                           <Chip
                             label={statusText}

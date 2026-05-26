@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { STUDENTS_APIS, SIGN_UP_TRANSACTION } from '../constants/constants';
+import { PREPARE_SIGN_UP_TRANSACTION, STUDENTS_APIS, SIGN_UP_TRANSACTION } from '../constants/constants';
 
 export type NewStudent = {
     uid?: string;
@@ -36,6 +36,33 @@ export const runSignUpTransaction = async (student: NewStudent) => {
         await axios.request(config);
         return { message: `Student ${student.first_name} ${student.last_name} created successfully!` };
     } catch (e: any) {
+        if (axios.isAxiosError(e) && (e.response?.status === 409 || e.response?.status === 403 || e.response?.status === 400)) {
+            const msg = (e.response?.data as { message?: string })?.message;
+            if (typeof msg === 'string' && msg.trim()) {
+                throw new Error(msg);
+            }
+            if (e.response?.status === 409) {
+                throw new Error('An account with this information already exists.');
+            }
+        }
+        throw new Error(`Error creating account for ${student.first_name} ${student.last_name}. Please contact globalyoungscholar@argus.ai`);
+    }
+};
+
+export const prepareSignUpTransaction = async (student: NewStudent): Promise<{uid: string}> => {
+    try {
+        const config = {
+            method: 'post',
+            url: `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${STUDENTS_APIS}${PREPARE_SIGN_UP_TRANSACTION}`,
+            data: { student },
+        };
+        const response = await axios.request(config);
+        const uid = (response.data as {uid?: unknown})?.uid;
+        if (typeof uid !== 'string' || !uid.trim()) {
+            throw new Error('Student signup could not be prepared.');
+        }
+        return { uid };
+    } catch (e: any) {
         if (axios.isAxiosError(e) && e.response?.status === 409) {
             throw new Error('An account with this information already exists.');
         }
@@ -45,6 +72,6 @@ export const runSignUpTransaction = async (student: NewStudent) => {
                 throw new Error(msg);
             }
         }
-        throw new Error(`Error creating account for ${student.first_name} ${student.last_name}. Please contact globalyoungscholar@argus.ai`);
+        throw new Error(`Error preparing account for ${student.first_name} ${student.last_name}. Please contact globalyoungscholar@argus.ai`);
     }
 };

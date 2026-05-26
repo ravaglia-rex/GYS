@@ -41,6 +41,7 @@ import { EXAM_MATHJAX_CONFIG } from '../../components/assessment/examMathJaxConf
 import { ExamQuestionBody, inferQuestionInteraction } from '../../components/assessment/ExamQuestionBody';
 import { useExamIntegrity } from '../../hooks/useExamIntegrity';
 import { STUDENT_OFFICIAL_ASSESSMENTS_ENABLED } from '../../constants/constants';
+import { isLevelBasedAssessment } from '../../utils/assessmentGating';
 import * as Sentry from '@sentry/react';
 
 const NEEDS_MIC = new Set(['english_proficiency']);
@@ -71,6 +72,7 @@ const PreExamStep: React.FC<PreExamStepProps> = ({ assessmentId, tierNumber, onC
   const needsMic = NEEDS_MIC.has(assessmentId);
   const needsLaptop = NEEDS_LAPTOP.has(assessmentId);
   const flow = getAssessmentFlowDefinition(assessmentId);
+  const levelBased = isLevelBasedAssessment(assessmentId);
   const [micOk, setMicOk] = useState(false);
   const [micErr, setMicErr] = useState<string | null>(null);
   const [audioPlayed, setAudioPlayed] = useState(false);
@@ -120,9 +122,11 @@ const PreExamStep: React.FC<PreExamStepProps> = ({ assessmentId, tierNumber, onC
               <Typography variant="h6" sx={{ color: '#0f172a', fontWeight: 800, fontSize: '1.05rem' }}>
                 {flow.examTitleShort}
               </Typography>
-              <Typography variant="caption" sx={{ color: '#64748b' }}>
-                Level {tierNumber}
-              </Typography>
+              {levelBased && (
+                <Typography variant="caption" sx={{ color: '#64748b' }}>
+                  Level {tierNumber}
+                </Typography>
+              )}
             </Box>
           </Box>
 
@@ -289,6 +293,14 @@ export default function AssessmentTakePage() {
         if (code === 'exam_suspended' && typeof untilMs === 'number') {
           setError(
             `${err?.response?.data?.error ?? 'Assessments are temporarily suspended.'} Suspension ends: ${new Date(untilMs).toLocaleString()}.`
+          );
+        } else if (
+          code === 'attempt_cooldown' &&
+          typeof err?.response?.data?.next_attempt_available_at_ms === 'number'
+        ) {
+          const nextMs = err.response.data.next_attempt_available_at_ms;
+          setError(
+            `${err?.response?.data?.error ?? 'This assessment level is on cooldown.'} Available again: ${new Date(nextMs).toLocaleDateString()}.`
           );
         } else {
           setError(err?.response?.data?.error ?? 'This assessment is not available for your membership level.');

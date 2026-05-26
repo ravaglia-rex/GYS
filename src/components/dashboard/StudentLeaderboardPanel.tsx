@@ -33,6 +33,10 @@ export interface StudentLeaderboardPanelProps {
   sections: ExamLeaderboardSection[];
   lastUpdatedISO?: string | null;
   showGradeToggle?: boolean;
+  /** When true, grade buttons are visible but not interactive (public preview). */
+  gradeToggleDisabled?: boolean;
+  /** Per-grade mock/API sections; when set, changing grade updates visible tables. */
+  sectionsByGrade?: Partial<Record<LeaderboardGrade, ExamLeaderboardSection[]>>;
 }
 
 export default function StudentLeaderboardPanel({
@@ -40,6 +44,8 @@ export default function StudentLeaderboardPanel({
   sections,
   lastUpdatedISO,
   showGradeToggle = true,
+  gradeToggleDisabled = false,
+  sectionsByGrade,
 }: StudentLeaderboardPanelProps) {
   const [grade, setGrade] = useState<LeaderboardGrade>(initialGrade);
   const [expandedExamIds, setExpandedExamIds] = useState<Set<string>>(
@@ -50,10 +56,12 @@ export default function StudentLeaderboardPanel({
   }, [initialGrade]);
 
   const handleGrade = (_: React.SyntheticEvent, value: LeaderboardGrade | null) => {
-    if (value != null) setGrade(value);
+    if (gradeToggleDisabled || value == null) return;
+    setGrade(value);
   };
 
-  const visibleSections = sections.filter((section) => section.entries.length > 0);
+  const activeSections = sectionsByGrade?.[grade] ?? sections;
+  const visibleSections = activeSections.filter((section) => section.entries.length > 0);
   const hasExamTakenDates = visibleSections.some((section) =>
     section.entries.some((row) => Boolean(row.examTakenAtISO))
   );
@@ -110,6 +118,7 @@ export default function StudentLeaderboardPanel({
           exclusive
           value={grade}
           onChange={handleGrade}
+          disabled={gradeToggleDisabled}
           aria-label="Leaderboard grade"
           sx={{
             flexWrap: 'wrap',

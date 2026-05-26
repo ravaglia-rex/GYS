@@ -1,7 +1,7 @@
 import type { AssessmentType } from '../db/assessmentCollection';
 import {
   countClearedTiersFromProgress,
-  graduationPrereqMetForAssessment,
+  examSequencePrereqMet,
 } from './tierProgression';
 
 /**
@@ -23,9 +23,11 @@ export const ASSESSMENT_ORDER = [
 export type AssessmentId = (typeof ASSESSMENT_ORDER)[number];
 
 export interface AssessmentProgress {
-  proficiency_tier: number;
-  status: 'locked' | 'available' | 'tier_advanced';
+  proficiency_tier?: number;
+  status: 'locked' | 'available' | 'tier_advanced' | 'completed';
   best_score: number | null;
+  /** Level index -> best raw score 0-1 recorded for that level. */
+  best_scores_by_level?: Record<string, number | null | undefined>;
   attempts_count: number;
   /** Tier index → cleared at grade-band threshold (from backend completeExam) */
   tiers_cleared?: Record<string, boolean>;
@@ -33,6 +35,10 @@ export interface AssessmentProgress {
   latest_attempt_level?: number | null;
   /** Raw score 0–1 for the most recent graded attempt at latest_attempt_level. */
   latest_attempt_score?: number | null;
+  /** Level index -> latest finished-at timestamp; populated by backend completion/abandon. */
+  last_finished_at_by_level?: Record<string, unknown>;
+  /** Level index -> timestamp when the same level can be attempted again. */
+  next_eligible_at_by_level?: Record<string, unknown>;
 }
 
 export type LockReason = 'membership' | 'prerequisite' | null;
@@ -75,6 +81,16 @@ export const NON_COMPETITIVE_CHART_ASSESSMENT_IDS: ReadonlySet<string> = new Set
   'comprehensive_personality',
   'career_interest_inventory',
 ]);
+
+/** Exams 6–7 are profile/insight instruments, not leveled skill assessments. */
+export const NON_LEVEL_ASSESSMENT_IDS: ReadonlySet<string> = new Set([
+  'comprehensive_personality',
+  'career_interest_inventory',
+]);
+
+export function isLevelBasedAssessment(assessmentId: string): boolean {
+  return !NON_LEVEL_ASSESSMENT_IDS.has(assessmentId);
+}
 
 export const ASSESSMENT_NAMES: Record<string, string> = {
   symbolic_reasoning: 'Pattern and Logic',
@@ -148,18 +164,14 @@ export function computeGate(
     const prereqProgress = progress[prereq];
     const prereqAss = byId.get(prereq);
     const prereqMaxTiers = prereqAss?.tiers?.length ?? 1;
-    const comprehensiveAiGate =
-      assessmentId === 'comprehensive_personality' && prereq === 'ai_literacy';
-    const passed =
-      prereqProgress != null &&
-      (comprehensiveAiGate
-        ? (prereqProgress.proficiency_tier ?? 0) > prereqMaxTiers
-        : graduationPrereqMetForAssessment(
-            prereqProgress,
-            prereqMaxTiers,
-            prereqAss?.tier_progression ?? undefined,
-            grade
-          ));
+    const passed = examSequencePrereqMet(
+      assessmentId,
+      prereq,
+      prereqProgress,
+      prereqMaxTiers,
+      prereqAss?.tier_progression ?? undefined,
+      grade
+    );
     if (!passed) {
       return { locked: true, reason: 'prerequisite', missingPrerequisite: prereq };
     }
@@ -172,12 +184,15 @@ export function isAssessmentFullyComplete(
   assessment: AssessmentType,
   progress: AssessmentProgress
 ): boolean {
+  if (!isLevelBasedAssessment(assessment.id)) {
+    return progress.status === 'completed' || progress.attempts_count > 0;
+  }
   const totalTiers = assessment.tiers.length;
   if (totalTiers <= 0) return false;
   if (progress.tiers_cleared && Object.keys(progress.tiers_cleared).length > 0) {
     return countClearedTiersFromProgress(progress, totalTiers) >= totalTiers;
   }
-  return progress.proficiency_tier > totalTiers;
+  return (progress.proficiency_tier ?? 0) > totalTiers;
 }
 
 export const defaultAssessmentProgress: AssessmentProgress = {
@@ -255,6 +270,46 @@ export function pickLatestOrBestAssessmentScore(p: AssessmentProgress): {
     };
   }
   return null;
+}
+
+export type AssessmentLevelScoreBreakdownRow = {
+  level: number;
+  score0to100: number | null;
+  source: 'levelBest' | 'latestAttempt' | 'missing';
+};
+
+function normalizeRawScoreToPercent(raw: unknown): number | null {
+  if (typeof raw !== 'number' || Number.isNaN(raw)) return null;
+  return Math.max(0, Math.min(100, Math.round(raw * 100)));
+}
+
+export function buildAssessmentLevelScoreBreakdown(
+  progress: AssessmentProgress,
+  totalLevels: number
+): AssessmentLevelScoreBreakdownRow[] {
+  if (totalLevels <= 0) return [];
+  const scoresByLevel = progress.best_scores_by_level ?? {};
+  const latestLevel =
+    typeof progress.latest_attempt_level === 'number' && !Number.isNaN(progress.latest_attempt_level)
+      ? progress.latest_attempt_level
+      : null;
+
+  return Array.from({ length: totalLevels }, (_, index) => {
+    const level = index + 1;
+    const levelBestScore = normalizeRawScoreToPercent(scoresByLevel[String(level)]);
+    if (levelBestScore != null) {
+      return { level, score0to100: levelBestScore, source: 'levelBest' as const };
+    }
+
+    if (latestLevel === level) {
+      const latestScore = normalizeRawScoreToPercent(progress.latest_attempt_score);
+      if (latestScore != null) {
+        return { level, score0to100: latestScore, source: 'latestAttempt' as const };
+      }
+    }
+
+    return { level, score0to100: null, source: 'missing' as const };
+  });
 }
 
 /**

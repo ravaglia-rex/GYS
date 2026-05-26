@@ -33,6 +33,7 @@ import {
   BarChart as BarChartIcon,
   EmojiEvents as EmojiEventsIcon,
   Quiz as QuizIcon,
+  HelpOutline as HelpOutlineIcon,
 } from '@mui/icons-material';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { rememberStudentPreviewExitTo, consumeStudentPreviewExitTo } from '../utils/studentPreviewExit';
@@ -65,7 +66,7 @@ export default function StudentPreviewLayout() {
 
   useEffect(() => {
     const p = location.pathname;
-    if (p.includes('/assessments')) {
+    if (p.includes('/assessments') || p.includes('/reports')) {
       setAssessmentsOpen(true);
     }
   }, [location.pathname]);
@@ -73,7 +74,9 @@ export default function StudentPreviewLayout() {
   const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(`${path}/`);
 
   const assessmentsActive =
-    isActive('/students/preview/assessments') || location.pathname === '/for-schools/preview/assessment';
+    isActive('/students/preview/assessments') ||
+    isActive('/students/preview/reports') ||
+    location.pathname === '/for-schools/preview/assessment';
 
   const NavList = (
     <List component="nav" disablePadding sx={{ px: 0.5, py: 1 }}>
@@ -117,6 +120,38 @@ export default function StudentPreviewLayout() {
         <ListItemText
           primary="Dashboard"
           slotProps={{ primary: { fontWeight: isActive('/students/preview/dashboard') ? 600 : 500, fontSize: '0.9rem', color: '#e2e8f0' } }}
+        />
+      </ListItemButton>
+
+      <ListItemButton
+        selected={isActive('/students/preview/how-it-works')}
+        onClick={() => {
+          navigate('/students/preview/how-it-works');
+          if (isMobile) setMobileOpen(false);
+        }}
+        sx={{
+          borderRadius: 1.5,
+          mb: 0.5,
+          py: 1.1,
+          pl: 2,
+          borderLeft: isActive('/students/preview/how-it-works') ? '3px solid #67e8f9' : '3px solid transparent',
+          bgcolor: isActive('/students/preview/how-it-works') ? 'rgba(103,232,249,0.12)' : 'transparent',
+          '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' },
+          '&.Mui-selected': { bgcolor: 'rgba(103,232,249,0.15)' },
+        }}
+      >
+        <ListItemIcon sx={{ minWidth: 40, color: '#67e8f9' }}>
+          <HelpOutlineIcon sx={iconSx} />
+        </ListItemIcon>
+        <ListItemText
+          primary="How Argus Works"
+          slotProps={{
+            primary: {
+              fontWeight: isActive('/students/preview/how-it-works') ? 600 : 500,
+              fontSize: '0.9rem',
+              color: '#e2e8f0',
+            },
+          }}
         />
       </ListItemButton>
 
@@ -205,16 +240,18 @@ export default function StudentPreviewLayout() {
       <Collapse in={assessmentsOpen} timeout="auto" unmountOnExit>
         <List component="div" disablePadding>
           <ListItemButton
-            disabled
+            onClick={() => {
+              navigate('/students/preview/assessments/available');
+              if (isMobile) setMobileOpen(false);
+            }}
             sx={{
               pl: 4,
               py: 0.9,
               borderRadius: 1.5,
               mb: 0.25,
-              cursor: 'default',
-              '&.Mui-disabled': { opacity: 0.72 },
+              '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' },
             }}
-            selected={location.pathname === '/for-schools/preview/assessment'}
+            selected={isActive('/students/preview/assessments/available')}
           >
             <ListItemIcon sx={{ minWidth: 36, color: '#10b981' }}>
               <SchoolIcon sx={{ fontSize: '1.1rem' }} />
@@ -222,14 +259,16 @@ export default function StudentPreviewLayout() {
             <ListItemText primary="Available" slotProps={{ primary: { fontSize: '0.85rem', color: '#cbd5e1' } }} />
           </ListItemButton>
           <ListItemButton
-            disabled
+            onClick={() => {
+              navigate('/students/preview/assessments/completed');
+              if (isMobile) setMobileOpen(false);
+            }}
             sx={{
               pl: 4,
               py: 0.9,
               borderRadius: 1.5,
-              mb: 0.5,
-              cursor: 'default',
-              '&.Mui-disabled': { opacity: 0.72 },
+              mb: 0.25,
+              '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' },
             }}
             selected={isActive('/students/preview/assessments/completed')}
           >
@@ -238,37 +277,27 @@ export default function StudentPreviewLayout() {
             </ListItemIcon>
             <ListItemText primary="Completed & Results" slotProps={{ primary: { fontSize: '0.85rem', color: '#cbd5e1' } }} />
           </ListItemButton>
+          <ListItemButton
+            onClick={() => {
+              navigate('/students/preview/reports');
+              if (isMobile) setMobileOpen(false);
+            }}
+            selected={isActive('/students/preview/reports')}
+            sx={{
+              pl: 4,
+              py: 0.9,
+              borderRadius: 1.5,
+              mb: 0.5,
+              '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' },
+            }}
+          >
+            <ListItemIcon sx={{ minWidth: 36, color: '#f59e0b' }}>
+              <AssignmentIcon sx={{ fontSize: '1.1rem' }} />
+            </ListItemIcon>
+            <ListItemText primary="Reports" slotProps={{ primary: { fontSize: '0.85rem', color: '#cbd5e1' } }} />
+          </ListItemButton>
         </List>
       </Collapse>
-
-      <ListItemButton
-        disabled
-        selected={isActive('/students/preview/reports')}
-        sx={{
-          borderRadius: 1.5,
-          mb: 0.5,
-          py: 1.1,
-          pl: 2,
-          cursor: 'default',
-          borderLeft: isActive('/students/preview/reports') ? '3px solid #f59e0b' : '3px solid transparent',
-          bgcolor: isActive('/students/preview/reports') ? '#f59e0b14' : 'transparent',
-          '&.Mui-disabled': { opacity: 0.72 },
-        }}
-      >
-        <ListItemIcon sx={{ minWidth: 40, color: '#f59e0b' }}>
-          <AssignmentIcon sx={iconSx} />
-        </ListItemIcon>
-        <ListItemText
-          primary="Reports"
-          slotProps={{
-            primary: {
-              fontWeight: isActive('/students/preview/reports') ? 600 : 500,
-              fontSize: '0.9rem',
-              color: '#e2e8f0',
-            },
-          }}
-        />
-      </ListItemButton>
 
       {(
         [

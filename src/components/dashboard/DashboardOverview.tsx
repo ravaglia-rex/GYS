@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Box, Card, CardContent, Typography, Avatar, Badge } from '@mui/material';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { Box, Card, CardContent, Typography, Avatar, Badge, IconButton } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { 
   TrendingUp, 
@@ -10,9 +10,9 @@ import {
   BarChart3,
   Lock,
 } from 'lucide-react';
-import { Notifications as NotificationsIcon } from '@mui/icons-material';
+import { Close as CloseIcon, Notifications as NotificationsIcon } from '@mui/icons-material';
 import { auth } from '../../firebase/firebase';
-import { getStudent } from '../../db/studentCollection';
+import { getStudent, sendNotificationEmails } from '../../db/studentCollection';
 import { getSchoolDetails } from '../../db/schoolCollection';
 import { getPayments } from '../../db/studentPaymentMappings';
 import {
@@ -29,6 +29,15 @@ import {
   normalizeAchievementTierId,
 } from '../../utils/achievementTier';
 import { MEMBERSHIP_LEVEL_LABEL } from '../../utils/studentMembershipPricing';
+import {
+  generateDashboardNotifications,
+  getStalePeriodicDashboardNotificationIds,
+  useDismissedDashboardNotificationIds,
+  type DashboardNotificationEventSource,
+  type CompletedAssessmentNotificationSource,
+  type UnlockedAssessmentNotificationSource,
+} from '../../utils/dashboardNotifications';
+import { studentPageSubtitleSx, studentPageTitleSx } from '../../styles/studentTypography';
 
 export type { AssessmentChartRow } from '../../utils/assessmentGating';
 
@@ -41,6 +50,16 @@ function membershipLabelFromPaymentAmountInr(amount: number): string {
   if (amount >= 1900) return MEMBERSHIP_LEVEL_LABEL[3];
   if (amount >= 1200) return MEMBERSHIP_LEVEL_LABEL[2];
   return `${MEMBERSHIP_LEVEL_LABEL[1]} • ₹299`;
+}
+
+function formatFirstName(name: string | undefined | null): string | null {
+  const firstName = name?.trim().split(/\s+/)[0];
+  if (!firstName) return null;
+  return firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+}
+
+function getFirebaseFirstName(): string {
+  return formatFirstName(auth.currentUser?.displayName) ?? 'Student';
 }
 
 /** Program assessments: chart score 0–100 from latest attempt (or legacy best); labels show points out of {@link EXAM_MAX_SCORE_POINTS}. */
@@ -84,7 +103,7 @@ const ColumnChart: React.FC<{ data: AssessmentChartRow[] }> = ({ data }) => {
   const ticks = Array.from(new Set([...topTick, ...baseTicks].filter((v) => v <= chartMax))).sort((a, b) => b - a);
 
   return (
-    <Box sx={{ p: { xs: 1.5, sm: 2 }, width: '100%', overflow: 'hidden' }}>
+    <Box sx={{ p: { xs: 1.5, sm: 2 }, width: '100%', overflow: 'visible' }}>
       <Typography variant="h6" sx={{ color: 'white', mb: 2, textAlign: 'center' }}>
         Latest level score by assessment (out of {EXAM_MAX_SCORE_POINTS})
       </Typography>
@@ -153,7 +172,6 @@ const ColumnChart: React.FC<{ data: AssessmentChartRow[] }> = ({ data }) => {
               alignItems: 'flex-start',
               justifyContent: 'center',
               gap: 0.5,
-              minHeight: BAR_AREA_PX + 96,
               py: 0,
               minWidth: 0,
             }}
@@ -297,23 +315,24 @@ const ColumnChart: React.FC<{ data: AssessmentChartRow[] }> = ({ data }) => {
                       </Typography>
                     )}
                   </Box>
-                  <Typography
-                    variant="caption"
-                    component="div"
-                    sx={{
-                      mt: 1.5,
-                      px: 0.75,
-                      textAlign: 'center',
-                      color: 'rgba(255, 255, 255, 0.88)',
-                      fontSize: { xs: '0.72rem', sm: '0.78rem' },
-                      lineHeight: 1.35,
-                      width: '100%',
-                      whiteSpace: 'normal',
-                      wordBreak: 'normal',
-                      overflowWrap: 'break-word',
-                      hyphens: 'none',
-                    }}
-                  >
+                    <Typography
+                      variant="caption"
+                      component="div"
+                      sx={{
+                        mt: 1,
+                        px: 0.75,
+                        textAlign: 'center',
+                        color: 'rgba(255, 255, 255, 0.88)',
+                        fontSize: { xs: '0.72rem', sm: '0.78rem' },
+                        lineHeight: 1.35,
+                        width: '100%',
+                        whiteSpace: 'normal',
+                        wordBreak: 'normal',
+                        overflowWrap: 'break-word',
+                        hyphens: 'none',
+                        pb: 0.25,
+                      }}
+                    >
                     {item.subject}
                   </Typography>
                 </Box>
@@ -344,6 +363,9 @@ interface DashboardOverviewProps {
     availableAssessments: number;
   };
   latestAssessmentResults?: AssessmentChartRow[];
+  completedAssessments?: CompletedAssessmentNotificationSource[];
+  unlockedAssessments?: UnlockedAssessmentNotificationSource[];
+  backendNotificationEvents?: DashboardNotificationEventSource[];
   /** @deprecated Explorer is now the canonical default achievement tier from the student profile. */
   defaultEntryTier?: boolean;
   /** Static profile - skips Firestore; use with sample / preview dashboards */
@@ -352,6 +374,8 @@ interface DashboardOverviewProps {
   previewNavTargets?: { available: string; completed: string; sampleAssessmentExitTo?: string };
   /** Preview only: “Results Available” and “Assessments Available” stats are non-interactive */
   previewDisableAssessmentStatClicks?: boolean;
+  /** Preview/sample dashboards should not write notification dismissals to persistent browser storage. */
+  persistNotificationDismissals?: boolean;
 }
 
 const StatCard: React.FC<{
@@ -421,92 +445,120 @@ const StatCard: React.FC<{
         )}
       </Box>
 
-      <Typography variant="h4" sx={{ color: 'white', fontWeight: 700, mb: 1 }}>
+      <Typography variant="h4" sx={{ color: 'white', fontWeight: 700, fontSize: '2.15rem', mb: 1 }}>
         {value}
       </Typography>
       
-      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 2 }}>
+      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.92rem', mb: 2 }}>
         {title}
       </Typography>
     </CardContent>
   </Card>
 );
 
-// Function to generate dynamic notifications based on the rules
-const generateDynamicNotifications = (
-  availableAssessmentsCount: number,
-  resultsAvailableCount: number
-) => {
-  const notifications = [];
-  const now = new Date();
-
-  // Rule 1: If number of assessments available is not 0, show "New Assessment Available"
-  if (availableAssessmentsCount > 0) {
-    notifications.push({
-      id: 'new-assessment-available',
-      type: 'info',
-      title: 'New Assessment Available',
-      message: `You have ${availableAssessmentsCount} new assessment${availableAssessmentsCount > 1 ? 's' : ''} available to take. Check the assessments section to get started.`,
-      timestamp: new Date(now.getTime() - 30 * 60 * 1000), // 30 minutes ago
-      color: '#8b5cf6'
-    });
-  }
-
-  // Rule 2: If number of results available is 2, show 2 different notifications
-  if (resultsAvailableCount === 2) {
-    notifications.push({
-      id: 'challenge-assessment-result',
-      type: 'success',
-      title: 'Challenge Assessment Evaluated',
-      message: 'Your challenge assessment has been evaluated and results are now available. Check your performance analysis.',
-      timestamp: new Date(now.getTime() - 2 * 60 * 60 * 1000), // 2 hours ago
-      color: '#10b981'
-    });
-
-    notifications.push({
-      id: 'assessment-analysis-ready',
-      type: 'info',
-      title: 'Analysis Complete',
-      message: 'Your detailed assessment analysis is ready for review. Discover your strengths and areas for improvement.',
-      timestamp: new Date(now.getTime() - 1 * 60 * 60 * 1000), // 1 hour ago
-      color: '#3b82f6'
-    });
-  }
-
-  if (resultsAvailableCount === 1) {
-    notifications.push({
-      id: 'qualifying-assessment-result',
-      type: 'success',
-      title: 'Qualifying Assessment Result Available',
-      message: 'Your qualifying assessment has been evaluated and results are now available. View your performance and next steps.',
-      timestamp: new Date(now.getTime() - 3 * 60 * 60 * 1000), // 3 hours ago
-      color: '#10b981'
-    });
-  }
-
-  return notifications;
-};
-
 const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   stats,
   latestAssessmentResults = [],
+  completedAssessments = [],
+  unlockedAssessments = [],
+  backendNotificationEvents = [],
   defaultEntryTier: _defaultEntryTier = true,
   previewProfile,
   previewNavTargets,
   previewDisableAssessmentStatClicks = false,
+  persistNotificationDismissals = true,
 }) => {
   const navigate = useNavigate();
   const [, setIsNavigating] = useState(false);
-  const [userName, setUserName] = useState<string>('Student');
+  const [userName, setUserName] = useState<string>(() => getFirebaseFirstName());
   const [loading, setLoading] = useState<boolean>(true);
   const [studentGrade, setStudentGrade] = useState<number | null>(null);
   const [schoolName, setSchoolName] = useState<string | null>(null);
   const [membershipLevel, setMembershipLevel] = useState<string | null>(null);
   const [membershipExpiry, setMembershipExpiry] = useState<string | null>(null);
   const [achievementTierId, setAchievementTierId] = useState<string>(ACHIEVEMENT_TIER_EXPLORER);
+  const [sessionDismissedNotificationIds, setSessionDismissedNotificationIds] = useState<Set<string>>(() => new Set());
+  const notificationListRef = useRef<HTMLDivElement | null>(null);
+  const [notificationScrollbar, setNotificationScrollbar] = useState({
+    visible: false,
+    top: 0,
+    height: 0,
+  });
 
-  // Generate notifications based on stats
-  const notifications = generateDynamicNotifications(stats.availableAssessments, stats.completedAssessments);
+  const { dismissedIds, dismissOne, dismissMany } = useDismissedDashboardNotificationIds();
+  const allNotifications = useMemo(() => generateDashboardNotifications({
+    availableAssessmentsCount: stats.availableAssessments,
+    completedAssessments,
+    unlockedAssessments,
+    backendNotificationEvents,
+  }), [backendNotificationEvents, completedAssessments, stats.availableAssessments, unlockedAssessments]);
+  const autoDismissedPeriodicIds = useMemo(
+    () => getStalePeriodicDashboardNotificationIds(allNotifications.map(n => n.id)),
+    [allNotifications]
+  );
+  const activeDismissedIds = persistNotificationDismissals ? dismissedIds : sessionDismissedNotificationIds;
+  const notifications = useMemo(
+    () => allNotifications.filter(
+      n => !activeDismissedIds.has(n.id) && !autoDismissedPeriodicIds.includes(n.id)
+    ),
+    [activeDismissedIds, allNotifications, autoDismissedPeriodicIds]
+  );
+
+  useEffect(() => {
+    if (!persistNotificationDismissals || autoDismissedPeriodicIds.length === 0) return;
+    const idsToDismiss = autoDismissedPeriodicIds.filter(id => !dismissedIds.has(id));
+    if (idsToDismiss.length > 0) {
+      dismissMany(idsToDismiss);
+    }
+  }, [autoDismissedPeriodicIds, dismissMany, dismissedIds, persistNotificationDismissals]);
+
+  useEffect(() => {
+    if (!persistNotificationDismissals || notifications.length === 0) return;
+
+    void sendNotificationEmails({
+      notificationIds: notifications.map(n => n.id),
+      availableAssessmentsCount: stats.availableAssessments,
+      completedAssessments,
+    }).catch(error => {
+      console.warn('Notification email send skipped:', error);
+    });
+  }, [completedAssessments, notifications, persistNotificationDismissals, stats.availableAssessments]);
+
+  const handleDismissNotification = (id: string) => {
+    if (persistNotificationDismissals) {
+      dismissOne(id);
+      return;
+    }
+    setSessionDismissedNotificationIds(prev => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+  };
+
+  const updateNotificationScrollbar = useCallback(() => {
+    const el = notificationListRef.current;
+    if (!el) {
+      setNotificationScrollbar({ visible: false, top: 0, height: 0 });
+      return;
+    }
+
+    const maxScroll = el.scrollHeight - el.clientHeight;
+    if (maxScroll <= 1) {
+      setNotificationScrollbar({ visible: false, top: 0, height: 0 });
+      return;
+    }
+
+    const height = Math.max(40, (el.clientHeight / el.scrollHeight) * el.clientHeight);
+    const top = (el.scrollTop / maxScroll) * (el.clientHeight - height);
+    setNotificationScrollbar({ visible: true, top, height });
+  }, []);
+
+  useEffect(() => {
+    updateNotificationScrollbar();
+    window.addEventListener('resize', updateNotificationScrollbar);
+    return () => window.removeEventListener('resize', updateNotificationScrollbar);
+  }, [notifications.length, updateNotificationScrollbar]);
 
   useEffect(() => {
     if (previewProfile) {
@@ -524,9 +576,8 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         try {
           const userData = await getStudent(auth.currentUser.uid);
           setAchievementTierId(normalizeAchievementTierId(userData?.achievement_tier as string | undefined));
-          if (userData?.first_name) {
-            setUserName(userData.first_name.charAt(0).toUpperCase() + userData.first_name.slice(1).toLowerCase());
-          }
+          const profileFirstName = formatFirstName(userData?.first_name ?? userData?.firstName);
+          setUserName(profileFirstName ?? getFirebaseFirstName());
           if (userData?.grade) {
             setStudentGrade(userData.grade);
           }
@@ -571,9 +622,9 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
           try {
             const payments = await getPayments(auth.currentUser.uid);
-            // Use any payment regardless of status - take the most recent by paid_on
+            // Use any payment regardless of status - take the most recent by paid_at
             const sorted = [...payments].sort(
-              (a, b) => new Date(b.paid_on).getTime() - new Date(a.paid_on).getTime()
+              (a, b) => new Date(b.paid_at ?? 0).getTime() - new Date(a.paid_at ?? 0).getTime()
             );
 
             if (sorted.length > 0) {
@@ -586,9 +637,9 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                   setMembershipLevel(levelMap[levelFromStudent as keyof typeof levelMap] ?? String(levelFromStudent));
                 }
               } else {
-                setMembershipLevel(membershipLabelFromPaymentAmountInr(latest.amount));
+                setMembershipLevel(membershipLabelFromPaymentAmountInr((latest.amount_paise ?? 0) / 100));
               }
-              const baseDate = new Date(latest.paid_on);
+              const baseDate = new Date(latest.paid_at ?? '');
               setMembershipExpiry(
                 !isNaN(baseDate.getTime()) ? resolveExpiry(baseDate) : creationExpiry()
               );
@@ -623,9 +674,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           }
         } catch (error) {
           console.error('Error fetching user data:', error);
-          // Fallback to Firebase displayName or 'Student'
-          const fallbackName = auth.currentUser?.displayName?.split(' ')[0];
-          setUserName(fallbackName ? fallbackName.charAt(0).toUpperCase() + fallbackName.slice(1).toLowerCase() : 'Student');
+          setUserName(getFirebaseFirstName());
         }
       }
       setLoading(false);
@@ -731,7 +780,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   return (
     <Box sx={{ mb: 4, ml: 1 }}>
       {/* Welcome Section - title left, performance tier badge top-right */}
-      <Box sx={{ mb: 4 }}>
+      <Box sx={{ mb: 3 }}>
         <Box
           sx={{
             display: 'flex',
@@ -739,27 +788,39 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             alignItems: { xs: 'stretch', sm: 'flex-start' },
             justifyContent: 'space-between',
             gap: 2,
-            mb: 1,
+            mb: 0.5,
           }}
         >
           <Typography
             variant="h4"
             sx={{
-              color: 'white',
-              fontWeight: 700,
-              flex: { sm: '1 1 auto' },
-              minWidth: 0,
-              fontSize: '2.2rem',
-              background: 'linear-gradient(45deg, #10b981, #3b82f6)',
-              backgroundClip: 'text',
+              ...studentPageTitleSx,
+              fontSize: { xs: '1.7rem', sm: '1.9rem', md: '2.25rem' },
+              lineHeight: 1.1,
+              background: 'linear-gradient(90deg, #10b981 0%, #06b6d4 55%, #3b82f6 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              flex: { sm: '1 1 auto' },
+              minWidth: 0,
             }}
           >
-            👋 Welcome to Your Dashboard, {loading ? 'Student' : userName}!
+            👋 Welcome to Your Dashboard, {userName}!
           </Typography>
           {tierBadge}
         </Box>
+        <Typography
+          variant="h6"
+          sx={{
+            ...studentPageSubtitleSx,
+            fontSize: { xs: '1rem', sm: '1.08rem' },
+            fontWeight: 500,
+            mt: 0,
+            mb: 1.25,
+          }}
+        >
+          Track your progress, manage assessments, and achieve your goals
+        </Typography>
 
         {/* Grade / school / membership - below title row */}
         {showStudentMeta && (studentGrade || schoolName || membershipLevel || membershipExpiry) && (
@@ -768,8 +829,8 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
               display: 'flex',
               flexWrap: 'wrap',
               gap: 1,
-              mb: 1.5,
-              mt: 0.5,
+              mb: 0,
+              mt: 0,
               alignItems: 'center',
             }}
           >
@@ -811,14 +872,12 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             )}
           </Box>
         )}
-
-        <Typography variant="h6" sx={{ color: 'rgba(255, 255, 255, 0.9)', fontWeight: 400, fontSize: '1.2rem' }}>
-          Track your progress, manage assessments, and achieve your goals
-        </Typography>
       </Box>
 
       {/* Stats Grid */}
-      <Box sx={{ 
+      <Box
+        data-tutorial-id="student-dashboard-stats"
+        sx={{ 
         display: 'grid', 
         gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
         gap: 3, 
@@ -866,18 +925,24 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
       <Box sx={{ 
         display: 'grid', 
         gridTemplateColumns: { xs: '1fr', lg: '2fr 1fr' }, 
+        gridAutoRows: 'auto',
+        alignItems: 'stretch',
         gap: 3,
         mb: 3
       }}>
         {/* Performance Overview */}
-        <Card sx={{
+        <Card
+          data-tutorial-id="student-dashboard-chart"
+          sx={{
           background: 'rgba(30, 41, 59, 0.8)',
           border: '1px solid rgba(255, 255, 255, 0.1)',
           borderRadius: 3,
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
+          alignSelf: 'start',
+          height: 'auto',
         }}>
           <CardContent sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
               <Avatar sx={{
                 width: 48,
                 height: 48,
@@ -890,7 +955,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                 <Typography variant="h6" sx={{ color: 'white', fontWeight: 600, fontSize: '1.2rem' }}>
                   Performance Overview
                 </Typography>
-                <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '1rem' }}>
+                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.9rem', lineHeight: 1.45 }}>
                   {displayResults.data.length > 0
                     ? `Latest score from your most recent attempt at each exam (out of ${EXAM_MAX_SCORE_POINTS}); level is shown under each bar. Profiles without attempt history yet show best overall. Non-scored programmes show completion only.`
                     : 'Performance data will appear here once your assessments are evaluated'}
@@ -899,7 +964,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             </Box>
 
             {displayResults.data.length > 0 ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', width: '100%' }}>
                 <ColumnChart data={displayResults.data} />
               </Box>
             ) : (
@@ -935,13 +1000,20 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         </Card>
 
         {/* Latest Notifications */}
-        <Card sx={{
+        <Card
+          data-tutorial-id="student-dashboard-notifications"
+          sx={{
           background: 'rgba(30, 41, 59, 0.8)',
           border: '1px solid rgba(255, 255, 255, 0.1)',
           borderRadius: 3,
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
+          display: 'flex',
+          flexDirection: 'column',
+          height: { xs: 420, lg: 590 },
+          minHeight: 0,
+          overflow: 'hidden',
         }}>
-          <CardContent sx={{ p: 3 }}>
+          <CardContent sx={{ p: 3, display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
               <Typography variant="h6" sx={{ color: 'white', fontWeight: 600, fontSize: '1.2rem' }}>
                 Latest Notifications
@@ -955,7 +1027,24 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
               </Badge>
             </Box>
           
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box sx={{ position: 'relative', flex: '1 1 auto', minHeight: 0 }}>
+            <Box
+              ref={notificationListRef}
+              onScroll={updateNotificationScrollbar}
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 2,
+                height: '100%',
+                minHeight: 0,
+                overflowY: notifications.length > 3 ? 'auto' : 'visible',
+                pr: notifications.length > 3 ? 2 : 0,
+                scrollbarWidth: 'none',
+                '&::-webkit-scrollbar': {
+                  display: 'none',
+                },
+              }}
+            >
               {notifications.length === 0 ? (
                 <Box sx={{ textAlign: 'center', py: 2 }}>
                   <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
@@ -971,8 +1060,23 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                       borderRadius: 2,
                       backgroundColor: `${notification.color}10`,
                       border: `1px solid ${notification.color}30`,
+                      position: 'relative',
+                      pr: 4.5,
                     }}
                   >
+                    <IconButton
+                      size="small"
+                      aria-label={`Dismiss ${notification.title}`}
+                      onClick={() => handleDismissNotification(notification.id)}
+                      sx={{
+                        position: 'absolute',
+                        top: 6,
+                        right: 6,
+                        color: 'rgba(255, 255, 255, 0.55)',
+                      }}
+                    >
+                      <CloseIcon fontSize="inherit" />
+                    </IconButton>
                     <Typography variant="body2" sx={{ color: notification.color, fontWeight: 600, mb: 0.5 }}>
                       {notification.title}
                     </Typography>
@@ -982,6 +1086,35 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                   </Box>
                 ))
               )}
+            </Box>
+            {notificationScrollbar.visible && (
+              <Box
+                aria-hidden
+                sx={{
+                  position: 'absolute',
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                  width: 8,
+                  borderRadius: 999,
+                  backgroundColor: 'rgba(255, 255, 255, 0.12)',
+                  pointerEvents: 'none',
+                }}
+              >
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: `${notificationScrollbar.top}px`,
+                    right: 1,
+                    width: 6,
+                    height: `${notificationScrollbar.height}px`,
+                    borderRadius: 999,
+                    backgroundColor: 'rgba(203, 213, 225, 0.9)',
+                    boxShadow: '0 0 0 1px rgba(15, 23, 42, 0.35)',
+                  }}
+                />
+              </Box>
+            )}
             </Box>
           </CardContent>
         </Card>

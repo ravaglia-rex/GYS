@@ -53,6 +53,7 @@ const StudentWelcomePage: React.FC = () => {
           <p className="mt-2 text-center text-sm sm:text-base text-slate-600">
             Your {membershipName} membership is ready. We&apos;ve sent an email with your account
             confirmation, payment details if applicable, and a secure link to set your password.
+            Please check your spam folder and mark the email as not spam if it lands there.
           </p>
 
           <div className="mt-5 rounded-2xl bg-sky-50 px-4 py-4 sm:px-5 sm:py-5">

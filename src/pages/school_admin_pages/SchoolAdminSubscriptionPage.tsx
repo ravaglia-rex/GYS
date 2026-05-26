@@ -26,6 +26,7 @@ import {
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../state_data/reducer';
+import { useLocation } from 'react-router-dom';
 import {
   downloadBillingInvoicePdf,
   getSchoolDashboard,
@@ -44,10 +45,12 @@ import {
   verifySchoolUpgradePayment,
 } from '../../db/schoolSubscriptionUpgradePayment';
 import { gysPaymentInvoiceNumberFromOrderId } from '../../utils/gysPaymentInvoiceNumber';
+import { assertRazorpayCheckoutKeyAllowed } from '../../utils/razorpayTestMode';
 import { auth } from '../../firebase/firebase';
+import PageTutorial from '../../components/tutorial/PageTutorial';
+import { SchoolAdminPageHeader, schoolAdminPageContainerSx } from './schoolAdminPageStyles';
+import { GREENFIELD_POC_EMAIL } from '../../data/schoolPreviewMock';
 
-const POPULAR_PLAN_BADGE_GOLD = '#fbbf24';
-const STANDARD_RING = 'rgba(30, 58, 138, 0.7)';
 /** Same as ip.statBlue - literal here so plan data has no palette init at module top */
 const PLAN_STANDARD_BLUE = '#1D4ED8';
 
@@ -62,8 +65,6 @@ interface Plan {
   features: string[];
   accent: string;
   Icon: PlanIcon;
-  current?: boolean;
-  popular?: boolean;
 }
 
 const PLAN_ICONS: Record<'entry' | 'standard' | 'premium', PlanIcon> = {
@@ -82,6 +83,37 @@ const PLAN_ORDER: Record<RegisterPlanId, number> = {
   entry: 1,
   standard: 2,
   premium: 3,
+};
+
+const EMPTY_BILLING_META = {
+  billing: null as SchoolDashboardBilling | null,
+  s3Configured: false,
+  selectedPlanId: 'standard' as RegisterPlanId,
+  subscriptionPlan: 'Standard',
+  paymentHistory: [] as SchoolDashboardPaymentHistoryItem[],
+};
+
+const PREVIEW_BILLING_META = {
+  billing: {
+    invoice_number: 'GYS-GREENFIELD-2026-001',
+    has_invoice_pdf: true,
+  },
+  s3Configured: false,
+  selectedPlanId: 'standard' as RegisterPlanId,
+  subscriptionPlan: 'Standard',
+  paymentHistory: [
+    {
+      payment_id: 'preview_greenfield_standard_2026',
+      order_id: 'order_preview_greenfield_standard',
+      kind: 'captured',
+      paid_at: '2026-01-10T05:30:00.000Z',
+      amount_paise: 35400000,
+      plan_id: 'standard',
+      invoice_number: 'GYS-GREENFIELD-2026-001',
+      payment_method: 'Razorpay checkout',
+      renewal_date: '2027-01-10T05:30:00.000Z',
+    },
+  ] satisfies SchoolDashboardPaymentHistoryItem[],
 };
 
 const loadScript = (src: string): Promise<boolean> =>
@@ -124,12 +156,26 @@ function formatPaymentMethod(raw: string | null | undefined): string {
   return method;
 }
 
-function normalizePlanId(raw: unknown): RegisterPlanId {
-  if (raw === 'entry' || raw === 'standard' || raw === 'premium') return raw;
+function normalizePlanId(raw: unknown): RegisterPlanId | null {
+  if (typeof raw !== 'string') return null;
+  const normalized = raw.trim().toLowerCase();
+  if (normalized === 'entry' || normalized.includes('entry')) return 'entry';
+  if (normalized === 'standard' || normalized.includes('standard')) return 'standard';
+  if (normalized === 'premium' || normalized.includes('premium')) return 'premium';
+  return null;
+}
+
+function resolvePlanId(...values: unknown[]): RegisterPlanId {
+  for (const value of values) {
+    const planId = normalizePlanId(value);
+    if (planId) return planId;
+  }
   return 'standard';
 }
 
 export function SchoolAdminSubscriptionPage() {
+  const location = useLocation();
+  const isInteractivePreview = location.pathname.startsWith('/for-schools/preview');
   const plans = useMemo<Plan[]>(
     () =>
       SCHOOL_INSTITUTIONAL_PLAN_MATRIX.map((row) => ({
@@ -141,7 +187,6 @@ export function SchoolAdminSubscriptionPage() {
         features: [...row.features],
         accent: PLAN_ACCENTS[row.id],
         Icon: PLAN_ICONS[row.id],
-        popular: row.popular,
       })),
     []
   );
@@ -152,33 +197,33 @@ export function SchoolAdminSubscriptionPage() {
     selectedPlanId: RegisterPlanId;
     subscriptionPlan: string;
     paymentHistory: SchoolDashboardPaymentHistoryItem[];
-  }>({
-    billing: null,
-    s3Configured: false,
-    selectedPlanId: 'standard',
-    subscriptionPlan: 'Standard',
-    paymentHistory: [],
-  });
+  }>(() => (isInteractivePreview ? PREVIEW_BILLING_META : EMPTY_BILLING_META));
   const [billingLoading, setBillingLoading] = useState(false);
-  const [invoiceDownloading, setInvoiceDownloading] = useState(false);
+  const [invoiceDownloadingPaymentId, setInvoiceDownloadingPaymentId] = useState<string | null>(null);
   const [invoiceDownloadErr, setInvoiceDownloadErr] = useState<string | null>(null);
   const [upgradeTarget, setUpgradeTarget] = useState<Plan | null>(null);
   const [upgradeBusy, setUpgradeBusy] = useState<RegisterPlanId | null>(null);
   const [upgradeErr, setUpgradeErr] = useState<string | null>(null);
 
   useEffect(() => {
+    if (isInteractivePreview) {
+      setBillingMeta(PREVIEW_BILLING_META);
+      setBillingLoading(false);
+      return;
+    }
     if (!schoolId) return;
     let cancelled = false;
     setBillingLoading(true);
     void getSchoolDashboard(schoolId)
       .then((dash) => {
         if (cancelled) return;
+        const selectedPlanId = resolvePlanId(dash.selected_plan_id, dash.subscription_plan);
         setBillingMeta({
           billing: dash.billing ?? null,
           s3Configured: dash.s3_invoice_download_configured === true,
-          selectedPlanId: normalizePlanId(dash.selected_plan_id),
+          selectedPlanId,
           subscriptionPlan: dash.subscription_plan || SCHOOL_INSTITUTIONAL_PLAN_MATRIX.find(
-            (p) => p.id === normalizePlanId(dash.selected_plan_id)
+            (p) => p.id === selectedPlanId
           )?.name || 'Standard',
           paymentHistory: Array.isArray(dash.payment_history) ? dash.payment_history : [],
         });
@@ -186,11 +231,7 @@ export function SchoolAdminSubscriptionPage() {
       .catch(() => {
         if (!cancelled) {
           setBillingMeta({
-            billing: null,
-            s3Configured: false,
-            selectedPlanId: 'standard',
-            subscriptionPlan: 'Standard',
-            paymentHistory: [],
+            ...EMPTY_BILLING_META,
           });
         }
       })
@@ -200,10 +241,8 @@ export function SchoolAdminSubscriptionPage() {
     return () => {
       cancelled = true;
     };
-  }, [schoolId]);
+  }, [isInteractivePreview, schoolId]);
 
-  const canDownloadInvoice =
-    Boolean(billingMeta.billing?.has_invoice_pdf) && billingMeta.s3Configured;
   const currentPlanId = billingMeta.selectedPlanId;
   const currentPlanName =
     SCHOOL_INSTITUTIONAL_PLAN_MATRIX.find((p) => p.id === currentPlanId)?.name || billingMeta.subscriptionPlan;
@@ -221,39 +260,53 @@ export function SchoolAdminSubscriptionPage() {
   const upgradeDeltaGstPaise = Math.round(upgradeDeltaBaseInr * 100 * SCHOOL_REGISTRATION_GST_RATE);
   const upgradeDeltaTotalPaise = Math.round(upgradeDeltaBaseInr * 100) + upgradeDeltaGstPaise;
 
-  const handleDownloadInvoice = async () => {
+  const handleDownloadInvoice = async (paymentId: string) => {
     setInvoiceDownloadErr(null);
-    setInvoiceDownloading(true);
+    if (isInteractivePreview) {
+      setInvoiceDownloadErr('Invoice downloads are disabled in the public preview. Sign in to download official PDFs.');
+      return;
+    }
+    setInvoiceDownloadingPaymentId(paymentId);
     try {
-      await downloadBillingInvoicePdf();
+      await downloadBillingInvoicePdf(paymentId);
     } catch (e: unknown) {
       setInvoiceDownloadErr(e instanceof Error ? e.message : 'Could not download invoice.');
     } finally {
-      setInvoiceDownloading(false);
+      setInvoiceDownloadingPaymentId(null);
     }
   };
 
   const refreshBilling = async () => {
+    if (isInteractivePreview) {
+      setBillingMeta(PREVIEW_BILLING_META);
+      return;
+    }
     if (!schoolId) return;
     const dash = await getSchoolDashboard(schoolId);
+    const selectedPlanId = resolvePlanId(dash.selected_plan_id, dash.subscription_plan);
     setBillingMeta({
       billing: dash.billing ?? null,
       s3Configured: dash.s3_invoice_download_configured === true,
-      selectedPlanId: normalizePlanId(dash.selected_plan_id),
+      selectedPlanId,
       subscriptionPlan: dash.subscription_plan || SCHOOL_INSTITUTIONAL_PLAN_MATRIX.find(
-        (p) => p.id === normalizePlanId(dash.selected_plan_id)
+        (p) => p.id === selectedPlanId
       )?.name || 'Standard',
       paymentHistory: Array.isArray(dash.payment_history) ? dash.payment_history : [],
     });
   };
 
   const startUpgradeCheckout = async () => {
+    if (isInteractivePreview) {
+      setUpgradeErr('Checkout is disabled in the public preview. Sign in to upgrade your institutional subscription.');
+      return;
+    }
     if (!upgradeTarget || !schoolId) return;
     const targetPlanId = upgradeTarget.id as RegisterPlanId;
     setUpgradeErr(null);
     setUpgradeBusy(targetPlanId);
     try {
       const order = await createSchoolUpgradeOrder(schoolId, targetPlanId);
+      assertRazorpayCheckoutKeyAllowed(order.key_id, 'school_subscription_upgrade');
       const scriptOk = await loadScript('https://checkout.razorpay.com/v1/checkout.js');
       if (!scriptOk) {
         throw new Error('Could not load Razorpay checkout');
@@ -338,19 +391,31 @@ export function SchoolAdminSubscriptionPage() {
   };
 
   return (
-    <Box sx={{ maxWidth: 1120, mx: 'auto', pb: 6 }}>
-      {/* Header - aligned with For Schools / institutional pricing */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ color: ip.heading, fontWeight: 700, mb: 0.5 }}>
-          Institutional Subscriptions
-        </Typography>
-        <Typography variant="body2" sx={{ color: ip.subtext }}>
-          Annual institutional license. All students in selected grades included.
-        </Typography>
-      </Box>
+    <Box sx={schoolAdminPageContainerSx}>
+      <PageTutorial pageKey="school.subscription" ready={!billingLoading} />
+      <SchoolAdminPageHeader
+        title="Institutional Subscriptions"
+        subtitle="Annual institutional license. All students in selected grades included."
+      />
+
+      {isInteractivePreview && (
+        <Alert
+          severity="info"
+          sx={{
+            mb: 3,
+            bgcolor: '#eff6ff',
+            color: ip.heading,
+            border: `1px solid ${ip.cardBorder}`,
+            '& .MuiAlert-icon': { color: ip.statBlue },
+          }}
+        >
+          This subscription page is fully mocked for Greenfield International School. Plan comparison, billing history,
+          upgrade CTAs, and invoice actions are visible, but checkout and downloads are disabled.
+        </Alert>
+      )}
 
       {/* Current plan banner */}
-      <Box sx={{
+      <Box data-tutorial-id="school-subscription-current-plan" sx={{
         bgcolor: ip.cardMutedBg,
         border: `1px solid ${ip.cardBorder}`,
         borderRadius: 2.5, p: 3, mb: 4,
@@ -379,7 +444,7 @@ export function SchoolAdminSubscriptionPage() {
         Upgrades are prorated as the plan difference. From {currentPlanName}, you only pay the difference to move to a
         higher package; GST is added at checkout.
       </Typography>
-      <Box sx={{
+      <Box data-tutorial-id="school-subscription-plans" sx={{
         display: 'grid',
         gridTemplateColumns: { xs: '1fr', sm: '1fr', md: 'repeat(3, 1fr)' },
         gap: 2.5,
@@ -398,30 +463,28 @@ export function SchoolAdminSubscriptionPage() {
               key={plan.id}
               sx={{
                 bgcolor: '#fff',
-                boxShadow: plan.popular ? 2 : 'none',
-                border: plan.popular
-                  ? `2px solid ${STANDARD_RING}`
-                  : `1px solid ${ip.cardBorder}`,
+                boxShadow: isCurrentPlan ? 2 : 'none',
+                border: isCurrentPlan ? `2px solid ${plan.accent}` : `1px solid ${ip.cardBorder}`,
                 borderRadius: 2.5,
                 position: 'relative',
                 overflow: 'visible',
                 transition: 'all 0.18s',
-                pt: plan.popular ? 1.5 : 0,
+                pt: isCurrentPlan ? 1.5 : 0,
                 '&:hover': {
                   border: `2px solid ${plan.accent}`,
                   transform: 'translateY(-2px)',
                 },
               }}
             >
-            {plan.popular && (
+            {isCurrentPlan && (
               <Box
                 sx={{
                   position: 'absolute',
                   top: -12,
                   left: '50%',
                   transform: 'translateX(-50%)',
-                  bgcolor: POPULAR_PLAN_BADGE_GOLD,
-                  color: '#0f172a',
+                  bgcolor: plan.accent,
+                  color: '#fff',
                   px: 1.75,
                   py: 0.35,
                   borderRadius: 999,
@@ -433,10 +496,10 @@ export function SchoolAdminSubscriptionPage() {
                   whiteSpace: 'nowrap',
                 }}
               >
-                Popular
+                Current
               </Box>
             )}
-            <CardContent sx={{ p: '24px !important', pt: plan.popular ? '28px !important' : '24px !important' }}>
+            <CardContent sx={{ p: '24px !important', pt: isCurrentPlan ? '28px !important' : '24px !important' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
                 <plan.Icon sx={{ fontSize: '1.6rem', color: plan.accent }} />
                 <Typography variant="h6" sx={{ color: ip.heading, fontWeight: 700 }}>{plan.name}</Typography>
@@ -482,14 +545,16 @@ export function SchoolAdminSubscriptionPage() {
                   fullWidth
                   variant="contained"
                   endIcon={<ArrowIcon />}
-                  disabled={upgradeBusy !== null}
+                  disabled={isInteractivePreview || upgradeBusy !== null}
                   onClick={() => {
                     setUpgradeErr(null);
                     setUpgradeTarget(plan);
                   }}
                   sx={{ bgcolor: plan.accent, fontWeight: 700, borderRadius: 1.5, '&:hover': { bgcolor: plan.accent, filter: 'brightness(0.9)' } }}
                 >
-                  {isBusy
+                  {isInteractivePreview
+                    ? 'Upgrade after sign-in'
+                    : isBusy
                     ? 'Opening checkout…'
                     : `Upgrade for ${formatInrFromPaise(deltaTotalPaise)}`}
                 </Button>
@@ -548,12 +613,12 @@ export function SchoolAdminSubscriptionPage() {
       </Box>
 
       {/* Billing info */}
-      <Card sx={{ bgcolor: '#fff', border: `1px solid ${ip.cardBorder}`, borderRadius: 2, boxShadow: 'none' }}>
+      <Card data-tutorial-id="school-subscription-billing" sx={{ bgcolor: '#fff', border: `1px solid ${ip.cardBorder}`, borderRadius: 2, boxShadow: 'none' }}>
         <CardContent sx={{ p: '24px !important' }}>
           <Typography variant="h6" sx={{ color: ip.heading, fontWeight: 700, mb: 2 }}>Billing information</Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
             {[
-              { label: 'Billing contact', value: 'Principal / Academic Director' },
+              { label: 'Billing contact', value: isInteractivePreview ? GREENFIELD_POC_EMAIL : 'Principal / Academic Director' },
               {
                 label: 'Payment method',
                 value: latestPayment ? formatPaymentMethod(latestPayment.payment_method) : 'See your completed checkout',
@@ -588,7 +653,7 @@ export function SchoolAdminSubscriptionPage() {
               Loading billing details…
             </Typography>
           )}
-          {!billingLoading && billingMeta.billing?.has_invoice_pdf && !billingMeta.s3Configured && (
+          {!billingLoading && billingMeta.billing?.has_invoice_pdf && !billingMeta.s3Configured && !isInteractivePreview && (
             <Typography variant="caption" sx={{ color: '#b45309', display: 'block', mt: 1 }}>
               Invoice PDF is on file; downloads require S3 signing to be configured on the API (AWS keys + bucket).
             </Typography>
@@ -611,7 +676,7 @@ export function SchoolAdminSubscriptionPage() {
                       borderRadius: 1.5,
                       p: 1.75,
                       display: 'grid',
-                      gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', md: 'repeat(5, minmax(0, 1fr))' },
+                      gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', md: 'repeat(6, minmax(0, 1fr))' },
                       gap: 1.5,
                       bgcolor: '#f8fafc',
                     }}
@@ -641,6 +706,47 @@ export function SchoolAdminSubscriptionPage() {
                         </Typography>
                       </Box>
                     ))}
+                    <Box sx={{ minWidth: 0, display: 'flex', alignItems: 'flex-end' }}>
+                      {(() => {
+                        const canDownloadPaymentInvoice =
+                          Boolean(payment.has_invoice_pdf) && billingMeta.s3Configured && !isInteractivePreview;
+                        const isDownloadingThisInvoice = invoiceDownloadingPaymentId === payment.payment_id;
+                        return (
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={
+                              isDownloadingThisInvoice ? (
+                                <CircularProgress size={14} sx={{ color: ip.navy }} />
+                              ) : (
+                                <DownloadIcon sx={{ fontSize: '1.05rem' }} />
+                              )
+                            }
+                            disabled={!canDownloadPaymentInvoice || invoiceDownloadingPaymentId !== null}
+                            onClick={() => void handleDownloadInvoice(payment.payment_id)}
+                            sx={{
+                              borderColor: canDownloadPaymentInvoice ? ip.navy : ip.cardBorder,
+                              color: canDownloadPaymentInvoice ? ip.navy : ip.subtext,
+                              fontWeight: 600,
+                              textTransform: 'none',
+                              borderRadius: 1.5,
+                              whiteSpace: 'nowrap',
+                              '&:hover': canDownloadPaymentInvoice
+                                ? { borderColor: ip.navy, bgcolor: 'rgba(16, 64, 139, 0.06)' }
+                                : { bgcolor: ip.cardMutedBg },
+                              '&.Mui-disabled': {
+                                opacity: 1,
+                                borderColor: ip.cardBorder,
+                                color: ip.subtext,
+                                bgcolor: '#f8fafc',
+                              },
+                            }}
+                          >
+                            Invoice PDF
+                          </Button>
+                        );
+                      })()}
+                    </Box>
                   </Box>
                 ))}
               </Box>
@@ -651,43 +757,9 @@ export function SchoolAdminSubscriptionPage() {
             )}
           </Box>
           <Divider sx={{ borderColor: ip.cardBorder, my: 2 }} />
-          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={
-                invoiceDownloading ? (
-                  <CircularProgress size={14} sx={{ color: ip.navy }} />
-                ) : (
-                  <DownloadIcon sx={{ fontSize: '1.05rem' }} />
-                )
-              }
-              disabled={!canDownloadInvoice || invoiceDownloading}
-              onClick={() => void handleDownloadInvoice()}
-              sx={{
-                borderColor: canDownloadInvoice ? ip.navy : ip.cardBorder,
-                color: canDownloadInvoice ? ip.navy : ip.subtext,
-                fontWeight: 600,
-                textTransform: 'none',
-                minWidth: 200,
-                borderRadius: 1.5,
-                '&:hover': canDownloadInvoice
-                  ? { borderColor: ip.navy, bgcolor: 'rgba(16, 64, 139, 0.06)' }
-                  : { bgcolor: ip.cardMutedBg },
-                '&.Mui-disabled': {
-                  opacity: 1,
-                  borderColor: ip.cardBorder,
-                  color: ip.subtext,
-                  bgcolor: '#f8fafc',
-                },
-              }}
-            >
-              Download invoice (PDF)
-            </Button>
-            <Typography variant="caption" sx={{ color: ip.subtext, fontWeight: 600 }}>
-              Contact sales for custom pricing
-            </Typography>
-          </Box>
+          <Typography variant="caption" sx={{ color: ip.subtext, fontWeight: 600 }}>
+            {isInteractivePreview ? 'Preview only - invoice download disabled' : 'Contact sales for custom pricing'}
+          </Typography>
           {invoiceDownloadErr && (
             <Typography variant="caption" sx={{ color: 'error.main', display: 'block', mt: 1.5 }}>
               {invoiceDownloadErr}

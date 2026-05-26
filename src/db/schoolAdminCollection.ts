@@ -9,6 +9,7 @@ import {
   SCHOOLS_APIS,
   STUDENT_REGISTRATION_EMAILS,
   UPDATE_SCHOOL_PROFILE,
+  DISMISS_SCHOOL_TUTORIAL,
 } from "../constants/constants";
 import authTokenHandler from "../functions/auth_token/auth_token_handler";
 
@@ -49,8 +50,8 @@ export interface SchoolEmailCheck {
 }
 
 export interface AssessmentProgress {
-  proficiency_tier: number;
-  status: "locked" | "available" | "tier_advanced";
+  proficiency_tier?: number;
+  status: "locked" | "available" | "tier_advanced" | "completed";
   best_score: number | null;
   attempts_count: number;
   tiers_cleared?: Record<string, boolean>;
@@ -86,12 +87,20 @@ export interface SchoolDashboardPaymentHistoryItem {
   amount_paise: number | null;
   plan_id: string | null;
   invoice_number: string | null;
+  has_invoice_pdf?: boolean;
   payment_method: string;
   renewal_date: string | null;
 }
 
+export type SchoolTutorialUiPreferences = {
+  tutorials?: {
+    dismissed?: Record<string, boolean>;
+  };
+};
+
 export interface SchoolDashboardResponse {
   schoolId: string;
+  ui_preferences?: SchoolTutorialUiPreferences;
   selected_plan_id?: string | null;
   subscription_plan?: string | null;
   live: {
@@ -195,6 +204,26 @@ export type UpdateSchoolProfilePayload = {
   state?: string;
   postal_code?: string;
   additional_contact_emails?: string[];
+};
+
+export const putSchoolTutorialDismissal = async (
+  pageKey: string,
+  dismissed: Record<string, boolean>
+): Promise<{ success: boolean }> => {
+  try {
+    const authToken = await authTokenHandler.getAuthToken();
+    const response = await axios.put(
+      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${DISMISS_SCHOOL_TUTORIAL}`,
+      { pageKey, dismissed },
+      { headers: { Authorization: `Bearer ${authToken}` } }
+    );
+    return response.data ?? { success: true };
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data?.error) {
+      throw new Error(String(error.response.data.error));
+    }
+    throw new Error("Could not save tutorial preference.");
+  }
 };
 
 export const putSchoolProfile = async (
@@ -315,15 +344,16 @@ export const downloadQuarterlyReportPdf = async (quarterKey: string): Promise<vo
   await downloadPdfFromUrl(url, filename || `${quarterKey}.pdf`);
 };
 
-export const getBillingInvoiceDownloadUrl = async (): Promise<{
+export const getBillingInvoiceDownloadUrl = async (paymentId?: string): Promise<{
   url: string;
   filename: string;
   invoice_number: string | null;
 }> => {
   try {
     const authToken = await authTokenHandler.getAuthToken();
+    const paymentQuery = paymentId ? `?payment_id=${encodeURIComponent(paymentId)}` : "";
     const response = await axios.get(
-      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${BILLING_INVOICE_DOWNLOAD_URL}`,
+      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${BILLING_INVOICE_DOWNLOAD_URL}${paymentQuery}`,
       { headers: { Authorization: `Bearer ${authToken}` } }
     );
     return response.data as { url: string; filename: string; invoice_number: string | null };
@@ -333,8 +363,8 @@ export const getBillingInvoiceDownloadUrl = async (): Promise<{
   }
 };
 
-export const downloadBillingInvoicePdf = async (): Promise<void> => {
-  const { url, filename } = await getBillingInvoiceDownloadUrl();
+export const downloadBillingInvoicePdf = async (paymentId?: string): Promise<void> => {
+  const { url, filename } = await getBillingInvoiceDownloadUrl(paymentId);
   await downloadPdfFromUrl(url, filename || "invoice.pdf");
 };
 
@@ -360,6 +390,26 @@ export const getSchoolDashboard = async (schoolId: string): Promise<SchoolDashbo
     return (await res.json()) as SchoolDashboardResponse;
   } catch {
     throw new Error("Error fetching school dashboard. Please contact globalyoungscholar@argus.ai");
+  }
+};
+
+export const getSchoolStudent = async (studentId: string): Promise<StudentRow> => {
+  try {
+    const authToken = await authTokenHandler.getAuthToken();
+    const encodedStudentId = encodeURIComponent(String(studentId ?? "").trim());
+    const response = await axios.get(
+      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}/students/${encodedStudentId}`,
+      { headers: { Authorization: `Bearer ${authToken}` } }
+    );
+    return response.data as StudentRow;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 403) {
+      throw new Error("This student is not linked to your school.");
+    }
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      throw new Error("Student not found.");
+    }
+    throw new Error("Could not load student profile. Please try again.");
   }
 };
 

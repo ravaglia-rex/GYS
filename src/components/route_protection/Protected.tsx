@@ -40,7 +40,7 @@ const Protected: React.FC<ProtectedProps> = ({ children }) => {
         setLoading(false);
       } else {
         authTokenHandler.clearToken();
-        navigate('/');
+        navigate('/login');
       }
     });
 

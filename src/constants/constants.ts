@@ -53,19 +53,21 @@ export const RESOLVE_REGISTRATION_SCHOOL = '/resolveRegistrationSchool';
 
 // Students
 export const SIGN_UP_TRANSACTION='/runSignUpTransaction';
+export const PREPARE_SIGN_UP_TRANSACTION='/prepareSignUpTransaction';
 export const FETCH_STUDENT_DATA='/getStudentDetails';
 export const UPDATE_STUDENT_DATA='/updateStudentDetails';
 export const FETCH_PAYMENTS='/getPayments';
-export const FETCH_PAYEE_DETAILS='/getPayeeDetails';
 export const FETCH_STUDENT_SCHOOL_LEADERBOARD='/schoolLeaderboard';
 export const LIST_STUDENT_REPORTS='/listReports';
 export const STUDENT_REPORT_DOWNLOAD_URL='/reportDownloadUrl';
+export const SEND_NOTIFICATION_EMAILS='/sendNotificationEmails';
 
 // School admins
 export const FETCH_SCHOOL_ADMIN_DATA='/getSchoolAdminDetails';
 export const FETCH_SCHOOL_DASHBOARD='/getSchoolDashboard';
 export const STUDENT_REGISTRATION_EMAILS='/studentRegistrationEmails';
 export const UPDATE_SCHOOL_PROFILE='/schoolProfile';
+export const DISMISS_SCHOOL_TUTORIAL='/tutorialDismissal';
 export const QUARTERLY_REPORTS='/quarterlyReports';
 export const QUARTERLY_REPORT_DOWNLOAD_URL='/quarterlyReportDownloadUrl';
 export const BILLING_INVOICE_DOWNLOAD_URL='/billingInvoiceDownloadUrl';
@@ -87,10 +89,6 @@ export const RECORD_PRACTICE_SESSION_OUTCOMES='/recordSessionOutcomes';
 export const RESET_PRACTICE_PROGRESS='/resetProgress';
 
 // Razorpay
-export const CREATE_RAZORPAY_CUSTOMER='/createCustomer';
-export const CREATE_RAZORPAY_ORDER='/createOrder';
-export const MARK_PAYMENT_PENDING='/markPaymentPending';
-export const DEV_MODE_PAYMENT='/devModePayment';
 export const CREATE_SCHOOL_RAZORPAY_ORDER='/createSchoolOrder';
 export const VERIFY_SCHOOL_RAZORPAY_PAYMENT='/verifySchoolPayment';
 export const MARK_SCHOOL_WIRE_TRANSFER_ATTEMPT='/markSchoolWireTransferAttempt';
@@ -106,6 +104,3 @@ export const CHECK_EMAIL_EXISTS='/checkEmailExists';
 
 // Temporary launch gate: keep official student exams hidden until real question banks are ready.
 export const STUDENT_OFFICIAL_ASSESSMENTS_ENABLED = false;
-
-// Temporary registration gate: keep existing student sign-in available while pausing new student signups.
-export const STUDENT_SIGNUP_ENABLED = false;

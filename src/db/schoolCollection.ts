@@ -28,12 +28,12 @@ export type RegisterSchoolPayload = {
   /** One or more curriculum options from the registration BOARDS list. */
   boards: string[];
   state_board_state: string;
-  referral_source: string;
-  address_line1: string;
-  address_line2: string;
   city: string;
   state: string;
-  postal_code: string;
+  referral_source: string;
+  registrant_first_name: string;
+  registrant_last_name: string;
+  registrant_designation: string;
   contact_emails: string[];
   /** Optional at signup - required on Razorpay checkout step if not stored. */
   poc_phone?: string;
@@ -99,6 +99,8 @@ export type CreateSchoolRazorpayOrderResponse = {
   key_id: string;
   /** Razorpay Import Flow - pass to Standard Checkout options. */
   customer_id?: string;
+  /** RBI Import Flow payer details; passed through to Checkout so Razorpay can prefill its compliance step. */
+  customer_details?: Record<string, unknown>;
   plan_id: string;
   /** When API sets RAZORPAY_CHECKOUT_CONFIG_ID - pass through to Checkout options. */
   checkout_config_id?: string;
@@ -163,6 +165,9 @@ export type MarkSchoolWireTransferAttemptParams = {
   schoolId: string;
   checkoutSecret: string;
   poc_phone?: string;
+  missing_bank_name?: string;
+  source?: 'wire_transfer' | 'razorpay_missing_bank';
+  force_email?: boolean;
 };
 
 export type MarkSchoolWireTransferAttemptResponse = {
@@ -172,7 +177,9 @@ export type MarkSchoolWireTransferAttemptResponse = {
   amount: number;
   currency: string;
   plan_id: string;
-  invoice_number: string;
+  invoice_number?: string;
+  details_email_sent?: boolean;
+  details_email_already_sent?: boolean;
 };
 
 export const markSchoolWireTransferAttempt = async (
@@ -187,6 +194,9 @@ export const markSchoolWireTransferAttempt = async (
       school_id: params.schoolId,
       checkout_secret: params.checkoutSecret,
       ...(params.poc_phone?.trim() ? { poc_phone: params.poc_phone.trim() } : {}),
+      ...(params.missing_bank_name?.trim() ? { missing_bank_name: params.missing_bank_name.trim() } : {}),
+      ...(params.source ? { source: params.source } : {}),
+      ...(params.force_email ? { force_email: true } : {}),
     });
     return response.data;
   } catch (e) {

@@ -4,9 +4,12 @@ import { Box, Typography, Tabs, Tab, Paper, Avatar } from '@mui/material';
 import { BookOpen } from 'lucide-react';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import { EnhancedAssessmentCardsGroup } from '../../components/dashboard/EnhancedAssessmentCardsGroup';
+import AssessmentAttemptHistorySection from '../../components/dashboard/AssessmentAttemptHistorySection';
 import { auth } from '../../firebase/firebase';
 import * as Sentry from '@sentry/react';
 import { STUDENT_OFFICIAL_ASSESSMENTS_ENABLED } from '../../constants/constants';
+import PageTutorial from '../../components/tutorial/PageTutorial';
+import { studentPageSubtitleSx, studentPageTitleSx } from '../../styles/studentTypography';
 
 
 interface TabPanelProps {
@@ -54,6 +57,8 @@ const AssessmentsPage: React.FC = () => {
       setActiveTab(0);
     } else if (pathname.includes('/completed')) {
       setActiveTab(1);
+    } else if (pathname.includes('/reports')) {
+      setActiveTab(2);
     } else {
       setActiveTab(0); // Default to available
     }
@@ -69,6 +74,9 @@ const AssessmentsPage: React.FC = () => {
       case 1:
         navigate('/assessments/completed');
         break;
+      case 2:
+        navigate('/assessments/reports');
+        break;
       default:
         navigate('/assessments/available');
     }
@@ -81,6 +89,7 @@ const AssessmentsPage: React.FC = () => {
       }}
     >
       <DashboardLayout>
+        <PageTutorial pageKey="student.assessments" />
         <Box sx={{ maxWidth: '1200px', mx: 'auto' }}>
           {/* Header */}
           <Box sx={{ mb: 4 }}>
@@ -95,16 +104,11 @@ const AssessmentsPage: React.FC = () => {
               </Avatar>
               <Box>
                 <Typography variant="h4" sx={{ 
-                  color: 'white', 
-                  fontWeight: 700,
-                  background: 'linear-gradient(45deg, #10b981, #3b82f6)',
-                  backgroundClip: 'text',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent'
+                  ...studentPageTitleSx,
                 }}>
                   Assessments
                 </Typography>
-                <Typography variant="h6" sx={{ color: 'rgba(255, 255, 255, 0.8)', fontWeight: 400 }}>
+                <Typography variant="h6" sx={studentPageSubtitleSx}>
                   {STUDENT_OFFICIAL_ASSESSMENTS_ENABLED
                     ? 'Take assessments, view results, and track your progress'
                     : 'Official exams are coming soon; practice mode remains available'}
@@ -114,7 +118,9 @@ const AssessmentsPage: React.FC = () => {
           </Box>
 
           {/* Tabs */}
-          <Paper sx={{ 
+          <Paper
+            data-tutorial-id="student-assessments-tabs"
+            sx={{ 
             backgroundColor: 'rgba(30, 41, 59, 0.8)', 
             backdropFilter: 'blur(20px)',
             border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -138,12 +144,15 @@ const AssessmentsPage: React.FC = () => {
             >
               <Tab label="Available" {...a11yProps(0)} />
               <Tab label="Completed & Results" {...a11yProps(1)} />
+              <Tab label="Reports" {...a11yProps(2)} />
             </Tabs>
           </Paper>
 
           {/* Tab Panels */}
           <TabPanel value={activeTab} index={0}>
-            <Box sx={{ 
+            <Box
+              data-tutorial-id="student-assessments-cards"
+              sx={{ 
               backgroundColor: 'rgba(30, 41, 59, 0.5)', 
               borderRadius: 2, 
               p: 3,
@@ -175,6 +184,7 @@ const AssessmentsPage: React.FC = () => {
                 showDashboardOverview={false}
                 description="View your completed assessments and their results. All assessment outcomes and performance analytics are displayed here."
               />
+              <AssessmentAttemptHistorySection uid={uid} />
             </Box>
           </TabPanel>
 

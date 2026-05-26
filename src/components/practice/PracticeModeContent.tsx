@@ -54,6 +54,7 @@ import {
   type PracticeHubSelection,
 } from './practiceModeConfig';
 import { fetchPracticePoolCounts, PRACTICE_SESSION_BATCH_SIZE, resetPracticeProgress } from '../../db/practiceBank';
+import { studentPageSubtitleSx, studentPageTitleSx, studentSectionHeadingSx } from '../../styles/studentTypography';
 
 /** Official exam progress + tier counts - used to cap practice difficulty per exam. */
 export interface PracticeUnlockContext {
@@ -117,11 +118,9 @@ function PracticeSectionHeading({ step, title }: { step: number; title: string }
         variant="h6"
         component="h2"
         sx={{
+          ...studentSectionHeadingSx,
           m: 0,
-          fontWeight: 800,
-          fontSize: { xs: '1.15rem', sm: '1.28rem' },
           letterSpacing: 0.03,
-          color: 'white',
         }}
       >
         {title}
@@ -359,19 +358,14 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
           <Typography
             variant={embedded ? 'h5' : 'h4'}
             sx={{
-              color: 'white',
-              fontWeight: 700,
-              background: 'linear-gradient(45deg, #a78bfa, #38bdf8)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              ...studentPageTitleSx,
             }}
           >
             Practice Mode
           </Typography>
           <Typography
-            variant="body2"
-            sx={{ color: 'rgba(255, 255, 255, 0.72)', mt: 0.5, maxWidth: 720 }}
+            variant={embedded ? 'body1' : 'h6'}
+            sx={{ ...studentPageSubtitleSx, maxWidth: 720 }}
           >
             Build familiarity with questions and testing patterns similar to the official exam.
           </Typography>
@@ -390,6 +384,7 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
       </Box>
 
       <Alert
+        data-tutorial-id="student-practice-purpose"
         severity="info"
         sx={{
           mb: 2.5,
@@ -403,33 +398,33 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
           What practice is for
         </Typography>
         <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.78)', lineHeight: 1.55 }}>
-          Use practice to learn the format, pacing, and skills each exam targets. Nothing here affects your official
+          Use practice to learn the format, pacing, and skills each exam targets. Practice levels unlocked for each exam matches your levels unlocked on the corresponding official exam. Nothing here affects your official
           scores, school reports, or rankings. There is{' '}
           <strong>no overall time limit</strong> for a practice session. Each question shows a{' '}
-          <strong>per-question timer</strong> so you can notice how long you spend thinking. It is for your
-          awareness only. 
+          <strong>per-question timer</strong> so you can monitor how long you spend on each question. 
         </Typography>
       </Alert>
 
-      <PracticeSectionHeading step={1} title="Choose an exam" />
-      <Typography variant="caption" sx={{ display: 'block', color: 'rgba(255,255,255,0.45)', mb: 1.75, maxWidth: 720 }}>
-        Select one assessment below (same unlock rules as your official exams). The highlighted card is your current
-        choice - other available exams look muted until you click them.
-      </Typography>
-      <Box
-        sx={{
-          display: 'grid',
-          gap: 1.5,
-          mb: 3,
-          alignItems: 'stretch',
-          gridTemplateColumns: {
-            xs: 'minmax(0, 1fr)',
-            sm: 'repeat(2, minmax(0, 1fr))',
-            md: 'repeat(3, minmax(0, 1fr))',
-          },
-        }}
-      >
-        {PRACTICE_ELIGIBLE_EXAM_IDS.map((id) => {
+      <Box data-tutorial-id="student-practice-exam-picker">
+        <PracticeSectionHeading step={1} title="Choose an exam" />
+        <Typography variant="caption" sx={{ display: 'block', color: 'rgba(255,255,255,0.45)', mb: 1.75 }}>
+          Select one assessment below (same unlock rules as your official exams). The highlighted card is your current
+          choice.
+        </Typography>
+        <Box
+          sx={{
+            display: 'grid',
+            gap: 1.5,
+            mb: 3,
+            alignItems: 'stretch',
+            gridTemplateColumns: {
+              xs: 'minmax(0, 1fr)',
+              sm: 'repeat(2, minmax(0, 1fr))',
+              md: 'repeat(3, minmax(0, 1fr))',
+            },
+          }}
+        >
+          {PRACTICE_ELIGIBLE_EXAM_IDS.map((id) => {
           const meta = PRACTICE_EXAM_CARD_STYLE[id];
           const selected = selectedExamId === id;
           const gateResult = assessmentGate ? practiceExamGate(id, assessmentGate) : null;
@@ -575,73 +570,75 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
               {card}
             </Box>
           );
-        })}
+          })}
 
-        <Alert
-          severity="warning"
-          sx={{
-            height: '100%',
-            minHeight: { xs: 0, md: '100%' },
-            boxSizing: 'border-box',
-            display: 'flex',
-            alignItems: 'flex-start',
-            bgcolor: 'rgba(245, 158, 11, 0.06)',
-            border: '1px solid rgba(245, 158, 11, 0.25)',
-            borderRadius: 2,
-            color: 'rgba(255,255,255,0.88)',
-            py: 1.5,
-            '& .MuiAlert-icon': {
-              color: '#fbbf24',
-              alignSelf: 'flex-start',
-              pt: 0.25,
-            },
-            '& .MuiAlert-message': {
-              width: '100%',
-              py: 0,
-            },
-          }}
-        >
-          <Box>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.75, lineHeight: 1.35 }}>
-              Exams 6 &amp; 7 - No Practice Pool
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.75)', lineHeight: 1.5, fontSize: '0.8rem' }}>
-              These last two focus on personality and career interests, not skill drills, so there is no practice bank.
-              You&apos;ll complete them once in your official flow when your membership unlocks them.
-            </Typography>
-          </Box>
-        </Alert>
+          <Alert
+            severity="warning"
+            sx={{
+              height: '100%',
+              minHeight: { xs: 0, md: '100%' },
+              boxSizing: 'border-box',
+              display: 'flex',
+              alignItems: 'flex-start',
+              bgcolor: 'rgba(245, 158, 11, 0.06)',
+              border: '1px solid rgba(245, 158, 11, 0.25)',
+              borderRadius: 2,
+              color: 'rgba(255,255,255,0.88)',
+              py: 1.5,
+              '& .MuiAlert-icon': {
+                color: '#fbbf24',
+                alignSelf: 'flex-start',
+                pt: 0.25,
+              },
+              '& .MuiAlert-message': {
+                width: '100%',
+                py: 0,
+              },
+            }}
+          >
+            <Box>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.75, lineHeight: 1.35 }}>
+                Exams 6 &amp; 7 - No Practice Pool
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.75)', lineHeight: 1.5, fontSize: '0.8rem' }}>
+                These last two focus on personality and career interests, not skill drills, so there is no practice bank.
+                You&apos;ll complete them once in your official flow when your membership unlocks them.
+              </Typography>
+            </Box>
+          </Alert>
+        </Box>
       </Box>
 
-      <PracticeSectionHeading step={2} title="Difficulty level" />
-      {practiceUnlock && maxUnlocked < 3 && (
-        <Alert
-          severity="info"
+      <Box data-tutorial-id="student-practice-level-picker">
+        <PracticeSectionHeading step={2} title="Difficulty level" />
+        {practiceUnlock && maxUnlocked < 3 && (
+          <Alert
+            severity="info"
+            sx={{
+              mb: 2,
+              bgcolor: 'rgba(99, 102, 241, 0.08)',
+              border: '1px solid rgba(129, 140, 248, 0.28)',
+              color: 'rgba(255,255,255,0.88)',
+              '& .MuiAlert-icon': { color: '#a5b4fc' },
+            }}
+          >
+            <Typography variant="body2" sx={{ lineHeight: 1.55 }}>
+              For <strong>{getAssessmentDisplayName(selectedExamId)}</strong>, you can practice official difficulty levels{' '}
+              <strong>1 through {maxUnlocked}</strong> - matching what you&apos;ve unlocked on the real exam. Advance your
+              official level to unlock the next practice level (you can still practice every unlocked level even before you
+              attempt the next level officially).
+            </Typography>
+          </Alert>
+        )}
+        <Box
           sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+            gap: 1,
             mb: 2,
-            bgcolor: 'rgba(99, 102, 241, 0.08)',
-            border: '1px solid rgba(129, 140, 248, 0.28)',
-            color: 'rgba(255,255,255,0.88)',
-            '& .MuiAlert-icon': { color: '#a5b4fc' },
+            width: '100%',
           }}
         >
-          <Typography variant="body2" sx={{ lineHeight: 1.55 }}>
-            For <strong>{getAssessmentDisplayName(selectedExamId)}</strong>, you can practice official difficulty levels{' '}
-            <strong>1 through {maxUnlocked}</strong> - matching what you&apos;ve unlocked on the real exam. Advance your
-            official level to unlock the next practice level (you can still practice every unlocked level even before you
-            attempt the next level officially).
-          </Typography>
-        </Alert>
-      )}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-          gap: 1,
-          mb: 2,
-          width: '100%',
-        }}
-      >
         {LEVELS.map((lvl) => {
           const isRec = lvl === recLevel;
           const selected = selectedLevel === lvl;
@@ -752,9 +749,11 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
             </Box>
           );
         })}
+        </Box>
       </Box>
 
       <Card
+        data-tutorial-id="student-practice-start-card"
         elevation={0}
         sx={{
           mb: 3,

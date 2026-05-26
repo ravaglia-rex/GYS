@@ -323,16 +323,15 @@ const StudentMembershipStepPage: React.FC = () => {
                   effectiveCoveredLevel >= 1 && level.numericLevel > effectiveCoveredLevel
                     ? studentMembershipUpgradeAmountPaise(effectiveCoveredLevel, level.numericLevel)
                     : null;
-                const priceLabel = includedBySchool
-                  ? 'Included'
-                  : upgradeAmount != null
-                    ? formatInrFromPaise(upgradeAmount)
-                    : level.price;
-                const priceSuffix = includedBySchool
-                  ? 'by school'
-                  : upgradeAmount != null
-                    ? 'upgrade'
-                    : level.priceSuffix;
+                const coveredLevelForCard = Math.min(
+                  effectiveCoveredLevel,
+                  level.numericLevel
+                ) as 1 | 2 | 3 | 4;
+                const schoolCoveredAmount =
+                  effectiveCoveredLevel >= 1
+                    ? studentMembershipUpgradeAmountPaise(0, coveredLevelForCard)
+                    : null;
+                const fullPriceLabel = level.oneTime ? `${level.price} once` : `${level.price}/yr`;
 
                 return (
                   <button
@@ -421,15 +420,41 @@ const StudentMembershipStepPage: React.FC = () => {
                           </div>
                         </div>
                       </div>
-                      <p
-                        className="shrink-0 text-base font-bold sm:text-lg"
-                        style={{ color: GYS_BLUE }}
-                      >
-                        {priceLabel}
-                        <span className="block text-right text-xs font-normal text-slate-500">
-                          {priceSuffix}
-                        </span>
-                      </p>
+                      <div className="shrink-0 text-right">
+                        {includedBySchool ? (
+                          <>
+                            <p className="text-sm font-semibold text-slate-500 line-through">
+                              {fullPriceLabel}
+                            </p>
+                            <p className="text-base font-bold sm:text-lg" style={{ color: GYS_BLUE }}>
+                              Included
+                            </p>
+                            <p className="text-xs font-normal text-slate-500">covered by school</p>
+                          </>
+                        ) : upgradeAmount != null ? (
+                          <>
+                            <p className="text-sm font-semibold text-slate-500 line-through">
+                              {fullPriceLabel}
+                            </p>
+                            {schoolCoveredAmount != null && schoolCoveredAmount > 0 && (
+                              <p className="text-xs font-medium text-emerald-700">
+                                School covers {formatInrFromPaise(schoolCoveredAmount)}
+                              </p>
+                            )}
+                            <p className="text-base font-bold sm:text-lg" style={{ color: GYS_BLUE }}>
+                              {formatInrFromPaise(upgradeAmount)}
+                            </p>
+                            <p className="text-xs font-normal text-slate-500">student pays to upgrade</p>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-base font-bold sm:text-lg" style={{ color: GYS_BLUE }}>
+                              {fullPriceLabel}
+                            </p>
+                            <p className="text-xs font-normal text-slate-500">{level.priceSuffix}</p>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </button>
                 );
@@ -514,10 +539,7 @@ const StudentMembershipStepPage: React.FC = () => {
                     ))}
                   </tbody>
                 </table>
-                <p className="border-t border-slate-100 bg-slate-50 px-3 py-2 text-[0.65rem] leading-relaxed text-slate-600 sm:text-xs">
-                  <strong>School Leaderboard:</strong> parent or guardian opt-in required (default-private).{' '}
-                  <strong>Discovery </strong> is not eligible; leaderboard eligibility starts at Reasoning Triad.
-                </p>
+               
               </div>
             )}
 

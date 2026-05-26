@@ -14,6 +14,8 @@ import {
   getQuarterlyReports,
   type QuarterlyReportListItem,
 } from '../../db/schoolAdminCollection';
+import PageTutorial from '../../components/tutorial/PageTutorial';
+import { SchoolAdminPageHeader, schoolAdminPageContainerSx } from './schoolAdminPageStyles';
 
 interface Alert {
   id: string;
@@ -122,26 +124,28 @@ const SchoolAdminAlertsPage: React.FC = () => {
   }
 
   return (
-    <Box sx={{ maxWidth: 800, mx: 'auto', pb: 6 }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 4, flexWrap: 'wrap', gap: 1 }}>
-        <Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
-            <Typography variant="h4" sx={{ color: ip.heading, fontWeight: 700 }}>Alerts</Typography>
-            {unreadCount > 0 && (
-              <Chip label={`${unreadCount} new`} size="small" sx={{ bgcolor: 'rgba(239,68,68,0.15)', color: '#ef4444', fontWeight: 700, fontSize: '0.7rem' }} />
-            )}
-          </Box>
-          <Typography variant="body2" sx={{ color: ip.subtext }}>
-            Report notifications and system updates
-          </Typography>
-        </Box>
-        {unreadCount > 0 && (
-          <Button onClick={markAllRead} sx={{ color: ip.statBlue, fontWeight: 600, fontSize: '0.8rem' }}>
-            Mark all as read
-          </Button>
-        )}
-      </Box>
+    <Box sx={schoolAdminPageContainerSx}>
+      <PageTutorial pageKey="school.alerts" ready={!loading} />
+      <SchoolAdminPageHeader
+        title="Alerts"
+        subtitle="Report notifications and system updates"
+        badge={
+          unreadCount > 0 ? (
+            <Chip
+              label={`${unreadCount} new`}
+              size="small"
+              sx={{ bgcolor: 'rgba(239,68,68,0.15)', color: '#ef4444', fontWeight: 700, fontSize: '0.7rem' }}
+            />
+          ) : undefined
+        }
+        action={
+          unreadCount > 0 ? (
+            <Button onClick={markAllRead} sx={{ color: ip.statBlue, fontWeight: 600, fontSize: '0.8rem' }}>
+              Mark all as read
+            </Button>
+          ) : undefined
+        }
+      />
 
       {error && (
         <Typography variant="body2" sx={{ color: '#ef4444', mb: 2 }}>
@@ -151,7 +155,10 @@ const SchoolAdminAlertsPage: React.FC = () => {
 
       {/* Alerts list */}
       {alerts.length > 0 ? (
-        <Card sx={{ bgcolor: '#fff', border: `1px solid ${ip.cardBorder}`, borderRadius: 2, boxShadow: 'none' }}>
+        <Card
+          data-tutorial-id="school-alerts-list"
+          sx={{ bgcolor: '#fff', border: `1px solid ${ip.cardBorder}`, borderRadius: 2, boxShadow: 'none' }}
+        >
           <CardContent sx={{ p: '0 !important' }}>
             {alerts.map((alert, idx) => {
               const color = ALERT_COLOR[alert.type] ?? ip.subtext;

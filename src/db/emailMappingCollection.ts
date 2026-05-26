@@ -2,8 +2,14 @@ import axios from 'axios';
 import { EMAIL_CHECK_APIS, CHECK_EMAIL_EXISTS } from '../constants/constants';
 
 // Checks both students and school admins via the backend endpoint.
+export type EmailExistsResult = {
+  exists: boolean;
+  type: string | null;
+  registrationStatus?: string | null;
+};
+
 // Returns { exists: boolean, type: 'student' | 'schooladmin' | null }.
-export const checkEmailExists = async (email: string): Promise<{ exists: boolean; type: string | null }> => {
+export const checkEmailExists = async (email: string): Promise<EmailExistsResult> => {
   try {
     const encodedEmail = encodeURIComponent(email);
     const response = await axios.get(

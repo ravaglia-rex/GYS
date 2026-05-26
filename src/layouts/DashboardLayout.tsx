@@ -3,6 +3,12 @@ import { Box, Drawer, IconButton, useTheme, useMediaQuery } from '@mui/material'
 import { Menu as MenuIcon } from '@mui/icons-material';
 import SidebarNavigation from '../layouts/SidebarNavigation';
 import NotificationsDialog from '../components/dashboard/NotificationsDialog';
+import StudentTutorialProvider from '../components/tutorial/StudentTutorialProvider';
+import type {
+  CompletedAssessmentNotificationSource,
+  DashboardNotificationEventSource,
+  UnlockedAssessmentNotificationSource,
+} from '../utils/dashboardNotifications';
 
 const DRAWER_WIDTH = 280;
 const DRAWER_WIDTH_MINI = 88;
@@ -10,13 +16,17 @@ const DRAWER_WIDTH_MINI = 88;
 interface DashboardLayoutProps {
   children: React.ReactNode;
   availableAssessmentsCount?: number;
-  resultsAvailableCount?: number;
+  completedAssessments?: CompletedAssessmentNotificationSource[];
+  unlockedAssessments?: UnlockedAssessmentNotificationSource[];
+  backendNotificationEvents?: DashboardNotificationEventSource[];
 }
 
 export default function DashboardLayout({ 
   children, 
   availableAssessmentsCount = 0, 
-  resultsAvailableCount = 0 
+  completedAssessments = [],
+  unlockedAssessments = [],
+  backendNotificationEvents = [],
 }: DashboardLayoutProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
@@ -51,6 +61,7 @@ export default function DashboardLayout({
   };
 
   return (
+    <StudentTutorialProvider>
     <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#0f172a' }}>
       {/* Sidebar */}
       <Drawer
@@ -120,8 +131,11 @@ export default function DashboardLayout({
         open={notificationsOpen}
         onClose={handleNotificationsClose}
         availableAssessmentsCount={availableAssessmentsCount}
-        resultsAvailableCount={resultsAvailableCount}
+        completedAssessments={completedAssessments}
+        unlockedAssessments={unlockedAssessments}
+        backendNotificationEvents={backendNotificationEvents}
       />
     </Box>
+    </StudentTutorialProvider>
   );
 }

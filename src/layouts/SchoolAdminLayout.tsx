@@ -37,11 +37,22 @@ const HEADER_NAVY = '#002147';
 const DRAWER_WIDTH = 260;
 const APP_BAR_HEIGHT = 64;
 const PAGE_BG = '#f1f5f9';
+const SIDEBAR_ICON_SIZE = 22;
 
 /** Mockup: Overview = colored bars */
 function OverviewColoredIcon() {
   return (
-    <Box aria-hidden sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: '4px', height: 22, width: 22 }}>
+    <Box
+      aria-hidden
+      sx={{
+        display: 'flex',
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+        gap: '4px',
+        height: SIDEBAR_ICON_SIZE,
+        width: SIDEBAR_ICON_SIZE,
+      }}
+    >
       <Box sx={{ width: 5, height: 11, bgcolor: '#22c55e', borderRadius: 0.5 }} />
       <Box sx={{ width: 5, height: 18, bgcolor: '#3b82f6', borderRadius: 0.5 }} />
       <Box sx={{ width: 5, height: 8, bgcolor: '#ef4444', borderRadius: 0.5 }} />
@@ -69,14 +80,24 @@ interface SidebarNavItem {
 }
 
 /** Left sidebar - primary navigation (no duplicate links in the app bar). */
+const SCHOOL_NAV_TUTORIAL_ID: Record<string, string> = {
+  Overview: 'school-nav-overview',
+  Students: 'school-nav-students',
+  Reports: 'school-nav-reports',
+  Analytics: 'school-nav-analytics',
+  Alerts: 'school-nav-alerts',
+  Settings: 'school-nav-settings',
+  Subscription: 'school-nav-subscription',
+};
+
 const SIDEBAR_NAV: SidebarNavItem[] = [
   { title: 'Overview', path: '/school-admin/dashboard', icon: <OverviewColoredIcon /> },
-  { title: 'Students', path: '/school-admin/students', icon: <PeopleIcon sx={{ color: '#64748b', fontSize: '1.3rem' }} /> },
-  { title: 'Reports', path: '/school-admin/reports', icon: <ReportsIcon sx={{ color: '#b45309', fontSize: '1.3rem' }} /> },
-  { title: 'Analytics', path: '/school-admin/analytics', icon: <AnalyticsIcon sx={{ color: '#dc2626', fontSize: '1.3rem' }} /> },
-  { title: 'Alerts', path: '/school-admin/alerts', icon: <AlertsIcon sx={{ color: '#eab308', fontSize: '1.3rem' }} /> },
-  { title: 'Settings', path: '/school-admin/settings', icon: <SettingsIcon sx={{ color: '#64748b', fontSize: '1.3rem' }} /> },
-  { title: 'Subscription', path: '/school-admin/subscription', icon: <SubscriptionIcon sx={{ color: '#059669', fontSize: '1.3rem' }} /> },
+  { title: 'Students', path: '/school-admin/students', icon: <PeopleIcon sx={{ color: '#64748b', fontSize: SIDEBAR_ICON_SIZE }} /> },
+  { title: 'Reports', path: '/school-admin/reports', icon: <ReportsIcon sx={{ color: '#b45309', fontSize: SIDEBAR_ICON_SIZE }} /> },
+  { title: 'Analytics', path: '/school-admin/analytics', icon: <AnalyticsIcon sx={{ color: '#dc2626', fontSize: SIDEBAR_ICON_SIZE }} /> },
+  { title: 'Alerts', path: '/school-admin/alerts', icon: <AlertsIcon sx={{ color: '#eab308', fontSize: SIDEBAR_ICON_SIZE }} /> },
+  { title: 'Subscription', path: '/school-admin/subscription', icon: <SubscriptionIcon sx={{ color: '#059669', fontSize: SIDEBAR_ICON_SIZE }} /> },
+  { title: 'Settings', path: '/school-admin/settings', icon: <SettingsIcon sx={{ color: '#64748b', fontSize: SIDEBAR_ICON_SIZE }} /> },
 ];
 
 export default function SchoolAdminLayout({ children, interactivePreview }: SchoolAdminLayoutProps) {
@@ -137,6 +158,7 @@ export default function SchoolAdminLayout({ children, interactivePreview }: Scho
       const settingsLocked = Boolean(interactivePreview && item.title === 'Settings');
       const row = (
         <Box
+          data-tutorial-id={SCHOOL_NAV_TUTORIAL_ID[item.title]}
           onClick={() => {
             if (!settingsLocked) go(item.path);
           }}
@@ -158,7 +180,7 @@ export default function SchoolAdminLayout({ children, interactivePreview }: Scho
               : {}),
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28 }}>{item.icon}</Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, flexShrink: 0 }}>{item.icon}</Box>
           <Typography
             sx={{
               fontWeight: active ? 600 : 500,
@@ -257,8 +279,9 @@ export default function SchoolAdminLayout({ children, interactivePreview }: Scho
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: PAGE_BG }}>
+    <Box data-school-admin-shell sx={{ minHeight: '100vh', bgcolor: PAGE_BG }}>
       <AppBar
+        data-school-admin-appbar
         position="fixed"
         elevation={0}
         sx={{
@@ -374,6 +397,7 @@ export default function SchoolAdminLayout({ children, interactivePreview }: Scho
 
           {/* Desktop: fixed under app bar so it does not scroll with main content */}
           <Box
+            data-school-admin-sidebar
             sx={{
               display: { xs: 'none', md: 'flex' },
               width: DRAWER_WIDTH,
@@ -431,7 +455,8 @@ export default function SchoolAdminLayout({ children, interactivePreview }: Scho
                 flex: 1,
                 minWidth: 0,
                 bgcolor: PAGE_BG,
-                p: isInstitutionDashboard ? { xs: 0, md: 0 } : { xs: 2, md: 3 },
+                px: isInstitutionDashboard ? 0 : { xs: 1.5, md: 2 },
+                py: isInstitutionDashboard ? 0 : { xs: 2, md: 3 },
               }}
             >
               {children}

@@ -7,6 +7,8 @@ import StudentLeaderboardPanel from '../../components/dashboard/StudentLeaderboa
 import BigSpinner from '../../components/ui/BigSpinner';
 import { getStudentSchoolLeaderboard } from '../../db/studentLeaderboardCollection';
 import { type ExamLeaderboardSection, type LeaderboardGrade } from '../../utils/leaderboard';
+import PageTutorial from '../../components/tutorial/PageTutorial';
+import { studentPageSubtitleSx, studentPageTitleSx } from '../../styles/studentTypography';
 
 const LeaderboardPage: React.FC = () => {
   const [initialGrade, setInitialGrade] = useState<LeaderboardGrade>(10);
@@ -48,8 +50,10 @@ const LeaderboardPage: React.FC = () => {
   return (
     <Sentry.ErrorBoundary beforeCapture={(s) => s.setTag('location', 'LeaderboardPage')}>
       <DashboardLayout>
+        <PageTutorial pageKey="student.leaderboard" ready={!loading} />
         <Box sx={{ maxWidth: '1200px', mx: 'auto' }}>
           <Box
+            data-tutorial-id="student-leaderboard-intro"
             sx={{
               display: 'flex',
               flexWrap: 'wrap',
@@ -74,17 +78,12 @@ const LeaderboardPage: React.FC = () => {
                 <Typography
                   variant="h4"
                   sx={{
-                    color: 'white',
-                    fontWeight: 700,
-                    background: 'linear-gradient(45deg, #fbbf24, #a78bfa)',
-                    backgroundClip: 'text',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
+                    ...studentPageTitleSx,
                   }}
                 >
                   School Leaderboard
                 </Typography>
-                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.72)', mt: 0.5 }}>
+                <Typography variant="h6" sx={studentPageSubtitleSx}>
                   See how you compare with classmates at your school on each exam. Available when your school’s cohort data is published.
                 </Typography>
               </Box>
@@ -93,6 +92,7 @@ const LeaderboardPage: React.FC = () => {
           </Box>
 
           <Box
+            data-tutorial-id="student-leaderboard-panel"
             sx={{
               p: 3,
               borderRadius: 2,
@@ -115,7 +115,6 @@ const LeaderboardPage: React.FC = () => {
                   initialGrade={initialGrade}
                   sections={sections}
                   lastUpdatedISO={lastUpdatedISO}
-                  showGradeToggle={false}
                 />
               </>
             )}

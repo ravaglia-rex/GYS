@@ -16,6 +16,8 @@ import {
   performanceTierFromScore,
   unlockNoticeForAssessment,
 } from '../../config/assessmentFlowUI';
+import { isLevelBasedAssessment } from '../../utils/assessmentGating';
+import { addExamAttemptCooldown, formatCooldownDate } from '../../utils/examAttemptCooldown';
 
 interface ResultState {
   attemptId: string;
@@ -50,12 +52,15 @@ const AssessmentResultPage: React.FC = () => {
 
   const { assessmentId, tierNumber, scorePercent, correct, total, passed, nextTier, completedAt } = state;
   const isAiLiteracy = assessmentId === 'ai_literacy';
+  const levelBased = isLevelBasedAssessment(assessmentId);
   const flow = getAssessmentFlowDefinition(assessmentId);
   const displayScore = Math.round(scorePercent);
   const percentile = estimatedPercentileFromScore(scorePercent);
   const perfTier = performanceTierFromScore(displayScore);
   const unlock = unlockNoticeForAssessment(assessmentId, passed);
   const primary = flow.theme === 'purple' ? '#7b1fa2' : '#0d47a1';
+  const completedMs = completedAt ? Date.parse(completedAt) : Date.now();
+  const retakeAvailableMs = addExamAttemptCooldown(Number.isNaN(completedMs) ? Date.now() : completedMs);
 
   const detailState = { ...state };
 
@@ -112,10 +117,10 @@ const AssessmentResultPage: React.FC = () => {
                     fullWidth
                     variant="contained"
                     startIcon={<ReplayIcon />}
-                    onClick={() => navigate(`/assessments/${assessmentId}/tier/${tierNumber}/detail`)}
+                    disabled
                     sx={{ bgcolor: '#06b6d4', fontWeight: 800, py: 1.3, textTransform: 'none' }}
                   >
-                    Retake Level {tierNumber}
+                    Retake available {formatCooldownDate(retakeAvailableMs)}
                   </Button>
                 )}
                 <Button
@@ -153,7 +158,26 @@ const AssessmentResultPage: React.FC = () => {
           </Typography>
         </Box>
 
-        {passed ? (
+        {!levelBased ? (
+          <Box
+            sx={{
+              bgcolor: '#f3e5f5',
+              borderRadius: 2,
+              p: 2.5,
+              mb: 2,
+              border: '1px solid #ce93d8',
+              textAlign: 'center',
+            }}
+          >
+            <Typography sx={{ fontSize: '1.75rem', mb: 0.5 }}>✓</Typography>
+            <Typography sx={{ fontWeight: 900, color: '#4a148c', fontSize: '1.2rem' }}>
+              Profile assessment submitted
+            </Typography>
+            <Typography sx={{ color: '#6a1b9a', fontSize: '0.85rem', mt: 1 }}>
+              Your responses were saved for insight, counseling, and recommendations. This assessment does not use skill levels.
+            </Typography>
+          </Box>
+        ) : passed ? (
           <Box
             sx={{
               bgcolor: '#e8f5e9',
@@ -180,19 +204,19 @@ const AssessmentResultPage: React.FC = () => {
               {displayScore}%
             </Typography>
             <Typography sx={{ color: '#64748b', fontSize: '0.85rem', mt: 0.5 }}>
-              {correct} / {total} items - keep going; retakes are unlimited.
+              {correct} / {total} items - this level can be retaken every 3 months.
             </Typography>
           </Box>
         )}
 
-        {!passed && (
+        {levelBased && !passed && (
           <Box sx={{ bgcolor: '#ffebee', border: '1px solid #ffcdd2', borderRadius: 2, p: 2, mb: 2, textAlign: 'center' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 0.5 }}>
               <CancelIcon sx={{ color: '#c62828' }} />
               <Typography sx={{ fontWeight: 800, color: '#b71c1c' }}>Level not passed</Typography>
             </Box>
             <Typography sx={{ color: '#616161', fontSize: '0.85rem' }}>
-              Reach the passing threshold to unlock the next level.
+              Score 75% or higher to unlock the next level.
             </Typography>
           </Box>
         )}
@@ -234,7 +258,7 @@ const AssessmentResultPage: React.FC = () => {
             View detailed results
           </Button>
 
-          {passed && nextTier != null && (
+        {levelBased && passed && nextTier != null && (
             <Button
               fullWidth
               variant="contained"
@@ -255,12 +279,12 @@ const AssessmentResultPage: React.FC = () => {
             </Button>
           )}
 
-          {!passed && (
+          {levelBased && !passed && (
             <Button
               fullWidth
               variant="contained"
               startIcon={<ReplayIcon />}
-              onClick={() => navigate(`/assessments/${assessmentId}/tier/${tierNumber}/detail`)}
+              disabled
               sx={{
                 bgcolor: '#f1f5f9',
                 color: '#0f172a',
@@ -271,7 +295,7 @@ const AssessmentResultPage: React.FC = () => {
                 boxShadow: 'none',
               }}
             >
-              Retake level {tierNumber}
+              Retake available {formatCooldownDate(retakeAvailableMs)}
             </Button>
           )}
 

@@ -33,6 +33,7 @@ import {
   downloadQuarterlyReportPdf,
   getQuarterlyReports,
   getSchoolDashboard,
+  getStudentRegistrationEmailLists,
   type QuarterlyReportListItem,
   type StudentRow,
 } from '../../db/schoolAdminCollection';
@@ -41,6 +42,7 @@ import { useSchoolAdminBelowNav } from '../../layouts/schoolAdminBelowNavContext
 import { summarizeSchoolTier123, summarizeNationalPerformanceTiers } from '../../utils/schoolAdminTierAnalytics';
 import { normalizeTierSlugForDashboard, parseInstitutionalTierSlug } from '../../utils/achievementTier';
 import { displaySubscriptionPlan } from '../../utils/displaySubscriptionPlan';
+import { normalizeRosterEmail } from '../../utils/schoolAdminRosterUtils';
 import { ProficiencyTier123Overview } from '../../components/school_admin/ProficiencyTier123Overview';
 import { NationalPerformanceTierOverview } from '../../components/school_admin/NationalPerformanceTierOverview';
 import {
@@ -49,6 +51,8 @@ import {
   GREENFIELD_QUARTERLY_REPORTS,
   GREENFIELD_SCHOOL_DISPLAY,
 } from '../../data/schoolPreviewMock';
+import PageTutorial from '../../components/tutorial/PageTutorial';
+import { SCHOOL_ADMIN_PAGE_MAX_WIDTH } from './schoolAdminPageStyles';
 
 // ─── Tier config ─────────────────────────────────────────────────────────────
 const SCHOOL_ADMIN_HELP_HREF =
@@ -84,7 +88,7 @@ const TIER_CONFIG: Record<string, { color: string; bg: string; label: string; ba
     bg: 'rgba(3,105,161,0.12)',
     label: 'Platinum',
     bar: ip.tierBar.platinum,
-    emoji: '✦',
+    emoji: '🏅',
   },
   gold: { color: '#d97706', bg: 'rgba(245,158,11,0.12)', label: 'Gold', bar: ip.tierBar.gold, emoji: '🥇' },
   silver: { color: '#64748b', bg: 'rgba(100,116,139,0.12)', label: 'Silver', bar: ip.tierBar.silver, emoji: '🥈' },
@@ -119,6 +123,41 @@ function parseOptionalInt(v: unknown): number | null {
   if (typeof v === 'number' && Number.isFinite(v)) return Math.round(v);
   if (typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v))) return Math.round(Number(v));
   return null;
+}
+
+function formatMemberSince(raw: unknown): string {
+  let date: Date | null = null;
+  if (raw instanceof Date) {
+    date = raw;
+  } else if (typeof raw === 'string' || typeof raw === 'number') {
+    const parsed = new Date(raw);
+    date = Number.isNaN(parsed.getTime()) ? null : parsed;
+  } else if (
+    raw &&
+    typeof raw === 'object' &&
+    'toDate' in raw &&
+    typeof (raw as { toDate?: unknown }).toDate === 'function'
+  ) {
+    date = (raw as { toDate: () => Date }).toDate();
+  }
+
+  const year = date && !Number.isNaN(date.getTime()) ? date.getFullYear() : new Date().getFullYear();
+  return `Member since ${year}`;
+}
+
+function countInitializedStudents(students: StudentRow[], registrationEmails: string[]): number {
+  const registeredEmails = new Set(
+    students
+      .map(student => normalizeRosterEmail(String(student.email ?? '')))
+      .filter(Boolean)
+  );
+  const invitedNotRegisteredCount = new Set(
+    registrationEmails
+      .map(normalizeRosterEmail)
+      .filter(email => email && !registeredEmails.has(email))
+  ).size;
+
+  return students.length + invitedNotRegisteredCount;
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -209,6 +248,8 @@ function InstitutionHeroStrip(props: {
   schoolCity: string;
   schoolBoard: string;
   subscriptionPlan: string;
+  memberSinceLabel: string;
+  studentCount: number;
   institutionalTierCfg: { label: string; color: string; bg: string; bar: string; emoji: string } | null;
   institutionalRank: number | null;
   rankChangeQ1: number | null;
@@ -219,6 +260,8 @@ function InstitutionHeroStrip(props: {
     schoolCity,
     schoolBoard,
     subscriptionPlan,
+    memberSinceLabel,
+    studentCount,
     institutionalTierCfg,
     institutionalRank,
     rankChangeQ1,
@@ -231,6 +274,7 @@ function InstitutionHeroStrip(props: {
 
   return (
     <Box
+      data-tutorial-id="school-dashboard-hero"
       sx={{
         width: '100%',
         boxSizing: 'border-box',
@@ -241,9 +285,10 @@ function InstitutionHeroStrip(props: {
         pt: { xs: 2.5, md: 3 },
         pb: { xs: 2.5, md: 3 },
         position: 'relative',
+        scrollMarginTop: '72px',
       }}
     >
-      <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, maxWidth: 1320, mx: 'auto' }}>
+      <Box sx={{ px: { xs: 1.5, sm: 2, md: 3 }, maxWidth: 1320, mx: 'auto' }}>
         <Box
           sx={{
             display: 'flex',
@@ -280,6 +325,19 @@ function InstitutionHeroStrip(props: {
             >
               {[schoolCity, schoolBoard || null, subscriptionPlan].filter(Boolean).join(' • ')}
             </Typography>
+            <Typography
+              variant="body2"
+              component="div"
+              sx={{
+                color: 'rgba(219, 234, 254, 0.78)',
+                fontSize: { xs: '0.75rem', md: '0.8125rem' },
+                lineHeight: 1.45,
+                fontWeight: 500,
+                mt: 0.3,
+              }}
+            >
+              {memberSinceLabel} • Active roster: {studentCount.toLocaleString('en-IN')} student{studentCount === 1 ? '' : 's'}
+            </Typography>
           </Box>
           <Box
             sx={{
@@ -313,7 +371,20 @@ function InstitutionHeroStrip(props: {
             >
               <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 0.75, justifyContent: 'center', flexWrap: 'wrap' }}>
                 {institutionalTierCfg ? (
-                  <Typography component="span" sx={{ fontSize: { xs: '1.35rem', sm: '1.5rem' }, lineHeight: 1 }} aria-hidden>
+                  <Typography
+                    component="span"
+                    sx={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: { xs: 26, sm: 28 },
+                      height: { xs: 26, sm: 28 },
+                      fontSize: { xs: '1.35rem', sm: '1.5rem' },
+                      lineHeight: 1,
+                      fontFamily: '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif',
+                    }}
+                    aria-hidden
+                  >
                     {institutionalTierCfg.emoji}
                   </Typography>
                 ) : null}
@@ -457,7 +528,9 @@ const SchoolAdminDashboardPage: React.FC = () => {
   const [schoolBoard, setSchoolBoard] = useState('');
   const [schoolTier, setSchoolTier] = useState<string | null>(null);
   const [subscriptionPlan, setSubscriptionPlan] = useState('Standard Subscription');
+  const [memberSinceLabel, setMemberSinceLabel] = useState(() => formatMemberSince(null));
   const [studentCount, setStudentCount] = useState(0);
+  const [initializedStudentCount, setInitializedStudentCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const [performance, setPerformance] = useState<PerformanceMetrics>({
@@ -487,7 +560,9 @@ const SchoolAdminDashboardPage: React.FC = () => {
       setSchoolBoard(GREENFIELD_SCHOOL_DISPLAY.board);
       setSchoolTier(parseInstitutionalTierSlug(GREENFIELD_SCHOOL_DISPLAY.institutionalTier));
       setSubscriptionPlan(GREENFIELD_SCHOOL_DISPLAY.subscriptionPlan);
+      setMemberSinceLabel('Member since 2026');
       setStudentCount(allStudents.length);
+      setInitializedStudentCount(allStudents.length);
       setTotalAssessmentsCompleted(countAssessmentsCompleted(allStudents));
       const tier123 = summarizeSchoolTier123(allStudents);
       setProficiencyTier123(tier123);
@@ -535,9 +610,19 @@ const SchoolAdminDashboardPage: React.FC = () => {
         setSubscriptionPlan(
           displaySubscriptionPlan(schoolData.subscription_plan ?? schoolData.plan ?? 'Standard Subscription')
         );
+        setMemberSinceLabel(
+          formatMemberSince(
+            schoolData.created_at ??
+              schoolData.createdAt ??
+              schoolData.registered_at ??
+              schoolData.registration_created_at ??
+              schoolData.onboarding_completed_at
+          )
+        );
 
         let allStudents: StudentRow[] = [];
         let analyticsData: Record<string, any> = {};
+        let registrationEmails: string[] = [];
         try {
           const dashboardData = await getSchoolDashboard(schoolId);
           allStudents = dashboardData.students ?? [];
@@ -549,6 +634,13 @@ const SchoolAdminDashboardPage: React.FC = () => {
               'Confirm REACT_APP_GOOGLE_CLOUD_FUNCTIONS points at the same Firebase project you seeded, ' +
               'and that functions are deployed or your local emulator is running with the latest build.'
           );
+        }
+
+        try {
+          const lists = await getStudentRegistrationEmailLists();
+          registrationEmails = lists.emails ?? [];
+        } catch (emailErr) {
+          console.warn('getStudentRegistrationEmailLists failed:', emailErr);
         }
 
         try {
@@ -576,6 +668,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
 
         setTotalAssessmentsCompleted(countAssessmentsCompleted(allStudents));
         setStudentCount(allStudents.length);
+        setInitializedStudentCount(countInitializedStudents(allStudents, registrationEmails));
 
         const tier123 = summarizeSchoolTier123(allStudents);
         setProficiencyTier123(tier123);
@@ -625,6 +718,8 @@ const SchoolAdminDashboardPage: React.FC = () => {
         schoolCity={schoolCity}
         schoolBoard={schoolBoard}
         subscriptionPlan={subscriptionPlan}
+        memberSinceLabel={memberSinceLabel}
+        studentCount={studentCount}
         institutionalTierCfg={tierCfg}
         institutionalRank={institutionalRank}
         rankChangeQ1={rankChangeQ1}
@@ -639,6 +734,8 @@ const SchoolAdminDashboardPage: React.FC = () => {
     schoolCity,
     schoolBoard,
     subscriptionPlan,
+    memberSinceLabel,
+    studentCount,
     schoolTier,
     institutionalRank,
     rankChangeQ1,
@@ -652,6 +749,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
       latestQuarterly?.quarterKey &&
       (quarterlyS3Configured || Boolean(latestQuarterly.previewPublicPdfUrl))
   );
+  const showStudentOnboardingPrompt = !isSchoolAdminPreview && initializedStudentCount < 10;
 
   const handleLatestReportClick = async () => {
     setReportDownloadError(null);
@@ -702,7 +800,8 @@ const SchoolAdminDashboardPage: React.FC = () => {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <Box sx={{ maxWidth: 1200, mx: 'auto', px: { xs: 2, md: 3 }, pb: 6, pt: 3 }}>
+    <Box sx={{ maxWidth: SCHOOL_ADMIN_PAGE_MAX_WIDTH, mx: 'auto', px: { xs: 1.5, md: 2 }, pb: 6, pt: 3 }}>
+      <PageTutorial pageKey="school.dashboard" ready={!loading} />
       {dashboardApiError && (
         <Alert severity="warning" sx={{ mb: 2 }} onClose={() => setDashboardApiError(null)}>
           {dashboardApiError}
@@ -713,9 +812,96 @@ const SchoolAdminDashboardPage: React.FC = () => {
           {reportDownloadError}
         </Alert>
       )}
+      {showStudentOnboardingPrompt && (
+        <Card
+          sx={{
+            mb: 3,
+            borderRadius: 3,
+            border: '1px solid rgba(245, 158, 11, 0.3)',
+            background: 'linear-gradient(135deg, #fff7ed 0%, #eff6ff 52%, #f0fdfa 100%)',
+            boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)',
+            overflow: 'hidden',
+            position: 'relative',
+          }}
+        >
+          <Box
+            sx={{
+              position: 'absolute',
+              right: { xs: -26, sm: 18 },
+              top: { xs: -28, sm: -20 },
+              width: 120,
+              height: 120,
+              borderRadius: '50%',
+              bgcolor: 'rgba(251, 191, 36, 0.18)',
+            }}
+            aria-hidden
+          />
+          <CardContent
+            sx={{
+              p: { xs: '20px !important', sm: '24px !important' },
+              display: 'flex',
+              alignItems: { xs: 'flex-start', sm: 'center' },
+              justifyContent: 'space-between',
+              gap: 2,
+              flexDirection: { xs: 'column', sm: 'row' },
+              position: 'relative',
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.75, maxWidth: 720 }}>
+              <Box
+                sx={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: 2,
+                  bgcolor: '#f59e0b',
+                  color: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  boxShadow: '0 10px 18px rgba(245, 158, 11, 0.28)',
+                }}
+              >
+                <PeopleIcon sx={{ fontSize: '2rem' }} />
+              </Box>
+              <Box>
+                <Typography sx={{ color: ip.heading, fontWeight: 800, fontSize: { xs: '1.05rem', sm: '1.18rem' }, mb: 0.4 }}>
+                  Start strong: onboard your first 10 students
+                </Typography>
+                <Typography sx={{ color: ip.subtext, fontSize: '0.9rem', lineHeight: 1.55 }}>
+                  You only have {initializedStudentCount} students invited or registered. Add students now so your analytics,
+                  reports, and school insights become more meaningful.
+                </Typography>
+              </Box>
+            </Box>
+            <Button
+              variant="contained"
+              size="large"
+              endIcon={<ArrowForwardIcon />}
+              onClick={() => navigate(`${routeBase}/students`)}
+              sx={{
+                bgcolor: ip.navy,
+                color: '#fff',
+                borderRadius: 2,
+                px: 2.5,
+                py: 1.15,
+                fontWeight: 800,
+                textTransform: 'none',
+                whiteSpace: 'nowrap',
+                boxShadow: '0 8px 18px rgba(16, 64, 139, 0.22)',
+                '&:hover': { bgcolor: '#0c356f', boxShadow: '0 10px 22px rgba(16, 64, 139, 0.3)' },
+              }}
+            >
+              Onboard students
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* ── Quick Actions: roster summary + shortcuts ───────────────── */}
-      <Box sx={{
+      <Box
+        data-tutorial-id="school-dashboard-quick-actions"
+        sx={{
         display: 'grid',
         gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' },
         gap: 2,
@@ -884,7 +1070,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
             <strong>Proficiency ladder (not tier names):</strong> Level 1 / 2 / 3 correspond to foundational / intermediate / advanced difficulty on
             each assessment. Everyone on your school roster is included.
           </Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
+          <Box data-tutorial-id="school-dashboard-stats" sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
             <StatCard
               label="Avg. Percentile"
               value={performance.avgPercentile > 0 ? ordinal(performance.avgPercentile) : '-'}

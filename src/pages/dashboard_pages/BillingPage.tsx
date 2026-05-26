@@ -7,6 +7,8 @@ import PaymentsTabs from '../../components/dashboard/PaymentsTabs';
 import MembershipUpgradeSection from '../../components/dashboard/MembershipUpgradeSection';
 import { auth } from '../../firebase/firebase';
 import * as Sentry from '@sentry/react';
+import PageTutorial from '../../components/tutorial/PageTutorial';
+import { studentPageSubtitleSx, studentPageTitleSx, studentSectionHeadingSx } from '../../styles/studentTypography';
 
 const BillingPage: React.FC = () => {
   const location = useLocation();
@@ -25,6 +27,7 @@ const BillingPage: React.FC = () => {
       }}
     >
       <DashboardLayout>
+        <PageTutorial pageKey="student.payments" />
         <Box sx={{ maxWidth: '1200px', mx: 'auto' }}>
           {/* Header */}
           <Box sx={{ mb: 4 }}>
@@ -39,36 +42,33 @@ const BillingPage: React.FC = () => {
               </Avatar>
               <Box>
                 <Typography variant="h4" sx={{ 
-                  color: 'white', 
-                  fontWeight: 700,
-                  background: 'linear-gradient(45deg, #10b981, #3b82f6)',
-                  backgroundClip: 'text',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent'
+                  ...studentPageTitleSx,
                 }}>
                   Billing & Payments
                 </Typography>
-                <Typography variant="h6" sx={{ color: 'rgba(255, 255, 255, 0.8)', fontWeight: 400 }}>
-                  Manage your exam payments and view transaction history.
+                <Typography variant="h6" sx={studentPageSubtitleSx}>
+                  Manage your membership and view transaction history.
                 </Typography>
               </Box>
             </Box>
           </Box>
 
           {/* Billing Overview */}
-          <Paper sx={{ 
+          <Paper
+            data-tutorial-id="student-payments-main"
+            sx={{ 
             backgroundColor: 'rgba(30, 41, 59, 0.8)', 
             backdropFilter: 'blur(20px)',
             border: '1px solid rgba(255, 255, 255, 0.1)',
             p: 3,
             mb: 4
           }}>
-            <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
+            <Typography variant="h6" sx={{ ...studentSectionHeadingSx, mb: 2 }}>
               Billing Overview
             </Typography>
             <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 3 }}>
-              Exam fees and membership upgrades are processed securely through our payment partners when you are signed in.
-              View pending exam payments and your full payment history below.
+              Student package purchases and membership upgrades are processed securely through Razorpay.
+              View your payment history below.
             </Typography>
             
             <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.1)', my: 2 }} />
@@ -103,15 +103,16 @@ const BillingPage: React.FC = () => {
             </Box>
           </Paper>
 
-          <Box ref={membershipAnchorRef} id="membership-upgrade">
+          <Box ref={membershipAnchorRef} id="membership-upgrade" data-tutorial-id="student-payments-upgrade">
             <MembershipUpgradeSection />
           </Box>
 
           {/* Payment Management — outer Paper matches billing preview layout */}
-          <Typography variant="h5" sx={{ color: 'white', fontWeight: 600, mb: 2 }}>
+          <Typography variant="h5" sx={{ ...studentSectionHeadingSx, mb: 2 }}>
             Payment Management
           </Typography>
           <Paper
+            data-tutorial-id="student-payments-tabs"
             sx={{
               backgroundColor: 'rgba(30, 41, 59, 0.8)',
               border: '1px solid rgba(255, 255, 255, 0.1)',

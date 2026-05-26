@@ -10,41 +10,37 @@ export type CreateStudentRegistrationOrderResponse = {
   amount: number;
   currency: string;
   key_id: string;
+  student_uid: string;
   membership_level: number;
   school_covered_membership_level?: number;
   checkout_config_id?: string;
 };
 
 export type StudentRegistrationBillingDetails = {
-  contact: string;
-  line1: string;
+  contact?: string;
+  line1?: string;
   line2?: string;
-  city: string;
-  state: string;
-  zipcode: string;
-  country: 'IND';
+  city?: string;
+  state?: string;
+  zipcode?: string;
+  country?: 'IND';
 };
 
 export const createStudentRegistrationOrder = async (
-  email: string,
+  studentUid: string,
   membershipLevel: 1 | 2 | 3 | 4,
-  schoolId?: string,
-  studentName?: string,
   billingDetails?: StudentRegistrationBillingDetails
 ): Promise<CreateStudentRegistrationOrderResponse> => {
   const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS ?? '';
   if (!base) {
     throw new Error('REACT_APP_GOOGLE_CLOUD_FUNCTIONS is not configured.');
   }
-  const normalizedStudentName = studentName?.trim();
   try {
     const response = await axios.post(
       `${base}${RAZORPAY_APIS}${CREATE_STUDENT_REGISTRATION_ORDER}`,
       {
-        email: email.trim().toLowerCase(),
+        student_uid: studentUid,
         membership_level: membershipLevel,
-        ...(schoolId ? {school_id: schoolId} : {}),
-        ...(normalizedStudentName ? {student_name: normalizedStudentName} : {}),
         ...(billingDetails ? {billing_details: billingDetails} : {}),
       }
     );
@@ -64,7 +60,7 @@ export const createStudentRegistrationOrder = async (
 };
 
 export const verifyStudentRegistrationPayment = async (body: {
-  email: string;
+  student_uid: string;
   razorpay_order_id: string;
   razorpay_payment_id: string;
   razorpay_signature: string;

@@ -59,6 +59,8 @@ export interface AttemptRecord {
   passed: boolean | null;
   started_at: any;
   completed_at: any | null;
+  failed_at?: any | null;
+  abandoned_at?: any | null;
 }
 
 export interface InitializedExam {

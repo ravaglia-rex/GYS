@@ -25,27 +25,31 @@ import {
   Close as CloseIcon,
   Assignment as AssignmentIcon,
   Payment as PaymentIcon,
-  School as SchoolIcon
+  School as SchoolIcon,
+  EmojiEvents as EmojiEventsIcon,
+  WorkspacePremium as WorkspacePremiumIcon,
+  Description as DescriptionIcon
 } from '@mui/icons-material';
-
-interface Notification {
-  id: string;
-  type: 'success' | 'info' | 'warning' | 'error';
-  title: string;
-  message: string;
-  timestamp: Date;
-  isRead: boolean;
-  category: 'assessment' | 'payment' | 'system' | 'general';
-}
+import {
+  generateDashboardNotifications,
+  getStalePeriodicDashboardNotificationIds,
+  useDismissedDashboardNotificationIds,
+  type CompletedAssessmentNotificationSource,
+  type DashboardNotification,
+  type DashboardNotificationEventSource,
+  type UnlockedAssessmentNotificationSource,
+} from '../../utils/dashboardNotifications';
 
 interface NotificationsDialogProps {
   open: boolean;
   onClose: () => void;
   availableAssessmentsCount: number;
-  resultsAvailableCount: number;
+  completedAssessments: CompletedAssessmentNotificationSource[];
+  unlockedAssessments: UnlockedAssessmentNotificationSource[];
+  backendNotificationEvents: DashboardNotificationEventSource[];
 }
 
-const getNotificationIcon = (type: Notification['type']) => {
+const getNotificationIcon = (type: DashboardNotification['type']) => {
   switch (type) {
     case 'success':
       return <CheckCircleIcon color="success" />;
@@ -60,7 +64,7 @@ const getNotificationIcon = (type: Notification['type']) => {
   }
 };
 
-const getCategoryIcon = (category: Notification['category']) => {
+const getCategoryIcon = (category: DashboardNotification['category']) => {
   switch (category) {
     case 'assessment':
       return <AssignmentIcon />;
@@ -68,12 +72,18 @@ const getCategoryIcon = (category: Notification['category']) => {
       return <PaymentIcon />;
     case 'system':
       return <InfoIcon />;
+    case 'leaderboard':
+      return <EmojiEventsIcon />;
+    case 'badge':
+      return <WorkspacePremiumIcon />;
+    case 'report':
+      return <DescriptionIcon />;
     default:
       return <SchoolIcon />;
   }
 };
 
-const getCategoryColor = (category: Notification['category']) => {
+const getCategoryColor = (category: DashboardNotification['category']) => {
   switch (category) {
     case 'assessment':
       return 'primary';
@@ -81,6 +91,12 @@ const getCategoryColor = (category: Notification['category']) => {
       return 'success';
     case 'system':
       return 'info';
+    case 'leaderboard':
+      return 'warning';
+    case 'badge':
+      return 'secondary';
+    case 'report':
+      return 'success';
     default:
       return 'default';
   }
@@ -96,84 +112,35 @@ const formatTimestamp = (timestamp: Date) => {
   return `${Math.floor(diffInMinutes / 1440)} days ago`;
 };
 
-// Function to generate dynamic notifications based on the rules
-const generateDynamicNotifications = (
-  availableAssessmentsCount: number,
-  resultsAvailableCount: number
-): Notification[] => {
-  const notifications: Notification[] = [];
-  const now = new Date();
-
-  // Rule 1: If number of assessments available is not 0, show "New Assessment Available"
-  if (availableAssessmentsCount > 0) {
-    notifications.push({
-      id: 'new-assessment-available',
-      type: 'info',
-      title: 'New Assessment Available',
-      message: `You have ${availableAssessmentsCount} new assessment${availableAssessmentsCount > 1 ? 's' : ''} available to take. Check the assessments section to get started.`,
-      timestamp: new Date(now.getTime() - 30 * 60 * 1000), // 30 minutes ago
-      isRead: false,
-      category: 'assessment'
-    });
-  }
-
-  // Rule 2: If number of results available is 2, show 2 different notifications
-  if (resultsAvailableCount === 2) {
-    // First notification: Challenge assessment evaluated and result available
-    notifications.push({
-      id: 'challenge-assessment-result',
-      type: 'success',
-      title: 'Challenge Assessment Evaluated',
-      message: 'Your challenge assessment has been evaluated and results are now available. Check your performance analysis.',
-      timestamp: new Date(now.getTime() - 2 * 60 * 60 * 1000), // 2 hours ago
-      isRead: false,
-      category: 'assessment'
-    });
-
-    // Second notification: Check your assessment analysis now
-    notifications.push({
-      id: 'assessment-analysis-ready',
-      type: 'info',
-      title: 'Analysis Complete',
-      message: 'Your detailed assessment analysis is ready for review. Discover your strengths and areas for improvement.',
-      timestamp: new Date(now.getTime() - 1 * 60 * 60 * 1000), // 1 hour ago
-      isRead: false,
-      category: 'assessment'
-    });
-  }
-
-  // Rule 3: If number of results available is 1, show qualifying assessment result notification
-  if (resultsAvailableCount === 1) {
-    notifications.push({
-      id: 'qualifying-assessment-result',
-      type: 'success',
-      title: 'Qualifying Assessment Result Available',
-      message: 'Your qualifying assessment has been evaluated and results are now available. View your performance and next steps.',
-      timestamp: new Date(now.getTime() - 3 * 60 * 60 * 1000), // 3 hours ago
-      isRead: false,
-      category: 'assessment'
-    });
-  }
-
-  return notifications;
-};
-
 export default function NotificationsDialog({ 
   open, 
   onClose, 
   availableAssessmentsCount, 
-  resultsAvailableCount 
+  completedAssessments,
+  unlockedAssessments,
+  backendNotificationEvents
 }: NotificationsDialogProps) {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<DashboardNotification[]>([]);
+  const { dismissedIds, dismissOne, dismissMany } = useDismissedDashboardNotificationIds();
 
   // Generate notifications when props change
   useEffect(() => {
-    const dynamicNotifications = generateDynamicNotifications(
-      availableAssessmentsCount, 
-      resultsAvailableCount
+    const allNotifications = generateDashboardNotifications({
+      availableAssessmentsCount,
+      completedAssessments,
+      unlockedAssessments,
+      backendNotificationEvents,
+    });
+    const autoDismissedPeriodicIds = getStalePeriodicDashboardNotificationIds(allNotifications.map(n => n.id));
+    const dynamicNotifications = allNotifications.filter(
+      n => !dismissedIds.has(n.id) && !autoDismissedPeriodicIds.includes(n.id)
     );
     setNotifications(dynamicNotifications);
-  }, [availableAssessmentsCount, resultsAvailableCount]);
+    const idsToDismiss = autoDismissedPeriodicIds.filter(id => !dismissedIds.has(id));
+    if (idsToDismiss.length > 0) {
+      dismissMany(idsToDismiss);
+    }
+  }, [availableAssessmentsCount, completedAssessments, unlockedAssessments, backendNotificationEvents, dismissedIds, dismissMany]);
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
@@ -182,7 +149,13 @@ export default function NotificationsDialog({
   };
 
   const handleClearAll = () => {
+    dismissMany(notifications.map(n => n.id));
     setNotifications([]);
+  };
+
+  const handleDismiss = (id: string) => {
+    dismissOne(id);
+    setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
   return (
@@ -278,7 +251,17 @@ export default function NotificationsDialog({
             }}>
               {notifications.map((notification, index) => (
                 <React.Fragment key={notification.id}>
-                  <ListItem
+                    <ListItem
+                    secondaryAction={
+                      <IconButton
+                        edge="end"
+                        aria-label={`Dismiss ${notification.title}`}
+                        onClick={() => handleDismiss(notification.id)}
+                        sx={{ color: 'rgba(255, 255, 255, 0.55)' }}
+                      >
+                        <CloseIcon fontSize="small" />
+                      </IconButton>
+                    }
                     sx={{
                       backgroundColor: notification.isRead ? 'transparent' : 'rgba(139, 92, 246, 0.1)',
                       '&:hover': {

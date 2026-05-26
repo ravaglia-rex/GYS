@@ -10,6 +10,7 @@ import type { AssessmentType } from '../../db/assessmentCollection';
 import PracticeModeContent, { type PracticeUnlockContext } from '../../components/practice/PracticeModeContent';
 import { ASSESSMENT_ORDER, membershipLevelForAssessmentGate, type AssessmentProgress } from '../../utils/assessmentGating';
 import BigSpinner from '../../components/ui/BigSpinner';
+import PageTutorial from '../../components/tutorial/PageTutorial';
 
 const PracticeTestPage: React.FC = () => {
   const [uid, setUid] = useState(() => auth.currentUser?.uid ?? '');
@@ -101,17 +102,20 @@ const PracticeTestPage: React.FC = () => {
       }}
     >
       <DashboardLayout>
+        <PageTutorial pageKey="student.practice" ready={!loading} />
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
             <BigSpinner />
           </Box>
         ) : (
-          <PracticeModeContent
-            storageScope={storageScope}
-            grade={grade}
-            practiceUnlock={practiceUnlock}
-            studentUid={uid}
-          />
+          <Box data-tutorial-id="student-practice-content">
+            <PracticeModeContent
+              storageScope={storageScope}
+              grade={grade}
+              practiceUnlock={practiceUnlock}
+              studentUid={uid}
+            />
+          </Box>
         )}
       </DashboardLayout>
     </Sentry.ErrorBoundary>

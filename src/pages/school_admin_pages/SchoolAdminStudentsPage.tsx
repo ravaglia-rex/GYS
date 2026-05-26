@@ -53,6 +53,13 @@ import {
 } from '../../utils/schoolAdminRosterUtils';
 import { buildGreenfieldPreviewStudentRows } from '../../data/schoolPreviewMock';
 import { formatAchievementTierLabel, normalizeAchievementTierId } from '../../utils/achievementTier';
+import {
+  INSTITUTIONAL_PLAN_STUDENT_CAP,
+  normalizeRegisterPlanId,
+  type RegisterPlanId,
+} from '../../utils/schoolRegistrationPlans';
+import PageTutorial from '../../components/tutorial/PageTutorial';
+import { SchoolAdminPageHeader, schoolAdminPageContainerSx } from './schoolAdminPageStyles';
 
 type RosterRegistered = {
   kind: 'registered';
@@ -210,6 +217,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [registrationError, setRegistrationError] = useState<string | null>(null);
   const [savingEmails, setSavingEmails] = useState(false);
+  const [selectedPlanId, setSelectedPlanId] = useState<RegisterPlanId | null>(null);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -260,6 +268,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
       setRegistrationEmails([]);
       setRevokedRegistrationEmails([]);
       setHasNoStudentsInDb(false);
+      setSelectedPlanId('premium');
       setRows(registered);
       setLoading(false);
       return;
@@ -285,6 +294,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
       revoked = (revoked ?? []).map(normalizeRosterEmail);
 
       const dash = await getSchoolDashboard(schoolId);
+      setSelectedPlanId(normalizeRegisterPlanId(dash.selected_plan_id));
       const dashboardStudents = dash.students ?? [];
       setHasNoStudentsInDb(dashboardStudents.length === 0 && reg.length === 0 && revoked.length === 0);
 
@@ -367,6 +377,27 @@ const SchoolAdminStudentsPage: React.FC = () => {
       }
       const newInvitationSet = new Set(newInvitations);
       const nextRevoked = revoked.filter(email => !newInvitationSet.has(email));
+      const cap = selectedPlanId ? INSTITUTIONAL_PLAN_STUDENT_CAP[selectedPlanId] : null;
+      if (cap !== null) {
+        const registeredEmails = new Set(
+          rows
+            .filter((row): row is RosterRegistered => row.kind === 'registered')
+            .map(row => normalizeRosterEmail(row.email))
+            .filter(Boolean)
+        );
+        const registeredWithoutEmailCount = rows.filter(
+          (row): row is RosterRegistered => row.kind === 'registered' && !normalizeRosterEmail(row.email)
+        ).length;
+        const nextInvitedCount = merged.filter(email => !registeredEmails.has(normalizeRosterEmail(email))).length;
+        const nextActiveRosterCount = registeredEmails.size + registeredWithoutEmailCount + nextInvitedCount;
+        if (nextActiveRosterCount > cap) {
+          setRegistrationError(
+            `Your ${selectedPlanId} plan supports up to ${cap} students. ` +
+              `You can add ${Math.max(0, cap - registeredCount - invitedCount)} more.`
+          );
+          return;
+        }
+      }
       await putStudentRegistrationEmails(merged, nextRevoked);
       setUploadNotice(
         `Sent invitation${newInvitations.length === 1 ? '' : 's'} to ${newInvitations.length} student${newInvitations.length === 1 ? '' : 's'}.`
@@ -534,6 +565,9 @@ const SchoolAdminStudentsPage: React.FC = () => {
   const invitedCount = useMemo(() => rows.filter(r => r.kind === 'invited' && r.status === 'invited').length, [rows]);
   const revokedCount = useMemo(() => rows.filter(r => r.kind === 'invited' && r.status === 'revoked').length, [rows]);
   const listTotal = registrationEmails.length;
+  const activeRosterCount = registeredCount + invitedCount;
+  const studentCap = selectedPlanId ? INSTITUTIONAL_PLAN_STUDENT_CAP[selectedPlanId] : null;
+  const capReached = studentCap !== null && activeRosterCount >= studentCap;
 
   const uniqueGrades = Array.from(
     new Set(rows.filter((r): r is RosterRegistered => r.kind === 'registered').map(r => r.grade).filter(g => g > 0))
@@ -565,66 +599,68 @@ const SchoolAdminStudentsPage: React.FC = () => {
   const showEmptyOnboarding = hasNoStudentsInDb && listTotal === 0;
 
   return (
-    <Box sx={{ maxWidth: '100%', mx: 'auto' }}>
-      <Box sx={{ mb: 3, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 600, color: ip.heading, mb: 0.5 }}>
-            Students
-          </Typography>
-          <Typography variant="body2" sx={{ color: ip.subtext }}>
-            {isSchoolAdminPreview
-              ? 'Read-only snapshot of the Greenfield International School seed cohort (142 students).'
-              : 'Invite students by email, then track registration and assessments.'}
-          </Typography>
-        </Box>
-        {isSchoolAdminPreview ? (
-          <Tooltip title="Sign in to add or invite students">
-            <span>
-              <Button
-                variant="contained"
-                disabled
-                startIcon={<AddIcon />}
-                sx={{
-                  fontWeight: 600,
-                  textTransform: 'none',
-                  fontSize: '0.9rem',
-                  px: 2,
-                  py: 1,
-                  boxShadow: 'none',
-                  '&.Mui-disabled': { bgcolor: '#e2e8f0', color: '#64748b' },
-                }}
-              >
-                Add students
-              </Button>
-            </span>
-          </Tooltip>
-        ) : (
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => {
-              setBulkText('');
-              setUploadNotice(null);
-              setRegistrationError(null);
-              setAddDialogOpen(true);
-            }}
-            sx={{
-              bgcolor: ip.navy,
-              color: '#fff',
-              fontWeight: 600,
-              textTransform: 'none',
-              fontSize: '0.9rem',
-              px: 2,
-              py: 1,
-              boxShadow: 'none',
-              '&:hover': { bgcolor: '#0c356f', boxShadow: '0 4px 12px rgba(16, 64, 139, 0.25)' },
-            }}
-            aria-label="Add students - paste emails"
-          >
-            Add students
-          </Button>
-        )}
-      </Box>
+    <Box sx={schoolAdminPageContainerSx}>
+      <PageTutorial pageKey="school.students" ready={!loading} />
+      <SchoolAdminPageHeader
+        title="Students"
+        subtitle={
+          isSchoolAdminPreview
+            ? 'Read-only snapshot of the Greenfield International School seed cohort (142 students).'
+            : 'Invite students by email, then track registration and assessments.'
+        }
+        action={
+          isSchoolAdminPreview ? (
+            <Tooltip title="Sign in to add or invite students">
+              <span>
+                <Button
+                  variant="contained"
+                  disabled
+                  startIcon={<AddIcon />}
+                  sx={{
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    fontSize: '0.9rem',
+                    px: 2,
+                    py: 1,
+                    boxShadow: 'none',
+                    '&.Mui-disabled': { bgcolor: '#e2e8f0', color: '#64748b' },
+                  }}
+                >
+                  Add students
+                </Button>
+              </span>
+            </Tooltip>
+          ) : (
+            <Button
+              data-tutorial-id="school-students-add"
+              variant="contained"
+              startIcon={<AddIcon />}
+              disabled={capReached}
+              onClick={() => {
+                setBulkText('');
+                setUploadNotice(null);
+                setRegistrationError(null);
+                setAddDialogOpen(true);
+              }}
+              sx={{
+                bgcolor: ip.navy,
+                color: '#fff',
+                fontWeight: 600,
+                textTransform: 'none',
+                fontSize: '0.9rem',
+                px: 2,
+                py: 1,
+                boxShadow: 'none',
+                '&:hover': { bgcolor: '#0c356f', boxShadow: '0 4px 12px rgba(16, 64, 139, 0.25)' },
+                '&.Mui-disabled': { bgcolor: '#e2e8f0', color: '#64748b' },
+              }}
+              aria-label="Add students - paste emails"
+            >
+              Add students
+            </Button>
+          )
+        }
+      />
 
       {loadError && (
         <Alert severity="warning" sx={{ mb: 2 }} onClose={() => setLoadError(null)}>
@@ -643,47 +679,89 @@ const SchoolAdminStudentsPage: React.FC = () => {
       )}
 
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-        <Chip
-          label={`On invite list: ${listTotal}`}
-          size="small"
-          sx={{
-            fontWeight: 600,
-            bgcolor: 'rgba(16, 64, 139, 0.1)',
-            color: ip.navy,
-            border: '1px solid rgba(16, 64, 139, 0.25)',
-          }}
-        />
-        <Chip
-          label={`Registered: ${registeredCount}`}
-          size="small"
-          sx={{
-            fontWeight: 600,
-            bgcolor: ip.cardMutedBg,
-            color: ip.heading,
-            border: `1px solid ${ip.cardBorder}`,
-          }}
-        />
-        <Chip
-          label={`Invited (not signed up): ${invitedCount}`}
-          size="small"
-          sx={{
-            fontWeight: 600,
-            bgcolor: ip.cardMutedBg,
-            color: ip.heading,
-            border: `1px solid ${ip.cardBorder}`,
-          }}
-        />
-        <Chip
-          label={`Revoked: ${revokedCount}`}
-          size="small"
-          sx={{
-            fontWeight: 600,
-            bgcolor: ip.cardMutedBg,
-            color: ip.heading,
-            border: `1px solid ${ip.cardBorder}`,
-          }}
-        />
+        <Tooltip title="Total emails currently on your school's invitation list, including active invitations and revoked entries.">
+          <Chip
+            label={`On invite list: ${listTotal}`}
+            size="small"
+            sx={{
+              fontWeight: 600,
+              bgcolor: 'rgba(16, 64, 139, 0.1)',
+              color: ip.navy,
+              border: '1px solid rgba(16, 64, 139, 0.25)',
+              cursor: 'help',
+              '&:hover': { bgcolor: 'rgba(16, 64, 139, 0.16)', borderColor: 'rgba(16, 64, 139, 0.42)' },
+            }}
+          />
+        </Tooltip>
+        {studentCap !== null && (
+          <Tooltip title="Students currently counting against your plan cap: registered students plus active pending invitations.">
+            <Chip
+              label={`Active roster: ${activeRosterCount}/${studentCap}`}
+              size="small"
+              sx={{
+                fontWeight: 600,
+                bgcolor: capReached ? '#fef2f2' : 'rgba(16, 64, 139, 0.1)',
+                color: capReached ? '#991b1b' : ip.navy,
+                border: capReached ? '1px solid #fecaca' : '1px solid rgba(16, 64, 139, 0.25)',
+                cursor: 'help',
+                '&:hover': {
+                  bgcolor: capReached ? '#fee2e2' : 'rgba(16, 64, 139, 0.16)',
+                  borderColor: capReached ? '#fca5a5' : 'rgba(16, 64, 139, 0.42)',
+                },
+              }}
+            />
+          </Tooltip>
+        )}
+        <Tooltip title="Students who have created accounts and are linked to your school roster.">
+          <Chip
+            label={`Registered: ${registeredCount}`}
+            size="small"
+            sx={{
+              fontWeight: 600,
+              bgcolor: ip.cardMutedBg,
+              color: ip.heading,
+              border: `1px solid ${ip.cardBorder}`,
+              cursor: 'help',
+              '&:hover': { bgcolor: '#e2e8f0', borderColor: '#cbd5e1' },
+            }}
+          />
+        </Tooltip>
+        <Tooltip title="Invitations that are still active, but the student has not registered yet.">
+          <Chip
+            label={`Invited (not signed up): ${invitedCount}`}
+            size="small"
+            sx={{
+              fontWeight: 600,
+              bgcolor: ip.cardMutedBg,
+              color: ip.heading,
+              border: `1px solid ${ip.cardBorder}`,
+              cursor: 'help',
+              '&:hover': { bgcolor: '#e2e8f0', borderColor: '#cbd5e1' },
+            }}
+          />
+        </Tooltip>
+        <Tooltip title="Invitations you removed. These no longer count as active roster seats unless resent.">
+          <Chip
+            label={`Revoked: ${revokedCount}`}
+            size="small"
+            sx={{
+              fontWeight: 600,
+              bgcolor: ip.cardMutedBg,
+              color: ip.heading,
+              border: `1px solid ${ip.cardBorder}`,
+              cursor: 'help',
+              '&:hover': { bgcolor: '#e2e8f0', borderColor: '#cbd5e1' },
+            }}
+          />
+        </Tooltip>
       </Box>
+
+      {capReached && studentCap !== null && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          Your current plan is at its {studentCap}-student cap. Upgrade your package or revoke unused invitations before
+          adding more students.
+        </Alert>
+      )}
 
       {showEmptyOnboarding ? (
         <Card sx={{ bgcolor: '#fff', border: `1px solid ${ip.cardBorder}`, boxShadow: 'none', mb: 3 }}>
@@ -693,12 +771,14 @@ const SchoolAdminStudentsPage: React.FC = () => {
             </Typography>
             <Typography variant="body2" sx={{ color: ip.subtext, mb: 2, maxWidth: 560, lineHeight: 1.6 }}>
               There are no student accounts for your school yet. Paste student email addresses below, one per line or
-              comma-separated. If you prefer to send a CSV, email it to globalyoungscholar@argus.ai.
+              comma-separated.
+              <br />
+              If you prefer to send a CSV, email it to globalyoungscholar@argus.ai.
             </Typography>
             <Button
               variant="contained"
               startIcon={<AddIcon />}
-              disabled={isSchoolAdminPreview}
+              disabled={isSchoolAdminPreview || capReached}
               onClick={() => setAddDialogOpen(true)}
               sx={{ mb: 2 }}
             >
@@ -716,6 +796,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
           <Card sx={{ bgcolor: '#fff', boxShadow: 'none', border: `1px solid ${ip.cardBorder}`, mb: 3 }}>
             <CardContent>
               <Box
+                data-tutorial-id="school-students-filters"
                 sx={{
                   display: 'flex',
                   justifyContent: 'center',
@@ -952,7 +1033,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
                 }}
               >
                 <Table size="medium" sx={{ bgcolor: '#fff' }}>
-                  <TableHead>
+                  <TableHead data-tutorial-id="school-students-table">
                     <TableRow
                       sx={{
                         bgcolor: ip.cardMutedBg,
@@ -979,10 +1060,11 @@ const SchoolAdminStudentsPage: React.FC = () => {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredSorted.map(r =>
+                      filteredSorted.map((r, index) =>
                         r.kind === 'registered' ? (
                           <TableRow
                             key={r.uid}
+                            data-tutorial-id={index === 0 ? 'school-students-table' : undefined}
                             hover
                             sx={{
                               bgcolor: '#fff',
@@ -1033,7 +1115,12 @@ const SchoolAdminStudentsPage: React.FC = () => {
                                 size="small"
                                 endIcon={<OpenInNewIcon sx={{ fontSize: '1rem !important' }} />}
                                 onClick={() =>
-                                  navigate(`${routeBase}/students/${encodeURIComponent(r.uid)}`)
+                                  navigate(`${routeBase}/students/${encodeURIComponent(r.uid)}`, {
+                                    state: {
+                                      studentRow: r.dashboardRow,
+                                      email: r.email,
+                                    },
+                                  })
                                 }
                                 sx={{ color: ip.statBlue, fontWeight: 600, textTransform: 'none' }}
                               >
@@ -1044,6 +1131,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
                         ) : (
                           <TableRow
                             key={`inv:${r.email}`}
+                            data-tutorial-id={index === 0 ? 'school-students-table' : undefined}
                             hover
                             sx={{
                               bgcolor: '#fff',
@@ -1158,9 +1246,15 @@ const SchoolAdminStudentsPage: React.FC = () => {
             Paste emails in the box below, one per line or comma-separated. New addresses are added to your school
             student email list and invitation emails are sent automatically.
           </Typography>
-          <Alert severity="info" sx={{ mb: 2 }}>
+          <Typography variant="body2" sx={{ color: ip.heading, mb: 2, lineHeight: 1.55, fontSize: '0.95rem' }}>
             You can also email a CSV file to globalyoungscholar@argus.ai and we will upload it for your school.
-          </Alert>
+          </Typography>
+          {studentCap !== null && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Your current plan allows {studentCap} active students; {Math.max(0, studentCap - activeRosterCount)}{' '}
+              slot{Math.max(0, studentCap - activeRosterCount) === 1 ? '' : 's'} remain.
+            </Alert>
+          )}
           <TextField
             multiline
             minRows={6}

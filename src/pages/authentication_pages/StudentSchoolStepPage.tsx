@@ -15,6 +15,7 @@ interface LocationState {
   firstName: string;
   lastName: string;
   email: string;
+  whatsappPhone?: string;
   grade: string;
   dob?: string;
   signupSchoolName?: string;
@@ -130,10 +131,11 @@ const StudentSchoolStepPage: React.FC = () => {
       firstName,
       lastName,
       email,
+      whatsappPhone,
       grade,
     } = base;
 
-    if (!email || !firstName || !lastName || !grade) {
+    if (!email || !firstName || !lastName || !whatsappPhone || !grade) {
       toast({
         variant: 'destructive',
         title: 'Missing information',
@@ -151,6 +153,7 @@ const StudentSchoolStepPage: React.FC = () => {
       firstName,
       lastName,
       email: normalizedEmail,
+      whatsappPhone,
       grade,
       dob: undefined,
       schoolId: schoolIdForSignup,
@@ -179,11 +182,13 @@ const StudentSchoolStepPage: React.FC = () => {
         firstName: m.firstName,
         lastName: m.lastName,
         email: m.email,
+        whatsappPhone: m.whatsappPhone,
         grade: m.grade,
         prefill: {
           firstName: m.firstName,
           lastName: m.lastName,
           email: m.email,
+          whatsappPhone: m.whatsappPhone,
           grade: m.grade,
         },
       },

@@ -4,6 +4,28 @@
 
 export type GradeBandId = '6-8' | '9-10' | '11-12';
 
+export type AssessmentProgressShape = {
+  tiers_cleared?: Record<string, boolean>;
+  proficiency_tier?: number;
+  attempts_count?: number;
+  latest_attempt_level?: number | null;
+  latest_attempt_score?: number | null;
+};
+
+/** Programme exams 1–5; must match backend FIRST_FIVE_SCORED_EXAM_IDS. */
+const FIRST_FIVE_SCORED_EXAM_ID_SET = new Set<string>([
+  'symbolic_reasoning',
+  'verbal_reasoning',
+  'mathematical_reasoning',
+  'english_proficiency',
+  'ai_literacy',
+]);
+
+const NON_LEVEL_ASSESSMENT_IDS = new Set<string>([
+  'comprehensive_personality',
+  'career_interest_inventory',
+]);
+
 export interface TierProgressionBand {
   tier_1_min_pct: number;
   tier_2_min_pct: number;
@@ -68,7 +90,7 @@ export function canAttemptTier(
 }
 
 export function graduationPrereqMetForAssessment(
-  prereqProgress: { tiers_cleared?: Record<string, boolean>; proficiency_tier?: number } | undefined,
+  prereqProgress: AssessmentProgressShape | undefined,
   maxTiers: number,
   progression: TierProgressionConfig | undefined,
   studentGrade: number | null | undefined
@@ -80,4 +102,51 @@ export function graduationPrereqMetForAssessment(
     return countClearedTiersFromProgress(prereqProgress, maxTiers) >= need;
   }
   return (prereqProgress.proficiency_tier ?? 0) >= 2;
+}
+
+/** True when the student has completed at least one graded attempt on this exam. */
+export function hasAttemptedAssessment(
+  progress: AssessmentProgressShape | undefined
+): boolean {
+  if (!progress) return false;
+  if ((progress.attempts_count ?? 0) > 0) return true;
+  if (progress.latest_attempt_level != null) return true;
+  if (progress.latest_attempt_score != null) return true;
+  return false;
+}
+
+/**
+ * Whether a prerequisite exam is satisfied before starting `assessmentId`.
+ * Mirrors backend {@link examSequencePrereqMet}.
+ */
+export function examSequencePrereqMet(
+  assessmentId: string,
+  prereqId: string,
+  prereqProgress: AssessmentProgressShape | undefined,
+  prereqMaxTiers: number,
+  progression: TierProgressionConfig | undefined,
+  studentGrade: number | null | undefined
+): boolean {
+  const comprehensiveAiGate =
+    assessmentId === 'comprehensive_personality' && prereqId === 'ai_literacy';
+  if (comprehensiveAiGate) {
+    return (
+      prereqProgress != null && (prereqProgress.proficiency_tier ?? 0) > prereqMaxTiers
+    );
+  }
+  if (
+    FIRST_FIVE_SCORED_EXAM_ID_SET.has(assessmentId) &&
+    FIRST_FIVE_SCORED_EXAM_ID_SET.has(prereqId)
+  ) {
+    return hasAttemptedAssessment(prereqProgress);
+  }
+  if (NON_LEVEL_ASSESSMENT_IDS.has(assessmentId) || NON_LEVEL_ASSESSMENT_IDS.has(prereqId)) {
+    return hasAttemptedAssessment(prereqProgress);
+  }
+  return graduationPrereqMetForAssessment(
+    prereqProgress,
+    prereqMaxTiers,
+    progression,
+    studentGrade
+  );
 }

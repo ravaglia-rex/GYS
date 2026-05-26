@@ -5,9 +5,7 @@ import SuperProtected from '../components/route_protection/SuperProtected';
 import SchoolAdminRoute from '../components/route_protection/SchoolAdminRoute';
 import NotFoundPage from '../pages/NotFoundPage';
 import BigSpinner from '../components/ui/BigSpinner';
-import PreviewStubPage from '../pages/landing/preview/PreviewStubPage';
 import StudentRegistrationFlowLayout from '../layouts/StudentRegistrationFlowLayout';
-import { STUDENT_SIGNUP_ENABLED } from '../constants/constants';
 
 /*
 LANDING AND PUBLIC PAGES
@@ -35,8 +33,14 @@ const StudentPreviewDashboardPage = React.lazy(
 const StudentPreviewLeaderboardPage = React.lazy(
   () => import('../pages/landing/preview/StudentPreviewLeaderboardPage')
 );
+const StudentPreviewHowItWorksPage = React.lazy(
+  () => import('../pages/landing/preview/StudentPreviewHowItWorksPage')
+);
 const StudentPreviewPracticePage = React.lazy(
   () => import('../pages/landing/preview/StudentPreviewPracticePage')
+);
+const StudentPreviewAssessmentsPage = React.lazy(
+  () => import('../pages/landing/preview/StudentPreviewAssessmentsPage')
 );
 const StudentPreviewBillingPage = React.lazy(
   () => import('../pages/landing/preview/StudentPreviewBillingPage')
@@ -82,6 +86,7 @@ const AssessmentsPage = React.lazy(() => import('../pages/dashboard_pages/Assess
 const BillingPage = React.lazy(() => import('../pages/dashboard_pages/BillingPage'));
 const ReportsPage = React.lazy(() => import('../pages/dashboard_pages/ReportsPage'));
 const LeaderboardPage = React.lazy(() => import('../pages/dashboard_pages/LeaderboardPage'));
+const HowItWorksPage = React.lazy(() => import('../pages/dashboard_pages/HowItWorksPage'));
 const PracticeTestPage = React.lazy(() => import('../pages/dashboard_pages/PracticeTestPage'));
 const PracticeTakePage = React.lazy(() => import('../pages/dashboard_pages/PracticeTakePage'));
 const AssessmentTakePage = React.lazy(() => import('../pages/dashboard_pages/AssessmentTakePage'));
@@ -155,7 +160,7 @@ const AppRouter: React.FC = () => {
         />
         <Route
           path="/students/register"
-          element={STUDENT_SIGNUP_ENABLED ? <StudentRegistrationFlowLayout /> : <Navigate to="/login" replace />}
+          element={<StudentRegistrationFlowLayout />}
           errorElement={<NotFoundPage />}
         >
           <Route
@@ -194,13 +199,9 @@ const AppRouter: React.FC = () => {
         <Route
           path="/students/register/welcome"
           element={
-            STUDENT_SIGNUP_ENABLED ? (
-              <Suspense fallback={<BigSpinner/>}>
-                <StudentWelcomePage />
-              </Suspense>
-            ) : (
-              <Navigate to="/login" replace />
-            )
+            <Suspense fallback={<BigSpinner/>}>
+              <StudentWelcomePage />
+            </Suspense>
           }
           errorElement={<NotFoundPage />}
         />
@@ -231,6 +232,14 @@ const AppRouter: React.FC = () => {
             }
           />
           <Route
+            path="how-it-works"
+            element={
+              <Suspense fallback={<BigSpinner />}>
+                <StudentPreviewHowItWorksPage />
+              </Suspense>
+            }
+          />
+          <Route
             path="practice"
             element={
               <Suspense fallback={<BigSpinner />}>
@@ -239,25 +248,27 @@ const AppRouter: React.FC = () => {
             }
           />
           <Route
+            path="assessments/available"
+            element={
+              <Suspense fallback={<BigSpinner />}>
+                <StudentPreviewAssessmentsPage />
+              </Suspense>
+            }
+          />
+          <Route
             path="assessments/completed"
             element={
-              <PreviewStubPage
-                title="Completed & Results"
-                body="After you sign in, finished assessments and score history appear here. In this preview, open Dashboard to explore the sample performance chart and assessment cards."
-                backPath="/students/preview/dashboard"
-                backLabel="Back to Dashboard"
-              />
+              <Suspense fallback={<BigSpinner />}>
+                <StudentPreviewAssessmentsPage />
+              </Suspense>
             }
           />
           <Route
             path="reports"
             element={
-              <PreviewStubPage
-                title="Reports"
-                body="Signed-in students can download and review official reports here. Register and log in to generate reports from your real results."
-                backPath="/students/preview/dashboard"
-                backLabel="Back to Dashboard"
-              />
+              <Suspense fallback={<BigSpinner />}>
+                <StudentPreviewAssessmentsPage />
+              </Suspense>
             }
           />
           <Route
@@ -457,6 +468,18 @@ const AppRouter: React.FC = () => {
         />
 
         <Route
+          path="/how-it-works"
+          element={
+            <Protected>
+              <Suspense fallback={<BigSpinner />}>
+                <HowItWorksPage />
+              </Suspense>
+            </Protected>
+          }
+          errorElement={<NotFoundPage />}
+        />
+
+        <Route
           path="/practice-test/session/:examId/:level"
           element={
             <Protected>
@@ -511,6 +534,17 @@ const AppRouter: React.FC = () => {
             <Protected>
               <Suspense fallback={<BigSpinner/>}>
                 <AssessmentsPage />
+              </Suspense>
+            </Protected>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        <Route
+          path="/assessments/reports"
+          element={
+            <Protected>
+              <Suspense fallback={<BigSpinner/>}>
+                <ReportsPage />
               </Suspense>
             </Protected>
           }

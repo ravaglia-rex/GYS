@@ -22,6 +22,7 @@ import {
   PREVIEW_STUDENT_PROFILE,
   PREVIEW_SETTINGS_FORM_INITIAL,
 } from '../../../data/studentPreviewMock';
+import { toIndiaMobileNationalDigits } from '../../../utils/indiaMobile';
 
 type PreviewSettingsFormValues = typeof PREVIEW_SETTINGS_FORM_INITIAL;
 
@@ -64,6 +65,8 @@ const StudentPreviewSettingsPage: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<PreviewSettingsFormValues>(() => ({
     ...PREVIEW_SETTINGS_FORM_INITIAL,
+    phoneNumber: toIndiaMobileNationalDigits(PREVIEW_SETTINGS_FORM_INITIAL.phoneNumber),
+    parentPhone: toIndiaMobileNationalDigits(PREVIEW_SETTINGS_FORM_INITIAL.parentPhone),
   }));
   const [previewSnackbar, setPreviewSnackbar] = useState<string | null>(null);
 
@@ -89,7 +92,11 @@ const StudentPreviewSettingsPage: React.FC = () => {
   };
 
   const handleCancelEdit = () => {
-    setFormData({ ...PREVIEW_SETTINGS_FORM_INITIAL });
+    setFormData({
+      ...PREVIEW_SETTINGS_FORM_INITIAL,
+      phoneNumber: toIndiaMobileNationalDigits(PREVIEW_SETTINGS_FORM_INITIAL.phoneNumber),
+      parentPhone: toIndiaMobileNationalDigits(PREVIEW_SETTINGS_FORM_INITIAL.parentPhone),
+    });
     setIsEditing(false);
   };
 
@@ -326,16 +333,21 @@ const StudentPreviewSettingsPage: React.FC = () => {
                     <TextField
                       fullWidth
                       label="WhatsApp Number"
+                      type="tel"
                       value={formData.phoneNumber}
-                      onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+                      onChange={(e) => handleInputChange('phoneNumber', toIndiaMobileNationalDigits(e.target.value))}
                       disabled={!isEditing}
                       InputProps={{
                         startAdornment: (
-                          <InputAdornment position="start">
+                          <InputAdornment position="start" sx={{ gap: 0.75 }}>
                             <Phone size={20} color="rgba(255, 255, 255, 0.7)" />
+                            <Typography component="span" sx={{ color: 'rgba(255, 255, 255, 0.8)', fontWeight: 600 }}>
+                              +91
+                            </Typography>
                           </InputAdornment>
                         ),
                       }}
+                      inputProps={{ inputMode: 'numeric', maxLength: 10 }}
                       sx={textFieldSx}
                     />
                     <TextField
@@ -400,16 +412,21 @@ const StudentPreviewSettingsPage: React.FC = () => {
                     <TextField
                       fullWidth
                       label="Parent Phone"
+                      type="tel"
                       value={formData.parentPhone}
-                      onChange={(e) => handleInputChange('parentPhone', e.target.value)}
+                      onChange={(e) => handleInputChange('parentPhone', toIndiaMobileNationalDigits(e.target.value))}
                       disabled={!isEditing}
                       InputProps={{
                         startAdornment: (
-                          <InputAdornment position="start">
+                          <InputAdornment position="start" sx={{ gap: 0.75 }}>
                             <Phone size={20} color="rgba(255, 255, 255, 0.7)" />
+                            <Typography component="span" sx={{ color: 'rgba(255, 255, 255, 0.8)', fontWeight: 600 }}>
+                              +91
+                            </Typography>
                           </InputAdornment>
                         ),
                       }}
+                      inputProps={{ inputMode: 'numeric', maxLength: 10 }}
                       sx={textFieldSx}
                     />
                     <Box sx={{ gridColumn: { xs: '1', sm: '1 / -1' } }}>

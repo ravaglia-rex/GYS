@@ -7,8 +7,16 @@ import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
 import { useStudentSignupExit } from '../../contexts/StudentSignupExitContext';
 import { useStudentSignupExitGuard } from '../../hooks/useStudentSignupExitGuard';
 import { mergeSignupState, writeSignupDraft } from '../../utils/studentSignupDraft';
+import { normalizeIndiaMobileE164 } from '../../utils/indiaMobile';
 
 const GYS_BLUE = '#1e3a8a';
+
+function toIndiaMobileLocalDigits(raw: unknown): string {
+  const digits = String(raw ?? '').replace(/\D/g, '');
+  if (digits.startsWith('91') && digits.length >= 12) return digits.slice(2, 12);
+  if (digits.startsWith('0') && digits.length >= 11) return digits.slice(1, 11);
+  return digits.slice(0, 10);
+}
 
 const StudentRegistrationPage: React.FC = () => {
   const navigate = useNavigate();
@@ -22,6 +30,7 @@ const StudentRegistrationPage: React.FC = () => {
       firstName: String(m.firstName ?? p.firstName ?? ''),
       lastName: String(m.lastName ?? p.lastName ?? ''),
       email: String(m.email ?? p.email ?? ''),
+      whatsappPhone: toIndiaMobileLocalDigits(m.whatsappPhone ?? p.whatsappPhone),
       grade: String(m.grade ?? p.grade ?? ''),
     };
   }, [location.state]);
@@ -29,20 +38,24 @@ const StudentRegistrationPage: React.FC = () => {
   const [firstName, setFirstName] = useState(regInitial.firstName);
   const [lastName, setLastName] = useState(regInitial.lastName);
   const [email, setEmail] = useState(regInitial.email);
+  const [whatsappPhone, setWhatsappPhone] = useState(regInitial.whatsappPhone);
   const [grade, setGrade] = useState(regInitial.grade);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isContinuing, setIsContinuing] = useState(false);
+  const [whatsappPhoneError, setWhatsappPhoneError] = useState('');
 
   useEffect(() => {
     setFirstName(regInitial.firstName);
     setLastName(regInitial.lastName);
     setEmail(regInitial.email);
+    setWhatsappPhone(regInitial.whatsappPhone);
     setGrade(regInitial.grade);
   }, [
     location.key,
     regInitial.firstName,
     regInitial.lastName,
     regInitial.email,
+    regInitial.whatsappPhone,
     regInitial.grade,
   ]);
   const [emailInUseOpen, setEmailInUseOpen] = useState<boolean>(!!locationState?.emailInUse);
@@ -70,6 +83,12 @@ const StudentRegistrationPage: React.FC = () => {
     if (!acceptedTerms) return;
 
     const normalizedEmail = email.trim().toLowerCase();
+    const normalizedWhatsappPhone = normalizeIndiaMobileE164(`+91${whatsappPhone}`);
+    if (!normalizedWhatsappPhone) {
+      setWhatsappPhoneError('Enter a valid 10-digit India WhatsApp number starting with 6-9.');
+      return;
+    }
+    setWhatsappPhoneError('');
 
     setIsContinuing(true);
     let didNavigate = false;
@@ -77,20 +96,21 @@ const StudentRegistrationPage: React.FC = () => {
     try {
       let blockReason: 'auth' | 'student' | 'schooladmin' | null = null;
 
-      // Production Firebase Auth (no emulator in firebase.ts) user can exist here without a students/* doc.
-      try {
-        const methods = await fetchSignInMethodsForEmail(auth, normalizedEmail);
-        if (methods && methods.length > 0) {
-          blockReason = 'auth';
-        }
-      } catch {
-        // ignore and fall back to API check
+      const emailCheck = await checkEmailExists(normalizedEmail);
+      if (emailCheck.exists && emailCheck.registrationStatus !== 'pending_payment') {
+        blockReason = emailCheck.type === 'schooladmin' ? 'schooladmin' : 'student';
       }
 
-      if (!blockReason) {
-        const emailCheck = await checkEmailExists(normalizedEmail);
-        if (emailCheck.exists) {
-          blockReason = emailCheck.type === 'schooladmin' ? 'schooladmin' : 'student';
+      // A pending paid signup owns a Firebase Auth user before payment completes.
+      // Let that email continue the register flow so users can finish checkout.
+      if (!blockReason && emailCheck.registrationStatus !== 'pending_payment') {
+        try {
+          const methods = await fetchSignInMethodsForEmail(auth, normalizedEmail);
+          if (methods && methods.length > 0) {
+            blockReason = 'auth';
+          }
+        } catch {
+          // ignore and fall back to API check
         }
       }
 
@@ -104,6 +124,7 @@ const StudentRegistrationPage: React.FC = () => {
         firstName,
         lastName,
         email: normalizedEmail,
+        whatsappPhone: normalizedWhatsappPhone,
         grade,
         dob: undefined,
         cityState: undefined,
@@ -234,6 +255,46 @@ const StudentRegistrationPage: React.FC = () => {
               <p className="mt-1 text-xs text-slate-500">
                 Please use your <span className="font-semibold">school email ID</span>.
               </p>
+            </div>
+
+            <div>
+              <label className="block text-xs sm:text-sm font-bold text-slate-700">
+                WhatsApp Phone Number<span className="text-red-500"> *</span>
+              </label>
+              <div
+                className={`mt-1.5 flex w-full overflow-hidden rounded-lg border bg-white text-sm sm:text-base focus-within:outline-none focus-within:ring-1 ${
+                  whatsappPhoneError
+                    ? 'border-red-400 bg-red-50/50 focus:border-red-400 focus:ring-red-300'
+                    : 'border-slate-200 focus:border-slate-400 focus:ring-slate-400'
+                }`}
+              >
+                <span className="flex items-center border-r border-slate-200 bg-slate-50 px-3.5 py-2.5 font-medium text-slate-600">
+                  +91
+                </span>
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  value={whatsappPhone}
+                  onChange={(event) => {
+                    setWhatsappPhone(event.target.value.replace(/\D/g, '').slice(0, 10));
+                    if (whatsappPhoneError) setWhatsappPhoneError('');
+                  }}
+                  aria-invalid={Boolean(whatsappPhoneError)}
+                  className="w-full px-3.5 py-2.5 text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                  placeholder="98765 43210"
+                  autoComplete="tel-national"
+                  maxLength={10}
+                  required
+                />
+              </div>
+              <p className="mt-1 text-xs text-slate-500">
+                If the student doesn&apos;t have a WhatsApp number, please share a parent&apos;s number.
+              </p>
+              {whatsappPhoneError && (
+                <p className="mt-1.5 text-xs font-medium text-red-600" role="alert">
+                  {whatsappPhoneError}
+                </p>
+              )}
             </div>
 
             <div>

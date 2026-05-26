@@ -136,7 +136,7 @@ const NewPasswordForm: React.FC<PasswordResetProps> = ({ actionCode }) => {
         title: "Password saved",
         description: "Taking you to the login page…",
       });
-      navigate("/", { replace: true });
+      navigate("/login", { replace: true });
     } catch (error: any) {
       clearPasswordResetInProgress();
       Sentry.withScope((scope) => {

@@ -28,7 +28,6 @@ import analytics from '../../segment/segment';
 
 import SignInForm from './SignInForm';
 import SchoolAdminSchoolSelect from './SchoolAdminSchoolSelect';
-import { STUDENT_SIGNUP_ENABLED } from '../../constants/constants';
 
 const EmailSchema = z.object({
   email: z
@@ -152,10 +151,11 @@ const EmailEntryForm: React.FC = () => {
       const result = await checkEmailExists(normalizedEmail);
       setEmail(normalizedEmail);
   
-      if (!result.exists) {
-        if (STUDENT_SIGNUP_ENABLED) {
-          analytics.track('[DIRECT] New User Flow', { email: data.email });
-        }
+      if (result.type === 'student' && result.registrationStatus === 'pending_payment') {
+        analytics.track('[DIRECT] Pending Student Signup Resume', { email: normalizedEmail });
+        navigate('/students/register', { state: { prefill: { email: normalizedEmail } } });
+      } else if (!result.exists) {
+        analytics.track('[DIRECT] New User Flow', { email: data.email });
         setShowNoAccountDialog(true);
       } else if (result.type === 'schooladmin') {
         toast({
@@ -219,10 +219,8 @@ const EmailEntryForm: React.FC = () => {
               <div className="space-y-3 text-center text-slate-600">
                 <p>
                   We couldn&apos;t find an account for{' '}
-                  <span className="font-semibold text-slate-800">{email}</span>.{' '}
-                  {STUDENT_SIGNUP_ENABLED
-                    ? 'You can create a student account with this email, or try a different email if you already have access.'
-                    : 'Student sign up is temporarily unavailable. If you already have access, try a different email.'}
+                  <span className="font-semibold text-slate-800">{email}</span>. You can create a student
+                  account with this email, or try a different email if you already have access.
                 </p>
                 <p>
                   If your school has signed up with Argus and asked you to complete this, use the email
@@ -233,18 +231,16 @@ const EmailEntryForm: React.FC = () => {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex-col gap-2 sm:flex-col">
-            {STUDENT_SIGNUP_ENABLED && (
-              <Button
-                type="button"
-                className="w-full font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-                onClick={() => {
-                  setShowNoAccountDialog(false);
-                  navigate('/students/register', { state: { prefill: { email } } });
-                }}
-              >
-                Create student account
-              </Button>
-            )}
+            <Button
+              type="button"
+              className="w-full font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+              onClick={() => {
+                setShowNoAccountDialog(false);
+                navigate('/students/register', { state: { prefill: { email } } });
+              }}
+            >
+              Create student account
+            </Button>
             <Button
               variant="outline"
               onClick={() => setShowNoAccountDialog(false)}

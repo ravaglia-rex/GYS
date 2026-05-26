@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal, flushSync } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { useToast } from '../ui/use-toast';
 import { LoadingSpinner } from '../ui/spinner';
 import {
@@ -7,8 +8,10 @@ import {
   StudentRegistrationBillingDetails,
   verifyStudentRegistrationPayment,
 } from '../../db/studentRegistrationPayment';
+import { NewStudent, prepareSignUpTransaction } from '../../db/signupTransaction';
 import { gysPaymentInvoiceNumberFromOrderId } from '../../utils/gysPaymentInvoiceNumber';
 import { RAZORPAY_CHECKOUT_METHOD } from '../../utils/razorpayCheckoutMethods';
+import { assertRazorpayCheckoutKeyAllowed } from '../../utils/razorpayTestMode';
 import * as Sentry from '@sentry/react';
 
 const loadScript = (src: string): Promise<boolean> =>
@@ -43,25 +46,26 @@ function razorpayPaymentFailedUserMessage(payload: unknown): string {
 export type StudentRegistrationRazorpayCheckoutProps = {
   email: string;
   studentName: string;
+  student: NewStudent;
   membershipLevel: 1 | 2 | 3 | 4;
   planLabel: string;
-  schoolId?: string;
   billingDetails: StudentRegistrationBillingDetails;
   disabled?: boolean;
-  /** Called after server verifies payment; create Firebase user + runSignUpTransaction here. */
+  /** Called after server verifies payment and activates the pending student account. */
   onPaymentVerified: (razorpayPaymentId: string) => Promise<void>;
 };
 
 const StudentRegistrationRazorpayCheckout: React.FC<StudentRegistrationRazorpayCheckoutProps> = ({
   email,
   studentName,
+  student,
   membershipLevel,
   planLabel,
-  schoolId,
   billingDetails,
   disabled,
   onPaymentVerified,
 }) => {
+  const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [confirmingPayment, setConfirmingPayment] = useState(false);
   const { toast } = useToast();
@@ -70,13 +74,13 @@ const StudentRegistrationRazorpayCheckout: React.FC<StudentRegistrationRazorpayC
     setBusy(true);
     try {
       const normalizedStudentName = studentName.trim();
+      const prepared = await prepareSignUpTransaction(student);
       const order = await createStudentRegistrationOrder(
-        email,
+        prepared.uid,
         membershipLevel,
-        schoolId,
-        normalizedStudentName,
         billingDetails
       );
+      assertRazorpayCheckoutKeyAllowed(order.key_id, 'student_registration');
 
       if (process.env.NODE_ENV === 'development' && typeof order.key_id === 'string') {
         console.info('[StudentSignupRazorpay] key_id prefix:', order.key_id.slice(0, 16));
@@ -115,7 +119,7 @@ const StudentRegistrationRazorpayCheckout: React.FC<StudentRegistrationRazorpayC
         prefill: {
           ...(normalizedStudentName ? { name: normalizedStudentName } : {}),
           email: email.trim().toLowerCase(),
-          contact: billingDetails.contact,
+          ...(billingDetails.contact ? { contact: billingDetails.contact } : {}),
         },
         notes: {
           invoice_number: gysPaymentInvoiceNumberFromOrderId(order.order_id),
@@ -147,7 +151,7 @@ const StudentRegistrationRazorpayCheckout: React.FC<StudentRegistrationRazorpayC
               setConfirmingPayment(true);
             });
             await verifyStudentRegistrationPayment({
-              email: email.trim().toLowerCase(),
+              student_uid: order.student_uid,
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
@@ -199,6 +203,32 @@ const StudentRegistrationRazorpayCheckout: React.FC<StudentRegistrationRazorpayC
     } catch (err: unknown) {
       setBusy(false);
       const message = err instanceof Error ? err.message : 'Payment could not start';
+
+      if (/not pending payment/i.test(message)) {
+        toast({
+          variant: 'default',
+          title: 'Signup already complete',
+          description: 'This signup is no longer waiting for payment. Log in to continue.',
+        });
+        navigate('/login');
+        return;
+      }
+
+      if (/already exists/i.test(message)) {
+        toast({
+          variant: 'destructive',
+          title: 'Email already registered',
+          description: 'This email already has a student account. Log in or start over with a different email.',
+        });
+        navigate('/students/register', {
+          state: {
+            prefill: { email: email.trim().toLowerCase() },
+            emailInUse: true,
+          },
+        });
+        return;
+      }
+
       Sentry.withScope((scope) => {
         scope.setTag('location', 'StudentRegistrationRazorpayCheckout.startCheckout');
         Sentry.captureException(err);
@@ -248,7 +278,7 @@ const StudentRegistrationRazorpayCheckout: React.FC<StudentRegistrationRazorpayC
       className="mt-4 inline-flex w-full items-center justify-center rounded-2xl px-4 py-3 text-base sm:text-lg font-semibold text-white shadow-md hover:brightness-110 active:scale-[0.99] transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60"
       style={{ backgroundColor: '#1e3a8a' }}
     >
-      {busy ? 'Opening secure checkout…' : disabled ? 'Complete billing details to proceed' : 'Proceed to payment'}
+      {busy ? 'Opening secure checkout…' : disabled ? 'Complete required details to proceed' : 'Proceed to payment'}
     </button>
     </>
   );

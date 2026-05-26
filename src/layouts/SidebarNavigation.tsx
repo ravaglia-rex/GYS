@@ -27,6 +27,7 @@ import {
   Logout as LogoutIcon,
   EmojiEvents as EmojiEventsIcon,
   Quiz as QuizIcon,
+  HelpOutline as HelpOutlineIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../firebase/firebase';
@@ -52,11 +53,28 @@ const homeNavItem: NavItem = {
   icon: <HomeIcon sx={{ color: '#38bdf8' }} />,
 };
 
+/** Maps nav paths to tutorial spotlight targets (student dashboard shell). */
+const STUDENT_NAV_TUTORIAL_ID: Partial<Record<string, string>> = {
+  '/dashboard': 'student-nav-dashboard',
+  '/leaderboard': 'student-nav-leaderboard',
+  '/assessments': 'student-nav-assessments',
+  '/assessments/reports': 'student-nav-reports',
+  '/practice-test': 'student-nav-practice',
+  '/reports': 'student-nav-reports',
+  '/payments': 'student-nav-payments',
+  '/settings': 'student-nav-settings',
+};
+
 const navItems: NavItem[] = [
   {
     title: 'Dashboard',
     path: '/dashboard',
     icon: <DashboardIcon sx={{ color: '#8b5cf6' }} />,
+  },
+  {
+    title: 'How Argus Works',
+    path: '/how-it-works',
+    icon: <HelpOutlineIcon sx={{ color: '#67e8f9' }} />,
   },
   {
     title: 'School Leaderboard',
@@ -75,12 +93,8 @@ const navItems: NavItem[] = [
     children: [
       { title: 'Available', path: '/assessments/available', icon: <SchoolIcon sx={{ color: '#10b981' }} /> },
       { title: 'Completed & Results', path: '/assessments/completed', icon: <BarChartIcon sx={{ color: '#06b6d4' }} /> },
+      { title: 'Reports', path: '/assessments/reports', icon: <AssignmentIcon sx={{ color: '#f59e0b' }} /> },
     ],
-  },
-  {
-    title: 'Reports',
-    path: '/reports',
-    icon: <AssignmentIcon sx={{ color: '#f59e0b' }} />,
   },
   {
     title: 'Billing & Payments',
@@ -131,10 +145,13 @@ export default function SidebarNavigation({ collapsed, onCollapse, onClose }: Si
     return location.pathname === path || location.pathname.startsWith(path + '/');
   };
 
+  const hasActiveChild = (item: NavItem): boolean =>
+    item.children?.some((child) => isActive(child.path) || hasActiveChild(child)) ?? false;
+
   const renderNavItem = (item: NavItem, level: number = 0) => {
-    const isItemActive = isActive(item.path);
+    const isItemActive = isActive(item.path) || hasActiveChild(item);
     const hasChildren = item.children && item.children.length > 0;
-    const isSubmenuOpen = openSubmenus[item.title];
+    const isSubmenuOpen = openSubmenus[item.title] ?? isItemActive;
 
     return (
       <Box key={item.title}>
@@ -145,6 +162,7 @@ export default function SidebarNavigation({ collapsed, onCollapse, onClose }: Si
             disableHoverListener={!collapsed}
           >
             <ListItemButton
+              data-tutorial-id={STUDENT_NAV_TUTORIAL_ID[item.path]}
               onClick={() => {
                 if (hasChildren) {
                   handleSubmenuToggle(item.title);

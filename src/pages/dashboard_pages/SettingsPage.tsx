@@ -18,6 +18,8 @@ import ProfileSettings from '../../components/settings/ProfileSettings';
 // COMMENTED OUT - import NotificationSettings from '../../components/settings/NotificationSettings';
 import SecurityPrivacySettings from '../../components/settings/SecurityPrivacySettings';
 import { auth } from '../../firebase/firebase';
+import PageTutorial from '../../components/tutorial/PageTutorial';
+import { studentPageSubtitleSx, studentPageTitleSx } from '../../styles/studentTypography';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -70,6 +72,7 @@ const SettingsPage: React.FC = () => {
 
   return (
     <DashboardLayout>
+      <PageTutorial pageKey="student.settings" />
       <Box sx={{ maxWidth: '100%' }}>
         {/* Header Section */}
         <Box sx={{ mb: 4 }}>
@@ -84,16 +87,11 @@ const SettingsPage: React.FC = () => {
             </Avatar>
             <Box>
               <Typography variant="h4" sx={{ 
-                color: 'white', 
-                fontWeight: 700,
-                background: 'linear-gradient(45deg, #10b981, #3b82f6)',
-                backgroundClip: 'text',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent'
+                ...studentPageTitleSx,
               }}>
                 Settings & Preferences
               </Typography>
-              <Typography variant="h6" sx={{ color: 'rgba(255, 255, 255, 0.8)', fontWeight: 400 }}>
+              <Typography variant="h6" sx={studentPageSubtitleSx}>
                 Customize your experience and manage your account
               </Typography>
             </Box>
@@ -101,7 +99,7 @@ const SettingsPage: React.FC = () => {
         </Box>
 
         {/* User Info Card */}
-        <Card sx={{
+        <Card data-tutorial-id="student-settings-account-card" sx={{
           background: 'rgba(30, 41, 59, 0.8)',
           border: '1px solid rgba(255, 255, 255, 0.1)',
           borderRadius: 3,
@@ -160,7 +158,7 @@ const SettingsPage: React.FC = () => {
         }}>
           <CardContent sx={{ p: 0 }}>
             {/* Tab Navigation */}
-            <Box sx={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+            <Box data-tutorial-id="student-settings-tabs" sx={{ borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
               <Tabs 
                 value={activeTab} 
                 onChange={handleTabChange}
@@ -213,7 +211,7 @@ const SettingsPage: React.FC = () => {
             </Box>
 
             {/* Tab Content */}
-            <Box sx={{ p: 3 }}>
+            <Box data-tutorial-id="student-settings-content" sx={{ p: 3 }}>
               <TabPanel value={activeTab} index={0}>
                 <ProfileSettings />
               </TabPanel>

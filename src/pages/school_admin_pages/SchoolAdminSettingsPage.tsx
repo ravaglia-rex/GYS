@@ -30,6 +30,8 @@ import { checkUserRole } from '../../state_data/authSlice';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import { GREENFIELD_POC_EMAIL, GREENFIELD_SCHOOL_DISPLAY } from '../../data/schoolPreviewMock';
 import { putSchoolProfile } from '../../db/schoolAdminCollection';
+import PageTutorial from '../../components/tutorial/PageTutorial';
+import { SchoolAdminPageHeader, schoolAdminPageContainerSx } from './schoolAdminPageStyles';
 
 function primaryPocEmailFromSchoolDoc(data: Record<string, unknown>): string {
   const poc = data.poc_email;
@@ -486,16 +488,12 @@ const SchoolAdminSettingsPage: React.FC = () => {
   }
 
   return (
-    <Box sx={{ width: '100%', maxWidth: 1120, mx: 'auto' }}>
-      {/* Header */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" sx={{ fontWeight: 600, color: '#1E293B', mb: 1 }}>
-          Settings
-        </Typography>
-        <Typography variant="body1" sx={{ color: '#94a3b8' }}>
-          Manage your school admin preferences and configurations
-        </Typography>
-      </Box>
+    <Box sx={schoolAdminPageContainerSx}>
+      <PageTutorial pageKey="school.settings" ready={!loading} />
+      <SchoolAdminPageHeader
+        title="Settings"
+        subtitle="Manage your school admin preferences and configurations"
+      />
 
       {showSuccess && (
         <Alert severity="success" sx={{ mb: 3 }}>
@@ -511,7 +509,7 @@ const SchoolAdminSettingsPage: React.FC = () => {
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
         {/* School Information */}
-        <Card sx={{ 
+        <Card data-tutorial-id="school-settings-school-info" sx={{ 
           bgcolor: '#ffffff', 
           boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
           border: `1px solid ${ip.cardBorder}`,
@@ -579,6 +577,7 @@ const SchoolAdminSettingsPage: React.FC = () => {
 
         {/* Registration details */}
         <Card
+          data-tutorial-id="school-settings-registration"
           sx={{
             bgcolor: '#ffffff',
             boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
@@ -730,7 +729,7 @@ const SchoolAdminSettingsPage: React.FC = () => {
           borderRadius: 3,
         }}>
           <CardContent sx={{ p: { xs: 2, sm: 3 }, '&:last-child': { pb: { xs: 2, sm: 3 } } }}>
-            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+            <Box data-tutorial-id="school-settings-save" sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
               <Button
                 variant="outlined"
                 startIcon={<CancelIcon />}

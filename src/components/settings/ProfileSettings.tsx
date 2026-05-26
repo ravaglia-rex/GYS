@@ -26,6 +26,8 @@ import {
 import { auth } from '../../firebase/firebase';
 import { getStudent, updateStudent } from '../../db/studentCollection';
 import { getSchoolDetails } from '../../db/schoolCollection';
+import { studentSectionHeadingSx } from '../../styles/studentTypography';
+import { toIndiaMobileNationalDigits, withIndiaCountryCode } from '../../utils/indiaMobile';
 
 const HEARD_FROM_OPTIONS = [
   { value: '', label: 'Select' },
@@ -86,8 +88,8 @@ const ProfileSettings: React.FC = () => {
             about: userData.about_me || '',
             parentName: userData.parent_name || '',
             parentEmail: userData.parent_email || '',
-            parentPhone: userData.parent_phone || '',
-            phoneNumber: userData.phone_number || '',
+            parentPhone: toIndiaMobileNationalDigits(userData.parent_phone || ''),
+            phoneNumber: toIndiaMobileNationalDigits(userData.phone_number || ''),
           }));
 
           // Fetch school name if we have a school_id
@@ -164,7 +166,7 @@ const ProfileSettings: React.FC = () => {
           updates.first_name = firstName;
           updates.last_name = lastNameParts.join(' ');
         }
-        updates.phone_number = formData.phoneNumber.trim();
+        updates.phone_number = withIndiaCountryCode(formData.phoneNumber);
         updates.date_of_birth = formData.dateOfBirth;
         updates.city_state = formData.cityState.trim();
         updates.home_language = formData.homeLanguage.trim();
@@ -172,7 +174,7 @@ const ProfileSettings: React.FC = () => {
         updates.heard_from = formData.heardFrom;
         updates.parent_name = formData.parentName.trim();
         updates.parent_email = formData.parentEmail.trim();
-        updates.parent_phone = formData.parentPhone.trim();
+        updates.parent_phone = withIndiaCountryCode(formData.parentPhone);
         if (formData.about !== undefined) updates.about_me = formData.about;
         
         if (Object.keys(updates).length > 0) {
@@ -217,7 +219,7 @@ const ProfileSettings: React.FC = () => {
             borderRadius: 3,
           }}>
             <CardContent sx={{ p: 3 }}>
-              <Typography variant="h5" sx={{ color: 'white', fontWeight: 600, mb: 3, fontSize: '1.4rem' }}>
+              <Typography variant="h5" sx={{ ...studentSectionHeadingSx, mb: 3 }}>
                 Personal Information
               </Typography>
 
@@ -286,16 +288,21 @@ const ProfileSettings: React.FC = () => {
                   <TextField
                     fullWidth
                     label="WhatsApp Number"
+                    type="tel"
                     value={formData.phoneNumber}
-                    onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+                    onChange={(e) => handleInputChange('phoneNumber', toIndiaMobileNationalDigits(e.target.value))}
                     disabled={!isEditing}
                     InputProps={{
                       startAdornment: (
-                        <InputAdornment position="start">
+                        <InputAdornment position="start" sx={{ gap: 0.75 }}>
                           <Phone size={20} color="rgba(255, 255, 255, 0.7)" />
+                          <Typography component="span" sx={{ color: 'rgba(255, 255, 255, 0.8)', fontWeight: 600 }}>
+                            +91
+                          </Typography>
                         </InputAdornment>
                       ),
                     }}
+                    inputProps={{ inputMode: 'numeric', maxLength: 10 }}
                     sx={{
                       '& .MuiOutlinedInput-root': {
                         color: 'white',
@@ -623,16 +630,21 @@ const ProfileSettings: React.FC = () => {
                   <TextField
                     fullWidth
                     label="Parent Phone"
+                    type="tel"
                     value={formData.parentPhone}
-                    onChange={(e) => handleInputChange('parentPhone', e.target.value)}
+                    onChange={(e) => handleInputChange('parentPhone', toIndiaMobileNationalDigits(e.target.value))}
                     disabled={!isEditing}
                     InputProps={{
                       startAdornment: (
-                        <InputAdornment position="start">
+                        <InputAdornment position="start" sx={{ gap: 0.75 }}>
                           <Phone size={20} color="rgba(255, 255, 255, 0.7)" />
+                          <Typography component="span" sx={{ color: 'rgba(255, 255, 255, 0.8)', fontWeight: 600 }}>
+                            +91
+                          </Typography>
                         </InputAdornment>
                       ),
                     }}
+                    inputProps={{ inputMode: 'numeric', maxLength: 10 }}
                     sx={{
                       '& .MuiOutlinedInput-root': {
                         color: 'white',

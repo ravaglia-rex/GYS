@@ -10,6 +10,8 @@ import DashboardOverview from '../../components/dashboard/DashboardOverview';
 import { EnhancedAssessmentCardsGroup } from '../../components/dashboard/EnhancedAssessmentCardsGroup';
 import {
   ASSESSMENT_ORDER,
+  ASSESSMENT_NAMES,
+  COMPLETION_PREREQUISITES,
   PROGRAM_EXAM_COUNT,
   computeGate,
   membershipLevelForAssessmentGate,
@@ -19,6 +21,12 @@ import {
   type AssessmentChartRow,
 } from '../../utils/assessmentGating';
 import { STUDENT_OFFICIAL_ASSESSMENTS_ENABLED } from '../../constants/constants';
+import PageTutorial from '../../components/tutorial/PageTutorial';
+import type {
+  CompletedAssessmentNotificationSource,
+  DashboardNotificationEventSource,
+  UnlockedAssessmentNotificationSource,
+} from '../../utils/dashboardNotifications';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -49,6 +57,9 @@ const Dashboard: React.FC = () => {
     availableAssessments: 0,
   });
   const [scoresByAssessment, setScoresByAssessment] = useState<AssessmentChartRow[]>([]);
+  const [completedAssessments, setCompletedAssessments] = useState<CompletedAssessmentNotificationSource[]>([]);
+  const [unlockedAssessments, setUnlockedAssessments] = useState<UnlockedAssessmentNotificationSource[]>([]);
+  const [backendNotificationEvents, setBackendNotificationEvents] = useState<DashboardNotificationEventSource[]>([]);
   const [assessmentScopeLine, setAssessmentScopeLine] = useState<string>('');
   const [loadError, setLoadError] = useState('');
 
@@ -68,6 +79,9 @@ const Dashboard: React.FC = () => {
         const [student, configFromBackend] = await Promise.all([getStudent(uid), getAssessmentConfig()]);
         setLoadError('');
         const progress: Record<string, AssessmentProgress> = student?.assessment_progress ?? {};
+        const dashboardNotificationEvents = Array.isArray(student?.dashboard_notification_events)
+          ? student.dashboard_notification_events as DashboardNotificationEventSource[]
+          : [];
         const membershipLevel = membershipLevelForAssessmentGate(student);
         const studentGrade =
           typeof student?.grade === 'number' && !Number.isNaN(student.grade) ? student.grade : 8;
@@ -80,14 +94,31 @@ const Dashboard: React.FC = () => {
 
         let availableAssessments = 0;
         let tiersCompleted = 0;
+        const completedForNotifications: CompletedAssessmentNotificationSource[] = [];
+        const unlockedForNotifications: UnlockedAssessmentNotificationSource[] = [];
 
         for (const a of sorted) {
           const p = progress[a.id] ?? defaultAssessmentProgress;
           const gate = computeGate(a.id, membershipLevel, progress, studentGrade, sorted);
-          const done =
-            p.status === 'tier_advanced' || isAssessmentFullyComplete(a, p);
-          if (done) tiersCompleted++;
-          if (!gate.locked && !isAssessmentFullyComplete(a, p)) availableAssessments++;
+          const done = isAssessmentFullyComplete(a, p);
+          if (done) {
+            tiersCompleted++;
+            completedForNotifications.push({
+              assessmentId: a.id,
+              assessmentName: a.name?.trim() || ASSESSMENT_NAMES[a.id] || a.id,
+            });
+          }
+          if (!gate.locked && !isAssessmentFullyComplete(a, p)) {
+            availableAssessments++;
+            const hasAttemptedThisAssessment = (p.attempts_count ?? 0) > 0 || p.best_score !== null;
+            const hasPrerequisite = (COMPLETION_PREREQUISITES[a.id] ?? []).length > 0;
+            if (!hasAttemptedThisAssessment && hasPrerequisite) {
+              unlockedForNotifications.push({
+                assessmentId: a.id,
+                assessmentName: a.name?.trim() || ASSESSMENT_NAMES[a.id] || a.id,
+              });
+            }
+          }
         }
 
         const listedTotal = Math.max(sorted.length, PROGRAM_EXAM_COUNT);
@@ -112,6 +143,9 @@ const Dashboard: React.FC = () => {
           averageScore: avgScore,
           availableAssessments,
         });
+        setCompletedAssessments(completedForNotifications);
+        setUnlockedAssessments(unlockedForNotifications);
+        setBackendNotificationEvents(dashboardNotificationEvents);
 
         setScoresByAssessment(
           buildDashboardExamChartRows(sorted, progress, membershipLevel, studentGrade)
@@ -119,6 +153,9 @@ const Dashboard: React.FC = () => {
       } catch (err) {
         setLoadError('Could not load your dashboard data. Please refresh or try again later.');
         setScoresByAssessment([]);
+        setCompletedAssessments([]);
+        setUnlockedAssessments([]);
+        setBackendNotificationEvents([]);
         setAssessmentScopeLine('');
         Sentry.withScope((scope) => {
           scope.setTag('location', 'DashboardPage.load');
@@ -137,9 +174,12 @@ const Dashboard: React.FC = () => {
     <Sentry.ErrorBoundary beforeCapture={(s) => s.setTag('location', 'DashboardPage')}>
       <DashboardLayout
         availableAssessmentsCount={stats.availableAssessments}
-        resultsAvailableCount={stats.tiersCompleted}
+        completedAssessments={completedAssessments}
+        unlockedAssessments={unlockedAssessments}
+        backendNotificationEvents={backendNotificationEvents}
       >
-        <Box sx={{ p: 0 }}>
+        <PageTutorial pageKey="student.dashboard" ready={!loading && !loadError} />
+        <Box sx={{ p: 0, maxWidth: 1200, mx: 'auto', width: '100%' }}>
           {loading ? (
             <Box sx={{
               textAlign: 'center', py: 8,
@@ -168,23 +208,32 @@ const Dashboard: React.FC = () => {
                   availableAssessments: stats.availableAssessments,
                 }}
                 latestAssessmentResults={scoresByAssessment}
+                completedAssessments={completedAssessments}
+                unlockedAssessments={unlockedAssessments}
+                backendNotificationEvents={backendNotificationEvents}
               />
-              <Box sx={{ mt: 4, ml: 1 }}>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', gap: 1, mb: 2 }}>
-                  <Typography variant="h5" sx={{ color: 'white', fontWeight: 700 }}>
-                    Your Assessments
-                  </Typography>
-                  {assessmentScopeLine && (
-                    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.55)' }}>
-                      {assessmentScopeLine}
+              <Box sx={{ mt: 4, ml: 1 }} data-tutorial-id="student-dashboard-assessments">
+                <Box>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', gap: 1, mb: 2 }}>
+                    <Typography
+                      variant="h5"
+                      data-tutorial-scroll-id="student-dashboard-assessments-heading"
+                      sx={{ color: 'white', fontWeight: 700 }}
+                    >
+                      Your Assessments
                     </Typography>
-                  )}
+                    {assessmentScopeLine && (
+                      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.55)' }}>
+                        {assessmentScopeLine}
+                      </Typography>
+                    )}
+                  </Box>
+                  <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.65)', mb: 2 }}>
+                    {STUDENT_OFFICIAL_ASSESSMENTS_ENABLED
+                      ? 'All assessments are listed below. Complete them in sequence where your membership allows - Reasoning Triad covers Exams 1-3; Reasoning + Skills adds English and AI Proficiency (4-5); Guided Decision adds the Insight group (6-7) and ongoing AI career counseling that begins after that baseline and grows as you log new experiences. Practice Mode uses a separate pool and does not change official scores.'
+                      : 'Official exams are listed for reference, but they are not open yet while the real question banks are being prepared. Practice Mode remains available and uses a separate pool that does not change official scores.'}
+                  </Typography>
                 </Box>
-                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.65)', mb: 2, maxWidth: 720 }}>
-                  {STUDENT_OFFICIAL_ASSESSMENTS_ENABLED
-                    ? 'All assessments are listed below. Complete them in sequence where your membership allows - Reasoning Triad covers Exams 1-3; Reasoning + Skills adds English and AI Proficiency (4-5); Guided Decision adds the Insight group (6-7) and ongoing AI career counseling that begins after that baseline and grows as you log new experiences. Practice Mode uses a separate pool and does not change official scores.'
-                    : 'Official exams are listed for reference, but they are not open yet while the real question banks are being prepared. Practice Mode remains available and uses a separate pool that does not change official scores.'}
-                </Typography>
                 <EnhancedAssessmentCardsGroup uid={uid} filterType="all" />
               </Box>
             </>

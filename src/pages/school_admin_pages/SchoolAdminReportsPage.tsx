@@ -26,6 +26,8 @@ import {
   type QuarterlyReportListItem,
 } from '../../db/schoolAdminCollection';
 import { GREENFIELD_QUARTERLY_REPORTS } from '../../data/schoolPreviewMock';
+import PageTutorial from '../../components/tutorial/PageTutorial';
+import { SchoolAdminPageHeader, schoolAdminPageContainerSx } from './schoolAdminPageStyles';
 
 const SchoolAdminReportsPage: React.FC = () => {
   const location = useLocation();
@@ -97,15 +99,12 @@ const SchoolAdminReportsPage: React.FC = () => {
   };
 
   return (
-    <Box sx={{ maxWidth: 1000, mx: 'auto', pb: 6, px: { xs: 1, sm: 0 } }}>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" sx={{ color: ip.heading, fontWeight: 700, mb: 0.5 }}>
-          Institutional reports
-        </Typography>
-        <Typography variant="body2" sx={{ color: ip.subtext }}>
-          Quarterly PDFs stored for your school. Download any past report.
-        </Typography>
-      </Box>
+    <Box sx={schoolAdminPageContainerSx}>
+      <PageTutorial pageKey="school.reports" ready={!loading} />
+      <SchoolAdminPageHeader
+        title="Institutional reports"
+        subtitle="Quarterly PDFs stored for your school. Download any past report."
+      />
 
     
       {error && (
@@ -119,7 +118,10 @@ const SchoolAdminReportsPage: React.FC = () => {
         </Alert>
       )}
 
-      <Card sx={{ bgcolor: '#fff', border: `1px solid ${ip.cardBorder}`, borderRadius: 2, boxShadow: 'none' }}>
+      <Card
+        data-tutorial-id={reports.length === 0 ? 'school-reports-list' : undefined}
+        sx={{ bgcolor: '#fff', border: `1px solid ${ip.cardBorder}`, borderRadius: 2, boxShadow: 'none' }}
+      >
         <CardContent sx={{ p: { xs: '16px !important', sm: '24px !important' } }}>
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
@@ -180,9 +182,10 @@ const SchoolAdminReportsPage: React.FC = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {reports.map((r) => (
+                  {reports.map((r, index) => (
                     <TableRow
                       key={r.quarterKey}
+                      data-tutorial-id={index === 0 ? 'school-reports-list' : undefined}
                       hover
                       sx={{
                         bgcolor: '#ffffff',

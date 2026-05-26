@@ -22,6 +22,7 @@ import {
   strengthAndGrowth,
   nextAssessmentNudge,
 } from '../../config/assessmentResultDetail';
+import { isLevelBasedAssessment } from '../../utils/assessmentGating';
 
 interface ResultState {
   attemptId: string;
@@ -49,10 +50,11 @@ const AssessmentResultDetailPage: React.FC = () => {
 
   const { assessmentId, scorePercent, passed, completedAt } = state;
   const flow = getAssessmentFlowDefinition(assessmentId);
+  const levelBased = isLevelBasedAssessment(assessmentId);
   const displayScore = Math.round(scorePercent);
   const pct = estimatedPercentileFromScore(scorePercent);
   const tierPerf = performanceTierFromScore(displayScore);
-  const rows = buildSubscores(assessmentId, scorePercent);
+  const rows = levelBased ? buildSubscores(assessmentId, scorePercent) : [];
   const { strength, growth } = strengthAndGrowth(rows);
   const nudge = passed ? nextAssessmentNudge(assessmentId) : null;
 
@@ -98,6 +100,24 @@ const AssessmentResultDetailPage: React.FC = () => {
       </Box>
 
       <Box sx={{ maxWidth: 520, mx: 'auto', px: 2, pt: 3 }}>
+        {!levelBased ? (
+          <Box
+            sx={{
+              bgcolor: '#f3e5f5',
+              borderRadius: 2,
+              p: 2.5,
+              mb: 2,
+              border: '1px solid #ce93d8',
+            }}
+          >
+            <Typography sx={{ fontWeight: 800, color: '#4a148c', fontSize: '1.15rem', mb: 0.5 }}>
+              Profile assessment submitted
+            </Typography>
+            <Typography sx={{ color: '#6a1b9a', fontSize: '0.9rem' }}>
+              Completed {dateLabel}. This insight assessment does not use skill levels, percentiles, or level-by-level scoring.
+            </Typography>
+          </Box>
+        ) : (
         <Box
           sx={{
             bgcolor: '#e8f5e9',
@@ -117,7 +137,10 @@ const AssessmentResultDetailPage: React.FC = () => {
             Completed {dateLabel}
           </Typography>
         </Box>
+        )}
 
+        {levelBased && (
+        <>
         <Typography sx={{ fontWeight: 800, color: '#0f172a', mb: 1.5, fontSize: '0.95rem' }}>
           Score breakdown
         </Typography>
@@ -159,6 +182,8 @@ const AssessmentResultDetailPage: React.FC = () => {
             </Typography>
           </Box>
         </Box>
+        </>
+        )}
 
         {nudge && (
           <Box

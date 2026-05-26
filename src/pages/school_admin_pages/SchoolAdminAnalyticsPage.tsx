@@ -52,6 +52,8 @@ import { ASSESSMENT_ORDER, NON_COMPETITIVE_CHART_ASSESSMENT_IDS } from '../../ut
 import { NationalPerformanceTierOverview } from '../../components/school_admin/NationalPerformanceTierOverview';
 import { FAKE_SCORE_DISTRIBUTION_BY_EXAM } from '../../data/schoolAdminScoreSubcategoryMock';
 import { buildGreenfieldPreviewStudentRows } from '../../data/schoolPreviewMock';
+import PageTutorial from '../../components/tutorial/PageTutorial';
+import { SchoolAdminPageHeader, schoolAdminPageContainerSx } from './schoolAdminPageStyles';
 
 /** App theme is dark; school admin analytics cards are light - Select needs explicit light-field styles. */
 const examTierSelectFormSx = {
@@ -281,6 +283,13 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
   };
 
   const SCORE_BAND_ORDER = ['90-100', '80-89', '70-79', '60-69', '50-59', 'Below 50'] as const;
+  const hasAnyAnalyticsData = Boolean(
+    analyticsData &&
+      (analyticsData.qualificationStats.total > 0 ||
+        tierAnalyticsStudents.length > 0 ||
+        gradePieData.length > 0 ||
+        examIdsWithActivity.length > 0)
+  );
 
   if (loading) {
     return (
@@ -293,18 +302,31 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
   }
 
   return (
-    <Box sx={{ maxWidth: '100%', mx: 'auto' }}>
-      {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 600, color: '#1E293B', mb: 1 }}>
-          Analytics
-        </Typography>
-        <Typography variant="body1" sx={{ color: '#94a3b8' }}>
-          Comprehensive insights into your school's performance and student achievements
-        </Typography>
-      </Box>
+    <Box sx={schoolAdminPageContainerSx}>
+      <PageTutorial pageKey="school.analytics" ready={!loading} />
+      <SchoolAdminPageHeader
+        title="Analytics"
+        subtitle="Comprehensive insights into your school's performance and student achievements"
+      />
 
-      {analyticsData && (
+      {!hasAnyAnalyticsData && (
+        <Card sx={{ bgcolor: '#ffffff', boxShadow: 'none', border: `1px solid ${ip.cardBorder}`, borderRadius: 2 }}>
+          <CardContent sx={{ py: 5, px: { xs: 2.5, sm: 4 }, textAlign: 'center' }}>
+            <Avatar sx={{ width: 56, height: 56, bgcolor: 'rgba(16, 64, 139, 0.08)', color: ip.navy, mx: 'auto', mb: 2 }}>
+              <ShowChartIcon />
+            </Avatar>
+            <Typography variant="h6" sx={{ fontWeight: 700, color: ip.heading, mb: 1 }}>
+              No analytics data yet
+            </Typography>
+            <Typography variant="body2" sx={{ color: ip.subtext, maxWidth: 560, mx: 'auto', lineHeight: 1.6 }}>
+              Analytics will appear here once students are registered under your school and begin completing assessments.
+              Use the Students page to invite learners, then return here to review grade mix, proficiency tiers, and score trends.
+            </Typography>
+          </CardContent>
+        </Card>
+      )}
+
+      {hasAnyAnalyticsData && analyticsData && (
         <>
           {/* Total students + grade distribution */}
           <Box
@@ -441,7 +463,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
               <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#1E293B', mt: 3, mb: 1 }}>
                 By exam × grade × level
               </Typography>
-              <FormControl size="small" sx={examTierSelectFormSx}>
+              <FormControl data-tutorial-id="school-analytics-exam-select" size="small" sx={examTierSelectFormSx}>
                 <InputLabel id="exam-tier-select-label">Assessment</InputLabel>
                 <Select
                   labelId="exam-tier-select-label"
@@ -614,7 +636,10 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card sx={{ bgcolor: '#ffffff', boxShadow: 'none', border: `1px solid ${ip.cardBorder}`, mb: 4 }}>
+          <Card
+            data-tutorial-id="school-analytics-charts"
+            sx={{ bgcolor: '#ffffff', boxShadow: 'none', border: `1px solid ${ip.cardBorder}`, mb: 4 }}
+          >
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                 <ShowChartIcon sx={{ color: '#3b82f6', mr: 2 }} />

@@ -26,7 +26,7 @@ export function countAssessmentsFromProgress(progress: Record<string, Assessment
   if (!progress) return 0;
   let n = 0;
   for (const p of Object.values(progress)) {
-    if (p.status === 'tier_advanced' || (p.best_score != null && p.best_score > 0)) n += 1;
+    if (p.status === 'tier_advanced' || p.status === 'completed' || (p.best_score != null && p.best_score > 0)) n += 1;
   }
   return n;
 }
