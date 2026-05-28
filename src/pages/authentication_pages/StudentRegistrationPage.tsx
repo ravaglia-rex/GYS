@@ -299,7 +299,7 @@ const StudentRegistrationPage: React.FC = () => {
 
             <div>
               <label className="block text-xs sm:text-sm font-bold text-slate-700">
-                Student Grade<span className="text-red-500"> *</span>
+                Student Class<span className="text-red-500"> *</span>
               </label>
               <select
                 value={grade}
@@ -307,14 +307,14 @@ const StudentRegistrationPage: React.FC = () => {
                 className="mt-1.5 w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm sm:text-base text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
                 required
               >
-                <option value="">Select Grade</option>
-                <option value="6">6th Grade</option>
-                <option value="7">7th Grade</option>
-                <option value="8">8th Grade</option>
-                <option value="9">9th Grade</option>
-                <option value="10">10th Grade</option>
-                <option value="11">11th Grade</option>
-                <option value="12">12th Grade</option>
+                <option value="">Select Class</option>
+                <option value="6">Class 6</option>
+                <option value="7">Class 7</option>
+                <option value="8">Class 8</option>
+                <option value="9">Class 9</option>
+                <option value="10">Class 10</option>
+                <option value="11">Class 11</option>
+                <option value="12">Class 12</option>
               </select>
             </div>
 

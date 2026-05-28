@@ -269,7 +269,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
       (analyticsData?.gradeDistribution ?? [])
         .filter(d => d.count > 0)
         .map(d => ({
-          name: `Grade ${d.grade}`,
+          name: `Class ${d.grade}`,
           count: d.count,
           percentage: d.percentage,
         })),
@@ -325,7 +325,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
             </Typography>
             <Typography variant="body2" sx={{ color: ip.subtext, maxWidth: 560, mx: 'auto', lineHeight: 1.6 }}>
               Analytics will appear here once students are registered under your school and begin completing assessments.
-              Use the Students page to invite learners, then return here to review grade mix, proficiency tiers, and score trends.
+              Use the Students page to invite learners, then return here to review class mix, proficiency tiers, and score trends.
             </Typography>
           </CardContent>
         </Card>
@@ -333,7 +333,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
 
       {hasAnyAnalyticsData && analyticsData && (
         <>
-          {/* Total students + grade distribution */}
+          {/* Total students + class distribution */}
           <Box
             sx={{
               display: 'grid',
@@ -383,12 +383,12 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                   <PieChartIcon sx={{ color: '#3b82f6', mr: 2 }} />
                   <Typography variant="h6" sx={{ fontWeight: 600, color: '#1E293B' }}>
-                    Grade Distribution
+                    Class Distribution
                   </Typography>
                 </Box>
                 {gradePieData.length === 0 ? (
                   <Typography variant="body2" sx={{ color: '#94a3b8', py: 2 }}>
-                    No grade data yet for registered students.
+                    No class data yet for registered students.
                   </Typography>
                 ) : (
                   <Box sx={{ width: '100%', height: 280, minHeight: 260 }}>
@@ -427,7 +427,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                           }}
                           formatter={(value: number, _name, item) => [
                             `${value} students`,
-                            item.payload?.name ?? 'Grade',
+                            item.payload?.name ?? 'Class',
                           ]}
                         />
                       </PieChart>
@@ -466,7 +466,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
 
            
               <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#1E293B', mt: 3, mb: 1 }}>
-                By exam × grade × level
+                By exam × class × level
               </Typography>
               <FormControl data-tutorial-id="school-analytics-exam-select" size="small" sx={examTierSelectFormSx}>
                 <InputLabel id="exam-tier-select-label">Assessment</InputLabel>
@@ -514,7 +514,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                           },
                         }}
                       >
-                        <TableCell>Grade</TableCell>
+                        <TableCell>Class</TableCell>
                         <TableCell align="right">Level 1</TableCell>
                         <TableCell align="right">Level 2</TableCell>
                         <TableCell align="right">Level 3+</TableCell>
@@ -537,7 +537,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                           }}
                         >
                           <TableCell sx={{ fontWeight: 500 }}>
-                            {row.grade === 0 ? 'Unspecified' : `Grade ${row.grade}`}
+                            {row.grade === 0 ? 'Unspecified' : `Class ${row.grade}`}
                           </TableCell>
                           <TableCell align="right">{row.tier1}</TableCell>
                           <TableCell align="right">{row.tier2}</TableCell>
@@ -553,7 +553,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
               ) : (
                 <Typography variant="body2" sx={{ color: '#94a3b8' }}>
                   {examBreakdownId
-                    ? 'No students with active progress on this assessment by grade.'
+                    ? 'No students with active progress on this assessment by class.'
                     : 'Select an assessment once students begin assessments.'}
                 </Typography>
               )}
@@ -653,7 +653,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                 </Typography>
               </Box>
               <Typography variant="body2" sx={{ color: '#94a3b8', mb: 3, lineHeight: 1.6 }}>
-                For each exam, we pool students across all grades, rank them by their personal best score on that exam,
+                For each exam, we pool students across all classes, rank them by their personal best score on that exam,
                 take the top {TOP_STUDENTS_PER_EXAM_FOR_AVG} performers, and plot the average of those scores. Every
                 scored assessment is listed; bars are 0 when no student has a recorded best score yet. Personality
                 assessments are excluded. These per-exam averages feed your school&apos;s ranking. If fewer than{' '}

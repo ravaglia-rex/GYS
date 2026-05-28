@@ -68,7 +68,7 @@ function getDashboardQuickActions(routeBase: string): DashboardQuickAction[] {
       key: 'analytics',
       icon: <AnalyticsIcon sx={{ color: '#dc2626', fontSize: '2rem' }} />,
       label: 'Analytics',
-      subcaption: 'School-wide scores, grade mix, and proficiency levels across assessments.',
+      subcaption: 'School-wide scores, class mix, and proficiency levels across assessments.',
       path: `${routeBase}/analytics`,
     },
     {

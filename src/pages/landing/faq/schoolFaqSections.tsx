@@ -72,14 +72,14 @@ Your school’s primary role is to communicate the opportunity to students and f
           <p>
             Participating schools receive access to a school dashboard and downloadable reports showing student participation, performance distributions, and class-level insights.
 
-Reports may include grade-wise or class-wise performance patterns, student engagement data, and institutional summaries that help school leaders understand strengths and growth areas across their student population.
+Reports may include class-wise performance patterns, student engagement data, and institutional summaries that help school leaders understand strengths and growth areas across their student population.
 
 For example, reports can help identify how many students are performing at advanced levels, how many are developing, and where additional support may be useful.
           </p>
         ),
       },
       {
-        question: 'Can we start with just one grade or a small group of students?',
+        question: 'Can we start with just one class or a small group of students?',
         answer: (
           <p>
            Yes. Many schools begin with a specific class band or student group before expanding participation.

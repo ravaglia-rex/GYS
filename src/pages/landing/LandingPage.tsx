@@ -26,7 +26,7 @@ const DIFFERENTIATORS = [
   },
   {
     emoji: '🧭',
-    title: 'Guidance, Not Just Grades',
+    title: 'Guidance, Not Just Marks',
     body: 'GYS combines reasoning, English and communication, AI proficiency, personality, interests, and career discovery to support recommendations for stream selection, career exploration, and university fit.',
   },
   {
@@ -267,7 +267,7 @@ const LandingPage: React.FC = () => {
           <div className="landing-hero-enter-4 mx-auto mt-8 flex w-full max-w-full flex-nowrap justify-center gap-1.5 overflow-x-auto overscroll-x-contain px-1 pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] sm:gap-2 md:gap-3 md:overflow-x-visible md:px-0 [&::-webkit-scrollbar]:hidden">
             <div className="landing-hero-chip flex shrink-0 items-center gap-1 rounded-full bg-white/10 px-2 py-1.5 text-[0.7rem] text-white backdrop-blur-sm transition-colors duration-150 hover:bg-white/20 sm:gap-2 sm:px-3 sm:py-2 sm:text-xs md:px-4 md:text-sm">
               <span className="text-sm sm:text-base">🎓</span>
-              <span>Grades 6-12</span>
+              <span>Classes 6-12</span>
             </div>
             <div className="landing-hero-chip flex shrink-0 items-center gap-1 rounded-full bg-white/10 px-2 py-1.5 text-[0.7rem] text-white backdrop-blur-sm transition-colors duration-150 hover:bg-white/20 sm:gap-2 sm:px-3 sm:py-2 sm:text-xs md:px-4 md:text-sm">
               <span className="text-sm sm:text-base">🌍</span>
@@ -449,7 +449,7 @@ const LandingPage: React.FC = () => {
               >
                 <h4 className="font-bold text-lg text-gray-900">Benchmark</h4>
                 <p className="mt-3 text-sm leading-relaxed text-gray-600">
-                Earn a performance tier (Explorer → Diamond) - benchmarked against students at each grade level worldwide. Students work their way up the leaderboard to unlock opportunities and recognition.
+                Earn a performance tier (Explorer → Diamond) - benchmarked against students at each class level worldwide. Students work their way up the leaderboard to unlock opportunities and recognition.
                 </p>
               </TabsContent>
               <TabsContent

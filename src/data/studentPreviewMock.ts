@@ -28,7 +28,7 @@ export const PREVIEW_STUDENT_PROFILE = {
   phoneNumber: '+91 98765 43210',
   grade: 10,
   /** Matches `grade` for settings dropdowns */
-  gradeLabel: '10th Grade' as const,
+  gradeLabel: 'Class 10' as const,
   schoolName: 'Navrion Future Academy',
   membershipLevelLabel: 'Reasoning + Skills',
   membershipExpiryLabel: 'Mar 2027',
@@ -36,7 +36,7 @@ export const PREVIEW_STUDENT_PROFILE = {
   parentEmail: 'neha.sharma@example.com',
   parentPhone: '+91 91234 56780',
   about:
-    'Grade 10 learner at Navrion Future Academy - same sample profile as the preview dashboard.',
+    'Class 10 learner at Navrion Future Academy - same sample profile as the preview dashboard.',
 };
 
 /** Profile form defaults for preview settings - derived from {@link PREVIEW_STUDENT_PROFILE}. */

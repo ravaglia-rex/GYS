@@ -208,7 +208,7 @@ const PublicAssessmentsPage: React.FC = () => {
               <span style={{ color: GYS_GOLD }}>One Global Benchmark.</span>
             </h2>
             <p className="landing-hero-enter-3 mx-auto mt-5 max-w-2xl text-sm leading-relaxed text-white/88 sm:text-base">
-              Three exam groups (Reasoning, Skills, and Insight) for grades 6–12, normed globally. Profiles for
+              Three exam groups (Reasoning, Skills, and Insight) for classes 6–12, normed globally. Profiles for
               students; cohort insight for schools.
             </p>
             <div className="landing-hero-enter-4 mx-auto mt-5 flex max-w-lg flex-wrap justify-center gap-2">
@@ -216,7 +216,7 @@ const PublicAssessmentsPage: React.FC = () => {
                 Practice Mode
               </span>
               <span className="landing-hero-chip rounded-full border border-white/40 bg-white/10 px-3 py-1 text-xs font-medium text-white/95 backdrop-blur-sm">
-                Grades 6–12
+                Classes 6–12
               </span>
               <span className="landing-hero-chip rounded-full border border-white/40 bg-white/10 px-3 py-1 text-xs font-medium text-white/95 backdrop-blur-sm">
                 Global benchmark
@@ -443,7 +443,7 @@ const PublicAssessmentsPage: React.FC = () => {
               </p>
               <div className="mt-3 space-y-3 text-sm leading-relaxed text-gray-700">
                 <p>
-                  <strong>School leaderboard:</strong> per exam, per grade, within the school. School leaderboards show who are the top performers by grade on each official exam at that school.
+                  <strong>School leaderboard:</strong> per exam, per class, within the school. School leaderboards show who are the top performers by class on each official exam at that school.
                   <p className="shrink-0 font-semibold text-gray-900">Trial Membership
                 <span> is excluded. Eligibility starts at <strong>Reasoning Triad</strong>{' '}
                   and above.

@@ -525,7 +525,7 @@ const InstitutionDemoRequestPage: React.FC = () => {
                 {/* Total students */}
                 <div>
                   <label className="block text-sm font-semibold text-slate-800 sm:text-[15px]">
-                    Total Students (Grades 6 - 12)
+                    Total Students (Classes 6 - 12)
                   </label>
                   <input
                     type="number"

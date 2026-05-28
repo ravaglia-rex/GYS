@@ -338,7 +338,7 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
                 <Typography sx={{ color: ip.heading }}>{email || '-'}</Typography>
               </Box>
               <Box>
-                <Typography variant="caption" sx={{ color: ip.subtext }}>Grade</Typography>
+                <Typography variant="caption" sx={{ color: ip.subtext }}>Class</Typography>
                 <Typography sx={{ color: ip.heading }}>{row.grade > 0 ? row.grade : '-'}</Typography>
               </Box>
               <Box sx={{ gridColumn: { xs: '1', sm: '1 / -1' } }}>

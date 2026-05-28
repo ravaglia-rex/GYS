@@ -367,13 +367,13 @@ const StudentPreviewSettingsPage: React.FC = () => {
                     <TextField
                       fullWidth
                       select
-                      label="Grade/Class"
+                      label="Class"
                       value={formData.grade}
                       onChange={(e) => handleInputChange('grade', e.target.value)}
                       disabled={!isEditing}
                       sx={textFieldSx}
                     >
-                      {['8th Grade', '9th Grade', '10th Grade', '11th Grade', '12th Grade'].map((g) => (
+                      {['Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12'].map((g) => (
                         <MenuItem key={g} value={g}>
                           {g}
                         </MenuItem>

@@ -104,7 +104,7 @@ const AssessmentResultPage: React.FC = () => {
                   ? nextTier != null
                     ? `You unlocked Level ${nextTier}. Continue from Assessments when you are ready.`
                     : 'You have completed all levels for this assessment.'
-                  : 'Review the material and retake the level to reach the next proficiency band.'}
+                  : 'This level is still in progress. Review the material and retake it when available.'}
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
                 {passed && nextTier != null && (
@@ -219,10 +219,10 @@ const AssessmentResultPage: React.FC = () => {
           <Box sx={{ bgcolor: '#ffebee', border: '1px solid #ffcdd2', borderRadius: 2, p: 2, mb: 2, textAlign: 'center' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 0.5 }}>
               <CancelIcon sx={{ color: '#c62828' }} />
-              <Typography sx={{ fontWeight: 800, color: '#b71c1c' }}>Level not passed</Typography>
+              <Typography sx={{ fontWeight: 800, color: '#b71c1c' }}>Level still in progress</Typography>
             </Box>
             <Typography sx={{ color: '#616161', fontSize: '0.85rem' }}>
-              Score {LEVEL_CLEAR_THRESHOLD_LABEL} or higher to unlock the next level.
+              Score {LEVEL_CLEAR_THRESHOLD_LABEL} or higher to complete this level and unlock the next one.
             </Typography>
           </Box>
         )}

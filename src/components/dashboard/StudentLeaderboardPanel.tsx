@@ -93,7 +93,7 @@ export default function StudentLeaderboardPanel({
         }}
       >
         <Typography variant="subtitle2" sx={{ color: 'rgba(255,255,255,0.55)', fontWeight: 600 }}>
-          Grade
+          Class
         </Typography>
         {lastUpdatedText && (
           <Typography
@@ -119,7 +119,7 @@ export default function StudentLeaderboardPanel({
           value={grade}
           onChange={handleGrade}
           disabled={gradeToggleDisabled}
-          aria-label="Leaderboard grade"
+          aria-label="Leaderboard class"
           sx={{
             flexWrap: 'wrap',
             gap: 0.75,
@@ -142,7 +142,7 @@ export default function StudentLeaderboardPanel({
         >
           {LEADERBOARD_GRADES.map((g) => (
             <ToggleButton key={g} value={g}>
-              Grade {g}
+              Class {g}
             </ToggleButton>
           ))}
         </ToggleButtonGroup>

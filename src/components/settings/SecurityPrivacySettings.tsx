@@ -296,8 +296,8 @@ const SecurityPrivacySettings: React.FC = () => {
         },
         {
           key: 'showGrades',
-          label: 'Show Academic Grades',
-          description: 'Display your grade information',
+          label: 'Show Academic Class',
+          description: 'Display your class information',
           type: 'switch'
         }
       ]

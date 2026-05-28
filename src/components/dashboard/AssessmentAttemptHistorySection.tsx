@@ -27,8 +27,8 @@ interface AssessmentAttemptHistorySectionProps {
 }
 
 const statusColor: Record<AttemptRecord['status'], { bg: string; color: string; label: string }> = {
-  completed: { bg: 'rgba(16,185,129,0.14)', color: '#86efac', label: 'Completed' },
-  in_progress: { bg: 'rgba(59,130,246,0.14)', color: '#93c5fd', label: 'In progress' },
+  completed: { bg: 'rgba(16,185,129,0.14)', color: '#86efac', label: 'Complete' },
+  in_progress: { bg: 'rgba(59,130,246,0.14)', color: '#93c5fd', label: 'Still in progress' },
   failed: { bg: 'rgba(239,68,68,0.14)', color: '#fca5a5', label: 'Ended early' },
   abandoned: { bg: 'rgba(245,158,11,0.14)', color: '#fcd34d', label: 'Abandoned' },
 };
@@ -174,7 +174,7 @@ const AssessmentAttemptHistorySection: React.FC<AssessmentAttemptHistorySectionP
                 <TableCell>Assessment</TableCell>
                 <TableCell>Level</TableCell>
                 <TableCell>Status</TableCell>
-                <TableCell>Result</TableCell>
+                <TableCell>Level progress</TableCell>
                 <TableCell align="right">Score</TableCell>
               </TableRow>
             </TableHead>
@@ -203,12 +203,10 @@ const AssessmentAttemptHistorySection: React.FC<AssessmentAttemptHistorySectionP
                     </TableCell>
                     <TableCell>
                       {attempt.status === 'completed'
-                        ? attempt.passed === true
-                          ? 'Passed'
-                          : attempt.passed === false
-                            ? 'Not passed'
-                            : 'Completed'
-                        : 'Not final'}
+                        ? attempt.passed === false
+                          ? 'Still in progress'
+                          : 'Complete'
+                        : 'Still in progress'}
                     </TableCell>
                     <TableCell align="right" sx={{ fontWeight: 700, color: '#c4b5fd' }}>
                       {formatAttemptScore(attempt)}

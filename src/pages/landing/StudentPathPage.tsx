@@ -268,7 +268,7 @@ const StudentPathPage: React.FC = () => {
                 Practice Mode
               </span>
               <span className="landing-hero-chip rounded-full border border-white/35 bg-white/10 px-3 py-1 text-xs font-medium text-white/95 backdrop-blur-sm">
-                Grades 6–12
+                Classes 6–12
               </span>
               <span className="landing-hero-chip rounded-full border border-white/35 bg-white/10 px-3 py-1 text-xs font-medium text-white/95 backdrop-blur-sm">
                 National norms

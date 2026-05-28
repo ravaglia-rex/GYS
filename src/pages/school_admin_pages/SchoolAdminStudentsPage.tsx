@@ -91,7 +91,7 @@ type SortDirection = 'asc' | 'desc';
 const SORT_FIELD_LABELS: Record<SortField, string> = {
   firstName: 'First name',
   lastName: 'Last name',
-  grade: 'Grade',
+  grade: 'Class',
   assessmentsCompleted: 'Assessments done',
   email: 'Email',
 };
@@ -113,7 +113,7 @@ const STATUS_FILTER_LABELS: Record<StatusFilter, string> = {
 
 /** Search, sort, sort-direction, and Filters - one visual height */
 const ROSTER_TOOLBAR_H = 40;
-/** Status, grade, and assessments filter dropdowns share width */
+/** Status, class, and assessments filter dropdowns share width */
 const ROSTER_FILTER_SELECT_MIN_W = 200;
 
 const rosterToolbarSelectSx = (minWidth: number) => ({
@@ -857,7 +857,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
                   >
                     <MenuItem value="firstName">First name</MenuItem>
                     <MenuItem value="lastName">Last name</MenuItem>
-                    <MenuItem value="grade">Grade</MenuItem>
+                    <MenuItem value="grade">Class</MenuItem>
                     <MenuItem value="assessmentsCompleted">Assessments done</MenuItem>
                     <MenuItem value="email">Email</MenuItem>
                   </Select>
@@ -945,21 +945,21 @@ const SchoolAdminStudentsPage: React.FC = () => {
                       variant="body2"
                       sx={{ color: ip.subtext, fontWeight: 500, whiteSpace: 'nowrap', flexShrink: 0 }}
                     >
-                      Grade
+                      Class
                     </Typography>
                     <Select
                       id="students-grade-filter"
                       size="small"
                       value={gradeFilter}
                       onChange={e => setGradeFilter(e.target.value as number | 'all')}
-                      renderValue={v => (v === 'all' ? 'All' : `Grade ${v}`)}
+                      renderValue={v => (v === 'all' ? 'All' : `Class ${v}`)}
                       MenuProps={{ PaperProps: { sx: rosterSelectMenuPaperSx } }}
                       sx={rosterFilterSelectSx}
                     >
                       <MenuItem value="all">All</MenuItem>
                       {uniqueGrades.map(g => (
                         <MenuItem key={g} value={g}>
-                          Grade {g}
+                          Class {g}
                         </MenuItem>
                       ))}
                     </Select>
@@ -1046,7 +1046,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
                     >
                       <TableCell>Student</TableCell>
                       <TableCell>Status</TableCell>
-                      <TableCell>Grade</TableCell>
+                      <TableCell>Class</TableCell>
                       <TableCell>Achievement</TableCell>
                       <TableCell>Assessments</TableCell>
                       <TableCell align="right">Actions</TableCell>

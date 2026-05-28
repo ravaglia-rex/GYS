@@ -822,7 +822,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           Track your progress, manage assessments, and achieve your goals
         </Typography>
 
-        {/* Grade / school / membership - below title row */}
+        {/* Class / school / membership - below title row */}
         {showStudentMeta && (studentGrade || schoolName || membershipLevel || membershipExpiry) && (
           <Box
             sx={{
@@ -847,7 +847,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                 }}
               >
                 <Typography sx={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: '0.82rem', fontWeight: 500 }}>
-                  {[studentGrade ? `Grade ${studentGrade}` : null, schoolName ?? null].filter(Boolean).join(' • ')}
+                  {[studentGrade ? `Class ${studentGrade}` : null, schoolName ?? null].filter(Boolean).join(' • ')}
                 </Typography>
               </Box>
             )}

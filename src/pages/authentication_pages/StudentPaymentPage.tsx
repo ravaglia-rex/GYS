@@ -137,8 +137,8 @@ const StudentPaymentPage: React.FC = () => {
     if (Number.isNaN(numericGrade)) {
       toast({
         variant: 'destructive',
-        title: 'Invalid grade',
-        description: 'Please go back and correct your grade.',
+        title: 'Invalid class',
+        description: 'Please go back and correct your class.',
       });
       navigate('/students/register');
       return;
@@ -424,7 +424,7 @@ const StudentPaymentPage: React.FC = () => {
                     </p>
                     <p className="mt-1 text-sm font-semibold text-slate-900">{studentName}</p>
                     <p className="text-xs text-slate-600">
-                      {state.email} · Grade {state.grade || 'not provided'}
+                      {state.email} · Class {state.grade || 'not provided'}
                     </p>
                     <p className="text-xs text-slate-600">
                       WhatsApp: {state.whatsappPhone || 'not provided'}

@@ -162,24 +162,21 @@ const journeySteps = [
   {
     step: '1',
     title: 'Start Here',
-    body: 'Your dashboard shows the exams you can take today. Locked exams are not gone; they are waiting for the right package or prerequisite.',
+    body: 'Your dashboard shows the exams you can take today. Results show your performance and progress.',
     color: '#8b5cf6',
   },
   {
     step: '2',
     title: 'Answer carefully',
-    body: 'Some exams adapt as you answer. The system uses your responses to choose helpful next questions and understand your true level.',
+    body: 'The system uses your responses to choose helpful next questions and understand your true level.',
     color: '#06b6d4',
   },
   {
     step: '3',
-    title: 'Clear levels',
+    title: 'Complete levels',
     body: (
       <>
-        Skill exams 1–5 use levels. Score <Box component="span" sx={{ fontWeight: 900 }}>{LEVEL_CLEAR_THRESHOLD_LABEL}</Box> or higher on any
-        level, and that level is marked cleared. You can retake the same level every{' '}
-        <Box component="span" sx={{ fontWeight: 900 }}>3 months</Box>. Comprehensive Personality and Interest & Career
-        Discovery are profile assessments with no levels.
+        Exams have levels. A level is completed when you score <Box component="span" sx={{ fontWeight: 900 }}>{LEVEL_CLEAR_THRESHOLD_LABEL}</Box> or higher. You can attempt a level once every <Box component="span" sx={{ fontWeight: 900 }}>3 months</Box>.
       </>
     ),
     color: '#10b981',
@@ -187,7 +184,7 @@ const journeySteps = [
   {
     step: '4',
     title: 'Unlock the next goal',
-    body: 'Clearing levels unlocks next exams, higher levels, reports, and better comparisons on dashboards and leaderboards!',
+    body: 'Attempting exams and completing levels unlock next steps: insights, reports, better comparisons, and much more!',
     color: '#f59e0b',
   },
 ];
@@ -223,21 +220,21 @@ const packageRoadmapColors = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b'];
 
 const gradeRows = [
   {
-    grades: 'Grades 6-7',
+    grades: 'Classes 6-7',
     comparisonLevel: 'Level 1',
-    clearanceBand: 'Grades 6-8',
+    clearanceBand: 'Classes 6-8',
     childCopy: 'Your tier and ranking is decided based on your Level 1 performance only. Other levels do not affect it, but you can take them.',
   },
   {
-    grades: 'Grades 8-9',
+    grades: 'Classes 8-9',
     comparisonLevel: 'Level 2',
-    clearanceBand: 'Grades 6-8 for grade 8, Grades 9-10 for grade 9',
+    clearanceBand: 'Classes 6-8 for class 8, Classes 9-10 for class 9',
     childCopy: 'Your tier and ranking is decided based on your Level 2 performance only. Other levels do not affect it, but you can take them.',
   },
   {
-    grades: 'Grades 10-12',
+    grades: 'Classes 10-12',
     comparisonLevel: 'Level 3',
-    clearanceBand: 'Grades 9-10 for grade 10, Grades 11-12 for grades 11-12',
+    clearanceBand: 'Classes 9-10 for class 10, Classes 11-12 for classes 11-12',
     childCopy: 'Your tier and ranking is decided based on your Level 3 performance only. Lower levels do not affect it, but you need to take them to unlock this level.',
   },
 ];
@@ -245,9 +242,9 @@ const gradeRows = [
 const percentileRows = [
   { percentile: 'Not enough core results yet', badge: 'Explorer', meaning: 'You are still getting started.' },
   { percentile: '0-60th percentile', badge: 'Bronze', meaning: 'You are building steady skills.' },
-  { percentile: '61st-80th percentile', badge: 'Silver', meaning: 'You are ahead of many students in your grade.' },
+  { percentile: '61st-80th percentile', badge: 'Silver', meaning: 'You are ahead of many students in your class.' },
   { percentile: '81st-90th percentile', badge: 'Gold', meaning: 'You are performing strongly.' },
-  { percentile: '91st-97th percentile', badge: 'Platinum', meaning: 'You are near the top of your grade group.' },
+  { percentile: '91st-97th percentile', badge: 'Platinum', meaning: 'You are near the top of your class group.' },
   { percentile: '98th-100th percentile', badge: 'Diamond', meaning: 'You are among the highest performers.' },
 ];
 
@@ -308,14 +305,14 @@ export const HowItWorksContent: React.FC = () => {
                   How GYS Works
                 </Typography>
                 <Typography variant="h6" sx={{ ...studentPageSubtitleSx, lineHeight: 1.65 }}>
-                  Think of GYS like a learning adventure map! You take exams, clear levels, unlock the next challenge,
-                  and see how your skills grow compared with students in your grade.
+                  Think of GYS like a learning adventure map! You take exams, complete levels, unlock the next challenge,
+                  and see how your skills grow compared with students in your class.
                 </Typography>
               </Box>
             </Box>
 
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 3 }}>
-              {['Exam levels', 'Achievement tiers', 'Grade levels', 'Adaptive exams', 'Progress', 'Leaderboards', 'Percentiles'].map((label) => (
+              {['Exam levels', 'Achievement tiers', 'Class levels', 'Adaptive exams', 'Progress', 'Leaderboards', 'Percentiles'].map((label) => (
                 <Chip
                   key={label}
                   label={label}
@@ -338,6 +335,36 @@ export const HowItWorksContent: React.FC = () => {
             {journeySteps.map((item) => (
               <FlowStep key={item.step} {...item} />
             ))}
+          </Box>
+
+          <Box
+            sx={{
+              ...glassPanelSx,
+              display: 'grid',
+              gridTemplateColumns: '1fr',
+              alignItems: 'center',
+              gap: 2,
+              p: { xs: 2, md: 2.5 },
+              mb: 3,
+              borderColor: 'rgba(56, 189, 248, 0.32)',
+              background:
+                'linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(139, 92, 246, 0.12)), rgba(15, 23, 42, 0.72)',
+            }}
+          >
+            <Box>
+              <Typography sx={{ color: 'white', fontWeight: 900, fontSize: '1.05rem', mb: 0.5 }}>
+                Exams and levels unlock separately
+              </Typography>
+              <Typography sx={{ color: 'rgba(255, 255, 255, 0.76)', lineHeight: 1.6 }}>
+                Attempting an exam can unlock the next exam when your package allows it.
+                <br />
+                Additionally, scoring{' '}
+                <Box component="span" sx={{ color: 'white', fontWeight: 900 }}>
+                  {LEVEL_CLEAR_THRESHOLD_LABEL}
+                </Box>{' '}
+                or more on a level completes that level and unlocks the next level for the same exam.
+              </Typography>
+            </Box>
           </Box>
 
           <SectionCard
@@ -451,16 +478,16 @@ export const HowItWorksContent: React.FC = () => {
 
           <Box sx={{ display: 'grid', gridTemplateColumns: '1fr', gap: 3, mt: 3, mb: 3 }}>
             <SectionCard
-              id="student-how-it-works-grade-levels"
+              id="student-how-it-works-class-levels"
               icon={<SchoolIcon />}
               title="Compete within your class"
-              subtitle="A grade 6 student and a grade 12 student should not be judged with the exact same expectations."
+              subtitle="Your standing depends on your level, which is decided by your class."
             >
               <TableContainer component={Box} sx={{ borderRadius: 2, overflowX: 'auto', border: '1px solid rgba(255,255,255,0.08)' }}>
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ ...tableHeaderSx, ...gradeTableFirstColumnSx }}>Your grade</TableCell>
+                      <TableCell sx={{ ...tableHeaderSx, ...gradeTableFirstColumnSx }}>Your class</TableCell>
                       <TableCell sx={tableHeaderSx}>Your expected level</TableCell>
                       <TableCell sx={tableHeaderSx}>What this means</TableCell>
                     </TableRow>
@@ -509,7 +536,7 @@ export const HowItWorksContent: React.FC = () => {
                         Achievement tiers
                       </Typography>
                       <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', lineHeight: 1.55 }}>
-                        Your badge level <Box component="span" sx={{ fontWeight: 900 }}>across the country</Box>, compared with students in your grade.
+                        Your badge level <Box component="span" sx={{ fontWeight: 900 }}>across the country</Box>, compared with students in your class.
                       </Typography>
                     </Box>
                   </Box>
@@ -611,7 +638,7 @@ export const HowItWorksContent: React.FC = () => {
                         Leaderboard
                       </Typography>
                       <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', lineHeight: 1.55 }}>
-                        A <Box component="span" sx={{ fontWeight: 900 }}>school-level</Box> top 10 list for each exam and grade.
+                        A <Box component="span" sx={{ fontWeight: 900 }}>school-level</Box> top 10 list for each exam and class.
                       </Typography>
                     </Box>
                   </Box>
@@ -619,7 +646,7 @@ export const HowItWorksContent: React.FC = () => {
                     {[
                       {
                         icon: <EmojiEventsIcon fontSize="small" />,
-                        title: 'Top 10 per grade, per exam  ',
+                        title: 'Top 10 per class, per exam  ',
                         
                       },
                       {
@@ -660,7 +687,7 @@ export const HowItWorksContent: React.FC = () => {
             id="student-how-it-works-percentiles"
             icon={<MilitaryTechIcon />}
             title="Achievement Tier Badges"
-            subtitle="These badges come from percentile bands after the core reasoning results are ready for your grade. A badge is useful, but remember that the real win is understanding your strengths and improving step by step."
+            subtitle="These badges come from percentile bands after the core reasoning results are ready for your class. A badge is useful, but remember that the real win is understanding your strengths and improving step by step."
           >
             <TableContainer component={Box} sx={{ borderRadius: 2, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
               <Table size="small">
@@ -668,7 +695,7 @@ export const HowItWorksContent: React.FC = () => {
                   <TableRow>
                     <TableCell sx={tableHeaderSx}>Percentile</TableCell>
                     <TableCell sx={tableHeaderSx}>Badge</TableCell>
-                    <TableCell sx={tableHeaderSx}>Kid-friendly meaning</TableCell>
+                    <TableCell sx={tableHeaderSx}>Meaning</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -694,14 +721,14 @@ export const HowItWorksContent: React.FC = () => {
               <Box sx={{ display: 'grid', gap: 1.5 }}>
                 <MiniCard
                   icon={<RocketLaunchIcon fontSize="small" />}
-                  title="If you answer correctly"
-                  body="The next question may move toward a stronger skill level. Correct answers on harder questions can earn more points."
+                  title="How your answers guide the exam"
+                  body="Correct answers may move the next question toward a stronger skill level, while missed questions may check the foundation to find where help is needed."
                   color="#10b981"
                 />
                 <MiniCard
                   icon={<PsychologyIcon fontSize="small" />}
-                  title="If you miss a question"
-                  body="The next question may check the foundation, so the platform can find the exact place where help is needed."
+                  title="Retake a level every 3 months"
+                  body="On adaptive exams, you can retake the same level every 3 months to show growth and refresh your official progress."
                   color="#f59e0b"
                 />
               </Box>
@@ -717,14 +744,14 @@ export const HowItWorksContent: React.FC = () => {
               <Box sx={{ display: 'grid', gridTemplateColumns: '1fr', gap: 1.5, mb: 2 }}>
                 <MiniCard
                   icon={<QuizIcon fontSize="small" />}
-                  title="Same level as real exam"
-                  body="You can only practice the level that matches your real unlocked or current level."
+                  title="Same level, no score pressure"
+                  body="Practice matches your real unlocked or current level and does not affect official results, percentiles, achievement tiers, or leaderboard rank."
                   color="#38bdf8"
                 />
                 <MiniCard
                   icon={<AutoAwesomeIcon fontSize="small" />}
-                  title="Learn without pressure"
-                  body="Practice does not affect official results, percentiles, achievement tiers, or school leaderboard rank."
+                  title="Practice as many times as you want"
+                  body="You can retry practice exams, attempt the same questions again, and review the solutions."
                   color="#8b5cf6"
                 />
               </Box>
@@ -743,7 +770,7 @@ export const HowItWorksContent: React.FC = () => {
               fontSize: { xs: '1rem', md: '1.12rem' },
             }}
           >
-            Keep going - every exam, practice round, and cleared level takes you closer to your goals!
+            Keep going - every exam, practice round, and completed level takes you closer to your goals!
           </Typography>
 
     </Box>

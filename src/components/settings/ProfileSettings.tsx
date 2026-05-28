@@ -79,7 +79,7 @@ const ProfileSettings: React.FC = () => {
             ...prev,
             displayName: (userData.first_name || '') + ' ' + (userData.last_name || ''),
             school: userData.school_id || '', // Using school_id for now
-            grade: userData.grade ? `${userData.grade}${getGradeSuffix(userData.grade)} Grade` : '',
+            grade: userData.grade ? `Class ${userData.grade}` : '',
             dateOfBirth: userData.date_of_birth || '',
             cityState: userData.city_state || '',
             homeLanguage: userData.home_language || '',
@@ -120,20 +120,11 @@ const ProfileSettings: React.FC = () => {
     fetchUserData();
   }, [currentUser?.uid]);
 
-  // Helper function to get grade suffix
-  const getGradeSuffix = (grade: number): string => {
-    if (grade >= 11 && grade <= 13) return 'th';
-    if (grade % 10 === 1) return 'st';
-    if (grade % 10 === 2) return 'nd';
-    if (grade % 10 === 3) return 'rd';
-    return 'th';
-  };
-
   // Handle grade change
   const handleGradeChange = (newGrade: number) => {
     setFormData(prev => ({
       ...prev,
-      grade: `${newGrade}${getGradeSuffix(newGrade)} Grade`
+      grade: `Class ${newGrade}`
     }));
   };
 
@@ -151,7 +142,7 @@ const ProfileSettings: React.FC = () => {
     try {
       // Save grade changes if grade was modified
       if (currentUser?.uid && originalGrade !== null) {
-        const currentGrade = parseInt(formData.grade.split(' ')[0]);
+        const currentGrade = parseInt(formData.grade.replace(/\D/g, ''), 10);
         if (currentGrade !== originalGrade) {
           await updateStudent(currentUser.uid, { grade: currentGrade });
           setOriginalGrade(currentGrade);
@@ -422,9 +413,9 @@ const ProfileSettings: React.FC = () => {
                 <Box>
                   <TextField
                     fullWidth
-                    label="Grade/Class"
+                    label="Class"
                     value={formData.grade}
-                    onChange={(e) => handleGradeChange(parseInt(e.target.value.split(' ')[0]))}
+                    onChange={(e) => handleGradeChange(parseInt(e.target.value.replace(/\D/g, ''), 10))}
                     disabled={!isEditing}
                     select
                     SelectProps={{
@@ -446,13 +437,13 @@ const ProfileSettings: React.FC = () => {
                       '& .MuiInputLabel-root.Mui-focused': { color: '#8b5cf6' },
                     }}
                   >
-                    <MenuItem value="6th Grade">6th Grade</MenuItem>
-                    <MenuItem value="7th Grade">7th Grade</MenuItem>
-                    <MenuItem value="8th Grade">8th Grade</MenuItem>
-                    <MenuItem value="9th Grade">9th Grade</MenuItem>
-                    <MenuItem value="10th Grade">10th Grade</MenuItem>
-                    <MenuItem value="11th Grade">11th Grade</MenuItem>
-                    <MenuItem value="12th Grade">12th Grade</MenuItem>
+                    <MenuItem value="Class 6">Class 6</MenuItem>
+                    <MenuItem value="Class 7">Class 7</MenuItem>
+                    <MenuItem value="Class 8">Class 8</MenuItem>
+                    <MenuItem value="Class 9">Class 9</MenuItem>
+                    <MenuItem value="Class 10">Class 10</MenuItem>
+                    <MenuItem value="Class 11">Class 11</MenuItem>
+                    <MenuItem value="Class 12">Class 12</MenuItem>
                   </TextField>
                 </Box>
 

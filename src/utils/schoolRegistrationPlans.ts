@@ -89,7 +89,7 @@ const PLAN_COPY: Pick<SchoolPlanDisplay, 'id' | 'name' | 'tagline' | 'features' 
     features: [
       'Assessments 1–3 (full reasoning triad)',
       'Full analytics & subscore breakdowns',
-      'Grade-level analysis',
+      'Class-level analysis',
       'Comparative benchmarks (national, regional)',
       'Quarterly growth tracking',
       'Prioritised recommendations',

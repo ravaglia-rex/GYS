@@ -395,7 +395,7 @@ export function SchoolAdminSubscriptionPage() {
       <PageTutorial pageKey="school.subscription" ready={!billingLoading} />
       <SchoolAdminPageHeader
         title="Institutional Subscriptions"
-        subtitle="Annual institutional license. All students in selected grades included."
+        subtitle="Annual institutional license. All students in selected classes included."
       />
 
       {isInteractivePreview && (

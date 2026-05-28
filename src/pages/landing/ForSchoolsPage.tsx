@@ -114,7 +114,7 @@ const SCHOOL_PACKAGE_COMPARISON: SchoolComparisonSection[] = [
         inPlan: [false, true, true],
       },
       {
-        label: 'Grade-level analysis',
+        label: 'Class-level analysis',
         inPlan: [false, true, true],
       },
       {
@@ -275,7 +275,7 @@ const ForSchoolsPage: React.FC = () => {
                 Practice Tests
               </span>
               <span className="landing-hero-chip rounded-full border border-white/35 bg-white/10 px-3 py-1 text-xs font-medium text-white/95 backdrop-blur-sm">
-                Grades 6–12
+                Classes 6–12
               </span>
               <span className="landing-hero-chip rounded-full border border-white/35 bg-white/10 px-3 py-1 text-xs font-medium text-white/95 backdrop-blur-sm">
                 Global norms
@@ -383,13 +383,13 @@ const ForSchoolsPage: React.FC = () => {
               {[
                 {
                   title: 'Institutional Performance Reports',
-                  body: 'Aggregate data across grades and cohorts. Distribution analysis, subscore breakdowns, comparative benchmarks.',
+                  body: 'Aggregate data across classes and cohorts. Distribution analysis, subscore breakdowns, comparative benchmarks.',
                   iconBg: 'bg-blue-50',
                   icon: '📊',
                 },
                 {
                   title: 'Quarter-over-Quarter Growth Tracking',
-                  body: 'Measure the impact of curriculum changes. See which interventions are working, in which grades, over time.',
+                  body: 'Measure the impact of curriculum changes. See which interventions are working, in which classes, over time.',
                   iconBg: 'bg-emerald-50',
                   icon: '📈',
                 },

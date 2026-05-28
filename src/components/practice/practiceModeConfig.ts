@@ -83,11 +83,11 @@ export function recommendedPracticeLevel(grade: number): PracticeLevel {
 export function recommendedLevelLabel(level: PracticeLevel): string {
   switch (level) {
     case 1:
-      return 'Grades 6–7';
+      return 'Classes 6–7';
     case 2:
-      return 'Grades 8–9';
+      return 'Classes 8–9';
     case 3:
-      return 'Grades 10–12';
+      return 'Classes 10–12';
     default:
       return '';
   }

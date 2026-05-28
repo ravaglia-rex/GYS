@@ -372,7 +372,7 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
         </Box>
         <Chip
           icon={<SchoolIcon sx={{ fontSize: '1rem !important' }} />}
-          label={`Your grade: ${grade}`}
+          label={`Your class: ${grade}`}
           sx={{
             borderColor: 'rgba(167, 139, 250, 0.45)',
             color: 'rgba(255,255,255,0.88)',
@@ -697,7 +697,7 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
                   />
                 )}
                 {isRec && !locked && (
-                  <Tooltip title="We suggest this level based on your grade; you can still pick any unlocked level." arrow>
+                  <Tooltip title="We suggest this level based on your class; you can still pick any unlocked level." arrow>
                     <Typography
                       component="span"
                       variant="caption"

@@ -204,7 +204,7 @@ export const TUTORIAL_REGISTRY: Record<TutorialPageKey, TutorialStepDefinition[]
     {
       targetId: 'school-students-filters',
       title: 'Search and filters',
-      body: 'Find students by name or email, filter by status or grade, and sort the table to review progress.',
+      body: 'Find students by name or email, filter by status or class, and sort the table to review progress.',
       placement: 'bottom',
     },
     {
@@ -224,7 +224,7 @@ export const TUTORIAL_REGISTRY: Record<TutorialPageKey, TutorialStepDefinition[]
     {
       targetId: 'school-student-detail-profile',
       title: 'Profile snapshot',
-      body: 'Confirm identity details like email, grade, and registration status before reviewing performance.',
+      body: 'Confirm identity details like email, class, and registration status before reviewing performance.',
       placement: 'bottom',
     },
     {
@@ -244,7 +244,7 @@ export const TUTORIAL_REGISTRY: Record<TutorialPageKey, TutorialStepDefinition[]
     {
       targetId: 'school-nav-analytics',
       title: 'Analytics',
-      body: 'School-wide charts for scores, grade mix, and proficiency tiers across assessments.',
+      body: 'School-wide charts for scores, class mix, and proficiency tiers across assessments.',
       placement: 'right',
     },
     {

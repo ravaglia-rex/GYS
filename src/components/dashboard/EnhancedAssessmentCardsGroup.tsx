@@ -120,7 +120,7 @@ interface EnhancedAssessmentCardsGroupProps {
     previewAssessmentPath: string;
     /** Return path for `/for-schools/preview/assessment` back / exit (student preview) */
     previewSampleExitTo?: string;
-    /** Grade for tier-progression gating (defaults to 8) */
+    /** Class for tier-progression gating (defaults to 8) */
     previewGrade?: number;
     /** When true, Start / Retake on every card is a no-op (dashboard preview only) */
     previewDisableStartNavigation?: boolean;
@@ -381,7 +381,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
                     <Tooltip
                       title={
                         levelBased
-                          ? 'Points are from your most recently graded attempt. The level line is that attempt’s tier - it can differ from “levels cleared” until you submit your current tier.'
+                          ? 'Points are from your most recently graded attempt. The level line is that attempt’s tier - it can differ from “levels complete” until you submit your current tier.'
                           : 'This profile assessment has no skill levels; this is your latest submitted result.'
                       }
                     >
@@ -469,7 +469,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
         {showLevelProgress ? (
           <Box sx={{ mb: showLevelScoreBreakdown ? 1.5 : 2.25 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5, alignItems: 'baseline', gap: 1 }}>
-              <Tooltip title="How many levels you’ve passed in this assessment.">
+              <Tooltip title="How many levels are complete in this assessment.">
                 <Typography
                   variant="caption"
                   component="span"
@@ -480,7 +480,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
                     borderBottom: '1px dotted rgba(148, 163, 184, 0.45)',
                   }}
                 >
-                  Levels cleared
+                  Levels complete
                 </Typography>
               </Tooltip>
               <Typography variant="caption" sx={{ color: '#94a3b8', fontSize: '0.73rem' }}>
