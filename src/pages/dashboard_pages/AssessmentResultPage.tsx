@@ -16,7 +16,12 @@ import {
   performanceTierFromScore,
   unlockNoticeForAssessment,
 } from '../../config/assessmentFlowUI';
-import { isLevelBasedAssessment } from '../../utils/assessmentGating';
+import {
+  EXAM_MAX_SCORE_POINTS,
+  isLevelBasedAssessment,
+  LEVEL_CLEAR_THRESHOLD_LABEL,
+  tierPercentToExamPoints,
+} from '../../utils/assessmentGating';
 import { addExamAttemptCooldown, formatCooldownDate } from '../../utils/examAttemptCooldown';
 
 interface ResultState {
@@ -55,6 +60,7 @@ const AssessmentResultPage: React.FC = () => {
   const levelBased = isLevelBasedAssessment(assessmentId);
   const flow = getAssessmentFlowDefinition(assessmentId);
   const displayScore = Math.round(scorePercent);
+  const scorePoints = tierPercentToExamPoints(displayScore);
   const percentile = estimatedPercentileFromScore(scorePercent);
   const perfTier = performanceTierFromScore(displayScore);
   const unlock = unlockNoticeForAssessment(assessmentId, passed);
@@ -84,10 +90,10 @@ const AssessmentResultPage: React.FC = () => {
                 <Typography sx={{ color: grade.color, fontWeight: 800, fontSize: '0.9rem' }}>{grade.label}</Typography>
               </Box>
               <Typography variant="h2" sx={{ color: grade.color, fontWeight: 900, fontSize: '3.2rem', lineHeight: 1 }}>
-                {displayScore}%
+                {scorePoints}
               </Typography>
               <Typography sx={{ color: '#64748b', fontSize: '0.85rem', mb: 2 }}>
-                {correct} correct out of {total}
+                out of {EXAM_MAX_SCORE_POINTS} • {correct} correct out of {total}
               </Typography>
               <Box sx={{ textAlign: 'left', bgcolor: '#f1f5f9', borderRadius: 2, p: 2, mb: 2 }}>
                 <Typography sx={{ fontWeight: 700, color: grade.color, fontSize: '0.85rem', mb: 0.5 }}>{grade.label}</Typography>
@@ -194,14 +200,14 @@ const AssessmentResultPage: React.FC = () => {
               {percentile}th percentile - indicative global ranking
             </Typography>
             <Typography sx={{ color: '#558b2f', fontSize: '0.8rem', mt: 1 }}>
-              Score {displayScore}% • {correct} / {total} items
+              Score {scorePoints} / {EXAM_MAX_SCORE_POINTS} • {correct} / {total} items
             </Typography>
           </Box>
         ) : (
           <Box sx={{ bgcolor: '#f1f5f9', borderRadius: 2, p: 2.5, mb: 2, border: '1px solid #cbd5e1', textAlign: 'center' }}>
             <Typography sx={{ fontWeight: 800, color: '#0f172a', fontSize: '1.05rem', mb: 0.5 }}>Your score</Typography>
             <Typography variant="h3" sx={{ fontWeight: 900, color: '#334155', fontSize: '2.5rem' }}>
-              {displayScore}%
+              {scorePoints} / {EXAM_MAX_SCORE_POINTS}
             </Typography>
             <Typography sx={{ color: '#64748b', fontSize: '0.85rem', mt: 0.5 }}>
               {correct} / {total} items - this level can be retaken every 3 months.
@@ -216,7 +222,7 @@ const AssessmentResultPage: React.FC = () => {
               <Typography sx={{ fontWeight: 800, color: '#b71c1c' }}>Level not passed</Typography>
             </Box>
             <Typography sx={{ color: '#616161', fontSize: '0.85rem' }}>
-              Score 75% or higher to unlock the next level.
+              Score {LEVEL_CLEAR_THRESHOLD_LABEL} or higher to unlock the next level.
             </Typography>
           </Box>
         )}

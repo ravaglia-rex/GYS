@@ -18,8 +18,7 @@ const StudentPreviewLeaderboardPage: React.FC = () => {
         <Box component="span" sx={{ fontWeight: 700, color: '#e9d5ff' }}>
           your school
         </Box>{' '}
-        only (not national). Grade bands match the signed-in leaderboard layout; the grade filter is locked to Grade{' '}
-        {initial} in this preview.
+        only (not national).
       </Typography>
       <StudentLeaderboardPanel
         initialGrade={initial}

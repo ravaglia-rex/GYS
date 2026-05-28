@@ -1,4 +1,5 @@
 export { default as PageTutorial } from './PageTutorial';
+export { default as ResetTutorialsButton } from './ResetTutorialsButton';
 export { default as TutorialOverlay } from './TutorialOverlay';
 export { TutorialProvider, useTutorialContext } from './TutorialContext';
 export { default as StudentTutorialProvider } from './StudentTutorialProvider';

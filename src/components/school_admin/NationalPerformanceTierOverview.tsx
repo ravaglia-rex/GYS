@@ -54,7 +54,7 @@ export const NationalPerformanceTierOverview: React.FC<NationalPerformanceTierOv
       >
         {total > 0 ? (
           segments.map((s) => (
-            <Tooltip key={s.key} title={`${s.label}: ${s.count} students (${s.pct}%)`} arrow>
+            <Tooltip key={s.key} title={`${s.label}: ${s.count} of ${total} students`} arrow>
               <Box
                 sx={{
                   width: `${s.pct}%`,
@@ -67,7 +67,7 @@ export const NationalPerformanceTierOverview: React.FC<NationalPerformanceTierOv
               >
                 {s.pct >= 8 && (
                   <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#fff' }}>
-                    {s.pct}%
+                    {s.count}
                   </Typography>
                 )}
               </Box>
@@ -82,7 +82,7 @@ export const NationalPerformanceTierOverview: React.FC<NationalPerformanceTierOv
           <Box key={s.key} sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
             <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: s.color }} />
             <Typography variant="caption" sx={{ color: ip.subtext, fontSize: '0.72rem' }}>
-              {s.label}: {s.count} ({total > 0 ? s.pct : 0}%)
+              {s.label}: {s.count} of {total}
             </Typography>
           </Box>
         ))}

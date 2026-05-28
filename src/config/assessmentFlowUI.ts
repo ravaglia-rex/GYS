@@ -3,7 +3,7 @@
  * Runtime may override stat values from AssessmentType tier config.
  */
 
-import { ASSESSMENT_NAMES } from '../utils/assessmentGating';
+import { ASSESSMENT_NAMES, LEVEL_CLEAR_THRESHOLD_PERCENT } from '../utils/assessmentGating';
 
 export type AssessmentThemeMode = 'blue' | 'purple';
 
@@ -301,7 +301,7 @@ export function estimatedPercentileFromScore(scorePercent: number): number {
 }
 
 export function performanceTierFromScore(scorePercent: number): { label: string; tone: 'gold' | 'silver' | 'bronze' } {
-  if (scorePercent >= 75) return { label: 'Gold Tier', tone: 'gold' };
+  if (scorePercent >= LEVEL_CLEAR_THRESHOLD_PERCENT) return { label: 'Gold Tier', tone: 'gold' };
   if (scorePercent >= 55) return { label: 'Silver Tier', tone: 'silver' };
   return { label: 'Bronze Tier', tone: 'bronze' };
 }

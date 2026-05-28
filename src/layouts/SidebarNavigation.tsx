@@ -33,6 +33,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../firebase/firebase';
 import { signOut } from 'firebase/auth';
 import authTokenHandler from '../functions/auth_token/auth_token_handler';
+import ResetTutorialsButton from '../components/tutorial/ResetTutorialsButton';
 
 interface SidebarNavigationProps {
   collapsed: boolean;
@@ -72,7 +73,7 @@ const navItems: NavItem[] = [
     icon: <DashboardIcon sx={{ color: '#8b5cf6' }} />,
   },
   {
-    title: 'How Argus Works',
+    title: 'How GYS Works',
     path: '/how-it-works',
     icon: <HelpOutlineIcon sx={{ color: '#67e8f9' }} />,
   },
@@ -331,6 +332,23 @@ export default function SidebarNavigation({ collapsed, onCollapse, onClose }: Si
               </Typography>
             </Box>
           </Box>
+          <ResetTutorialsButton
+            fullWidth
+            variant="outlined"
+            size="small"
+            sx={{
+              mt: 1.5,
+              color: 'rgba(255, 255, 255, 0.86)',
+              borderColor: 'rgba(255, 255, 255, 0.24)',
+              textTransform: 'none',
+              fontWeight: 700,
+              justifyContent: 'flex-start',
+              '&:hover': {
+                borderColor: 'rgba(255, 255, 255, 0.45)',
+                backgroundColor: 'rgba(255, 255, 255, 0.06)',
+              },
+            }}
+          />
         </Box>
       )}
 

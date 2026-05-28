@@ -31,6 +31,7 @@ import {
   membershipLevelForAssessmentGate,
   defaultAssessmentProgress,
   ASSESSMENT_NAMES,
+  LEVEL_CLEAR_THRESHOLD_LABEL,
   MEMBERSHIP_LEVEL_LABELS,
   isLevelBasedAssessment,
 } from '../../utils/assessmentGating';
@@ -323,7 +324,7 @@ const AssessmentDetailPage: React.FC = () => {
             Level {tier} not available yet
           </Typography>
           <Typography sx={{ color: '#64748b', fontSize: '0.95rem', lineHeight: 1.65, mb: 3 }}>
-            Complete the previous level with a score of 75% or higher to unlock this one. You can still retake an earlier level from the assessments list.
+            Complete the previous level with a score of {LEVEL_CLEAR_THRESHOLD_LABEL} or higher to unlock this one. You can still retake an earlier level from the assessments list.
           </Typography>
           <Button fullWidth variant="contained" onClick={goBack} sx={{ py: 1.5, borderRadius: 2, fontWeight: 700 }}>
             Back to assessments

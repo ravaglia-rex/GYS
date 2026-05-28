@@ -1,6 +1,6 @@
 import { ASSESSMENT_ORDER, EXAM_MAX_SCORE_POINTS } from '../utils/assessmentGating';
 
-/** Programme exams 6–7 (personality / interest) are not comparable % score leaderboards. */
+/** Programme exams 6–7 (personality / interest) are not comparable score leaderboards. */
 const LEADERBOARD_EXCLUDED_IDS = new Set<string>([
   'comprehensive_personality',
   'career_interest_inventory',

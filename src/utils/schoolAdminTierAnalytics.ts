@@ -84,7 +84,7 @@ export const NATIONAL_PERFORMANCE_TIER_COLORS: Record<
 };
 
 /**
- * Whole-number percentages (0–100) per segment that sum to exactly 100 (fixes 99%/101% from naive Math.round).
+ * Whole-number segment widths (0-100) that sum to exactly 100.
  * Uses the largest remainder method in tier order Explorer → Diamond.
  */
 export function nationalTierPercentDistribution(

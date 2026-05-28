@@ -48,7 +48,12 @@ import {
   summarizeExamGradeTier123,
   summarizeNationalPerformanceTiers,
 } from '../../utils/schoolAdminTierAnalytics';
-import { ASSESSMENT_ORDER, NON_COMPETITIVE_CHART_ASSESSMENT_IDS } from '../../utils/assessmentGating';
+import {
+  ASSESSMENT_ORDER,
+  EXAM_MAX_SCORE_POINTS,
+  NON_COMPETITIVE_CHART_ASSESSMENT_IDS,
+  tierPercentToExamPoints,
+} from '../../utils/assessmentGating';
 import { NationalPerformanceTierOverview } from '../../components/school_admin/NationalPerformanceTierOverview';
 import { FAKE_SCORE_DISTRIBUTION_BY_EXAM } from '../../data/schoolAdminScoreSubcategoryMock';
 import { buildGreenfieldPreviewStudentRows } from '../../data/schoolPreviewMock';
@@ -83,9 +88,9 @@ const examTierSelectMenuPaperSx = {
 /** Per assessment, average best score among the school’s top-N students by that score (N capped by how many have progress). */
 const TOP_STUDENTS_PER_EXAM_FOR_AVG = 10;
 
-function bestScorePercent(raw: number | null | undefined): number | null {
+function bestScorePoints(raw: number | null | undefined): number | null {
   if (raw == null || typeof raw !== 'number' || Number.isNaN(raw)) return null;
-  return raw <= 1 ? raw * 100 : raw;
+  return tierPercentToExamPoints(raw <= 1 ? raw * 100 : raw);
 }
 
 function scoredExamIdsForAvgChart(): string[] {
@@ -99,8 +104,8 @@ function buildExamAverageChartRows(students: StudentRow[]): Array<{ category: st
   return scoredExamIdsForAvgChart().map((id) => {
     const scores: number[] = [];
     for (const s of students) {
-      const pct = bestScorePercent(s.assessment_progress?.[id]?.best_score ?? undefined);
-      if (pct != null) scores.push(pct);
+      const points = bestScorePoints(s.assessment_progress?.[id]?.best_score ?? undefined);
+      if (points != null) scores.push(points);
     }
     scores.sort((a, b) => b - a);
     const top = scores.slice(0, TOP_STUDENTS_PER_EXAM_FOR_AVG);
@@ -119,7 +124,7 @@ interface AnalyticsData {
   qualificationStats: {
     total: number;
   };
-  /** Mean best_score (0 - 100) among top performers per exam; one row per scored assessment (0 if none). */
+  /** Mean best score points among top performers per exam; one row per scored assessment (0 if none). */
   examAverages: Array<{ category: string; current: number }>;
 }
 
@@ -275,14 +280,14 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
 
   const getScoreColor = (range: string) => {
     const score = parseInt(range.split('-')[0], 10);
-    if (!Number.isNaN(score) && score >= 90) return '#10b981';
-    if (!Number.isNaN(score) && score >= 80) return '#3b82f6';
-    if (!Number.isNaN(score) && score >= 70) return '#f59e0b';
-    if (!Number.isNaN(score) && score >= 60) return '#ef4444';
+    if (!Number.isNaN(score) && score >= 900) return '#10b981';
+    if (!Number.isNaN(score) && score >= 800) return '#3b82f6';
+    if (!Number.isNaN(score) && score >= 700) return '#f59e0b';
+    if (!Number.isNaN(score) && score >= 600) return '#ef4444';
     return '#6b7280';
   };
 
-  const SCORE_BAND_ORDER = ['90-100', '80-89', '70-79', '60-69', '50-59', 'Below 50'] as const;
+  const SCORE_BAND_ORDER = ['900-1000', '800-899', '700-799', '600-699', '500-599', 'Below 500'] as const;
   const hasAnyAnalyticsData = Boolean(
     analyticsData &&
       (analyticsData.qualificationStats.total > 0 ||
@@ -404,7 +409,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                           cy="50%"
                           labelLine={false}
                           isAnimationActive={false}
-                          label={({ name, count, percentage }) => `${name}: ${count} (${percentage}%)`}
+                          label={({ name, count }) => `${name}: ${count} students`}
                           outerRadius={88}
                           fill="#8884d8"
                           dataKey="count"
@@ -421,7 +426,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                             color: '#1E293B',
                           }}
                           formatter={(value: number, _name, item) => [
-                            `${value} students (${item.payload?.percentage ?? 0}%)`,
+                            `${value} students`,
                             item.payload?.name ?? 'Grade',
                           ]}
                         />
@@ -576,7 +581,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                 By reasoning sub-strand (sample)
               </Typography>
               <Typography variant="caption" sx={{ color: '#94a3b8', display: 'block', mb: 1.5 }}>
-                Stacked bars show the share of a synthetic cohort in each score band; mean is shown for context only.
+                Stacked bars show sample student counts in each score band; mean is shown for context only.
               </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25, alignItems: 'center', mb: 2 }}>
                 {SCORE_BAND_ORDER.map((r) => (
@@ -601,7 +606,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                           {sub.name}
                         </Typography>
                         <Typography variant="caption" sx={{ color: '#94a3b8', flexShrink: 0 }}>
-                          Mean {sub.meanScore}%
+                          Mean {tierPercentToExamPoints(sub.meanScore)} / {EXAM_MAX_SCORE_POINTS}
                         </Typography>
                       </Box>
                       <Box
@@ -618,7 +623,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                           b.percentage > 0 ? (
                             <Box
                               key={b.range}
-                              title={`${b.range}: ${b.percentage}%`}
+                              title={`${b.range}: ${b.percentage} of 100 sample students`}
                               sx={{
                                 width: `${b.percentage}%`,
                                 minWidth: b.percentage > 0 ? 2 : 0,
@@ -671,20 +676,20 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                       height={88}
                       tick={{ fontSize: 11 }}
                     />
-                    <YAxis stroke="#94a3b8" domain={[0, 100]} width={44} tick={{ fontSize: 11 }} />
+                    <YAxis stroke="#94a3b8" domain={[0, EXAM_MAX_SCORE_POINTS]} width={44} tick={{ fontSize: 11 }} />
                     <Tooltip
                       contentStyle={{
                         backgroundColor: '#ffffff',
                         border: `1px solid ${ip.cardBorder}`,
                         color: '#1E293B',
                       }}
-                      formatter={(value: number) => [`${value}%`, `Top ${TOP_STUDENTS_PER_EXAM_FOR_AVG} avg`]}
+                      formatter={(value: number) => [`${value} / ${EXAM_MAX_SCORE_POINTS}`, `Top ${TOP_STUDENTS_PER_EXAM_FOR_AVG} avg`]}
                     />
                     <Legend wrapperStyle={{ fontSize: '0.8rem', paddingTop: 8 }} />
                     <Bar
                       dataKey="current"
                       fill="#3b82f6"
-                      name={`Top ${TOP_STUDENTS_PER_EXAM_FOR_AVG} avg %`}
+                      name={`Top ${TOP_STUDENTS_PER_EXAM_FOR_AVG} avg score`}
                       barSize={68}
                       radius={[4, 4, 0, 0]}
                     />

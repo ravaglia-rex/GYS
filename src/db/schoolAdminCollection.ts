@@ -374,7 +374,7 @@ export const getSchoolDashboard = async (schoolId: string): Promise<SchoolDashbo
     const authToken = await authTokenHandler.getAuthToken();
     const encodedSchoolId = encodeURIComponent(String(schoolId ?? "").trim());
     // `fetch` + `cache: "no-store"` bypasses the browser HTTP cache more reliably than axios
-    // (fixes stale 304 / old tier % after Firestore updates). `_t` busts URL-keyed CDN caches.
+    // (fixes stale 304 / old tier data after Firestore updates). `_t` busts URL-keyed CDN caches.
     const url = `${base}${SCHOOL_ADMINS_APIS}${FETCH_SCHOOL_DASHBOARD}/${encodedSchoolId}?_t=${Date.now()}`;
     const res = await fetch(url, {
       method: "GET",

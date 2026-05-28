@@ -144,7 +144,7 @@ export default function StudentPreviewLayout() {
           <HelpOutlineIcon sx={iconSx} />
         </ListItemIcon>
         <ListItemText
-          primary="How Argus Works"
+          primary="How GYS Works"
           slotProps={{
             primary: {
               fontWeight: isActive('/students/preview/how-it-works') ? 600 : 500,

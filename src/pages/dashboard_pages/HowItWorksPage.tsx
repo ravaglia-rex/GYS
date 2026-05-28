@@ -26,7 +26,7 @@ import {
   Timeline as TimelineIcon,
 } from '@mui/icons-material';
 import DashboardLayout from '../../layouts/DashboardLayout';
-import { ASSESSMENT_NAMES, MEMBERSHIP_LEVEL_LABELS } from '../../utils/assessmentGating';
+import { ASSESSMENT_NAMES, LEVEL_CLEAR_THRESHOLD_LABEL, MEMBERSHIP_LEVEL_LABELS } from '../../utils/assessmentGating';
 import { studentPageSubtitleSx, studentPageTitleSx } from '../../styles/studentTypography';
 
 const glassPanelSx = {
@@ -176,7 +176,7 @@ const journeySteps = [
     title: 'Clear levels',
     body: (
       <>
-        Skill exams 1–5 use levels. Score <Box component="span" sx={{ fontWeight: 900 }}>75%</Box> or higher on any
+        Skill exams 1–5 use levels. Score <Box component="span" sx={{ fontWeight: 900 }}>{LEVEL_CLEAR_THRESHOLD_LABEL}</Box> or higher on any
         level, and that level is marked cleared. You can retake the same level every{' '}
         <Box component="span" sx={{ fontWeight: 900 }}>3 months</Box>. Comprehensive Personality and Interest & Career
         Discovery are profile assessments with no levels.
@@ -196,17 +196,14 @@ const membershipRows = [
   {
     level: 1,
     exams: ['Pattern and Logic'],
-    bestFor: 'Trying the platform and learning the first reasoning exam.',
   },
   {
     level: 2,
     exams: ['Pattern and Logic', 'Verbal Reasoning', 'Mathematical Reasoning'],
-    bestFor: 'Building the full reasoning foundation.',
   },
   {
     level: 3,
     exams: ['Pattern and Logic', 'Verbal Reasoning', 'Mathematical Reasoning', 'English Proficiency', 'AI Proficiency'],
-    bestFor: 'Adding communication and AI skills to reasoning.',
   },
   {
     level: 4,
@@ -219,7 +216,6 @@ const membershipRows = [
       'Comprehensive Personality',
       'Interest & Career Discovery',
     ],
-    bestFor: 'Completing the whole program and getting career-style insight.',
   },
 ];
 
@@ -230,19 +226,19 @@ const gradeRows = [
     grades: 'Grades 6-7',
     comparisonLevel: 'Level 1',
     clearanceBand: 'Grades 6-8',
-    childCopy: 'Only your Level 1 scores feed leaderboards, percentiles, and your achievement badge.',
+    childCopy: 'Your tier and ranking is decided based on your Level 1 performance only. Other levels do not affect it, but you can take them.',
   },
   {
     grades: 'Grades 8-9',
     comparisonLevel: 'Level 2',
     clearanceBand: 'Grades 6-8 for grade 8, Grades 9-10 for grade 9',
-    childCopy: 'Your standing is based on Level 2 only - no lower or higher levels affect it.',
+    childCopy: 'Your tier and ranking is decided based on your Level 2 performance only. Other levels do not affect it, but you can take them.',
   },
   {
     grades: 'Grades 10-12',
     comparisonLevel: 'Level 3',
     clearanceBand: 'Grades 9-10 for grade 10, Grades 11-12 for grades 11-12',
-    childCopy: 'National comparison and tier updates look at Level 3 performance for your grade.',
+    childCopy: 'Your tier and ranking is decided based on your Level 3 performance only. Lower levels do not affect it, but you need to take them to unlock this level.',
   },
 ];
 
@@ -309,10 +305,10 @@ export const HowItWorksContent: React.FC = () => {
                     ...studentPageTitleSx,
                   }}
                 >
-                  How Argus Works
+                  How GYS Works
                 </Typography>
                 <Typography variant="h6" sx={{ ...studentPageSubtitleSx, lineHeight: 1.65 }}>
-                  Think of Argus like a learning adventure map! You take exams, clear levels, unlock the next challenge,
+                  Think of GYS like a learning adventure map! You take exams, clear levels, unlock the next challenge,
                   and see how your skills grow compared with students in your grade.
                 </Typography>
               </Box>
@@ -426,8 +422,8 @@ export const HowItWorksContent: React.FC = () => {
                         <Typography sx={{ color: 'white', fontWeight: 900, lineHeight: 1.2 }}>
                           {MEMBERSHIP_LEVEL_LABELS[row.level]}
                         </Typography>
-                        <Typography variant="caption" sx={{ color, fontWeight: 800 }}>
-                          {newlyUnlocked.length} new key{newlyUnlocked.length === 1 ? '' : 's'}
+                        <Typography variant="caption" sx={{ color, fontWeight: 800, fontSize: '0.9rem', lineHeight: 1.45 }}>
+                          {unlockedText}
                         </Typography>
                       </Box>
                     </Box>
@@ -447,12 +443,6 @@ export const HowItWorksContent: React.FC = () => {
                         {row.level}
                       </Avatar>
                     </Box>
-
-                    <Box sx={{ gridColumn: { md: detailsOnLeft ? '1' : '3' }, gridRow: { md: 1 }, textAlign: { xs: 'left', md: detailsOnLeft ? 'right' : 'left' } }}>
-                      <Typography sx={{ color: 'rgba(255,255,255,0.72)', lineHeight: 1.65 }}>
-                        {row.bestFor} ({unlockedText})
-                      </Typography>
-                    </Box>
                   </Box>
                 );
               })}
@@ -463,7 +453,7 @@ export const HowItWorksContent: React.FC = () => {
             <SectionCard
               id="student-how-it-works-grade-levels"
               icon={<SchoolIcon />}
-              title="Your Grade Keeps Things Fair"
+              title="Compete within your class"
               subtitle="A grade 6 student and a grade 12 student should not be judged with the exact same expectations."
             >
               <TableContainer component={Box} sx={{ borderRadius: 2, overflowX: 'auto', border: '1px solid rgba(255,255,255,0.08)' }}>
@@ -471,7 +461,7 @@ export const HowItWorksContent: React.FC = () => {
                   <TableHead>
                     <TableRow>
                       <TableCell sx={{ ...tableHeaderSx, ...gradeTableFirstColumnSx }}>Your grade</TableCell>
-                      <TableCell sx={tableHeaderSx}>Main comparison level</TableCell>
+                      <TableCell sx={tableHeaderSx}>Your expected level</TableCell>
                       <TableCell sx={tableHeaderSx}>What this means</TableCell>
                     </TableRow>
                   </TableHead>

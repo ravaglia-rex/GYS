@@ -30,7 +30,7 @@ Students earn GYS Performance Tiers that signal academic readiness, growth, and 
         question: 'How does GYS relate to the EducationWorld School Rankings?',
         answer: (
           <p>
-            GYS assessment data contributes approximately 15% to a school’s EducationWorld India School Ranking, serving as an assessment-backed input into the ranking methodology.
+            GYS assessment data contributes a meaningful assessment-backed input to a school’s EducationWorld India School Ranking methodology.
 
 EducationWorld considers both participation - how many eligible students complete GYS assessments - and performance - how students perform across the assessment suite. Participating schools receive a GYS performance designation, updated periodically, that feeds into the EducationWorld rankings framework.
 

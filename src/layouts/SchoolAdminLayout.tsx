@@ -32,6 +32,7 @@ import { RootState } from '../state_data/reducer';
 import authTokenHandler from '../functions/auth_token/auth_token_handler';
 import { institutionalPalette as ip } from '../theme/institutionalPalette';
 import { useSchoolAdminBelowNav } from './schoolAdminBelowNavContext';
+import ResetTutorialsButton from '../components/tutorial/ResetTutorialsButton';
 
 const HEADER_NAVY = '#002147';
 const DRAWER_WIDTH = 260;
@@ -220,6 +221,27 @@ export default function SchoolAdminLayout({ children, interactivePreview }: Scho
       }}
     >
       <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>{renderSidebarNav()}</Box>
+      {!interactivePreview && (
+        <Box sx={{ px: 2, pb: 1, flexShrink: 0 }}>
+          <ResetTutorialsButton
+            fullWidth
+            variant="outlined"
+            size="small"
+            sx={{
+              color: ip.navy,
+              borderColor: ip.sidebarBorder,
+              bgcolor: '#fff',
+              textTransform: 'none',
+              fontWeight: 700,
+              justifyContent: 'flex-start',
+              '&:hover': {
+                borderColor: ip.navy,
+                bgcolor: ip.cardMutedBg,
+              },
+            }}
+          />
+        </Box>
+      )}
       <Divider sx={{ borderColor: ip.sidebarBorder, my: 1, flexShrink: 0 }} />
       {interactivePreview ? (
         <Box sx={{ px: 2, pb: 1.5, flexShrink: 0 }}>
@@ -247,21 +269,39 @@ export default function SchoolAdminLayout({ children, interactivePreview }: Scho
           </Button>
         </Box>
       ) : (
-        <Box sx={{ px: 2, pb: 1.5, display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0 }}>
-          <Avatar sx={{ width: 36, height: 36, bgcolor: '#e2e8f0', color: '#0f172a', fontSize: '0.85rem', fontWeight: 700 }}>
-            {avatarInitials}
-          </Avatar>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Box sx={{ px: 2, pb: 1.5, flexShrink: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
+            <Avatar sx={{ width: 36, height: 36, bgcolor: '#e2e8f0', color: '#0f172a', fontSize: '0.85rem', fontWeight: 700, flexShrink: 0 }}>
+              {avatarInitials}
+            </Avatar>
             <Typography sx={{ color: ip.heading, fontWeight: 500, fontSize: '0.78rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {displayEmail || 'Admin'}
             </Typography>
-            <Typography sx={{ color: ip.subtext, fontSize: '0.68rem' }}>School Admin</Typography>
           </Box>
-          <Tooltip title="Sign out">
-            <IconButton onClick={handleLogout} size="small" sx={{ color: ip.subtext, '&:hover': { color: '#ef4444' } }}>
-              <LogoutIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          <Button
+            onClick={handleLogout}
+            endIcon={<LogoutIcon fontSize="small" />}
+            size="small"
+            sx={{
+              mt: 0.5,
+              ml: 6,
+              minWidth: 0,
+              px: 0,
+              py: 0,
+              color: ip.subtext,
+              textTransform: 'none',
+              fontSize: '0.72rem',
+              fontWeight: 600,
+              justifyContent: 'flex-start',
+              '& .MuiButton-endIcon': { ml: 0.5 },
+              '&:hover': {
+                bgcolor: 'transparent',
+                color: '#ef4444',
+              },
+            }}
+          >
+            Logout
+          </Button>
         </Box>
       )}
     </Box>

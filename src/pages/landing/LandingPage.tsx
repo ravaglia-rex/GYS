@@ -359,9 +359,9 @@ const LandingPage: React.FC = () => {
           </div>
           <div className="landing-reveal-child">
             <StatItem
-              target={95}
-              suffix="%"
-              label="Parent Satisfaction"
+              target={10}
+              suffix="/10"
+              label="Parent Satisfaction Rating"
               trigger={statsVisible}
             />
           </div>

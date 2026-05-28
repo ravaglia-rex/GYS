@@ -8,6 +8,7 @@ export interface TutorialContextValue {
   ready: boolean;
   setPreferences: (prefs: TutorialUiPreferences | null | undefined) => void;
   dismissPage: (pageKey: string) => Promise<void>;
+  resetAllPages: () => Promise<void>;
   /** Optimistic local dismiss before persistence completes. */
   markDismissedLocal: (pageKey: string) => void;
 }
@@ -75,6 +76,17 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = ({
     [dismissed, markDismissedLocal, onDismissPage]
   );
 
+  const resetAllPages = useCallback(async () => {
+    const previousDismissed = dismissed;
+    setDismissed({});
+    try {
+      await onDismissPage('__reset_all__', {});
+    } catch {
+      setDismissed(previousDismissed);
+      throw new Error('Could not reset tutorial preferences.');
+    }
+  }, [dismissed, onDismissPage]);
+
   const value = useMemo(
     () => ({
       audience,
@@ -82,9 +94,10 @@ export const TutorialProvider: React.FC<TutorialProviderProps> = ({
       ready,
       setPreferences,
       dismissPage,
+      resetAllPages,
       markDismissedLocal,
     }),
-    [audience, dismissed, ready, setPreferences, dismissPage, markDismissedLocal]
+    [audience, dismissed, ready, setPreferences, dismissPage, resetAllPages, markDismissedLocal]
   );
 
   return <TutorialContext.Provider value={value}>{children}</TutorialContext.Provider>;

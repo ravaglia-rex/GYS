@@ -18,6 +18,7 @@ export interface AssessmentTier {
   name: string;
   description?: string;
   pass_threshold?: number;
+  pass_threshold_points?: number;
   question_count?: number;
   time_limit_minutes?: number;
 }
@@ -114,6 +115,7 @@ export interface RecordAnswerResponse {
 export interface CompleteExamResponse {
   attempt_id: string;
   score_percent: number;
+  score_points?: number;
   correct: number;
   total: number;
   passed: boolean;

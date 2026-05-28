@@ -57,7 +57,7 @@ export const ProficiencyTier123Overview: React.FC<ProficiencyTier123OverviewProp
           segments.map(s => (
             <Tooltip
               key={s.key}
-              title={`${s.label}: ${s.count} students (${s.pct}%)`}
+              title={`${s.label}: ${s.count} of ${total} students`}
               arrow
             >
               <Box
@@ -70,10 +70,9 @@ export const ProficiencyTier123Overview: React.FC<ProficiencyTier123OverviewProp
                   minWidth: s.pct > 6 ? 'auto' : 0,
                 }}
               >
-                {/* Was `> 8`, which hid labels at exactly 8% (e.g. 12/142 → 8%). */}
                 {s.pct >= 8 && (
                   <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#fff' }}>
-                    {s.pct}%
+                    {s.count}
                   </Typography>
                 )}
               </Box>
@@ -88,7 +87,7 @@ export const ProficiencyTier123Overview: React.FC<ProficiencyTier123OverviewProp
           <Box key={s.key} sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
             <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: s.color }} />
             <Typography variant="caption" sx={{ color: ip.subtext, fontSize: '0.72rem' }}>
-              {s.label}: {s.count} ({total > 0 ? s.pct : 0}%)
+              {s.label}: {s.count} of {total}
             </Typography>
           </Box>
         ))}

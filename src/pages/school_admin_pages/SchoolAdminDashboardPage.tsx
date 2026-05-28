@@ -163,15 +163,19 @@ function countInitializedStudents(students: StudentRow[], registrationEmails: st
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface PerformanceMetrics {
   avgPercentile: number;
-  /** % of students whose weakest active assessment is in proficiency band 3+ (Gold). */
+  /** Students per 100 whose weakest active assessment is in proficiency band 3+ (Gold). */
   goldPlusPct: number;
-  /** % of students whose weakest active assessment is in proficiency band 1 (Bronze). */
+  /** Students per 100 whose weakest active assessment is in proficiency band 1 (Bronze). */
   inBronzePct: number;
   completionRate: number;
   avgPercentileChange: number;
   goldPlusChange: number;
   inBronzeChange: number;
   completionChange: number;
+}
+
+function formatPer100(value: number): string {
+  return value > 0 ? `${value} of 100` : '-';
 }
 
 // ─── Stat Card ───────────────────────────────────────────────────────────────
@@ -1080,22 +1084,22 @@ const SchoolAdminDashboardPage: React.FC = () => {
             />
             <StatCard
               label="At proficiency Level 3+"
-              value={`${performance.goldPlusPct}%`}
-              change={performance.goldPlusChange !== 0 ? { value: performance.goldPlusChange, label: '% from Q1' } : undefined}
+              value={formatPer100(performance.goldPlusPct)}
+              change={performance.goldPlusChange !== 0 ? { value: performance.goldPlusChange, label: 'per 100 from Q1' } : undefined}
               accent="#d97706"
               icon={<StarsIcon sx={{ fontSize: '1.15rem', color: '#f59e0b' }} />}
             />
             <StatCard
               label="At proficiency Level 1"
-              value={`${performance.inBronzePct}%`}
-              change={performance.inBronzeChange !== 0 ? { value: performance.inBronzeChange, label: '% from Q1' } : undefined}
+              value={formatPer100(performance.inBronzePct)}
+              change={performance.inBronzeChange !== 0 ? { value: performance.inBronzeChange, label: 'per 100 from Q1' } : undefined}
               accent="#b45309"
               icon={<PriorityHighIcon sx={{ fontSize: '1.15rem', color: '#b45309' }} />}
             />
             <StatCard
               label="Completion Rate"
-              value={performance.completionRate > 0 ? `${performance.completionRate}%` : '-'}
-              change={performance.completionChange !== 0 ? { value: performance.completionChange, label: '% from Q1' } : undefined}
+              value={formatPer100(performance.completionRate)}
+              change={performance.completionChange !== 0 ? { value: performance.completionChange, label: 'per 100 from Q1' } : undefined}
               accent="#16a34a"
               icon={<CheckCircleIcon sx={{ fontSize: '1.15rem', color: '#22c55e' }} />}
             />

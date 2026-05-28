@@ -478,7 +478,7 @@ const SecurityPrivacySettings: React.FC = () => {
               
               <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                 <Chip
-                  label="Security Score: Excellent (95/100)"
+                  label="Security Status: Excellent"
                   size="small"
                   icon={<Shield size={16} />}
                   sx={{

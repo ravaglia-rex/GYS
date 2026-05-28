@@ -452,7 +452,7 @@ export default function AssessmentTakePage() {
             attemptId,
             assessmentId,
             tierNumber: tier,
-            scorePercent: result.score_percent,
+            scorePercent: result.score_points != null ? result.score_points / 10 : result.score_percent,
             correct: result.correct,
             total: result.total,
             passed: result.passed,

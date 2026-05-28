@@ -76,7 +76,7 @@ export const MEMBERSHIP_LEVEL_LABELS: Record<number, string> = {
   4: 'Guided Decision',
 };
 
-/** Shown on the dashboard chart without a numeric % (non-competitive / profile assessments). */
+/** Shown on the dashboard chart without a numeric score (non-competitive / profile assessments). */
 export const NON_COMPETITIVE_CHART_ASSESSMENT_IDS: ReadonlySet<string> = new Set([
   'comprehensive_personality',
   'career_interest_inventory',
@@ -207,8 +207,11 @@ export const defaultAssessmentProgress: AssessmentProgress = {
 /** Landing dashboard chart always shows Exam 1–5 (first five program assessments). */
 export const DASHBOARD_CHART_EXAM_IDS = ASSESSMENT_ORDER.slice(0, 5);
 
-/** Competitive exams are shown in the UI as points out of this total (tier % maps linearly). */
+/** Competitive exams are shown in the UI as points out of this total (normalized score maps linearly). */
 export const EXAM_MAX_SCORE_POINTS = 1000;
+export const LEVEL_CLEAR_THRESHOLD_PERCENT = 80;
+export const LEVEL_CLEAR_THRESHOLD_POINTS = 800;
+export const LEVEL_CLEAR_THRESHOLD_LABEL = `${LEVEL_CLEAR_THRESHOLD_POINTS} on ${EXAM_MAX_SCORE_POINTS}`;
 
 /** Chart rows use best-tier as 0–100; map to the display scale for labels and bars. */
 export function tierPercentToExamPoints(percent0to100: number): number {

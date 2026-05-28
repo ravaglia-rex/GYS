@@ -87,7 +87,7 @@ const PageTutorial: React.FC<PageTutorialProps> = ({
 
   useEffect(() => {
     setStepIndex(0);
-  }, [pageKey]);
+  }, [pageKey, isDismissed]);
 
   useEffect(() => {
     if (!ready || !ctx?.ready || isDismissed) {

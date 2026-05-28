@@ -59,7 +59,7 @@ function patternLogicProgressFromPerfTier(perfTier: string, studentIndex: number
     return {
       proficiency_tier: 4,
       status: 'tier_advanced',
-      best_score: round2(0.78 + scoreJitter(studentIndex, 0.12)),
+      best_score: round2(0.82 + scoreJitter(studentIndex, 0.1)),
       attempts_count: 3,
       tiers_cleared: { 1: true, 2: true, 3: true },
     };
@@ -68,7 +68,7 @@ function patternLogicProgressFromPerfTier(perfTier: string, studentIndex: number
     return {
       proficiency_tier: 4,
       status: 'tier_advanced',
-      best_score: round2(0.66 + scoreJitter(studentIndex + 11, 0.1)),
+      best_score: round2(0.8 + scoreJitter(studentIndex + 11, 0.08)),
       attempts_count: 3,
       tiers_cleared: { 1: true, 2: true, 3: true },
     };
@@ -86,7 +86,7 @@ function patternLogicProgressFromPerfTier(perfTier: string, studentIndex: number
   return {
     proficiency_tier: 2,
     status: 'available',
-    best_score: round2(0.38 + scoreJitter(studentIndex + 37, 0.1)),
+    best_score: round2(0.8 + scoreJitter(studentIndex + 37, 0.06)),
     attempts_count: 2,
     tiers_cleared: { 1: true },
   };
@@ -98,7 +98,7 @@ function verbalProgressFromPerfTier(perfTier: string, studentIndex: number): Ass
     return {
       proficiency_tier: 4,
       status: 'tier_advanced',
-      best_score: round2(0.72 + scoreJitter(studentIndex + 3, 0.1)),
+      best_score: round2(0.81 + scoreJitter(studentIndex + 3, 0.1)),
       attempts_count: 3,
       tiers_cleared: { 1: true, 2: true, 3: true },
     };
@@ -107,7 +107,7 @@ function verbalProgressFromPerfTier(perfTier: string, studentIndex: number): Ass
     return {
       proficiency_tier: 4,
       status: 'tier_advanced',
-      best_score: round2(0.58 + scoreJitter(studentIndex + 17, 0.09)),
+      best_score: round2(0.8 + scoreJitter(studentIndex + 17, 0.08)),
       attempts_count: 3,
       tiers_cleared: { 1: true, 2: true, 3: true },
     };
@@ -124,7 +124,7 @@ function verbalProgressFromPerfTier(perfTier: string, studentIndex: number): Ass
   return {
     proficiency_tier: 2,
     status: 'available',
-    best_score: round2(0.34 + scoreJitter(studentIndex + 41, 0.08)),
+    best_score: round2(0.8 + scoreJitter(studentIndex + 41, 0.06)),
     attempts_count: 2,
     tiers_cleared: { 1: true },
   };
@@ -136,7 +136,7 @@ function mathProgressFromPerfTier(perfTier: string, studentIndex: number): Asses
     return {
       proficiency_tier: 4,
       status: 'tier_advanced',
-      best_score: round2(0.76 + scoreJitter(studentIndex + 5, 0.11)),
+      best_score: round2(0.82 + scoreJitter(studentIndex + 5, 0.1)),
       attempts_count: 3,
       tiers_cleared: { 1: true, 2: true, 3: true },
     };
@@ -145,7 +145,7 @@ function mathProgressFromPerfTier(perfTier: string, studentIndex: number): Asses
     return {
       proficiency_tier: 4,
       status: 'tier_advanced',
-      best_score: round2(0.64 + scoreJitter(studentIndex + 19, 0.09)),
+      best_score: round2(0.8 + scoreJitter(studentIndex + 19, 0.08)),
       attempts_count: 3,
       tiers_cleared: { 1: true, 2: true, 3: true },
     };
@@ -162,7 +162,7 @@ function mathProgressFromPerfTier(perfTier: string, studentIndex: number): Asses
   return {
     proficiency_tier: 2,
     status: 'available',
-    best_score: round2(0.36 + scoreJitter(studentIndex + 43, 0.08)),
+    best_score: round2(0.8 + scoreJitter(studentIndex + 43, 0.06)),
     attempts_count: 2,
     tiers_cleared: { 1: true },
   };

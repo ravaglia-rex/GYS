@@ -22,7 +22,7 @@ import {
   strengthAndGrowth,
   nextAssessmentNudge,
 } from '../../config/assessmentResultDetail';
-import { isLevelBasedAssessment } from '../../utils/assessmentGating';
+import { isLevelBasedAssessment, LEVEL_CLEAR_THRESHOLD_PERCENT } from '../../utils/assessmentGating';
 
 interface ResultState {
   attemptId: string;
@@ -36,7 +36,7 @@ interface ResultState {
   completedAt?: string;
 }
 
-const barColor = (pct: number) => (pct >= 75 ? '#2e7d32' : pct >= 55 ? '#f9a825' : '#ef6c00');
+const barColor = (pct: number) => (pct >= LEVEL_CLEAR_THRESHOLD_PERCENT ? '#2e7d32' : pct >= 55 ? '#f9a825' : '#ef6c00');
 
 const AssessmentResultDetailPage: React.FC = () => {
   const location = useLocation();
