@@ -955,11 +955,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                 <Typography variant="h6" sx={{ color: 'white', fontWeight: 600, fontSize: '1.2rem' }}>
                   Performance Overview
                 </Typography>
-                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.9rem', lineHeight: 1.45 }}>
-                  {displayResults.data.length > 0
-                    ? `Latest score from your most recent attempt at each exam (out of ${EXAM_MAX_SCORE_POINTS}); level is shown under each bar. Profiles without attempt history yet show best overall. Non-scored programmes show completion only.`
-                    : 'Performance data will appear here once your assessments are evaluated'}
-                </Typography>
+              
               </Box>
             </Box>
 
