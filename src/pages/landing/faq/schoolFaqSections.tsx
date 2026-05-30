@@ -12,7 +12,7 @@ import {
 
 export const schoolFaqSections: { heading: string; items: LandingFaqItem[] }[] = [
   {
-    heading: 'For Schools & Institutions',
+    heading: 'General',
     items: [
       {
         question: 'What is GYS?',

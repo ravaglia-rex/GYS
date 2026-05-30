@@ -129,18 +129,19 @@ const StudentPreviewSettingsPage: React.FC = () => {
       />
 
       <Box sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 2 }, mb: 2 }}>
           <Avatar
             sx={{
               width: 64,
               height: 64,
               background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)',
               color: 'white',
+              flexShrink: 0,
             }}
           >
             <SettingsIcon size={32} />
           </Avatar>
-          <Box>
+          <Box sx={{ minWidth: 0 }}>
             <Typography
               variant="h4"
               sx={{
@@ -150,9 +151,10 @@ const StudentPreviewSettingsPage: React.FC = () => {
                 backgroundClip: 'text',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
+                minWidth: 0,
               }}
             >
-              Settings & Preferences
+              Settings
             </Typography>
             <Typography variant="h6" sx={{ color: 'rgba(255, 255, 255, 0.8)', fontWeight: 400 }}>
               Sample data - nothing here is stored
@@ -184,12 +186,19 @@ const StudentPreviewSettingsPage: React.FC = () => {
           mb: 4,
         }}
       >
-        <CardContent sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: { xs: 'flex-start', sm: 'center' },
+              gap: { xs: 2, sm: 3 },
+              flexWrap: { xs: 'wrap', sm: 'nowrap' },
+            }}
+          >
             <Avatar
               sx={{
-                width: 80,
-                height: 80,
+                width: { xs: 72, sm: 80 },
+                height: { xs: 72, sm: 80 },
                 background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)',
                 color: 'white',
                 fontSize: '2rem',
@@ -198,24 +207,54 @@ const StudentPreviewSettingsPage: React.FC = () => {
             >
               {formData.displayName.charAt(0)}
             </Avatar>
-            <Box sx={{ flex: 1 }}>
+            <Box sx={{ flex: '1 1 0', minWidth: 0 }}>
               <Typography variant="h5" sx={{ color: 'white', fontWeight: 600, mb: 1 }}>
                 {formData.displayName}
               </Typography>
-              <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 1 }}>
+              <Typography
+                variant="body1"
+                sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 1.5, overflowWrap: 'anywhere' }}
+              >
                 {formData.email}
               </Typography>
-              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-                {PREVIEW_STUDENT_PROFILE.membershipLevelLabel} · Active until {PREVIEW_STUDENT_PROFILE.membershipExpiryLabel}
-              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                <Box
+                  sx={{
+                    px: 1.25,
+                    py: 0.5,
+                    borderRadius: 999,
+                    backgroundColor: 'rgba(148, 163, 184, 0.12)',
+                    border: '1px solid rgba(148, 163, 184, 0.22)',
+                  }}
+                >
+                  <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.72)', fontWeight: 600 }}>
+                    {PREVIEW_STUDENT_PROFILE.membershipLevelLabel}
+                  </Typography>
+                </Box>
+                <Box
+                  sx={{
+                    px: 1.25,
+                    py: 0.5,
+                    borderRadius: 999,
+                    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+                    border: '1px solid rgba(16, 185, 129, 0.28)',
+                  }}
+                >
+                  <Typography variant="caption" sx={{ color: '#34d399', fontWeight: 700 }}>
+                    Active until {PREVIEW_STUDENT_PROFILE.membershipExpiryLabel}
+                  </Typography>
+                </Box>
+              </Box>
             </Box>
             <Box
               sx={{
+                width: { xs: '100%', sm: 'auto' },
                 px: 3,
                 py: 1.5,
                 borderRadius: 2,
                 backgroundColor: 'rgba(16, 185, 129, 0.1)',
                 border: '1px solid rgba(16, 185, 129, 0.3)',
+                textAlign: 'center',
               }}
             >
               <Typography variant="body2" sx={{ color: '#10b981', fontWeight: 600 }}>

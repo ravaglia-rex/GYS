@@ -1407,8 +1407,8 @@ const SchoolRegistrationPage: React.FC = () => {
                           Popular
                         </span>
                       )}
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-start gap-2.5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex min-w-0 items-start gap-2.5">
                           <span
                             className={`mt-0.5 flex h-4 w-4 shrink-0 rounded-full border-2 items-center justify-center transition-colors ${
                               isSelected ? 'border-[#1e3a8a]' : 'border-slate-300'
@@ -1421,13 +1421,13 @@ const SchoolRegistrationPage: React.FC = () => {
                               />
                             )}
                           </span>
-                          <div>
+                          <div className="min-w-0">
                             <p className="text-sm font-bold text-slate-900">{plan.name}</p>
-                            <p className="text-xs text-slate-500 mt-0.5">
+                            <p className="mt-0.5 max-w-[12rem] text-xs leading-snug text-slate-500 sm:max-w-none">
                               {plan.tagline}
                             </p>
                             {isSelected && (
-                              <ul className="mt-2 space-y-0.5">
+                              <ul className="mt-2 hidden space-y-0.5 sm:block">
                                 {plan.features.map((f) => (
                                   <li
                                     key={f}
@@ -1442,7 +1442,7 @@ const SchoolRegistrationPage: React.FC = () => {
                           </div>
                         </div>
                         <p
-                          className="shrink-0 text-base sm:text-lg font-bold"
+                          className="shrink-0 text-right text-base font-bold leading-tight sm:text-lg"
                           style={{ color: GYS_BLUE }}
                         >
                           {plan.price}
@@ -1566,7 +1566,7 @@ const Header: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-300 text-xs transition-all duration-200 group-hover:border-slate-400">
             ←
           </span>
-          <span className="hidden xs:inline">Back</span>
+          <span className="inline">Back</span>
         </button>
 
         <div className="flex items-center gap-3">
@@ -1580,7 +1580,7 @@ const Header: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             <h1 className="hidden sm:block font-bold text-lg text-gray-900 tracking-tight">
               Global Young Scholar
             </h1>
-            <p className="text-xs text-gray-500">Powered by Argus, Access USA, EducationWorld</p>
+            <p className="hidden text-xs text-gray-500 sm:block">Powered by Argus, Access&nbsp;USA, EducationWorld</p>
           </div>
         </div>
 

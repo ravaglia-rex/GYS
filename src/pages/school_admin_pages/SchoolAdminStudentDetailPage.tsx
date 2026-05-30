@@ -404,9 +404,16 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
             </Typography>
             <TableContainer
               component={Paper}
-              sx={{ boxShadow: 'none', border: `1px solid ${ip.cardBorder}`, bgcolor: '#fff', borderRadius: 1 }}
+              sx={{
+                boxShadow: 'none',
+                border: `1px solid ${ip.cardBorder}`,
+                bgcolor: '#fff',
+                borderRadius: 1,
+                overflowX: 'auto',
+                maxWidth: '100%',
+              }}
             >
-              <Table size="small" sx={{ '& .MuiTableCell-root': { borderColor: ip.cardBorder } }}>
+              <Table size="small" sx={{ minWidth: 520, '& .MuiTableCell-root': { borderColor: ip.cardBorder } }}>
                 <TableHead sx={{ bgcolor: '#E2E8F0' }}>
                   <TableRow>
                     <TableCell sx={{ fontWeight: 700, color: ip.heading, fontSize: '0.8125rem', py: 1.25 }}>

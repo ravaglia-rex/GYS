@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Box, Typography, Tabs, Tab, Paper, Avatar } from '@mui/material';
+import { Box, Typography, Tabs, Tab, Paper, Avatar, useMediaQuery } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { BookOpen } from 'lucide-react';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import { EnhancedAssessmentCardsGroup } from '../../components/dashboard/EnhancedAssessmentCardsGroup';
@@ -46,6 +47,8 @@ function a11yProps(index: number) {
 }
 
 const AssessmentsPage: React.FC = () => {
+  const theme = useTheme();
+  const isPhone = useMediaQuery(theme.breakpoints.down('sm'));
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const uid = auth.currentUser?.uid || '';
@@ -93,18 +96,20 @@ const AssessmentsPage: React.FC = () => {
         <Box sx={{ maxWidth: '1200px', mx: 'auto' }}>
           {/* Header */}
           <Box sx={{ mb: 4 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 2 }, mb: 2 }}>
               <Avatar sx={{
                 width: 64,
                 height: 64,
                 background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)',
                 color: 'white',
+                flexShrink: 0,
               }}>
                 <BookOpen size={32} />
               </Avatar>
-              <Box>
+              <Box sx={{ minWidth: 0 }}>
                 <Typography variant="h4" sx={{ 
                   ...studentPageTitleSx,
+                  minWidth: 0,
                 }}>
                   Assessments
                 </Typography>
@@ -143,7 +148,11 @@ const AssessmentsPage: React.FC = () => {
               }}
             >
               <Tab label="Available" {...a11yProps(0)} />
-              <Tab label="Completed & Results" {...a11yProps(1)} />
+              <Tab
+                label={isPhone ? 'Results' : 'Completed & Results'}
+                aria-label="Completed and Results"
+                {...a11yProps(1)}
+              />
               <Tab label="Reports" {...a11yProps(2)} />
             </Tabs>
           </Paper>

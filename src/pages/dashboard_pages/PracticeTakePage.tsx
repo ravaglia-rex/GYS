@@ -462,10 +462,12 @@ export default function PracticeTakePage() {
             sx={{
               fontWeight: 700,
               fontSize: { xs: '0.72rem', sm: '0.82rem' },
-              whiteSpace: 'nowrap',
+              lineHeight: 1.25,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
-              lineHeight: 1.25,
+              display: '-webkit-box',
+              WebkitLineClamp: { xs: 2, sm: 1 },
+              WebkitBoxOrient: 'vertical',
             }}
           >
             Practice · Exam {flow.examOrdinal}: {examShortTitle}
@@ -677,7 +679,7 @@ export default function PracticeTakePage() {
               color: '#fff',
               fontWeight: 800,
               px: 3,
-              minWidth: 140,
+              minWidth: { xs: 0, sm: 140 },
               flex: { xs: '1 1 auto', md: '0 0 auto' },
               '&:hover': { bgcolor: flow.theme === 'purple' ? '#6a1b9a' : '#1565c0' },
               '&.Mui-disabled': { bgcolor: '#cbd5e1', color: '#64748b' },

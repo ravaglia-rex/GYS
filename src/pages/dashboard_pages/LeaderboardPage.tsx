@@ -63,22 +63,24 @@ const LeaderboardPage: React.FC = () => {
               mb: 3,
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 2 }, minWidth: 0, width: '100%' }}>
               <Avatar
                 sx={{
                   width: 64,
                   height: 64,
                   background: 'linear-gradient(135deg, #f59e0b, #8b5cf6)',
                   color: 'white',
+                  flexShrink: 0,
                 }}
               >
                 <EmojiEvents sx={{ fontSize: 36 }} />
               </Avatar>
-              <Box>
+              <Box sx={{ minWidth: 0 }}>
                 <Typography
                   variant="h4"
                   sx={{
                     ...studentPageTitleSx,
+                    minWidth: 0,
                   }}
                 >
                   School Leaderboard

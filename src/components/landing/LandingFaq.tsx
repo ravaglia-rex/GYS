@@ -37,13 +37,13 @@ const LandingFaq: React.FC<LandingFaqProps> = ({
 
   return (
     <section id={id} className={`scroll-mt-24 ${className}`}>
-      <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">{title}</h2>
+      <h2 className="text-2xl font-bold leading-tight text-slate-900 sm:text-3xl">{title}</h2>
       {subtitle ? (
-        <p className="mt-1 text-xs text-slate-600 sm:text-sm">{subtitle}</p>
+        <p className="mt-1 text-sm text-slate-600">{subtitle}</p>
       ) : null}
 
       <div
-        className="mt-6 flex flex-wrap gap-2 sm:mt-8"
+        className="mt-4 grid grid-cols-2 gap-2 sm:mt-6 sm:flex sm:flex-wrap"
         role="tablist"
         aria-label="FAQ categories"
       >
@@ -59,7 +59,7 @@ const LandingFaq: React.FC<LandingFaqProps> = ({
               aria-controls={`${baseId}-panel-${index}`}
               tabIndex={selected ? 0 : -1}
               onClick={() => setActiveTabIndex(index)}
-              className={`rounded-xl px-4 py-2.5 text-left text-xs font-semibold transition-all duration-200 sm:text-sm sm:px-5 ${
+              className={`rounded-xl px-3 py-2 text-center text-sm font-semibold leading-tight transition-all duration-200 sm:px-5 sm:text-left ${
                 selected
                   ? 'bg-[#1e3a8a] text-white shadow-md ring-2 ring-[#1e3a8a] ring-offset-2 ring-offset-slate-50'
                   : 'bg-white text-slate-700 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50 hover:ring-slate-300'
@@ -75,7 +75,7 @@ const LandingFaq: React.FC<LandingFaqProps> = ({
         role="tabpanel"
         id={`${baseId}-panel-${activeTabIndex}`}
         aria-labelledby={`${baseId}-tab-${activeTabIndex}`}
-        className="mt-6"
+        className="mt-4 sm:mt-5"
       >
         <div className="space-y-2">
           {activeSection.items.map((item, itemIndex) => {
@@ -88,7 +88,7 @@ const LandingFaq: React.FC<LandingFaqProps> = ({
             return (
               <div
                 key={item.question}
-                className={`rounded-2xl bg-white px-4 py-1 shadow-sm ring-1 transition-[box-shadow,ring-color] duration-300 ease-out sm:px-5 ${
+                className={`rounded-2xl bg-white px-3 shadow-sm ring-1 transition-[box-shadow,ring-color] duration-300 ease-out sm:px-5 ${
                   isOpen ? 'ring-slate-200 shadow-md ring-1' : 'ring-slate-100'
                 }`}
               >
@@ -97,7 +97,7 @@ const LandingFaq: React.FC<LandingFaqProps> = ({
                   id={`${panelId}-trigger`}
                   aria-expanded={isOpen}
                   aria-controls={panelId}
-                  className="flex w-full cursor-pointer items-start justify-between gap-3 py-3 pr-2 text-left text-sm font-semibold text-slate-900 sm:text-base"
+                  className="flex w-full cursor-pointer items-start justify-between gap-3 py-2.5 pr-1 text-left text-base font-semibold leading-snug text-slate-900 sm:py-3 sm:pr-2"
                   onClick={toggleItem}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
@@ -121,7 +121,7 @@ const LandingFaq: React.FC<LandingFaqProps> = ({
                   style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}
                 >
                   <div className="min-h-0 overflow-hidden">
-                    <div className="border-t border-slate-100 pb-4 pt-3 text-xs leading-relaxed text-slate-600 sm:text-sm [&_p+p]:mt-3 [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:pl-5 [&_li+li]:mt-1 [&_a]:break-words">
+                    <div className="border-t border-slate-100 pb-3 pt-2.5 text-sm leading-relaxed text-slate-600 sm:pb-4 sm:pt-3 [&_p+p]:mt-3 [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:pl-5 [&_li+li]:mt-1 [&_a]:break-words">
                       {item.answer}
                     </div>
                   </div>

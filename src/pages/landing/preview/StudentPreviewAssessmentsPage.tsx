@@ -11,7 +11,9 @@ import {
   Tabs,
   Tooltip,
   Typography,
+  useMediaQuery,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { FileDownload as DownloadIcon } from '@mui/icons-material';
 import { BookOpen } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -31,6 +33,7 @@ import {
 
 const SAMPLE_ASSESSMENT_PATH = getPreviewSampleAssessmentPath(DEFAULT_PREVIEW_SAMPLE_EXAM_ID);
 const SAMPLE_ASSESSMENT_EXIT = '/students/preview/assessments/available';
+const HIDE_SAMPLE_CTA_ASSESSMENT_IDS = ['english_proficiency', 'ai_literacy'] as const;
 
 function a11yProps(index: number) {
   return {
@@ -73,6 +76,8 @@ const MOCK_REPORTS = [
 ];
 
 const StudentPreviewAssessmentsPage: React.FC = () => {
+  const theme = useTheme();
+  const isPhone = useMediaQuery(theme.breakpoints.down('sm'));
   const navigate = useNavigate();
   const location = useLocation();
   const [previewMessage, setPreviewMessage] = useState<string | null>(null);
@@ -164,7 +169,11 @@ const StudentPreviewAssessmentsPage: React.FC = () => {
           }}
         >
           <Tab label="Available" {...a11yProps(0)} />
-          <Tab label="Completed & Results" {...a11yProps(1)} />
+          <Tab
+            label={isPhone ? 'Results' : 'Completed & Results'}
+            aria-label="Completed and Results"
+            {...a11yProps(1)}
+          />
           <Tab label="Reports" {...a11yProps(2)} />
         </Tabs>
       </Paper>
@@ -185,6 +194,7 @@ const StudentPreviewAssessmentsPage: React.FC = () => {
                 previewSampleExitTo: SAMPLE_ASSESSMENT_EXIT,
                 previewGrade: PREVIEW_STUDENT_PROFILE.grade,
                 previewDisableStartNavigation: true,
+                previewHideSampleCtaForIds: HIDE_SAMPLE_CTA_ASSESSMENT_IDS,
               }}
             />
           </Box>
@@ -207,6 +217,7 @@ const StudentPreviewAssessmentsPage: React.FC = () => {
                 previewSampleExitTo: '/students/preview/assessments/completed',
                 previewGrade: PREVIEW_STUDENT_PROFILE.grade,
                 previewDisableStartNavigation: true,
+                previewHideSampleCtaForIds: HIDE_SAMPLE_CTA_ASSESSMENT_IDS,
               }}
             />
 

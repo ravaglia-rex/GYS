@@ -5,27 +5,20 @@ import { useNavigate } from 'react-router-dom';
 const LandingSiteFooter: React.FC = () => {
   const navigate = useNavigate();
   return (
-    <footer className="bg-white border-t border-gray-200 py-10">
-      <div className="max-w-5xl mx-auto px-6">
-        <nav className="flex flex-wrap justify-center gap-6 text-sm text-gray-600">
+    <footer className="border-t border-gray-200 bg-white py-6 sm:py-8">
+      <div className="mx-auto max-w-5xl px-4 sm:px-6">
+        <nav className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm text-gray-600 sm:gap-x-6">
           <button type="button" onClick={() => navigate('/for-schools')} className="text-gray-600 hover:text-gray-900">
             For Schools
           </button>
           <button type="button" onClick={() => navigate('/students')} className="text-gray-600 hover:text-gray-900">
             For Students
           </button>
-          <button
-            type="button"
-            onClick={() => navigate('/about/assessments')}
-            className="text-gray-600 hover:text-gray-900"
-          >
-            Assessments
-          </button>
           <a href="mailto:globalyoungscholar@argus.ai" className="text-gray-600 hover:text-gray-900">
             Contact
           </a>
         </nav>
-        <p className="text-center text-gray-500 text-sm mt-6">
+        <p className="mt-4 text-center text-xs leading-relaxed text-gray-500 sm:mt-5 sm:text-sm">
           © 2026 Global Young Scholar. A joint initiative of Access USA, Argus, and
           EducationWorld.
         </p>

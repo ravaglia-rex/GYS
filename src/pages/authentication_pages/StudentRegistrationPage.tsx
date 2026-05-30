@@ -152,7 +152,7 @@ const StudentRegistrationPage: React.FC = () => {
             <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-300 text-xs transition-all duration-200 group-hover:border-slate-400">
               ←
             </span>
-            <span className="hidden xs:inline">Back</span>
+            <span className="inline">Back</span>
           </button>
 
           <div className="flex items-center gap-3">
@@ -166,8 +166,8 @@ const StudentRegistrationPage: React.FC = () => {
               <h1 className="hidden sm:block font-bold text-lg text-gray-900 tracking-tight">
                 Global Young Scholar
               </h1>
-              <p className="text-xs text-gray-500">
-                Powered by Argus, Access USA, EducationWorld
+              <p className="hidden text-xs text-gray-500 sm:block">
+                Powered by Argus, Access&nbsp;USA, EducationWorld
               </p>
             </div>
           </div>

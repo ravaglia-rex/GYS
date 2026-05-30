@@ -123,6 +123,21 @@ const AssessmentAttemptHistorySection: React.FC<AssessmentAttemptHistorySectionP
         </Typography>
       </Box>
 
+      <Alert
+        severity="info"
+        sx={{
+          display: { xs: 'flex', sm: 'none' },
+          m: 2,
+          mb: 0,
+          bgcolor: 'rgba(59,130,246,0.12)',
+          color: '#bfdbfe',
+          border: '1px solid rgba(147,197,253,0.2)',
+          '& .MuiAlert-icon': { color: '#93c5fd' },
+        }}
+      >
+        View on a tablet or PC for the full results table with scores and progress.
+      </Alert>
+
       {error ? (
         <Alert severity="error" sx={{ m: 2, bgcolor: 'rgba(239,68,68,0.12)', color: '#fecaca', '& .MuiAlert-icon': { color: '#fca5a5' } }}>
           {error}

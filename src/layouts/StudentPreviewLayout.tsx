@@ -43,6 +43,8 @@ const DRAWER_WIDTH = 280;
 type StudentPreviewEntryState = { studentPreviewExitTo?: string };
 
 const iconSx = { fontSize: '1.35rem' };
+const ASSESSMENTS_NAV_COLOR = '#3b82f6';
+const HOW_GYS_NAV_COLOR = '#f97316';
 
 /** Same labels and structure as `SidebarNavigation` (signed-in student). */
 export default function StudentPreviewLayout() {
@@ -134,13 +136,13 @@ export default function StudentPreviewLayout() {
           mb: 0.5,
           py: 1.1,
           pl: 2,
-          borderLeft: isActive('/students/preview/how-it-works') ? '3px solid #67e8f9' : '3px solid transparent',
-          bgcolor: isActive('/students/preview/how-it-works') ? 'rgba(103,232,249,0.12)' : 'transparent',
+          borderLeft: isActive('/students/preview/how-it-works') ? `3px solid ${HOW_GYS_NAV_COLOR}` : '3px solid transparent',
+          bgcolor: isActive('/students/preview/how-it-works') ? 'rgba(249,115,22,0.12)' : 'transparent',
           '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' },
-          '&.Mui-selected': { bgcolor: 'rgba(103,232,249,0.15)' },
+          '&.Mui-selected': { bgcolor: 'rgba(249,115,22,0.15)' },
         }}
       >
-        <ListItemIcon sx={{ minWidth: 40, color: '#67e8f9' }}>
+        <ListItemIcon sx={{ minWidth: 40, color: HOW_GYS_NAV_COLOR }}>
           <HelpOutlineIcon sx={iconSx} />
         </ListItemIcon>
         <ListItemText
@@ -226,12 +228,12 @@ export default function StudentPreviewLayout() {
           mb: 0.25,
           py: 1.1,
           pl: 2,
-          borderLeft: assessmentsActive ? '3px solid #3b82f6' : '3px solid transparent',
+          borderLeft: assessmentsActive ? `3px solid ${ASSESSMENTS_NAV_COLOR}` : '3px solid transparent',
           bgcolor: assessmentsActive ? 'rgba(59,130,246,0.1)' : 'transparent',
           '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' },
         }}
       >
-        <ListItemIcon sx={{ minWidth: 40, color: '#3b82f6' }}>
+        <ListItemIcon sx={{ minWidth: 40, color: ASSESSMENTS_NAV_COLOR }}>
           <AssessmentIcon sx={iconSx} />
         </ListItemIcon>
         <ListItemText primary="Assessments" slotProps={{ primary: { fontWeight: 600, fontSize: '0.9rem', color: '#e2e8f0' } }} />
@@ -253,7 +255,7 @@ export default function StudentPreviewLayout() {
             }}
             selected={isActive('/students/preview/assessments/available')}
           >
-            <ListItemIcon sx={{ minWidth: 36, color: '#10b981' }}>
+            <ListItemIcon sx={{ minWidth: 36, color: ASSESSMENTS_NAV_COLOR }}>
               <SchoolIcon sx={{ fontSize: '1.1rem' }} />
             </ListItemIcon>
             <ListItemText primary="Available" slotProps={{ primary: { fontSize: '0.85rem', color: '#cbd5e1' } }} />
@@ -272,7 +274,7 @@ export default function StudentPreviewLayout() {
             }}
             selected={isActive('/students/preview/assessments/completed')}
           >
-            <ListItemIcon sx={{ minWidth: 36, color: '#06b6d4' }}>
+            <ListItemIcon sx={{ minWidth: 36, color: ASSESSMENTS_NAV_COLOR }}>
               <BarChartIcon sx={{ fontSize: '1.1rem' }} />
             </ListItemIcon>
             <ListItemText primary="Completed & Results" slotProps={{ primary: { fontSize: '0.85rem', color: '#cbd5e1' } }} />
@@ -291,7 +293,7 @@ export default function StudentPreviewLayout() {
               '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' },
             }}
           >
-            <ListItemIcon sx={{ minWidth: 36, color: '#f59e0b' }}>
+            <ListItemIcon sx={{ minWidth: 36, color: ASSESSMENTS_NAV_COLOR }}>
               <AssignmentIcon sx={{ fontSize: '1.1rem' }} />
             </ListItemIcon>
             <ListItemText primary="Reports" slotProps={{ primary: { fontSize: '0.85rem', color: '#cbd5e1' } }} />
@@ -411,7 +413,7 @@ export default function StudentPreviewLayout() {
   );
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#0f172a' }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#0f172a', overflowX: 'hidden' }}>
       <Drawer
         variant="temporary"
         open={mobileOpen}
@@ -421,7 +423,8 @@ export default function StudentPreviewLayout() {
           display: { xs: 'block', lg: 'none' },
           '& .MuiDrawer-paper': {
             width: DRAWER_WIDTH,
-            bgcolor: 'rgba(15, 23, 42, 0.98)',
+            bgcolor: '#0f172a',
+            backgroundImage: 'none',
             borderRight: '1px solid rgba(255,255,255,0.1)',
           },
         }}
@@ -438,7 +441,8 @@ export default function StudentPreviewLayout() {
           '& .MuiDrawer-paper': {
             width: DRAWER_WIDTH,
             boxSizing: 'border-box',
-            bgcolor: 'rgba(15, 23, 42, 0.95)',
+            bgcolor: '#0f172a',
+            backgroundImage: 'none',
             borderRight: '1px solid rgba(255,255,255,0.1)',
           },
         }}
@@ -475,7 +479,7 @@ export default function StudentPreviewLayout() {
           }}
         >
           <Toolbar sx={{ justifyContent: 'space-between', gap: 1, minHeight: { xs: 56, sm: 64 } }}>
-            <Box sx={{ flex: 1 }} />
+            <Box sx={{ display: { xs: 'none', lg: 'block' }, flex: 1 }} />
             <Box sx={{ display: { xs: 'none', lg: 'flex' }, alignItems: 'center' }}>
               <Button
                 variant="outlined"
@@ -486,13 +490,15 @@ export default function StudentPreviewLayout() {
                 Exit preview
               </Button>
             </Box>
-            <Box sx={{ display: { xs: 'flex', lg: 'none' }, alignItems: 'center', gap: 0.5 }}>
-              <IconButton color="inherit" onClick={() => setMobileOpen(o => !o)} edge="end" aria-label="open menu">
-                <MenuIcon />
-              </IconButton>
-              <Typography variant="subtitle2" sx={{ color: '#ffffff', fontWeight: 700, maxWidth: 120 }} noWrap>
-                Student preview
-              </Typography>
+            <Box sx={{ display: { xs: 'flex', lg: 'none' }, alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
+                <IconButton color="inherit" onClick={() => setMobileOpen(o => !o)} edge="start" aria-label="open menu">
+                  <MenuIcon />
+                </IconButton>
+                <Typography variant="subtitle2" sx={{ color: '#ffffff', fontWeight: 700 }} noWrap>
+                  Student preview
+                </Typography>
+              </Box>
               <Tooltip title="Exit preview">
                 <IconButton color="inherit" onClick={exitPreview} edge="end" size="small" aria-label="exit preview">
                   <CloseIcon />
@@ -506,15 +512,16 @@ export default function StudentPreviewLayout() {
         <Box
           sx={{
             flex: 1,
-            p: { xs: 2, md: 3 },
-            pt: { xs: 2, md: 3 },
-            overflowX: 'auto',
+            minWidth: 0,
+            p: { xs: 1.5, sm: 2, md: 3 },
+            pt: { xs: 1.5, sm: 2, md: 3 },
+            overflowX: 'hidden',
           }}
         >
           <Box
             sx={{
               mb: 2,
-              px: 2,
+              px: { xs: 1.5, sm: 2 },
               py: 1.25,
               borderRadius: 2,
               bgcolor: 'rgba(251,191,36,0.08)',
@@ -527,7 +534,7 @@ export default function StudentPreviewLayout() {
               Sample learner dashboard - simulated progress only. Log in after registration to see your real assessments.
             </Typography>
           </Box>
-          <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
+          <Box sx={{ maxWidth: 1200, mx: 'auto', minWidth: 0 }}>
             <Outlet />
           </Box>
         </Box>

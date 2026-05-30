@@ -8,10 +8,10 @@ export type DashboardNotificationType = 'success' | 'info' | 'warning' | 'error'
 export type DashboardNotificationCategory = 'assessment' | 'payment' | 'system' | 'general' | 'leaderboard' | 'badge' | 'report';
 
 export const DASHBOARD_NOTIFICATION_COLORS = {
-  assessment: '#f59e0b',
-  leaderboard: '#ec4899',
+  assessment: '#3b82f6',
+  leaderboard: '#f59e0b',
   badge: '#ec4899',
-  report: '#06b6d4',
+  report: '#3b82f6',
   payment: '#22c55e',
   membershipExpiringSoon: '#f97316',
   membershipExpiringUrgent: '#ef4444',

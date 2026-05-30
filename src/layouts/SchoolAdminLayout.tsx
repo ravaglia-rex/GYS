@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   Drawer,
@@ -11,6 +11,7 @@ import {
   Avatar,
   Divider,
   Tooltip,
+  Alert,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -152,6 +153,20 @@ export default function SchoolAdminLayout({ children, interactivePreview }: Scho
     navigate(path);
     setMobileOpen(false);
   };
+
+  useEffect(() => {
+    const handleTutorialStepChange = (event: Event) => {
+      const targetId = event instanceof CustomEvent ? event.detail?.targetId : undefined;
+      if (typeof targetId === 'string' && !targetId.startsWith('school-nav-')) {
+        setMobileOpen(false);
+      }
+    };
+
+    window.addEventListener('argus:tutorial-step-change', handleTutorialStepChange);
+    return () => {
+      window.removeEventListener('argus:tutorial-step-change', handleTutorialStepChange);
+    };
+  }, []);
 
   const renderSidebarNav = () =>
     sidebarNavItems.map((item) => {
@@ -308,7 +323,7 @@ export default function SchoolAdminLayout({ children, interactivePreview }: Scho
   };
 
   return (
-    <Box data-school-admin-shell sx={{ minHeight: '100vh', bgcolor: PAGE_BG }}>
+    <Box data-school-admin-shell sx={{ minHeight: '100vh', bgcolor: PAGE_BG, overflowX: 'hidden' }}>
       <AppBar
         data-school-admin-appbar
         position="fixed"
@@ -479,13 +494,38 @@ export default function SchoolAdminLayout({ children, interactivePreview }: Scho
             )}
             {belowNav}
             <Box
+              sx={{
+                display: { xs: 'block', sm: 'none' },
+                width: '100%',
+                px: isInstitutionDashboard ? { xs: 1.5, md: 2 } : { xs: 1, sm: 1.5, md: 2 },
+                pt: isInstitutionDashboard ? 1.5 : 1.5,
+                boxSizing: 'border-box',
+              }}
+            >
+              <Alert
+                severity="info"
+                sx={{
+                  maxWidth: isInstitutionDashboard ? 1120 : '100%',
+                  mx: 'auto',
+                  bgcolor: 'rgba(16, 64, 139, 0.08)',
+                  color: ip.navy,
+                  border: '1px solid rgba(16, 64, 139, 0.18)',
+                  '& .MuiAlert-icon': { color: ip.navy },
+                }}
+              >
+                Mobile view is simplified. View on a tablet or PC for the full experience.
+              </Alert>
+            </Box>
+            <Box
               component="main"
               sx={{
                 flex: 1,
                 minWidth: 0,
+                maxWidth: '100%',
                 bgcolor: PAGE_BG,
-                px: isInstitutionDashboard ? 0 : { xs: 1.5, md: 2 },
-                py: isInstitutionDashboard ? 0 : { xs: 2, md: 3 },
+                overflowX: 'hidden',
+                px: isInstitutionDashboard ? 0 : { xs: 1, sm: 1.5, md: 2 },
+                py: isInstitutionDashboard ? 0 : { xs: 1.5, sm: 2, md: 3 },
               }}
             >
               {children}

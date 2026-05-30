@@ -419,22 +419,34 @@ export function SchoolAdminSubscriptionPage() {
         bgcolor: ip.cardMutedBg,
         border: `1px solid ${ip.cardBorder}`,
         borderRadius: 2.5, p: 3, mb: 4,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2,
+        display: 'flex', alignItems: 'center', gap: 2,
       }}>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
           <Box sx={{ bgcolor: 'rgba(37,99,235,0.1)', borderRadius: 1.5, p: 1.2, display: 'flex' }}>
             <StandardIcon sx={{ color: ip.statBlue, fontSize: '1.5rem' }} />
           </Box>
           <Box>
-            <Typography variant="body1" sx={{ color: ip.heading, fontWeight: 700 }}>
-              {currentPlanName}
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1, mb: 0.25 }}>
+              <Typography variant="body1" sx={{ color: ip.heading, fontWeight: 700 }}>
+                {currentPlanName}
+              </Typography>
+              <Chip
+                label="Active"
+                size="small"
+                sx={{
+                  bgcolor: 'rgba(34,197,94,0.15)',
+                  color: '#16a34a',
+                  fontWeight: 700,
+                  height: 26,
+                  '& .MuiChip-label': { px: 1.25 },
+                }}
+              />
+            </Box>
             <Typography variant="body2" sx={{ color: ip.subtext }}>
               Renews annually • {SCHOOL_INSTITUTIONAL_PRICE_LANDING[currentPlanId]} • Next renewal: {nextRenewalLabel}
             </Typography>
           </Box>
         </Box>
-        <Chip label="Active" sx={{ bgcolor: 'rgba(34,197,94,0.15)', color: '#16a34a', fontWeight: 700 }} />
       </Box>
 
       <Typography variant="h6" sx={{ color: ip.heading, fontWeight: 700, mb: 2 }}>
@@ -584,7 +596,7 @@ export function SchoolAdminSubscriptionPage() {
           boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
         }}
       >
-        <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: { xs: 3, sm: 4 } }}>
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'center', gap: { xs: 3, sm: 4 } }}>
           <Box
             component="img"
             src="/EW%20logo.png"
@@ -598,10 +610,10 @@ export function SchoolAdminSubscriptionPage() {
             }}
           />
           <Box sx={{ minWidth: 0, flex: 1 }}>
-            <Typography sx={{ fontWeight: 700, color: ip.heading, fontSize: { xs: '1rem', sm: '1.125rem' } }}>
+            <Typography sx={{ fontWeight: 700, color: ip.heading, fontSize: { xs: '1rem', sm: '1.125rem' }, textAlign: { xs: 'center', md: 'left' } }}>
               Presented by EducationWorld
             </Typography>
-            <Typography sx={{ mt: 0.75, color: '#1e293b', fontSize: { xs: '0.9375rem', sm: '1rem' }, lineHeight: 1.6 }}>
+            <Typography sx={{ mt: 0.75, color: '#1e293b', fontSize: { xs: '0.9375rem', sm: '1rem' }, lineHeight: 1.6, textAlign: 'justify' }}>
               India&apos;s most trusted name in school assessment and ranking. Your data, our expertise.
               For the past 20 years, the annual EducationWorld India School Rankings - the world&apos;s
               largest and most comprehensive schools survey - has stimulated and motivated institutional

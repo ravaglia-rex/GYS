@@ -413,12 +413,28 @@ const StatCard: React.FC<{
           }),
     }}
   >
-    <CardContent sx={{ p: 3, textAlign: 'left' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+    <CardContent
+      sx={{
+        p: { xs: 2, sm: 3 },
+        textAlign: 'left',
+        display: { xs: 'flex', sm: 'block' },
+        alignItems: { xs: 'center', sm: 'initial' },
+        gap: { xs: 1.75, sm: 0 },
+      }}
+    >
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          mb: { xs: 0, sm: 2 },
+          flexShrink: 0,
+        }}
+      >
         <Avatar
           sx={{
-            width: 56,
-            height: 56,
+            width: { xs: 48, sm: 56 },
+            height: { xs: 48, sm: 56 },
             background: `linear-gradient(135deg, ${color}20, ${color}40)`,
             color: color,
             border: `2px solid ${color}30`,
@@ -446,13 +462,32 @@ const StatCard: React.FC<{
         )}
       </Box>
 
-      <Typography variant="h4" sx={{ color: 'white', fontWeight: 700, fontSize: '2.15rem', mb: 1 }}>
-        {value}
-      </Typography>
-      
-      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.92rem', mb: 2 }}>
-        {title}
-      </Typography>
+      <Box sx={{ minWidth: 0 }}>
+        <Typography
+          variant="h4"
+          sx={{
+            color: 'white',
+            fontWeight: 700,
+            fontSize: { xs: '1.85rem', sm: '2.15rem' },
+            lineHeight: 1,
+            mb: { xs: 0.35, sm: 1 },
+          }}
+        >
+          {value}
+        </Typography>
+
+        <Typography
+          variant="body2"
+          sx={{
+            color: 'rgba(255, 255, 255, 0.7)',
+            fontSize: { xs: '0.9rem', sm: '0.92rem' },
+            lineHeight: 1.25,
+            mb: { xs: 0, sm: 2 },
+          }}
+        >
+          {title}
+        </Typography>
+      </Box>
     </CardContent>
   </Card>
 );
@@ -482,6 +517,8 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   const [sessionDismissedNotificationIds, setSessionDismissedNotificationIds] = useState<Set<string>>(() => new Set());
   const notificationEmailSentRef = useRef<Set<string>>(new Set());
   const notificationListRef = useRef<HTMLDivElement | null>(null);
+  const performanceOverviewRef = useRef<HTMLDivElement | null>(null);
+  const [performanceOverviewHeight, setPerformanceOverviewHeight] = useState<number | null>(null);
 
   const useLiveProfile = Boolean(uid) && !previewProfile;
   const { data: userData, isLoading: studentQueryLoading } = useStudent(uid, useLiveProfile);
@@ -576,7 +613,22 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     updateNotificationScrollbar();
     window.addEventListener('resize', updateNotificationScrollbar);
     return () => window.removeEventListener('resize', updateNotificationScrollbar);
-  }, [notifications.length, updateNotificationScrollbar]);
+  }, [notifications.length, performanceOverviewHeight, updateNotificationScrollbar]);
+
+  useEffect(() => {
+    const el = performanceOverviewRef.current;
+    if (!el) return;
+
+    const syncPerformanceOverviewHeight = () => {
+      setPerformanceOverviewHeight(Math.ceil(el.getBoundingClientRect().height));
+    };
+
+    syncPerformanceOverviewHeight();
+    const resizeObserver = new ResizeObserver(syncPerformanceOverviewHeight);
+    resizeObserver.observe(el);
+
+    return () => resizeObserver.disconnect();
+  }, []);
 
   useEffect(() => {
     if (previewProfile) {
@@ -739,30 +791,34 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                 ? { bgcolor: '#ede9fe', border: '1px solid #a78bfa', color: '#5b21b6' }
                 : { bgcolor: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.22)', color: '#e2e8f0' };
 
-  const tierBadge = showStudentMeta && (
-    <Box sx={{ alignSelf: { xs: 'flex-end', sm: 'flex-start' }, flexShrink: 0 }}>
+  const renderTierBadge = (containerSx: Record<string, unknown> = {}) => showStudentMeta && (
+    <Box sx={{ flexShrink: 0, ...containerSx }}>
       <Box
         sx={{
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 0.35,
+          gap: { xs: 0.2, sm: 0.35 },
           mt: { sm: 0.25 },
-          px: 1.5,
-          py: 1,
-          minWidth: 72,
+          px: { xs: 1.5, sm: 1.5 },
+          py: { xs: 1, sm: 1 },
+          minWidth: { xs: 72, sm: 72 },
           borderRadius: '16px',
           textAlign: 'center',
           ...tierChipSx,
         }}
       >
-        <Typography component="span" aria-hidden sx={{ fontSize: '1.35rem', lineHeight: 1, color: 'inherit' }}>
+        <Typography
+          component="span"
+          aria-hidden
+          sx={{ fontSize: '1.35rem', lineHeight: 1, color: 'inherit' }}
+        >
           {tierEmoji}
         </Typography>
         <Typography
           component="span"
-          sx={{ fontWeight: 700, fontSize: '0.78rem', lineHeight: 1.2, color: 'inherit' }}
+          sx={{ fontWeight: 700, fontSize: '0.78rem', lineHeight: 1.15, color: 'inherit' }}
         >
           {tierLabel}
         </Typography>
@@ -770,18 +826,76 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     </Box>
   );
 
+  const studentMetaChips = showStudentMeta && (studentGrade || schoolName || membershipLevel || membershipExpiry) && (
+    <>
+      {(studentGrade || schoolName) && (
+        <Box
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            maxWidth: '100%',
+            background: 'rgba(255, 255, 255, 0.08)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            borderRadius: '20px',
+            px: { xs: 1.25, sm: 1.5 },
+            py: 0.5,
+          }}
+        >
+          <Typography
+            sx={{
+              color: 'rgba(255, 255, 255, 0.85)',
+              fontSize: { xs: '0.78rem', sm: '0.82rem' },
+              fontWeight: 500,
+              overflowWrap: 'anywhere',
+            }}
+          >
+            {[studentGrade ? `Class ${studentGrade}` : null, schoolName ?? null].filter(Boolean).join(' • ')}
+          </Typography>
+        </Box>
+      )}
+      {(membershipLevel || membershipExpiry) && (
+        <Box
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            maxWidth: '100%',
+            background: 'rgba(251, 191, 36, 0.12)',
+            border: '1px solid rgba(251, 191, 36, 0.3)',
+            borderRadius: '20px',
+            px: { xs: 1.25, sm: 1.5 },
+            py: 0.5,
+          }}
+        >
+          <Typography
+            sx={{
+              color: '#fbbf24',
+              fontSize: { xs: '0.78rem', sm: '0.82rem' },
+              fontWeight: 500,
+              overflowWrap: 'anywhere',
+            }}
+          >
+            {[membershipLevel ?? null, membershipExpiry ? `Active until ${membershipExpiry}` : null]
+              .filter(Boolean)
+              .join(' • ')}
+          </Typography>
+        </Box>
+      )}
+    </>
+  );
+
   return (
-    <Box sx={{ mb: 4, ml: 1 }}>
-      {/* Welcome Section - title left, performance tier badge top-right */}
+    <Box sx={{ mb: 4, ml: { xs: 0, sm: 1 }, minWidth: 0 }}>
+      {/* Welcome Section - title left, performance tier badge top-right on larger screens */}
       <Box sx={{ mb: 3 }}>
         <Box
           sx={{
             display: 'flex',
-            flexDirection: { xs: 'column', sm: 'row' },
-            alignItems: { xs: 'stretch', sm: 'flex-start' },
+            flexDirection: 'row',
+            alignItems: { xs: 'center', sm: 'flex-start' },
             justifyContent: 'space-between',
-            gap: 2,
+            gap: { xs: 1.25, sm: 2 },
             mb: 0.5,
+            minWidth: 0,
           }}
         >
           <Typography
@@ -794,14 +908,15 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
-              flex: { sm: '1 1 auto' },
+              flex: '1 1 auto',
               minWidth: 0,
             }}
           >
             👋 Welcome to Your Dashboard, {userName}!
           </Typography>
-          {tierBadge}
+          {renderTierBadge({ alignSelf: { xs: 'center', sm: 'flex-start' } })}
         </Box>
+
         <Typography
           variant="h6"
           sx={{
@@ -816,53 +931,18 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         </Typography>
 
         {/* Class / school / membership - below title row */}
-        {showStudentMeta && (studentGrade || schoolName || membershipLevel || membershipExpiry) && (
+        {studentMetaChips && (
           <Box
             sx={{
               display: 'flex',
               flexWrap: 'wrap',
-              gap: 1,
+              gap: { xs: 0.75, sm: 1 },
               mb: 0,
               mt: 0,
               alignItems: 'center',
             }}
           >
-            {(studentGrade || schoolName) && (
-              <Box
-                sx={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  borderRadius: '20px',
-                  px: 1.5,
-                  py: 0.5,
-                }}
-              >
-                <Typography sx={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: '0.82rem', fontWeight: 500 }}>
-                  {[studentGrade ? `Class ${studentGrade}` : null, schoolName ?? null].filter(Boolean).join(' • ')}
-                </Typography>
-              </Box>
-            )}
-            {(membershipLevel || membershipExpiry) && (
-              <Box
-                sx={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  background: 'rgba(251, 191, 36, 0.12)',
-                  border: '1px solid rgba(251, 191, 36, 0.3)',
-                  borderRadius: '20px',
-                  px: 1.5,
-                  py: 0.5,
-                }}
-              >
-                <Typography sx={{ color: '#fbbf24', fontSize: '0.82rem', fontWeight: 500 }}>
-                  {[membershipLevel ?? null, membershipExpiry ? `Active until ${membershipExpiry}` : null]
-                    .filter(Boolean)
-                    .join(' • ')}
-                </Typography>
-              </Box>
-            )}
+            {studentMetaChips}
           </Box>
         )}
       </Box>
@@ -873,7 +953,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         sx={{ 
         display: 'grid', 
         gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
-        gap: 3, 
+        gap: { xs: 2, sm: 3 }, 
         mb: 4 
       }}>
         <StatCard
@@ -925,6 +1005,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
       }}>
         {/* Performance Overview */}
         <Card
+          ref={performanceOverviewRef}
           data-tutorial-id="student-dashboard-chart"
           sx={{
           background: 'rgba(30, 41, 59, 0.8)',
@@ -953,9 +1034,39 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             </Box>
 
             {displayResults.data.length > 0 ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', width: '100%' }}>
-                <ColumnChart data={displayResults.data} />
-              </Box>
+              <>
+                <Box
+                  sx={{
+                    display: { xs: 'flex', sm: 'none' },
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    minHeight: 180,
+                    px: 2,
+                    textAlign: 'center',
+                  }}
+                >
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      color: 'rgba(255, 255, 255, 0.78)',
+                      fontWeight: 600,
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    Log in on a tablet or PC to view the full performance graph.
+                  </Typography>
+                </Box>
+                <Box
+                  sx={{
+                    display: { xs: 'none', sm: 'flex' },
+                    justifyContent: 'center',
+                    alignItems: 'flex-start',
+                    width: '100%',
+                  }}
+                >
+                  <ColumnChart data={displayResults.data} />
+                </Box>
+              </>
             ) : (
               <Box sx={{ 
                 textAlign: 'center', 
@@ -998,7 +1109,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
           display: 'flex',
           flexDirection: 'column',
-          height: { xs: 420, lg: 590 },
+          height: { xs: 420, lg: performanceOverviewHeight ? `${performanceOverviewHeight}px` : 'auto' },
           minHeight: 0,
           overflow: 'hidden',
         }}>

@@ -220,8 +220,8 @@ const StudentSchoolStepPage: React.FC = () => {
               <h1 className="hidden sm:block font-bold text-lg text-gray-900 tracking-tight">
                 Global Young Scholar
               </h1>
-              <p className="text-xs text-gray-500">
-                Powered by Argus, Access USA, EducationWorld
+              <p className="hidden text-xs text-gray-500 sm:block">
+                Powered by Argus, Access&nbsp;USA, EducationWorld
               </p>
             </div>
           </div>

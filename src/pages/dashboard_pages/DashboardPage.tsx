@@ -209,7 +209,7 @@ const Dashboard: React.FC = () => {
                 unlockedAssessments={unlockedAssessments}
                 backendNotificationEvents={backendNotificationEvents}
               />
-              <Box sx={{ mt: 4, ml: 1 }} data-tutorial-id="student-dashboard-assessments">
+              <Box sx={{ mt: 4, ml: { xs: 0, sm: 1 }, minWidth: 0 }} data-tutorial-id="student-dashboard-assessments">
                 <Box>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', gap: 1, mb: 2 }}>
                     <Typography

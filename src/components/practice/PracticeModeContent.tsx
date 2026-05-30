@@ -343,22 +343,33 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
 
   return (
     <Box sx={{ maxWidth: embedded ? 'none' : '1200px', mx: 'auto' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: 'auto minmax(0, 1fr)',
+          alignItems: 'center',
+          columnGap: { xs: 1.5, sm: 2 },
+          rowGap: 1.5,
+          mb: 3,
+        }}
+      >
         <Avatar
           sx={{
             width: embedded ? 52 : 64,
             height: embedded ? 52 : 64,
             background: 'linear-gradient(135deg, #a78bfa, #38bdf8)',
             color: 'white',
+            flexShrink: 0,
           }}
         >
           <ScienceIcon sx={{ fontSize: embedded ? 26 : 32 }} />
         </Avatar>
-        <Box sx={{ flex: 1, minWidth: 200 }}>
+        <Box sx={{ minWidth: 0 }}>
           <Typography
             variant={embedded ? 'h5' : 'h4'}
             sx={{
               ...studentPageTitleSx,
+              minWidth: 0,
             }}
           >
             Practice Mode
@@ -378,6 +389,8 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
             color: 'rgba(255,255,255,0.88)',
             bgcolor: 'rgba(99, 102, 241, 0.15)',
             fontWeight: 600,
+            gridColumn: '2',
+            justifySelf: 'flex-start',
           }}
           variant="outlined"
         />

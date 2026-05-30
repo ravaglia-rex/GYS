@@ -677,7 +677,6 @@ const SchoolAdminStudentsPage: React.FC = () => {
           {registrationError}
         </Alert>
       )}
-
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
         <Tooltip title="Total emails currently on your school's invitation list, including active invitations and revoked entries.">
           <Chip
@@ -1029,10 +1028,11 @@ const SchoolAdminStudentsPage: React.FC = () => {
                   color: ip.heading,
                   border: `1px solid ${ip.cardBorder}`,
                   borderRadius: 1,
-                  overflow: 'hidden',
+                  overflowX: 'auto',
+                  maxWidth: '100%',
                 }}
               >
-                <Table size="medium" sx={{ bgcolor: '#fff' }}>
+                <Table size="medium" sx={{ bgcolor: '#fff', minWidth: 640 }}>
                   <TableHead data-tutorial-id="school-students-table">
                     <TableRow
                       sx={{

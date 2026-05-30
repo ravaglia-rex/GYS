@@ -15,9 +15,6 @@ import {
   Chip,
   List,
   ListItem,
-  ListItemIcon,
-  ListItemText,
-  ListItemSecondaryAction,
   FormControl,
   Select,
   MenuItem
@@ -458,8 +455,17 @@ const SecurityPrivacySettings: React.FC = () => {
         borderRadius: 3,
         mb: 4
       }}>
-        <CardContent sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: { xs: 'column', sm: 'row' },
+              alignItems: { xs: 'center', sm: 'center' },
+              gap: 2,
+              mb: 3,
+              textAlign: { xs: 'center', sm: 'left' },
+            }}
+          >
             <Avatar sx={{
               width: 64,
               height: 64,
@@ -468,7 +474,7 @@ const SecurityPrivacySettings: React.FC = () => {
             }}>
               <Shield size={32} />
             </Avatar>
-            <Box>
+            <Box sx={{ minWidth: 0, width: '100%' }}>
               <Typography variant="h5" sx={{ ...studentSectionHeadingSx, mb: 1 }}>
                 Security & Privacy
               </Typography>
@@ -476,7 +482,7 @@ const SecurityPrivacySettings: React.FC = () => {
                 Protect your account and control your privacy settings
               </Typography>
               
-              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+              <Box sx={{ display: 'flex', justifyContent: { xs: 'center', sm: 'flex-start' }, gap: 2, flexWrap: 'wrap' }}>
                 <Chip
                   label="Security Status: Excellent"
                   size="small"
@@ -485,7 +491,12 @@ const SecurityPrivacySettings: React.FC = () => {
                     backgroundColor: 'rgba(16, 185, 129, 0.2)',
                     color: '#10b981',
                     border: '1px solid rgba(16, 185, 129, 0.4)',
-                    fontWeight: 600
+                    fontWeight: 600,
+                    maxWidth: '100%',
+                    '& .MuiChip-label': {
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    },
                   }}
                 />
                 <Chip
@@ -496,7 +507,12 @@ const SecurityPrivacySettings: React.FC = () => {
                     backgroundColor: 'rgba(139, 92, 246, 0.2)',
                     color: '#8b5cf6',
                     border: '1px solid rgba(139, 92, 246, 0.4)',
-                    fontWeight: 600
+                    fontWeight: 600,
+                    maxWidth: '100%',
+                    '& .MuiChip-label': {
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    },
                   }}
                 />
               </Box>
@@ -522,20 +538,21 @@ const SecurityPrivacySettings: React.FC = () => {
         flexDirection: 'column'
       }}>
         <CardContent sx={{ p: 3, flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 3 }}>
             <Avatar sx={{
               width: 48,
               height: 48,
               background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
               color: 'white',
+              flexShrink: 0,
             }}>
               <Lock size={24} />
             </Avatar>
-            <Box>
-              <Typography variant="h6" sx={{ color: 'white', fontWeight: 600 }}>
+            <Box sx={{ minWidth: 0, pt: 0.25 }}>
+              <Typography variant="h6" sx={{ color: 'white', fontWeight: 600, lineHeight: 1.2, minWidth: 0 }}>
                 Change Password
               </Typography>
-              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)', lineHeight: 1.4, mt: 0.5 }}>
                 Set a new password for your account
               </Typography>
             </Box>
@@ -636,20 +653,21 @@ const SecurityPrivacySettings: React.FC = () => {
         flexDirection: 'column'
       }}>
         <CardContent sx={{ p: 3, flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 3 }}>
             <Avatar sx={{
               width: 48,
               height: 48,
               background: 'linear-gradient(135deg, #10b981, #059669)',
               color: 'white',
+              flexShrink: 0,
             }}>
               <Shield size={24} />
             </Avatar>
-            <Box>
-              <Typography variant="h6" sx={{ color: 'white', fontWeight: 600 }}>
+            <Box sx={{ minWidth: 0, pt: 0.25 }}>
+              <Typography variant="h6" sx={{ color: 'white', fontWeight: 600, lineHeight: 1.2, minWidth: 0 }}>
                 Security Features
               </Typography>
-              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)', lineHeight: 1.4, mt: 0.5 }}>
                 Manage your account security settings
               </Typography>
             </Box>
@@ -658,27 +676,39 @@ const SecurityPrivacySettings: React.FC = () => {
           <List sx={{ p: 0 }}>
             {securityFeatures.map((feature, index) => (
               <React.Fragment key={index}>
-                <ListItem sx={{ px: 0, py: 1.5 }}>
-                  <ListItemIcon sx={{ minWidth: 40 }}>
-                    <Box sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                      {feature.icon}
+                <ListItem
+                  sx={{
+                    alignItems: 'flex-start',
+                    display: 'flex',
+                    gap: 1.5,
+                    px: 0,
+                    py: 1.5,
+                  }}
+                >
+                  <Box sx={{ color: 'rgba(255, 255, 255, 0.7)', mt: 0.25 }}>
+                    {feature.icon}
+                  </Box>
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="body2" sx={{ color: 'white', fontWeight: 500, minWidth: 0 }}>
+                      {feature.title}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)', display: 'block' }}>
+                      {feature.description}
+                    </Typography>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        mt: 1,
+                        maxWidth: '100%',
+                        '& .MuiButton-root, & .MuiChip-root': {
+                          maxWidth: '100%',
+                          whiteSpace: 'nowrap',
+                        },
+                      }}
+                    >
+                      {feature.action}
                     </Box>
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={
-                      <Typography variant="body2" sx={{ color: 'white', fontWeight: 500 }}>
-                        {feature.title}
-                      </Typography>
-                    }
-                    secondary={
-                      <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
-                        {feature.description}
-                      </Typography>
-                    }
-                  />
-                  <ListItemSecondaryAction>
-                    {feature.action}
-                  </ListItemSecondaryAction>
+                  </Box>
                 </ListItem>
                 {index < securityFeatures.length - 1 && (
                   <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.1)' }} />

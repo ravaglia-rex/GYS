@@ -1,10 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
+import LandingPublicHeader from '../../components/layout/LandingPublicHeader';
 import LandingSiteFooter from '../../components/layout/LandingSiteFooter';
-import PublicSamplesNavMenu from '../../components/layout/PublicSamplesNavMenu';
 import LandingFaq from '../../components/landing/LandingFaq';
-import { LandingHeaderScrollProgress, LandingSectionRail } from '../../components/landing/LandingScrollChrome';
+import { LandingSectionRail } from '../../components/landing/LandingScrollChrome';
 import { GYS_BLUE, GYS_GOLD } from '../../constants/gysBrand';
 import {
   useLandingRevealInContainer,
@@ -172,70 +172,10 @@ const StudentPathPage: React.FC = () => {
   return (
     <div ref={pageRootRef} className="min-h-screen overflow-x-clip bg-slate-50 text-slate-900">
       <LandingSectionRail sections={STUDENT_NAV} activeSectionId={activeSectionId} />
-      {/* Top nav */}
-      <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/90 backdrop-blur relative">
-        <LandingHeaderScrollProgress scrollProgress={scrollProgress} />
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-3 sm:gap-6">
-          <div className="flex items-center gap-3 group">
-            <div
-              className="flex w-10 h-10 rounded items-center justify-center text-white font-bold text-sm shrink-0 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:shadow-md"
-              style={{ backgroundColor: GYS_BLUE }}
-            >
-              GYS
-            </div>
-            <div>
-              <h1 className="hidden sm:block font-bold text-lg text-gray-900 tracking-tight">
-                Global Young Scholar
-              </h1>
-              <p className="text-xs text-gray-500">
-                Powered by Argus, Access USA, EducationWorld
-              </p>
-            </div>
-          </div>
-          <nav className="hidden md:flex items-center gap-8 text-base font-semibold">
-            <button
-              type="button"
-              onClick={() => navigate('/')}
-              className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
-            >
-              Home
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/students')}
-              className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
-            >
-              For Students
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/for-schools')}
-              className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
-            >
-              For Schools
-            </button>
-            <PublicSamplesNavMenu />
-          </nav>
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={() => navigate('/students/register')}
-              className="px-5 py-2.5 rounded-xl text-sm font-medium shrink-0 border-2 border-transparent text-white shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-transform duration-150"
-              style={{ backgroundColor: GYS_BLUE }}
-            >
-              Sign up
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/login')}
-              className="px-5 py-2.5 rounded-xl border-2 border-transparent text-white text-sm font-medium shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-transform duration-150"
-              style={{ backgroundColor: GYS_BLUE }}
-            >
-              Log In
-            </button>
-          </div>
-        </div>
-      </header>
+      <LandingPublicHeader
+        scrollProgress={scrollProgress}
+        signUp={{ show: true, path: '/students/register', variant: 'filled' }}
+      />
 
       <main className="pb-12">
         {/* Hero band - full width, matching landing page */}
@@ -396,11 +336,83 @@ const StudentPathPage: React.FC = () => {
              
             </p>
 
+            <div className="mx-auto mt-6 space-y-3 text-left sm:hidden">
+              {ASSESSMENT_SECTIONS.map((section) => {
+                const rows = STUDENT_ASSESSMENTS.filter((a) => a.group === section.group);
+                const accent =
+                  section.group === 'reasoning'
+                    ? GYS_BLUE
+                    : section.group === 'skills'
+                      ? '#14b8a6'
+                      : '#a855f7';
+
+                return (
+                  <div key={section.group} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                    <div className="border-l-4 bg-slate-50 px-4 py-3" style={{ borderLeftColor: accent }}>
+                      <p className="text-sm font-bold text-slate-900">{section.title}</p>
+                      <p className="text-xs text-slate-600">{section.hint}</p>
+                    </div>
+                    <div className="divide-y divide-slate-100">
+                      {rows.map((row) => {
+                        const includedTiers = [row.inL1, row.inL2, row.inL3, row.inL4]
+                          .map((included, i) => (included ? TIER_HEADERS[i] : null))
+                          .filter((tier): tier is (typeof TIER_HEADERS)[number] => tier !== null);
+
+                        return (
+                          <article key={row.exam} className="px-4 py-4">
+                            <div className="flex gap-3">
+                              <span className="mt-0.5 shrink-0 text-xl leading-none" aria-hidden="true">
+                                {row.icon}
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span
+                                    className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded px-1 text-[0.65rem] font-bold text-white"
+                                    style={{ backgroundColor: GYS_BLUE }}
+                                  >
+                                    {row.exam}
+                                  </span>
+                                  <h3 className="text-base font-bold leading-tight text-slate-900">{row.label}</h3>
+                                </div>
+                                <p className="mt-1 text-sm leading-relaxed text-slate-600">{row.desc}</p>
+                                <div className="mt-3">
+                                  <p className="text-[0.65rem] font-bold uppercase tracking-wide text-slate-500">
+                                    Included in
+                                  </p>
+                                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                                    {includedTiers.map((tier) => (
+                                      <span
+                                        key={tier.key}
+                                        className={`rounded-full px-2.5 py-1 text-[0.7rem] font-bold leading-none ${tier.tint}`}
+                                      >
+                                        {tier.title}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+
+              <p className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-center text-xs leading-relaxed text-slate-600 shadow-sm">
+                <span className="font-semibold text-slate-800">Reasoning Triad</span> and above include the{' '}
+                <span className="font-semibold text-slate-800">triad cross-synthesis</span> report when all three
+                reasoning exams are complete.
+              </p>
+            </div>
+
             <div
-              className="mx-auto mt-6 max-w-4xl overflow-hidden rounded-2xl border border-slate-200 bg-white text-left shadow-md ring-1 ring-slate-100"
+              className="mx-auto mt-6 hidden max-w-4xl overflow-x-auto rounded-2xl border border-slate-200 bg-white text-left shadow-md ring-1 ring-slate-100 [-ms-overflow-style:none] [scrollbar-width:thin] sm:block"
               role="region"
               aria-label="Assessments and membership levels"
             >
+              <div className="min-w-[320px]">
               {/* Column headers - compact */}
               <div className="grid grid-cols-[minmax(0,1fr)_repeat(4,minmax(0,4.25rem))] gap-x-0.5 border-b border-slate-200 bg-slate-50 sm:grid-cols-[minmax(0,1fr)_repeat(4,minmax(0,5.25rem))] sm:gap-x-1">
                 <div className="px-3 py-2 text-[0.65rem] font-semibold uppercase tracking-wide text-slate-500 sm:px-4 sm:py-2.5 sm:text-xs">
@@ -487,6 +499,7 @@ const StudentPathPage: React.FC = () => {
                 <span className="font-semibold text-slate-800">triad cross-synthesis</span> report when all three
                 reasoning exams are complete.
               </p>
+              </div>
             </div>
           </div>
         </section>
@@ -588,17 +601,17 @@ const StudentPathPage: React.FC = () => {
         {/* EducationWorld - students & parents (aligned with main landing) */}
         <section id="sp-ew" data-landing-reveal className="mt-10 sm:mt-12">
           <div className="rounded-2xl bg-[#eef4ff] px-4 py-4 shadow-sm sm:px-5 sm:py-4 md:px-6 md:py-5">
-            <div className="flex items-center gap-4 sm:gap-5">
+            <div className="flex flex-col items-center gap-4 text-center md:grid md:grid-cols-[6.5rem_minmax(0,1fr)] md:items-center md:gap-4 md:text-left">
               <img
                 src="/EW%20logo.png"
                 alt="EducationWorld"
-                className="h-24 w-auto max-w-[11rem] shrink-0 object-contain sm:h-28 sm:max-w-[13rem]"
+                className="h-24 w-auto max-w-[11rem] shrink-0 object-contain md:h-28 md:max-w-[8rem] md:-ml-5 md:justify-self-start"
               />
-              <div className="min-w-0 text-left">
+              <div className="min-w-0">
                 <p className="text-sm font-semibold text-slate-900 sm:text-base">
                   Presented by EducationWorld
                 </p>
-                <p className="mt-1.5 text-xs leading-snug text-slate-700 sm:text-sm sm:leading-relaxed">
+                <p className="mt-1.5 text-justify text-xs leading-snug text-slate-700 sm:text-sm sm:leading-relaxed">
                   Trusted by over 5,000 schools and millions of parents nationwide for its credible,
                   comprehensive and in-depth school rankings on a wide range of parameters including
                   academic reputation, teacher competence, co-curricular and sports education. For the

@@ -7,6 +7,7 @@ import { measureTutorialTarget } from './tutorialTargets';
 
 const PAD = 8;
 const TOOLTIP_MAX_W = 360;
+const PHONE_BREAKPOINT = 600;
 const OVERLAY_BG = 'rgba(15, 23, 42, 0.34)';
 const OVERLAY_BLUR = 'blur(0.75px)';
 const SCROLL_KEYS = new Set([
@@ -37,6 +38,17 @@ function clampTooltipLeft(left: number, width: number): number {
 function clampTooltipTop(top: number, height: number): number {
   const margin = 12;
   return Math.max(margin, Math.min(top, window.innerHeight - height - margin));
+}
+
+function getViewportSize(): { width: number; height: number } {
+  return {
+    width: window.visualViewport?.width ?? window.innerWidth,
+    height: window.visualViewport?.height ?? window.innerHeight,
+  };
+}
+
+function isPhoneViewport(width: number): boolean {
+  return width <= PHONE_BREAKPOINT;
 }
 
 function getSchoolAdminViewportInsets(): { top: number; left: number } {
@@ -83,6 +95,8 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
   const step = steps[stepIndex];
   const [targetRect, setTargetRect] = useState<ReturnType<typeof measureTutorialTarget>>(null);
   const [tooltipSize, setTooltipSize] = useState({ width: TOOLTIP_MAX_W, height: 200 });
+  const [viewport, setViewport] = useState(() => getViewportSize());
+  const isPhone = isPhoneViewport(viewport.width);
 
   const remeasure = useCallback(() => {
     if (!step) {
@@ -105,13 +119,20 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
 
   useEffect(() => {
     remeasure();
-    const onResize = () => remeasure();
+    const onResize = () => {
+      setViewport(getViewportSize());
+      remeasure();
+    };
     window.addEventListener('resize', onResize);
     window.addEventListener('scroll', onResize, true);
+    window.visualViewport?.addEventListener('resize', onResize);
+    window.visualViewport?.addEventListener('scroll', onResize);
     const interval = window.setInterval(remeasure, 400);
     return () => {
       window.removeEventListener('resize', onResize);
       window.removeEventListener('scroll', onResize, true);
+      window.visualViewport?.removeEventListener('resize', onResize);
+      window.visualViewport?.removeEventListener('scroll', onResize);
       window.clearInterval(interval);
     };
   }, [remeasure]);
@@ -124,19 +145,22 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
     const prevHtmlOverscrollBehavior = document.documentElement.style.overscrollBehavior;
     const prevBodyOverscrollBehavior = document.body.style.overscrollBehavior;
 
-    document.documentElement.style.overflow = 'hidden';
-    document.body.style.overflow = 'hidden';
+    if (!isPhone) {
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+    }
     document.documentElement.style.overscrollBehavior = 'none';
     document.body.style.overscrollBehavior = 'none';
 
+    const isInsideTooltip = (target: EventTarget | null) =>
+      target instanceof HTMLElement && Boolean(target.closest('[data-tutorial-tooltip="true"]'));
+
     const preventScroll = (event: Event) => {
+      if (isInsideTooltip(event.target)) return;
       event.preventDefault();
     };
     const preventScrollKeys = (event: KeyboardEvent) => {
-      if (
-        event.target instanceof HTMLElement &&
-        event.target.closest('[data-tutorial-tooltip="true"]')
-      ) {
+      if (isInsideTooltip(event.target)) {
         return;
       }
       if (SCROLL_KEYS.has(event.key)) {
@@ -152,12 +176,14 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
       window.removeEventListener('wheel', preventScroll, { capture: true });
       window.removeEventListener('touchmove', preventScroll, { capture: true });
       window.removeEventListener('keydown', preventScrollKeys, { capture: true });
-      document.documentElement.style.overflow = prevHtmlOverflow;
-      document.body.style.overflow = prevBodyOverflow;
+      if (!isPhone) {
+        document.documentElement.style.overflow = prevHtmlOverflow;
+        document.body.style.overflow = prevBodyOverflow;
+      }
       document.documentElement.style.overscrollBehavior = prevHtmlOverscrollBehavior;
       document.body.style.overscrollBehavior = prevBodyOverscrollBehavior;
     };
-  }, [steps.length]);
+  }, [isPhone, steps.length]);
 
   if (!step || steps.length === 0) return null;
 
@@ -166,10 +192,10 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
   const counter = `${stepIndex + 1}/${steps.length}`;
 
   const placement = step.placement ?? 'auto';
-  let tooltipTop = window.innerHeight / 2 - tooltipSize.height / 2;
-  let tooltipLeft = window.innerWidth / 2 - tooltipSize.width / 2;
+  let tooltipTop = viewport.height / 2 - tooltipSize.height / 2;
+  let tooltipLeft = viewport.width / 2 - tooltipSize.width / 2;
 
-  if (targetRect) {
+  if (!isPhone && targetRect) {
     const centerX = targetRect.left + targetRect.width / 2;
     const preferBottom =
       placement === 'bottom' ||
@@ -193,8 +219,10 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
     }
   }
 
-  tooltipLeft = clampTooltipLeft(tooltipLeft, tooltipSize.width);
-  tooltipTop = clampTooltipTop(tooltipTop, tooltipSize.height);
+  if (!isPhone) {
+    tooltipLeft = clampTooltipLeft(tooltipLeft, tooltipSize.width);
+    tooltipTop = clampTooltipTop(tooltipTop, tooltipSize.height);
+  }
 
   const spotlight = targetRect ? buildSpotlightRect(targetRect) : null;
 
@@ -205,7 +233,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
         inset: 0,
         zIndex: 14000,
         pointerEvents: 'auto',
-        touchAction: 'none',
+        touchAction: isPhone ? 'pan-y' : 'none',
         overscrollBehavior: 'none',
       }}
       onClick={(e) => {
@@ -217,7 +245,6 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
         e.stopPropagation();
       }}
       onTouchStart={(e) => {
-        e.preventDefault();
         e.stopPropagation();
       }}
       role="dialog"
@@ -230,7 +257,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
           inset: 0,
           zIndex: 14000,
           bgcolor: 'transparent',
-          touchAction: 'none',
+          touchAction: isPhone ? 'pan-y' : 'none',
           overscrollBehavior: 'none',
           cursor: 'default',
         }}
@@ -243,7 +270,6 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
           e.stopPropagation();
         }}
         onTouchStart={(e) => {
-          e.preventDefault();
           e.stopPropagation();
         }}
       />
@@ -346,27 +372,40 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
         }}
         sx={{
           position: 'fixed',
-          top: tooltipTop,
-          left: tooltipLeft,
-          width: 'min(92vw, 360px)',
-          maxWidth: TOOLTIP_MAX_W,
+          ...(isPhone
+            ? {
+                left: 'max(12px, env(safe-area-inset-left))',
+                right: 'max(12px, env(safe-area-inset-right))',
+                bottom: 'max(12px, env(safe-area-inset-bottom))',
+                width: 'auto',
+              }
+            : {
+                top: tooltipTop,
+                left: tooltipLeft,
+                width: 'min(92vw, 360px)',
+              }),
+          maxWidth: isPhone ? 'none' : TOOLTIP_MAX_W,
+          maxHeight: isPhone ? 'min(48vh, 360px)' : 'min(80vh, 520px)',
+          overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch',
           zIndex: 14003,
-          bgcolor: 'rgba(30, 41, 59, 0.96)',
+          bgcolor: '#1e293b',
           color: '#e2e8f0',
-          borderRadius: 2,
+          borderRadius: isPhone ? 2.5 : 2,
           boxShadow: '0 18px 44px rgba(2, 6, 23, 0.28)',
           border: '1px solid rgba(125, 211, 252, 0.26)',
-          p: 2,
+          p: isPhone ? 1.75 : 2,
+          touchAction: 'pan-y',
         }}
         onClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
         onTouchStart={(e) => e.stopPropagation()}
         data-tutorial-tooltip="true"
       >
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1, mb: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1, mb: 0.75 }}>
           <Typography
             id="tutorial-step-title"
-            sx={{ fontWeight: 700, fontSize: '1.05rem', color: '#f8fafc', pr: 1 }}
+            sx={{ fontWeight: 700, fontSize: isPhone ? '1rem' : '1.05rem', color: '#f8fafc', pr: 1 }}
           >
             {step.title}
           </Typography>
@@ -379,12 +418,12 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
             <CloseIcon fontSize="small" />
           </IconButton>
         </Box>
-        <Typography sx={{ fontSize: '0.9rem', color: '#cbd5e1', lineHeight: 1.5, mb: 2 }}>
+        <Typography sx={{ fontSize: isPhone ? '0.88rem' : '0.9rem', color: '#cbd5e1', lineHeight: 1.45, mb: 1.5 }}>
           {step.body}
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, flexWrap: 'wrap' }}>
           <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: '#93c5fd' }}>{counter}</Typography>
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             <Button size="small" color="inherit" onClick={onDismiss} sx={{ textTransform: 'none', color: '#cbd5e1' }}>
               Dismiss
             </Button>

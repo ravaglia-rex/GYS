@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo } from 'react';
 import { Box, Typography, Card, CardContent, Chip, Button, LinearProgress, Tooltip } from '@mui/material';
 import {
   Lock as LockIcon,
@@ -131,6 +131,8 @@ interface EnhancedAssessmentCardsGroupProps {
     previewDisableStartNavigation?: boolean;
     /** Assessment IDs whose primary Start CTA stays visible but does not navigate (preview only) */
     previewBlockStartForIds?: readonly string[];
+    /** Assessment IDs whose preview sample CTA should be hidden */
+    previewHideSampleCtaForIds?: readonly string[];
   };
 }
 
@@ -149,6 +151,8 @@ interface AssessmentCardProps {
   previewSampleExitTo?: string;
   /** Preview: Start button shown but click is a no-op */
   previewStartBlocked?: boolean;
+  /** Preview: hide the sample assessment CTA for this card */
+  previewSampleCtaHidden?: boolean;
   /** Live student gate while official question banks are not ready */
   officialStartPaused?: boolean;
 }
@@ -162,6 +166,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
   previewSamplePath,
   previewSampleExitTo,
   previewStartBlocked = false,
+  previewSampleCtaHidden = false,
   officialStartPaused = false,
 }) => {
   const navigate = useNavigate();
@@ -224,7 +229,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
   const reasoningSubcategories = getReasoningExamSubcategories(assessment.id);
 
   /** Fixed slots so device chips, tier bar, and stats line up across cards in the same grid row */
-  const STATS_ROW_SLOT_MIN = 68;
+  const STATS_ROW_SLOT_MIN = 48;
   const hasStats = !isLocked && (attemptsCount > 0 || tiersDone > 0);
   const levelScoreBreakdown =
     !isLocked && levelBased
@@ -234,6 +239,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
     ? levelScoreBreakdown
     : levelScoreBreakdown.filter((row) => row.score0to100 != null);
   const showLevelScoreBreakdown = visibleLevelScoreBreakdown.length > 0;
+  const previewBlockedStartCtaLabel = `Start Assessment ${meta.assessmentNumber}`;
 
   return (
     <Card sx={{
@@ -260,22 +266,22 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
         sx={{
           flex: 1,
           minHeight: 0,
-          p: '20px !important',
+          p: '16px !important',
           display: 'flex',
           flexDirection: 'column',
-          '&:last-child': { pb: '20px !important' },
+          '&:last-child': { pb: '16px !important' },
         }}
       >
         {/* Never put header/description inside flex:1 + minHeight:0 - it can shrink to zero and overlap the footer */}
         <Box sx={{ flex: '0 0 auto' }}>
         {/* Header */}
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.15 }}>
             <Box sx={{
-              width: 48, height: 48, borderRadius: 2,
+              width: 42, height: 42, borderRadius: 2,
               background: isLocked ? 'rgba(100,116,139,0.2)' : meta.gradient,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '1.5rem', flexShrink: 0, position: 'relative',
+              fontSize: '1.35rem', flexShrink: 0, position: 'relative',
             }}>
               {isLocked ? '🔒' : meta.icon}
             </Box>
@@ -316,36 +322,29 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
         </Box>
 
         {/* Description */}
-        <Typography variant="body2" sx={{ color: '#64748b', fontSize: '0.85rem', mb: 1, lineHeight: 1.45 }}>
+        <Typography variant="body2" sx={{ color: '#64748b', fontSize: '0.8rem', mb: 0.8, lineHeight: 1.35 }}>
           {meta.description}
         </Typography>
         </Box>
 
-        {/* Only this region uses flex:1 + minHeight:0 so equal-height cards get scrollable subcats without crushing the header */}
+        {/* Keep subcategories natural-height so cards do not grow a large scrollable middle section. */}
         {reasoningSubcategories.length > 0 ? (
           <Box
             sx={{
-              flex: 1,
-              minHeight: 0,
+              flex: '0 0 auto',
               display: 'flex',
               flexDirection: 'column',
-              overflow: 'hidden',
             }}
           >
-            <Typography variant="caption" sx={{ color: '#475569', fontSize: '0.76rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', mb: 0.75, flexShrink: 0 }}>
+            <Typography variant="caption" sx={{ color: '#475569', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', mb: 0.35, flexShrink: 0 }}>
               Subcategories
             </Typography>
             <Box
               component="ul"
               sx={{
-                flex: 1,
-                minHeight: 0,
                 m: 0,
-                pl: 2,
+                pl: 1.6,
                 listStyleType: 'disc',
-                overflowY: 'auto',
-                pr: 0.5,
-                scrollbarWidth: 'thin',
               }}
             >
               {reasoningSubcategories.map((line) => (
@@ -353,7 +352,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
                   key={line}
                   component="li"
                   variant="caption"
-                  sx={{ color: '#94a3b8', fontSize: '0.875rem', lineHeight: 1.55, display: 'list-item' }}
+                  sx={{ color: '#94a3b8', fontSize: '0.76rem', lineHeight: 1.35, display: 'list-item' }}
                 >
                   {line}
                 </Typography>
@@ -369,10 +368,11 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
             flex: '0 0 auto',
             display: 'flex',
             flexDirection: 'column',
-            gap: 1.5,
+            gap: 1,
             width: '100%',
             minWidth: 0,
-            mt: 1.5,
+            mt: 1,
+            pt: 1,
           }}
         >
           <Box
@@ -476,7 +476,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
 
         <Box>
         {showLevelProgress ? (
-          <Box sx={{ mb: showLevelScoreBreakdown ? 1.5 : 2.25 }}>
+          <Box sx={{ mb: showLevelScoreBreakdown ? 1 : 1.4 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5, alignItems: 'baseline', gap: 1 }}>
               <Tooltip title="How many levels are complete in this assessment.">
                 <Typography
@@ -511,8 +511,8 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
         {showLevelScoreBreakdown ? (
           <Box
             sx={{
-              mb: 2,
-              p: 1.25,
+              mb: 1.25,
+              p: 1,
               borderRadius: 1.5,
               bgcolor: 'rgba(15, 23, 42, 0.52)',
               border: '1px solid rgba(148, 163, 184, 0.16)',
@@ -526,13 +526,13 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
                 display: 'block',
                 textTransform: 'uppercase',
                 letterSpacing: 0.4,
-                mb: 0.75,
+                mb: 0.5,
                 fontWeight: 700,
               }}
             >
               {allTiersComplete ? 'Score by level' : 'Completed level scores'}
             </Typography>
-            <Box sx={{ display: 'grid', gap: 0.55 }}>
+            <Box sx={{ display: 'grid', gap: 0.35 }}>
               {visibleLevelScoreBreakdown.map((row) => (
                 <Box
                   key={row.level}
@@ -638,22 +638,24 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
           </Button>
         ) : allTiersComplete ? (
           previewNavPath ? (
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<PlayArrowIcon />}
-              onClick={() => goPreviewSample(previewNavPath)}
-              sx={{
-                borderColor: `${meta.color}80`,
-                color: meta.color,
-                borderRadius: 1.5,
-                fontSize: '0.875rem',
-                fontWeight: 700,
-                '&:hover': { borderColor: meta.color, bgcolor: `${meta.color}12` },
-              }}
-            >
-              Try sample assessments
-            </Button>
+            previewSampleCtaHidden ? null : (
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={<PlayArrowIcon />}
+                onClick={() => goPreviewSample(previewNavPath)}
+                sx={{
+                  borderColor: `${meta.color}80`,
+                  color: meta.color,
+                  borderRadius: 1.5,
+                  fontSize: '0.875rem',
+                  fontWeight: 700,
+                  '&:hover': { borderColor: meta.color, bgcolor: `${meta.color}12` },
+                }}
+              >
+                Try sample assessment
+              </Button>
+            )
           ) : (
             <Button fullWidth variant="outlined" startIcon={<TrendingUpIcon />} disabled
               sx={{ borderColor: '#1e3a2f', color: '#10b981', borderRadius: 1.5, fontSize: '0.875rem' }}>
@@ -707,22 +709,44 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
           </Box>
         ) : canStart ? (
           previewStartBlocked && previewNavPath ? (
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<PlayArrowIcon />}
-              onClick={() => goPreviewSample(previewNavPath)}
-              sx={{
-                borderColor: `${meta.color}80`,
-                color: meta.color,
-                borderRadius: 1.5,
-                fontSize: '0.875rem',
-                fontWeight: 700,
-                '&:hover': { borderColor: meta.color, bgcolor: `${meta.color}12` },
-              }}
-            >
-              Try sample assessment
-            </Button>
+            previewSampleCtaHidden ? (
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={<PlayArrowIcon />}
+                disabled
+                sx={{
+                  borderColor: '#475569',
+                  color: '#94a3b8',
+                  borderRadius: 1.5,
+                  fontSize: '0.875rem',
+                  fontWeight: 700,
+                  '&.Mui-disabled': {
+                    borderColor: '#334155',
+                    color: '#64748b',
+                  },
+                }}
+              >
+                {previewBlockedStartCtaLabel}
+              </Button>
+            ) : (
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={<PlayArrowIcon />}
+                onClick={() => goPreviewSample(previewNavPath)}
+                sx={{
+                  borderColor: `${meta.color}80`,
+                  color: meta.color,
+                  borderRadius: 1.5,
+                  fontSize: '0.875rem',
+                  fontWeight: 700,
+                  '&:hover': { borderColor: meta.color, bgcolor: `${meta.color}12` },
+                }}
+              >
+                Try sample assessment
+              </Button>
+            )
           ) : (
           <Button
             fullWidth
@@ -881,51 +905,6 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
     return true;
   });
 
-  const gridRef = useRef<HTMLDivElement>(null);
-  const [uniformCardMinPx, setUniformCardMinPx] = useState<number | null>(null);
-  const filteredLayoutKey = filtered.map(({ assessment }) => assessment.id).join('|');
-
-  useLayoutEffect(() => {
-    const grid = gridRef.current;
-    if (!grid || filtered.length === 0) {
-      setUniformCardMinPx(null);
-      return;
-    }
-
-    const measure = () => {
-      const kids = Array.from(grid.children).filter((n): n is HTMLElement => n instanceof HTMLElement);
-      if (kids.length === 0) {
-        setUniformCardMinPx(null);
-        return;
-      }
-      const maxH = Math.max(...kids.map((k) => k.getBoundingClientRect().height));
-      if (maxH <= 0) return;
-      const next = Math.ceil(maxH);
-      setUniformCardMinPx((prev) => (prev != null && Math.abs(prev - next) <= 1 ? prev : next));
-    };
-
-    let raf = 0;
-    const schedule = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(measure);
-    };
-
-    let ro: ResizeObserver | undefined;
-    if (typeof ResizeObserver !== 'undefined') {
-      ro = new ResizeObserver(schedule);
-      Array.from(grid.children).forEach((c) => ro!.observe(c));
-    }
-
-    schedule();
-    window.addEventListener('resize', schedule);
-
-    return () => {
-      cancelAnimationFrame(raf);
-      ro?.disconnect();
-      window.removeEventListener('resize', schedule);
-    };
-  }, [filtered.length, filteredLayoutKey, filterType]);
-
   if (loading) return (
     <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
       <BigSpinner />
@@ -957,11 +936,11 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
         </Box>
       ) : (
         <Box
-          ref={gridRef}
           sx={{
             display: 'grid',
             alignItems: 'stretch',
             gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' },
+            gridAutoRows: { sm: '1fr' },
             gap: 2.5,
           }}
         >
@@ -973,7 +952,6 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
                 flexDirection: 'column',
                 minWidth: 0,
                 height: '100%',
-                ...(uniformCardMinPx != null ? { minHeight: uniformCardMinPx } : {}),
               }}
             >
               <AssessmentCard
@@ -991,6 +969,9 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
                 previewStartBlocked={Boolean(
                   previewBundle?.previewDisableStartNavigation ||
                     previewBundle?.previewBlockStartForIds?.includes(assessment.id)
+                )}
+                previewSampleCtaHidden={Boolean(
+                  previewBundle?.previewHideSampleCtaForIds?.includes(assessment.id)
                 )}
                 officialStartPaused={!previewBundle && !STUDENT_OFFICIAL_ASSESSMENTS_ENABLED}
               />

@@ -66,6 +66,9 @@ const STUDENT_NAV_TUTORIAL_ID: Partial<Record<string, string>> = {
   '/settings': 'student-nav-settings',
 };
 
+const ASSESSMENTS_NAV_COLOR = '#3b82f6';
+const HOW_GYS_NAV_COLOR = '#f97316';
+
 const navItems: NavItem[] = [
   {
     title: 'Dashboard',
@@ -75,7 +78,7 @@ const navItems: NavItem[] = [
   {
     title: 'How GYS Works',
     path: '/how-it-works',
-    icon: <HelpOutlineIcon sx={{ color: '#67e8f9' }} />,
+    icon: <HelpOutlineIcon sx={{ color: HOW_GYS_NAV_COLOR }} />,
   },
   {
     title: 'School Leaderboard',
@@ -90,11 +93,11 @@ const navItems: NavItem[] = [
   {
     title: 'Assessments',
     path: '/assessments',
-    icon: <AssessmentIcon sx={{ color: '#3b82f6' }} />,
+    icon: <AssessmentIcon sx={{ color: ASSESSMENTS_NAV_COLOR }} />,
     children: [
-      { title: 'Available', path: '/assessments/available', icon: <SchoolIcon sx={{ color: '#10b981' }} /> },
-      { title: 'Completed & Results', path: '/assessments/completed', icon: <BarChartIcon sx={{ color: '#06b6d4' }} /> },
-      { title: 'Reports', path: '/assessments/reports', icon: <AssignmentIcon sx={{ color: '#f59e0b' }} /> },
+      { title: 'Available', path: '/assessments/available', icon: <SchoolIcon sx={{ color: ASSESSMENTS_NAV_COLOR }} /> },
+      { title: 'Completed & Results', path: '/assessments/completed', icon: <BarChartIcon sx={{ color: ASSESSMENTS_NAV_COLOR }} /> },
+      { title: 'Reports', path: '/assessments/reports', icon: <AssignmentIcon sx={{ color: ASSESSMENTS_NAV_COLOR }} /> },
     ],
   },
   {
@@ -359,7 +362,6 @@ export default function SidebarNavigation({ collapsed, onCollapse, onClose }: Si
         </List>
       </Box>
 
-      {/* Home — directly above logout */}
       <Box sx={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
         <List sx={{ py: 1 }}>
           {renderNavItem(homeNavItem)}

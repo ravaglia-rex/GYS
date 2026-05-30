@@ -8,7 +8,7 @@ import {
 
 export const studentFaqSections: { heading: string; items: LandingFaqItem[] }[] = [
   {
-    heading: 'Student / Family FAQs',
+    heading: 'General',
     items: [
       {
         question: 'What is GYS?',

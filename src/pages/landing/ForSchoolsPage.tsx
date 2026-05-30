@@ -1,9 +1,9 @@
 import React, { useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import LandingPublicHeader from '../../components/layout/LandingPublicHeader';
 import LandingSiteFooter from '../../components/layout/LandingSiteFooter';
-import PublicSamplesNavMenu from '../../components/layout/PublicSamplesNavMenu';
 import LandingFaq from '../../components/landing/LandingFaq';
-import { LandingHeaderScrollProgress, LandingSectionRail } from '../../components/landing/LandingScrollChrome';
+import { LandingSectionRail } from '../../components/landing/LandingScrollChrome';
 import { GYS_BLUE, GYS_GOLD } from '../../constants/gysBrand';
 import {
   useLandingRevealInContainer,
@@ -157,6 +157,34 @@ const SCHOOL_PACKAGE_COMPARISON: SchoolComparisonSection[] = [
   },
 ];
 
+const SCHOOL_PACKAGE_MOBILE_LABELS: Record<string, string> = {
+  'Participating students (annual license)': 'Students',
+  'Assessment 1 (Pattern & Logic)': 'Assessment 1',
+  'Assessments 1–3 (full reasoning triad)': 'Assessments 1-3',
+  'Assessments 4–5 (English & AI proficiency)': 'Assessments 4-5',
+  'Headline performance & tier distribution': 'Performance tiers',
+  'Full analytics & subscore breakdowns': 'Full analytics',
+  'Class-level analysis': 'Class analysis',
+  'Comparative benchmarks (national, regional)': 'Benchmarks',
+  'Quarterly growth tracking': 'Growth tracking',
+  'Prioritized recommendations': 'Recommendations',
+  'Cohort analysis & cluster insights': 'Cohort insights',
+  'Consulting-style action plans': 'Action plans',
+  'Dedicated account manager': 'Account manager',
+  'Marketing toolkit (tier badges, parent comms)': 'Marketing toolkit',
+};
+
+function schoolPackageMobileLabel(label: string): string {
+  return SCHOOL_PACKAGE_MOBILE_LABELS[label] ?? label;
+}
+
+function schoolPackageMobileTierText(text: string): string {
+  return text
+    .replace('Up to ~200 students', '~200')
+    .replace('Up to ~500 students', '~500')
+    .replace('No student cap (per campus)', 'No cap');
+}
+
 const ForSchoolsPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -180,70 +208,10 @@ const ForSchoolsPage: React.FC = () => {
       className="flex min-h-screen flex-col overflow-x-clip bg-slate-50 text-slate-900"
     >
       <LandingSectionRail sections={FOR_SCHOOLS_NAV} activeSectionId={activeSectionId} />
-      {/* Top nav */}
-      <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/90 backdrop-blur relative">
-        <LandingHeaderScrollProgress scrollProgress={scrollProgress} />
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-3 sm:gap-6">
-          <div className="flex items-center gap-3 group">
-            <div
-              className="flex w-10 h-10 rounded items-center justify-center text-white font-bold text-sm shrink-0 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:shadow-md"
-              style={{ backgroundColor: GYS_BLUE }}
-            >
-              GYS
-            </div>
-            <div>
-              <h1 className="hidden sm:block font-bold text-lg text-gray-900 tracking-tight">
-                Global Young Scholar
-              </h1>
-              <p className="text-xs text-gray-500">
-                Powered by Argus, Access USA, EducationWorld
-              </p>
-            </div>
-          </div>
-          <nav className="hidden md:flex items-center gap-8 text-base font-semibold">
-            <button
-              type="button"
-              onClick={() => navigate('/')}
-              className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
-            >
-              Home
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/students')}
-              className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
-            >
-              For Students
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/for-schools')}
-              className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
-            >
-              For Schools
-            </button>
-            <PublicSamplesNavMenu />
-          </nav>
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={() => navigate('/for-schools/register')}
-              className="px-5 py-2.5 rounded-xl text-sm font-medium shrink-0 border-2 bg-white shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-transform duration-150"
-              style={{ borderColor: GYS_BLUE, color: GYS_BLUE }}
-            >
-              Sign up
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/login')}
-              className="px-5 py-2.5 rounded-xl border-2 border-transparent text-white text-sm font-medium shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-transform duration-150"
-              style={{ backgroundColor: GYS_BLUE }}
-            >
-              Log In
-            </button>
-          </div>
-        </div>
-      </header>
+      <LandingPublicHeader
+        scrollProgress={scrollProgress}
+        signUp={{ show: true, path: '/for-schools/register', variant: 'outline' }}
+      />
 
       <main className="flex-1 pb-14">
         {/* Hero band */}
@@ -442,12 +410,16 @@ const ForSchoolsPage: React.FC = () => {
                Roster limits and annual fees are in{' '}
                 <span className="font-medium text-slate-800">Plans &amp; pricing</span> below.
               </p>
+              <p className="mx-auto mt-2 max-w-xs text-xs leading-relaxed text-slate-500 sm:hidden">
+                Mobile view is simplified. View on a tablet or computer for the full comparison details.
+              </p>
 
               <div
-                className="mx-auto mt-6 max-w-4xl overflow-hidden rounded-2xl border border-slate-200 bg-white text-left shadow-md ring-1 ring-slate-100"
+                className="mx-auto mt-6 max-w-4xl overflow-x-auto rounded-2xl border border-slate-200 bg-white text-left shadow-md ring-1 ring-slate-100 [-ms-overflow-style:none] [scrollbar-width:thin]"
                 role="region"
                 aria-label="Institutional plans comparison"
               >
+                <div className="min-w-[300px]">
                 <div className="grid grid-cols-[minmax(0,1fr)_repeat(3,minmax(0,4.75rem))] gap-x-0.5 border-b border-slate-200 bg-slate-50 sm:grid-cols-[minmax(0,1fr)_repeat(3,minmax(0,6rem))] sm:gap-x-1">
                   <div className="px-3 py-2 text-[0.65rem] font-semibold uppercase tracking-wide text-slate-500 sm:px-4 sm:py-2.5 sm:text-xs">
                     Capability
@@ -479,17 +451,22 @@ const ForSchoolsPage: React.FC = () => {
                         style={section.group === 'assessments' ? { borderLeftColor: GYS_BLUE } : undefined}
                       >
                         <p className="text-xs font-bold text-slate-800 sm:text-sm">{section.title}</p>
-                        <p className="text-[0.65rem] text-slate-600 sm:text-xs">{section.hint}</p>
+                        <p className="hidden text-[0.65rem] text-slate-600 sm:block sm:text-xs">{section.hint}</p>
                       </div>
                       {section.rows.map((row) => (
                         <div
                           key={row.label}
                           className="grid grid-cols-[minmax(0,1fr)_repeat(3,minmax(0,4.75rem))] items-center gap-x-0.5 border-b border-slate-100 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_repeat(3,minmax(0,6rem))] sm:gap-x-1"
                         >
-                          <div className="min-w-0 px-3 py-2 sm:px-4 sm:py-2">
-                            <span className="text-sm font-semibold leading-tight text-slate-900">{row.label}</span>
+                          <div className="min-w-0 px-3 py-3 sm:px-4 sm:py-2">
+                            <span className="text-sm font-semibold leading-tight text-slate-900 sm:hidden">
+                              {schoolPackageMobileLabel(row.label)}
+                            </span>
+                            <span className="hidden text-sm font-semibold leading-tight text-slate-900 sm:inline">
+                              {row.label}
+                            </span>
                             {row.desc ? (
-                              <p className="mt-0.5 text-[0.7rem] leading-snug text-slate-500 sm:text-xs">
+                              <p className="mt-0.5 hidden text-[0.7rem] leading-snug text-slate-500 sm:block sm:text-xs">
                                 {row.desc}
                               </p>
                             ) : null}
@@ -502,7 +479,8 @@ const ForSchoolsPage: React.FC = () => {
                                   aria-label={`${row.label} for ${SCHOOL_PLAN_TIER_HEADERS[i].title}: ${text}`}
                                 >
                                   <span className="hyphens-auto text-center text-[0.62rem] font-semibold leading-tight text-slate-800 sm:text-[0.7rem]">
-                                    {text}
+                                    <span className="sm:hidden">{schoolPackageMobileTierText(text)}</span>
+                                    <span className="hidden sm:inline">{text}</span>
                                   </span>
                                 </div>
                               ))
@@ -535,6 +513,7 @@ const ForSchoolsPage: React.FC = () => {
                   <span className="font-semibold text-slate-800">Standard</span>, plus Assessments 4–5, cohort depth,
                   consulting-style support, and partnership benefits listed above.
                 </p>
+                </div>
               </div>
             </div>
           </section>
@@ -585,17 +564,17 @@ const ForSchoolsPage: React.FC = () => {
           {/* EducationWorld strip */}
           <section id="schools-ew" data-landing-reveal className="mt-10 sm:mt-12">
             <div className="rounded-2xl bg-[#eef4ff] px-4 py-4 shadow-sm sm:px-5 sm:py-4 md:px-6 md:py-5">
-              <div className="flex items-center gap-4 sm:gap-5">
+              <div className="flex flex-col items-center gap-4 text-center md:grid md:grid-cols-[6.5rem_minmax(0,1fr)] md:items-center md:gap-4 md:text-left">
                 <img
                   src="/EW%20logo.png"
                   alt="EducationWorld"
-                  className="h-24 w-auto max-w-[11rem] shrink-0 object-contain sm:h-28 sm:max-w-[13rem]"
+                  className="h-24 w-auto max-w-[11rem] shrink-0 object-contain md:h-28 md:max-w-[8rem] md:-ml-5 md:justify-self-start"
                 />
-                <div className="min-w-0 text-left">
+                <div className="min-w-0">
                   <p className="text-sm font-semibold text-slate-900 sm:text-base">
                     Presented by EducationWorld
                   </p>
-                  <p className="mt-1.5 text-xs leading-snug text-slate-700 sm:text-sm sm:leading-relaxed">
+                  <p className="mt-1.5 text-justify text-xs leading-snug text-slate-700 sm:text-sm sm:leading-relaxed">
                     India&apos;s most trusted name in school assessment and ranking. Your data, our
                     expertise. For the past 20 years, the annual EducationWorld India School Rankings,
                     the world&apos;s largest and most comprehensive schools survey, has stimulated and
@@ -628,7 +607,7 @@ const ForSchoolsPage: React.FC = () => {
           <div data-landing-reveal>
             <LandingFaq
               id="faq"
-              title="GYS - Frequently Asked Questions"
+              title="Frequently Asked Questions"
               sections={schoolFaqSections}
               className="mt-12 sm:mt-14"
             />

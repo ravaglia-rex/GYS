@@ -24,6 +24,7 @@ import {
 
 const SAMPLE_ASSESSMENT_PATH = getPreviewSampleAssessmentPath(DEFAULT_PREVIEW_SAMPLE_EXAM_ID);
 const SAMPLE_ASSESSMENT_EXIT = '/students/preview/dashboard';
+const HIDE_SAMPLE_CTA_ASSESSMENT_IDS = ['english_proficiency', 'ai_literacy'] as const;
 const PREVIEW_NOTIFICATION_TIMESTAMP = '2026-05-01T04:30:00.000Z';
 
 const PREVIEW_BACKEND_NOTIFICATION_EVENTS: DashboardNotificationEventSource[] = [
@@ -151,6 +152,7 @@ const StudentPreviewDashboardPage: React.FC = () => {
             previewSampleExitTo: SAMPLE_ASSESSMENT_EXIT,
             previewGrade: PREVIEW_STUDENT_PROFILE.grade,
             previewDisableStartNavigation: true,
+            previewHideSampleCtaForIds: HIDE_SAMPLE_CTA_ASSESSMENT_IDS,
           }}
         />
       </Box>

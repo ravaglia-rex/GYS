@@ -65,27 +65,51 @@ type SectionCardProps = {
 
 const SectionCard: React.FC<SectionCardProps> = ({ id, icon, title, subtitle, children }) => (
   <Paper id={id} data-tutorial-id={id} sx={{ ...glassPanelSx, p: { xs: 2.25, md: 3 } }}>
-    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
-      <Avatar
-        sx={{
-          width: 48,
-          height: 48,
-          background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)',
-          color: 'white',
-          flexShrink: 0,
-        }}
-      >
-        {icon}
-      </Avatar>
-      <Box>
+    <Box sx={{ mb: 2 }}>
+      <Box sx={{ display: { xs: 'flex', sm: 'none' }, alignItems: 'center', gap: 2, minWidth: 0 }}>
+        <Avatar
+          sx={{
+            width: 48,
+            height: 48,
+            background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)',
+            color: 'white',
+            flexShrink: 0,
+          }}
+        >
+          {icon}
+        </Avatar>
         <Typography variant="h5" sx={{ color: 'white', fontWeight: 800, lineHeight: 1.15 }}>
           {title}
         </Typography>
-        {subtitle && (
-          <Typography sx={{ color: 'rgba(255, 255, 255, 0.68)', mt: 0.75, lineHeight: 1.6 }}>
-            {subtitle}
+      </Box>
+      {subtitle && (
+        <Typography sx={{ display: { xs: 'block', sm: 'none' }, color: 'rgba(255, 255, 255, 0.68)', mt: 1.5, lineHeight: 1.6 }}>
+          {subtitle}
+        </Typography>
+      )}
+
+      <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'flex-start', gap: 2, minWidth: 0 }}>
+        <Avatar
+          sx={{
+            width: 48,
+            height: 48,
+            background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)',
+            color: 'white',
+            flexShrink: 0,
+          }}
+        >
+          {icon}
+        </Avatar>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography variant="h5" sx={{ color: 'white', fontWeight: 800, lineHeight: 1.15 }}>
+            {title}
           </Typography>
-        )}
+          {subtitle && (
+            <Typography sx={{ color: 'rgba(255, 255, 255, 0.68)', mt: 0.75, lineHeight: 1.6 }}>
+              {subtitle}
+            </Typography>
+          )}
+        </Box>
       </Box>
     </Box>
     {children}
@@ -240,7 +264,7 @@ const gradeRows = [
 ];
 
 const percentileRows = [
-  { percentile: 'Not enough core results yet', badge: 'Explorer', meaning: 'You are still getting started.' },
+  { percentile: 'No core results yet', badge: 'Explorer', meaning: 'You are still getting started.' },
   { percentile: '0-60th percentile', badge: 'Bronze', meaning: 'You are building steady skills.' },
   { percentile: '61st-80th percentile', badge: 'Silver', meaning: 'You are ahead of many students in your class.' },
   { percentile: '81st-90th percentile', badge: 'Gold', meaning: 'You are performing strongly.' },
@@ -283,31 +307,61 @@ export const HowItWorksContent: React.FC = () => {
                 'radial-gradient(circle at top left, rgba(139, 92, 246, 0.35), transparent 34%), radial-gradient(circle at bottom right, rgba(6, 182, 212, 0.2), transparent 32%), rgba(30, 41, 59, 0.66)',
             }}
           >
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: 2.5, position: 'relative' }}>
-              <Avatar
-                sx={{
-                  width: 64,
-                  height: 64,
-                  mt: 0.25,
-                  background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)',
-                  color: 'white',
-                }}
-              >
-                <HelpOutlineIcon sx={{ fontSize: 36 }} />
-              </Avatar>
-              <Box sx={{ flex: '1 1 320px', minWidth: 0 }}>
+            <Box sx={{ position: 'relative' }}>
+              <Box sx={{ display: { xs: 'flex', sm: 'none' }, alignItems: 'center', gap: 2, minWidth: 0 }}>
+                <Avatar
+                  sx={{
+                    width: 52,
+                    height: 52,
+                    flexShrink: 0,
+                    background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)',
+                    color: 'white',
+                  }}
+                >
+                  <HelpOutlineIcon sx={{ fontSize: 30 }} />
+                </Avatar>
                 <Typography
                   variant="h4"
                   sx={{
                     ...studentPageTitleSx,
+                    fontSize: { xs: '1.5rem', sm: '2rem' },
+                    lineHeight: 1.15,
+                    minWidth: 0,
                   }}
                 >
                   How GYS Works
                 </Typography>
-                <Typography variant="h6" sx={{ ...studentPageSubtitleSx, lineHeight: 1.65 }}>
-                  Think of GYS like a learning adventure map! You take exams, complete levels, unlock the next challenge,
-                  and see how your skills grow compared with students in your class.
-                </Typography>
+              </Box>
+              <Typography variant="h6" sx={{ ...studentPageSubtitleSx, display: { xs: 'block', sm: 'none' }, mt: 2, lineHeight: 1.65 }}>
+                Think of GYS like a learning adventure map! You take exams, complete levels, unlock the next challenge,
+                and see how your skills grow compared with students in your class.
+              </Typography>
+              <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'flex-start', gap: 2.5, minWidth: 0 }}>
+                <Avatar
+                  sx={{
+                    width: 64,
+                    height: 64,
+                    flexShrink: 0,
+                    background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)',
+                    color: 'white',
+                  }}
+                >
+                  <HelpOutlineIcon sx={{ fontSize: 36 }} />
+                </Avatar>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography
+                    variant="h4"
+                    sx={{
+                      ...studentPageTitleSx,
+                    }}
+                  >
+                    How GYS Works
+                  </Typography>
+                  <Typography variant="h6" sx={{ ...studentPageSubtitleSx, lineHeight: 1.65 }}>
+                    Think of GYS like a learning adventure map! You take exams, complete levels, unlock the next challenge,
+                    and see how your skills grow compared with students in your class.
+                  </Typography>
+                </Box>
               </Box>
             </Box>
 
@@ -483,7 +537,30 @@ export const HowItWorksContent: React.FC = () => {
               title="Compete within your class"
               subtitle="Your standing depends on your level, which is decided by your class."
             >
-              <TableContainer component={Box} sx={{ borderRadius: 2, overflowX: 'auto', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <Box sx={{ display: { xs: 'grid', sm: 'none' }, gap: 1.5 }}>
+                {gradeRows.map((row) => (
+                  <Box
+                    key={row.grades}
+                    sx={{
+                      p: 2,
+                      borderRadius: 2,
+                      bgcolor: 'rgba(15, 23, 42, 0.52)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                    }}
+                  >
+                    <Typography sx={{ color: 'white', fontWeight: 900, fontSize: '1rem', mb: 0.75 }}>
+                      {row.grades}
+                    </Typography>
+                    <Typography sx={{ color: '#93c5fd', fontWeight: 800, fontSize: '0.95rem', mb: 1.25 }}>
+                      {row.comparisonLevel}
+                    </Typography>
+                    <Typography sx={{ color: 'rgba(255, 255, 255, 0.76)', lineHeight: 1.55 }}>
+                      {row.childCopy}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+              <TableContainer component={Box} sx={{ display: { xs: 'none', sm: 'block' }, borderRadius: 2, overflowX: 'auto', border: '1px solid rgba(255,255,255,0.08)' }}>
                 <Table size="small">
                   <TableHead>
                     <TableRow>

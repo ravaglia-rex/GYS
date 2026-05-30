@@ -314,7 +314,39 @@ const StudentPreviewBillingPage: React.FC = () => {
 
         <TabPanel value={tab} index={1}>
           <Box sx={{ p: { xs: 1, sm: 2 } }}>
-            <Table size="small">
+            <Box sx={{ display: { xs: 'grid', sm: 'none' }, gap: 1.5 }}>
+              {MOCK_PAID.map((p) => (
+                <Paper
+                  key={p.transactionId}
+                  elevation={0}
+                  sx={{
+                    p: 2,
+                    bgcolor: 'rgba(15, 23, 42, 0.45)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: 2,
+                  }}
+                >
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1.5, alignItems: 'flex-start' }}>
+                    <Typography sx={{ color: 'rgba(255,255,255,0.9)', fontWeight: 600, lineHeight: 1.35 }}>
+                      {p.lineName}
+                    </Typography>
+                    <Typography sx={{ color: '#c4b5fd', fontWeight: 700, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      {p.currency} {p.amount.toLocaleString('en-IN')}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1.5, gap: 2 }}>
+                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.62)' }}>
+                      {p.paidOn.toLocaleDateString()}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#a78bfa', fontWeight: 600 }}>
+                      {p.status}
+                    </Typography>
+                  </Box>
+                </Paper>
+              ))}
+            </Box>
+
+            <Table size="small" sx={{ display: { xs: 'none', sm: 'table' } }}>
               <TableHead>
                 <TableRow sx={{ '& th': { color: '#e2e8f0', borderColor: 'rgba(255,255,255,0.08)', fontWeight: 700 } }}>
                   <TableCell>Description</TableCell>

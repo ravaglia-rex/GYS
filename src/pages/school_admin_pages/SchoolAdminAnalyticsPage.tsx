@@ -499,10 +499,11 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                     color: ip.heading,
                     border: `1px solid ${ip.cardBorder}`,
                     borderRadius: 1,
-                    overflow: 'hidden',
+                    overflowX: 'auto',
+                    maxWidth: '100%',
                   }}
                 >
-                  <Table size="small" sx={{ bgcolor: '#fff' }}>
+                  <Table size="small" sx={{ bgcolor: '#fff', minWidth: 480 }}>
                     <TableHead>
                       <TableRow
                         sx={{

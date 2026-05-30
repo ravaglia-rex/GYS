@@ -106,7 +106,6 @@ const SchoolAdminReportsPage: React.FC = () => {
         subtitle="Quarterly PDFs stored for your school. Download any past report."
       />
 
-    
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
           {error}
@@ -140,7 +139,8 @@ const SchoolAdminReportsPage: React.FC = () => {
                 color: ip.heading,
                 border: `1px solid ${ip.cardBorder}`,
                 borderRadius: 2,
-                overflow: 'hidden',
+                overflowX: 'auto',
+                maxWidth: '100%',
               }}
             >
               <Table

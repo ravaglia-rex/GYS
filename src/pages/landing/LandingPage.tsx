@@ -2,8 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import LandingSiteFooter from '../../components/layout/LandingSiteFooter';
-import PublicSamplesNavMenu from '../../components/layout/PublicSamplesNavMenu';
-import { LandingHeaderScrollProgress, LandingSectionRail } from '../../components/landing/LandingScrollChrome';
+import LandingPublicHeader from '../../components/layout/LandingPublicHeader';
+import { LandingSectionRail } from '../../components/landing/LandingScrollChrome';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { GYS_BLUE, GYS_GOLD } from '../../constants/gysBrand';
 import { useLandingScrollProgress, useLandingSectionSpy } from '../../hooks/useLandingPageScroll';
@@ -147,13 +147,6 @@ const StatItem: React.FC<StatItemProps> = ({ target, suffix = '', label, trigger
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const [statsVisible, setStatsVisible] = useState(false);
-  const goToHomepage = () => {
-    if (window.location.pathname === '/') {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-    navigate('/');
-  };
   const scrollProgress = useLandingScrollProgress();
   const activeSectionId = useLandingSectionSpy(LANDING_SECTION_IDS_JOIN);
   const statsRef = useRef<HTMLDivElement | null>(null);
@@ -178,67 +171,7 @@ const LandingPage: React.FC = () => {
   return (
     <div className="overflow-x-clip bg-white text-gray-900">
       <LandingSectionRail sections={LANDING_SECTIONS} activeSectionId={activeSectionId} />
-      {/* Header + scroll progress (same chrome as other public marketing pages) */}
-      <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/90 backdrop-blur relative">
-        <LandingHeaderScrollProgress scrollProgress={scrollProgress} />
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-3 sm:gap-6">
-          <button
-            type="button"
-            onClick={goToHomepage}
-            className="flex items-center gap-3 text-left group"
-            aria-label="Go to homepage"
-          >
-            <div
-              className="flex w-10 h-10 rounded items-center justify-center text-white font-bold text-sm shrink-0 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:shadow-md"
-              style={{ backgroundColor: GYS_BLUE }}
-            >
-              GYS
-            </div>
-            <div>
-              <h1 className="hidden sm:block font-bold text-lg text-gray-900 tracking-tight">
-                Global Young Scholar
-              </h1>
-              <p className="text-xs text-gray-500">
-                Powered by Argus, Access USA, EducationWorld
-              </p>
-            </div>
-          </button>
-          <nav className="hidden md:flex items-center gap-8 text-base font-semibold">
-            <button
-              type="button"
-              onClick={() => navigate('/')}
-              className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
-            >
-              Home
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/students')}
-              className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
-            >
-              For Students
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/for-schools')}
-              className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
-            >
-              For Schools
-            </button>
-            <PublicSamplesNavMenu />
-          </nav>
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={() => navigate('/login')}
-              className="px-5 py-2.5 rounded-xl text-white text-sm font-medium shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-transform duration-150"
-              style={{ backgroundColor: GYS_BLUE }}
-            >
-              Log In
-            </button>
-          </div>
-        </div>
-      </header>
+      <LandingPublicHeader scrollProgress={scrollProgress} />
 
       {/* Hero */}
       <section
@@ -410,7 +343,7 @@ const LandingPage: React.FC = () => {
           <p className="text-gray-600 mt-2">Three steps to build a global profile; Tap each step to explore more.</p>
           <div className="mt-10 md:mt-12 text-left">
             <Tabs defaultValue="1" className="mx-auto w-full max-w-3xl">
-              <TabsList className="flex h-auto w-full flex-nowrap items-stretch gap-0 rounded-xl bg-slate-100 p-1.5 text-slate-600">
+              <TabsList className="flex h-auto w-full min-w-0 flex-nowrap items-stretch gap-0 overflow-x-auto rounded-xl bg-slate-100 p-1.5 text-slate-600 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <TabsTrigger
                   value="1"
                   className="min-w-0 flex-1 rounded-lg px-2 py-2.5 text-center text-xs font-semibold leading-tight data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm sm:px-3 sm:text-sm"
@@ -790,17 +723,17 @@ const LandingPage: React.FC = () => {
           {/* EducationWorld - full-width card */}
           <div>
             <div className="rounded-2xl border border-gray-200 bg-white px-4 py-4 shadow-sm sm:px-5 sm:py-4 md:px-6 md:py-5">
-              <div className="flex items-center gap-4 sm:gap-5">
+              <div className="flex flex-col items-center gap-4 text-center md:grid md:grid-cols-[6.5rem_minmax(0,1fr)] md:items-center md:gap-4 md:text-left">
                 <img
                   src="/EW%20logo.png"
                   alt="EducationWorld"
-                  className="h-24 w-auto max-w-[11rem] shrink-0 object-contain sm:h-28 sm:max-w-[13rem]"
+                  className="h-24 w-auto max-w-[11rem] shrink-0 object-contain md:h-28 md:max-w-[8rem] md:-ml-5 md:justify-self-start"
                 />
-                <div className="min-w-0 text-left">
+                <div className="min-w-0">
                   <p className="text-sm font-semibold text-slate-900 sm:text-base">
                     Presented by EducationWorld
                   </p>
-                  <p className="mt-1.5 text-xs leading-snug text-slate-700 sm:text-sm sm:leading-relaxed">
+                  <p className="mt-1.5 text-justify text-xs leading-snug text-slate-700 sm:text-sm sm:leading-relaxed">
                     Trusted by over 5,000 schools and millions of parents nationwide for its credible,
                     comprehensive and in-depth school rankings on a wide range of parameters including
                     academic reputation, teacher competence, co-curricular and sports education. For the

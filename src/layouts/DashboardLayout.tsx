@@ -38,7 +38,25 @@ export default function DashboardLayout({
   useEffect(() => {
     if (!isMobile) {
       setSidebarOpen(true);
+    } else {
+      setSidebarCollapsed(false);
     }
+  }, [isMobile]);
+
+  useEffect(() => {
+    if (!isMobile) return undefined;
+
+    const handleTutorialStepChange = (event: Event) => {
+      const targetId = event instanceof CustomEvent ? event.detail?.targetId : undefined;
+      if (typeof targetId === 'string' && !targetId.startsWith('student-nav-')) {
+        setSidebarOpen(false);
+      }
+    };
+
+    window.addEventListener('argus:tutorial-step-change', handleTutorialStepChange);
+    return () => {
+      window.removeEventListener('argus:tutorial-step-change', handleTutorialStepChange);
+    };
   }, [isMobile]);
 
   const handleDrawerToggle = () => {
@@ -53,6 +71,12 @@ export default function DashboardLayout({
   };
 
   const handleSidebarCollapse = () => {
+    if (isMobile) {
+      setSidebarCollapsed(false);
+      setSidebarOpen(false);
+      return;
+    }
+
     setSidebarCollapsed(!sidebarCollapsed);
   };
 
@@ -62,19 +86,20 @@ export default function DashboardLayout({
 
   return (
     <StudentTutorialProvider>
-    <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#0f172a' }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#0f172a', overflowX: 'hidden' }}>
       {/* Sidebar */}
       <Drawer
         variant={isMobile ? 'temporary' : 'persistent'}
         open={sidebarOpen}
         onClose={handleDrawerToggle}
         sx={{
-          width: sidebarCollapsed ? DRAWER_WIDTH_MINI : DRAWER_WIDTH,
+          width: isMobile ? DRAWER_WIDTH : sidebarCollapsed ? DRAWER_WIDTH_MINI : DRAWER_WIDTH,
           flexShrink: 0,
           '& .MuiDrawer-paper': {
-            width: sidebarCollapsed ? DRAWER_WIDTH_MINI : DRAWER_WIDTH,
+            width: isMobile ? DRAWER_WIDTH : sidebarCollapsed ? DRAWER_WIDTH_MINI : DRAWER_WIDTH,
             boxSizing: 'border-box',
-            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            backgroundColor: '#0f172a',
+            backgroundImage: 'none',
             borderRight: '1px solid rgba(255, 255, 255, 0.1)',
             transition: 'width 0.3s ease',
           },
@@ -95,33 +120,55 @@ export default function DashboardLayout({
           display: 'flex',
           flexDirection: 'column',
           minHeight: '100vh',
+          minWidth: 0,
+          maxWidth: '100%',
           backgroundColor: '#0f172a',
           transition: 'margin 0.3s ease',
           marginLeft: 0,
+          overflowX: 'hidden',
         }}
       >
         {isMobile && (
-          <IconButton
-            color="inherit"
-            aria-label="open navigation menu"
-            onClick={handleDrawerToggle}
+          <Box
             sx={{
-              position: 'fixed',
-              top: 12,
-              left: 12,
-              zIndex: theme.zIndex.appBar,
-              bgcolor: 'rgba(15, 23, 42, 0.92)',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              color: '#e2e8f0',
-              '&:hover': { bgcolor: 'rgba(30, 41, 59, 0.96)' },
+              display: 'flex',
+              alignItems: 'center',
+              px: { xs: 1.5, sm: 2 },
+              pt: 1.5,
+              pb: 1,
+              borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+              backgroundColor: '#0f172a',
             }}
           >
-            <MenuIcon />
-          </IconButton>
+            <IconButton
+              color="inherit"
+              aria-label="open navigation menu"
+              onClick={handleDrawerToggle}
+              sx={{
+                bgcolor: 'rgba(15, 23, 42, 0.92)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                color: '#e2e8f0',
+                '&:hover': { bgcolor: 'rgba(30, 41, 59, 0.96)' },
+              }}
+            >
+              <MenuIcon />
+            </IconButton>
+          </Box>
         )}
 
         {/* Page Content */}
-        <Box sx={{ flexGrow: 1, px: 3, pb: 3, pt: { xs: 9, lg: 3 } }}>
+        <Box
+          sx={{
+            flexGrow: 1,
+            minWidth: 0,
+            px: { xs: 1.5, sm: 2, md: 3 },
+            pb: { xs: 2, md: 3 },
+            pt: { xs: 2, lg: 3 },
+            pl: { xs: 1.5, sm: 2, md: 3 },
+            boxSizing: 'border-box',
+            overflowX: 'hidden',
+          }}
+        >
           {children}
         </Box>
       </Box>

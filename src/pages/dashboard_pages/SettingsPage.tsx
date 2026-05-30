@@ -76,20 +76,22 @@ const SettingsPage: React.FC = () => {
       <Box sx={{ maxWidth: '100%' }}>
         {/* Header Section */}
         <Box sx={{ mb: 4 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 2 }, mb: 2 }}>
             <Avatar sx={{
               width: 64,
               height: 64,
               background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)',
               color: 'white',
+              flexShrink: 0,
             }}>
               <SettingsIcon size={32} />
             </Avatar>
-            <Box>
+            <Box sx={{ minWidth: 0 }}>
               <Typography variant="h4" sx={{ 
                 ...studentPageTitleSx,
+                minWidth: 0,
               }}>
-                Settings & Preferences
+                Settings
               </Typography>
               <Typography variant="h6" sx={studentPageSubtitleSx}>
                 Customize your experience and manage your account
@@ -106,12 +108,19 @@ const SettingsPage: React.FC = () => {
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
           mb: 4
         }}>
-          <CardContent sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: { xs: 'flex-start', sm: 'center' },
+                gap: { xs: 2, sm: 3 },
+                flexWrap: { xs: 'wrap', sm: 'nowrap' },
+              }}
+            >
               <Avatar 
                 sx={{ 
-                  width: 80, 
-                  height: 80,
+                  width: { xs: 72, sm: 80 }, 
+                  height: { xs: 72, sm: 80 },
                   background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)',
                   color: 'white',
                   fontSize: '2rem',
@@ -120,11 +129,14 @@ const SettingsPage: React.FC = () => {
               >
                 {currentUser?.displayName?.charAt(0) || currentUser?.email?.charAt(0) || 'U'}
               </Avatar>
-              <Box sx={{ flex: 1 }}>
+              <Box sx={{ flex: '1 1 0', minWidth: 0 }}>
                 <Typography variant="h5" sx={{ color: 'white', fontWeight: 600, mb: 1 }}>
                   {currentUser?.displayName || 'Student'}
                 </Typography>
-                <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 1 }}>
+                <Typography
+                  variant="body1"
+                  sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 1, overflowWrap: 'anywhere' }}
+                >
                   {currentUser?.email}
                 </Typography>
                 <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
@@ -134,13 +146,17 @@ const SettingsPage: React.FC = () => {
                   }
                 </Typography>
               </Box>
-              <Box sx={{ 
-                px: 3, 
-                py: 1.5, 
-                borderRadius: 2, 
-                backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                border: '1px solid rgba(16, 185, 129, 0.3)'
-              }}>
+              <Box
+                sx={{ 
+                  width: { xs: '100%', sm: 'auto' },
+                  px: 3, 
+                  py: 1.5, 
+                  borderRadius: 2, 
+                  backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  textAlign: 'center',
+                }}
+              >
                 <Typography variant="body2" sx={{ color: '#10b981', fontWeight: 600 }}>
                   Active Account
                 </Typography>

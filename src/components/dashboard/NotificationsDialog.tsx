@@ -49,18 +49,18 @@ interface NotificationsDialogProps {
   backendNotificationEvents: DashboardNotificationEventSource[];
 }
 
-const getNotificationIcon = (type: DashboardNotification['type']) => {
+const getNotificationIcon = (type: DashboardNotification['type'], color: string) => {
   switch (type) {
     case 'success':
-      return <CheckCircleIcon color="success" />;
+      return <CheckCircleIcon sx={{ color }} />;
     case 'info':
-      return <InfoIcon color="info" />;
+      return <InfoIcon sx={{ color }} />;
     case 'warning':
-      return <WarningIcon color="warning" />;
+      return <WarningIcon sx={{ color }} />;
     case 'error':
-      return <ErrorIcon color="error" />;
+      return <ErrorIcon sx={{ color }} />;
     default:
-      return <InfoIcon />;
+      return <InfoIcon sx={{ color }} />;
   }
 };
 
@@ -80,25 +80,6 @@ const getCategoryIcon = (category: DashboardNotification['category']) => {
       return <DescriptionIcon />;
     default:
       return <SchoolIcon />;
-  }
-};
-
-const getCategoryColor = (category: DashboardNotification['category']) => {
-  switch (category) {
-    case 'assessment':
-      return 'primary';
-    case 'payment':
-      return 'success';
-    case 'system':
-      return 'info';
-    case 'leaderboard':
-      return 'warning';
-    case 'badge':
-      return 'secondary';
-    case 'report':
-      return 'success';
-    default:
-      return 'default';
   }
 };
 
@@ -263,7 +244,7 @@ export default function NotificationsDialog({
                       </IconButton>
                     }
                     sx={{
-                      backgroundColor: notification.isRead ? 'transparent' : 'rgba(139, 92, 246, 0.1)',
+                      backgroundColor: notification.isRead ? 'transparent' : `${notification.color}12`,
                       '&:hover': {
                         backgroundColor: 'rgba(255, 255, 255, 0.05)',
                       },
@@ -272,8 +253,9 @@ export default function NotificationsDialog({
                   >
                     <ListItemAvatar>
                       <Avatar sx={{ 
-                        bgcolor: 'rgba(139, 92, 246, 0.2)',
-                        color: 'white'
+                        bgcolor: `${notification.color}24`,
+                        color: notification.color,
+                        border: `1px solid ${notification.color}40`,
                       }}>
                         {getCategoryIcon(notification.category)}
                       </Avatar>
@@ -282,7 +264,7 @@ export default function NotificationsDialog({
                     <ListItemText
                       primary={
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                          {getNotificationIcon(notification.type)}
+                          {getNotificationIcon(notification.type, notification.color)}
                           <Typography
                             variant="subtitle2"
                             sx={{
@@ -295,8 +277,14 @@ export default function NotificationsDialog({
                           <Chip
                             label={notification.category}
                             size="small"
-                            color={getCategoryColor(notification.category) as any}
-                            sx={{ height: 20, fontSize: '0.7rem' }}
+                            sx={{
+                              height: 20,
+                              fontSize: '0.7rem',
+                              bgcolor: `${notification.color}24`,
+                              border: `1px solid ${notification.color}55`,
+                              color: notification.color,
+                              fontWeight: 700,
+                            }}
                           />
                         </Box>
                       }
@@ -328,7 +316,7 @@ export default function NotificationsDialog({
                                   width: 8,
                                   height: 8,
                                   borderRadius: '50%',
-                                  bgcolor: 'primary.main',
+                                  bgcolor: notification.color,
                                   ml: 1
                                 }}
                               />

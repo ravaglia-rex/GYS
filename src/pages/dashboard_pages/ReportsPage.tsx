@@ -15,7 +15,9 @@ import {
   TableHead,
   TableRow,
   Typography,
+  useMediaQuery,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { BookOpen } from 'lucide-react';
 import { FileDownload as DownloadIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
@@ -40,6 +42,8 @@ function a11yProps(index: number) {
 }
 
 const ReportsPage: React.FC = () => {
+  const theme = useTheme();
+  const isPhone = useMediaQuery(theme.breakpoints.down('sm'));
   const navigate = useNavigate();
   const [uid, setUid] = useState(() => auth.currentUser?.uid ?? '');
   const [reports, setReports] = useState<StudentReportListItem[]>([]);
@@ -187,7 +191,11 @@ const ReportsPage: React.FC = () => {
               }}
             >
               <Tab label="Available" {...a11yProps(0)} />
-              <Tab label="Completed & Results" {...a11yProps(1)} />
+              <Tab
+                label={isPhone ? 'Results' : 'Completed & Results'}
+                aria-label="Completed and Results"
+                {...a11yProps(1)}
+              />
               <Tab label="Reports" {...a11yProps(2)} />
             </Tabs>
           </Paper>
@@ -214,7 +222,7 @@ const ReportsPage: React.FC = () => {
               sx={{
                 backgroundColor: 'rgba(30, 41, 59, 0.5)',
                 borderRadius: 2,
-                p: 3,
+                p: { xs: 1.5, sm: 2, md: 3 },
                 border: '1px solid rgba(255, 255, 255, 0.1)',
                 mb: 3,
               }}
@@ -240,6 +248,8 @@ const ReportsPage: React.FC = () => {
                     bgcolor: 'rgba(15, 23, 42, 0.4)',
                     border: '1px solid rgba(255, 255, 255, 0.1)',
                     borderRadius: 2,
+                    overflowX: 'auto',
+                    maxWidth: '100%',
                   }}
                 >
                   <Table size="small" sx={{ minWidth: 520 }}>

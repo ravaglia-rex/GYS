@@ -15,6 +15,17 @@ interface PageTutorialProps {
 }
 
 const FIXED_HEADER_GAP = 24;
+const PHONE_BREAKPOINT = 600;
+const PHONE_TOOLTIP_RESERVED_HEIGHT = 260;
+const TUTORIAL_STEP_CHANGE_EVENT = 'argus:tutorial-step-change';
+
+function getViewportHeight(): number {
+  return window.visualViewport?.height ?? window.innerHeight;
+}
+
+function isPhoneViewport(): boolean {
+  return (window.visualViewport?.width ?? window.innerWidth) <= PHONE_BREAKPOINT;
+}
 
 function getFixedHeaderBottom(): number {
   const header = document.querySelector('[data-school-admin-appbar], .MuiAppBar-positionFixed');
@@ -53,15 +64,17 @@ function scrollTutorialTargetIntoView(
   const scrollParent = getScrollParent(target);
   const topTooltipRoom = step.placement === 'top' ? 170 : 0;
   const minTop = getFixedHeaderBottom() + FIXED_HEADER_GAP + topTooltipRoom;
-  const maxBottom = window.innerHeight - FIXED_HEADER_GAP;
+  const phoneBottomRoom = isPhoneViewport() ? PHONE_TOOLTIP_RESERVED_HEIGHT : 0;
+  const maxBottom = getViewportHeight() - FIXED_HEADER_GAP - phoneBottomRoom;
   const rect = target.getBoundingClientRect();
+  const availableHeight = Math.max(160, maxBottom - minTop);
 
   if (step.scrollBlock === 'nearest' && rect.top >= minTop && rect.bottom <= maxBottom) {
     return;
   }
 
-  if (step.scrollBlock === 'center') {
-    scrollByOffset(scrollParent, rect.top + rect.height / 2 - window.innerHeight / 2);
+  if (step.scrollBlock === 'center' || rect.height > availableHeight) {
+    scrollByOffset(scrollParent, rect.top + rect.height / 2 - (minTop + availableHeight / 2));
     return;
   }
 
@@ -137,11 +150,16 @@ const PageTutorial: React.FC<PageTutorialProps> = ({
 
   useEffect(() => {
     if (!active || !activeStep) return;
+    window.dispatchEvent(
+      new CustomEvent(TUTORIAL_STEP_CHANGE_EVENT, {
+        detail: { targetId: activeStep.targetId, pageKey },
+      })
+    );
     const scrollTarget = findTutorialTarget(activeStep.scrollTargetId ?? activeStep.targetId);
     if (scrollTarget) {
       scrollTutorialTargetIntoView(scrollTarget, activeStep);
     }
-  }, [active, activeStep]);
+  }, [active, activeStep, pageKey]);
 
   const handleDismiss = async () => {
     setActive(false);

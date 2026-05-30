@@ -10,8 +10,8 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import LandingSiteFooter from '../../components/layout/LandingSiteFooter';
-import PublicSamplesNavMenu from '../../components/layout/PublicSamplesNavMenu';
-import { LandingHeaderScrollProgress, LandingSectionRail } from '../../components/landing/LandingScrollChrome';
+import LandingPublicHeader from '../../components/layout/LandingPublicHeader';
+import { LandingSectionRail } from '../../components/landing/LandingScrollChrome';
 import { GYS_BLUE, GYS_GOLD } from '../../constants/gysBrand';
 import {
   useLandingRevealInContainer,
@@ -114,80 +114,13 @@ const PublicAssessmentsPage: React.FC = () => {
   const activeSectionId = useLandingSectionSpy(PA_SECTION_IDS_JOIN);
   useLandingRevealInContainer(pageRootRef);
 
-  const goToHomepage = () => {
-    if (window.location.pathname === '/') {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-    navigate('/');
-  };
-
   const goInstitutionalSubscriptions = () =>
     navigate('/for-schools', { state: { scrollToId: 'institutional-packages' } });
 
   return (
     <div ref={pageRootRef} className="min-h-screen overflow-x-clip bg-slate-50 text-slate-900">
       <LandingSectionRail sections={PA_NAV} activeSectionId={activeSectionId} />
-      <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/90 backdrop-blur relative">
-        <LandingHeaderScrollProgress scrollProgress={scrollProgress} />
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-3 sm:gap-6">
-          <button
-            type="button"
-            onClick={goToHomepage}
-            className="flex items-center gap-3 text-left group"
-            aria-label="Go to homepage"
-          >
-            <div
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded text-sm font-bold text-white transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:shadow-md"
-              style={{ backgroundColor: GYS_BLUE }}
-            >
-              GYS
-            </div>
-            <div>
-              <h1 className="hidden font-bold tracking-tight text-gray-900 sm:block sm:text-lg">
-                Global Young Scholar
-              </h1>
-              <p className="text-xs text-gray-500">
-                Powered by Argus, Access USA, EducationWorld
-              </p>
-            </div>
-          </button>
-          <nav className="hidden md:flex items-center gap-8 text-base font-semibold">
-            <button
-              type="button"
-              onClick={() => navigate('/')}
-              className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
-            >
-              Home
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/students')}
-              className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
-            >
-              For Students
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/for-schools')}
-              className="text-gray-600 hover:text-gray-900 transition-colors duration-150"
-            >
-              For Schools
-            </button>
-            <PublicSamplesNavMenu />
-          </nav>
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={() => navigate('/login')}
-              className="px-5 py-2.5 rounded-xl text-white text-sm font-medium shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-transform duration-150"
-              style={{ backgroundColor: GYS_BLUE }}
-            >
-              Log In
-            </button>
-          </div>
-        </div>
-      </header>
+      <LandingPublicHeader scrollProgress={scrollProgress} />
 
       <main>
         <section
