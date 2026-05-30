@@ -9,7 +9,8 @@ import {
 } from '@mui/material';
 import { TrendingUp } from 'lucide-react';
 import { auth } from '../../firebase/firebase';
-import { getStudent, StudentProfileError } from '../../db/studentCollection';
+import { StudentProfileError } from '../../db/studentCollection';
+import { useStudent } from '../../query/hooks';
 import {
   createStudentUpgradeOrder,
   verifyStudentUpgradePayment,
@@ -98,28 +99,13 @@ const MembershipUpgradeSection: React.FC = () => {
   const [busyTarget, setBusyTarget] = useState<1 | 2 | 3 | 4 | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const refreshProfile = useCallback(async () => {
-    const u = auth.currentUser?.uid;
-    if (!u) {
-      setLoading(false);
-      setLoadError(null);
-      return;
-    }
-    setLoading(true);
-    setLoadError(null);
-    try {
-      const data = await getStudent(u);
-      setMembershipLevel(normalizeStudentMembershipLevel(data?.membership_level));
-    } catch (e) {
-      if (e instanceof StudentProfileError) {
-        setLoadError(e.message);
-      } else {
-        setLoadError('Could not load your membership.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const {
+    data,
+    isLoading: profileLoading,
+    isError,
+    error,
+    refetch,
+  } = useStudent(uid ?? undefined, Boolean(uid));
 
   useEffect(() => {
     const unsub = auth.onAuthStateChanged((user) => {
@@ -129,8 +115,27 @@ const MembershipUpgradeSection: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    void refreshProfile();
-  }, [uid, refreshProfile]);
+    setLoading(profileLoading);
+    if (!uid) {
+      setLoadError(null);
+      return;
+    }
+    if (data) {
+      setMembershipLevel(normalizeStudentMembershipLevel(data?.membership_level));
+      setLoadError(null);
+    }
+    if (isError) {
+      if (error instanceof StudentProfileError) {
+        setLoadError(error.message);
+      } else {
+        setLoadError('Could not load your membership.');
+      }
+    }
+  }, [uid, data, profileLoading, isError, error]);
+
+  const refreshProfile = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
 
   const startUpgrade = async (targetLevel: 1 | 2 | 3 | 4) => {
     const user = auth.currentUser;
@@ -475,7 +480,7 @@ const MembershipUpgradeSection: React.FC = () => {
                 </Button>
               ) : (
                 <Button fullWidth variant="outlined" disabled sx={{ borderColor: '#64748b', color: '#94a3b8' }}>
-                  —
+                  -
                 </Button>
               )}
             </Paper>

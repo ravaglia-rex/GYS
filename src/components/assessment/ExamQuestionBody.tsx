@@ -43,7 +43,7 @@ function humanizeFieldKey(key: string): string {
 }
 
 function formatStimulusLeafValue(value: unknown): string {
-  if (value === null || value === undefined) return '—';
+  if (value === null || value === undefined) return '-';
   if (Array.isArray(value)) {
     return value.map((x) => (typeof x === 'object' && x !== null ? JSON.stringify(x) : String(x))).join(', ');
   }
@@ -248,7 +248,7 @@ function splitPromptSegmentsForRuleDedup(raw: string): string[] {
   return [t];
 }
 
-/** Prompt shown above the grey stimulus box — omits example/test copy, rule dedup, then dual-pattern narrative (shown in box). */
+/** Prompt shown above the grey stimulus box - omits example/test copy, rule dedup, then dual-pattern narrative (shown in box). */
 function examPromptWithoutRedundantRuleBlock(q: ExamQuestion): string {
   let raw = (q.prompt ?? '').trim();
   if (!raw) return q.prompt ?? '';
@@ -273,11 +273,11 @@ function examPromptWithoutRedundantRuleBlock(q: ExamQuestion): string {
 
 /**
  * Item banks often repeat `question` / `setup` inside `stimulus` for authoring pipelines while the same
- * text is already shown as {@link ExamQuestion.prompt} above this block — skip those duplicates.
+ * text is already shown as {@link ExamQuestion.prompt} above this block - skip those duplicates.
  */
 function stimulusFieldDuplicatesPrompt(fieldKey: string, value: unknown, prompt: string | undefined): boolean {
   const stemTrim = (prompt ?? '').trim();
-  /* Short task line (e.g. "Which box is green?") is almost never substring of the long stem — hide whenever we already show a stem. */
+  /* Short task line (e.g. "Which box is green?") is almost never substring of the long stem - hide whenever we already show a stem. */
   if (fieldKey === 'question' && stemTrim.length > 0) {
     return true;
   }
@@ -289,7 +289,7 @@ function stimulusFieldDuplicatesPrompt(fieldKey: string, value: unknown, prompt:
 }
 
 /**
- * Bank authoring keys — omit from the generic key/value dump.
+ * Bank authoring keys - omit from the generic key/value dump.
  * `items` is still used by {@link parseStimulusGridMatrix} to render the puzzle grid (not raw JSON).
  */
 const STIMULUS_KEYS_HIDDEN_FROM_LEARNER = new Set([
@@ -321,6 +321,8 @@ const STIMULUS_KEYS_HIDDEN_FROM_LEARNER = new Set([
   'rationale',
   'solution',
   'solution_steps',
+  'structured_solution',
+  'uniqueness_check',
   'problem',
   'quantity_a',
   'quantity_b',
@@ -341,6 +343,21 @@ const STIMULUS_KEYS_HIDDEN_FROM_LEARNER = new Set([
   'source_rule',
   'source_sequence',
 ]);
+
+function shouldHideStimulusTextSummary(value: unknown, obj: Record<string, unknown>): boolean {
+  if (typeof value !== 'string') return false;
+  const text = value.trim();
+  if (!text) return true;
+  if (text.includes('\n') || text.includes(':')) return false;
+
+  return (
+    obj.expected_answer != null ||
+    obj.structured_solution != null ||
+    obj.uniqueness_check != null ||
+    obj.solution != null ||
+    obj.solution_steps != null
+  );
+}
 
 /** Learner-facing label for `quantity_a` / `quantity_b` comparison items. */
 function formatComparisonQuantity(raw: unknown): string | null {
@@ -420,13 +437,28 @@ function stimulusStringField(obj: Record<string, unknown>, key: string): string 
   return typeof obj[key] === 'string' ? obj[key].trim() : '';
 }
 
-/** Cloze, author-purpose, paired-passage, and other reading items: show passage prose only (no bank metadata). */
-function gatherPassageOnlyStimulus(obj: Record<string, unknown>): string | null {
+function stimulusObjectField(obj: Record<string, unknown>, key: string): Record<string, unknown> | null {
+  const value = obj[key];
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function gatherPassagePairStimulus(obj: Record<string, unknown>): string | null {
   const passageA = stimulusStringField(obj, 'passage_a') || stimulusStringField(obj, 'sentences_a');
   const passageB = stimulusStringField(obj, 'passage_b') || stimulusStringField(obj, 'sentences_b');
-  if (passageA && passageB) {
-    return `Passage A: ${passageA}\n\nPassage B: ${passageB}`;
-  }
+  if (!passageA || !passageB) return null;
+  return `Passage A: ${passageA}\n\nPassage B: ${passageB}`;
+}
+
+/** Cloze, author-purpose, paired-passage, and other reading items: show passage prose only (no bank metadata). */
+function gatherPassageOnlyStimulus(obj: Record<string, unknown>): string | null {
+  const passagePair = gatherPassagePairStimulus(obj);
+  if (passagePair) return passagePair;
+
+  const nestedText = stimulusObjectField(obj, 'text');
+  const nestedPassagePair = nestedText ? gatherPassagePairStimulus(nestedText) : null;
+  if (nestedPassagePair) return nestedPassagePair;
 
   const hasPassageOnlyLayout =
     'semantic_target' in obj ||
@@ -459,11 +491,14 @@ function promptIndicatesOddOneOut(prompt: string | undefined): boolean {
   if (p.includes('not fit') || p.includes("doesn't fit") || p.includes('does not fit')) return true;
   if (/\bwhich (one )?(is )?different\b/.test(p)) return true;
   if (p.includes('unlike the other')) return true;
-  /* “Which one does NOT follow the same rule as the other three?” — same intent as odd-one-out. */
+  /* “Which one does NOT follow the same rule as the other three?” - same intent as odd-one-out. */
   if (p.includes('not follow the same rule') || p.includes("doesn't follow the same rule")) return true;
+  if (p.includes('not follow the same structural rule') || p.includes("doesn't follow the same structural rule")) return true;
   if (p.includes('same rule as the other')) return true;
+  if (p.includes('same structural rule as the other')) return true;
   if (/\bother three\b/.test(p) && /\bsame rule\b/.test(p)) return true;
-  /* “Three share a hidden structural rule — which does NOT follow that rule?” */
+  if (/\bother three\b/.test(p) && /\bsame structural rule\b/.test(p)) return true;
+  /* “Three share a hidden structural rule - which does NOT follow that rule?” */
   if (p.includes('hidden structural rule')) return true;
   if (p.includes('not follow that rule') || p.includes("doesn't follow that rule")) return true;
   if (/\bthree of the following\b/.test(p) && /\bshare\b/.test(p) && /\brule\b/.test(p)) return true;
@@ -471,7 +506,7 @@ function promptIndicatesOddOneOut(prompt: string | undefined): boolean {
   return false;
 }
 
-/** Pattern A → Pattern B / “same rule connects both” items — learner must infer `source_rule` (e.g. `double_each_step`). */
+/** Pattern A → Pattern B / “same rule connects both” items - learner must infer `source_rule` (e.g. `double_each_step`). */
 function promptIndicatesPatternTransferInferRule(prose: string | undefined): boolean {
   const p = (prose ?? '').trim().toLowerCase();
   if (!p) return false;
@@ -497,7 +532,7 @@ function promptSaysInferAuthoringRule(prompt?: string, instruction?: string): bo
   return false;
 }
 
-/** Stem points learners at listed constraints in the stimulus — do not infer-hide those payloads. */
+/** Stem points learners at listed constraints in the stimulus - do not infer-hide those payloads. */
 function promptExpectsListedConstraintsInStimulus(prose: string): boolean {
   const p = prose.trim().toLowerCase();
   if (!p) return false;
@@ -510,7 +545,7 @@ function promptExpectsListedConstraintsInStimulus(prose: string): boolean {
 }
 
 /**
- * When true, do not surface authoring rules (students infer them — e.g. odd-one-out, pattern transfer).
+ * When true, do not surface authoring rules (students infer them - e.g. odd-one-out, pattern transfer).
  * Toggle via `stimulus.hide_shared_rule` / `stimulus.show_rule`, `stimulus_type` naming, or prompt wording.
  */
 function shouldHideSharedLearnerRule(
@@ -541,7 +576,7 @@ function shouldHideSharedLearnerRule(
   return false;
 }
 
-/** Stimulus keys treated as “the rule” for learners — omitted when {@link shouldHideSharedLearnerRule} applies. */
+/** Stimulus keys treated as “the rule” for learners - omitted when {@link shouldHideSharedLearnerRule} applies. */
 function hiddenRuleKeysWhenConcealed(): Set<string> {
   return new Set([
     'rules',
@@ -866,6 +901,22 @@ function parseStimulusGridMatrix(obj: Record<string, unknown>): string[][] | nul
     token.length > 0 && !/[A-Za-z0-9\s,;:(){}[\]<>]/.test(token);
 
   function extractSymbolGridFromText(text: string): string[][] | null {
+    const bracketRows: string[][] = [];
+    const bracketRe = /\[([^\]]+)\]/g;
+    let bracketMatch: RegExpExecArray | null;
+    while ((bracketMatch = bracketRe.exec(text)) !== null) {
+      const tokens = bracketMatch[1]
+        .split(/[\s,]+/)
+        .map((token) => token.trim())
+        .filter(Boolean)
+        .filter((token) => token === '?' || symbolishCell(token));
+      if (tokens.length >= 2 && tokens.length <= 5) bracketRows.push(tokens);
+    }
+    if (bracketRows.length >= 2) {
+      const width = bracketRows[0].length;
+      if (width >= 2 && bracketRows.every((row) => row.length === width)) return bracketRows;
+    }
+
     const rows = text
       .split(/\n+|(?:^|\s)row\s*\d+\s*[:-]\s*/i)
       .map((line) => {
@@ -901,6 +952,9 @@ function parseStimulusGridMatrix(obj: Record<string, unknown>): string[][] | nul
       .map(([, value]) => value);
     return rowEntries.length ? fromRowsArray(rowEntries) : null;
   };
+
+  const gridLabeledText = (raw: unknown): unknown =>
+    typeof raw === 'string' && /\b(?:grid|matrix|board)\s*:/i.test(raw) ? raw : undefined;
 
   function fromUnknown(raw: unknown): string[][] | null {
     if (Array.isArray(raw)) {
@@ -954,6 +1008,7 @@ function parseStimulusGridMatrix(obj: Record<string, unknown>): string[][] | nul
     obj.display,
     obj.diagram,
     obj.table,
+    gridLabeledText(obj.text),
     obj.context,
     obj.setup,
     obj.given,
@@ -967,6 +1022,65 @@ function parseStimulusGridMatrix(obj: Record<string, unknown>): string[][] | nul
   return null;
 }
 
+function stimulusFieldRenderedAsGrid(key: string, value: unknown, hasGrid: boolean): boolean {
+  if (!hasGrid) return false;
+  if (!['text', 'display', 'diagram', 'table', 'context', 'setup', 'given', 'problem'].includes(key)) return false;
+  if (key === 'text' && typeof value === 'string' && !/\b(?:grid|matrix|board)\s*:/i.test(value)) return false;
+  return parseStimulusGridMatrix({ grid: value }) !== null;
+}
+
+function parseStimulusSequence(raw: unknown): string[] | null {
+  if (raw == null) return null;
+  if (Array.isArray(raw)) {
+    const seq = raw.map((x) => String(x ?? '').trim()).filter(Boolean);
+    return seq.length > 0 ? seq : null;
+  }
+  if (typeof raw !== 'string') return null;
+
+  const text = raw.trim();
+  if (!text) return null;
+  if (text.startsWith('[')) {
+    try {
+      return parseStimulusSequence(JSON.parse(text) as unknown);
+    } catch {
+      // Fall through to labeled/delimited parsing.
+    }
+  }
+
+  const bracketMatches = Array.from(text.matchAll(/\[([^\]]+)\]/g));
+  if (bracketMatches.length === 1) {
+    return parseStimulusSequence(bracketMatches[0][1].split(/[\s,]+/));
+  }
+  if (bracketMatches.length > 1) return null;
+
+  const labeled = text.match(/\b(?:input\s+)?sequence\s*:\s*(.+)$/i);
+  if (!labeled) return null;
+  return parseStimulusSequence(labeled[1].split(/[\s,]+/));
+}
+
+function parseRuleFromStimulusText(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+  const text = raw.trim();
+  if (!text) return null;
+
+  const rulesBlock = text.match(
+    /\b(?:transformation\s+)?rules\s*:\s*([\s\S]*?)(?=\binput\s+(?:string|sequence)\s*:|$)/i
+  );
+  if (rulesBlock) {
+    const cleaned = rulesBlock[1]
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .join('\n');
+    return cleaned || null;
+  }
+
+  const rule = text.match(/\brule\s*:\s*([\s\S]*?)(?=\b(?:input\s+)?(?:string|sequence)\s*:|$)/i);
+  if (!rule) return null;
+  const cleaned = rule[1].replace(/\s+/g, ' ').trim();
+  return cleaned || null;
+}
+
 function StimulusGridMatrixView(props: {
   matrix: string[][];
   border: string;
@@ -974,6 +1088,8 @@ function StimulusGridMatrixView(props: {
 }): React.ReactNode {
   const { matrix, border, renderMath } = props;
   if (!matrix.length) return null;
+  const clueLines = clueLinesFromMatrix(matrix);
+  if (clueLines) return <StimulusClueListView lines={clueLines} />;
   const cols = Math.max(1, ...matrix.map((r) => r.length));
   const symTileSx = stimulusSymbolTileSx(border);
   return (
@@ -1027,10 +1143,160 @@ function StimulusGridMatrixView(props: {
   );
 }
 
+function matrixCellIsBlankish(cell: string): boolean {
+  const t = String(cell ?? '').trim();
+  return !t || t === '?' || t === '??' || t === '…';
+}
+
+function formatClueTokenText(tokens: string[]): string {
+  return tokens
+    .join(' ')
+    .replace(/\s+([.,;:!?])/g, '$1')
+    .replace(/\(\s+/g, '(')
+    .replace(/\s+\)/g, ')')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function clueLinesFromMatrix(matrix: string[][]): string[] | null {
+  const rows = matrix.map((row) => row.map((cell) => String(cell ?? '').trim()));
+  const hasCluesLabel = rows.some((row) => row.some((cell) => cell.toLowerCase() === 'clues'));
+  const clueLines = rows
+    .map((row) => row.filter((cell) => !matrixCellIsBlankish(cell)))
+    .filter((row) => row.length > 0)
+    .map((row) => {
+      const [first, ...rest] = row;
+      if (first.toLowerCase() === 'clues') return null;
+      if (!/^\d+\.?$/.test(first)) return null;
+      const clueText = formatClueTokenText(rest);
+      return clueText ? `${first.replace(/\.$/, '')}. ${clueText}` : null;
+    })
+    .filter((line): line is string => line !== null);
+
+  if (!hasCluesLabel && clueLines.length < 2) return null;
+  return clueLines.length > 0 ? clueLines : null;
+}
+
+function StimulusClueListView(props: { lines: string[] }): React.ReactNode {
+  const { lines } = props;
+  return (
+    <Box sx={{ mb: 0 }}>
+      <Typography
+        variant="caption"
+        sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 1.25, letterSpacing: 0.02 }}
+      >
+        Clues
+      </Typography>
+      <Box component="ol" sx={{ m: 0, pl: 2.25, color: '#334155', '& li': { mb: 0.65 } }}>
+        {lines.map((line, i) => (
+          <Typography component="li" key={i} sx={{ fontSize: '0.95rem', lineHeight: 1.55 }}>
+            {line.replace(/^\d+\.\s*/, '')}
+          </Typography>
+        ))}
+      </Box>
+    </Box>
+  );
+}
+
+function StimulusSequenceView(props: {
+  sequence: string[];
+  border: string;
+  blankMeta: BlankSlot;
+  blankHelp: string | null;
+  mb?: number;
+}): React.ReactNode {
+  const { sequence, border, blankMeta, blankHelp, mb = 0 } = props;
+  const symTileSx = stimulusSymbolTileSx(border);
+  const interleaved = interleaveBlankSlot(stripEmbeddedBlankPlaceholder(sequence, blankMeta), blankMeta);
+  return (
+    <Box sx={{ mb }}>
+      <Typography
+        variant="caption"
+        sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 1.25, letterSpacing: 0.02 }}
+      >
+        Input sequence
+      </Typography>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25, alignItems: 'center' }}>
+        {interleaved.map((cell, i) =>
+          cell.kind === 'blank' ? (
+            <Box
+              key={`blank-${i}`}
+              sx={{
+                ...symTileSx,
+                borderStyle: 'dashed',
+                bgcolor: '#f1f5f9',
+                color: '#64748b',
+                fontWeight: 800,
+                fontSize: '1.35rem',
+              }}
+              aria-label="Missing item"
+            >
+              ?
+            </Box>
+          ) : (
+            <Box key={`sym-${i}`} sx={symTileSx}>
+              {cell.v}
+            </Box>
+          )
+        )}
+      </Box>
+      {blankHelp && (
+        <Typography variant="body2" sx={{ mt: 1.35, color: '#475569', lineHeight: 1.55, maxWidth: 520 }}>
+          {blankHelp}
+        </Typography>
+      )}
+    </Box>
+  );
+}
+
 type StimulusDataTable = {
+  title?: string;
   headers: string[];
   rows: string[][];
 };
+
+function parseMarkdownDataTableText(raw: string): StimulusDataTable | null {
+  const lines = raw
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const firstTableLine = lines.findIndex((line) => line.includes('|'));
+  if (firstTableLine < 0 || firstTableLine + 1 >= lines.length) return null;
+
+  const tableLines = lines.slice(firstTableLine).filter((line) => line.includes('|'));
+  if (tableLines.length < 3) return null;
+
+  const splitRow = (line: string): string[] =>
+    line
+      .replace(/^\|/, '')
+      .replace(/\|$/, '')
+      .split('|')
+      .map((cell) => cell.trim());
+
+  const separator = splitRow(tableLines[1]);
+  if (!separator.every((cell) => /^:?-{2,}:?$/.test(cell))) return null;
+
+  const headers = splitRow(tableLines[0]).filter(Boolean);
+  const rows = tableLines
+    .slice(2)
+    .map(splitRow)
+    .filter((row) => row.some((cell) => cell.trim()));
+
+  if (!headers.length || !rows.length) return null;
+
+  const width = Math.max(headers.length, ...rows.map((row) => row.length));
+  const title = lines
+    .slice(0, firstTableLine)
+    .join(' ')
+    .replace(/:$/, '')
+    .trim();
+
+  return {
+    title: title || undefined,
+    headers: Array.from({ length: width }, (_, i) => headers[i] ?? ''),
+    rows: rows.map((row) => Array.from({ length: width }, (_, i) => row[i] ?? '')),
+  };
+}
 
 function normalizeDataTableRow(raw: unknown, headers: string[]): string[] | null {
   const stringifyCell = (cell: unknown): string => {
@@ -1069,6 +1335,11 @@ function normalizeDataTableRow(raw: unknown, headers: string[]): string[] | null
 }
 
 function parseStimulusDataTable(obj: Record<string, unknown>): StimulusDataTable | null {
+  if (typeof obj.text === 'string') {
+    const markdownTable = parseMarkdownDataTableText(obj.text);
+    if (markdownTable) return markdownTable;
+  }
+
   const rawHeaders = obj.headers ?? obj.columns;
   const rawRows = obj.rows ?? obj.data;
   const headers =
@@ -1111,6 +1382,14 @@ function StimulusDataTableView(props: { table: StimulusDataTable; border: string
   const { table, border } = props;
   return (
     <Box sx={{ overflowX: 'auto', mb: 2.25 }}>
+      {table.title ? (
+        <Typography
+          variant="caption"
+          sx={{ fontWeight: 800, color: '#64748b', display: 'block', mb: 1, letterSpacing: 0.04 }}
+        >
+          {table.title}
+        </Typography>
+      ) : null}
       <Box
         component="table"
         sx={{
@@ -1372,7 +1651,7 @@ function stripEmbeddedBlankPlaceholder(syms: unknown[], blank: BlankSlot): strin
   return list;
 }
 
-/** Where the missing term sits — item banks often use `end`; show plain language + a "?" tile. */
+/** Where the missing term sits - item banks often use `end`; show plain language + a "?" tile. */
 function blankSlotFromStimulus(raw: unknown, numericSequence = false): BlankSlot {
   if (raw === null || raw === undefined) return { kind: 'none' };
   const s = String(raw).trim().toLowerCase();
@@ -1381,7 +1660,7 @@ function blankSlotFromStimulus(raw: unknown, numericSequence = false): BlankSlot
       kind: 'end',
       caption: numericSequence
         ? 'Choose the number that comes next in the sequence.'
-        : 'Choose the shape that comes next — right after the last symbol in the row.',
+        : 'Choose the shape that comes next - right after the last symbol in the row.',
     };
   }
   if (s === 'start' || s === 'first' || s === 'before_first') {
@@ -1431,7 +1710,7 @@ function interleaveBlankSlot(syms: unknown[], blank: BlankSlot): Array<{ kind: '
   return out;
 }
 
-/** Pattern-logic and generic structured stimuli — readable layout instead of raw JSON. */
+/** Pattern-logic and generic structured stimuli - readable layout instead of raw JSON. */
 const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string; renderMath?: boolean }> = ({
   q,
   border,
@@ -1445,6 +1724,24 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string; renderM
   if (typeof stimulus === 'string') {
     const text = stimulus.trim();
     if (!text) return null;
+    const gridMatrix = parseStimulusGridMatrix({ grid: text });
+    if (gridMatrix) {
+      return (
+        <Box sx={{ mb: 2.5, p: 2.5, bgcolor: '#f8fafc', borderRadius: 2, border: `1px solid ${border}` }}>
+          <StimulusGridMatrixView matrix={gridMatrix} border={border} renderMath={renderMath} />
+        </Box>
+      );
+    }
+    const seq = parseStimulusSequence(text);
+    if (seq) {
+      const seqStrings = seq.map((x) => String(x));
+      const blankMeta = blankSlotFromStimulus(undefined, sequenceLooksNumeric(seqStrings));
+      return (
+        <Box sx={{ mb: 2.5, p: 2.5, bgcolor: '#f8fafc', borderRadius: 2, border: `1px solid ${border}` }}>
+          <StimulusSequenceView sequence={seqStrings} border={border} blankMeta={blankMeta} blankHelp={null} />
+        </Box>
+      );
+    }
     return (
       <Box sx={{ mb: 2.5, p: 2, bgcolor: '#f8fafc', borderRadius: 2, border: `1px solid ${border}` }}>
         <Typography sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.65, color: '#334155', fontSize: '0.95rem' }}>
@@ -1645,63 +1942,43 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string; renderM
 
   const gridMatrix = parseStimulusGridMatrix(obj);
   const dataTable = parseStimulusDataTable(obj);
-  const seqCandidate = obj.input_sequence ?? obj.sequence;
-  const seq = Array.isArray(seqCandidate) ? seqCandidate : null;
+  const seqCandidate = obj.input_sequence ?? obj.sequence ?? obj.text;
+  const seq = parseStimulusSequence(seqCandidate);
   const rulesRaw = obj.rules;
   const hasSeq = seq !== null && seq.length > 0;
   const rulesArr = Array.isArray(rulesRaw) ? rulesRaw : [];
   const hasRules = rulesArr.some((r) => String(r ?? '').trim());
+  const textRule = hasRules ? null : parseRuleFromStimulusText(obj.text);
   const seqStrings = hasSeq && seq ? seq.map((x) => String(x)) : [];
   const blankMeta = hasSeq
     ? blankSlotFromStimulus(obj.blank_position, sequenceLooksNumeric(seqStrings))
     : ({ kind: 'none' } as BlankSlot);
-  const interleaved =
-    hasSeq && seq ? interleaveBlankSlot(stripEmbeddedBlankPlaceholder(seq, blankMeta), blankMeta) : [];
   const blankHelp = 'caption' in blankMeta ? blankMeta.caption : null;
 
-  if (hasSeq || gridMatrix || (hasRules && !hideSharedRule)) {
-    const symTileSx = stimulusSymbolTileSx(border);
-
+  if (hasSeq || gridMatrix || (hasRules && !hideSharedRule) || textRule) {
     return (
       <Box sx={{ mb: 2.5, p: 2.5, bgcolor: '#f8fafc', borderRadius: 2, border: `1px solid ${border}` }}>
-        {hasSeq && (
-          <Box sx={{ mb: gridMatrix || (hasRules && !hideSharedRule) ? 2.25 : 0 }}>
+        {textRule ? (
+          <Box sx={{ mb: hasSeq || gridMatrix || (hasRules && !hideSharedRule) ? 2.25 : 0 }}>
             <Typography
               variant="caption"
-              sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 1.25, letterSpacing: 0.02 }}
+              sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 1, letterSpacing: 0.02 }}
             >
-              Sequence
+              Rules to apply
             </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25, alignItems: 'center' }}>
-              {interleaved.map((cell, i) =>
-                cell.kind === 'blank' ? (
-                  <Box
-                    key={`blank-${i}`}
-                    sx={{
-                      ...symTileSx,
-                      borderStyle: 'dashed',
-                      bgcolor: '#f1f5f9',
-                      color: '#64748b',
-                      fontWeight: 800,
-                      fontSize: '1.35rem',
-                    }}
-                    aria-label="Missing item"
-                  >
-                    ?
-                  </Box>
-                ) : (
-                  <Box key={`sym-${i}`} sx={symTileSx}>
-                    {cell.v}
-                  </Box>
-                )
-              )}
-            </Box>
-            {blankHelp && (
-              <Typography variant="body2" sx={{ mt: 1.35, color: '#475569', lineHeight: 1.55, maxWidth: 520 }}>
-                {blankHelp}
-              </Typography>
-            )}
+            <Typography sx={{ fontSize: '0.95rem', color: '#334155', lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>
+              {textRule}
+            </Typography>
           </Box>
+        ) : null}
+        {hasSeq && (
+          <StimulusSequenceView
+            sequence={seqStrings}
+            border={border}
+            blankMeta={blankMeta}
+            blankHelp={blankHelp}
+            mb={gridMatrix || (hasRules && !hideSharedRule) ? 2.25 : 0}
+          />
         )}
         {gridMatrix ? (
           <Box sx={{ mb: hasRules && !hideSharedRule ? 2.25 : 0 }}>
@@ -1785,9 +2062,12 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string; renderM
     ([key, value]) =>
       key !== '__proto__' &&
       !(dataTable && (key === 'headers' || key === 'columns' || key === 'rows' || key === 'data')) &&
+      !(dataTable && key === 'text' && typeof value === 'string' && parseMarkdownDataTableText(value)) &&
       !STIMULUS_KEYS_HIDDEN_FROM_LEARNER.has(key) &&
       !hideGridDimensionStimulusKeys(key, obj, gridMatrix !== null) &&
+      !stimulusFieldRenderedAsGrid(key, value, gridMatrix !== null) &&
       !(concealedRuleKeys?.has(key) ?? false) &&
+      !(key === 'text' && shouldHideStimulusTextSummary(value, obj)) &&
       !stimulusFieldDuplicatesPrompt(key, value, q.prompt)
   );
   if (entries.length === 0 && !gridMatrix && !dataTable) return null;
@@ -1809,7 +2089,34 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string; renderM
       ) : null}
       {dataTable ? <StimulusDataTableView table={dataTable} border={border} /> : null}
       {entries.map(([key, value]) =>
-        key === 'constraints' ? (
+        key === 'text' && typeof value === 'string' ? renderMath ? (
+          <ExamMathText
+            key={key}
+            inline={false}
+            sx={{
+              fontSize: '0.95rem',
+              color: '#334155',
+              lineHeight: 1.65,
+              whiteSpace: 'pre-wrap',
+              mb: 0.85,
+            }}
+          >
+            {value.trim()}
+          </ExamMathText>
+        ) : (
+          <Typography
+            key={key}
+            sx={{
+              fontSize: '0.95rem',
+              color: '#334155',
+              lineHeight: 1.65,
+              whiteSpace: 'pre-wrap',
+              mb: 0.85,
+            }}
+          >
+            {value.trim()}
+          </Typography>
+        ) : key === 'constraints' ? (
           <Box key={key} sx={{ mb: 1.5 }}>
             <Typography
               variant="caption"
@@ -2352,7 +2659,7 @@ interface ExamQuestionBodyProps {
   answerFeedback?: { correctIndex: number; selectedIndex: number } | null;
 }
 
-export const ExamQuestionBody: React.FC<ExamQuestionBodyProps> = ({
+const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
   assessmentId,
   question,
   questionNumber,
@@ -2585,3 +2892,5 @@ export const ExamQuestionBody: React.FC<ExamQuestionBodyProps> = ({
     </Box>
   );
 };
+
+export const ExamQuestionBody = React.memo(ExamQuestionBodyInner);

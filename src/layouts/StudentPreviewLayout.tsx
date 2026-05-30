@@ -76,7 +76,7 @@ export default function StudentPreviewLayout() {
   const assessmentsActive =
     isActive('/students/preview/assessments') ||
     isActive('/students/preview/reports') ||
-    location.pathname === '/for-schools/preview/assessment';
+    location.pathname.startsWith('/for-schools/preview/assessment');
 
   const NavList = (
     <List component="nav" disablePadding sx={{ px: 0.5, py: 1 }}>

@@ -44,7 +44,6 @@ export const CREATE_EXPEDITED_SCHOOL='/createExpeditedSchool';
 export const REGISTER_SCHOOL='/registerSchool';
 export const AMEND_SCHOOL_REGISTRATION='/amendSchoolRegistration';
 export const RESUME_SCHOOL_CHECKOUT='/resumeSchoolCheckout';
-export const FETCH_SCHOOL_NAMES_AND_IDS='/fetchSchoolNamesAndIds';
 export const FETCH_SCHOOL_NAME='/getSchoolDetails';
 export const CHECK_SCHOOL_EMAIL = '/checkSchoolEmail';
 export const VERIFY_SCHOOL_EMAIL = '/verifySchoolEmail';

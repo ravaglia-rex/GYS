@@ -293,7 +293,7 @@ export function clearActivePracticeSession(scope: string): void {
   save(scope, persisted);
 }
 
-// ─── Full-page practice session (question batch + cursor) — interactive exams only ─────────
+// ─── Full-page practice session (question batch + cursor) - interactive exams only ─────────
 
 const TAKE_SESSION_PREFIX = 'argus_practice_take_v1_';
 
@@ -320,7 +320,7 @@ export interface PracticeTakePendingOutcome {
   timeToFirstCheckMs: number;
 }
 
-/** Replace an existing row for the same item, or append — avoids duplicate counts when revisiting questions. */
+/** Replace an existing row for the same item, or append - avoids duplicate counts when revisiting questions. */
 export function upsertPracticePendingOutcome(
   outcomes: PracticeTakePendingOutcome[],
   row: PracticeTakePendingOutcome

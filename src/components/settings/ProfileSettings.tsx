@@ -24,8 +24,10 @@ import {
   Megaphone
 } from 'lucide-react';
 import { auth } from '../../firebase/firebase';
-import { getStudent, updateStudent } from '../../db/studentCollection';
-import { getSchoolDetails } from '../../db/schoolCollection';
+import { updateStudent } from '../../db/studentCollection';
+import { useSchoolDetails, useStudent } from '../../query/hooks';
+import { queryClient } from '../../query/queryClient';
+import { queryKeys } from '../../query/queryKeys';
 import { studentSectionHeadingSx } from '../../styles/studentTypography';
 import { toIndiaMobileNationalDigits, withIndiaCountryCode } from '../../utils/indiaMobile';
 
@@ -67,58 +69,54 @@ const ProfileSettings: React.FC = () => {
   
   const [originalGrade, setOriginalGrade] = useState<number | null>(null);
   const [schoolName, setSchoolName] = useState<string>('');
+  const [profileHydrated, setProfileHydrated] = useState(false);
 
-  // Fetch user data on component mount
+  const { data: userData } = useStudent(currentUser?.uid, Boolean(currentUser?.uid));
+  const schoolId =
+    typeof userData?.school_id === 'string' && userData.school_id && userData.school_id !== 'not-listed'
+      ? userData.school_id
+      : undefined;
+  const { data: schoolData } = useSchoolDetails(schoolId, Boolean(schoolId));
+
   useEffect(() => {
-    const fetchUserData = async () => {
-      if (currentUser?.uid) {
-        try {
-          const userData = await getStudent(currentUser.uid);
-          setOriginalGrade(userData.grade || null);
-          setFormData(prev => ({
-            ...prev,
-            displayName: (userData.first_name || '') + ' ' + (userData.last_name || ''),
-            school: userData.school_id || '', // Using school_id for now
-            grade: userData.grade ? `Class ${userData.grade}` : '',
-            dateOfBirth: userData.date_of_birth || '',
-            cityState: userData.city_state || '',
-            homeLanguage: userData.home_language || '',
-            aspiration: userData.aspiration || '',
-            heardFrom: userData.heard_from || '',
-            about: userData.about_me || '',
-            parentName: userData.parent_name || '',
-            parentEmail: userData.parent_email || '',
-            parentPhone: toIndiaMobileNationalDigits(userData.parent_phone || ''),
-            phoneNumber: toIndiaMobileNationalDigits(userData.phone_number || ''),
-          }));
+    if (!userData || profileHydrated) return;
+    setOriginalGrade(userData.grade || null);
+    setFormData((prev) => ({
+      ...prev,
+      displayName: `${userData.first_name || ''} ${userData.last_name || ''}`.trim(),
+      school: userData.school_id || '',
+      grade: userData.grade ? `Class ${userData.grade}` : '',
+      dateOfBirth: userData.date_of_birth || '',
+      cityState: userData.city_state || '',
+      homeLanguage: userData.home_language || '',
+      aspiration: userData.aspiration || '',
+      heardFrom: userData.heard_from || '',
+      about: userData.about_me || '',
+      parentName: userData.parent_name || '',
+      parentEmail: userData.parent_email || '',
+      parentPhone: toIndiaMobileNationalDigits(userData.parent_phone || ''),
+      phoneNumber: toIndiaMobileNationalDigits(userData.phone_number || ''),
+    }));
+    setProfileHydrated(true);
+  }, [userData, profileHydrated]);
 
-          // Fetch school name if we have a school_id
-          if (userData.school_id) {
-            try {
-              const schoolData = await getSchoolDetails(userData.school_id);
-              
-              if (schoolData && typeof schoolData === 'string') {
-                // API returns the school name directly as a string
-                setSchoolName(schoolData);
-              } else if (schoolData && schoolData.school_name) {
-                // Fallback: API returns object with school_name property
-                setSchoolName(schoolData.school_name);
-              } else {
-                setSchoolName(userData.school_id);
-              }
-            } catch (error) {
-              setSchoolName(userData.school_id || '');
-            }
-          } else {
-            setSchoolName('');
-          }
-        } catch (error) {
-        }
-      }
-    };
-
-    fetchUserData();
-  }, [currentUser?.uid]);
+  useEffect(() => {
+    if (typeof userData?.signup_school_name === 'string' && userData.signup_school_name.trim()) {
+      setSchoolName(userData.signup_school_name.trim());
+      return;
+    }
+    if (!schoolId) {
+      setSchoolName('');
+      return;
+    }
+    if (typeof schoolData === 'string') {
+      setSchoolName(schoolData);
+    } else if (schoolData && typeof schoolData === 'object' && 'school_name' in schoolData) {
+      setSchoolName(String((schoolData as { school_name?: string }).school_name ?? schoolId));
+    } else {
+      setSchoolName(schoolId);
+    }
+  }, [schoolData, schoolId, userData?.signup_school_name]);
 
   // Handle grade change
   const handleGradeChange = (newGrade: number) => {
@@ -145,6 +143,7 @@ const ProfileSettings: React.FC = () => {
         const currentGrade = parseInt(formData.grade.replace(/\D/g, ''), 10);
         if (currentGrade !== originalGrade) {
           await updateStudent(currentUser.uid, { grade: currentGrade });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.student(currentUser.uid) });
           setOriginalGrade(currentGrade);
         }
       }
@@ -170,6 +169,7 @@ const ProfileSettings: React.FC = () => {
         
         if (Object.keys(updates).length > 0) {
           await updateStudent(currentUser.uid, updates);
+          void queryClient.invalidateQueries({ queryKey: queryKeys.student(currentUser.uid) });
         }
       }
       

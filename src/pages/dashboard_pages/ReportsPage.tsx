@@ -99,7 +99,7 @@ const ReportsPage: React.FC = () => {
   };
 
   const formatDate = (iso: string | null) => {
-    if (!iso) return '—';
+    if (!iso) return '-';
     try {
       return new Date(iso).toLocaleDateString(undefined, {
         day: 'numeric',
@@ -107,7 +107,7 @@ const ReportsPage: React.FC = () => {
         year: 'numeric',
       });
     } catch {
-      return '—';
+      return '-';
     }
   };
 
@@ -273,7 +273,7 @@ const ReportsPage: React.FC = () => {
                           </TableCell>
                           <TableCell sx={{ color: 'rgba(255,255,255,0.85)' }}>{formatDate(r.generatedAt)}</TableCell>
                           <TableCell align="right" sx={{ color: 'rgba(255,255,255,0.85)' }}>
-                            {r.completedAssessmentCount ?? r.milestone ?? '—'}
+                            {r.completedAssessmentCount ?? r.milestone ?? '-'}
                           </TableCell>
                           <TableCell align="right">
                             <Button

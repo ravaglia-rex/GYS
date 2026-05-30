@@ -5,7 +5,6 @@ import {
   REGISTER_SCHOOL,
   RESUME_SCHOOL_CHECKOUT,
   SCHOOLS_APIS,
-  FETCH_SCHOOL_NAMES_AND_IDS,
   FETCH_SCHOOL_NAME,
   RESOLVE_REGISTRATION_SCHOOL,
   RAZORPAY_APIS,
@@ -308,18 +307,6 @@ export const createExpeditedSchool = async (school: expeditedSchool) => {
     }
 }
 
-// FETCH ALL SCHOOL NAMES AND IDs (server-cached; no client cache - list excludes list-only schools)
-export const fetchSchoolNamesAndIds = async (): Promise<{ id: string; name: string }[]> => {
-  try {
-    const response = await axios.get(`${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOLS_APIS}${FETCH_SCHOOL_NAMES_AND_IDS}`);
-    const data = await response.data;
-    return data;
-  } catch (e) {
-    throw new Error(`Error fetching schools. Please contact globalyoungscholar@argus.ai`);
-  }
-};
-
-// FETCH SCHOOL NAME
 export type ResolveRegistrationSchoolResult = {
   schoolId: string | null;
   schoolName: string | null;

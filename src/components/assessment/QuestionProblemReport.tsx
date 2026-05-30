@@ -228,7 +228,7 @@ export const QuestionProblemReport: React.FC<QuestionProblemReportProps> = ({
               >
                 <CheckCircleIcon sx={{ color: '#4ade80', fontSize: 26, flexShrink: 0 }} aria-hidden />
                 <Typography variant="body2" component="p" sx={{ color: '#d1fae5', lineHeight: 1.55, m: 0 }}>
-                  Thanks — your report was submitted. Your feedback is saved on this question for review.
+                  Thanks - your report was submitted. Your feedback is saved on this question for review.
                 </Typography>
               </Box>
             </>

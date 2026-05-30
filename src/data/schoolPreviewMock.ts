@@ -3,6 +3,7 @@
  * (`seedGreenfieldGysReport.js`, ADMIN_EMAIL srishti+6@argus.ai).
  */
 import type { QuarterlyReportListItem } from '../db/schoolAdminCollection';
+import { PREVIEW_SAMPLE_QUESTIONS_BY_EXAM } from './previewSampleAssessments';
 
 export {
   buildGreenfieldPreviewStudentRows,
@@ -71,74 +72,8 @@ export const GREENFIELD_QUARTERLY_REPORTS: QuarterlyReportListItem[] = [
   },
 ];
 
-/** Ten pattern-and-logic-style items for the school preview sample exam (frontend only). */
-export const PREVIEW_PATTERN_LOGIC_SAMPLE_QUESTIONS: {
-  id: string;
-  prompt: string;
-  options: string[];
-  correctIndex: number;
-}[] = [
-  {
-    id: 'sym-p1',
-    prompt: 'Complete the sequence: ▲ ◆ ▲ ◆ ▲ ?',
-    options: ['▲', '◆', '●', '■'],
-    correctIndex: 1,
-  },
-  {
-    id: 'sym-p2',
-    prompt: 'Which shape continues the pattern: ○ △ ○ △ ○ ?',
-    options: ['○', '△', '□', '◇'],
-    correctIndex: 1,
-  },
-  {
-    id: 'sym-p3',
-    prompt: 'If all corners of a square are removed equally, the outline most resembles:',
-    options: ['A circle', 'An octagon', 'A triangle', 'A hexagon'],
-    correctIndex: 1,
-  },
-  {
-    id: 'sym-p4',
-    prompt: 'Mirror the figure left-to-right:  ⟮  )  -  which option matches?',
-    options: ['⟮  )', ')  ⟯', '(  ⟯', '⟯  ('],
-    correctIndex: 2,
-  },
-  {
-    id: 'sym-p5',
-    prompt: 'Grid rule: each row has one filled cell moving right by one. Row 3, col 4 is ?\n■ • • •\n• ■ • •\n• • ? •',
-    options: ['■', '•', 'Both valid', 'No pattern'],
-    correctIndex: 0,
-  },
-  {
-    id: 'sym-p6',
-    prompt: 'Number sequence: 2, 6, 12, 20, 30, ?',
-    options: ['40', '42', '44', '48'],
-    correctIndex: 1,
-  },
-  {
-    id: 'sym-p7',
-    prompt: 'Which option completes the analogy?  BIG is to small as TALL is to:',
-    options: ['Wide', 'Short', 'Thin', 'Long'],
-    correctIndex: 1,
-  },
-  {
-    id: 'sym-p8',
-    prompt: 'Rotating a “Z” shape 180° in the plane looks like:',
-    options: ['Z unchanged', 'N', 'S', 'Backwards Z (like Ƨ)'],
-    correctIndex: 3,
-  },
-  {
-    id: 'sym-p9',
-    prompt: 'Dots per step: •  ••  •••  ?',
-    options: ['••••', '•••', '••', '•'],
-    correctIndex: 0,
-  },
-  {
-    id: 'sym-p10',
-    prompt: 'If the rule is “alternate between adding 1 and doubling,” starting at 1: 1, 2, 3, 6, 7, ?',
-    options: ['8', '12', '14', '13'],
-    correctIndex: 2,
-  },
-];
+/** Pattern and Logic sample items for the school preview (frontend only). */
+export const PREVIEW_PATTERN_LOGIC_SAMPLE_QUESTIONS = PREVIEW_SAMPLE_QUESTIONS_BY_EXAM.symbolic_reasoning;
 
 /** @deprecated Use PREVIEW_PATTERN_LOGIC_SAMPLE_QUESTIONS; kept for any external imports. */
 export const PREVIEW_ASSESSMENT_QUESTIONS = PREVIEW_PATTERN_LOGIC_SAMPLE_QUESTIONS;

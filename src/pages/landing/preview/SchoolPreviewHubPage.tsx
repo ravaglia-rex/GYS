@@ -7,6 +7,7 @@ import {
   Person as PersonIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { getPreviewSampleAssessmentPath } from '../../../data/previewSampleAssessments';
 
 const cards = [
   {
@@ -28,10 +29,10 @@ const cards = [
     cta: 'Open sample dashboard',
   },
   {
-    title: 'Sample student assessment',
+    title: 'Sample student assessments',
     body:
-      'Walk through 10 Pattern and Logic–style items in the same full-screen layout students see - sample banner, timer look, and exit anytime.',
-    path: '/for-schools/preview/assessment',
+      'Walk through Pattern and Logic, Verbal Reasoning, and Mathematical Reasoning sample items in the same full-screen layout students see - sample banner, timer look, and exit anytime.',
+    path: getPreviewSampleAssessmentPath('symbolic_reasoning'),
     icon: <QuizIcon sx={{ fontSize: 44, color: '#10b981' }} />,
     accent: '#10b981',
     cta: 'Start sample assessment',

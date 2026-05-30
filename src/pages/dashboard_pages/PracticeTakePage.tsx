@@ -61,7 +61,7 @@ function formatQuestionElapsed(ms: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-/** `Step 1` / `step 2` (any case) and whole word `Answer` / `answer` in solution copy — rendered bold. */
+/** `Step 1` / `step 2` (any case) and whole word `Answer` / `answer` in solution copy - rendered bold. */
 function solutionStepLineWithBoldStepLabels(text: string, lineKey: string | number): React.ReactNode {
   const re = /\b(step\s+\d+|answer)\b/gi;
   const parts: React.ReactNode[] = [];
@@ -83,14 +83,14 @@ function solutionStepLineWithBoldStepLabels(text: string, lineKey: string | numb
 }
 
 /**
- * Full-page practice session — same chrome as {@link AssessmentTakePage} “taking” stage,
+ * Full-page practice session - same chrome as {@link AssessmentTakePage} “taking” stage,
  * without fullscreen, integrity hooks, or exam timer.
  */
 export default function PracticeTakePage() {
   const { examId = '', level: levelParam } = useParams<{ examId: string; level: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  /** Subscribed — `auth.currentUser` alone does not re-render when auth restores from persistence. */
+  /** Subscribed - `auth.currentUser` alone does not re-render when auth restores from persistence. */
   const [authUid, setAuthUid] = useState(() => auth.currentUser?.uid ?? '');
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {

@@ -220,14 +220,39 @@ export default function SchoolAdminLayout({ children, interactivePreview }: Scho
         overflow: 'hidden',
       }}
     >
-      <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>{renderSidebarNav()}</Box>
-      {!interactivePreview && (
-        <Box sx={{ px: 2, pb: 1, flexShrink: 0 }}>
+      {interactivePreview ? (
+        <Box sx={{ p: 2, borderBottom: `1px solid ${ip.sidebarBorder}`, flexShrink: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
+            <Avatar sx={{ width: 40, height: 40, bgcolor: '#e2e8f0', color: '#0f172a', fontSize: '0.9rem', fontWeight: 700, flexShrink: 0 }}>
+              {avatarInitials}
+            </Avatar>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography sx={{ color: ip.heading, fontWeight: 700, fontSize: '0.88rem' }}>School Admin</Typography>
+              <Typography sx={{ color: ip.subtext, fontSize: '0.76rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {displayEmail || 'Admin'}
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+      ) : (
+        <Box sx={{ p: 2, borderBottom: `1px solid ${ip.sidebarBorder}`, flexShrink: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
+            <Avatar sx={{ width: 40, height: 40, bgcolor: '#e2e8f0', color: '#0f172a', fontSize: '0.9rem', fontWeight: 700, flexShrink: 0 }}>
+              {avatarInitials}
+            </Avatar>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography sx={{ color: ip.heading, fontWeight: 700, fontSize: '0.88rem' }}>School Admin</Typography>
+              <Typography sx={{ color: ip.subtext, fontSize: '0.76rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {displayEmail || 'Admin'}
+              </Typography>
+            </Box>
+          </Box>
           <ResetTutorialsButton
             fullWidth
             variant="outlined"
             size="small"
             sx={{
+              mt: 1.5,
               color: ip.navy,
               borderColor: ip.sidebarBorder,
               bgcolor: '#fff',
@@ -242,68 +267,32 @@ export default function SchoolAdminLayout({ children, interactivePreview }: Scho
           />
         </Box>
       )}
-      <Divider sx={{ borderColor: ip.sidebarBorder, my: 1, flexShrink: 0 }} />
-      {interactivePreview ? (
-        <Box sx={{ px: 2, pb: 1.5, flexShrink: 0 }}>
-          <Button
-            fullWidth
-            variant="outlined"
-            onClick={handleLogout}
-            startIcon={<ArrowBackIcon />}
-            sx={{
-              py: 1,
-              justifyContent: 'flex-start',
-              textTransform: 'none',
-              fontWeight: 600,
-              fontSize: '0.85rem',
-              color: ip.heading,
-              borderColor: ip.sidebarBorder,
-              '&:hover': {
-                borderColor: '#2563eb',
-                bgcolor: 'rgba(37, 99, 235, 0.06)',
-                color: '#1d4ed8',
-              },
-            }}
-          >
-            Exit preview - back to hub
-          </Button>
-        </Box>
-      ) : (
-        <Box sx={{ px: 2, pb: 1.5, flexShrink: 0 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
-            <Avatar sx={{ width: 36, height: 36, bgcolor: '#e2e8f0', color: '#0f172a', fontSize: '0.85rem', fontWeight: 700, flexShrink: 0 }}>
-              {avatarInitials}
-            </Avatar>
-            <Typography sx={{ color: ip.heading, fontWeight: 500, fontSize: '0.78rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {displayEmail || 'Admin'}
-            </Typography>
-          </Box>
-          <Button
-            onClick={handleLogout}
-            endIcon={<LogoutIcon fontSize="small" />}
-            size="small"
-            sx={{
-              mt: 0.5,
-              ml: 6,
-              minWidth: 0,
-              px: 0,
-              py: 0,
-              color: ip.subtext,
-              textTransform: 'none',
-              fontSize: '0.72rem',
-              fontWeight: 600,
-              justifyContent: 'flex-start',
-              '& .MuiButton-endIcon': { ml: 0.5 },
-              '&:hover': {
-                bgcolor: 'transparent',
-                color: '#ef4444',
-              },
-            }}
-          >
-            Logout
-          </Button>
-        </Box>
-      )}
+      <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', py: 2 }}>{renderSidebarNav()}</Box>
+      <Divider sx={{ borderColor: ip.sidebarBorder, my: 0, flexShrink: 0 }} />
+      <Box sx={{ p: 2, flexShrink: 0 }}>
+        <Button
+          fullWidth
+          variant="outlined"
+          onClick={handleLogout}
+          startIcon={interactivePreview ? <ArrowBackIcon /> : <LogoutIcon />}
+          sx={{
+            py: 1,
+            justifyContent: 'flex-start',
+            textTransform: 'none',
+            fontWeight: 700,
+            fontSize: '0.85rem',
+            color: ip.heading,
+            borderColor: ip.sidebarBorder,
+            '&:hover': {
+              borderColor: interactivePreview ? '#2563eb' : '#ef4444',
+              bgcolor: interactivePreview ? 'rgba(37, 99, 235, 0.06)' : 'rgba(239, 68, 68, 0.06)',
+              color: interactivePreview ? '#1d4ed8' : '#ef4444',
+            },
+          }}
+        >
+          {interactivePreview ? 'Exit preview - back to hub' : 'Logout'}
+        </Button>
+      </Box>
     </Box>
   );
 

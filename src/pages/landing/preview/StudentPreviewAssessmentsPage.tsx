@@ -24,8 +24,12 @@ import {
   PREVIEW_MEMBERSHIP_LEVEL,
   PREVIEW_STUDENT_PROFILE,
 } from '../../../data/studentPreviewMock';
+import {
+  getPreviewSampleAssessmentPath,
+  DEFAULT_PREVIEW_SAMPLE_EXAM_ID,
+} from '../../../data/previewSampleAssessments';
 
-const SAMPLE_ASSESSMENT_PATH = '/for-schools/preview/assessment';
+const SAMPLE_ASSESSMENT_PATH = getPreviewSampleAssessmentPath(DEFAULT_PREVIEW_SAMPLE_EXAM_ID);
 const SAMPLE_ASSESSMENT_EXIT = '/students/preview/assessments/available';
 
 function a11yProps(index: number) {

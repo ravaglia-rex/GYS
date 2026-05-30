@@ -107,7 +107,7 @@ const BillingPage: React.FC = () => {
             <MembershipUpgradeSection />
           </Box>
 
-          {/* Payment Management — outer Paper matches billing preview layout */}
+          {/* Payment Management - outer Paper matches billing preview layout */}
           <Typography variant="h5" sx={{ ...studentSectionHeadingSx, mb: 2 }}>
             Payment Management
           </Typography>

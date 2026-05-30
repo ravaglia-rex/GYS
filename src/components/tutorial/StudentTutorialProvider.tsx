@@ -1,7 +1,10 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../firebase/firebase';
-import { getStudent, updateStudent } from '../../db/studentCollection';
+import { updateStudent } from '../../db/studentCollection';
+import { useStudent } from '../../query/hooks';
+import { queryClient } from '../../query/queryClient';
+import { queryKeys } from '../../query/queryKeys';
 import { TutorialProvider, useTutorialContext } from './TutorialContext';
 import { readTutorialPreferenceCache, writeTutorialPreferenceCache } from './tutorialPreferenceCache';
 
@@ -11,33 +14,30 @@ interface StudentTutorialProviderProps {
 
 const StudentTutorialPrefsLoader: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const setPreferences = useTutorialContext()?.setPreferences;
-  const loadedUidRef = useRef<string | null>(null);
+  const [authUid, setAuthUid] = React.useState<string | null>(() => auth.currentUser?.uid ?? null);
+  const { data: student } = useStudent(authUid ?? undefined, Boolean(authUid));
 
   useEffect(() => {
     if (!setPreferences) return;
-    const unsub = onAuthStateChanged(auth, async (user) => {
+    const unsub = onAuthStateChanged(auth, (user) => {
       const uid = user?.uid ?? null;
+      setAuthUid(uid);
       if (!uid) {
-        loadedUidRef.current = null;
         setPreferences(null);
         return;
       }
-      if (loadedUidRef.current === uid) return;
-      loadedUidRef.current = uid;
       setPreferences(readTutorialPreferenceCache('student', uid));
-      try {
-        const student = await getStudent(uid);
-        setPreferences(student?.ui_preferences);
-        writeTutorialPreferenceCache('student', uid, student?.ui_preferences);
-      } catch {
-        setPreferences(readTutorialPreferenceCache('student', uid));
-      }
     });
-    return () => {
-      loadedUidRef.current = null;
-      unsub();
-    };
+    return () => unsub();
   }, [setPreferences]);
+
+  useEffect(() => {
+    if (!setPreferences || !authUid) return;
+    if (student?.ui_preferences) {
+      setPreferences(student.ui_preferences);
+      writeTutorialPreferenceCache('student', authUid, student.ui_preferences);
+    }
+  }, [authUid, setPreferences, student?.ui_preferences]);
 
   return <>{children}</>;
 };
@@ -49,6 +49,7 @@ const StudentTutorialProvider: React.FC<StudentTutorialProviderProps> = ({ child
     await updateStudent(uid, {
       ui_preferences: { tutorials: { dismissed: nextDismissed } },
     });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.student(uid) });
     writeTutorialPreferenceCache('student', uid, { tutorials: { dismissed: nextDismissed } });
   }, []);
 

@@ -272,7 +272,7 @@ function InstitutionHeroStrip(props: {
     performance,
   } = props;
 
-  const tierLabel = institutionalTierCfg?.label ?? '—';
+  const tierLabel = institutionalTierCfg?.label ?? '-';
   const rankShort =
     institutionalRank != null && institutionalRank > 0 ? ordinal(institutionalRank) : '-';
 

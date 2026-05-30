@@ -326,16 +326,20 @@ const AppRouter: React.FC = () => {
               </Suspense>
             }
           />
-          {/* Full-screen sample exam (no admin sidebar), mirrors student Pattern and Logic take UI */}
+          {/* Full-screen sample exam (no admin sidebar), mirrors student take UI */}
           <Route
             path="assessment"
+            element={<Navigate to="/for-schools/preview/assessment/symbolic_reasoning" replace />}
+          />
+          <Route
+            path="assessment/:examId"
             element={
               <Suspense fallback={<BigSpinner/>}>
                 <SchoolPreviewAssessmentPage />
               </Suspense>
             }
           />
-          <Route path="exam" element={<Navigate to="/for-schools/preview/assessment" replace />} />
+          <Route path="exam" element={<Navigate to="/for-schools/preview/assessment/symbolic_reasoning" replace />} />
           <Route
             element={
               <Suspense fallback={<BigSpinner/>}>

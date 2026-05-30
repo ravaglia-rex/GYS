@@ -6,6 +6,8 @@ import AppRouter from './router/AppRouter';
 import { persistor, store } from './state_data/reducer';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from './query/queryClient';
 import { Toaster } from './components/ui/toaster';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -87,13 +89,15 @@ function App() {
   return (
     <Provider store={store}>
       <PersistGate loading={null} persistor={persistor}>
-        <ThemeProvider theme={darkTheme}>
-          <CssBaseline />
-          <div className="App">
-            <AppRouter />
-          </div>
-          <Toaster />
-        </ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider theme={darkTheme}>
+            <CssBaseline />
+            <div className="App">
+              <AppRouter />
+            </div>
+            <Toaster />
+          </ThemeProvider>
+        </QueryClientProvider>
       </PersistGate>
     </Provider>
   );

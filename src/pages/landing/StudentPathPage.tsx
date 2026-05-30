@@ -12,6 +12,7 @@ import {
   useLandingSectionSpy,
 } from '../../hooks/useLandingPageScroll';
 import { studentFaqSections } from './faq/studentFaqSections';
+import { getPreviewSampleAssessmentPath, DEFAULT_PREVIEW_SAMPLE_EXAM_ID } from '../../data/previewSampleAssessments';
 
 const STUDENT_NAV = [
   { id: 'sp-hero', label: 'Home' },
@@ -289,13 +290,13 @@ const StudentPathPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() =>
-                  navigate('/for-schools/preview/assessment', {
+                  navigate(getPreviewSampleAssessmentPath(DEFAULT_PREVIEW_SAMPLE_EXAM_ID), {
                     state: { sampleAssessmentExitTo: '/students' },
                   })
                 }
                 className="rounded-xl border-2 border-white/80 bg-white/10 px-6 py-2.5 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20 hover:-translate-y-0.5 active:scale-[0.99]"
               >
-                Try sample assessment - no account
+                Try sample assessments - no account
               </button>
             </div>
          

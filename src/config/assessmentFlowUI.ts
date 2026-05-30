@@ -95,7 +95,7 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
       { label: 'Duration', value: '40 min' },
       { label: 'Format', value: 'Multiple choice' },
       { label: 'Difficulty', value: 'Adaptive' },
-      { label: 'Language', value: 'Your selected language' },
+      { label: 'Language', value: 'English' },
     ],
     bodyDescription:
       'You will read short passages and answer questions about meaning, inference, and author intent. All content is in the language you chose for this exam.',
@@ -125,7 +125,7 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
       { label: 'Duration', value: '40 min' },
       { label: 'Format', value: 'Multiple choice' },
       { label: 'Difficulty', value: 'Adaptive' },
-      { label: 'Language', value: 'Your selected language' },
+      { label: 'Language', value: 'English' },
     ],
     bodyDescription:
       'Problems emphasize reasoning, structure, and quantitative insight. Visual grids and diagrams share the same layout as pattern-and-logic items; word problems appear in your chosen language.',

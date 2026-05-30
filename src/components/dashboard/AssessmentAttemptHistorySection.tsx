@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import {
   Alert,
   Box,
@@ -11,7 +11,8 @@ import {
   TableRow,
   Typography,
 } from '@mui/material';
-import { getAssessmentConfig, getStudentAssessments, type AssessmentType, type AttemptRecord } from '../../db/assessmentCollection';
+import { type AssessmentType, type AttemptRecord } from '../../db/assessmentCollection';
+import { useAssessmentConfig, useStudentAssessments } from '../../query/hooks';
 import {
   ASSESSMENT_NAMES,
   EXAM_MAX_SCORE_POINTS,
@@ -69,52 +70,23 @@ const AssessmentAttemptHistorySection: React.FC<AssessmentAttemptHistorySectionP
   previewAttempts,
   previewAssessments,
 }) => {
-  const [attempts, setAttempts] = useState<AttemptRecord[]>(previewAttempts ?? []);
-  const [assessments, setAssessments] = useState<AssessmentType[]>(previewAssessments ?? []);
-  const [loading, setLoading] = useState(!previewAttempts && Boolean(uid));
-  const [error, setError] = useState<string | null>(null);
+  const liveLoad = !previewAttempts && Boolean(uid);
+  const { data: assessmentConfig = [] } = useAssessmentConfig(liveLoad);
+  const {
+    data: studentAssessments,
+    isLoading,
+    isError,
+  } = useStudentAssessments(uid, liveLoad);
 
-  useEffect(() => {
-    if (previewAttempts) {
-      setAttempts(previewAttempts);
-      setAssessments(previewAssessments ?? []);
-      setLoading(false);
-      setError(null);
-      return;
-    }
-    if (!uid) {
-      setAttempts([]);
-      setAssessments([]);
-      setLoading(false);
-      return;
-    }
-
-    let active = true;
-    const load = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const [assessmentConfig, studentAssessments] = await Promise.all([
-          getAssessmentConfig(),
-          getStudentAssessments(uid),
-        ]);
-        if (!active) return;
-        setAssessments(assessmentConfig);
-        setAttempts(studentAssessments.attempts ?? []);
-      } catch {
-        if (!active) return;
-        setError('Could not load attempt history. Please refresh and try again.');
-        setAttempts([]);
-      } finally {
-        if (active) setLoading(false);
-      }
-    };
-
-    void load();
-    return () => {
-      active = false;
-    };
-  }, [previewAssessments, previewAttempts, uid]);
+  const attempts = useMemo(
+    () => previewAttempts ?? studentAssessments?.attempts ?? [],
+    [previewAttempts, studentAssessments?.attempts]
+  );
+  const assessments = previewAssessments ?? assessmentConfig;
+  const loading = liveLoad && isLoading;
+  const error = liveLoad && isError
+    ? 'Could not load attempt history. Please refresh and try again.'
+    : null;
 
   const assessmentNameById = useMemo(() => {
     const map = new Map<string, string>();

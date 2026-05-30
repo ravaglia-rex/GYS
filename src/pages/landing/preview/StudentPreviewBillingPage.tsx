@@ -35,7 +35,7 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-/** Membership purchases only — Rev 13 list prices (excl. GST). Illustrative. Newest first. */
+/** Membership purchases only - Rev 13 list prices (excl. GST). Illustrative. Newest first. */
 const MOCK_PAID = [
   {
     transactionId: 'rzp_preview_skills_upgrade',

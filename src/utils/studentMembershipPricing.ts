@@ -20,7 +20,7 @@ export function normalizeStudentMembershipLevel(value: unknown): 0 | 1 | 2 | 3 |
   return 0;
 }
 
-/** Upgrade delta in paise (₹ × 100), list price only — same basis as `STUDENT_SIGNUP_BASE_INR`; GST not included. */
+/** Upgrade delta in paise (₹ × 100), list price only - same basis as `STUDENT_SIGNUP_BASE_INR`; GST not included. */
 export function studentMembershipUpgradeAmountPaise(
   currentLevel: unknown,
   targetLevel: 1 | 2 | 3 | 4

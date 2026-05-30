@@ -1,10 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Box, Typography } from '@mui/material';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../firebase/firebase';
-import { getStudent } from '../../db/studentCollection';
-import { getAssessmentConfig } from '../../db/assessmentCollection';
+import { useAssessmentConfig, useStudent } from '../../query/hooks';
 import * as Sentry from '@sentry/react';
 import DashboardOverview from '../../components/dashboard/DashboardOverview';
 import { EnhancedAssessmentCardsGroup } from '../../components/dashboard/EnhancedAssessmentCardsGroup';
@@ -49,19 +48,106 @@ interface DashboardStats {
 
 const Dashboard: React.FC = () => {
   const [uid, setUid] = useState(() => auth.currentUser?.uid ?? '');
-  const [loading, setLoading] = useState(false);
-  const [stats, setStats] = useState<DashboardStats>({
-    totalAssessments: PROGRAM_EXAM_COUNT,
-    tiersCompleted: 0,
-    averageScore: 0,
-    availableAssessments: 0,
-  });
-  const [scoresByAssessment, setScoresByAssessment] = useState<AssessmentChartRow[]>([]);
-  const [completedAssessments, setCompletedAssessments] = useState<CompletedAssessmentNotificationSource[]>([]);
-  const [unlockedAssessments, setUnlockedAssessments] = useState<UnlockedAssessmentNotificationSource[]>([]);
-  const [backendNotificationEvents, setBackendNotificationEvents] = useState<DashboardNotificationEventSource[]>([]);
-  const [assessmentScopeLine, setAssessmentScopeLine] = useState<string>('');
-  const [loadError, setLoadError] = useState('');
+  const { data: student, isLoading: studentLoading, isError: studentError } = useStudent(uid, Boolean(uid));
+  const { data: configFromBackend = [], isLoading: configLoading } = useAssessmentConfig(Boolean(uid));
+
+  const loading = studentLoading || configLoading;
+  const loadError = studentError ? 'Could not load your dashboard data. Please refresh or try again later.' : '';
+
+  const dashboardDerived = useMemo(() => {
+    if (loading || !student) {
+      return {
+        stats: {
+          totalAssessments: PROGRAM_EXAM_COUNT,
+          tiersCompleted: 0,
+          averageScore: 0,
+          availableAssessments: 0,
+        } as DashboardStats,
+        scoresByAssessment: [] as AssessmentChartRow[],
+        completedAssessments: [] as CompletedAssessmentNotificationSource[],
+        unlockedAssessments: [] as UnlockedAssessmentNotificationSource[],
+        backendNotificationEvents: [] as DashboardNotificationEventSource[],
+        assessmentScopeLine: '',
+      };
+    }
+
+    const progress: Record<string, AssessmentProgress> = student?.assessment_progress ?? {};
+    const dashboardNotificationEvents = Array.isArray(student?.dashboard_notification_events)
+      ? (student.dashboard_notification_events as DashboardNotificationEventSource[])
+      : [];
+    const membershipLevel = membershipLevelForAssessmentGate(student);
+    const studentGrade =
+      typeof student?.grade === 'number' && !Number.isNaN(student.grade) ? student.grade : 8;
+
+    const sorted = [...configFromBackend].sort((a, b) => {
+      const ia = ASSESSMENT_ORDER.indexOf(a.id as (typeof ASSESSMENT_ORDER)[number]);
+      const ib = ASSESSMENT_ORDER.indexOf(b.id as (typeof ASSESSMENT_ORDER)[number]);
+      return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+    });
+
+    let availableAssessments = 0;
+    let tiersCompleted = 0;
+    const completedForNotifications: CompletedAssessmentNotificationSource[] = [];
+    const unlockedForNotifications: UnlockedAssessmentNotificationSource[] = [];
+
+    for (const a of sorted) {
+      const p = progress[a.id] ?? defaultAssessmentProgress;
+      const gate = computeGate(a.id, membershipLevel, progress, studentGrade, sorted);
+      const done = isAssessmentFullyComplete(a, p);
+      if (done) {
+        tiersCompleted++;
+        completedForNotifications.push({
+          assessmentId: a.id,
+          assessmentName: a.name?.trim() || ASSESSMENT_NAMES[a.id] || a.id,
+        });
+      }
+      if (!gate.locked && !isAssessmentFullyComplete(a, p)) {
+        availableAssessments++;
+        const hasAttemptedThisAssessment = (p.attempts_count ?? 0) > 0 || p.best_score !== null;
+        const hasPrerequisite = (COMPLETION_PREREQUISITES[a.id] ?? []).length > 0;
+        if (!hasAttemptedThisAssessment && hasPrerequisite) {
+          unlockedForNotifications.push({
+            assessmentId: a.id,
+            assessmentName: a.name?.trim() || ASSESSMENT_NAMES[a.id] || a.id,
+          });
+        }
+      }
+    }
+
+    const listedTotal = Math.max(sorted.length, PROGRAM_EXAM_COUNT);
+    const scoresWithValues = Object.values(progress).filter((p) => p.best_score !== null);
+    const avgScore =
+      scoresWithValues.length > 0
+        ? Math.round(
+            (scoresWithValues.reduce((sum, p) => sum + (p.best_score ?? 0), 0) /
+              scoresWithValues.length) *
+              1000
+          )
+        : 0;
+
+    return {
+      stats: {
+        totalAssessments: listedTotal,
+        tiersCompleted,
+        averageScore: avgScore,
+        availableAssessments,
+      },
+      scoresByAssessment: buildDashboardExamChartRows(sorted, progress, membershipLevel, studentGrade),
+      completedAssessments: completedForNotifications,
+      unlockedAssessments: unlockedForNotifications,
+      backendNotificationEvents: dashboardNotificationEvents,
+      assessmentScopeLine: `${tiersCompleted} of ${listedTotal} complete`,
+    };
+  }, [student, configFromBackend, loading]);
+
+  const {
+    stats,
+    scoresByAssessment,
+    completedAssessments,
+    unlockedAssessments,
+    backendNotificationEvents,
+    assessmentScopeLine,
+  } = dashboardDerived;
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, user => {
@@ -71,104 +157,14 @@ const Dashboard: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!uid) return;
-
-    const load = async () => {
-      try {
-        setLoading(true);
-        const [student, configFromBackend] = await Promise.all([getStudent(uid), getAssessmentConfig()]);
-        setLoadError('');
-        const progress: Record<string, AssessmentProgress> = student?.assessment_progress ?? {};
-        const dashboardNotificationEvents = Array.isArray(student?.dashboard_notification_events)
-          ? student.dashboard_notification_events as DashboardNotificationEventSource[]
-          : [];
-        const membershipLevel = membershipLevelForAssessmentGate(student);
-        const studentGrade =
-          typeof student?.grade === 'number' && !Number.isNaN(student.grade) ? student.grade : 8;
-
-        const sorted = [...configFromBackend].sort((a, b) => {
-          const ia = ASSESSMENT_ORDER.indexOf(a.id as (typeof ASSESSMENT_ORDER)[number]);
-          const ib = ASSESSMENT_ORDER.indexOf(b.id as (typeof ASSESSMENT_ORDER)[number]);
-          return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
-        });
-
-        let availableAssessments = 0;
-        let tiersCompleted = 0;
-        const completedForNotifications: CompletedAssessmentNotificationSource[] = [];
-        const unlockedForNotifications: UnlockedAssessmentNotificationSource[] = [];
-
-        for (const a of sorted) {
-          const p = progress[a.id] ?? defaultAssessmentProgress;
-          const gate = computeGate(a.id, membershipLevel, progress, studentGrade, sorted);
-          const done = isAssessmentFullyComplete(a, p);
-          if (done) {
-            tiersCompleted++;
-            completedForNotifications.push({
-              assessmentId: a.id,
-              assessmentName: a.name?.trim() || ASSESSMENT_NAMES[a.id] || a.id,
-            });
-          }
-          if (!gate.locked && !isAssessmentFullyComplete(a, p)) {
-            availableAssessments++;
-            const hasAttemptedThisAssessment = (p.attempts_count ?? 0) > 0 || p.best_score !== null;
-            const hasPrerequisite = (COMPLETION_PREREQUISITES[a.id] ?? []).length > 0;
-            if (!hasAttemptedThisAssessment && hasPrerequisite) {
-              unlockedForNotifications.push({
-                assessmentId: a.id,
-                assessmentName: a.name?.trim() || ASSESSMENT_NAMES[a.id] || a.id,
-              });
-            }
-          }
-        }
-
-        const listedTotal = Math.max(sorted.length, PROGRAM_EXAM_COUNT);
-        setAssessmentScopeLine(
-          `${tiersCompleted} of ${listedTotal} complete`
-        );
-
-        // Average score across all assessments that have a best score
-        const scoresWithValues = Object.values(progress).filter((p) => p.best_score !== null);
-        const avgScore =
-          scoresWithValues.length > 0
-            ? Math.round(
-                (scoresWithValues.reduce((sum, p) => sum + (p.best_score ?? 0), 0) /
-                  scoresWithValues.length) *
-                  1000
-              )
-            : 0;
-
-        setStats({
-          totalAssessments: listedTotal,
-          tiersCompleted,
-          averageScore: avgScore,
-          availableAssessments,
-        });
-        setCompletedAssessments(completedForNotifications);
-        setUnlockedAssessments(unlockedForNotifications);
-        setBackendNotificationEvents(dashboardNotificationEvents);
-
-        setScoresByAssessment(
-          buildDashboardExamChartRows(sorted, progress, membershipLevel, studentGrade)
-        );
-      } catch (err) {
-        setLoadError('Could not load your dashboard data. Please refresh or try again later.');
-        setScoresByAssessment([]);
-        setCompletedAssessments([]);
-        setUnlockedAssessments([]);
-        setBackendNotificationEvents([]);
-        setAssessmentScopeLine('');
-        Sentry.withScope((scope) => {
-          scope.setTag('location', 'DashboardPage.load');
-          scope.setExtra('uid', uid);
-          scope.captureException(err);
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    load();
-  }, [uid]);
+    if (studentError) {
+      Sentry.withScope((scope) => {
+        scope.setTag('location', 'DashboardPage.load');
+        scope.setExtra('uid', uid);
+        scope.captureException(studentError);
+      });
+    }
+  }, [studentError, uid]);
 
   return (
     <Sentry.ErrorBoundary beforeCapture={(s) => s.setTag('location', 'DashboardPage')}>
@@ -201,6 +197,7 @@ const Dashboard: React.FC = () => {
           ) : (
             <>
               <DashboardOverview
+                uid={uid}
                 stats={{
                   totalAssessments: stats.totalAssessments,
                   completedAssessments: stats.tiersCompleted,

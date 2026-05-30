@@ -12,9 +12,8 @@ import {
 } from 'lucide-react';
 import { Close as CloseIcon, Notifications as NotificationsIcon } from '@mui/icons-material';
 import { auth } from '../../firebase/firebase';
-import { getStudent, sendNotificationEmails } from '../../db/studentCollection';
-import { getSchoolDetails } from '../../db/schoolCollection';
-import { getPayments } from '../../db/studentPaymentMappings';
+import { sendNotificationEmails } from '../../db/studentCollection';
+import { usePayments, useSchoolDetails, useStudent } from '../../query/hooks';
 import {
   normalizeMembershipLevel,
   membershipLevelForAssessmentGate,
@@ -356,6 +355,8 @@ export interface DashboardOverviewPreviewProfile {
 }
 
 interface DashboardOverviewProps {
+  /** When set, profile header uses shared query cache instead of fetching again. */
+  uid?: string;
   stats: {
     totalAssessments: number;
     completedAssessments: number;
@@ -457,6 +458,7 @@ const StatCard: React.FC<{
 );
 
 const DashboardOverview: React.FC<DashboardOverviewProps> = ({
+  uid,
   stats,
   latestAssessmentResults = [],
   completedAssessments = [],
@@ -478,7 +480,17 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   const [membershipExpiry, setMembershipExpiry] = useState<string | null>(null);
   const [achievementTierId, setAchievementTierId] = useState<string>(ACHIEVEMENT_TIER_EXPLORER);
   const [sessionDismissedNotificationIds, setSessionDismissedNotificationIds] = useState<Set<string>>(() => new Set());
+  const notificationEmailSentRef = useRef<Set<string>>(new Set());
   const notificationListRef = useRef<HTMLDivElement | null>(null);
+
+  const useLiveProfile = Boolean(uid) && !previewProfile;
+  const { data: userData, isLoading: studentQueryLoading } = useStudent(uid, useLiveProfile);
+  const schoolId =
+    typeof userData?.school_id === 'string' && userData.school_id && userData.school_id !== 'not-listed'
+      ? userData.school_id
+      : undefined;
+  const { data: schoolNameFromQuery } = useSchoolDetails(schoolId, useLiveProfile);
+  const { data: payments = [] } = usePayments(uid, useLiveProfile);
   const [notificationScrollbar, setNotificationScrollbar] = useState({
     visible: false,
     top: 0,
@@ -515,8 +527,14 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   useEffect(() => {
     if (!persistNotificationDismissals || notifications.length === 0) return;
 
+    const newIds = notifications
+      .map((n) => n.id)
+      .filter((id) => !notificationEmailSentRef.current.has(id));
+    if (newIds.length === 0) return;
+    newIds.forEach((id) => notificationEmailSentRef.current.add(id));
+
     void sendNotificationEmails({
-      notificationIds: notifications.map(n => n.id),
+      notificationIds: newIds,
       availableAssessmentsCount: stats.availableAssessments,
       completedAssessments,
     }).catch(error => {
@@ -571,117 +589,92 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
       setLoading(false);
       return;
     }
-    const fetchUserName = async () => {
-      if (auth.currentUser?.uid) {
-        try {
-          const userData = await getStudent(auth.currentUser.uid);
-          setAchievementTierId(normalizeAchievementTierId(userData?.achievement_tier as string | undefined));
-          const profileFirstName = formatFirstName(userData?.first_name ?? userData?.firstName);
-          setUserName(profileFirstName ?? getFirebaseFirstName());
-          if (userData?.grade) {
-            setStudentGrade(userData.grade);
-          }
-          if (userData?.school_id) {
-            try {
-              const name = await getSchoolDetails(userData.school_id);
-              if (name && typeof name === 'string') setSchoolName(name);
-            } catch {}
-          }
-
-          // Derive membership level + expiry from payments, fall back to account creation date
-          const levelMap: Record<string, string> = {
-            LEVEL_1: MEMBERSHIP_LEVEL_LABEL[1],
-            LEVEL_2: MEMBERSHIP_LEVEL_LABEL[2],
-            LEVEL_3: MEMBERSHIP_LEVEL_LABEL[3],
-            LEVEL_4: MEMBERSHIP_LEVEL_LABEL[4],
-          };
-          const rawLevel =
-            userData?.membership_level ?? userData?.plan_level ?? null;
-          const levelFromStudent: string | number | null =
-            typeof rawLevel === 'number' ? normalizeMembershipLevel(rawLevel) : rawLevel;
-          const levelNum =
-            typeof levelFromStudent === 'number'
-              ? levelFromStudent
-              : typeof levelFromStudent === 'string' && /^LEVEL_[1234]$/.test(levelFromStudent)
-                ? Number(levelFromStudent.replace('LEVEL_', ''))
-                : null;
-          /** Tier for badge copy: institutional floor (e.g. Premium school) can show Reasoning + Skills when applicable. */
-          const tierForBadge = membershipLevelForAssessmentGate(
-            userData as { membership_level?: number | null; assessment_gate_membership_level?: number | null }
-          );
-
-          const resolveExpiry = (baseDate: Date) => {
-            baseDate.setFullYear(baseDate.getFullYear() + 1);
-            return baseDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-          };
-
-          const creationExpiry = () => {
-            const t = auth.currentUser?.metadata?.creationTime;
-            return t ? resolveExpiry(new Date(t)) : null;
-          };
-
-          try {
-            const payments = await getPayments(auth.currentUser.uid);
-            // Use any payment regardless of status - take the most recent by paid_at
-            const sorted = [...payments].sort(
-              (a, b) => new Date(b.paid_at ?? 0).getTime() - new Date(a.paid_at ?? 0).getTime()
-            );
-
-            if (sorted.length > 0) {
-              const latest = sorted[0];
-              // Determine level: student doc field > amount heuristic
-              if (levelFromStudent != null && levelFromStudent !== '') {
-                if (typeof levelFromStudent === 'number' && levelFromStudent >= 1 && levelFromStudent <= 4) {
-                  setMembershipLevel(levelMap[`LEVEL_${tierForBadge}` as 'LEVEL_1'] ?? `Level ${tierForBadge}`);
-                } else {
-                  setMembershipLevel(levelMap[levelFromStudent as keyof typeof levelMap] ?? String(levelFromStudent));
-                }
-              } else {
-                setMembershipLevel(membershipLabelFromPaymentAmountInr((latest.amount_paise ?? 0) / 100));
-              }
-              const baseDate = new Date(latest.paid_at ?? '');
-              setMembershipExpiry(
-                !isNaN(baseDate.getTime()) ? resolveExpiry(baseDate) : creationExpiry()
-              );
-            } else {
-              // No payments - default new students to Level 1; respect explicit level on student doc
-              if (levelFromStudent != null && levelFromStudent !== '') {
-                if (typeof levelFromStudent === 'number' && levelFromStudent >= 1 && levelFromStudent <= 4) {
-                  setMembershipLevel(levelMap[`LEVEL_${tierForBadge}` as 'LEVEL_1'] ?? `Level ${tierForBadge}`);
-                } else {
-                  setMembershipLevel(levelMap[levelFromStudent as keyof typeof levelMap] ?? String(levelFromStudent));
-                }
-              } else if (levelNum != null && levelNum >= 1 && levelNum <= 4) {
-                setMembershipLevel(levelMap[`LEVEL_${tierForBadge}` as 'LEVEL_1']);
-              } else {
-                setMembershipLevel(MEMBERSHIP_LEVEL_LABEL[1]);
-              }
-              setMembershipExpiry(creationExpiry());
-            }
-          } catch {
-            if (levelFromStudent != null && levelFromStudent !== '') {
-              if (typeof levelFromStudent === 'number' && levelFromStudent >= 1 && levelFromStudent <= 4) {
-                setMembershipLevel(levelMap[`LEVEL_${tierForBadge}` as 'LEVEL_1'] ?? `Level ${tierForBadge}`);
-              } else {
-                setMembershipLevel(levelMap[levelFromStudent as keyof typeof levelMap] ?? String(levelFromStudent));
-              }
-            } else if (levelNum != null && levelNum >= 1 && levelNum <= 4) {
-              setMembershipLevel(levelMap[`LEVEL_${tierForBadge}` as 'LEVEL_1']);
-            } else {
-              setMembershipLevel(MEMBERSHIP_LEVEL_LABEL[1]);
-            }
-            setMembershipExpiry(creationExpiry());
-          }
-        } catch (error) {
-          console.error('Error fetching user data:', error);
-          setUserName(getFirebaseFirstName());
-        }
-      }
+    if (!useLiveProfile) {
       setLoading(false);
+      return;
+    }
+    if (studentQueryLoading || !userData) {
+      setLoading(studentQueryLoading);
+      return;
+    }
+
+    setAchievementTierId(normalizeAchievementTierId(userData?.achievement_tier as string | undefined));
+    const profileFirstName = formatFirstName(userData?.first_name ?? userData?.firstName);
+    setUserName(profileFirstName ?? getFirebaseFirstName());
+    if (userData?.grade) {
+      setStudentGrade(userData.grade);
+    }
+    if (typeof userData?.signup_school_name === 'string' && userData.signup_school_name.trim()) {
+      setSchoolName(userData.signup_school_name.trim());
+    } else if (schoolNameFromQuery && typeof schoolNameFromQuery === 'string') {
+      setSchoolName(schoolNameFromQuery);
+    } else {
+      setSchoolName(null);
+    }
+
+    const levelMap: Record<string, string> = {
+      LEVEL_1: MEMBERSHIP_LEVEL_LABEL[1],
+      LEVEL_2: MEMBERSHIP_LEVEL_LABEL[2],
+      LEVEL_3: MEMBERSHIP_LEVEL_LABEL[3],
+      LEVEL_4: MEMBERSHIP_LEVEL_LABEL[4],
+    };
+    const rawLevel = userData?.membership_level ?? userData?.plan_level ?? null;
+    const levelFromStudent: string | number | null =
+      typeof rawLevel === 'number' ? normalizeMembershipLevel(rawLevel) : rawLevel;
+    const levelNum =
+      typeof levelFromStudent === 'number'
+        ? levelFromStudent
+        : typeof levelFromStudent === 'string' && /^LEVEL_[1234]$/.test(levelFromStudent)
+          ? Number(levelFromStudent.replace('LEVEL_', ''))
+          : null;
+    const tierForBadge = membershipLevelForAssessmentGate(
+      userData as { membership_level?: number | null; assessment_gate_membership_level?: number | null }
+    );
+
+    const resolveExpiry = (baseDate: Date) => {
+      baseDate.setFullYear(baseDate.getFullYear() + 1);
+      return baseDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
     };
 
-    fetchUserName();
-  }, [previewProfile]);
+    const creationExpiry = () => {
+      const t = auth.currentUser?.metadata?.creationTime;
+      return t ? resolveExpiry(new Date(t)) : null;
+    };
+
+    const sortedPayments = [...payments].sort(
+      (a, b) => new Date(b.paid_at ?? 0).getTime() - new Date(a.paid_at ?? 0).getTime()
+    );
+
+    if (sortedPayments.length > 0) {
+      const latest = sortedPayments[0];
+      if (levelFromStudent != null && levelFromStudent !== '') {
+        if (typeof levelFromStudent === 'number' && levelFromStudent >= 1 && levelFromStudent <= 4) {
+          setMembershipLevel(levelMap[`LEVEL_${tierForBadge}` as 'LEVEL_1'] ?? `Level ${tierForBadge}`);
+        } else {
+          setMembershipLevel(levelMap[levelFromStudent as keyof typeof levelMap] ?? String(levelFromStudent));
+        }
+      } else {
+        setMembershipLevel(membershipLabelFromPaymentAmountInr((latest.amount_paise ?? 0) / 100));
+      }
+      const baseDate = new Date(latest.paid_at ?? '');
+      setMembershipExpiry(!isNaN(baseDate.getTime()) ? resolveExpiry(baseDate) : creationExpiry());
+    } else if (levelFromStudent != null && levelFromStudent !== '') {
+      if (typeof levelFromStudent === 'number' && levelFromStudent >= 1 && levelFromStudent <= 4) {
+        setMembershipLevel(levelMap[`LEVEL_${tierForBadge}` as 'LEVEL_1'] ?? `Level ${tierForBadge}`);
+      } else {
+        setMembershipLevel(levelMap[levelFromStudent as keyof typeof levelMap] ?? String(levelFromStudent));
+      }
+      setMembershipExpiry(creationExpiry());
+    } else if (levelNum != null && levelNum >= 1 && levelNum <= 4) {
+      setMembershipLevel(levelMap[`LEVEL_${tierForBadge}` as 'LEVEL_1']);
+      setMembershipExpiry(creationExpiry());
+    } else {
+      setMembershipLevel(MEMBERSHIP_LEVEL_LABEL[1]);
+      setMembershipExpiry(creationExpiry());
+    }
+
+    setLoading(false);
+  }, [previewProfile, useLiveProfile, studentQueryLoading, userData, schoolNameFromQuery, payments]);
 
   const handleNavigation = (path: string) => {
     if (previewNavTargets) {

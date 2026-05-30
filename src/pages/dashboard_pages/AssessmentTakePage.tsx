@@ -31,10 +31,9 @@ import {
   completeExam,
   abandonExam,
   abandonExamOnTabUnload,
-  getAssessmentConfig,
   ExamQuestion,
-  AssessmentType,
 } from '../../db/assessmentCollection';
+import { useAssessmentConfig, useInvalidateStudentQueries } from '../../query/hooks';
 import { MathJaxContext } from 'better-react-mathjax';
 import { getAssessmentFlowDefinition } from '../../config/assessmentFlowUI';
 import { EXAM_MATHJAX_CONFIG } from '../../components/assessment/examMathJaxConfig';
@@ -207,7 +206,8 @@ export default function AssessmentTakePage() {
   const needsPreExamStep = assessmentId ? NEEDS_MIC.has(assessmentId) || NEEDS_LAPTOP.has(assessmentId) : false;
 
   const [stage, setStage] = useState<PageStage>(needsPreExamStep ? 'pre_exam' : 'taking');
-  const [configTypes, setConfigTypes] = useState<AssessmentType[]>([]);
+  const invalidateStudentQueries = useInvalidateStudentQueries();
+  const { data: configTypes = [] } = useAssessmentConfig(Boolean(uid));
 
   const [attemptId, setAttemptId] = useState<string | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState<ExamQuestion | null>(null);
@@ -225,7 +225,7 @@ export default function AssessmentTakePage() {
   const [integrityGateOk, setIntegrityGateOk] = useState(needsPreExamStep);
   const [screenshotNudge, setScreenshotNudge] = useState(false);
   const questionStartTimeRef = useRef<number>(Date.now());
-  /** True after submit, confirmed leave, integrity abandon, or tab-unload beacon — skips duplicate fail-on-unload. */
+  /** True after submit, confirmed leave, integrity abandon, or tab-unload beacon - skips duplicate fail-on-unload. */
   const examEndedRef = useRef(false);
 
   const flow = assessmentId ? getAssessmentFlowDefinition(assessmentId) : getAssessmentFlowDefinition('');
@@ -238,6 +238,7 @@ export default function AssessmentTakePage() {
       if (!attemptId || !uid) return;
       try {
         const res = await abandonExam(uid, attemptId, 'extended_background');
+        invalidateStudentQueries(uid);
         examEndedRef.current = true;
         if (res.suspended && res.suspended_until_ms) {
           window.alert(
@@ -252,7 +253,7 @@ export default function AssessmentTakePage() {
       }
       navigate(`/assessments/${assessmentId}/tier/${tier}/detail`, { replace: true });
     },
-    [attemptId, uid, assessmentId, tier, navigate]
+    [attemptId, uid, assessmentId, tier, navigate, invalidateStudentQueries]
   );
 
   const { leftFullscreen, tryEnterFullscreen, dismissFullscreenWarning } = useExamIntegrity({
@@ -261,12 +262,6 @@ export default function AssessmentTakePage() {
       endAttemptForIntegrity('This attempt ended because the exam stayed in the background too long.'),
     onPrintScreen: () => setScreenshotNudge(true),
   });
-
-  useEffect(() => {
-    getAssessmentConfig()
-      .then(setConfigTypes)
-      .catch(() => {});
-  }, []);
 
   const doInitialize = useCallback(async () => {
     if (!uid || !assessmentId) return;
@@ -412,6 +407,7 @@ export default function AssessmentTakePage() {
     setAbandoning(true);
     try {
       const res = await abandonExam(uid, attemptId, 'user_confirmed_exit');
+      invalidateStudentQueries(uid);
       examEndedRef.current = true;
       setLeaveDialogOpen(false);
       if (res.suspended && res.suspended_until_ms) {
@@ -427,7 +423,7 @@ export default function AssessmentTakePage() {
     } finally {
       setAbandoning(false);
     }
-  }, [attemptId, uid, assessmentId, tier, navigate]);
+  }, [attemptId, uid, assessmentId, tier, navigate, invalidateStudentQueries]);
 
   const handlePreExamConfirm = useCallback(() => {
     void document.documentElement.requestFullscreen?.().catch(() => {});
@@ -445,6 +441,7 @@ export default function AssessmentTakePage() {
 
       if (response.done) {
         const result = await completeExam(uid, attemptId);
+        invalidateStudentQueries(uid);
         examEndedRef.current = true;
         setStage('complete');
         navigate(`/assessments/${assessmentId}/result`, {
@@ -474,7 +471,7 @@ export default function AssessmentTakePage() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [selectedOption, attemptId, currentQuestion, uid, assessmentId, tier, currentIndex, navigate]);
+  }, [selectedOption, attemptId, currentQuestion, uid, assessmentId, tier, currentIndex, navigate, invalidateStudentQueries]);
 
   useEffect(() => {
     if (stage !== 'taking') return;

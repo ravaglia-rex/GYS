@@ -1,22 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Box } from '@mui/material';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import * as Sentry from '@sentry/react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../firebase/firebase';
-import { getStudent, StudentProfileError } from '../../db/studentCollection';
-import { getAssessmentConfig } from '../../db/assessmentCollection';
+import { StudentProfileError } from '../../db/studentCollection';
 import type { AssessmentType } from '../../db/assessmentCollection';
 import PracticeModeContent, { type PracticeUnlockContext } from '../../components/practice/PracticeModeContent';
 import { ASSESSMENT_ORDER, membershipLevelForAssessmentGate, type AssessmentProgress } from '../../utils/assessmentGating';
 import BigSpinner from '../../components/ui/BigSpinner';
 import PageTutorial from '../../components/tutorial/PageTutorial';
+import { useAssessmentConfig, useStudent } from '../../query/hooks';
 
 const PracticeTestPage: React.FC = () => {
   const [uid, setUid] = useState(() => auth.currentUser?.uid ?? '');
-  const [grade, setGrade] = useState(8);
-  const [loading, setLoading] = useState(false);
-  const [practiceUnlock, setPracticeUnlock] = useState<PracticeUnlockContext | undefined>(undefined);
+  const { data: config, isLoading: configLoading, isError: configError } = useAssessmentConfig(Boolean(uid));
+  const { data: student, isLoading: studentLoading, error: studentError } = useStudent(uid, Boolean(uid));
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
@@ -26,72 +25,52 @@ const PracticeTestPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!uid) return;
+    if (studentError && !(studentError instanceof StudentProfileError && studentError.code === 'NOT_FOUND')) {
+      Sentry.withScope((scope) => {
+        scope.setTag('location', 'PracticeTestPage.getStudent');
+        scope.setExtra('uid', uid);
+        Sentry.captureException(studentError);
+      });
+    }
+    if (configError) {
+      Sentry.withScope((scope) => {
+        scope.setTag('location', 'PracticeTestPage.load');
+        scope.setExtra('uid', uid);
+        Sentry.captureException(configError);
+      });
+    }
+  }, [studentError, configError, uid]);
 
-    let cancelled = false;
-    const load = async () => {
-      try {
-        setLoading(true);
-        const config = await getAssessmentConfig();
-        if (cancelled) return;
+  const loading = configLoading || studentLoading;
 
-        let student: Awaited<ReturnType<typeof getStudent>> | null = null;
-        try {
-          student = await getStudent(uid);
-        } catch (err) {
-          if (!(err instanceof StudentProfileError && err.code === 'NOT_FOUND')) {
-            Sentry.withScope((scope) => {
-              scope.setTag('location', 'PracticeTestPage.getStudent');
-              scope.setExtra('uid', uid);
-              Sentry.captureException(err);
-            });
-          }
-        }
-        if (cancelled) return;
+  const grade = useMemo(() => {
+    return typeof student?.grade === 'number' && !Number.isNaN(student.grade) ? student.grade : 8;
+  }, [student?.grade]);
 
-        const g =
-          typeof student?.grade === 'number' && !Number.isNaN(student.grade) ? student.grade : 8;
-        setGrade(g);
-        const officialTierCountByExam: Record<string, number> = {};
-        for (const a of config) {
-          officialTierCountByExam[a.id] = a.tiers?.length ?? 0;
-        }
-        const sorted: AssessmentType[] = [...config].sort((a, b) => {
-          const ia = ASSESSMENT_ORDER.indexOf(a.id as (typeof ASSESSMENT_ORDER)[number]);
-          const ib = ASSESSMENT_ORDER.indexOf(b.id as (typeof ASSESSMENT_ORDER)[number]);
-          return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
-        });
-        const progress = (student?.assessment_progress ?? {}) as Record<string, AssessmentProgress>;
-        const membershipLevel = membershipLevelForAssessmentGate(student ?? {});
-        setPracticeUnlock({
-          progressByExam: progress,
-          officialTierCountByExam,
-          assessmentGate: {
-            membershipLevel,
-            grade: g,
-            assessments: sorted,
-            progress,
-          },
-        });
-      } catch (err) {
-        Sentry.withScope((scope) => {
-          scope.setTag('location', 'PracticeTestPage.load');
-          scope.setExtra('uid', uid);
-          Sentry.captureException(err);
-        });
-        if (!cancelled) {
-          setGrade(8);
-          setPracticeUnlock(undefined);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+  const practiceUnlock = useMemo((): PracticeUnlockContext | undefined => {
+    if (!config || config.length === 0) return undefined;
+    const officialTierCountByExam: Record<string, number> = {};
+    for (const a of config) {
+      officialTierCountByExam[a.id] = a.tiers?.length ?? 0;
+    }
+    const sorted: AssessmentType[] = [...config].sort((a, b) => {
+      const ia = ASSESSMENT_ORDER.indexOf(a.id as (typeof ASSESSMENT_ORDER)[number]);
+      const ib = ASSESSMENT_ORDER.indexOf(b.id as (typeof ASSESSMENT_ORDER)[number]);
+      return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+    });
+    const progress = (student?.assessment_progress ?? {}) as Record<string, AssessmentProgress>;
+    const membershipLevel = membershipLevelForAssessmentGate(student ?? {});
+    return {
+      progressByExam: progress,
+      officialTierCountByExam,
+      assessmentGate: {
+        membershipLevel,
+        grade,
+        assessments: sorted,
+        progress,
+      },
     };
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [uid]);
+  }, [config, student, grade]);
 
   const storageScope = uid || auth.currentUser?.uid || 'practice_session';
 

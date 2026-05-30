@@ -17,8 +17,12 @@ import {
   type DashboardNotificationEventSource,
   type UnlockedAssessmentNotificationSource,
 } from '../../../utils/dashboardNotifications';
+import {
+  getPreviewSampleAssessmentPath,
+  DEFAULT_PREVIEW_SAMPLE_EXAM_ID,
+} from '../../../data/previewSampleAssessments';
 
-const SAMPLE_ASSESSMENT_PATH = '/for-schools/preview/assessment';
+const SAMPLE_ASSESSMENT_PATH = getPreviewSampleAssessmentPath(DEFAULT_PREVIEW_SAMPLE_EXAM_ID);
 const SAMPLE_ASSESSMENT_EXIT = '/students/preview/dashboard';
 const PREVIEW_NOTIFICATION_TIMESTAMP = '2026-05-01T04:30:00.000Z';
 

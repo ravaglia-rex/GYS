@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Box,
@@ -24,8 +24,7 @@ import HeadphonesIcon from '@mui/icons-material/Headphones';
 import MicIcon from '@mui/icons-material/Mic';
 import * as Sentry from '@sentry/react';
 import { auth } from '../../firebase/firebase';
-import { getStudent } from '../../db/studentCollection';
-import { getAssessmentConfig, AssessmentType } from '../../db/assessmentCollection';
+import { useAssessmentConfig, useStudent } from '../../query/hooks';
 import {
   computeGate,
   membershipLevelForAssessmentGate,
@@ -75,33 +74,30 @@ const AssessmentDetailPage: React.FC = () => {
   const tier = parseInt(tierNumber ?? '1', 10);
   const levelBased = assessmentId ? isLevelBasedAssessment(assessmentId) : true;
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [membershipLevel, setMembershipLevel] = useState(1);
-  const [progressMap, setProgressMap] = useState<Record<string, typeof defaultAssessmentProgress>>({});
-  const [assessmentTypes, setAssessmentTypes] = useState<AssessmentType[]>([]);
-  const [studentGrade, setStudentGrade] = useState(8);
+  const { data: student, isLoading: studentLoading, isError: studentError } = useStudent(
+    uid,
+    Boolean(uid && assessmentId)
+  );
+  const { data: assessmentTypes = [], isLoading: configLoading, isError: configError } =
+    useAssessmentConfig(Boolean(uid && assessmentId));
+
+  const loading = studentLoading || configLoading;
+  const error =
+    studentError || configError ? 'Could not load assessment details.' : null;
+
+  const membershipLevel = membershipLevelForAssessmentGate(student);
+  const progressMap = (student?.assessment_progress ?? {}) as Record<
+    string,
+    typeof defaultAssessmentProgress
+  >;
+  const studentGrade =
+    typeof student?.grade === 'number' && !Number.isNaN(student.grade) ? student.grade : 8;
 
   useEffect(() => {
-    if (!uid || !assessmentId) return;
-    (async () => {
-      try {
-        setLoading(true);
-        const [student, config] = await Promise.all([getStudent(uid), getAssessmentConfig()]);
-        setMembershipLevel(membershipLevelForAssessmentGate(student));
-        setStudentGrade(
-          typeof student?.grade === 'number' && !Number.isNaN(student.grade) ? student.grade : 8
-        );
-        setProgressMap(student?.assessment_progress ?? {});
-        setAssessmentTypes(config);
-      } catch (e) {
-        Sentry.captureException(e);
-        setError('Could not load assessment details.');
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [uid, assessmentId]);
+    if (studentError || configError) {
+      Sentry.captureException(studentError ?? configError);
+    }
+  }, [studentError, configError]);
 
   const assessment = useMemo(
     () => assessmentTypes.find((a) => a.id === assessmentId),

@@ -250,7 +250,7 @@ export const TUTORIAL_REGISTRY: Record<TutorialPageKey, TutorialStepDefinition[]
     {
       targetId: 'school-analytics-exam-select',
       title: 'Pick an assessment',
-      body: 'Choose which exam to analyze—charts and tables update for that assessment across your roster.',
+      body: 'Choose which exam to analyze-charts and tables update for that assessment across your roster.',
       placement: 'bottom',
     },
     {

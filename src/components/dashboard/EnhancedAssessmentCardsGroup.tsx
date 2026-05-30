@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Box, Typography, Card, CardContent, Chip, Button, LinearProgress, Tooltip } from '@mui/material';
 import {
   Lock as LockIcon,
@@ -10,8 +10,9 @@ import {
   LaptopMac as LaptopMacIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { getStudent, StudentProfileError } from '../../db/studentCollection';
-import { getAssessmentConfig, AssessmentType } from '../../db/assessmentCollection';
+import { StudentProfileError } from '../../db/studentCollection';
+import { AssessmentType } from '../../db/assessmentCollection';
+import { useAssessmentConfig, useStudent } from '../../query/hooks';
 import BigSpinner from '../ui/BigSpinner';
 import * as Sentry from '@sentry/react';
 import type { AssessmentProgress, GateResult } from '../../utils/assessmentGating';
@@ -32,6 +33,10 @@ import { countClearedTiersFromProgress } from '../../utils/tierProgression';
 import { getReasoningExamSubcategories } from '../../data/reasoningExamSubcategories';
 import { STUDENT_OFFICIAL_ASSESSMENTS_ENABLED } from '../../constants/constants';
 import { formatCooldownDate, nextEligibleAtMsForLevel } from '../../utils/examAttemptCooldown';
+import {
+  getPreviewSampleAssessmentPath,
+  isPreviewSampleExamId,
+} from '../../data/previewSampleAssessments';
 
 // ─── Assessment metadata ──────────────────────────────────────────────────────
 
@@ -138,6 +143,8 @@ interface AssessmentCardProps {
   onStart: (assessmentId: string, tier: number) => void;
   /** When set (preview mode), locked "View details" opens this path instead of live assessment routes */
   previewFallbackPath?: string;
+  /** Preview: per-exam sample assessment path when available (reasoning triad) */
+  previewSamplePath?: string;
   /** Passed as router state when opening preview sample assessment */
   previewSampleExitTo?: string;
   /** Preview: Start button shown but click is a no-op */
@@ -152,6 +159,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
   gate,
   onStart,
   previewFallbackPath,
+  previewSamplePath,
   previewSampleExitTo,
   previewStartBlocked = false,
   officialStartPaused = false,
@@ -159,6 +167,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
   const navigate = useNavigate();
   const goPreviewSample = (path: string) =>
     navigate(path, previewSampleExitTo ? { state: { sampleAssessmentExitTo: previewSampleExitTo } } : undefined);
+  const previewNavPath = previewSamplePath ?? previewFallbackPath;
   const meta = ASSESSMENT_META[assessment.id] ?? {
     assessmentNumber: 0, color: '#6b7280', gradient: 'linear-gradient(135deg, #6b7280, #374151)',
     icon: '📋', description: '', languages: [], needsMic: false, needsLaptop: false,
@@ -614,8 +623,8 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
             variant="outlined"
             startIcon={<LockIcon />}
             onClick={() =>
-              previewFallbackPath
-                ? goPreviewSample(previewFallbackPath)
+              previewNavPath
+                ? goPreviewSample(previewNavPath)
                 : navigate(`/assessments/${assessment.id}/tier/1/detail`)
             }
             sx={{
@@ -628,10 +637,29 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
             View details
           </Button>
         ) : allTiersComplete ? (
-          <Button fullWidth variant="outlined" startIcon={<TrendingUpIcon />} disabled
-            sx={{ borderColor: '#1e3a2f', color: '#10b981', borderRadius: 1.5, fontSize: '0.875rem' }}>
-            {levelBased ? 'All levels completed' : 'Assessment completed'}
-          </Button>
+          previewNavPath ? (
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<PlayArrowIcon />}
+              onClick={() => goPreviewSample(previewNavPath)}
+              sx={{
+                borderColor: `${meta.color}80`,
+                color: meta.color,
+                borderRadius: 1.5,
+                fontSize: '0.875rem',
+                fontWeight: 700,
+                '&:hover': { borderColor: meta.color, bgcolor: `${meta.color}12` },
+              }}
+            >
+              Try sample assessments
+            </Button>
+          ) : (
+            <Button fullWidth variant="outlined" startIcon={<TrendingUpIcon />} disabled
+              sx={{ borderColor: '#1e3a2f', color: '#10b981', borderRadius: 1.5, fontSize: '0.875rem' }}>
+              {levelBased ? 'All levels completed' : 'Assessment completed'}
+            </Button>
+          )
         ) : officialStartPaused ? (
           <Button
             fullWidth
@@ -678,6 +706,24 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
             </Typography>
           </Box>
         ) : canStart ? (
+          previewStartBlocked && previewNavPath ? (
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<PlayArrowIcon />}
+              onClick={() => goPreviewSample(previewNavPath)}
+              sx={{
+                borderColor: `${meta.color}80`,
+                color: meta.color,
+                borderRadius: 1.5,
+                fontSize: '0.875rem',
+                fontWeight: 700,
+                '&:hover': { borderColor: meta.color, bgcolor: `${meta.color}12` },
+              }}
+            >
+              Try sample assessment
+            </Button>
+          ) : (
           <Button
             fullWidth
             variant="contained"
@@ -713,6 +759,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
                   ? `Start Level ${currentTier}`
                   : `Retake Level ${currentTier}`}
           </Button>
+          )
         ) : null}
         </Box>
         </Box>
@@ -730,81 +777,73 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
   previewBundle,
 }) => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(!previewBundle);
-  const [assessmentTypes, setAssessmentTypes] = useState<AssessmentType[]>(
-    previewBundle?.assessments ?? []
-  );
-  const [progressMap, setProgressMap] = useState<Record<string, AssessmentProgress>>(
-    previewBundle?.progress ?? {}
-  );
-  const [membershipLevel, setMembershipLevel] = useState(previewBundle?.membershipLevel ?? 0);
-  const [studentGrade, setStudentGrade] = useState<number>(8);
-  const [error, setError] = useState<string | null>(null);
+  const liveLoad = !previewBundle && Boolean(uid);
+  const {
+    data: configFromBackend,
+    isLoading: configLoading,
+    isError: configError,
+    error: configErr,
+  } = useAssessmentConfig(liveLoad);
+  const {
+    data: studentData,
+    isLoading: studentLoading,
+    isError: studentError,
+    error: studentErr,
+  } = useStudent(uid, liveLoad);
 
-  useEffect(() => {
-    if (previewBundle) {
-      setAssessmentTypes(previewBundle.assessments);
-      setProgressMap(previewBundle.progress);
-      setMembershipLevel(previewBundle.membershipLevel);
-      setStudentGrade(
-        typeof previewBundle.previewGrade === 'number' && !Number.isNaN(previewBundle.previewGrade)
-          ? previewBundle.previewGrade
-          : 8
-      );
-      setLoading(false);
-      return;
+  const loading = previewBundle ? false : configLoading || studentLoading;
+
+  const error = useMemo(() => {
+    if (previewBundle || !liveLoad) return null;
+    if (configError) {
+      Sentry.captureException(configErr);
+      return configErr instanceof Error
+        ? configErr.message
+        : 'Could not load assessment configuration. Check the API URL and that functions are deployed.';
     }
-    if (!uid) return;
-    const load = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        let configFromBackend: AssessmentType[];
-        try {
-          configFromBackend = await getAssessmentConfig();
-        } catch (cfgErr) {
-          Sentry.captureException(cfgErr);
-          setError(
-            cfgErr instanceof Error
-              ? cfgErr.message
-              : 'Could not load assessment configuration. Check the API URL and that functions are deployed.'
-          );
-          return;
-        }
-
-        let studentData: Awaited<ReturnType<typeof getStudent>>;
-        try {
-          studentData = await getStudent(uid);
-        } catch (stuErr) {
-          Sentry.captureException(stuErr);
-          if (stuErr instanceof StudentProfileError) {
-            setError(stuErr.message);
-          } else {
-            setError('Could not load your student profile. Please refresh or sign in again.');
-          }
-          return;
-        }
-
-        setMembershipLevel(membershipLevelForAssessmentGate(studentData));
-        setStudentGrade(
-          typeof studentData?.grade === 'number' && !Number.isNaN(studentData.grade)
-            ? studentData.grade
-            : 8
-        );
-        setProgressMap(studentData?.assessment_progress ?? {});
-
-        const sorted = [...configFromBackend].sort((a, b) => {
-          const ia = ASSESSMENT_ORDER.indexOf(a.id as (typeof ASSESSMENT_ORDER)[number]);
-          const ib = ASSESSMENT_ORDER.indexOf(b.id as (typeof ASSESSMENT_ORDER)[number]);
-          return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
-        });
-        setAssessmentTypes(sorted);
-      } finally {
-        setLoading(false);
+    if (studentError) {
+      Sentry.captureException(studentErr);
+      if (studentErr instanceof StudentProfileError) {
+        return studentErr.message;
       }
-    };
-    void load();
-  }, [uid, previewBundle]);
+      return 'Could not load your student profile. Please refresh or sign in again.';
+    }
+    return null;
+  }, [previewBundle, liveLoad, configError, configErr, studentError, studentErr]);
+
+  const assessmentTypes = useMemo(() => {
+    if (previewBundle) return previewBundle.assessments;
+    if (!configFromBackend) return [];
+    return [...configFromBackend].sort((a, b) => {
+      const ia = ASSESSMENT_ORDER.indexOf(a.id as (typeof ASSESSMENT_ORDER)[number]);
+      const ib = ASSESSMENT_ORDER.indexOf(b.id as (typeof ASSESSMENT_ORDER)[number]);
+      return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+    });
+  }, [previewBundle, configFromBackend]);
+
+  const progressMap = useMemo(
+    () => (previewBundle ? previewBundle.progress : studentData?.assessment_progress ?? {}),
+    [previewBundle, studentData]
+  );
+
+  const membershipLevel = useMemo(
+    () =>
+      previewBundle
+        ? previewBundle.membershipLevel
+        : membershipLevelForAssessmentGate(studentData),
+    [previewBundle, studentData]
+  );
+
+  const studentGrade = useMemo(() => {
+    if (previewBundle) {
+      return typeof previewBundle.previewGrade === 'number' && !Number.isNaN(previewBundle.previewGrade)
+        ? previewBundle.previewGrade
+        : 8;
+    }
+    return typeof studentData?.grade === 'number' && !Number.isNaN(studentData.grade)
+      ? studentData.grade
+      : 8;
+  }, [previewBundle, studentData]);
 
   const handleStart = (assessmentId: string, tierNumber: number) => {
     if (!STUDENT_OFFICIAL_ASSESSMENTS_ENABLED && !previewBundle) {
@@ -815,8 +854,11 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
     }
     if (previewBundle) {
       const exitTo = previewBundle.previewSampleExitTo;
+      const path = isPreviewSampleExamId(assessmentId)
+        ? getPreviewSampleAssessmentPath(assessmentId)
+        : previewBundle.previewAssessmentPath;
       navigate(
-        previewBundle.previewAssessmentPath,
+        path,
         exitTo ? { state: { sampleAssessmentExitTo: exitTo } } : undefined
       );
       return;
@@ -940,6 +982,11 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
                 gate={gate}
                 onStart={handleStart}
                 previewFallbackPath={previewBundle?.previewAssessmentPath}
+                previewSamplePath={
+                  previewBundle && isPreviewSampleExamId(assessment.id)
+                    ? getPreviewSampleAssessmentPath(assessment.id)
+                    : undefined
+                }
                 previewSampleExitTo={previewBundle?.previewSampleExitTo}
                 previewStartBlocked={Boolean(
                   previewBundle?.previewDisableStartNavigation ||

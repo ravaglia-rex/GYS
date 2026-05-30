@@ -172,7 +172,7 @@ const readOnlyFieldSx = {
 };
 
 function displayOrDash(value: string): string {
-  return value.trim() || '—';
+  return value.trim() || '-';
 }
 
 function splitCommaSeparated(value: string): string[] {

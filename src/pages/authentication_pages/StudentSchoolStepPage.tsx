@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { resolveRegistrationSchool } from '../../db/schoolCollection';
-import SchoolsInput from '../../components/autocomplete/SchoolsInput';
 import * as Sentry from '@sentry/react';
 import { useToast } from '../../components/ui/use-toast';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
@@ -267,12 +266,12 @@ const StudentSchoolStepPage: React.FC = () => {
                 School<span className="text-red-500"> *</span>
               </label>
               {emailMatchedSchool ? (
-                <SchoolsInput
-                  schools={[]}
-                  onSelect={(id) => setSelectedSchoolId(id)}
-                  lockedSelection={lockedSchool}
-                  className="mt-1.5 bg-white border border-slate-200 focus-visible:ring-slate-500 rounded-lg w-full text-slate-900"
-                  loading={isLoading}
+                <input
+                  type="text"
+                  value={lockedSchool?.name ?? ''}
+                  readOnly
+                  className="mt-1.5 w-full rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm sm:text-base text-slate-900"
+                  aria-label="Matched school"
                 />
               ) : (
                 <input
