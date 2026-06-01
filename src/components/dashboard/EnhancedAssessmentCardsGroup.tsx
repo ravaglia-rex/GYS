@@ -143,7 +143,7 @@ interface AssessmentCardProps {
   progress: AssessmentProgress;
   gate: GateResult;
   onStart: (assessmentId: string, tier: number) => void;
-  /** When set (preview mode), locked "View details" opens this path instead of live assessment routes */
+  /** When set (preview mode), locked "View details" is disabled instead of navigating */
   previewFallbackPath?: string;
   /** Preview: per-exam sample assessment path when available (reasoning triad) */
   previewSamplePath?: string;
@@ -622,16 +622,22 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
             fullWidth
             variant="outlined"
             startIcon={<LockIcon />}
-            onClick={() =>
-              previewNavPath
-                ? goPreviewSample(previewNavPath)
-                : navigate(`/assessments/${assessment.id}/tier/1/detail`)
-            }
+            disabled={Boolean(previewFallbackPath)}
+            onClick={() => {
+              if (previewFallbackPath) return;
+              navigate(`/assessments/${assessment.id}/tier/1/detail`);
+            }}
             sx={{
               borderColor: isPurpleTier ? 'rgba(168, 85, 247, 0.55)' : '#475569',
               color: isPurpleTier ? 'rgba(196, 181, 253, 0.95)' : '#94a3b8',
               borderRadius: 1.5,
               fontSize: '0.875rem',
+              ...(previewFallbackPath && {
+                '&.Mui-disabled': {
+                  borderColor: isPurpleTier ? 'rgba(168, 85, 247, 0.35)' : '#334155',
+                  color: isPurpleTier ? 'rgba(196, 181, 253, 0.5)' : '#64748b',
+                },
+              }),
             }}
           >
             View details

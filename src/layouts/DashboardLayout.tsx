@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Drawer, IconButton, useTheme, useMediaQuery } from '@mui/material';
-import { Menu as MenuIcon } from '@mui/icons-material';
+import { Box, Button, Drawer, IconButton, useTheme, useMediaQuery } from '@mui/material';
+import { Logout as LogoutIcon, Menu as MenuIcon } from '@mui/icons-material';
+import { signOut } from 'firebase/auth';
+import { useNavigate } from 'react-router-dom';
 import SidebarNavigation from '../layouts/SidebarNavigation';
 import NotificationsDialog from '../components/dashboard/NotificationsDialog';
 import StudentTutorialProvider from '../components/tutorial/StudentTutorialProvider';
+import { auth } from '../firebase/firebase';
+import authTokenHandler from '../functions/auth_token/auth_token_handler';
 import type {
   CompletedAssessmentNotificationSource,
   DashboardNotificationEventSource,
@@ -12,6 +16,7 @@ import type {
 
 const DRAWER_WIDTH = 280;
 const DRAWER_WIDTH_MINI = 88;
+const MOBILE_HEADER_HEIGHT = 64;
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -30,6 +35,7 @@ export default function DashboardLayout({
 }: DashboardLayoutProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -84,6 +90,16 @@ export default function DashboardLayout({
     setNotificationsOpen(false);
   };
 
+  const handleLogout = async () => {
+    try {
+      authTokenHandler.clearToken();
+      await signOut(auth);
+      navigate('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
   return (
     <StudentTutorialProvider>
     <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#0f172a', overflowX: 'hidden' }}>
@@ -129,31 +145,67 @@ export default function DashboardLayout({
         }}
       >
         {isMobile && (
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              px: { xs: 1.5, sm: 2 },
-              pt: 1.5,
-              pb: 1,
-              borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-              backgroundColor: '#0f172a',
-            }}
-          >
-            <IconButton
-              color="inherit"
-              aria-label="open navigation menu"
-              onClick={handleDrawerToggle}
+          <>
+            <Box
               sx={{
-                bgcolor: 'rgba(15, 23, 42, 0.92)',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
-                color: '#e2e8f0',
-                '&:hover': { bgcolor: 'rgba(30, 41, 59, 0.96)' },
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 1,
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: MOBILE_HEADER_HEIGHT,
+                zIndex: theme.zIndex.appBar,
+                boxSizing: 'border-box',
+                px: { xs: 1.5, sm: 2 },
+                pt: 1.5,
+                pb: 1,
+                borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                backgroundColor: 'rgba(15, 23, 42, 0.97)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
               }}
             >
-              <MenuIcon />
-            </IconButton>
-          </Box>
+              <IconButton
+                color="inherit"
+                aria-label="open navigation menu"
+                onClick={handleDrawerToggle}
+                sx={{
+                  bgcolor: 'rgba(15, 23, 42, 0.92)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  color: '#e2e8f0',
+                  '&:hover': { bgcolor: 'rgba(30, 41, 59, 0.96)' },
+                }}
+              >
+                <MenuIcon />
+              </IconButton>
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<LogoutIcon fontSize="small" />}
+                onClick={handleLogout}
+                sx={{
+                  flexShrink: 0,
+                  color: '#e2e8f0',
+                  borderColor: 'rgba(226, 232, 240, 0.32)',
+                  borderRadius: 999,
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  minHeight: 40,
+                  px: 1.5,
+                  '&:hover': {
+                    borderColor: 'rgba(226, 232, 240, 0.6)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                  },
+                }}
+              >
+                Logout
+              </Button>
+            </Box>
+            <Box sx={{ height: MOBILE_HEADER_HEIGHT, flexShrink: 0 }} aria-hidden />
+          </>
         )}
 
         {/* Page Content */}

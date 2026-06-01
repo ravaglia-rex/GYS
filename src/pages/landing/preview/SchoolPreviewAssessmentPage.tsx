@@ -1109,17 +1109,22 @@ export default function SchoolPreviewAssessmentPage() {
           sx: {
             bgcolor: '#fff',
             color: '#0f172a',
+            maxWidth: 420,
+            width: 'calc(100% - 40px)',
             opacity: 1,
+            p: 0,
           },
         }}
       >
-        <DialogTitle id="preview-exit-title">Leave sample exam?</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
+        <DialogTitle id="preview-exit-title" sx={{ px: 3, pt: 2.5, pb: 1, fontWeight: 800 }}>
+          Leave sample exam?
+        </DialogTitle>
+        <DialogContent sx={{ px: 3, pt: 0, pb: 1 }}>
+          <DialogContentText sx={{ color: '#334155', m: 0, typography: 'body2', lineHeight: 1.5 }}>
             This is a demo only - nothing is saved. You can try the sample again anytime from the student or school preview.
           </DialogContentText>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
+        <DialogActions sx={{ px: 3, pt: 0.5, pb: 2 }}>
           <Button onClick={() => setExitOpen(false)} color="inherit">
             Stay
           </Button>

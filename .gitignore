@@ -16,6 +16,9 @@
 
 # misc
 .DS_Store
+.env
+.env.*
+!.env.example
 .env.local
 .env.development.local
 .env.test.local
@@ -24,7 +27,7 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.env
+pnpm-debug.log*
 
 # Sentry Config File
 .sentryclirc
@@ -41,10 +44,15 @@ ORIG_HEAD
 
 # Firebase / Google service account keys
 *-firebase-adminsdk-*.json
+*firebase-adminsdk*.json
 argus-talent-search-*.json
 argus-india-v2-firebase-adminsdk-fbsvc-cc980e26ea.json
 argus-india-v2-cc980e26ea.json
 *.pem
+*.key
+*.p12
+*.crt
+*.cer
 
 # Optional local editor
 .idea/
