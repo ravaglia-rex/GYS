@@ -4,7 +4,7 @@ import EmojiEvents from '@mui/icons-material/EmojiEvents';
 import * as Sentry from '@sentry/react';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import StudentLeaderboardPanel from '../../components/dashboard/StudentLeaderboardPanel';
-import BigSpinner from '../../components/ui/BigSpinner';
+import { LoadingSpinner } from '../../components/ui/spinner';
 import { getStudentSchoolLeaderboard } from '../../db/studentLeaderboardCollection';
 import { type ExamLeaderboardSection, type LeaderboardGrade } from '../../utils/leaderboard';
 import PageTutorial from '../../components/tutorial/PageTutorial';
@@ -103,8 +103,24 @@ const LeaderboardPage: React.FC = () => {
             }}
           >
             {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-                <BigSpinner />
+              <Box
+                role="status"
+                aria-live="polite"
+                sx={{
+                  minHeight: { xs: 360, md: 'calc(100vh - 260px)' },
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 2,
+                  color: 'rgba(255, 255, 255, 0.86)',
+                  textAlign: 'center',
+                }}
+              >
+                <LoadingSpinner size={72} />
+                <Typography sx={{ fontWeight: 600, letterSpacing: '0.02em' }}>
+                  Loading leaderboard...
+                </Typography>
               </Box>
             ) : (
               <>

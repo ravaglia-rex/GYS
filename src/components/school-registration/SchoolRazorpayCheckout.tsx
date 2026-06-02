@@ -93,7 +93,6 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
   const [wireOpen, setWireOpen] = useState(false);
   const [wireBusy, setWireBusy] = useState(false);
   const [wireAttemptRecorded, setWireAttemptRecorded] = useState(false);
-  const [wirePaymentReference, setWirePaymentReference] = useState<string | null>(null);
   const [wireDetailsEmailSent, setWireDetailsEmailSent] = useState(false);
   const [missingBankName, setMissingBankName] = useState('');
   const [missingBankError, setMissingBankError] = useState<string | null>(null);
@@ -298,7 +297,7 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
 
   const recordWireTransferAttempt = async (options?: {
     missingBankName?: string;
-    source?: 'wire_transfer' | 'razorpay_missing_bank';
+    source?: 'wire' | 'razorpay_missing_bank';
     showToast?: boolean;
     forceEmail?: boolean;
   }) => {
@@ -319,7 +318,6 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
         ...(options?.forceEmail ? { force_email: true } : {}),
       });
       setWireAttemptRecorded(true);
-      setWirePaymentReference(result.payment_id);
       setWireDetailsEmailSent(Boolean(result.details_email_sent || result.details_email_already_sent));
       if (options?.showToast) {
         toast({
@@ -510,7 +508,7 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
         {wireOpen && (
           <div className="mt-4 space-y-4 border-t border-slate-200 pt-4">
             <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm leading-relaxed text-red-950">
-              <span className="font-bold">SUPER IMPORTANT:</span> the PAYMENT REFERENCE below must be included in
+              <span className="font-bold">IMPORTANT:</span> The payment reference below must be included in
               your bank memo/reference field, or the money may be delayed or may not make it here.
             </div>
             <div className="space-y-2 text-xs">
@@ -521,11 +519,6 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
                 </div>
               ))}
             </div>
-            {wirePaymentReference && (
-              <p className="break-all rounded-lg bg-blue-50 px-3 py-2 text-xs font-medium text-blue-950">
-                Internal review reference: {wirePaymentReference}
-              </p>
-            )}
             <button
               type="button"
               onClick={() => void recordWireTransferAttempt({ showToast: true, forceEmail: true })}

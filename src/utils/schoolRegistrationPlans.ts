@@ -4,13 +4,13 @@
  * and INSTITUTIONAL_PLAN_ASSESSMENT_GATE_MIN_LEVEL (backend) for assessment floors.
  */
 
-/** Same rate as backend `schoolRegistrationPlans.SCHOOL_REGISTRATION_GST_RATE` / invoice PDF. */
-export const SCHOOL_REGISTRATION_GST_RATE = 0.18 as const;
+/** Institutional school packages are charged at package price only; GST is not added separately. */
+export const SCHOOL_REGISTRATION_GST_RATE = 0 as const;
 
 export const REGISTER_PLAN_IDS = ['entry', 'standard', 'premium'] as const;
 export type RegisterPlanId = (typeof REGISTER_PLAN_IDS)[number];
 
-/** Production annual fee (INR), excl. GST - same as REGISTER_PLAN_META.price_inr on the API */
+/** Production annual package fee (INR) - same as REGISTER_PLAN_META.price_inr on the API */
 const PRODUCTION_INR: Record<RegisterPlanId, number> = {
   entry: 200_000,
   standard: 300_000,
@@ -34,11 +34,11 @@ export type SchoolRegistrationTotalsPaise = {
   totalPaise: number;
 };
 
-/** Matches backend `getSchoolRegistrationAmountPaise` (list INR × 100 × (1 + GST), rounded). */
+/** Matches backend `getSchoolRegistrationAmountPaise` (package INR × 100, no GST added). */
 export function schoolRegistrationTotalsFromBaseInr(baseInr: number): SchoolRegistrationTotalsPaise {
   const basePaise = Math.round(baseInr * 100);
-  const totalPaise = Math.round(basePaise * (1 + SCHOOL_REGISTRATION_GST_RATE));
-  const gstPaise = totalPaise - basePaise;
+  const totalPaise = basePaise;
+  const gstPaise = 0;
   return { basePaise, gstPaise, totalPaise };
 }
 
@@ -125,7 +125,7 @@ function buildPlans(): SchoolPlanDisplay[] {
   });
 }
 
-/** Plan cards for the school registration flow (list prices excl. GST; Razorpay charges total incl. GST). */
+/** Plan cards for the school registration flow (package prices; GST is not added separately). */
 export const SCHOOL_REGISTRATION_PLANS: SchoolPlanDisplay[] = buildPlans();
 
 /** Single line for order summary / headers: price + period without duplicating "/yr" */

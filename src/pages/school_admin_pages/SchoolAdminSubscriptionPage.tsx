@@ -37,7 +37,6 @@ import {
   SCHOOL_INSTITUTIONAL_BASE_INR,
   SCHOOL_INSTITUTIONAL_PLAN_MATRIX,
   SCHOOL_INSTITUTIONAL_PRICE_LANDING,
-  SCHOOL_REGISTRATION_GST_RATE,
   type RegisterPlanId,
 } from '../../utils/schoolRegistrationPlans';
 import {
@@ -152,7 +151,7 @@ function formatPaymentMethod(raw: string | null | undefined): string {
   if (!method) return 'Razorpay checkout';
   if (method === 'dev_mode') return 'Development mode';
   if (method === 'online') return 'Razorpay checkout';
-  if (method === 'wire_transfer') return 'Wire transfer';
+  if (method === 'wire') return 'Wire transfer';
   return method;
 }
 
@@ -257,8 +256,7 @@ export function SchoolAdminSubscriptionPage() {
   const upgradeDeltaBaseInr = upgradeTarget
     ? Math.max(0, SCHOOL_INSTITUTIONAL_BASE_INR[upgradeTarget.id as RegisterPlanId] - currentPlanPrice)
     : 0;
-  const upgradeDeltaGstPaise = Math.round(upgradeDeltaBaseInr * 100 * SCHOOL_REGISTRATION_GST_RATE);
-  const upgradeDeltaTotalPaise = Math.round(upgradeDeltaBaseInr * 100) + upgradeDeltaGstPaise;
+  const upgradeDeltaTotalPaise = Math.round(upgradeDeltaBaseInr * 100);
 
   const handleDownloadInvoice = async (paymentId: string) => {
     setInvoiceDownloadErr(null);
@@ -454,7 +452,7 @@ export function SchoolAdminSubscriptionPage() {
       </Typography>
       <Typography variant="body2" sx={{ color: ip.subtext, mb: 2 }}>
         Upgrades are prorated as the plan difference. From {currentPlanName}, you only pay the difference to move to a
-        higher package; GST is added at checkout.
+        higher package.
       </Typography>
       <Box data-tutorial-id="school-subscription-plans" sx={{
         display: 'grid',
@@ -468,7 +466,7 @@ export function SchoolAdminSubscriptionPage() {
           const isLowerPlan = PLAN_ORDER[planId] < PLAN_ORDER[currentPlanId];
           const canUpgrade = PLAN_ORDER[planId] > PLAN_ORDER[currentPlanId];
           const deltaBase = Math.max(0, SCHOOL_INSTITUTIONAL_BASE_INR[planId] - currentPlanPrice);
-          const deltaTotalPaise = Math.round(deltaBase * 100 * (1 + SCHOOL_REGISTRATION_GST_RATE));
+          const deltaTotalPaise = Math.round(deltaBase * 100);
           const isBusy = upgradeBusy === planId;
           return (
             <Card
@@ -829,7 +827,7 @@ export function SchoolAdminSubscriptionPage() {
               {currentPlanName} → {upgradeTarget?.name}
             </Typography>
             <Typography variant="body2" sx={{ color: ip.subtext, mt: 0.5, lineHeight: 1.5 }}>
-              You only pay the difference between the two annual package prices. GST is added at checkout.
+              You only pay the difference between the two annual package prices.
             </Typography>
           </Box>
           <Box
@@ -844,8 +842,7 @@ export function SchoolAdminSubscriptionPage() {
             {[
               { label: `${upgradeTarget?.name ?? 'Target'} annual price`, value: formatInr(upgradeTarget ? SCHOOL_INSTITUTIONAL_BASE_INR[upgradeTarget.id as RegisterPlanId] : 0) },
               { label: `${currentPlanName} already paid`, value: `-${formatInr(currentPlanPrice)}` },
-              { label: 'Upgrade difference before GST', value: formatInr(upgradeDeltaBaseInr) },
-              { label: `GST @ ${Math.round(SCHOOL_REGISTRATION_GST_RATE * 100)}%`, value: formatInrFromPaise(upgradeDeltaGstPaise) },
+              { label: 'Upgrade difference', value: formatInr(upgradeDeltaBaseInr) },
               { label: 'Total due now', value: formatInrFromPaise(upgradeDeltaTotalPaise), strong: true },
             ].map((row) => (
               <Box

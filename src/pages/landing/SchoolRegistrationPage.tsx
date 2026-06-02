@@ -98,6 +98,7 @@ const REFERRAL_SOURCES = [
 
 const MAX_EMAILS = 5;
 const TOTAL_STEPS = 4;
+type GstRegistrationStatus = '' | 'yes' | 'no' | 'not_sure';
 
 /** When true: skip embedded Razorpay; onboarding emails a payment link. Set false for Razorpay checkout after submit. */
 const SCHOOL_SIGNUP_TEMP_PAYMENT_LINK = false;
@@ -111,6 +112,7 @@ const STEP2_FIELD_ORDER = [
   'referralSource',
 ] as const;
 const STEP3_FIELD_ORDER = ['registrantFirstName', 'registrantLastName', 'registrantDesignation', 'emails'] as const;
+const STEP4_FIELD_ORDER = ['gstRegistrationStatus', 'gstin', 'commitToPay'] as const;
 
 function scrollToFirstError(
   errorRecord: Record<string, string>,
@@ -132,6 +134,10 @@ function buildStoredSchoolName(base: string, branch: string): string {
   const br = branch.trim();
   if (!br) return b;
   return `${b} ${br}`;
+}
+
+function sanitizeGstinInput(value: string): string {
+  return value.toUpperCase().replace(/[^0-9A-Z]/g, '').slice(0, 15);
 }
 
 const SchoolRegistrationPage: React.FC = () => {
@@ -170,6 +176,8 @@ const SchoolRegistrationPage: React.FC = () => {
 
   // Step 4: Plan + payment intent (invoice / details sent later)
   const [selectedPlan, setSelectedPlan] = useState('standard');
+  const [gstRegistrationStatus, setGstRegistrationStatus] = useState<GstRegistrationStatus>('');
+  const [gstin, setGstin] = useState('');
   const [commitToPay, setCommitToPay] = useState(false);
 
   // Validation errors
@@ -326,12 +334,21 @@ const SchoolRegistrationPage: React.FC = () => {
 
   const validateStep4 = (): boolean => {
     const newErrors: Record<string, string> = {};
+    if (!gstRegistrationStatus) {
+      newErrors.gstRegistrationStatus = 'Please select whether your institution is registered under Indian GST.';
+    }
+    if (gstRegistrationStatus === 'yes' && gstin.trim().length !== 15) {
+      newErrors.gstin = 'GSTIN must be 15 characters.';
+    }
     if (!commitToPay) {
       newErrors.commitToPay = SCHOOL_SIGNUP_TEMP_PAYMENT_LINK
         ? 'Please confirm that your institution will complete payment using the link we email you.'
         : 'Please confirm that your institution will complete payment (secure checkout on the next step).';
     }
     setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      scrollToFirstError(newErrors, STEP4_FIELD_ORDER);
+    }
     return Object.keys(newErrors).length === 0;
   };
 
@@ -411,6 +428,8 @@ const SchoolRegistrationPage: React.FC = () => {
     const filledEmails = emails
       .map((e) => e.trim().toLowerCase())
       .filter((e) => e.length > 0);
+    const validatedGstRegistrationStatus: 'yes' | 'no' | 'not_sure' =
+      gstRegistrationStatus === '' ? 'not_sure' : gstRegistrationStatus;
 
     try {
       setIsSubmitting(true);
@@ -429,6 +448,8 @@ const SchoolRegistrationPage: React.FC = () => {
         registrant_designation: registrantDesignation.trim(),
         contact_emails: filledEmails,
         selected_plan_id: selectedPlan,
+        gst_registration_status: validatedGstRegistrationStatus,
+        gstin: validatedGstRegistrationStatus === 'yes' ? gstin.trim().toUpperCase() : '',
         commit_to_pay: commitToPay,
       };
       const amending = Boolean(registeredSchoolId && registeredCheckoutSecret);
@@ -512,18 +533,13 @@ const SchoolRegistrationPage: React.FC = () => {
               Thank you. <span className="font-semibold">{storedSchoolName}</span> is recorded for the{' '}
               <span className="font-semibold">{currentPlan.name}</span> plan (
               <span className="font-semibold">{institutionalCheckoutSummary.totalDisplay}</span>
-              /yr incl. {institutionalCheckoutSummary.gstRatePct}% GST).{' '}
+              /yr).{' '}
               <span className="font-semibold">
                 We will email a secure Razorpay payment link
               </span>{' '}
               to your point-of-contact address(es) so you can complete payment online (UPI, cards, net
               banking).
             </p>
-            {registeredSchoolId && (
-              <p className="mt-3 text-xs text-slate-500 font-mono break-all">
-                Reference: {registeredSchoolId}
-              </p>
-            )}
             <p className="mt-4 text-xs text-slate-500 leading-relaxed">
               Didn&apos;t get the email? Check spam, or write to{' '}
               <a
@@ -533,7 +549,7 @@ const SchoolRegistrationPage: React.FC = () => {
               >
                 globalyoungscholar@argus.ai
               </a>{' '}
-              with your school name and reference.
+              with your school name and contact email.
             </p>
             <button
               type="button"
@@ -571,9 +587,8 @@ const SchoolRegistrationPage: React.FC = () => {
             <p className="mt-3 text-sm text-slate-600 leading-relaxed">
               <span className="font-semibold">{storedSchoolName}</span> is registered for the{' '}
               <span className="font-semibold">{currentPlan.name}</span> plan. You will pay{' '}
-              <span className="font-semibold">{institutionalCheckoutSummary.totalDisplay}</span> for the first year
-              (list {institutionalCheckoutSummary.baseDisplay} + GST @ {institutionalCheckoutSummary.gstRatePct}%:{' '}
-              {institutionalCheckoutSummary.gstDisplay}). Pay below with UPI, cards, or net banking.
+              <span className="font-semibold">{institutionalCheckoutSummary.totalDisplay}</span> for the first year.
+              Pay below with UPI, cards, or net banking.
             </p>
             <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
@@ -581,15 +596,11 @@ const SchoolRegistrationPage: React.FC = () => {
               </p>
               <div className="space-y-1.5 text-sm text-slate-800">
                 <div className="flex justify-between gap-3">
-                  <span className="text-slate-600">Annual fee (excl. GST)</span>
-                  <span className="font-medium tabular-nums">{institutionalCheckoutSummary.baseDisplay}</span>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <span className="text-slate-600">GST @ {institutionalCheckoutSummary.gstRatePct}%</span>
-                  <span className="font-medium tabular-nums">{institutionalCheckoutSummary.gstDisplay}</span>
+                  <span className="text-slate-600">Annual package fee</span>
+                  <span className="font-medium tabular-nums">{institutionalCheckoutSummary.totalDisplay}</span>
                 </div>
                 <div className="mt-2 flex justify-between gap-3 border-t border-slate-200 pt-2 font-semibold text-slate-900">
-                  <span>Total due (incl. GST)</span>
+                  <span>Total due</span>
                   <span className="tabular-nums" style={{ color: GYS_BLUE }}>
                     {institutionalCheckoutSummary.totalDisplay}
                   </span>
@@ -618,11 +629,6 @@ const SchoolRegistrationPage: React.FC = () => {
               planName={currentPlan.name}
               onSuccess={() => setPaymentComplete(true)}
             />
-            {registeredSchoolId && (
-              <p className="mt-4 text-xs text-slate-500 font-mono break-all">
-                Reference: {registeredSchoolId}
-              </p>
-            )}
             <p className="mt-3 text-xs text-slate-500 leading-relaxed">
               Problems with checkout? Email{' '}
               <a
@@ -632,7 +638,7 @@ const SchoolRegistrationPage: React.FC = () => {
               >
                 globalyoungscholar@argus.ai
               </a>{' '}
-              with your school name and reference.
+              with your school name and contact email.
             </p>
           </div>
         </main>
@@ -663,11 +669,6 @@ const SchoolRegistrationPage: React.FC = () => {
               sign-in page, choose <span className="font-semibold">School official</span>, enter your
               POC email, and follow the password-setup link to access reports and admin tools.
             </p>
-            {registeredSchoolId && (
-              <p className="mt-2 text-xs text-slate-500 font-mono break-all">
-                School reference: {registeredSchoolId}
-              </p>
-            )}
             <p className="mt-3 text-xs text-slate-500 leading-relaxed">
               Questions?{' '}
               <a
@@ -727,11 +728,6 @@ const SchoolRegistrationPage: React.FC = () => {
               Your school registration was saved, but this browser session did not keep the secure
               payment token (for example after a refresh, or if the API response was trimmed).
             </p>
-            {registeredSchoolId && (
-              <p className="mt-3 text-xs text-slate-500 font-mono break-all">
-                Reference: {registeredSchoolId}
-              </p>
-            )}
             {canResumePayment ? (
               <button
                 type="button"
@@ -1477,15 +1473,11 @@ const SchoolRegistrationPage: React.FC = () => {
                 </p>
                 <div className="mt-3 space-y-1.5 border-t border-slate-200 pt-2 text-sm">
                   <div className="flex justify-between gap-3 text-slate-700">
-                    <span>Annual fee (excl. GST)</span>
-                    <span className="font-medium tabular-nums">{institutionalCheckoutSummary.baseDisplay}</span>
-                  </div>
-                  <div className="flex justify-between gap-3 text-slate-700">
-                    <span>GST @ {institutionalCheckoutSummary.gstRatePct}%</span>
-                    <span className="font-medium tabular-nums">{institutionalCheckoutSummary.gstDisplay}</span>
+                    <span>Annual package fee</span>
+                    <span className="font-medium tabular-nums">{institutionalCheckoutSummary.totalDisplay}</span>
                   </div>
                   <div className="flex justify-between gap-3 pt-1 text-sm font-semibold text-slate-900">
-                    <span>Total (incl. GST)</span>
+                    <span>Total due</span>
                     <span className="tabular-nums" style={{ color: GYS_BLUE }}>
                       {institutionalCheckoutSummary.totalDisplay}
                     </span>
@@ -1493,7 +1485,68 @@ const SchoolRegistrationPage: React.FC = () => {
                 </div>
               </div>
 
-           
+              <div className="mt-5 rounded-xl border border-slate-200 bg-white px-4 py-3">
+                <div id="field-gstRegistrationStatus">
+                  <label className="block text-xs sm:text-sm font-bold text-slate-700">
+                    Are you registered under Indian GST?<span className="text-red-500"> *</span>
+                  </label>
+                  <select
+                    value={gstRegistrationStatus}
+                    onChange={(e) => {
+                      const next = e.target.value as GstRegistrationStatus;
+                      setGstRegistrationStatus(next);
+                      if (next !== 'yes') setGstin('');
+                      clearError('gstRegistrationStatus');
+                      clearError('gstin');
+                    }}
+                    className={`mt-1.5 w-full rounded-lg border px-3.5 py-2.5 text-sm sm:text-base text-slate-900 focus:outline-none focus:ring-1 ${
+                      errors.gstRegistrationStatus
+                        ? 'border-red-400 focus:border-red-400 focus:ring-red-300'
+                        : 'border-slate-200 focus:border-slate-400 focus:ring-slate-400'
+                    }`}
+                    required
+                  >
+                    <option value="">Select one</option>
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                    <option value="not_sure">Not sure</option>
+                  </select>
+                  {errors.gstRegistrationStatus && (
+                    <p className="mt-1 text-xs text-red-600">{errors.gstRegistrationStatus}</p>
+                  )}
+                </div>
+
+                {gstRegistrationStatus === 'yes' && (
+                  <div id="field-gstin" className="mt-4">
+                    <label className="block text-xs sm:text-sm font-bold text-slate-700">
+                      GSTIN<span className="text-red-500"> *</span>
+                    </label>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      Enter your institution's 15-character GST registration number.
+                    </p>
+                    <input
+                      type="text"
+                      value={gstin}
+                      onChange={(e) => {
+                        setGstin(sanitizeGstinInput(e.target.value));
+                        clearError('gstin');
+                      }}
+                      className={`mt-1.5 w-full rounded-lg border px-3.5 py-2.5 text-sm sm:text-base tracking-wide text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 ${
+                        errors.gstin
+                          ? 'border-red-400 focus:border-red-400 focus:ring-red-300'
+                          : 'border-slate-200 focus:border-slate-400 focus:ring-slate-400'
+                      }`}
+                      placeholder="15-Character GSTIN"
+                      autoComplete="off"
+                      maxLength={15}
+                      required
+                    />
+                    {errors.gstin && (
+                      <p className="mt-1 text-xs text-red-600">{errors.gstin}</p>
+                    )}
+                  </div>
+                )}
+              </div>
 
               <div className="mt-5 flex gap-3 items-start">
                 <input

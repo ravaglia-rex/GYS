@@ -37,6 +37,8 @@ export type RegisterSchoolPayload = {
   /** Optional at signup - required on Razorpay checkout step if not stored. */
   poc_phone?: string;
   selected_plan_id: string;
+  gst_registration_status: 'yes' | 'no' | 'not_sure';
+  gstin: string;
   commit_to_pay: boolean;
 };
 
@@ -165,7 +167,7 @@ export type MarkSchoolWireTransferAttemptParams = {
   checkoutSecret: string;
   poc_phone?: string;
   missing_bank_name?: string;
-  source?: 'wire_transfer' | 'razorpay_missing_bank';
+  source?: 'wire' | 'razorpay_missing_bank';
   force_email?: boolean;
 };
 
