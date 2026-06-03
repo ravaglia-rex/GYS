@@ -512,20 +512,20 @@ const StudentPaymentPage: React.FC = () => {
                 <p className="text-xs text-slate-500 mt-1">
                   {coveredBySchool
                     ? 'Paid by your school'
-                    : 'Total incl. GST'}
+                    : 'Total inclusive of applicable taxes, duties, or compliance charges'}
                 </p>
               </div>
             </div>
             {taxableAmountPaise != null && gstAmountPaise != null && totalAmountPaise != null && (
               <div className="mt-3 space-y-1.5 border-t border-slate-200 pt-3 text-xs text-slate-600">
                 <div className="flex justify-between gap-3">
-                  <span>{upgradeAmountDisplay ? 'Upgrade amount' : 'Amount'} before GST</span>
+                  <span>{upgradeAmountDisplay ? 'Upgrade base amount' : 'Base amount'}</span>
                   <span className="font-medium tabular-nums text-slate-800">
                     {formatInrFromPaise(taxableAmountPaise)}
                   </span>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <span>GST @ {Math.round(STUDENT_SIGNUP_GST_RATE * 100)}%</span>
+                  <span>Applicable taxes, duties, or compliance charges</span>
                   <span className="font-medium tabular-nums text-slate-800">
                     {formatInrFromPaise(gstAmountPaise)}
                   </span>

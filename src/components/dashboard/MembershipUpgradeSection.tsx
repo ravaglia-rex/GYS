@@ -348,9 +348,9 @@ const MembershipUpgradeSection: React.FC = () => {
       </Box>
       <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)', mb: 2 }}>
         Trial first, then three annual packages - Reasoning Triad, Reasoning + Skills, and Guided Decision. Your current
-        package is highlighted. Amounts shown are list prices (excluding GST); applicable tax is added on the Razorpay
-        payment screen. When upgrading you pay only the list-price difference (Trial Discovery credits toward higher
-        tiers the same way).
+        package is highlighted. Amounts shown are base list prices; any applicable taxes, duties, or compliance charges
+        are included unless separately stated. When upgrading you pay only the list-price difference (Trial Discovery
+        credits toward higher tiers the same way).
       </Typography>
       {atHighestTier ? (
         <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.65)', mb: 2 }}>
