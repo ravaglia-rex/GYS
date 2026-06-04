@@ -70,6 +70,8 @@ export const DISMISS_SCHOOL_TUTORIAL='/tutorialDismissal';
 export const QUARTERLY_REPORTS='/quarterlyReports';
 export const QUARTERLY_REPORT_DOWNLOAD_URL='/quarterlyReportDownloadUrl';
 export const BILLING_INVOICE_DOWNLOAD_URL='/billingInvoiceDownloadUrl';
+export const SCHOOL_NOTIFICATIONS='/notifications';
+export const SCHOOL_SEND_NOTIFICATION_EMAILS='/sendNotificationEmails';
 
 // Assessments
 export const GET_ASSESSMENT_CONFIG='/getAssessmentConfig';

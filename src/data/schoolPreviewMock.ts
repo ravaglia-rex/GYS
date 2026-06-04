@@ -75,6 +75,37 @@ export const GREENFIELD_QUARTERLY_REPORTS: QuarterlyReportListItem[] = [
 /** Pattern and Logic sample items for the school preview (frontend only). */
 export const PREVIEW_PATTERN_LOGIC_SAMPLE_QUESTIONS = PREVIEW_SAMPLE_QUESTIONS_BY_EXAM.symbolic_reasoning;
 
+/** Static preview notifications for `/for-schools/preview/alerts`. */
+export const GREENFIELD_PREVIEW_NOTIFICATIONS = [
+  {
+    id: 'report-ready-2026-Q4',
+    type: 'success' as const,
+    title: 'Q4 2026 Performance Report Ready',
+    message: 'Your Q4 2026 (October  -  December) institutional performance report has been generated and is available for download from Reports.',
+    created_at_iso: '2027-03-01T12:00:00.000Z',
+    category: 'report' as const,
+    color: '#06b6d4',
+  },
+  {
+    id: 'report-ready-2026-Q2',
+    type: 'success' as const,
+    title: 'Q2 2026 Performance Report Ready',
+    message: 'Your Q2 2026 (April  -  June) institutional performance report has been generated and is available for download from Reports.',
+    created_at_iso: '2026-09-01T12:00:00.000Z',
+    category: 'report' as const,
+    color: '#06b6d4',
+  },
+  {
+    id: 'payment-confirmed-pay_preview_001',
+    type: 'success' as const,
+    title: 'Payment Confirmed',
+    message: 'Your school registration payment of ₹3,00,000 was confirmed. Your invoice PDF is ready in Subscription.',
+    created_at_iso: '2026-08-15T10:30:00.000Z',
+    category: 'payment' as const,
+    color: '#22c55e',
+  },
+];
+
 /** @deprecated Use PREVIEW_PATTERN_LOGIC_SAMPLE_QUESTIONS; kept for any external imports. */
 export const PREVIEW_ASSESSMENT_QUESTIONS = PREVIEW_PATTERN_LOGIC_SAMPLE_QUESTIONS;
 

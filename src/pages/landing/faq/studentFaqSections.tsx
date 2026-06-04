@@ -95,7 +95,9 @@ export const studentFaqSections: { heading: string; items: LandingFaqItem[] }[] 
               The same applies when upgrading from one annual membership to another. Your child is not penalized
               for starting with a lower package.
             </p>
-            <p className="mt-3">Applicable taxes may be added at checkout.</p>
+            <p className="mt-3">
+              Any applicable taxes, duties, or compliance charges are included unless separately stated at checkout.
+            </p>
           </>
         ),
       },

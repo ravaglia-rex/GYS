@@ -554,7 +554,7 @@ const ForSchoolsPage: React.FC = () => {
               })}
             </div>
             <p className="mt-6 text-center text-xs text-slate-500 sm:text-sm">
-              Applicable taxes may be added at checkout. Final roster terms are confirmed during registration.
+              School package prices are charged as shown. Final roster terms are confirmed during registration.
             </p>
           </section>
           </div>

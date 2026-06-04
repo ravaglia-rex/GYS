@@ -4,7 +4,7 @@
  * and INSTITUTIONAL_PLAN_ASSESSMENT_GATE_MIN_LEVEL (backend) for assessment floors.
  */
 
-/** Institutional school packages are charged at package price only; GST is not added separately. */
+/** Institutional school packages are charged at package price only; no tax is added separately. */
 export const SCHOOL_REGISTRATION_GST_RATE = 0 as const;
 
 export const REGISTER_PLAN_IDS = ['entry', 'standard', 'premium'] as const;
@@ -34,7 +34,7 @@ export type SchoolRegistrationTotalsPaise = {
   totalPaise: number;
 };
 
-/** Matches backend `getSchoolRegistrationAmountPaise` (package INR × 100, no GST added). */
+/** Matches backend `getSchoolRegistrationAmountPaise` (package INR × 100, no tax added). */
 export function schoolRegistrationTotalsFromBaseInr(baseInr: number): SchoolRegistrationTotalsPaise {
   const basePaise = Math.round(baseInr * 100);
   const totalPaise = basePaise;
@@ -125,7 +125,7 @@ function buildPlans(): SchoolPlanDisplay[] {
   });
 }
 
-/** Plan cards for the school registration flow (package prices; GST is not added separately). */
+/** Plan cards for the school registration flow (package prices; no tax is added separately). */
 export const SCHOOL_REGISTRATION_PLANS: SchoolPlanDisplay[] = buildPlans();
 
 /** Single line for order summary / headers: price + period without duplicating "/yr" */

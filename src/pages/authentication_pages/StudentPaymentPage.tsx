@@ -17,7 +17,7 @@ import {
 } from '../../utils/studentMembershipPricing';
 
 const GYS_BLUE = '#1e3a8a';
-const STUDENT_SIGNUP_GST_RATE = 0.18;
+const STUDENT_SIGNUP_COMPLIANCE_CHARGE_RATE = 0.18;
 
 type MembershipLevelCode = 'LEVEL_1' | 'LEVEL_2' | 'LEVEL_3' | 'LEVEL_4';
 
@@ -82,10 +82,12 @@ const StudentPaymentPage: React.FC = () => {
         ? state.membershipUpgradeAmountPaise
         : STUDENT_SIGNUP_BASE_INR[numericLevel] * 100)
       : null;
-  const gstAmountPaise =
-    taxableAmountPaise != null ? Math.round(taxableAmountPaise * STUDENT_SIGNUP_GST_RATE) : null;
+  const complianceChargePaise =
+    taxableAmountPaise != null ? Math.round(taxableAmountPaise * STUDENT_SIGNUP_COMPLIANCE_CHARGE_RATE) : null;
   const totalAmountPaise =
-    taxableAmountPaise != null && gstAmountPaise != null ? taxableAmountPaise + gstAmountPaise : null;
+    taxableAmountPaise != null && complianceChargePaise != null ?
+      taxableAmountPaise + complianceChargePaise :
+      null;
 
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
 
@@ -516,7 +518,7 @@ const StudentPaymentPage: React.FC = () => {
                 </p>
               </div>
             </div>
-            {taxableAmountPaise != null && gstAmountPaise != null && totalAmountPaise != null && (
+            {taxableAmountPaise != null && complianceChargePaise != null && totalAmountPaise != null && (
               <div className="mt-3 space-y-1.5 border-t border-slate-200 pt-3 text-xs text-slate-600">
                 <div className="flex justify-between gap-3">
                   <span>{upgradeAmountDisplay ? 'Upgrade base amount' : 'Base amount'}</span>
@@ -527,7 +529,7 @@ const StudentPaymentPage: React.FC = () => {
                 <div className="flex justify-between gap-3">
                   <span>Applicable taxes, duties, or compliance charges</span>
                   <span className="font-medium tabular-nums text-slate-800">
-                    {formatInrFromPaise(gstAmountPaise)}
+                    {formatInrFromPaise(complianceChargePaise)}
                   </span>
                 </div>
                 <div className="flex justify-between gap-3 border-t border-slate-200 pt-1.5 font-semibold text-slate-900">

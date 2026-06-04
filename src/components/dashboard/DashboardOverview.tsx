@@ -41,8 +41,8 @@ import { studentPageSubtitleSx, studentPageTitleSx } from '../../styles/studentT
 export type { AssessmentChartRow } from '../../utils/assessmentGating';
 
 /**
- * When the student doc has no level, infer tier from last payment (GST-inclusive totals).
- * Rev 13 list + GST: ~₹353 / ~₹1,061 / ~₹2,123 / ~₹3,185; legacy tiers ~₹589 / ~₹1,533 / ~₹2,949 / ~₹3,185.
+ * When the student doc has no level, infer tier from last payment totals.
+ * Rev 13 charged totals: ~₹353 / ~₹1,061 / ~₹2,123 / ~₹3,185; legacy tiers ~₹589 / ~₹1,533 / ~₹2,949 / ~₹3,185.
  */
 function membershipLabelFromPaymentAmountInr(amount: number): string {
   if (amount >= 2700) return MEMBERSHIP_LEVEL_LABEL[4];

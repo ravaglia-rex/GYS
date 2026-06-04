@@ -563,7 +563,7 @@ const StudentPathPage: React.FC = () => {
           </div>
         </section>
 
-        {/* Upgrade deltas (Rev 13 - Discovery credited; list price before GST) */}
+        {/* Upgrade deltas (Rev 13 - Discovery credited; list price before applicable charges) */}
         <section id="sp-economics" data-landing-reveal className="mt-10 sm:mt-12">
           <h2 className="text-xl font-bold text-slate-900 sm:text-2xl text-center">Upgrade Anytime</h2>
           <p className="mt-2 text-center text-xs text-slate-600 sm:text-sm max-w-xl mx-auto">
@@ -595,7 +595,9 @@ const StudentPathPage: React.FC = () => {
               </tbody>
             </table>
           </div>
-          <p className="mt-3 text-center text-xs text-slate-500">Applicable taxes may be added at checkout.</p>
+          <p className="mt-3 text-center text-xs text-slate-500">
+            Any applicable taxes, duties, or compliance charges are included unless separately stated at checkout.
+          </p>
         </section>
 
         {/* EducationWorld - students & parents (aligned with main landing) */}

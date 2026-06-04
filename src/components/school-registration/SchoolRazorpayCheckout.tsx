@@ -53,8 +53,11 @@ const loadScript = (src: string): Promise<boolean> =>
     document.body.appendChild(script);
   });
 
-const WIRE_TRANSFER_DETAILS = [
-  { label: 'Payment reference / memo', value: '/FFC/202355477128/Argus Futures, Inc./San Francisco-, USA' },
+const WIRE_TRANSFER_PAYMENT_REFERENCE =
+  '/FFC/202355477128/Argus Futures, Inc./San Francisco-, USA';
+
+const WIRE_TRANSFER_DETAIL_ROWS = [
+  { label: 'Payment reference / memo', value: WIRE_TRANSFER_PAYMENT_REFERENCE },
   { label: 'SWIFT / BIC Code', value: 'CHASUS33XXX' },
   { label: 'ABA Routing Number', value: '021000021' },
   { label: 'Bank Name', value: 'JP Morgan Chase Bank, N.A. - New York' },
@@ -511,13 +514,21 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
               <span className="font-bold">IMPORTANT:</span> The payment reference below must be included in
               your bank memo/reference field, or the money may be delayed or may not make it here.
             </div>
-            <div className="space-y-2 text-xs">
-              {WIRE_TRANSFER_DETAILS.map((item) => (
-                <div key={item.label} className="grid grid-cols-1 gap-1 rounded-lg bg-slate-50 px-3 py-2 sm:grid-cols-[150px_1fr]">
-                  <span className="font-semibold text-slate-500">{item.label}</span>
-                  <span className="font-medium text-slate-900 break-words">{item.value}</span>
-                </div>
-              ))}
+            <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs">
+              <span className="font-semibold text-slate-500">Payment reference</span>
+              <p className="mt-1 break-words font-semibold text-slate-950">
+                {WIRE_TRANSFER_PAYMENT_REFERENCE}
+              </p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs">
+              <div className="space-y-2">
+                {WIRE_TRANSFER_DETAIL_ROWS.map((item) => (
+                  <div key={item.label} className="grid grid-cols-1 gap-1 sm:grid-cols-[150px_1fr]">
+                    <span className="font-semibold text-slate-500">{item.label}</span>
+                    <span className="font-medium text-slate-900 break-words">{item.value}</span>
+                  </div>
+                ))}
+              </div>
             </div>
             <button
               type="button"

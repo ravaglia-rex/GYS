@@ -10,6 +10,8 @@ import {
   STUDENT_REGISTRATION_EMAILS,
   UPDATE_SCHOOL_PROFILE,
   DISMISS_SCHOOL_TUTORIAL,
+  SCHOOL_NOTIFICATIONS,
+  SCHOOL_SEND_NOTIFICATION_EMAILS,
 } from "../constants/constants";
 import authTokenHandler from "../functions/auth_token/auth_token_handler";
 
@@ -143,6 +145,51 @@ export interface QuarterlyReportsResponse {
   reports: QuarterlyReportListItem[];
   s3Configured: boolean;
 }
+
+export interface SchoolAdminNotificationEventSource {
+  id: string;
+  type: 'success' | 'info' | 'warning' | 'error';
+  title: string;
+  message: string;
+  created_at_iso: string;
+  category: 'payment' | 'system' | 'general' | 'report';
+  color: string;
+}
+
+export interface SchoolNotificationsResponse {
+  schoolId: string;
+  notifications: SchoolAdminNotificationEventSource[];
+}
+
+export const getSchoolNotifications = async (): Promise<SchoolNotificationsResponse> => {
+  try {
+    const authToken = await authTokenHandler.getAuthToken();
+    const response = await axios.get(
+      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${SCHOOL_NOTIFICATIONS}`,
+      { headers: { Authorization: `Bearer ${authToken}` } }
+    );
+    return response.data as SchoolNotificationsResponse;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data?.error) {
+      throw new Error(String(error.response.data.error));
+    }
+    throw new Error('Could not load school notifications.');
+  }
+};
+
+export const sendSchoolNotificationEmails = async (params: {
+  notificationIds: string[];
+}): Promise<void> => {
+  const authToken = await authTokenHandler.getAuthToken();
+  if (!authToken) {
+    return;
+  }
+  await axios.post(
+    `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${SCHOOL_SEND_NOTIFICATION_EMAILS}`,
+    params,
+    { headers: { Authorization: `Bearer ${authToken}` } }
+  );
+};
 
 export const getSchoolAdmin = async (email: string): Promise<SchoolAdmin | null> => {
   try {
