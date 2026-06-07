@@ -147,13 +147,14 @@ export const verifySchoolRazorpayPayment = async (body: {
   razorpay_order_id: string;
   razorpay_payment_id: string;
   razorpay_signature: string;
-}): Promise<void> => {
+}): Promise<{ payment_status?: 'captured' | 'pending_webhook' }> => {
   const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS ?? "";
   if (!base) {
     throw new Error("REACT_APP_GOOGLE_CLOUD_FUNCTIONS is not configured.");
   }
   try {
-    await axios.post(`${base}${RAZORPAY_APIS}${VERIFY_SCHOOL_RAZORPAY_PAYMENT}`, body);
+    const response = await axios.post(`${base}${RAZORPAY_APIS}${VERIFY_SCHOOL_RAZORPAY_PAYMENT}`, body);
+    return response.data;
   } catch (e) {
     if (axios.isAxiosError(e) && e.response?.data?.message) {
       throw new Error(String(e.response.data.message));
@@ -162,30 +163,34 @@ export const verifySchoolRazorpayPayment = async (body: {
   }
 };
 
-export type MarkSchoolWireTransferAttemptParams = {
+export type SchoolManualPaymentMethod = 'wire' | 'already_paid';
+
+export type MarkSchoolManualPaymentAttemptParams = {
   schoolId: string;
   checkoutSecret: string;
   poc_phone?: string;
   missing_bank_name?: string;
-  source?: 'wire' | 'razorpay_missing_bank';
+  payment_method?: SchoolManualPaymentMethod;
+  source?: 'wire' | 'razorpay_missing_bank' | 'already_paid';
   force_email?: boolean;
 };
 
-export type MarkSchoolWireTransferAttemptResponse = {
+export type MarkSchoolManualPaymentAttemptResponse = {
   success: boolean;
   payment_id: string;
   order_id: string;
   amount: number;
   currency: string;
   plan_id: string;
+  payment_method?: SchoolManualPaymentMethod;
   invoice_number?: string;
   details_email_sent?: boolean;
   details_email_already_sent?: boolean;
 };
 
-export const markSchoolWireTransferAttempt = async (
-  params: MarkSchoolWireTransferAttemptParams
-): Promise<MarkSchoolWireTransferAttemptResponse> => {
+export const markSchoolManualPaymentAttempt = async (
+  params: MarkSchoolManualPaymentAttemptParams
+): Promise<MarkSchoolManualPaymentAttemptResponse> => {
   const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS ?? "";
   if (!base) {
     throw new Error("REACT_APP_GOOGLE_CLOUD_FUNCTIONS is not configured.");
@@ -196,6 +201,7 @@ export const markSchoolWireTransferAttempt = async (
       checkout_secret: params.checkoutSecret,
       ...(params.poc_phone?.trim() ? { poc_phone: params.poc_phone.trim() } : {}),
       ...(params.missing_bank_name?.trim() ? { missing_bank_name: params.missing_bank_name.trim() } : {}),
+      ...(params.payment_method ? { payment_method: params.payment_method } : {}),
       ...(params.source ? { source: params.source } : {}),
       ...(params.force_email ? { force_email: true } : {}),
     });
@@ -210,7 +216,7 @@ export const markSchoolWireTransferAttempt = async (
         throw new Error(bits.join(" - "));
       }
     }
-    throw new Error("Could not record wire transfer attempt. Please contact globalyoungscholar@argus.ai.");
+    throw new Error("Could not record payment attempt. Please contact globalyoungscholar@argus.ai.");
   }
 };
 

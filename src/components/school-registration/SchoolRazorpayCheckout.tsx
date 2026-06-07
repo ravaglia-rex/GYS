@@ -4,7 +4,7 @@ import { useToast } from '../ui/use-toast';
 import { LoadingSpinner } from '../ui/spinner';
 import {
   createSchoolRazorpayOrder,
-  markSchoolWireTransferAttempt,
+  markSchoolManualPaymentAttempt,
   verifySchoolRazorpayPayment,
 } from '../../db/schoolCollection';
 import {
@@ -67,6 +67,9 @@ const WIRE_TRANSFER_DETAIL_ROWS = [
   { label: 'Beneficiary Address', value: '4501 23rd Ave S, Fargo, ND 58104 USA' },
 ];
 
+type PaymentStep = 'select' | 'razorpay' | 'wire' | 'already_paid' | 'razorpay_pending';
+type ManualPaymentMethod = 'wire' | 'already_paid';
+
 export type SchoolRazorpayCheckoutProps = {
   schoolId: string;
   checkoutSecret: string;
@@ -93,12 +96,13 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
   const [confirmingPayment, setConfirmingPayment] = useState(false);
   const [checkoutPhone, setCheckoutPhone] = useState('');
   const [fieldErrors, setFieldErrors] = useState<{ phone?: string }>({});
-  const [wireOpen, setWireOpen] = useState(false);
   const [wireBusy, setWireBusy] = useState(false);
   const [wireAttemptRecorded, setWireAttemptRecorded] = useState(false);
+  const [alreadyPaidRecorded, setAlreadyPaidRecorded] = useState(false);
   const [wireDetailsEmailSent, setWireDetailsEmailSent] = useState(false);
   const [missingBankName, setMissingBankName] = useState('');
   const [missingBankError, setMissingBankError] = useState<string | null>(null);
+  const [paymentStep, setPaymentStep] = useState<PaymentStep>('select');
   const wireRecordInFlightRef = useRef(false);
   const { toast } = useToast();
 
@@ -229,12 +233,22 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
             flushSync(() => {
               setConfirmingPayment(true);
             });
-            await verifySchoolRazorpayPayment({
+            const verification = await verifySchoolRazorpayPayment({
               school_id: schoolId,
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
             });
+            if (verification.payment_status !== 'captured') {
+              setConfirmingPayment(false);
+              setBusy(false);
+              setPaymentStep('razorpay_pending');
+              toast({
+                title: 'Payment received',
+                description: 'Razorpay is confirming this payment. Your registration will unlock after webhook confirmation.',
+              });
+              return;
+            }
             toast({
               title: 'Payment successful',
               description: 'Your institutional package payment was confirmed.',
@@ -298,9 +312,10 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
     }
   };
 
-  const recordWireTransferAttempt = async (options?: {
+  const recordManualPaymentAttempt = async (options?: {
+    paymentMethod?: ManualPaymentMethod;
     missingBankName?: string;
-    source?: 'wire' | 'razorpay_missing_bank';
+    source?: 'wire' | 'razorpay_missing_bank' | 'already_paid';
     showToast?: boolean;
     forceEmail?: boolean;
   }) => {
@@ -311,40 +326,51 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
     wireRecordInFlightRef.current = true;
     setFieldErrors((prev) => ({ ...prev, phone: undefined }));
     setWireBusy(true);
+    const paymentMethod = options?.paymentMethod ?? 'wire';
     try {
-      const result = await markSchoolWireTransferAttempt({
+      const result = await markSchoolManualPaymentAttempt({
         schoolId,
         checkoutSecret,
         ...(optionalPhone ? { poc_phone: optionalPhone } : {}),
         ...(options?.missingBankName ? { missing_bank_name: options.missingBankName } : {}),
+        payment_method: paymentMethod,
         ...(options?.source ? { source: options.source } : {}),
         ...(options?.forceEmail ? { force_email: true } : {}),
       });
-      setWireAttemptRecorded(true);
-      setWireDetailsEmailSent(Boolean(result.details_email_sent || result.details_email_already_sent));
+      if (paymentMethod === 'already_paid') {
+        setAlreadyPaidRecorded(true);
+      } else {
+        setWireAttemptRecorded(true);
+        setWireDetailsEmailSent(Boolean(result.details_email_sent || result.details_email_already_sent));
+      }
       if (options?.showToast) {
         toast({
           title:
-            result.details_email_sent || result.details_email_already_sent
-              ? 'Wire details emailed'
-              : 'Wire details ready',
-          description: result.details_email_sent
-            ? `We emailed the wire transfer details to ${pocEmail}.`
-            : result.details_email_already_sent
-              ? `Wire transfer details were already emailed to ${pocEmail}.`
-              : 'The wire transfer details are shown below. Please contact us if you do not receive the email.',
+            paymentMethod === 'already_paid'
+              ? 'Registration submitted'
+              : result.details_email_sent || result.details_email_already_sent
+                ? 'Wire details emailed'
+                : 'Wire details ready',
+          description:
+            paymentMethod === 'already_paid'
+              ? 'We will verify the payment manually before activating your school account.'
+              : result.details_email_sent
+                ? `We emailed the wire transfer details to ${pocEmail}.`
+                : result.details_email_already_sent
+                  ? `Wire transfer details were already emailed to ${pocEmail}.`
+                  : 'The wire transfer details are shown below. Please contact us if you do not receive the email.',
         });
       }
       return result;
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Could not record wire transfer attempt';
+      const message = err instanceof Error ? err.message : 'Could not record payment attempt';
       Sentry.withScope((scope) => {
-        scope.setTag('location', 'SchoolRazorpayCheckout.recordWireTransferAttempt');
+        scope.setTag('location', 'SchoolRazorpayCheckout.recordManualPaymentAttempt');
         Sentry.captureException(err);
       });
       toast({
         variant: 'destructive',
-        title: 'Could not record wire transfer',
+        title: 'Could not record payment choice',
         description: message,
       });
     } finally {
@@ -354,14 +380,19 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
   };
 
   const openWireTransfer = () => {
-    if (wireOpen) {
-      setWireOpen(false);
-      return;
-    }
-    setWireOpen(true);
+    setPaymentStep('wire');
     if (!wireAttemptRecorded && !wireBusy && !wireRecordInFlightRef.current) {
-      void recordWireTransferAttempt({ showToast: true });
+      void recordManualPaymentAttempt({ paymentMethod: 'wire', source: 'wire', showToast: true });
     }
+  };
+
+  const submitAlreadyPaid = async () => {
+    setPaymentStep('already_paid');
+    await recordManualPaymentAttempt({
+      paymentMethod: 'already_paid',
+      source: 'already_paid',
+      showToast: true,
+    });
   };
 
   const submitMissingBank = async () => {
@@ -371,13 +402,26 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
       return;
     }
     setMissingBankError(null);
-    setWireOpen(true);
-    await recordWireTransferAttempt({
+    setPaymentStep('wire');
+    await recordManualPaymentAttempt({
+      paymentMethod: 'wire',
       missingBankName: bankName,
       source: 'razorpay_missing_bank',
       showToast: true,
     });
   };
+
+  const backToPaymentOptionsButton = (disabled = false) => (
+    <button
+      type="button"
+      onClick={() => setPaymentStep('select')}
+      disabled={disabled}
+      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-blue-300 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      <span aria-hidden="true">&larr;</span>
+      Back to payment options
+    </button>
+  );
 
   const confirmingOverlay =
     confirmingPayment &&
@@ -409,146 +453,200 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
   return (
     <div className="mt-4 w-full space-y-4 text-left">
       {confirmingOverlay}
-      <div>
-        <label className="block text-xs font-semibold text-slate-700 mb-1">
-          India mobile number<span className="text-red-500"> *</span>
-        </label>
-        <p className="mb-1.5 text-[11px] text-slate-500 leading-relaxed">
-          Required only when paying through Razorpay.
-        </p>
-        <div
-          className={`flex w-full overflow-hidden rounded-lg border bg-white text-sm focus-within:outline-none focus-within:ring-1 ${
-            fieldErrors.phone
-              ? 'border-red-400 focus-within:border-red-400 focus-within:ring-red-300'
-              : 'border-slate-200 focus-within:border-slate-400 focus-within:ring-slate-400'
-          }`}
-        >
-          <span className="flex items-center border-r border-slate-200 bg-slate-50 px-3.5 py-2.5 font-medium text-slate-600">
-            +91
-          </span>
-          <input
-            type="tel"
-            inputMode="numeric"
-            value={checkoutPhone}
-            onChange={(e) => {
-              setCheckoutPhone(toIndiaMobileNationalDigits(e.target.value));
-              setFieldErrors((f) => ({ ...f, phone: undefined }));
-            }}
-            disabled={busy}
-            className="w-full px-3.5 py-2.5 text-slate-900 placeholder:text-slate-400 focus:outline-none disabled:bg-slate-100"
-            placeholder="98765 43210"
-            autoComplete="tel-national"
-            maxLength={10}
-          />
-        </div>
-        {fieldErrors.phone && <p className="mt-1 text-xs text-red-600">{fieldErrors.phone}</p>}
-      </div>
-
-      <button
-        type="button"
-        onClick={() => void startCheckout()}
-        disabled={busy}
-        className="mt-2 w-full rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-md hover:brightness-110 active:scale-95 transition-all duration-200 disabled:opacity-60 disabled:pointer-events-none"
-        style={{ backgroundColor: '#1e3a8a' }}
-      >
-        {busy ? 'Opening secure checkout…' : 'Pay securely with Razorpay'}
-      </button>
-
-      <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-4">
-        <p className="text-sm font-semibold text-amber-950">
-          My bank isn&apos;t listed
-        </p>
-        <p className="mt-1 text-xs leading-relaxed text-amber-900">
-          Tell us the bank name and we&apos;ll look into it. We can also email wire transfer details so your
-          school can pay directly.
-        </p>
-        <div className="mt-3 space-y-2">
-          <input
-            type="text"
-            value={missingBankName}
-            onChange={(e) => {
-              setMissingBankName(e.target.value);
-              setMissingBankError(null);
-            }}
-            disabled={busy || wireBusy}
-            className={`w-full rounded-lg border px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 ${
-              missingBankError
-                ? 'border-red-400 focus:border-red-400 focus:ring-red-300'
-                : 'border-amber-200 focus:border-amber-400 focus:ring-amber-300'
-            }`}
-            placeholder="Enter your bank name"
-          />
-          {missingBankError && <p className="text-xs text-red-600">{missingBankError}</p>}
+      {paymentStep === 'select' && (
+        <div className="space-y-3">
+          <p className="text-sm font-semibold text-slate-900">Choose how you want to pay</p>
           <button
             type="button"
-            onClick={() => void submitMissingBank()}
-            disabled={busy || wireBusy}
-            className="w-full rounded-xl border border-amber-900 px-4 py-2.5 text-sm font-semibold text-amber-950 transition-all hover:bg-amber-100 disabled:opacity-60 disabled:pointer-events-none"
+            onClick={() => setPaymentStep('razorpay')}
+            className="w-full rounded-xl border border-slate-200 bg-white p-4 text-left transition hover:border-blue-300 hover:bg-blue-50/40"
           >
-            {wireBusy ? 'Sending details...' : 'Submit bank name and email wire details'}
+            <span className="block text-sm font-semibold text-slate-900">Pay with Razorpay</span>
+            <span className="mt-1 block text-xs leading-relaxed text-slate-600">
+              Use UPI, cards, net banking, or other Razorpay checkout methods.
+            </span>
           </button>
-        </div>
-      </div>
-
-      <div className="rounded-xl border border-slate-200 bg-white p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-slate-900">Prefer wire transfer?</p>
-            <p className="mt-1 text-xs leading-relaxed text-slate-600">
-              Click here to see the wire transfer details. We&apos;ll also email the remittance details to {pocEmail} as soon as you choose this option.
-            </p>
-          </div>
           <button
             type="button"
             onClick={openWireTransfer}
-            className="shrink-0 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-            disabled={busy || wireBusy}
+            disabled={wireBusy}
+            className="w-full rounded-xl border border-slate-200 bg-white p-4 text-left transition hover:border-blue-300 hover:bg-blue-50/40 disabled:opacity-60"
           >
-            {wireOpen ? 'Hide details' : wireAttemptRecorded ? 'Show wire details' : 'Pay by wire'}
+            <span className="block text-sm font-semibold text-slate-900">Pay by wire transfer</span>
+            <span className="mt-1 block text-xs leading-relaxed text-slate-600">
+              View bank details and receive the remittance instructions by email.
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => void submitAlreadyPaid()}
+            disabled={wireBusy}
+            className="w-full rounded-xl border border-slate-200 bg-white p-4 text-left transition hover:border-blue-300 hover:bg-blue-50/40 disabled:opacity-60"
+          >
+            <span className="block text-sm font-semibold text-slate-900">Already paid</span>
+            <span className="mt-1 block text-xs leading-relaxed text-slate-600">
+              Choose this if your school paid through a direct Razorpay link or through a group/chain payment.
+            </span>
           </button>
         </div>
+      )}
 
-        {wireOpen && (
-          <div className="mt-4 space-y-4 border-t border-slate-200 pt-4">
-            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm leading-relaxed text-red-950">
-              <span className="font-bold">IMPORTANT:</span> The payment reference below must be included in
-              your bank memo/reference field, or the money may be delayed or may not make it here.
-            </div>
-            <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs">
-              <span className="font-semibold text-slate-500">Payment reference</span>
-              <p className="mt-1 break-words font-semibold text-slate-950">
-                {WIRE_TRANSFER_PAYMENT_REFERENCE}
-              </p>
-            </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs">
-              <div className="space-y-2">
-                {WIRE_TRANSFER_DETAIL_ROWS.map((item) => (
-                  <div key={item.label} className="grid grid-cols-1 gap-1 sm:grid-cols-[150px_1fr]">
-                    <span className="font-semibold text-slate-500">{item.label}</span>
-                    <span className="font-medium text-slate-900 break-words">{item.value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => void recordWireTransferAttempt({ showToast: true, forceEmail: true })}
-              disabled={busy || wireBusy}
-              className="w-full rounded-xl border border-blue-900 px-4 py-3 text-sm font-semibold text-blue-900 transition-all hover:bg-blue-50 disabled:opacity-60 disabled:pointer-events-none"
+      {paymentStep === 'razorpay' && (
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              India mobile number<span className="text-red-500"> *</span>
+            </label>
+            <p className="mb-1.5 text-[11px] text-slate-500 leading-relaxed">
+              Required for Razorpay checkout.
+            </p>
+            <div
+              className={`flex w-full overflow-hidden rounded-lg border bg-white text-sm focus-within:outline-none focus-within:ring-1 ${
+                fieldErrors.phone
+                  ? 'border-red-400 focus-within:border-red-400 focus-within:ring-red-300'
+                  : 'border-slate-200 focus-within:border-slate-400 focus-within:ring-slate-400'
+              }`}
             >
-              {wireBusy ? 'Sending wire details...' : wireAttemptRecorded ? 'Email wire details again' : 'Email wire details'}
-            </button>
-            {wireAttemptRecorded && (
-              <p className="text-xs leading-relaxed text-slate-600">
-                {wireDetailsEmailSent
-                  ? `We emailed these details to ${pocEmail}. `
-                  : 'These details are ready below. '}
-                After we confirm the bank transfer, we will activate your school account.
-              </p>
-            )}
+              <span className="flex items-center border-r border-slate-200 bg-slate-50 px-3.5 py-2.5 font-medium text-slate-600">
+                +91
+              </span>
+              <input
+                type="tel"
+                inputMode="numeric"
+                value={checkoutPhone}
+                onChange={(e) => {
+                  setCheckoutPhone(toIndiaMobileNationalDigits(e.target.value));
+                  setFieldErrors((f) => ({ ...f, phone: undefined }));
+                }}
+                disabled={busy}
+                className="w-full px-3.5 py-2.5 text-slate-900 placeholder:text-slate-400 focus:outline-none disabled:bg-slate-100"
+                placeholder="98765 43210"
+                autoComplete="tel-national"
+                maxLength={10}
+              />
+            </div>
+            {fieldErrors.phone && <p className="mt-1 text-xs text-red-600">{fieldErrors.phone}</p>}
           </div>
-        )}
-      </div>
+
+          <button
+            type="button"
+            onClick={() => void startCheckout()}
+            disabled={busy}
+            className="w-full rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-md hover:brightness-110 active:scale-95 transition-all duration-200 disabled:opacity-60 disabled:pointer-events-none"
+            style={{ backgroundColor: '#1e3a8a' }}
+          >
+            {busy ? 'Opening secure checkout...' : 'Pay securely with Razorpay'}
+          </button>
+
+          <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-4">
+            <p className="text-sm font-semibold text-amber-950">My bank isn&apos;t listed</p>
+            <p className="mt-1 text-xs leading-relaxed text-amber-900">
+              Tell us the bank name and we&apos;ll look into it. We can also email wire transfer details so your
+              school can pay directly.
+            </p>
+            <div className="mt-3 space-y-2">
+              <input
+                type="text"
+                value={missingBankName}
+                onChange={(e) => {
+                  setMissingBankName(e.target.value);
+                  setMissingBankError(null);
+                }}
+                disabled={busy || wireBusy}
+                className={`w-full rounded-lg border px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 ${
+                  missingBankError
+                    ? 'border-red-400 focus:border-red-400 focus:ring-red-300'
+                    : 'border-amber-200 focus:border-amber-400 focus:ring-amber-300'
+                }`}
+                placeholder="Enter your bank name"
+              />
+              {missingBankError && <p className="text-xs text-red-600">{missingBankError}</p>}
+              <button
+                type="button"
+                onClick={() => void submitMissingBank()}
+                disabled={busy || wireBusy}
+                className="w-full rounded-xl border border-amber-900 px-4 py-2.5 text-sm font-semibold text-amber-950 transition-all hover:bg-amber-100 disabled:opacity-60 disabled:pointer-events-none"
+              >
+                {wireBusy ? 'Sending details...' : 'Submit bank name and email wire details'}
+              </button>
+            </div>
+          </div>
+          <div className="flex justify-end pt-1">{backToPaymentOptionsButton(busy)}</div>
+        </div>
+      )}
+
+      {paymentStep === 'razorpay_pending' && (
+        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-center">
+          <p className="text-sm font-semibold text-blue-950">Payment submitted</p>
+          <p className="mt-2 text-xs leading-relaxed text-blue-900">
+            Razorpay is confirming the payment with us. Your school account will activate automatically after
+            Razorpay sends the signed webhook confirmation.
+          </p>
+          <div className="mt-3 flex justify-end">{backToPaymentOptionsButton()}</div>
+        </div>
+      )}
+
+      {paymentStep === 'wire' && (
+        <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4">
+          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm leading-relaxed text-red-950">
+            <span className="font-bold">IMPORTANT:</span> The payment reference below must be included in
+            your bank memo/reference field, or the money may be delayed or may not make it here.
+          </div>
+          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs">
+            <span className="font-semibold text-slate-500">Payment reference</span>
+            <p className="mt-1 break-words font-semibold text-slate-950">
+              {WIRE_TRANSFER_PAYMENT_REFERENCE}
+            </p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs">
+            <div className="space-y-2">
+              {WIRE_TRANSFER_DETAIL_ROWS.map((item) => (
+                <div key={item.label} className="grid grid-cols-1 gap-1 sm:grid-cols-[150px_1fr]">
+                  <span className="font-semibold text-slate-500">{item.label}</span>
+                  <span className="font-medium text-slate-900 break-words">{item.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() =>
+              void recordManualPaymentAttempt({
+                paymentMethod: 'wire',
+                source: 'wire',
+                showToast: true,
+                forceEmail: true,
+              })
+            }
+            disabled={busy || wireBusy}
+            className="w-full rounded-xl border border-blue-900 px-4 py-3 text-sm font-semibold text-blue-900 transition-all hover:bg-blue-50 disabled:opacity-60 disabled:pointer-events-none"
+          >
+            {wireBusy ? 'Sending wire details...' : wireAttemptRecorded ? 'Email wire details again' : 'Email wire details'}
+          </button>
+          {wireAttemptRecorded && (
+            <p className="text-xs leading-relaxed text-slate-600">
+              {wireDetailsEmailSent
+                ? `We emailed these details to ${pocEmail}. `
+                : 'These details are ready below. '}
+              After we manually confirm the bank transfer, we will activate your school account.
+            </p>
+          )}
+          <div className="flex justify-end pt-1">{backToPaymentOptionsButton(wireBusy)}</div>
+        </div>
+      )}
+
+      {paymentStep === 'already_paid' && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-center">
+          <p className="text-sm font-semibold text-emerald-950">
+            {wireBusy && !alreadyPaidRecorded ? 'Recording your registration...' : 'Registration complete'}
+          </p>
+          <p className="mt-2 text-justify text-xs leading-relaxed text-emerald-900">
+            We will verify that your payment has already been received. Once we confirm it, your
+            school account will be activated and you can continue account setup. Please let us know if you do not hear from us within 5 business days.
+          </p>
+          <div className="mt-3 flex justify-end">{backToPaymentOptionsButton(wireBusy)}</div>
+        </div>
+      )}
     </div>
   );
 };
