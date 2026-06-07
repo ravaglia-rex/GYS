@@ -8,8 +8,7 @@ import {
   useLandingScrollProgress,
   useLandingSectionSpy,
 } from '../../hooks/useLandingPageScroll';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../../firebase/firebase';
+import { submitInstitutionDemoRequest } from '../../db/schoolCollection';
 import {
   normalizeIndiaMobileE164,
   toIndiaMobileNationalDigits,
@@ -133,12 +132,9 @@ const InstitutionDemoRequestPage: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      await addDoc(collection(db, 'institution_demo_requests'), {
+      await submitInstitutionDemoRequest({
         ...form,
         phone: withIndiaCountryCode(form.phone),
-        createdAt: serverTimestamp(),
-        status: 'new',
-        source: 'for-schools-landing',
       });
       setSubmitted(true);
       setForm(initialFormState);
