@@ -1137,8 +1137,10 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                 gap: 2,
                 height: '100%',
                 minHeight: 0,
-                overflowY: notifications.length > 3 ? 'auto' : 'visible',
-                pr: notifications.length > 3 ? 2 : 0,
+                overflowY: 'auto',
+                WebkitOverflowScrolling: 'touch',
+                overscrollBehavior: 'contain',
+                pr: notificationScrollbar.visible ? 2 : 0,
                 scrollbarWidth: 'none',
                 '&::-webkit-scrollbar': {
                   display: 'none',

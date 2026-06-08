@@ -37,6 +37,66 @@ const InstructionLine: React.FC<{ text: string }> = ({ text }) => (
   </Typography>
 );
 
+function plainSetupTextBeforePrompt(q: ExamQuestion): string | null {
+  const stimulus = q.stimulus;
+  if (typeof stimulus !== 'object' || stimulus === null || Array.isArray(stimulus)) return null;
+  const setup = (stimulus as Record<string, unknown>).setup;
+  if (typeof setup !== 'string') return null;
+  const text = setup.trim();
+  if (!text) return null;
+  if (parseStimulusGridMatrix({ grid: text }) || parseStimulusSequence(text)) return null;
+
+  const prompt = (q.prompt ?? '').trim();
+  if (prompt) {
+    const setupNorm = normalizeStemCompare(text);
+    const promptNorm = normalizeStemCompare(prompt);
+    if (setupNorm === promptNorm || promptNorm.includes(setupNorm)) return null;
+  }
+
+  return text;
+}
+
+const QuestionPromptBlock: React.FC<{
+  question: ExamQuestion;
+  renderMath?: boolean;
+  mathSx: React.ComponentProps<typeof Box>['sx'];
+  typographySx: React.ComponentProps<typeof Typography>['sx'];
+  typographyVariant?: React.ComponentProps<typeof Typography>['variant'];
+}> = ({ question, renderMath = false, mathSx, typographySx, typographyVariant = 'h6' }) => {
+  const setupText = plainSetupTextBeforePrompt(question);
+  const promptText = examPromptWithoutRedundantRuleBlock(question);
+  const setupSx = {
+    color: '#334155',
+    fontSize: { xs: '0.95rem', sm: '1rem' },
+    lineHeight: 1.6,
+    mb: 1.25,
+    whiteSpace: 'pre-line',
+  };
+
+  return (
+    <>
+      {setupText ? (
+        renderMath ? (
+          <Box sx={setupSx}>
+            <ExamMathText inline={false} sx={{ whiteSpace: 'pre-line' }}>{setupText}</ExamMathText>
+          </Box>
+        ) : (
+          <Typography sx={setupSx}>{setupText}</Typography>
+        )
+      ) : null}
+      {renderMath ? (
+        <Box sx={mathSx}>
+          <ExamMathText inline={false} sx={{ whiteSpace: 'pre-line' }}>{promptText}</ExamMathText>
+        </Box>
+      ) : (
+        <Typography variant={typographyVariant} sx={typographySx}>
+          {promptText}
+        </Typography>
+      )}
+    </>
+  );
+};
+
 function humanizeFieldKey(key: string): string {
   const spaced = key.replace(/_/g, ' ');
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
@@ -2068,6 +2128,7 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string; renderM
       !stimulusFieldRenderedAsGrid(key, value, gridMatrix !== null) &&
       !(concealedRuleKeys?.has(key) ?? false) &&
       !(key === 'text' && shouldHideStimulusTextSummary(value, obj)) &&
+      !(key === 'setup' && plainSetupTextBeforePrompt(q)) &&
       !stimulusFieldDuplicatesPrompt(key, value, q.prompt)
   );
   if (entries.length === 0 && !gridMatrix && !dataTable) return null;
@@ -2489,15 +2550,12 @@ const ListeningMcqInner: React.FC<{
       >
         Question {questionNumber} of {totalQuestions}
       </Typography>
-      {renderMath ? (
-        <Box sx={{ mb: 2, fontWeight: 700, color: '#0f172a', fontSize: { xs: '1.05rem', sm: '1.2rem' } }}>
-          <ExamMathText inline={false} sx={{ whiteSpace: 'pre-line' }}>{examPromptWithoutRedundantRuleBlock(question)}</ExamMathText>
-        </Box>
-      ) : (
-        <Typography variant="h6" sx={{ fontWeight: 700, color: '#0f172a', mb: 2, fontSize: { xs: '1.05rem', sm: '1.2rem' }, whiteSpace: 'pre-line' }}>
-          {examPromptWithoutRedundantRuleBlock(question)}
-        </Typography>
-      )}
+      <QuestionPromptBlock
+        question={question}
+        renderMath={renderMath}
+        mathSx={{ mb: 2, fontWeight: 700, color: '#0f172a', fontSize: { xs: '1.05rem', sm: '1.2rem' } }}
+        typographySx={{ fontWeight: 700, color: '#0f172a', mb: 2, fontSize: { xs: '1.05rem', sm: '1.2rem' }, whiteSpace: 'pre-line' }}
+      />
       {question.instruction && !shouldSuppressInstructionAsDuplicateRule(question) && (
         <InstructionLine text={question.instruction} />
       )}
@@ -2595,15 +2653,12 @@ const SpokenResponseInner: React.FC<{
       <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 700, letterSpacing: 1, display: 'block', mb: 1.5, textTransform: 'uppercase', fontSize: '0.68rem' }}>
         Question {questionNumber} of {totalQuestions}
       </Typography>
-      {renderMath ? (
-        <Box sx={{ mb: 2, fontWeight: 700, color: '#0f172a', fontSize: { xs: '1.05rem', sm: '1.2rem' } }}>
-          <ExamMathText inline={false} sx={{ whiteSpace: 'pre-line' }}>{examPromptWithoutRedundantRuleBlock(question)}</ExamMathText>
-        </Box>
-      ) : (
-        <Typography variant="h6" sx={{ fontWeight: 700, color: '#0f172a', mb: 2, fontSize: { xs: '1.05rem', sm: '1.2rem' }, whiteSpace: 'pre-line' }}>
-          {examPromptWithoutRedundantRuleBlock(question)}
-        </Typography>
-      )}
+      <QuestionPromptBlock
+        question={question}
+        renderMath={renderMath}
+        mathSx={{ mb: 2, fontWeight: 700, color: '#0f172a', fontSize: { xs: '1.05rem', sm: '1.2rem' } }}
+        typographySx={{ fontWeight: 700, color: '#0f172a', mb: 2, fontSize: { xs: '1.05rem', sm: '1.2rem' }, whiteSpace: 'pre-line' }}
+      />
       {question.instruction && !shouldSuppressInstructionAsDuplicateRule(question) && (
         <InstructionLine text={question.instruction} />
       )}
@@ -2698,15 +2753,12 @@ const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
         >
           Question {questionNumber} of {totalQuestions}
         </Typography>
-        {renderMath ? (
-          <Box sx={{ lineHeight: 1.5, mb: 3, fontWeight: 700, color: '#0f172a', fontSize: { xs: '1.05rem', sm: '1.2rem' } }}>
-            <ExamMathText inline={false} sx={{ whiteSpace: 'pre-line' }}>{examPromptWithoutRedundantRuleBlock(question)}</ExamMathText>
-          </Box>
-        ) : (
-          <Typography variant="h6" sx={{ fontWeight: 700, color: '#0f172a', lineHeight: 1.5, mb: 3, fontSize: { xs: '1.05rem', sm: '1.2rem' }, whiteSpace: 'pre-line' }}>
-            {examPromptWithoutRedundantRuleBlock(question)}
-          </Typography>
-        )}
+        <QuestionPromptBlock
+          question={question}
+          renderMath={renderMath}
+          mathSx={{ lineHeight: 1.5, mb: 3, fontWeight: 700, color: '#0f172a', fontSize: { xs: '1.05rem', sm: '1.2rem' } }}
+          typographySx={{ fontWeight: 700, color: '#0f172a', lineHeight: 1.5, mb: 3, fontSize: { xs: '1.05rem', sm: '1.2rem' }, whiteSpace: 'pre-line' }}
+        />
         {question.instruction && !shouldSuppressInstructionAsDuplicateRule(question) && (
           <InstructionLine text={question.instruction} />
         )}
@@ -2801,15 +2853,13 @@ const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
             </Typography>
           )}
         </Box>
-        {renderMath ? (
-          <Box sx={{ fontWeight: 800, color: '#0f172a', mb: 2, lineHeight: 1.5 }}>
-            <ExamMathText inline={false} sx={{ whiteSpace: 'pre-line' }}>{examPromptWithoutRedundantRuleBlock(question)}</ExamMathText>
-          </Box>
-        ) : (
-          <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#0f172a', mb: 2, lineHeight: 1.5, whiteSpace: 'pre-line' }}>
-            {examPromptWithoutRedundantRuleBlock(question)}
-          </Typography>
-        )}
+        <QuestionPromptBlock
+          question={question}
+          renderMath={renderMath}
+          mathSx={{ fontWeight: 800, color: '#0f172a', mb: 2, lineHeight: 1.5 }}
+          typographyVariant="subtitle1"
+          typographySx={{ fontWeight: 800, color: '#0f172a', mb: 2, lineHeight: 1.5, whiteSpace: 'pre-line' }}
+        />
         {question.instruction && !shouldSuppressInstructionAsDuplicateRule(question) && (
           <InstructionLine text={question.instruction} />
         )}
@@ -2835,15 +2885,12 @@ const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
       <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 700, letterSpacing: 1, display: 'block', mb: 1.5, textTransform: 'uppercase', fontSize: '0.68rem' }}>
         Question {questionNumber} of {totalQuestions}
       </Typography>
-      {renderMath ? (
-        <Box sx={{ fontWeight: 700, color: '#0f172a', mb: 2.5, lineHeight: 1.5, fontSize: { xs: '1.05rem', sm: '1.2rem' } }}>
-          <ExamMathText inline={false} sx={{ whiteSpace: 'pre-line' }}>{examPromptWithoutRedundantRuleBlock(question)}</ExamMathText>
-        </Box>
-      ) : (
-        <Typography variant="h6" sx={{ fontWeight: 700, color: '#0f172a', mb: 2.5, lineHeight: 1.2, fontSize: { xs: '1.0rem', sm: '1rem' }, whiteSpace: 'pre-line' }}>
-          {examPromptWithoutRedundantRuleBlock(question)}
-        </Typography>
-      )}
+      <QuestionPromptBlock
+        question={question}
+        renderMath={renderMath}
+        mathSx={{ fontWeight: 700, color: '#0f172a', mb: 2.5, lineHeight: 1.5, fontSize: { xs: '1.05rem', sm: '1.2rem' } }}
+        typographySx={{ fontWeight: 700, color: '#0f172a', mb: 2.5, lineHeight: 1.2, fontSize: { xs: '1.0rem', sm: '1rem' }, whiteSpace: 'pre-line' }}
+      />
       {question.instruction && !shouldSuppressInstructionAsDuplicateRule(question) && (
         <InstructionLine text={question.instruction} />
       )}
