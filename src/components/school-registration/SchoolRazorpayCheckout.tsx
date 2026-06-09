@@ -599,6 +599,11 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
             </p>
           </div>
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs">
+            <p className="mb-3 leading-relaxed text-slate-700">
+              Use these details to send an international wire in INR to complete your payment.
+              If you prefer sending USD, please contact globalyoungscholar@argus.ai to get the wire transfer
+              details to send an international wire in USD.
+            </p>
             <div className="space-y-2">
               {WIRE_TRANSFER_DETAIL_ROWS.map((item) => (
                 <div key={item.label} className="grid grid-cols-1 gap-1 sm:grid-cols-[150px_1fr]">

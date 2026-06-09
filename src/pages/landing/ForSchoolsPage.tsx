@@ -210,7 +210,7 @@ const ForSchoolsPage: React.FC = () => {
       <LandingSectionRail sections={FOR_SCHOOLS_NAV} activeSectionId={activeSectionId} />
       <LandingPublicHeader
         scrollProgress={scrollProgress}
-        signUp={{ show: true, path: '/for-schools/register', variant: 'outline' }}
+        signUp={{ show: true, path: '/signup', variant: 'outline' }}
       />
 
       <main className="flex-1 pb-14">

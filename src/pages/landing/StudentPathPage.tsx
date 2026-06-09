@@ -174,7 +174,7 @@ const StudentPathPage: React.FC = () => {
       <LandingSectionRail sections={STUDENT_NAV} activeSectionId={activeSectionId} />
       <LandingPublicHeader
         scrollProgress={scrollProgress}
-        signUp={{ show: true, path: '/students/register', variant: 'filled' }}
+        signUp={{ show: true, path: '/signup', variant: 'filled' }}
       />
 
       <main className="pb-12">

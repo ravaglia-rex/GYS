@@ -44,7 +44,6 @@ function plainSetupTextBeforePrompt(q: ExamQuestion): string | null {
   if (typeof setup !== 'string') return null;
   const text = setup.trim();
   if (!text) return null;
-  if (parseStimulusGridMatrix({ grid: text }) || parseStimulusSequence(text)) return null;
 
   const prompt = (q.prompt ?? '').trim();
   if (prompt) {
@@ -62,7 +61,7 @@ const QuestionPromptBlock: React.FC<{
   mathSx: React.ComponentProps<typeof Box>['sx'];
   typographySx: React.ComponentProps<typeof Typography>['sx'];
   typographyVariant?: React.ComponentProps<typeof Typography>['variant'];
-}> = ({ question, renderMath = false, mathSx, typographySx, typographyVariant = 'h6' }) => {
+}> = ({ question, renderMath = false, mathSx, typographySx, typographyVariant = 'body1' }) => {
   const setupText = plainSetupTextBeforePrompt(question);
   const promptText = examPromptWithoutRedundantRuleBlock(question);
   const setupSx = {
@@ -1070,7 +1069,6 @@ function parseStimulusGridMatrix(obj: Record<string, unknown>): string[][] | nul
     obj.table,
     gridLabeledText(obj.text),
     obj.context,
-    obj.setup,
     obj.given,
     obj.problem,
   ];
@@ -1084,7 +1082,7 @@ function parseStimulusGridMatrix(obj: Record<string, unknown>): string[][] | nul
 
 function stimulusFieldRenderedAsGrid(key: string, value: unknown, hasGrid: boolean): boolean {
   if (!hasGrid) return false;
-  if (!['text', 'display', 'diagram', 'table', 'context', 'setup', 'given', 'problem'].includes(key)) return false;
+  if (!['text', 'display', 'diagram', 'table', 'context', 'given', 'problem'].includes(key)) return false;
   if (key === 'text' && typeof value === 'string' && !/\b(?:grid|matrix|board)\s*:/i.test(value)) return false;
   return parseStimulusGridMatrix({ grid: value }) !== null;
 }
@@ -2553,8 +2551,8 @@ const ListeningMcqInner: React.FC<{
       <QuestionPromptBlock
         question={question}
         renderMath={renderMath}
-        mathSx={{ mb: 2, fontWeight: 700, color: '#0f172a', fontSize: { xs: '1.05rem', sm: '1.2rem' } }}
-        typographySx={{ fontWeight: 700, color: '#0f172a', mb: 2, fontSize: { xs: '1.05rem', sm: '1.2rem' }, whiteSpace: 'pre-line' }}
+        mathSx={{ mb: 2, fontWeight: 400, color: '#334155', fontSize: { xs: '0.95rem', sm: '1rem' }, lineHeight: 1.6 }}
+        typographySx={{ fontWeight: 400, color: '#334155', mb: 2, fontSize: { xs: '0.95rem', sm: '1rem' }, lineHeight: 1.6, whiteSpace: 'pre-line' }}
       />
       {question.instruction && !shouldSuppressInstructionAsDuplicateRule(question) && (
         <InstructionLine text={question.instruction} />
@@ -2656,8 +2654,8 @@ const SpokenResponseInner: React.FC<{
       <QuestionPromptBlock
         question={question}
         renderMath={renderMath}
-        mathSx={{ mb: 2, fontWeight: 700, color: '#0f172a', fontSize: { xs: '1.05rem', sm: '1.2rem' } }}
-        typographySx={{ fontWeight: 700, color: '#0f172a', mb: 2, fontSize: { xs: '1.05rem', sm: '1.2rem' }, whiteSpace: 'pre-line' }}
+        mathSx={{ mb: 2, fontWeight: 400, color: '#334155', fontSize: { xs: '0.95rem', sm: '1rem' }, lineHeight: 1.6 }}
+        typographySx={{ fontWeight: 400, color: '#334155', mb: 2, fontSize: { xs: '0.95rem', sm: '1rem' }, lineHeight: 1.6, whiteSpace: 'pre-line' }}
       />
       {question.instruction && !shouldSuppressInstructionAsDuplicateRule(question) && (
         <InstructionLine text={question.instruction} />
@@ -2756,8 +2754,8 @@ const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
         <QuestionPromptBlock
           question={question}
           renderMath={renderMath}
-          mathSx={{ lineHeight: 1.5, mb: 3, fontWeight: 700, color: '#0f172a', fontSize: { xs: '1.05rem', sm: '1.2rem' } }}
-          typographySx={{ fontWeight: 700, color: '#0f172a', lineHeight: 1.5, mb: 3, fontSize: { xs: '1.05rem', sm: '1.2rem' }, whiteSpace: 'pre-line' }}
+          mathSx={{ lineHeight: 1.6, mb: 3, fontWeight: 400, color: '#334155', fontSize: { xs: '0.95rem', sm: '1rem' } }}
+          typographySx={{ fontWeight: 400, color: '#334155', lineHeight: 1.6, mb: 3, fontSize: { xs: '0.95rem', sm: '1rem' }, whiteSpace: 'pre-line' }}
         />
         {question.instruction && !shouldSuppressInstructionAsDuplicateRule(question) && (
           <InstructionLine text={question.instruction} />
@@ -2856,9 +2854,8 @@ const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
         <QuestionPromptBlock
           question={question}
           renderMath={renderMath}
-          mathSx={{ fontWeight: 800, color: '#0f172a', mb: 2, lineHeight: 1.5 }}
-          typographyVariant="subtitle1"
-          typographySx={{ fontWeight: 800, color: '#0f172a', mb: 2, lineHeight: 1.5, whiteSpace: 'pre-line' }}
+          mathSx={{ fontWeight: 400, color: '#334155', mb: 2, lineHeight: 1.6, fontSize: { xs: '0.95rem', sm: '1rem' } }}
+          typographySx={{ fontWeight: 400, color: '#334155', mb: 2, lineHeight: 1.6, fontSize: { xs: '0.95rem', sm: '1rem' }, whiteSpace: 'pre-line' }}
         />
         {question.instruction && !shouldSuppressInstructionAsDuplicateRule(question) && (
           <InstructionLine text={question.instruction} />
@@ -2888,8 +2885,8 @@ const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
       <QuestionPromptBlock
         question={question}
         renderMath={renderMath}
-        mathSx={{ fontWeight: 700, color: '#0f172a', mb: 2.5, lineHeight: 1.5, fontSize: { xs: '1.05rem', sm: '1.2rem' } }}
-        typographySx={{ fontWeight: 700, color: '#0f172a', mb: 2.5, lineHeight: 1.2, fontSize: { xs: '1.0rem', sm: '1rem' }, whiteSpace: 'pre-line' }}
+        mathSx={{ fontWeight: 400, color: '#334155', mb: 2.5, lineHeight: 1.6, fontSize: { xs: '0.95rem', sm: '1rem' } }}
+        typographySx={{ fontWeight: 400, color: '#334155', mb: 2.5, lineHeight: 1.6, fontSize: { xs: '0.95rem', sm: '1rem' }, whiteSpace: 'pre-line' }}
       />
       {question.instruction && !shouldSuppressInstructionAsDuplicateRule(question) && (
         <InstructionLine text={question.instruction} />

@@ -1,5 +1,6 @@
 import React from 'react';
 import * as Sentry from '@sentry/react';
+import { useNavigate } from 'react-router-dom';
 import EmailEntryForm from '../../components/auth/EmailForm';
 import LandingSiteFooter from '../../components/layout/LandingSiteFooter';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
@@ -7,6 +8,7 @@ import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
 const GYS_BLUE = '#1e3a8a';
 
 const LoginPage: React.FC = () => {
+  const navigate = useNavigate();
 
   return (
     <Sentry.ErrorBoundary
@@ -34,7 +36,17 @@ const LoginPage: React.FC = () => {
                 </p>
               </div>
             </div>
-            <PublicHomeNavButton prominent />
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={() => navigate('/signup')}
+                className="rounded-xl border-2 border-transparent px-4 py-2 text-sm font-semibold text-white shadow-sm transition-transform duration-150 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 sm:px-5 sm:py-2.5"
+                style={{ backgroundColor: GYS_BLUE }}
+              >
+                Sign up
+              </button>
+              <PublicHomeNavButton prominent />
+            </div>
           </div>
         </header>
 
@@ -71,7 +83,7 @@ const LoginPage: React.FC = () => {
                     <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
                       <p className="text-sm font-semibold text-slate-900">Students</p>
                       <p className="mt-1 text-[12px] text-slate-600 leading-snug">
-                        Use your school email ID to register, attempt the Talent Search, and track your
+                        Use your school email ID to register, attempt the GYS exams, and track your
                         results.
                       </p>
                     </div>

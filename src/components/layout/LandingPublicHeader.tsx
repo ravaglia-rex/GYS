@@ -28,7 +28,7 @@ type LandingPublicHeaderProps = {
 
 const LandingPublicHeader: React.FC<LandingPublicHeaderProps> = ({
   scrollProgress,
-  signUp = { show: false },
+  signUp = { show: true, path: '/signup', variant: 'filled' },
 }) => {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -53,12 +53,10 @@ const LandingPublicHeader: React.FC<LandingPublicHeaderProps> = ({
   };
 
   const loginButtonClass =
-    'rounded-xl border-2 border-transparent px-4 py-2 text-sm font-medium text-white shadow-sm transition-transform duration-150 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 sm:px-5 sm:py-2.5';
+    'rounded-xl border-2 bg-white px-4 py-2 text-sm font-medium shadow-sm transition-transform duration-150 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 sm:px-5 sm:py-2.5';
 
   const signUpButtonClass =
-    signUp.show && signUp.variant === 'outline'
-      ? 'rounded-xl border-2 bg-white px-4 py-2 text-sm font-medium shadow-sm transition-transform duration-150 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 sm:px-5 sm:py-2.5'
-      : 'rounded-xl border-2 border-transparent px-4 py-2 text-sm font-medium text-white shadow-sm transition-transform duration-150 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 sm:px-5 sm:py-2.5';
+    'rounded-xl border-2 border-transparent px-4 py-2 text-sm font-medium text-white shadow-sm transition-transform duration-150 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 sm:px-5 sm:py-2.5';
 
   return (
     <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/90 backdrop-blur relative">
@@ -98,28 +96,24 @@ const LandingPublicHeader: React.FC<LandingPublicHeaderProps> = ({
 
         <div className="flex shrink-0 items-center gap-2">
           <div className="hidden items-center gap-2 md:flex">
+            <button
+              type="button"
+              onClick={() => navigate('/login')}
+              className={loginButtonClass}
+              style={{ borderColor: GYS_BLUE, color: GYS_BLUE }}
+            >
+              Log In
+            </button>
             {signUp.show ? (
               <button
                 type="button"
                 onClick={() => navigate(signUp.path)}
                 className={signUpButtonClass}
-                style={
-                  signUp.variant === 'outline'
-                    ? { borderColor: GYS_BLUE, color: GYS_BLUE }
-                    : { backgroundColor: GYS_BLUE }
-                }
+                style={{ backgroundColor: GYS_BLUE }}
               >
                 Sign up
               </button>
             ) : null}
-            <button
-              type="button"
-              onClick={() => navigate('/login')}
-              className={loginButtonClass}
-              style={{ backgroundColor: GYS_BLUE }}
-            >
-              Log In
-            </button>
           </div>
 
           <button
@@ -137,7 +131,7 @@ const LandingPublicHeader: React.FC<LandingPublicHeaderProps> = ({
             type="button"
             onClick={() => navigate('/login')}
             className={`${loginButtonClass} md:hidden`}
-            style={{ backgroundColor: GYS_BLUE }}
+            style={{ borderColor: GYS_BLUE, color: GYS_BLUE }}
           >
             Log In
           </button>
@@ -195,11 +189,7 @@ const LandingPublicHeader: React.FC<LandingPublicHeaderProps> = ({
                 type="button"
                 onClick={() => go(signUp.path)}
                 className={`w-full ${signUpButtonClass}`}
-                style={
-                  signUp.variant === 'outline'
-                    ? { borderColor: GYS_BLUE, color: GYS_BLUE }
-                    : { backgroundColor: GYS_BLUE }
-                }
+                style={{ backgroundColor: GYS_BLUE }}
               >
                 Sign up
               </button>

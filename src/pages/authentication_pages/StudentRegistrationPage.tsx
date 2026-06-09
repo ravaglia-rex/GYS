@@ -177,8 +177,8 @@ const StudentRegistrationPage: React.FC = () => {
             <button
               type="button"
               onClick={() => requestLeave(() => navigate('/login'))}
-              className="px-4 py-2.5 sm:px-5 rounded-xl text-white text-sm font-medium shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:brightness-110 active:scale-95 transition-all duration-200"
-              style={{ backgroundColor: GYS_BLUE }}
+              className="rounded-xl border-2 bg-white px-4 py-2.5 text-sm font-medium shrink-0 shadow-sm transition-transform duration-150 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 sm:px-5"
+              style={{ borderColor: GYS_BLUE, color: GYS_BLUE }}
             >
               Log In
             </button>
@@ -413,7 +413,8 @@ const StudentRegistrationPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => navigate('/login')}
-                className="rounded-lg bg-blue-600 px-3.5 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+                className="rounded-lg border bg-white px-3.5 py-1.5 text-sm font-semibold shadow-sm hover:bg-slate-50"
+                style={{ borderColor: GYS_BLUE, color: GYS_BLUE }}
               >
                 Log In
               </button>
