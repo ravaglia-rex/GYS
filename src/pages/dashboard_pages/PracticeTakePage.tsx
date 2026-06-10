@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   Box,
@@ -49,6 +49,68 @@ function parsePracticeLevel(raw: string | undefined): 1 | 2 | 3 | null {
   const n = parseInt(raw ?? '', 10);
   if (n === 1 || n === 2 || n === 3) return n;
   return null;
+}
+
+interface PracticeQuestionPage {
+  passageId?: string;
+  passage?: string;
+  questions: ExamQuestion[];
+}
+
+function getPracticePassageId(q: ExamQuestion): string {
+  return typeof q.passage_id === 'string' ? q.passage_id.trim() : '';
+}
+
+function stringFromUnknown(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function getPracticePassageText(q: ExamQuestion): string {
+  const direct = stringFromUnknown(q.passage);
+  if (direct) return direct;
+
+  const legacy = stringFromUnknown((q as { reading_passage?: unknown }).reading_passage);
+  if (legacy) return legacy;
+
+  const stimulus = q.stimulus;
+  if (stimulus && typeof stimulus === 'object' && !Array.isArray(stimulus)) {
+    const obj = stimulus as Record<string, unknown>;
+    return (
+      stringFromUnknown(obj.passage) ||
+      stringFromUnknown(obj.reading_passage) ||
+      stringFromUnknown(obj.text) ||
+      stringFromUnknown(obj.setup)
+    );
+  }
+
+  return '';
+}
+
+function buildPracticeQuestionPages(questions: ExamQuestion[], groupedByPassage: boolean): PracticeQuestionPage[] {
+  if (!groupedByPassage) {
+    return questions.map((q) => ({ questions: [q], passage: getPracticePassageText(q) }));
+  }
+
+  const pages: PracticeQuestionPage[] = [];
+  const byPassage = new Map<string, PracticeQuestionPage>();
+  for (const q of questions) {
+    const passage = getPracticePassageText(q);
+    const passageId = getPracticePassageId(q) || resolvePracticeItemId(q) || `question_${pages.length}`;
+    const existing = byPassage.get(passageId);
+    if (existing) {
+      existing.questions.push(q);
+      if (!existing.passage && passage) existing.passage = passage;
+      continue;
+    }
+    const page = {
+      passageId,
+      passage,
+      questions: [q],
+    };
+    byPassage.set(passageId, page);
+    pages.push(page);
+  }
+  return pages;
 }
 
 /** MM:SS for question timer (hours omitted unless needed). */
@@ -119,7 +181,7 @@ export default function PracticeTakePage() {
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [poolCap, setPoolCap] = useState<number | undefined>(undefined);
   const [index, setIndex] = useState(0);
-  const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [selectedOptionsById, setSelectedOptionsById] = useState<Record<string, number>>({});
   /** After first primary-button press: show correct/incorrect + explanation; second press advances. */
   const [answerChecked, setAnswerChecked] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
@@ -136,6 +198,7 @@ export default function PracticeTakePage() {
 
   const flow = getAssessmentFlowDefinition(examId);
   const mathExam = examId === 'mathematical_reasoning';
+  const groupedPassagePractice = examId === 'verbal_reasoning';
   const headerBg = flow.theme === 'purple' ? '#6a1b9a' : '#0d47a1';
   const progressColor = '#ffc107';
   const primaryBtn = flow.theme === 'purple' ? '#7b1fa2' : '#0d47a1';
@@ -184,7 +247,7 @@ export default function PracticeTakePage() {
 
   useEffect(() => {
     setAnswerChecked(false);
-    setSelectedOption(null);
+    setSelectedOptionsById({});
     setSessionSubmitError(null);
     questionWallClockStartRef.current = Date.now();
     timeToFirstCheckMsRef.current = 0;
@@ -207,13 +270,43 @@ export default function PracticeTakePage() {
     });
   }, [supported, practiceLevel, loading, questions, index, poolCap, storageScope, examId]);
 
-  const q = questions[index] ?? null;
+  const questionPages = useMemo(
+    () => buildPracticeQuestionPages(questions, groupedPassagePractice),
+    [questions, groupedPassagePractice]
+  );
+  const currentPage = useMemo(() => questionPages[index] ?? null, [questionPages, index]);
+  const currentQuestions = useMemo(() => currentPage?.questions ?? [], [currentPage]);
+  const q = currentQuestions[0] ?? null;
   const totalQuestions = questions.length;
-  const questionNumber = index + 1;
+  const totalPages = questionPages.length;
+  const answeredBeforeCurrentPage = questionPages
+    .slice(0, index)
+    .reduce((sum, page) => sum + page.questions.length, 0);
+  const questionNumber = answeredBeforeCurrentPage + 1;
+  const currentQuestionEndNumber = answeredBeforeCurrentPage + currentQuestions.length;
+
+  const getSelectedOption = useCallback(
+    (question: ExamQuestion): number | null => {
+      const itemId = resolvePracticeItemId(question);
+      if (!itemId) return null;
+      const selected = selectedOptionsById[itemId];
+      return typeof selected === 'number' ? selected : null;
+    },
+    [selectedOptionsById]
+  );
+
+  const setQuestionSelectedOption = useCallback((question: ExamQuestion, selected: number) => {
+    const itemId = resolvePracticeItemId(question);
+    if (!itemId) return;
+    setSelectedOptionsById((prev) => ({ ...prev, [itemId]: selected }));
+  }, []);
+
+  const allCurrentQuestionsSelected =
+    currentQuestions.length > 0 && currentQuestions.every((question) => getSelectedOption(question) !== null);
 
   const advanceToNextQuestion = useCallback(() => {
     if (
-      selectedOption === null ||
+      !allCurrentQuestionsSelected ||
       !practiceLevel ||
       !supported ||
       sessionSubmitting ||
@@ -224,20 +317,26 @@ export default function PracticeTakePage() {
     }
     advancingQuestionRef.current = true;
     try {
-      const currentQ = questions[index];
-      const itemId = resolvePracticeItemId(currentQ);
-      if (!itemId) {
-        setError('This question is missing an identifier. Exit and start the session again.');
-        return;
+      const rows: PracticeTakePendingOutcome[] = [];
+      for (const currentQ of currentQuestions) {
+        const itemId = resolvePracticeItemId(currentQ);
+        const selectedOption = getSelectedOption(currentQ);
+        if (!itemId || selectedOption === null) {
+          setError('This question is missing an answer or identifier. Exit and start the session again.');
+          return;
+        }
+        rows.push({
+          itemId,
+          selectedOptionIndex: selectedOption,
+          timeToFirstCheckMs: Math.max(0, Math.round(timeToFirstCheckMsRef.current)),
+        });
       }
-      const row: PracticeTakePendingOutcome = {
-        itemId,
-        selectedOptionIndex: selectedOption,
-        timeToFirstCheckMs: Math.max(0, Math.round(timeToFirstCheckMsRef.current)),
-      };
-      const isLast = index >= totalQuestions - 1;
+      const isLast = index >= totalPages - 1;
 
-      pendingOutcomesRef.current = upsertPracticePendingOutcome(pendingOutcomesRef.current, row);
+      pendingOutcomesRef.current = rows.reduce(
+        (outcomes, row) => upsertPracticePendingOutcome(outcomes, row),
+        pendingOutcomesRef.current
+      );
 
       const persistTake = () => {
         savePracticeTakeSession(storageScope, examId, practiceLevel, {
@@ -258,7 +357,7 @@ export default function PracticeTakePage() {
       if (!isLast) {
         persistTake();
         setIndex((i) => i + 1);
-        setSelectedOption(null);
+        setSelectedOptionsById({});
         setAnswerChecked(false);
         return;
       }
@@ -304,29 +403,31 @@ export default function PracticeTakePage() {
       advancingQuestionRef.current = false;
     }
   }, [
-    selectedOption,
+    allCurrentQuestionsSelected,
     practiceLevel,
     supported,
     storageScope,
     examId,
     poolCap,
     index,
-    totalQuestions,
+    totalPages,
     goToPracticeHub,
     authUid,
     questions,
+    currentQuestions,
+    getSelectedOption,
     sessionSubmitting,
   ]);
 
   const handlePrimaryAction = useCallback(() => {
-    if (selectedOption === null || !practiceLevel || !supported || sessionSubmitting) return;
+    if (!allCurrentQuestionsSelected || !practiceLevel || !supported || sessionSubmitting) return;
     if (!answerChecked) {
       timeToFirstCheckMsRef.current = Date.now() - questionWallClockStartRef.current;
       setAnswerChecked(true);
       return;
     }
     advanceToNextQuestion();
-  }, [selectedOption, practiceLevel, supported, answerChecked, advanceToNextQuestion, sessionSubmitting]);
+  }, [allCurrentQuestionsSelected, practiceLevel, supported, answerChecked, advanceToNextQuestion, sessionSubmitting]);
 
   const handleFooterBack = useCallback(() => {
     if (index > 0) {
@@ -339,27 +440,48 @@ export default function PracticeTakePage() {
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (!q || !examId || sessionSubmitting) return;
-      if (e.key === 'Enter' && selectedOption !== null) {
+      if (e.key === 'Enter' && allCurrentQuestionsSelected) {
         handlePrimaryAction();
         return;
       }
       if (answerChecked) return;
-      const mode = inferQuestionInteraction(examId, q);
-      if (mode === 'likert' && q.options?.length >= 5) {
-        if (['1', '2', '3', '4', '5'].includes(e.key)) setSelectedOption(parseInt(e.key, 10) - 1);
+      const targetQuestion = groupedPassagePractice
+        ? currentQuestions.find((question) => getSelectedOption(question) === null) ?? q
+        : q;
+      const mode = inferQuestionInteraction(examId, targetQuestion);
+      if (mode === 'likert' && targetQuestion.options?.length >= 5) {
+        if (['1', '2', '3', '4', '5'].includes(e.key)) {
+          setQuestionSelectedOption(targetQuestion, parseInt(e.key, 10) - 1);
+        }
       } else if (['1', '2', '3', '4'].includes(e.key)) {
-        const max = Math.min(4, q.options?.length ?? 4);
+        const max = Math.min(4, targetQuestion.options?.length ?? 4);
         const idx = parseInt(e.key, 10) - 1;
-        if (idx < max) setSelectedOption(idx);
+        if (idx < max) setQuestionSelectedOption(targetQuestion, idx);
       }
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [q, examId, selectedOption, answerChecked, handlePrimaryAction, sessionSubmitting]);
+  }, [
+    q,
+    examId,
+    allCurrentQuestionsSelected,
+    answerChecked,
+    handlePrimaryAction,
+    sessionSubmitting,
+    groupedPassagePractice,
+    currentQuestions,
+    getSelectedOption,
+    setQuestionSelectedOption,
+  ]);
 
   const progressPercent =
     totalQuestions > 0
-      ? ((index + (answerChecked ? 0.85 : selectedOption !== null ? 0.45 : 0)) / totalQuestions) * 100
+      ? ((answeredBeforeCurrentPage +
+          (answerChecked
+            ? currentQuestions.length
+            : currentQuestions.filter((question) => getSelectedOption(question) !== null).length * 0.45)) /
+          totalQuestions) *
+        100
       : 0;
 
   const confirmLeave = () => {
@@ -409,38 +531,158 @@ export default function PracticeTakePage() {
     );
   }
 
-  const correctIdx =
-    typeof q.correct_option_index === 'number' &&
-    q.correct_option_index >= 0 &&
-    q.correct_option_index <= 3
-      ? q.correct_option_index
+  const correctIndexForQuestion = (question: ExamQuestion): number | null =>
+    typeof question.correct_option_index === 'number' &&
+    question.correct_option_index >= 0 &&
+    question.correct_option_index <= 3
+      ? question.correct_option_index
       : null;
 
-  const isCorrect =
-    answerChecked && correctIdx !== null && selectedOption !== null ? selectedOption === correctIdx : null;
+  const answerStateForQuestion = (question: ExamQuestion): boolean | null => {
+    const correctIdx = correctIndexForQuestion(question);
+    const selected = getSelectedOption(question);
+    return answerChecked && correctIdx !== null && selected !== null ? selected === correctIdx : null;
+  };
 
-  const feedbackForPicker =
-    answerChecked && correctIdx !== null && selectedOption !== null
-      ? { correctIndex: correctIdx, selectedIndex: selectedOption }
+  const feedbackForQuestion = (question: ExamQuestion) => {
+    const correctIdx = correctIndexForQuestion(question);
+    const selected = getSelectedOption(question);
+    return answerChecked && correctIdx !== null && selected !== null
+      ? { correctIndex: correctIdx, selectedIndex: selected }
       : null;
+  };
 
-  const solutionSteps = q.solution_steps ?? [];
+  const checkedCorrectCount = answerChecked
+    ? currentQuestions.filter((question) => answerStateForQuestion(question) === true).length
+    : 0;
 
-  const questionBodyEl = (
-    <ExamQuestionBody
-      assessmentId={examId}
-      question={q}
-      questionNumber={questionNumber}
-      totalQuestions={totalQuestions}
-      selectedOption={selectedOption}
-      onSelectOption={setSelectedOption}
-      theme={flow.theme}
-      renderMath={mathExam}
-      questionReport={questionReport}
-      selectionLocked={answerChecked}
-      answerFeedback={feedbackForPicker}
-    />
-  );
+  const renderQuestionFeedback = (question: ExamQuestion, keyPrefix: string) => {
+    if (!answerChecked) return null;
+    const isQuestionCorrect = answerStateForQuestion(question);
+    const solutionSteps = question.solution_steps ?? [];
+    return (
+      <Alert
+        severity={isQuestionCorrect === true ? 'success' : isQuestionCorrect === false ? 'error' : 'info'}
+        sx={{
+          mt: 1.5,
+          mb: groupedPassagePractice ? 2.5 : 0,
+          borderRadius: 2,
+          ...(isQuestionCorrect === true && {
+            bgcolor: 'rgba(5, 150, 105, 0.1)',
+            color: '#065f46',
+            border: '1px solid rgba(16, 185, 129, 0.4)',
+            '& .MuiAlert-icon': { color: '#059669' },
+          }),
+          ...(isQuestionCorrect === false && {
+            bgcolor: 'rgba(220, 38, 38, 0.06)',
+            color: '#7f1d1d',
+            border: '1px solid rgba(248, 113, 113, 0.45)',
+            '& .MuiAlert-icon': { color: '#dc2626' },
+          }),
+          ...(isQuestionCorrect === null && {
+            bgcolor: '#f1f5f9',
+            color: '#334155',
+            border: '1px solid #e2e8f0',
+            '& .MuiAlert-icon': { color: '#64748b' },
+          }),
+          '& .MuiAlert-message': {
+            width: '100%',
+          },
+        }}
+      >
+        <Typography sx={{ fontWeight: 800, mb: solutionSteps.length > 0 ? 1 : 0 }}>
+          {isQuestionCorrect === true ? 'Correct!' : isQuestionCorrect === false ? 'Not quite.' : 'Answer recorded.'}
+        </Typography>
+        {solutionSteps.length === 1 ? (
+          <Typography sx={{ fontSize: '0.9rem', lineHeight: 1.55, color: 'inherit' }}>
+            {solutionStepLineWithBoldStepLabels(solutionSteps[0], keyPrefix)}
+          </Typography>
+        ) : solutionSteps.length > 1 ? (
+          <Box component="ul" sx={{ m: 0, pl: 2.25, mb: 0 }}>
+            {solutionSteps.map((step, i) => (
+              <Typography component="li" key={`${keyPrefix}-${i}`} sx={{ fontSize: '0.9rem', lineHeight: 1.55, color: 'inherit' }}>
+                {solutionStepLineWithBoldStepLabels(step, `${keyPrefix}-${i}`)}
+              </Typography>
+            ))}
+          </Box>
+        ) : isQuestionCorrect === null ? (
+          <Typography sx={{ fontSize: '0.88rem', mt: 0.5 }}>
+            Step-by-step explanation is not available for this item.
+          </Typography>
+        ) : null}
+      </Alert>
+    );
+  };
+
+  const questionBodyEl =
+    groupedPassagePractice && currentPage ? (
+      <Box sx={{ width: '100%' }}>
+        <Typography
+          variant="caption"
+          sx={{ color: '#64748b', fontWeight: 700, letterSpacing: 1, display: 'block', mb: 1.5, textTransform: 'uppercase', fontSize: '0.68rem' }}
+        >
+          Passage {index + 1} of {totalPages} · Questions {questionNumber}
+          {currentQuestionEndNumber > questionNumber ? `-${currentQuestionEndNumber}` : ''} of {totalQuestions}
+        </Typography>
+        {currentPage.passage ? (
+          <Box sx={{ borderLeft: `4px solid ${primaryBtn}`, bgcolor: 'rgba(13,71,161,0.06)', borderRadius: 2, p: 2, mb: 3 }}>
+            <Typography sx={{ fontSize: '0.92rem', color: '#334155', fontStyle: 'italic', lineHeight: 1.65, whiteSpace: 'pre-line' }}>
+              {currentPage.passage}
+            </Typography>
+          </Box>
+        ) : null}
+        {answerChecked ? (
+          <Alert
+            severity={checkedCorrectCount === currentQuestions.length ? 'success' : checkedCorrectCount === 0 ? 'error' : 'info'}
+            sx={{ mb: 2.5, borderRadius: 2 }}
+          >
+            {checkedCorrectCount} of {currentQuestions.length} correct for this passage.
+          </Alert>
+        ) : null}
+        {currentQuestions.map((question, offset) => {
+          const itemId = resolvePracticeItemId(question) ?? `${currentPage.passageId ?? 'passage'}_${offset}`;
+          const questionForInlineRender: ExamQuestion = {
+            ...question,
+            passage: undefined,
+            stimulus: undefined,
+            stimulus_type: undefined,
+            question_type: undefined,
+          };
+          return (
+            <Box key={itemId} sx={{ pb: offset === currentQuestions.length - 1 ? 0 : 3, mb: offset === currentQuestions.length - 1 ? 0 : 3, borderBottom: offset === currentQuestions.length - 1 ? 'none' : '1px solid #e2e8f0' }}>
+              <ExamQuestionBody
+                assessmentId={examId}
+                question={questionForInlineRender}
+                questionNumber={questionNumber + offset}
+                totalQuestions={totalQuestions}
+                selectedOption={getSelectedOption(question)}
+                onSelectOption={(selected) => setQuestionSelectedOption(question, selected)}
+                theme={flow.theme}
+                renderMath={mathExam}
+                questionReport={questionReport}
+                selectionLocked={answerChecked}
+                answerFeedback={feedbackForQuestion(question)}
+              />
+              {renderQuestionFeedback(question, itemId)}
+            </Box>
+          );
+        })}
+      </Box>
+    ) : (
+      <ExamQuestionBody
+        assessmentId={examId}
+        question={q}
+        questionNumber={questionNumber}
+        totalQuestions={totalQuestions}
+        selectedOption={getSelectedOption(q)}
+        onSelectOption={(selected) => setQuestionSelectedOption(q, selected)}
+        theme={flow.theme}
+        renderMath={mathExam}
+        questionReport={questionReport}
+        selectionLocked={answerChecked}
+        answerFeedback={feedbackForQuestion(q)}
+      />
+    );
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#fff', display: 'flex', flexDirection: 'column' }}>
@@ -502,7 +744,7 @@ export default function PracticeTakePage() {
           >
             <TimerOutlinedIcon sx={{ fontSize: { xs: 17, sm: 18 }, opacity: 0.95 }} aria-hidden />
             <Typography component="span" sx={{ opacity: 0.82, fontWeight: 600, fontSize: '0.62rem', display: { xs: 'none', sm: 'inline' } }}>
-              This question
+              {groupedPassagePractice ? 'This passage' : 'This question'}
             </Typography>
             <Typography component="span">{formatQuestionElapsed(questionElapsedMs)}</Typography>
           </Box>
@@ -514,7 +756,9 @@ export default function PracticeTakePage() {
               opacity: 0.95,
             }}
           >
-            {questionNumber} / {totalQuestions}
+            {groupedPassagePractice && currentQuestionEndNumber > questionNumber
+              ? `${questionNumber}-${currentQuestionEndNumber} / ${totalQuestions}`
+              : `${questionNumber} / ${totalQuestions}`}
           </Typography>
         </Box>
       </Box>
@@ -543,51 +787,7 @@ export default function PracticeTakePage() {
               {sessionSubmitError}
             </Alert>
           ) : null}
-          {answerChecked && (
-            <Alert
-              severity={isCorrect === true ? 'success' : isCorrect === false ? 'error' : 'info'}
-              sx={{
-                mt: 2.5,
-                borderRadius: 2,
-                /* Light surfaces + explicit text (avoids dark-mode Alert looking black; matches correct-option tint) */
-                ...(isCorrect === true && {
-                  bgcolor: 'rgba(5, 150, 105, 0.1)',
-                  color: '#065f46',
-                  border: '1px solid rgba(16, 185, 129, 0.4)',
-                  '& .MuiAlert-icon': { color: '#059669' },
-                }),
-                ...(isCorrect === false && {
-                  bgcolor: 'rgba(220, 38, 38, 0.06)',
-                  color: '#7f1d1d',
-                  border: '1px solid rgba(248, 113, 113, 0.45)',
-                  '& .MuiAlert-icon': { color: '#dc2626' },
-                }),
-                ...(isCorrect === null && {
-                  bgcolor: '#f1f5f9',
-                  color: '#334155',
-                  border: '1px solid #e2e8f0',
-                  '& .MuiAlert-icon': { color: '#64748b' },
-                }),
-              }}
-            >
-              <Typography sx={{ fontWeight: 800, mb: solutionSteps.length > 0 ? 1 : 0 }}>
-                {isCorrect === true ? 'Correct!' : isCorrect === false ? 'Not quite.' : 'Answer recorded.'}
-              </Typography>
-              {solutionSteps.length > 0 ? (
-                <Box component="ul" sx={{ m: 0, pl: 2.25, mb: 0 }}>
-                  {solutionSteps.map((step, i) => (
-                    <Typography component="li" key={i} sx={{ fontSize: '0.9rem', lineHeight: 1.55, color: 'inherit' }}>
-                      {solutionStepLineWithBoldStepLabels(step, i)}
-                    </Typography>
-                  ))}
-                </Box>
-              ) : isCorrect === null ? (
-                <Typography sx={{ fontSize: '0.88rem', mt: 0.5 }}>
-                  Step-by-step explanation is not available for this item.
-                </Typography>
-              ) : null}
-            </Alert>
-          )}
+          {!groupedPassagePractice ? renderQuestionFeedback(q, resolvePracticeItemId(q) ?? 'question') : null}
         </Box>
       </Box>
 
@@ -633,7 +833,9 @@ export default function PracticeTakePage() {
           }}
         >
           Practice only.{' '}
-          {inferQuestionInteraction(examId, q) === 'likert'
+          {groupedPassagePractice
+            ? 'Answer every question under this passage, then press Check answers.'
+            : inferQuestionInteraction(examId, q) === 'likert'
             ? 'Keys 1–5 to select • Enter to continue'
             : 'Pick an option or use keys 1–4, press Check answer or Enter, then Next or Done'}
         </Typography>
@@ -672,7 +874,7 @@ export default function PracticeTakePage() {
           <Button
             variant="contained"
             endIcon={sessionSubmitting ? <CircularProgress size={18} color="inherit" /> : <ArrowForwardIcon />}
-            disabled={selectedOption === null || sessionSubmitting}
+            disabled={!allCurrentQuestionsSelected || sessionSubmitting}
             onClick={handlePrimaryAction}
             sx={{
               bgcolor: primaryBtn,
@@ -685,7 +887,7 @@ export default function PracticeTakePage() {
               '&.Mui-disabled': { bgcolor: '#cbd5e1', color: '#64748b' },
             }}
           >
-            {!answerChecked ? 'Check answer' : index + 1 >= totalQuestions ? 'Done' : 'Next'}
+            {!answerChecked ? (groupedPassagePractice ? 'Check answers' : 'Check answer') : index + 1 >= totalPages ? 'Done' : 'Next'}
           </Button>
         </Box>
       </Box>

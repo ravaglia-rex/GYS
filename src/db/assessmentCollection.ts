@@ -95,6 +95,7 @@ export interface ExamQuestion {
   image_url?: string;
   difficulty?: number;
   passage?: string;
+  passage_id?: string;
   audio_url?: string;
   question_type?: QuestionInteractionType;
   /** Original nested presentation when present (answer fields stripped server-side). */
