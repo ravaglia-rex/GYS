@@ -35,7 +35,7 @@ const FOR_SCHOOLS_NAV = [
   { id: 'schools-ew', label: 'Partners' },
   { id: 'schools-quote', label: 'Voices' },
   { id: 'faq', label: 'FAQ' },
-  { id: 'for-schools-next-step', label: 'Next step' },
+  { id: 'for-schools-next-step', label: 'Register' },
 ] as const;
 
 const FOR_SCHOOLS_SECTION_IDS_JOIN = FOR_SCHOOLS_NAV.map((s) => s.id).join('|');
@@ -259,15 +259,11 @@ const ForSchoolsPage: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={() =>
-                  document
-                    .getElementById('for-schools-next-step')
-                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                }
+                onClick={() => navigate('/for-schools/register')}
                 className="rounded-xl px-6 py-3 text-sm font-semibold shadow-md transition hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.99]"
                 style={{ backgroundColor: GYS_GOLD, color: '#0f172a' }}
               >
-                Take the next step →
+                Register Your School →
               </button>
             </div>
           </div>
@@ -619,18 +615,11 @@ const ForSchoolsPage: React.FC = () => {
             data-landing-reveal
             className="mt-10 scroll-mt-28 sm:mt-12"
           >
-            <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
-              <button
-                type="button"
-                onClick={() => navigate('/for-schools/demo-request')}
-                className="flex w-full items-center justify-center rounded-2xl bg-[#fbbf24] px-4 py-3 text-sm font-semibold text-slate-900 shadow-md hover:shadow-lg hover:-translate-y-0.5 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 sm:text-base"
-              >
-                Request a Demo →
-              </button>
+            <div className="mx-auto max-w-md">
               <button
                 type="button"
                 onClick={() => navigate('/for-schools/register')}
-                className="flex w-full items-center justify-center rounded-2xl border-2 border-[#1e3a8a] bg-white px-4 py-3 text-sm font-semibold text-[#1e3a8a] shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:scale-[1.02] hover:bg-[#f8fafc] active:scale-[0.98] transition-all duration-200 sm:text-base"
+                className="flex w-full items-center justify-center rounded-2xl bg-[#fbbf24] px-4 py-3 text-sm font-semibold text-slate-900 shadow-md hover:shadow-lg hover:-translate-y-0.5 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 sm:text-base"
               >
                 Register Your School →
               </button>

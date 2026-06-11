@@ -5,7 +5,6 @@ import {
   REGISTER_SCHOOL,
   RESUME_SCHOOL_CHECKOUT,
   SCHOOLS_APIS,
-  SUBMIT_INSTITUTION_DEMO_REQUEST,
   FETCH_SCHOOL_NAME,
   RESOLVE_REGISTRATION_SCHOOL,
   RAZORPAY_APIS,
@@ -55,22 +54,6 @@ export type RegisterSchoolResponse = {
 export type AmendSchoolRegistrationPayload = RegisterSchoolPayload & {
   school_id: string;
   checkout_secret: string;
-};
-
-export type InstitutionDemoRequestPayload = {
-  name: string;
-  role: string;
-  schoolName: string;
-  udisecode: string;
-  city: string;
-  state: string;
-  boards: string[];
-  totalStudents: string;
-  email: string;
-  phone: string;
-  subscriptionInterest: string;
-  notes: string;
-  wantsBrochure: boolean;
 };
 
 function pickCheckoutSecret(data: Record<string, unknown>): string {
@@ -314,35 +297,6 @@ export const amendSchoolRegistration = async (
     }
     throw new Error(
       "Could not update registration. Please try again or contact globalyoungscholar@argus.ai."
-    );
-  }
-};
-
-export const submitInstitutionDemoRequest = async (
-  payload: InstitutionDemoRequestPayload
-): Promise<{success: boolean; requestId: string}> => {
-  try {
-    const response = await axios.post(
-      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOLS_APIS}${SUBMIT_INSTITUTION_DEMO_REQUEST}`,
-      payload,
-      {headers: {"Content-Type": "application/json"}}
-    );
-    return {
-      success: Boolean(response.data?.success),
-      requestId: typeof response.data?.requestId === "string" ? response.data.requestId : "",
-    };
-  } catch (e) {
-    if (axios.isAxiosError(e) && e.response?.data) {
-      const d = e.response.data as {message?: string; error?: string};
-      const bits = [d.message, d.error].filter(
-        (x): x is string => typeof x === "string" && x.trim().length > 0
-      );
-      if (bits.length > 0) {
-        throw new Error(bits.join(" - "));
-      }
-    }
-    throw new Error(
-      "Could not submit the demo request. Please try again or contact globalyoungscholar@argus.ai."
     );
   }
 };

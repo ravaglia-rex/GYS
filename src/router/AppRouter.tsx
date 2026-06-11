@@ -1,7 +1,6 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Route, Routes, Outlet, Navigate } from 'react-router-dom';
 import Protected from '../components/route_protection/Protected';
-import SuperProtected from '../components/route_protection/SuperProtected';
 import SchoolAdminRoute from '../components/route_protection/SchoolAdminRoute';
 import NotFoundPage from '../pages/NotFoundPage';
 import BigSpinner from '../components/ui/BigSpinner';
@@ -12,9 +11,6 @@ LANDING AND PUBLIC PAGES
 */
 const LandingPage = React.lazy(() => import('../pages/landing/LandingPage'));
 const ForSchoolsPage = React.lazy(() => import('../pages/landing/ForSchoolsPage'));
-const InstitutionDemoRequestPage = React.lazy(
-  () => import('../pages/landing/InstitutionDemoRequestPage')
-);
 const SchoolRegistrationPage = React.lazy(
   () => import('../pages/landing/SchoolRegistrationPage')
 );
@@ -64,20 +60,6 @@ const VerifyEmailErrorPage = React.lazy(() => import('../pages/authentication_pa
 const ResetPasswordPage = React.lazy(() => import('../pages/authentication_pages/ResetPasswordPage'));
 
 /*
-TESTING PAGES: These are the pages for serving assessments
-*/
-const TestingPage = React.lazy(() => import('../pages/testing_page/TestingPage'));
-const CameraError = React.lazy(() => import('../pages/error_pages/CameraError'));
-const WebcamOverlayPage = React.lazy(() => import('../pages/testing_page/WebcamOverlayPage'));
-const EntityDetectionError = React.lazy(() => import('../pages/error_pages/EntityDetectionError'));
-const PoseDetectionError = React.lazy(() => import('../pages/error_pages/PoseDetectionError'));
-const FaceLandmarksError = React.lazy(() => import('../pages/error_pages/FaceLandmarksError'));
-const SpeedTestError = React.lazy(() => import('../pages/error_pages/SpeedTestError'));
-const AudioErrorPage = React.lazy(() => import('../pages/error_pages/AudioErrorPage'));
-const LightingErrorPage = React.lazy(() => import('../pages/error_pages/LightingErrorPage'));
-const LocalStorageErrorPage = React.lazy(() => import('../pages/error_pages/LocalStorageErrorPage'));
-
-/*
 DASHBOARD PAGES: These are the pages that are used for the dashboard
 */
 const DashboardPage = React.lazy(() => import('../pages/dashboard_pages/DashboardPage'));
@@ -111,11 +93,6 @@ const SchoolAdminSubscriptionPage = React.lazy(() =>
   }))
 );
 const SchoolAdminStudentDetailPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminStudentDetailPage'));
-
-/*
-CAMERA AND MICROPHONE ACCESS PAGE: This page is used to check if the camera and microphone are working
-*/
-const CameraMicrophoneAccess = React.lazy(() => import('../components/proctoring_components/CameraMicrophoneAccess'));
 
 const AppRouter: React.FC = () => {
   return (
@@ -303,15 +280,6 @@ const AppRouter: React.FC = () => {
           element={
             <Suspense fallback={<BigSpinner/>}>
               <ForSchoolsPage />
-            </Suspense>
-          }
-          errorElement={<NotFoundPage />}
-        />
-        <Route
-          path="/for-schools/demo-request"
-          element={
-            <Suspense fallback={<BigSpinner/>}>
-              <InstitutionDemoRequestPage />
             </Suspense>
           }
           errorElement={<NotFoundPage />}
@@ -667,134 +635,6 @@ const AppRouter: React.FC = () => {
           }
           errorElement={<NotFoundPage />}
         />
-        
-        {/* ------------------------------ TESTING PAGE ROUTES ------------------------------ */}
-        <Route 
-          path="/camera-microphone-access" 
-          element={
-            <SuperProtected>
-              <Suspense fallback={<BigSpinner/>}>
-                <CameraMicrophoneAccess />
-              </Suspense>
-            </SuperProtected>
-          }
-          errorElement={<NotFoundPage />}
-        />
-
-        <Route
-          path="/webcam-overlay"
-          element={
-            <SuperProtected>
-              <Suspense fallback={<BigSpinner/>}>
-                <WebcamOverlayPage />
-              </Suspense>
-            </SuperProtected>
-          }
-          errorElement={<NotFoundPage />}
-        />
-        
-        <Route 
-          path="/testing" 
-          element={
-            <SuperProtected>
-              <Suspense fallback={<BigSpinner/>}>
-                <TestingPage />
-              </Suspense>
-            </SuperProtected>
-          }
-          errorElement={<NotFoundPage />}
-        />
-
-        {/* ------------------------------ ERROR PAGE ROUTES HERE ---------------------- */}
-        <Route 
-          path="/camera_error" 
-          element={
-            <Protected>
-              <Suspense fallback={<BigSpinner/>}>
-                <CameraError />
-              </Suspense>
-            </Protected>
-          }
-          errorElement={<NotFoundPage />}
-        />
-        <Route 
-          path="/lighting_error" 
-          element={
-            <Protected>
-              <Suspense fallback={<BigSpinner/>}>
-                <LightingErrorPage />
-              </Suspense>
-            </Protected>
-          }
-          errorElement={<NotFoundPage />}
-        />
-        <Route 
-          path="/entity_model_error" 
-          element={
-            <Protected>
-              <Suspense fallback={<BigSpinner/>}>
-                <EntityDetectionError />
-              </Suspense>
-            </Protected>
-          }
-          errorElement={<NotFoundPage />}
-        />
-        <Route 
-          path='/pose_model_error'
-          element={
-            <Protected>
-              <Suspense fallback={<BigSpinner/>}>
-                <PoseDetectionError />
-              </Suspense>
-            </Protected>
-          }
-          errorElement={<NotFoundPage />}
-        />
-
-        <Route
-          path='/face_landmarks_model_error'
-          element={
-            <Protected>
-              <Suspense fallback={<BigSpinner/>}>
-                <FaceLandmarksError />
-              </Suspense>
-            </Protected>
-          }
-          errorElement={<NotFoundPage />}
-        />
-        <Route
-          path='/internet_speed_error'
-          element={
-            <Protected>
-              <Suspense fallback={<BigSpinner/>}>
-                <SpeedTestError />
-              </Suspense>
-            </Protected>
-          }
-          errorElement={<NotFoundPage />}
-        />
-        <Route 
-          path='/audio_error'
-          element={
-            <Protected>
-              <Suspense fallback={<BigSpinner/>}>
-                <AudioErrorPage />
-              </Suspense>
-            </Protected>
-          }
-          errorElement={<NotFoundPage />}
-        />
-
-        <Route 
-          path='/local-storage-error'
-          element={
-            <Suspense fallback={<BigSpinner/>}>
-              <LocalStorageErrorPage />
-            </Suspense>
-          }
-          errorElement={<NotFoundPage />}
-        />
-        {/* ------------------------------ ERROR PAGE ROUTES END HERE ---------------------- */}
         
         {/* ------------------------------ SCHOOL ADMIN ROUTES HERE ---------------------- */}
         <Route 

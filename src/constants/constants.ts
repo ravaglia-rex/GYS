@@ -1,35 +1,3 @@
-// FRAME CAPTURE CONSTANTS
-export const FRAME_RATE = 0.1;
-export const KEYPOINT_CONFIDENCE_THRESHOLD = 0.3;
-export const VERTICAL_POSE_THRESHOLD = 70;
-export const HORIZONTAL_POSE_THRESHOLD = 40;
-export const ANGLE_THRESHOLD = 10;
-export const BRIGHTNESS_LOWER_THRESHOLD = 50;
-export const BRIGHTNESS_UPPER_THRESHOLD = 200;
-
-// AUDIO CAPTURE CONSTANTS
-export const SAMPLE_SIZE = 16;
-export const SAMPLE_RATE = 16000;
-export const AUDIO_RATE = 960*5;
-
-// INTERNET BANDWIDTH MONITORING CONSTANTS
-export const SPEED_TEST_INTERVAL = 1000*20;
-export const DOWNLOAD_SPEED_THRESHOLD = 1;
-export const UPLOAD_SPEED_THRESHOLD = 0.5;
-export const DOWNLOAD_SIZE = 50000;
-export const DOWNLOAD_URL = `https://eu.httpbin.org/stream-bytes/${DOWNLOAD_SIZE}`;
-export const UPLOAD_SIZE = 20000;
-export const UPLOAD_URL = 'https://eu.httpbin.org/post';
-export const VIOLATION_COUNT = 3;
-
-// S3 UPLOAD CONSTANTS
-export const GEN_PRESIGNED_URLS='/argus-proctoring-gen-presigned-url';
-export const STUDENTS_DATA_PHASE_1='/argusAirtableStudentsRetrieval';
-export const SCHOOLS_DATA='/argusAirtableSchoolsRetrieval';
-
-// RAZORPAY CONSTANTS
-export const RAZORPAY_ORDER_EXAM='/orderExam';
-
 // FIREBASE FUNCTIONS PATH
 export const SCHOOLS_APIS = '/schools';
 export const SCHOOL_ADMINS_APIS = '/schooladmins';
@@ -42,7 +10,6 @@ export const EMAIL_CHECK_APIS = '/emailCheck';
 // Schools
 export const CREATE_EXPEDITED_SCHOOL='/createExpeditedSchool';
 export const REGISTER_SCHOOL='/registerSchool';
-export const SUBMIT_INSTITUTION_DEMO_REQUEST='/submitInstitutionDemoRequest';
 export const AMEND_SCHOOL_REGISTRATION='/amendSchoolRegistration';
 export const RESUME_SCHOOL_CHECKOUT='/resumeSchoolCheckout';
 export const FETCH_SCHOOL_NAME='/getSchoolDetails';
@@ -82,6 +49,9 @@ export const RECORD_ANSWER='/recordAnswer';
 export const COMPLETE_EXAM='/completeExam';
 export const ABANDON_EXAM='/abandonExam';
 export const REPORT_QUESTION_PROBLEM='/reportQuestionProblem';
+export const RECORD_PROCTORING_EVENT='/recordProctoringEvent';
+export const GET_PROCTORING_UPLOAD_URL='/getProctoringUploadUrl';
+export const GET_ATTEMPT_PROCTORING='/getAttemptProctoring';
 
 // Practice bank (skill drills – authenticated)
 export const GET_PRACTICE_POOL_COUNTS='/poolCounts';
