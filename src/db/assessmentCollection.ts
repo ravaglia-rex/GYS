@@ -23,6 +23,13 @@ export interface AssessmentTier {
   time_limit_minutes?: number;
 }
 
+export interface ProctoringConfig {
+  enabled: boolean;
+  min_face_checks?: number;
+  snapshot_on_violation?: boolean;
+  check_interval_sec?: number;
+}
+
 export interface AssessmentType {
   id: string;
   name: string;
@@ -32,6 +39,7 @@ export interface AssessmentType {
   is_adaptive?: boolean;
   tiers: AssessmentTier[];
   tier_progression?: TierProgressionConfig | null;
+  proctoring?: ProctoringConfig;
 }
 
 export interface AssessmentRecord {
@@ -72,6 +80,8 @@ export interface InitializedExam {
   /** Server-computed; null if this assessment has no time limit */
   seconds_remaining?: number | null;
   resumed?: boolean;
+  proctoring?: ProctoringConfig;
+  proctoring_enabled?: boolean;
 }
 
 /** Firestore / API may set question_type on items; otherwise UI infers from assessment + fields */

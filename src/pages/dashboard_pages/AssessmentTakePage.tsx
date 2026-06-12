@@ -41,6 +41,12 @@ import { ExamQuestionBody, inferQuestionInteraction } from '../../components/ass
 import { useExamIntegrity } from '../../hooks/useExamIntegrity';
 import { STUDENT_OFFICIAL_ASSESSMENTS_ENABLED } from '../../constants/constants';
 import { isLevelBasedAssessment } from '../../utils/assessmentGating';
+import {
+  isProctoringActive,
+  PreExamProctoringSetup,
+  resolveProctoringConfig,
+  useProctoringMonitor,
+} from '../../features/proctoring';
 import * as Sentry from '@sentry/react';
 
 const NEEDS_MIC = new Set(['english_proficiency']);
@@ -52,7 +58,7 @@ const EXAM_BEFORE_UNLOAD_HINT =
 const EXAM_LEAVE_DIALOG_COPY =
   'If you leave or refresh now, this exam attempt will be terminated. You will not be able to resume; you may start again only when you begin a new attempt (your timer resets). Each time you leave, go back, or refresh this way, it counts toward a limit. After 3 such events, your account will be temporarily suspended from starting new assessments.';
 
-type PageStage = 'pre_exam' | 'taking' | 'complete';
+type PageStage = 'pre_exam' | 'proctoring_setup' | 'taking' | 'complete';
 
 function formatMmSs(totalSec: number): string {
   const m = Math.floor(Math.max(0, totalSec) / 60);
@@ -230,12 +236,23 @@ export default function AssessmentTakePage() {
 
   const flow = assessmentId ? getAssessmentFlowDefinition(assessmentId) : getAssessmentFlowDefinition('');
   const assessmentConfig = configTypes.find((a) => a.id === assessmentId);
+  const proctoringConfig = resolveProctoringConfig(assessmentConfig);
+  const proctoringEnabled = isProctoringActive(proctoringConfig);
   const adaptiveNoBack = flow.adaptiveForwardOnly || !!assessmentConfig?.is_adaptive;
   const mathExam = assessmentId === 'mathematical_reasoning';
+  const endAttemptForIntegrityRef = useRef<
+    ((message: string) => void | Promise<void>) | null
+  >(null);
+  const reportProctoringEventRef = useRef<
+    ((type: 'tab_background' | 'fullscreen_exit' | 'print_screen', severity: 'low' | 'medium' | 'high', snapshot?: boolean) => void) | null
+  >(null);
 
   const endAttemptForIntegrity = useCallback(
     async (message: string) => {
       if (!attemptId || !uid) return;
+      if (proctoringEnabled) {
+        void reportProctoringEventRef.current?.('tab_background', 'high', true);
+      }
       try {
         const res = await abandonExam(uid, attemptId, 'extended_background');
         invalidateStudentQueries(uid);
@@ -253,15 +270,52 @@ export default function AssessmentTakePage() {
       }
       navigate(`/assessments/${assessmentId}/tier/${tier}/detail`, { replace: true });
     },
-    [attemptId, uid, assessmentId, tier, navigate, invalidateStudentQueries]
+    [attemptId, uid, assessmentId, tier, navigate, invalidateStudentQueries, proctoringEnabled]
   );
+
+  endAttemptForIntegrityRef.current = endAttemptForIntegrity;
+
+  const { reportEvent: reportProctoringEvent } = useProctoringMonitor({
+    uid,
+    attemptId,
+    active: proctoringEnabled && stage === 'taking' && Boolean(attemptId),
+    config: proctoringConfig,
+    onCameraDenied: () => {
+      void endAttemptForIntegrityRef.current?.(
+        'This attempt ended because camera access is required for proctored exams.'
+      );
+    },
+  });
+
+  reportProctoringEventRef.current = (type, severity, snapshot) => {
+    void reportProctoringEvent(type, severity, snapshot);
+  };
 
   const { leftFullscreen, tryEnterFullscreen, dismissFullscreenWarning } = useExamIntegrity({
     active: Boolean(attemptId && stage === 'taking'),
     onBackgroundTooLong: () =>
       endAttemptForIntegrity('This attempt ended because the exam stayed in the background too long.'),
-    onPrintScreen: () => setScreenshotNudge(true),
+    onPrintScreen: () => {
+      setScreenshotNudge(true);
+      if (proctoringEnabled) {
+        void reportProctoringEventRef.current?.('print_screen', 'low', false);
+      }
+    },
   });
+
+  useEffect(() => {
+    if (!proctoringEnabled || !leftFullscreen || stage !== 'taking' || !attemptId) return;
+    void reportProctoringEventRef.current?.('fullscreen_exit', 'low', false);
+  }, [proctoringEnabled, leftFullscreen, stage, attemptId]);
+
+  const proctoringRoutedRef = useRef(false);
+  useEffect(() => {
+    if (proctoringRoutedRef.current || !proctoringEnabled || needsPreExamStep) return;
+    if (stage === 'taking' && !attemptId && !integrityGateOk) {
+      proctoringRoutedRef.current = true;
+      setStage('proctoring_setup');
+    }
+  }, [proctoringEnabled, needsPreExamStep, stage, attemptId, integrityGateOk]);
 
   const doInitialize = useCallback(async () => {
     if (!uid || !assessmentId) return;
@@ -304,6 +358,8 @@ export default function AssessmentTakePage() {
         setError('Not enough questions available for this level. Please try again later.');
       } else if (status === 409) {
         setError(err?.response?.data?.error ?? 'Could not resume your attempt. Please go back and try again.');
+      } else if (status === 400 && err?.response?.data?.code === 'exam_expired') {
+        setError(err?.response?.data?.error ?? 'Exam time has expired.');
       } else {
         setError('Failed to start assessment. Please go back and try again.');
       }
@@ -427,6 +483,10 @@ export default function AssessmentTakePage() {
 
   const handlePreExamConfirm = useCallback(() => {
     void document.documentElement.requestFullscreen?.().catch(() => {});
+    setStage(proctoringEnabled ? 'proctoring_setup' : 'taking');
+  }, [proctoringEnabled]);
+
+  const handleProctoringSetupReady = useCallback(() => {
     setStage('taking');
   }, []);
 
@@ -465,8 +525,14 @@ export default function AssessmentTakePage() {
       setCurrentQuestion(response.next_question);
       setCurrentIndex(response.current_index ?? currentIndex + 1);
       questionStartTimeRef.current = Date.now();
-    } catch (err) {
+    } catch (err: any) {
       Sentry.captureException(err);
+      if (err?.response?.data?.code === 'exam_expired') {
+        setError(err?.response?.data?.error ?? 'Exam time has expired. This attempt has ended.');
+        examEndedRef.current = true;
+        navigate(`/assessments/${assessmentId}/tier/${tier}/detail`, { replace: true });
+        return;
+      }
       setError('Failed to submit answer. Please check your connection and try again.');
     } finally {
       setIsSubmitting(false);
@@ -520,6 +586,16 @@ export default function AssessmentTakePage() {
         assessmentId={assessmentId}
         tierNumber={tier}
         onConfirm={handlePreExamConfirm}
+        onBack={() => navigate(`/assessments/${assessmentId}/tier/${tier}/detail`)}
+      />
+    );
+  }
+
+  if (stage === 'proctoring_setup') {
+    return (
+      <PreExamProctoringSetup
+        config={proctoringConfig}
+        onReady={handleProctoringSetupReady}
         onBack={() => navigate(`/assessments/${assessmentId}/tier/${tier}/detail`)}
       />
     );

@@ -26,6 +26,7 @@ import { buildGreenfieldPreviewStudentRows } from '../../data/schoolPreviewMock'
 import { ASSESSMENT_NAMES, ASSESSMENT_ORDER, EXAM_MAX_SCORE_POINTS, isLevelBasedAssessment, tierPercentToExamPoints } from '../../utils/assessmentGating';
 import { formatAchievementTierLabel, normalizeAchievementTierId } from '../../utils/achievementTier';
 import PageTutorial from '../../components/tutorial/PageTutorial';
+import { getSchoolStudentProctoringFlags, type FlaggedProctoringAttempt } from '../../features/proctoring';
 
 const DEFAULT_LOCKED: AssessmentProgress = {
   proficiency_tier: 1,
@@ -103,6 +104,8 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
   const [row, setRow] = useState<StudentRow | null>(null);
   const [email, setEmail] = useState<string>('');
   const [schoolMismatch, setSchoolMismatch] = useState(false);
+  const [proctoringFlags, setProctoringFlags] = useState<FlaggedProctoringAttempt[]>([]);
+  const [proctoringFlagsLoading, setProctoringFlagsLoading] = useState(false);
 
   useEffect(() => {
     if (isSchoolAdminPreview && studentId) {
@@ -168,6 +171,18 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
     };
     void run();
   }, [studentId, schoolAdmin?.schoolId, isSchoolAdminPreview, routeState?.email, routeState?.studentRow]);
+
+  useEffect(() => {
+    if (!studentId || isSchoolAdminPreview) {
+      setProctoringFlags([]);
+      return;
+    }
+    setProctoringFlagsLoading(true);
+    void getSchoolStudentProctoringFlags(studentId)
+      .then((res) => setProctoringFlags(res.flagged_attempts ?? []))
+      .catch(() => setProctoringFlags([]))
+      .finally(() => setProctoringFlagsLoading(false));
+  }, [studentId, isSchoolAdminPreview]);
 
   if (!studentId) {
     return (
@@ -469,6 +484,79 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
                 </TableBody>
               </Table>
             </TableContainer>
+          </CardContent>
+        </Card>
+
+        <Card sx={{ mt: 3, border: `1px solid ${ip.cardBorder}`, boxShadow: 'none' }}>
+          <CardContent>
+            <Typography variant="h6" sx={{ fontWeight: 700, color: ip.heading, mb: 1 }}>
+              Proctoring review
+            </Typography>
+            <Typography variant="body2" sx={{ color: ip.subtext, mb: 2, lineHeight: 1.6 }}>
+              Flagged attempts appear here when automated proctoring is enabled for an assessment. While proctoring is
+              disabled globally, this section will usually stay empty.
+            </Typography>
+            {proctoringFlagsLoading ? (
+              <Typography variant="body2" sx={{ color: ip.subtext }}>Loading proctoring flags…</Typography>
+            ) : proctoringFlags.length === 0 ? (
+              <Alert severity="info">No flagged proctoring attempts for this student.</Alert>
+            ) : (
+              <TableContainer
+                component={Paper}
+                sx={{
+                  boxShadow: 'none',
+                  border: `1px solid ${ip.cardBorder}`,
+                  bgcolor: '#fff',
+                  borderRadius: 1,
+                  overflowX: 'auto',
+                }}
+              >
+                <Table size="small">
+                  <TableHead sx={{ bgcolor: '#E2E8F0' }}>
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: 700 }}>Assessment</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Tier</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Risk score</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Violations</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Snapshots</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {proctoringFlags.map((attempt) => {
+                      const violationSummary = Object.entries(attempt.proctoring_summary.violation_counts ?? {})
+                        .map(([k, v]) => `${k.replace(/_/g, ' ')} (${v})`)
+                        .join(', ');
+                      const snapshotLinks = (attempt.events ?? []).filter((e) => e.snapshot_url);
+                      return (
+                        <TableRow key={attempt.attempt_id} hover>
+                          <TableCell>{assessmentLabel(String(attempt.assessment_id ?? ''))}</TableCell>
+                          <TableCell>{attempt.proficiency_tier ?? '-'}</TableCell>
+                          <TableCell>{attempt.proctoring_summary.risk_score}</TableCell>
+                          <TableCell sx={{ maxWidth: 280 }}>{violationSummary || '-'}</TableCell>
+                          <TableCell>
+                            {snapshotLinks.length === 0
+                              ? '-'
+                              : snapshotLinks.map((e, i) => (
+                                  <Button
+                                    key={`${attempt.attempt_id}-${i}`}
+                                    size="small"
+                                    component="a"
+                                    href={e.snapshot_url!}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    sx={{ mr: 0.5 }}
+                                  >
+                                    View {i + 1}
+                                  </Button>
+                                ))}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
           </CardContent>
         </Card>
       </Box>
