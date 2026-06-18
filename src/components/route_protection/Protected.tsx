@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../firebase/firebase';
 import BigSpinner from '../ui/BigSpinner';
+import IdleTimeoutGuard from '../auth/IdleTimeoutGuard';
 import analytics from '../../segment/segment';
 import authTokenHandler from '../../functions/auth_token/auth_token_handler';
 
@@ -57,7 +58,7 @@ const Protected: React.FC<ProtectedProps> = ({ children }) => {
     return <BigSpinner/>;
   }
 
-  return <>{children}</>;
+  return <IdleTimeoutGuard enabled>{children}</IdleTimeoutGuard>;
 };
 
 export default Protected;

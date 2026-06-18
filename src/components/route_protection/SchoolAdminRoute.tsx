@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../firebase/firebase';
 import BigSpinner from '../ui/BigSpinner';
+import IdleTimeoutGuard from '../auth/IdleTimeoutGuard';
 import { useDispatch } from 'react-redux';
 import { checkUserRole, setUser } from '../../state_data/authSlice';
 import { AppDispatch } from '../../state_data/reducer';
@@ -66,7 +67,7 @@ const SchoolAdminRoute: React.FC<SchoolAdminRouteProps> = ({ children }) => {
     return <BigSpinner />;
   }
 
-  return <>{children}</>;
+  return <IdleTimeoutGuard enabled>{children}</IdleTimeoutGuard>;
 };
 
 export default SchoolAdminRoute;

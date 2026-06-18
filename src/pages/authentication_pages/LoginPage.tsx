@@ -40,7 +40,7 @@ const LoginPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => navigate('/signup')}
-                className="rounded-xl border-2 border-transparent px-4 py-2 text-sm font-semibold text-white shadow-sm transition-transform duration-150 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 sm:px-5 sm:py-2.5"
+                className="inline-flex shrink-0 items-center justify-center rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-transform duration-150 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0"
                 style={{ backgroundColor: GYS_BLUE }}
               >
                 Sign up

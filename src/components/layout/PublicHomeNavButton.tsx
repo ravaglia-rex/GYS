@@ -21,7 +21,7 @@ const PublicHomeNavButton: React.FC<PublicHomeNavButtonProps> = ({
   const signupExit = useStudentSignupExitOptional();
 
   const base = prominent
-    ? 'text-sm font-semibold px-5 py-2.5 rounded-xl text-white shrink-0 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-transform duration-150'
+    ? 'inline-flex shrink-0 items-center justify-center text-sm font-semibold px-5 py-2.5 rounded-xl text-white shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-transform duration-150'
     : 'px-4 py-2.5 sm:px-5 rounded-xl text-sm font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors shrink-0';
 
   return (
