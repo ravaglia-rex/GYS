@@ -14,6 +14,7 @@ export const PLATFORM_ADMIN_ME = '/me';
 export const PLATFORM_ADMIN_OVERVIEW = '/overview';
 export const PLATFORM_ADMIN_SCHOOLS = '/schools';
 export const PLATFORM_ADMIN_STUDENTS = '/students';
+export const PLATFORM_ADMIN_STUDENTS_STATS = '/students/stats';
 export const PLATFORM_ADMIN_PENDING_REDEMPTIONS = '/pending-redemptions';
 export const PLATFORM_ADMIN_FULFILL_REDEMPTION = '/fulfill-redemption';
 export const PLATFORM_ADMIN_RUN_PIPELINE = '/run-pipeline';
@@ -21,6 +22,7 @@ export const PLATFORM_ADMIN_AUTHENTICATE = '/authenticate';
 export const PLATFORM_ADMIN_NOTIFICATIONS = '/notifications';
 export const PLATFORM_ADMIN_NOTIFICATIONS_MARK_READ = '/notifications/mark-read';
 export const PLATFORM_ADMIN_NOTIFICATIONS_MARK_ALL_READ = '/notifications/mark-all-read';
+export const PLATFORM_ADMIN_MARK_SCHOOL_PAID = '/mark-paid';
 
 // Schools
 export const CREATE_EXPEDITED_SCHOOL='/createExpeditedSchool';

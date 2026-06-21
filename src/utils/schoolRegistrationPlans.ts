@@ -160,6 +160,52 @@ export function normalizeRegisterPlanId(raw: unknown): RegisterPlanId | null {
   return REGISTER_PLAN_IDS.includes(normalized as RegisterPlanId) ? (normalized as RegisterPlanId) : null;
 }
 
+/** Resolve plan id from Firestore `selected_plan_id` and/or display name `subscription_plan`. */
+export function resolveRegisterPlanIdFromFields(
+  selectedPlanId: unknown,
+  subscriptionPlan?: unknown
+): RegisterPlanId | null {
+  const fromId = normalizeRegisterPlanId(selectedPlanId);
+  if (fromId) return fromId;
+
+  if (typeof subscriptionPlan !== 'string') return null;
+  const needle = subscriptionPlan.trim().toLowerCase();
+  if (!needle) return null;
+
+  for (const id of REGISTER_PLAN_IDS) {
+    if (needle === id) return id;
+    const row = PLAN_COPY.find((p) => p.id === id);
+    if (row && row.name.toLowerCase() === needle) return id;
+  }
+  if (needle.includes('entry')) return 'entry';
+  if (needle.includes('standard')) return 'standard';
+  if (needle.includes('premium')) return 'premium';
+  return null;
+}
+
+/** Annual package fee in INR — prefers API value, falls back to plan catalog. */
+export function resolveSchoolPlanPriceInr(params: {
+  plan_price_inr?: number | null;
+  selected_plan_id?: string | null;
+  subscription_plan?: string | null;
+}): number | null {
+  if (
+    typeof params.plan_price_inr === 'number' &&
+    Number.isFinite(params.plan_price_inr) &&
+    params.plan_price_inr > 0
+  ) {
+    return params.plan_price_inr;
+  }
+  const planId = resolveRegisterPlanIdFromFields(params.selected_plan_id, params.subscription_plan);
+  return planId ? SCHOOL_INSTITUTIONAL_BASE_INR[planId] : null;
+}
+
+/** Locale-formatted INR digits for amount inputs (commas stripped before submit). */
+export function formatPlanAmountInrInput(amount: number | null | undefined): string {
+  if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0) return '';
+  return amount.toLocaleString('en-IN');
+}
+
 /** Production annual fee as card headline only (no "/yr") - same INR as {@link PRODUCTION_INR}. */
 export function institutionalAnnualPriceRupeesOnly(planId: RegisterPlanId): string {
   return formatInr(PRODUCTION_INR[planId]);

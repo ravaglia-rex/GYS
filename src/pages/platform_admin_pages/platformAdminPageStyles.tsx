@@ -1,8 +1,7 @@
-import type { ReactNode } from 'react';
-import { Box, Chip, Typography } from '@mui/material';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 
 export const PLATFORM_ADMIN_PAGE_MAX_WIDTH = 1200;
+export const PLATFORM_ADMIN_TOOLBAR_H = 40;
 
 export const platformAdminPageContainerSx = {
   width: '100%',
@@ -25,6 +24,47 @@ export const platformAdminTableContainerSx = {
   overflow: 'hidden',
 } as const;
 
+export const platformAdminTablePaperSx = {
+  boxShadow: 'none',
+  bgcolor: '#fff',
+  color: ip.heading,
+  border: `1px solid ${ip.cardBorder}`,
+  borderRadius: 1.5,
+  overflowX: 'auto',
+  maxWidth: '100%',
+} as const;
+
+export const platformAdminTableSx = {
+  bgcolor: '#fff',
+  minWidth: 720,
+  '& .MuiTableCell-root': {
+    borderColor: ip.cardBorder,
+    color: ip.heading,
+    py: 1.5,
+    px: 2,
+    fontSize: '0.875rem',
+  },
+  '& .MuiTableRow-root:last-child .MuiTableCell-root': {
+    borderBottom: 0,
+  },
+  '& .MuiTableRow-root:hover': {
+    bgcolor: 'rgba(16, 64, 139, 0.04)',
+  },
+} as const;
+
+export const platformAdminTableHeadRowSx = {
+  bgcolor: ip.cardMutedBg,
+  '& .MuiTableCell-root': {
+    color: ip.heading,
+    fontWeight: 700,
+    fontSize: '0.8rem',
+    letterSpacing: '0.01em',
+    borderBottom: `1px solid ${ip.cardBorder}`,
+    py: 1.25,
+    whiteSpace: 'nowrap',
+  },
+} as const;
+
 export const platformAdminMutedCardSx = {
   bgcolor: ip.cardMutedBg,
   border: `1px solid ${ip.cardBorder}`,
@@ -35,12 +75,193 @@ export const platformAdminMutedCardSx = {
 export const platformAdminTextFieldSx = {
   bgcolor: '#fff',
   '& .MuiOutlinedInput-root': {
-    borderRadius: 2,
+    borderRadius: 1.5,
+    color: ip.heading,
     '& fieldset': { borderColor: ip.cardBorder },
     '&:hover fieldset': { borderColor: '#94a3b8' },
     '&.Mui-focused fieldset': { borderColor: ip.navy },
   },
   '& .MuiInputBase-input': { color: ip.heading },
+  '& .MuiInputBase-input::placeholder': { color: ip.subtext, opacity: 1 },
+} as const;
+
+export const platformAdminSearchFieldSx = {
+  ...platformAdminTextFieldSx,
+  '& .MuiOutlinedInput-root': {
+    ...platformAdminTextFieldSx['& .MuiOutlinedInput-root'],
+    height: PLATFORM_ADMIN_TOOLBAR_H,
+    minHeight: PLATFORM_ADMIN_TOOLBAR_H,
+    alignItems: 'center',
+    boxSizing: 'border-box',
+  },
+  '& .MuiInputBase-input': {
+    ...platformAdminTextFieldSx['& .MuiInputBase-input'],
+    py: 0,
+    height: '100%',
+    boxSizing: 'border-box',
+    display: 'flex',
+    alignItems: 'center',
+  },
+  '& .MuiInputAdornment-root': {
+    height: 'auto',
+    maxHeight: 'none',
+    marginTop: '0 !important',
+    marginBottom: '0 !important',
+  },
+} as const;
+
+export const platformAdminFilterToolbarRowSx = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: 1.5,
+  alignItems: 'center',
+} as const;
+
+export const platformAdminStatsGridSx = {
+  display: 'grid',
+  gridTemplateColumns: {
+    xs: '1fr 1fr',
+    sm: 'repeat(2, 1fr)',
+    lg: 'repeat(5, 1fr)',
+  },
+  gap: 2,
+  mb: 2.5,
+  alignItems: 'stretch',
+} as const;
+
+export const platformAdminClearFiltersButtonSx = {
+  height: PLATFORM_ADMIN_TOOLBAR_H,
+  minHeight: PLATFORM_ADMIN_TOOLBAR_H,
+  alignSelf: 'center',
+  textTransform: 'none',
+  color: '#b91c1c',
+  borderColor: 'rgba(239, 68, 68, 0.35)',
+  fontWeight: 600,
+  borderRadius: 1.5,
+  px: 1.75,
+  boxSizing: 'border-box',
+  '&:hover': { borderColor: '#b91c1c', bgcolor: 'rgba(239, 68, 68, 0.06)' },
+} as const;
+
+export function platformAdminFilterSelectSx(minWidth = 168) {
+  return {
+    minWidth,
+    width: minWidth,
+    maxWidth: minWidth,
+    height: PLATFORM_ADMIN_TOOLBAR_H,
+    minHeight: PLATFORM_ADMIN_TOOLBAR_H,
+    boxSizing: 'border-box' as const,
+    bgcolor: '#fff',
+    color: `${ip.heading} !important`,
+    borderRadius: 1.5,
+    '& .MuiOutlinedInput-notchedOutline': { borderColor: ip.cardBorder },
+    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: ip.navy },
+    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: ip.navy, borderWidth: 1 },
+    '& .MuiOutlinedInput-root': {
+      height: PLATFORM_ADMIN_TOOLBAR_H,
+      minHeight: PLATFORM_ADMIN_TOOLBAR_H,
+      alignItems: 'center',
+      boxSizing: 'border-box',
+    },
+    '& .MuiSelect-select': {
+      color: `${ip.heading} !important`,
+      display: 'flex',
+      alignItems: 'center',
+      minHeight: PLATFORM_ADMIN_TOOLBAR_H - 2,
+      py: 0,
+      px: 1.25,
+      boxSizing: 'border-box' as const,
+      fontWeight: 600,
+      fontSize: '0.875rem',
+    },
+    '& .MuiSvgIcon-root': { color: ip.heading },
+  };
+}
+
+export const platformAdminSelectMenuPaperSx = {
+  bgcolor: '#fff',
+  color: ip.heading,
+  border: `1px solid ${ip.cardBorder}`,
+  boxShadow: '0 8px 24px rgba(15, 23, 42, 0.1)',
+  mt: 0.5,
+  '& .MuiMenuItem-root': {
+    color: ip.heading,
+    fontSize: '0.875rem',
+    fontWeight: 500,
+    '&.Mui-selected': {
+      bgcolor: ip.sidebarActiveBg,
+      color: ip.sidebarActiveText,
+      fontWeight: 600,
+    },
+    '&.Mui-selected:hover': { bgcolor: 'rgba(37, 99, 235, 0.12)' },
+  },
+} as const;
+
+export const platformAdminFilterLabelSx = {
+  color: ip.subtext,
+  fontWeight: 600,
+  fontSize: '0.8rem',
+  whiteSpace: 'nowrap',
+  flexShrink: 0,
+} as const;
+
+export const platformAdminDialogPaperSx = {
+  borderRadius: 2,
+  bgcolor: '#fff',
+  overflow: 'hidden',
+  boxShadow: '0 20px 48px rgba(15, 23, 42, 0.18)',
+} as const;
+
+export const platformAdminDialogFieldLabelSx = {
+  ...platformAdminFilterLabelSx,
+  display: 'block',
+  mb: 0.75,
+  whiteSpace: 'normal',
+} as const;
+
+export const platformAdminDialogTextFieldSx = {
+  ...platformAdminTextFieldSx,
+  width: '100%',
+  maxWidth: '100%',
+  minWidth: 0,
+  '& .MuiOutlinedInput-root': {
+    ...platformAdminTextFieldSx['& .MuiOutlinedInput-root'],
+    minHeight: PLATFORM_ADMIN_TOOLBAR_H,
+  },
+  '& .MuiFormHelperText-root': {
+    color: ip.subtext,
+    mt: 0.75,
+    mx: 0,
+    lineHeight: 1.4,
+  },
+} as const;
+
+export const platformAdminDialogSelectSx = {
+  width: '100%',
+  maxWidth: '100%',
+  minWidth: 0,
+  bgcolor: '#fff',
+  color: `${ip.heading} !important`,
+  borderRadius: 1.5,
+  '& .MuiOutlinedInput-notchedOutline': { borderColor: ip.cardBorder },
+  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#94a3b8' },
+  '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: ip.navy, borderWidth: 1 },
+  '& .MuiOutlinedInput-root': {
+    minHeight: PLATFORM_ADMIN_TOOLBAR_H,
+    alignItems: 'center',
+    boxSizing: 'border-box',
+  },
+  '& .MuiSelect-select': {
+    color: `${ip.heading} !important`,
+    display: 'flex',
+    alignItems: 'center',
+    py: 1,
+    px: 1.25,
+    boxSizing: 'border-box',
+    fontWeight: 500,
+    fontSize: '0.875rem',
+  },
+  '& .MuiSvgIcon-root': { color: ip.heading },
 } as const;
 
 export const platformAdminFilterGroupSx = {
@@ -72,6 +293,7 @@ export const platformAdminPrimaryButtonSx = {
   bgcolor: ip.navy,
   color: '#fff',
   boxShadow: 'none',
+  borderRadius: 1.5,
   '&:hover': { bgcolor: '#0b3366', boxShadow: 'none' },
   '&.Mui-disabled': { bgcolor: '#94a3b8', color: '#fff' },
 } as const;
@@ -82,7 +304,18 @@ export const platformAdminOutlinedButtonSx = {
   color: ip.navy,
   borderColor: ip.cardBorder,
   bgcolor: '#fff',
+  borderRadius: 1.5,
   '&:hover': { borderColor: ip.navy, bgcolor: ip.cardMutedBg },
+} as const;
+
+export const platformAdminTextButtonSx = {
+  textTransform: 'none',
+  fontWeight: 600,
+  color: ip.navy,
+  borderRadius: 1.5,
+  px: 1.25,
+  minWidth: 0,
+  '&:hover': { bgcolor: 'rgba(16, 64, 139, 0.08)' },
 } as const;
 
 export const platformAdminTableHeadCellSx = {
@@ -91,89 +324,5 @@ export const platformAdminTableHeadCellSx = {
   bgcolor: ip.cardMutedBg,
   borderBottom: `1px solid ${ip.cardBorder}`,
 } as const;
-
-export type AdminChipTone = 'success' | 'warning' | 'error' | 'neutral' | 'info';
-
-const ADMIN_CHIP_TONES: Record<AdminChipTone, { bg: string; color: string; border: string }> = {
-  success: { bg: 'rgba(34, 197, 94, 0.12)', color: '#15803d', border: 'rgba(34, 197, 94, 0.35)' },
-  warning: { bg: ip.pendingBg, color: '#a16207', border: 'rgba(217, 119, 6, 0.35)' },
-  error: { bg: 'rgba(239, 68, 68, 0.1)', color: '#b91c1c', border: 'rgba(239, 68, 68, 0.3)' },
-  neutral: { bg: ip.declineGray, color: ip.declineText, border: ip.cardBorder },
-  info: { bg: 'rgba(16, 64, 139, 0.08)', color: ip.navy, border: 'rgba(16, 64, 139, 0.2)' },
-};
-
-export function adminChipSx(tone: AdminChipTone) {
-  const t = ADMIN_CHIP_TONES[tone];
-  return {
-    height: 26,
-    fontWeight: 600,
-    fontSize: '0.75rem',
-    bgcolor: t.bg,
-    color: t.color,
-    border: `1px solid ${t.border}`,
-    '& .MuiChip-label': { px: 1.1 },
-  } as const;
-}
-
-export function paymentStatusChipTone(status: string): AdminChipTone {
-  const s = status.toLowerCase();
-  if (['captured', 'paid', 'completed'].includes(s)) return 'success';
-  if (['pending', 'pending_contact', 'pending_webhook'].includes(s)) return 'warning';
-  if (s === 'failed') return 'error';
-  return 'neutral';
-}
-
-export function PlatformAdminChip({ label, tone }: { label: string; tone: AdminChipTone }) {
-  return <Chip label={label} size="small" sx={adminChipSx(tone)} />;
-}
-
-const pageHeaderTitleSx = {
-  color: ip.heading,
-  fontWeight: 700,
-  fontSize: { xs: '2rem', sm: '2.25rem' },
-  lineHeight: 1.15,
-  letterSpacing: '-0.02em',
-  mb: 0.75,
-} as const;
-
-const pageHeaderSubtitleSx = {
-  color: ip.subtext,
-  fontSize: { xs: '0.95rem', sm: '1rem' },
-  lineHeight: 1.55,
-  fontWeight: 400,
-} as const;
-
-export function PlatformAdminPageHeader({
-  title,
-  subtitle,
-  action,
-}: {
-  title: string;
-  subtitle: ReactNode;
-  action?: ReactNode;
-}) {
-  return (
-    <Box
-      sx={{
-        mb: 3,
-        display: 'flex',
-        alignItems: 'flex-start',
-        justifyContent: 'space-between',
-        gap: 2,
-        flexWrap: 'wrap',
-      }}
-    >
-      <Box sx={{ minWidth: 0 }}>
-        <Typography variant="h4" sx={pageHeaderTitleSx}>
-          {title}
-        </Typography>
-        <Typography variant="body1" sx={pageHeaderSubtitleSx}>
-          {subtitle}
-        </Typography>
-      </Box>
-      {action}
-    </Box>
-  );
-}
 
 export { ip as platformAdminPalette };

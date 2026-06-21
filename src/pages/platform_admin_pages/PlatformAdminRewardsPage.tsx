@@ -24,13 +24,14 @@ import {
   listPlatformAdminPendingRedemptions,
   type PlatformAdminPendingRedemption,
 } from '../../db/platformAdminCollection';
+import { PlatformAdminPageHeader, PlatformAdminTableSection } from './platformAdminComponents';
 import {
-  PlatformAdminPageHeader,
   platformAdminPageContainerSx,
   platformAdminPalette as ip,
   platformAdminPrimaryButtonSx,
-  platformAdminTableContainerSx,
-  platformAdminTableHeadCellSx,
+  platformAdminTableHeadRowSx,
+  platformAdminTablePaperSx,
+  platformAdminTableSx,
 } from './platformAdminPageStyles';
 
 function formatRequestedAt(entry: PlatformAdminPendingRedemption): string {
@@ -142,29 +143,30 @@ const PlatformAdminRewardsPage: React.FC = () => {
           <CircularProgress sx={{ color: ip.navy }} />
         </Box>
       ) : (
-        <TableContainer component={Paper} sx={platformAdminTableContainerSx}>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell sx={platformAdminTableHeadCellSx}>Student</TableCell>
-                <TableCell sx={platformAdminTableHeadCellSx}>Reward</TableCell>
-                <TableCell sx={platformAdminTableHeadCellSx}>Coins</TableCell>
-                <TableCell sx={platformAdminTableHeadCellSx}>Requested</TableCell>
-                <TableCell align="right" sx={platformAdminTableHeadCellSx}>
-                  Actions
-                </TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {pending.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} align="center" sx={{ py: 4, color: ip.subtext }}>
-                    No pending redemptions — all caught up!
-                  </TableCell>
+        <PlatformAdminTableSection
+          countLabel={`${pending.length} pending redemption${pending.length === 1 ? '' : 's'}`}
+        >
+          <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
+            <Table size="medium" sx={platformAdminTableSx}>
+              <TableHead>
+                <TableRow sx={platformAdminTableHeadRowSx}>
+                  <TableCell>Student</TableCell>
+                  <TableCell>Reward</TableCell>
+                  <TableCell>Coins</TableCell>
+                  <TableCell>Requested</TableCell>
+                  <TableCell align="right">Actions</TableCell>
                 </TableRow>
-              ) : (
-                pending.map((row) => (
-                  <TableRow key={row.redemption_id} hover sx={{ '&:last-child td': { borderBottom: 0 } }}>
+              </TableHead>
+              <TableBody>
+                {pending.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} align="center" sx={{ py: 5, color: ip.subtext }}>
+                      No pending redemptions — all caught up!
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  pending.map((row) => (
+                    <TableRow key={row.redemption_id}>
                     <TableCell>
                       <Typography variant="body2" sx={{ fontWeight: 600, color: ip.heading }}>
                         {row.student_name}
@@ -223,6 +225,7 @@ const PlatformAdminRewardsPage: React.FC = () => {
             </TableBody>
           </Table>
         </TableContainer>
+        </PlatformAdminTableSection>
       )}
 
       <Dialog open={Boolean(fulfillDialog)} onClose={() => setFulfillDialog(null)} maxWidth="xs" fullWidth>

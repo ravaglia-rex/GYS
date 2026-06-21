@@ -39,8 +39,8 @@ import {
   type PlatformAdminNotification,
   type PlatformAdminOverviewStats,
 } from '../../db/platformAdminCollection';
+import { PlatformAdminPageHeader } from './platformAdminComponents';
 import {
-  PlatformAdminPageHeader,
   platformAdminCardSx,
   platformAdminMutedCardSx,
   platformAdminPageContainerSx,
@@ -327,6 +327,7 @@ const PlatformAdminDashboardPage: React.FC = () => {
           <StatCard
             title="Total students"
             value={stats.students_total}
+            subtitle="Excludes seed mock accounts"
             icon={<PeopleIcon />}
             accent={ip.approveGreen}
             onClick={() => navigate('/platform-admin/students')}

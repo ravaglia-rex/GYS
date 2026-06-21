@@ -17,10 +17,6 @@ import {
   Tooltip,
   Card,
   CardContent,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Chip,
 } from '@mui/material';
 import {
@@ -28,25 +24,42 @@ import {
   Visibility as ViewIcon,
   InfoOutlined as InfoIcon,
   Close as CloseIcon,
+  Payment as PaymentIcon,
+  School as SchoolIcon,
+  CheckCircleOutline as CheckCircleIcon,
+  WarningAmber as WarningIcon,
 } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
+  getPlatformAdminOverview,
   listPlatformAdminSchools,
   formatDate,
+  type PlatformAdminOverviewStats,
   type PlatformAdminSchoolSummary,
 } from '../../db/platformAdminCollection';
 import {
   PlatformAdminPageHeader,
   PlatformAdminChip,
+  PlatformAdminStatCard,
+  PlatformAdminFilterControl,
+  PlatformAdminTableSection,
+  formatPaymentStatusLabel,
   paymentStatusChipTone,
+} from './platformAdminComponents';
+import {
   platformAdminCardSx,
+  platformAdminClearFiltersButtonSx,
+  platformAdminFilterToolbarRowSx,
   platformAdminPageContainerSx,
   platformAdminPalette as ip,
-  platformAdminTableContainerSx,
-  platformAdminTableHeadCellSx,
-  platformAdminTextFieldSx,
-  platformAdminOutlinedButtonSx,
+  platformAdminSearchFieldSx,
+  platformAdminStatsGridSx,
+  platformAdminTableHeadRowSx,
+  platformAdminTablePaperSx,
+  platformAdminTableSx,
+  platformAdminTextButtonSx,
 } from './platformAdminPageStyles';
+import { isPlatformAdminTestSchool } from './platformAdminTestSchools';
 
 type PaymentFilter = 'all' | 'paid' | 'pending' | 'wire';
 type VerifiedFilter = 'all' | 'yes' | 'no';
@@ -72,15 +85,6 @@ const PLAN_LABELS: Record<PlanFilter, string> = {
   premium: 'Premium',
 };
 
-const filterSelectSx = {
-  minWidth: { xs: '100%', sm: 148 },
-  flex: { xs: '1 1 100%', sm: '0 0 auto' },
-  bgcolor: '#fff',
-  '& .MuiOutlinedInput-notchedOutline': { borderColor: ip.cardBorder },
-  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#94a3b8' },
-  '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: ip.navy },
-};
-
 const PlatformAdminSchoolsPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -89,6 +93,7 @@ const PlatformAdminSchoolsPage: React.FC = () => {
   const initialPlan = (searchParams.get('plan') as PlanFilter) || 'all';
 
   const [schools, setSchools] = useState<PlatformAdminSchoolSummary[]>([]);
+  const [stats, setStats] = useState<PlatformAdminOverviewStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -124,14 +129,18 @@ const PlatformAdminSchoolsPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await listPlatformAdminSchools({
-        payment: paymentFilter === 'all' ? undefined : paymentFilter,
-        verified: verifiedFilter === 'all' ? undefined : verifiedFilter,
-        plan: planFilter === 'all' ? undefined : planFilter,
-        search: search.trim() || undefined,
-        limit: 200,
-      });
+      const [data, overview] = await Promise.all([
+        listPlatformAdminSchools({
+          payment: paymentFilter === 'all' ? undefined : paymentFilter,
+          verified: verifiedFilter === 'all' ? undefined : verifiedFilter,
+          plan: planFilter === 'all' ? undefined : planFilter,
+          search: search.trim() || undefined,
+          limit: 200,
+        }),
+        getPlatformAdminOverview(),
+      ]);
       setSchools(data);
+      setStats(overview);
     } catch {
       setError('Failed to load schools.');
     } finally {
@@ -195,14 +204,84 @@ const PlatformAdminSchoolsPage: React.FC = () => {
         subtitle="Monitor registration, payments, and institutional status"
       />
 
+      {stats && (
+        <Box sx={platformAdminStatsGridSx}>
+          <PlatformAdminStatCard
+            title="Total registered"
+            value={stats.schools_total}
+            subtitle="All schools on platform"
+            icon={<SchoolIcon />}
+            accent={ip.statBlue}
+          />
+          <PlatformAdminStatCard
+            title="Paid"
+            value={stats.schools_paid}
+            subtitle={
+              stats.schools_total > 0
+                ? `${Math.round((stats.schools_paid / stats.schools_total) * 100)}% of total`
+                : undefined
+            }
+            icon={<PaymentIcon />}
+            accent={ip.approveGreen}
+            onClick={() => {
+              setPaymentFilter('paid');
+              setVerifiedFilter('all');
+              setPlanFilter('all');
+              setSearch('');
+            }}
+          />
+          <PlatformAdminStatCard
+            title="Pending payment"
+            value={stats.schools_pending_payment}
+            subtitle="Not yet paid"
+            icon={<PaymentIcon />}
+            accent="#d97706"
+            onClick={() => {
+              setPaymentFilter('pending');
+              setVerifiedFilter('all');
+              setPlanFilter('all');
+              setSearch('');
+            }}
+          />
+          <PlatformAdminStatCard
+            title="POC setup complete"
+            value={stats.schools_verified}
+            subtitle={
+              stats.schools_total > 0
+                ? `${stats.schools_total - stats.schools_verified} still pending`
+                : undefined
+            }
+            icon={<CheckCircleIcon />}
+            accent={ip.statBlue}
+            onClick={() => {
+              setVerifiedFilter('yes');
+              setPaymentFilter('all');
+              setPlanFilter('all');
+              setSearch('');
+            }}
+          />
+          <PlatformAdminStatCard
+            title="Wire capture needed"
+            value={stats.schools_pending_wire_capture}
+            subtitle="Offline payment received"
+            icon={<WarningIcon />}
+            accent="#b45309"
+            onClick={() => {
+              setPaymentFilter('wire');
+              setVerifiedFilter('all');
+              setPlanFilter('all');
+              setSearch('');
+            }}
+          />
+        </Box>
+      )}
+
       <Card sx={{ ...platformAdminCardSx, mb: 2.5 }}>
-        <CardContent sx={{ p: { xs: 1.5, sm: 2 }, '&:last-child': { pb: { xs: 1.5, sm: 2 } } }}>
+        <CardContent sx={{ p: { xs: 2, sm: 2.5 }, '&:last-child': { pb: { xs: 2, sm: 2.5 } } }}>
           <Box
             sx={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 1.25,
-              alignItems: 'center',
+              ...platformAdminFilterToolbarRowSx,
+              mb: activeFilterChips.length > 0 ? 1.5 : 0,
             }}
           >
             <TextField
@@ -211,10 +290,11 @@ const PlatformAdminSchoolsPage: React.FC = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               sx={{
-                flex: '1 1 240px',
-                minWidth: 200,
+                flex: '1 1 260px',
+                minWidth: 220,
                 mb: 0,
-                ...platformAdminTextFieldSx,
+                alignSelf: 'center',
+                ...platformAdminSearchFieldSx,
               }}
               InputProps={{
                 startAdornment: (
@@ -225,63 +305,40 @@ const PlatformAdminSchoolsPage: React.FC = () => {
               }}
             />
 
-            <FormControl size="small" sx={filterSelectSx}>
-              <InputLabel>Payment</InputLabel>
-              <Select
-                value={paymentFilter}
-                label="Payment"
-                onChange={(e) => setPaymentFilter(e.target.value as PaymentFilter)}
-              >
-                {(Object.keys(PAYMENT_LABELS) as PaymentFilter[]).map((value) => (
-                  <MenuItem key={value} value={value}>
-                    {PAYMENT_LABELS[value]}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <PlatformAdminFilterControl
+              id="schools-payment-filter"
+              label="Payment"
+              value={paymentFilter}
+              labels={PAYMENT_LABELS}
+              minWidth={176}
+              onChange={setPaymentFilter}
+            />
 
-            <FormControl size="small" sx={filterSelectSx}>
-              <InputLabel>POC setup</InputLabel>
-              <Select
-                value={verifiedFilter}
-                label="POC setup"
-                onChange={(e) => setVerifiedFilter(e.target.value as VerifiedFilter)}
-              >
-                {(Object.keys(POC_LABELS) as VerifiedFilter[]).map((value) => (
-                  <MenuItem key={value} value={value}>
-                    {POC_LABELS[value]}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <PlatformAdminFilterControl
+              id="schools-poc-filter"
+              label="POC setup"
+              value={verifiedFilter}
+              labels={POC_LABELS}
+              minWidth={168}
+              onChange={setVerifiedFilter}
+            />
 
-            <FormControl size="small" sx={filterSelectSx}>
-              <InputLabel>Plan</InputLabel>
-              <Select
-                value={planFilter}
-                label="Plan"
-                onChange={(e) => setPlanFilter(e.target.value as PlanFilter)}
-              >
-                {(Object.keys(PLAN_LABELS) as PlanFilter[]).map((value) => (
-                  <MenuItem key={value} value={value}>
-                    {PLAN_LABELS[value]}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <PlatformAdminFilterControl
+              id="schools-plan-filter"
+              label="Plan"
+              value={planFilter}
+              labels={PLAN_LABELS}
+              minWidth={148}
+              onChange={setPlanFilter}
+            />
 
             {hasActiveFilters && (
               <Button
                 size="small"
+                variant="outlined"
                 onClick={clearFilters}
                 startIcon={<CloseIcon sx={{ fontSize: 16 }} />}
-                sx={{
-                  textTransform: 'none',
-                  color: ip.subtext,
-                  fontWeight: 600,
-                  flexShrink: 0,
-                  '&:hover': { bgcolor: ip.cardMutedBg },
-                }}
+                sx={platformAdminClearFiltersButtonSx}
               >
                 Clear
               </Button>
@@ -289,9 +346,18 @@ const PlatformAdminSchoolsPage: React.FC = () => {
           </Box>
 
           {activeFilterChips.length > 0 && (
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mt: 1.25, alignItems: 'center' }}>
-              <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: ip.subtext, mr: 0.5 }}>
-                Active:
+            <Box
+              sx={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 0.75,
+                pt: 1.5,
+                borderTop: `1px solid ${ip.cardBorder}`,
+                alignItems: 'center',
+              }}
+            >
+              <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: ip.subtext, mr: 0.25 }}>
+                Active filters
               </Typography>
               {activeFilterChips.map((chip) => (
                 <Chip
@@ -325,99 +391,120 @@ const PlatformAdminSchoolsPage: React.FC = () => {
           <CircularProgress sx={{ color: ip.navy }} />
         </Box>
       ) : (
-        <TableContainer component={Paper} sx={platformAdminTableContainerSx}>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ ...platformAdminTableHeadCellSx, maxWidth: 280, width: '32%' }}>School</TableCell>
-                <TableCell sx={platformAdminTableHeadCellSx}>Plan</TableCell>
-                <TableCell sx={platformAdminTableHeadCellSx}>Payment</TableCell>
-                <TableCell sx={platformAdminTableHeadCellSx}>
-                  <Tooltip title="School official completed password setup and can sign in to the school admin portal">
-                    <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
-                      POC setup
-                      <InfoIcon sx={{ fontSize: 14, color: ip.subtext }} />
-                    </Box>
-                  </Tooltip>
-                </TableCell>
-                <TableCell sx={platformAdminTableHeadCellSx}>Registered</TableCell>
-                <TableCell align="right" sx={platformAdminTableHeadCellSx}>
-                  Actions
-                </TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredSchools.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 4, color: ip.subtext }}>
-                    No schools match your filters.
+        <PlatformAdminTableSection
+          countLabel={`Showing ${filteredSchools.length} school${filteredSchools.length === 1 ? '' : 's'}`}
+        >
+          <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
+            <Table size="medium" sx={platformAdminTableSx}>
+              <TableHead>
+                <TableRow sx={platformAdminTableHeadRowSx}>
+                  <TableCell sx={{ maxWidth: 280, width: '34%' }}>School</TableCell>
+                  <TableCell>Plan</TableCell>
+                  <TableCell>Payment</TableCell>
+                  <TableCell>
+                    <Tooltip title="School official completed password setup and can sign in to the school admin portal">
+                      <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                        POC setup
+                        <InfoIcon sx={{ fontSize: 14, color: ip.subtext }} />
+                      </Box>
+                    </Tooltip>
                   </TableCell>
+                  <TableCell>Registered</TableCell>
+                  <TableCell align="right">Actions</TableCell>
                 </TableRow>
-              ) : (
-                filteredSchools.map((school) => (
-                  <TableRow key={school.id} hover sx={{ '&:last-child td': { borderBottom: 0 } }}>
-                    <TableCell sx={{ maxWidth: 280, width: '32%' }}>
-                      <Tooltip title={school.school_name} placement="top-start">
-                        <Typography
-                          variant="body2"
+              </TableHead>
+              <TableBody>
+                {filteredSchools.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} align="center" sx={{ py: 5, color: ip.subtext }}>
+                      No schools match your filters.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredSchools.map((school) => (
+                    <TableRow key={school.id}>
+                      <TableCell sx={{ maxWidth: 280, width: '34%' }}>
+                        <Box
                           sx={{
-                            fontWeight: 600,
-                            color: ip.heading,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.75,
+                            minWidth: 0,
+                            maxWidth: 260,
+                          }}
+                        >
+                          <Tooltip title={school.school_name} placement="top-start">
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                fontWeight: 600,
+                                color: ip.heading,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                minWidth: 0,
+                                flex: 1,
+                              }}
+                            >
+                              {school.school_name}
+                            </Typography>
+                          </Tooltip>
+                          {isPlatformAdminTestSchool(school.id) && (
+                            <PlatformAdminChip label="Test" tone="info" />
+                          )}
+                        </Box>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: ip.subtext,
+                            display: 'block',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
                             maxWidth: 260,
+                            mt: 0.25,
                           }}
                         >
-                          {school.school_name}
+                          {school.id}
                         </Typography>
-                      </Tooltip>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: ip.subtext,
-                          display: 'block',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          maxWidth: 260,
-                        }}
-                      >
-                        {school.id}
-                      </Typography>
-                    </TableCell>
-                    <TableCell sx={{ color: ip.heading }}>{school.subscription_plan || '—'}</TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                        <PlatformAdminChip label={school.payment_status} tone={paymentStatusChipTone(school.payment_status)} />
-                        {school.pending_wire_capture && (
-                          <PlatformAdminChip label="Wire capture needed" tone="warning" />
-                        )}
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <PlatformAdminChip
-                        label={school.verified ? 'Complete' : 'Pending'}
-                        tone={school.verified ? 'success' : 'neutral'}
-                      />
-                    </TableCell>
-                    <TableCell sx={{ color: ip.subtext }}>{formatDate(school.created_at)}</TableCell>
-                    <TableCell align="right">
-                      <Button
-                        size="small"
-                        startIcon={<ViewIcon />}
-                        onClick={() => navigate(`/platform-admin/schools/${school.id}`)}
-                        sx={{ ...platformAdminOutlinedButtonSx, color: ip.navy }}
-                      >
-                        View
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                      </TableCell>
+                      <TableCell>
+                        <Typography sx={{ fontWeight: 600, color: ip.heading }}>
+                          {school.subscription_plan || '—'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <PlatformAdminChip
+                          label={formatPaymentStatusLabel(school.payment_status)}
+                          tone={paymentStatusChipTone(school.payment_status)}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <PlatformAdminChip
+                          label={school.verified ? 'Complete' : 'Pending'}
+                          tone={school.verified ? 'success' : 'neutral'}
+                        />
+                      </TableCell>
+                      <TableCell sx={{ color: ip.subtext, whiteSpace: 'nowrap' }}>
+                        {formatDate(school.created_at)}
+                      </TableCell>
+                      <TableCell align="right">
+                        <Button
+                          size="small"
+                          startIcon={<ViewIcon sx={{ fontSize: 18 }} />}
+                          onClick={() => navigate(`/platform-admin/schools/${school.id}`)}
+                          sx={platformAdminTextButtonSx}
+                        >
+                          View
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </PlatformAdminTableSection>
       )}
     </Box>
   );

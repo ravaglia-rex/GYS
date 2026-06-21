@@ -10,9 +10,11 @@ import {
   PLATFORM_ADMIN_RUN_PIPELINE,
   PLATFORM_ADMIN_SCHOOLS,
   PLATFORM_ADMIN_STUDENTS,
+  PLATFORM_ADMIN_STUDENTS_STATS,
   PLATFORM_ADMIN_NOTIFICATIONS,
   PLATFORM_ADMIN_NOTIFICATIONS_MARK_READ,
   PLATFORM_ADMIN_NOTIFICATIONS_MARK_ALL_READ,
+  PLATFORM_ADMIN_MARK_SCHOOL_PAID,
 } from '../constants/constants';
 
 function apiBase(): string {
@@ -111,12 +113,21 @@ export type PlatformAdminStudentRow = {
   first_name: string;
   last_name: string;
   school_id: string | null;
+  school_name: string | null;
   grade: number | null;
   membership_level: number | null;
   approval_status: string | null;
   achievement_tier: string | null;
   argus_coins: number;
   created_at: string | null;
+};
+
+export type PlatformAdminStudentStats = {
+  students_total: number;
+  students_approved: number;
+  students_pending: number;
+  students_rostered: number;
+  students_level_3_plus: number;
 };
 
 export type PlatformAdminPendingRedemption = {
@@ -233,6 +244,49 @@ export async function getPlatformAdminSchool(schoolId: string): Promise<{
   };
 }
 
+export type PlatformAdminMarkSchoolPaidMethod =
+  | 'wire'
+  | 'neft_rtgs'
+  | 'upi'
+  | 'cheque'
+  | 'cash'
+  | 'already_paid'
+  | 'other';
+
+export const PLATFORM_ADMIN_PAYMENT_METHOD_LABELS: Record<PlatformAdminMarkSchoolPaidMethod, string> = {
+  wire: 'Wire transfer',
+  neft_rtgs: 'NEFT / RTGS',
+  upi: 'UPI',
+  cheque: 'Cheque',
+  cash: 'Cash',
+  already_paid: 'Paid before platform signup',
+  other: 'Other',
+};
+
+export async function markPlatformAdminSchoolPaid(
+  schoolId: string,
+  body: {
+    payment_method: PlatformAdminMarkSchoolPaidMethod;
+    paid_at: string;
+    amount_paise?: number;
+    transaction_reference?: string;
+    admin_note?: string;
+    send_confirmation_email?: boolean;
+  }
+): Promise<{ paymentId: string; invoiceNumber: string; publicReference: string }> {
+  const headers = await authHeaders();
+  const res = await axios.post(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_SCHOOLS}/${encodeURIComponent(schoolId)}${PLATFORM_ADMIN_MARK_SCHOOL_PAID}`,
+    body,
+    { headers }
+  );
+  return {
+    paymentId: res.data.paymentId,
+    invoiceNumber: res.data.invoiceNumber,
+    publicReference: res.data.publicReference,
+  };
+}
+
 export async function capturePlatformAdminSchoolPayment(schoolId: string): Promise<void> {
   const headers = await authHeaders();
   await axios.post(
@@ -242,14 +296,30 @@ export async function capturePlatformAdminSchoolPayment(schoolId: string): Promi
   );
 }
 
+export async function getPlatformAdminStudentStats(): Promise<PlatformAdminStudentStats> {
+  const headers = await authHeaders();
+  const res = await axios.get(`${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_STUDENTS_STATS}`, { headers });
+  return res.data.stats;
+}
+
 export async function listPlatformAdminStudents(params?: {
   search?: string;
+  grade?: string;
+  membership?: string;
+  status?: 'approved' | 'pending' | 'all';
+  roster?: 'yes' | 'no' | 'all';
   limit?: number;
 }): Promise<PlatformAdminStudentRow[]> {
   const headers = await authHeaders();
   const res = await axios.get(`${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_STUDENTS}`, {
     headers,
-    params,
+    params: {
+      ...params,
+      grade: params?.grade && params.grade !== 'all' ? params.grade : undefined,
+      membership: params?.membership && params.membership !== 'all' ? params.membership : undefined,
+      status: params?.status && params.status !== 'all' ? params.status : undefined,
+      roster: params?.roster && params.roster !== 'all' ? params.roster : undefined,
+    },
   });
   return res.data.students ?? [];
 }
