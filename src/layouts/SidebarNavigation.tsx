@@ -28,11 +28,15 @@ import {
   EmojiEvents as EmojiEventsIcon,
   Quiz as QuizIcon,
   HelpOutline as HelpOutlineIcon,
+  Lightbulb as LightbulbIcon,
+  Storefront as StorefrontIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../firebase/firebase';
 import { signOut } from 'firebase/auth';
 import authTokenHandler from '../functions/auth_token/auth_token_handler';
+import { useStudent } from '../query/hooks';
+import { readGamificationFromStudent } from '../utils/gamification';
 import ResetTutorialsButton from '../components/tutorial/ResetTutorialsButton';
 
 interface SidebarNavigationProps {
@@ -61,6 +65,8 @@ const STUDENT_NAV_TUTORIAL_ID: Partial<Record<string, string>> = {
   '/assessments': 'student-nav-assessments',
   '/assessments/reports': 'student-nav-reports',
   '/practice-test': 'student-nav-practice',
+  '/question-of-the-day': 'student-nav-qotd',
+  '/rewards': 'student-nav-rewards',
   '/reports': 'student-nav-reports',
   '/payments': 'student-nav-payments',
   '/settings': 'student-nav-settings',
@@ -91,6 +97,16 @@ const navItems: NavItem[] = [
     icon: <QuizIcon sx={{ color: '#38bdf8' }} />,
   },
   {
+    title: 'Question of the Day',
+    path: '/question-of-the-day',
+    icon: <LightbulbIcon sx={{ color: '#a855f7' }} />,
+  },
+  {
+    title: 'Rewards Shop',
+    path: '/rewards',
+    icon: <StorefrontIcon sx={{ color: '#eab308' }} />,
+  },
+  {
     title: 'Assessments',
     path: '/assessments',
     icon: <AssessmentIcon sx={{ color: ASSESSMENTS_NAV_COLOR }} />,
@@ -116,6 +132,8 @@ export default function SidebarNavigation({ collapsed, onCollapse, onClose }: Si
   const navigate = useNavigate();
   const location = useLocation();
   const currentUser = auth.currentUser;
+  const { data: studentData } = useStudent(currentUser?.uid, Boolean(currentUser?.uid));
+  const gamification = readGamificationFromStudent(studentData as Record<string, unknown> | undefined);
   const [openSubmenus, setOpenSubmenus] = React.useState<{ [key: string]: boolean }>({});
 
   const handleItemClick = (path: string) => {
@@ -332,6 +350,9 @@ export default function SidebarNavigation({ collapsed, onCollapse, onClose }: Si
               </Typography>
               <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
                 {currentUser.email}
+              </Typography>
+              <Typography variant="caption" sx={{ display: 'block', color: '#fde68a', fontWeight: 700, mt: 0.5 }}>
+                {gamification.argus_coins.toLocaleString()} coins · {gamification.login_streak.current}d streak
               </Typography>
             </Box>
           </Box>

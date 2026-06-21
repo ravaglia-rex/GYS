@@ -515,6 +515,7 @@ export default function AssessmentTakePage() {
             passed: result.passed,
             nextTier: result.next_tier,
             completedAt: new Date().toISOString(),
+            coinsAwarded: result.coins_awarded ?? 0,
           },
           replace: true,
         });

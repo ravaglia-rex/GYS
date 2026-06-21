@@ -4,8 +4,23 @@ export const SCHOOL_ADMINS_APIS = '/schooladmins';
 export const STUDENTS_APIS = '/students';
 export const ASSESSMENTS_APIS = '/assessments';
 export const PRACTICE_APIS = '/practice';
+export const GAMIFICATION_APIS = '/gamification';
 export const RAZORPAY_APIS = '/razorpay';
 export const EMAIL_CHECK_APIS = '/emailCheck';
+export const PLATFORM_ADMIN_APIS = '/platform-admin';
+
+// Platform admin portal
+export const PLATFORM_ADMIN_ME = '/me';
+export const PLATFORM_ADMIN_OVERVIEW = '/overview';
+export const PLATFORM_ADMIN_SCHOOLS = '/schools';
+export const PLATFORM_ADMIN_STUDENTS = '/students';
+export const PLATFORM_ADMIN_PENDING_REDEMPTIONS = '/pending-redemptions';
+export const PLATFORM_ADMIN_FULFILL_REDEMPTION = '/fulfill-redemption';
+export const PLATFORM_ADMIN_RUN_PIPELINE = '/run-pipeline';
+export const PLATFORM_ADMIN_AUTHENTICATE = '/authenticate';
+export const PLATFORM_ADMIN_NOTIFICATIONS = '/notifications';
+export const PLATFORM_ADMIN_NOTIFICATIONS_MARK_READ = '/notifications/mark-read';
+export const PLATFORM_ADMIN_NOTIFICATIONS_MARK_ALL_READ = '/notifications/mark-all-read';
 
 // Schools
 export const CREATE_EXPEDITED_SCHOOL='/createExpeditedSchool';
@@ -59,6 +74,13 @@ export const GET_PRACTICE_QUESTIONS='/questions';
 export const RECORD_PRACTICE_OUTCOME='/recordOutcome';
 export const RECORD_PRACTICE_SESSION_OUTCOMES='/recordSessionOutcomes';
 export const RESET_PRACTICE_PROGRESS='/resetProgress';
+
+// Gamification (Argus Coins, QotD, rewards)
+export const GET_GAMIFICATION_QOTD = '/qotd';
+export const POST_GAMIFICATION_QOTD_ANSWER = '/qotd/answer';
+export const POST_GAMIFICATION_RECORD_DAILY_LOGIN = '/recordDailyLogin';
+export const GET_GAMIFICATION_REWARDS = '/rewards';
+export const POST_GAMIFICATION_REDEEM = '/redeem';
 
 // Razorpay
 export const CREATE_SCHOOL_RAZORPAY_ORDER='/createSchoolOrder';

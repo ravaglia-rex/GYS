@@ -6,9 +6,9 @@ import {
   School, 
   CheckCircle, 
   Clock,
-  Target,
   BarChart3,
   Lock,
+  Coins,
 } from 'lucide-react';
 import { Close as CloseIcon, Notifications as NotificationsIcon } from '@mui/icons-material';
 import { auth } from '../../firebase/firebase';
@@ -37,6 +37,8 @@ import {
   type UnlockedAssessmentNotificationSource,
 } from '../../utils/dashboardNotifications';
 import { studentPageSubtitleSx, studentPageTitleSx } from '../../styles/studentTypography';
+import { readGamificationFromStudent, istDateStringClient } from '../../utils/gamification';
+import QotdDashboardCard from '../gamification/QotdDashboardCard';
 
 export type { AssessmentChartRow } from '../../utils/assessmentGating';
 
@@ -377,6 +379,13 @@ interface DashboardOverviewProps {
   previewDisableAssessmentStatClicks?: boolean;
   /** Preview/sample dashboards should not write notification dismissals to persistent browser storage. */
   persistNotificationDismissals?: boolean;
+  /** Preview only: mock gamification values for coins/streak widgets */
+  previewGamification?: {
+    argus_coins: number;
+    login_streak: number;
+    qotd_streak: number;
+    qotd_answered_today?: boolean;
+  };
 }
 
 const StatCard: React.FC<{
@@ -504,6 +513,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   previewNavTargets,
   previewDisableAssessmentStatClicks = false,
   persistNotificationDismissals = true,
+  previewGamification,
 }) => {
   const navigate = useNavigate();
   const [, setIsNavigating] = useState(false);
@@ -522,6 +532,19 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
   const useLiveProfile = Boolean(uid) && !previewProfile;
   const { data: userData, isLoading: studentQueryLoading } = useStudent(uid, useLiveProfile);
+
+  const gamification = useMemo(() => {
+    if (previewGamification) {
+      return {
+        argus_coins: previewGamification.argus_coins,
+        login_streak: { current: previewGamification.login_streak, longest: previewGamification.login_streak },
+        qotd_streak: { current: previewGamification.qotd_streak, longest: previewGamification.qotd_streak },
+        qotd_last_answered_date: previewGamification.qotd_answered_today ? istDateStringClient() : undefined,
+      };
+    }
+    return readGamificationFromStudent(userData as Record<string, unknown> | undefined);
+  }, [previewGamification, userData]);
+
   const schoolId =
     typeof userData?.school_id === 'string' && userData.school_id && userData.school_id !== 'not-listed'
       ? userData.school_id
@@ -917,6 +940,54 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           {renderTierBadge({ alignSelf: { xs: 'center', sm: 'flex-start' } })}
         </Box>
 
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
+          <Box
+            component="span"
+            sx={{
+              px: 1.25,
+              py: 0.5,
+              borderRadius: 999,
+              bgcolor: 'rgba(234,179,8,0.15)',
+              border: '1px solid rgba(234,179,8,0.35)',
+              color: '#fde68a',
+              fontSize: '0.82rem',
+              fontWeight: 700,
+            }}
+          >
+            {gamification.argus_coins.toLocaleString()} Argus Coins
+          </Box>
+          <Box
+            component="span"
+            sx={{
+              px: 1.25,
+              py: 0.5,
+              borderRadius: 999,
+              bgcolor: 'rgba(249,115,22,0.12)',
+              border: '1px solid rgba(249,115,22,0.3)',
+              color: '#fdba74',
+              fontSize: '0.82rem',
+              fontWeight: 700,
+            }}
+          >
+            Login streak: {gamification.login_streak.current}d
+          </Box>
+          <Box
+            component="span"
+            sx={{
+              px: 1.25,
+              py: 0.5,
+              borderRadius: 999,
+              bgcolor: 'rgba(168,85,247,0.12)',
+              border: '1px solid rgba(168,85,247,0.3)',
+              color: '#d8b4fe',
+              fontSize: '0.82rem',
+              fontWeight: 700,
+            }}
+          >
+            QotD streak: {gamification.qotd_streak.current}d
+          </Box>
+        </Box>
+
         <Typography
           variant="h6"
           sx={{
@@ -987,12 +1058,19 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         />
         
         <StatCard
-          title="Ranking (Coming Soon!)"
-          value="--"
-          icon={<Target size={24} />}
-          color="#f59e0b"
+          title="Argus Coins"
+          value={gamification.argus_coins.toLocaleString()}
+          icon={<Coins size={24} />}
+          color="#eab308"
+          onClick={previewProfile ? undefined : () => handleNavigation('/rewards')}
         />
       </Box>
+
+      <QotdDashboardCard
+        qotdStreak={gamification.qotd_streak.current}
+        alreadyAnswered={gamification.qotd_last_answered_date === istDateStringClient()}
+        preview={Boolean(previewProfile)}
+      />
 
       {/* Performance Overview and Notifications - Side by side */}
       <Box sx={{ 

@@ -166,13 +166,16 @@ export default function PracticeTakePage() {
   const practiceLevel = parsePracticeLevel(levelParam);
   const supported = isInteractivePracticeExam(examId);
 
-  const goToPracticeHub = useCallback(() => {
+  const goToPracticeHub = useCallback((coinsFeedback?: { coins_awarded?: number; coins_reason?: string | null }) => {
     if (examId && practiceLevel) {
       saveLastPracticeSelection(storageScope, { examId, level: practiceLevel });
     }
     navigate('/practice-test', {
       replace: true,
-      state: examId && practiceLevel ? { examId, level: practiceLevel } : undefined,
+      state: {
+        ...(examId && practiceLevel ? { examId, level: practiceLevel } : {}),
+        ...(coinsFeedback ? { coinsFeedback } : {}),
+      },
     });
   }, [examId, practiceLevel, navigate, storageScope]);
 
@@ -347,11 +350,14 @@ export default function PracticeTakePage() {
         });
       };
 
-      const finishLocal = (completedDelta: number) => {
+      const finishLocal = (
+        completedDelta: number,
+        coinsFeedback?: { coins_awarded?: number; coins_reason?: string | null }
+      ) => {
         recordPracticeQuestionsCompleted(storageScope, examId, practiceLevel, completedDelta, poolCap);
         clearPracticeTakeSession(storageScope, examId, practiceLevel);
         clearActivePracticeSession(storageScope);
-        goToPracticeHub();
+        goToPracticeHub(coinsFeedback);
       };
 
       if (!isLast) {
@@ -381,8 +387,11 @@ export default function PracticeTakePage() {
       setSessionSubmitting(true);
       setSessionSubmitError(null);
       recordPracticeSessionOutcomes({ examId, level: practiceLevel, results })
-        .then(() => {
-          finishLocal(results.length);
+        .then((resp) => {
+          finishLocal(results.length, {
+            coins_awarded: resp.coins_awarded,
+            coins_reason: resp.coins_reason ?? null,
+          });
         })
         .catch((e) => {
           Sentry.captureException(e);
@@ -500,7 +509,7 @@ export default function PracticeTakePage() {
         <Alert severity="info" sx={{ maxWidth: 480 }}>
           This exam does not have an interactive practice session yet, or the link is invalid.
         </Alert>
-        <Button startIcon={<ArrowBackIcon />} onClick={goToPracticeHub} sx={{ color: '#475569' }}>
+        <Button startIcon={<ArrowBackIcon />} onClick={() => goToPracticeHub()} sx={{ color: '#475569' }}>
           Back to practice hub
         </Button>
       </Box>
@@ -524,7 +533,7 @@ export default function PracticeTakePage() {
         <Alert severity="error" sx={{ maxWidth: 500, width: '100%' }}>
           {error ?? 'No items to show.'}
         </Alert>
-        <Button startIcon={<ArrowBackIcon />} onClick={goToPracticeHub} sx={{ color: '#475569' }}>
+        <Button startIcon={<ArrowBackIcon />} onClick={() => goToPracticeHub()} sx={{ color: '#475569' }}>
           Back to practice hub
         </Button>
       </Box>

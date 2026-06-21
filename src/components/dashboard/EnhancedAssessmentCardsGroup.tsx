@@ -911,11 +911,7 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
     return true;
   });
 
-  if (loading) return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-      <BigSpinner />
-    </Box>
-  );
+  if (loading) return <BigSpinner variant="inline" size={48} />;
 
   if (error) return (
     <Box sx={{ textAlign: 'center', py: 6 }}>

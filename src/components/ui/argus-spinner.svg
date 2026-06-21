@@ -1,5 +1,5 @@
 <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor">
-  <title>Argus — Loading Spinner (Motion State 02 · Inference)</title>
+  <title>Argus - Loading Spinner (Motion State 02 · Inference)</title>
   <!-- Outer ring stays put; frames the motion. -->
   <circle cx="100" cy="100" r="92" stroke-width="5"/>
 

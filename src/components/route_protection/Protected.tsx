@@ -6,6 +6,7 @@ import BigSpinner from '../ui/BigSpinner';
 import IdleTimeoutGuard from '../auth/IdleTimeoutGuard';
 import analytics from '../../segment/segment';
 import authTokenHandler from '../../functions/auth_token/auth_token_handler';
+import { recordDailyLogin } from '../../db/gamificationCollection';
 
 interface ProtectedProps {
   children: ReactNode;
@@ -37,6 +38,9 @@ const Protected: React.FC<ProtectedProps> = ({ children }) => {
         }
         analytics.identify(user.uid, {
           email: user.email,
+        });
+        void recordDailyLogin().catch(() => {
+          /* non-blocking streak update */
         });
         setLoading(false);
       } else {

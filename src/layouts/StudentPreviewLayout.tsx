@@ -34,6 +34,8 @@ import {
   EmojiEvents as EmojiEventsIcon,
   Quiz as QuizIcon,
   HelpOutline as HelpOutlineIcon,
+  Lightbulb as LightbulbIcon,
+  Storefront as StorefrontIcon,
 } from '@mui/icons-material';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { rememberStudentPreviewExitTo, consumeStudentPreviewExitTo } from '../utils/studentPreviewExit';
@@ -219,6 +221,44 @@ export default function StudentPreviewLayout() {
             },
           }}
         />
+      </ListItemButton>
+
+      <ListItemButton
+        onClick={() => {
+          navigate('/students#argus-coins');
+          if (isMobile) setMobileOpen(false);
+        }}
+        sx={{
+          borderRadius: 1.5,
+          mb: 0.5,
+          py: 1.1,
+          pl: 2,
+          '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' },
+        }}
+      >
+        <ListItemIcon sx={{ minWidth: 40, color: '#a855f7' }}>
+          <LightbulbIcon sx={iconSx} />
+        </ListItemIcon>
+        <ListItemText primary="Question of the Day" slotProps={{ primary: { fontWeight: 500, fontSize: '0.9rem', color: '#e2e8f0' } }} />
+      </ListItemButton>
+
+      <ListItemButton
+        onClick={() => {
+          navigate('/students#argus-coins');
+          if (isMobile) setMobileOpen(false);
+        }}
+        sx={{
+          borderRadius: 1.5,
+          mb: 0.5,
+          py: 1.1,
+          pl: 2,
+          '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' },
+        }}
+      >
+        <ListItemIcon sx={{ minWidth: 40, color: '#eab308' }}>
+          <StorefrontIcon sx={iconSx} />
+        </ListItemIcon>
+        <ListItemText primary="Rewards Shop" slotProps={{ primary: { fontWeight: 500, fontSize: '0.9rem', color: '#e2e8f0' } }} />
       </ListItemButton>
 
       <ListItemButton

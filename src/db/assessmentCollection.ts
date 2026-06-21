@@ -131,6 +131,7 @@ export interface CompleteExamResponse {
   total: number;
   passed: boolean;
   next_tier: number | null;
+  coins_awarded?: number;
 }
 
 // ─── Public (no auth) ────────────────────────────────────────────────────────

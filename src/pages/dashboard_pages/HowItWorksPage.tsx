@@ -17,13 +17,17 @@ import {
   AutoAwesome as AutoAwesomeIcon,
   EmojiEvents as EmojiEventsIcon,
   HelpOutline as HelpOutlineIcon,
+  LocalFireDepartment as LocalFireDepartmentIcon,
   MilitaryTech as MilitaryTechIcon,
+  MonetizationOn as MonetizationOnIcon,
   Psychology as PsychologyIcon,
   Quiz as QuizIcon,
   QueryStats as QueryStatsIcon,
   RocketLaunch as RocketLaunchIcon,
   School as SchoolIcon,
+  Storefront as StorefrontIcon,
   Timeline as TimelineIcon,
+  WbTwilight as WbTwilightIcon,
 } from '@mui/icons-material';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import { ASSESSMENT_NAMES, LEVEL_CLEAR_THRESHOLD_LABEL, MEMBERSHIP_LEVEL_LABELS } from '../../utils/assessmentGating';
@@ -366,7 +370,7 @@ export const HowItWorksContent: React.FC = () => {
             </Box>
 
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 3 }}>
-              {['Exam levels', 'Achievement tiers', 'Class levels', 'Adaptive exams', 'Progress', 'Leaderboards', 'Percentiles'].map((label) => (
+              {['Exam levels', 'Achievement tiers', 'Class levels', 'Adaptive exams', 'Progress', 'Leaderboards', 'Percentiles', 'Argus Coins', 'Streaks'].map((label) => (
                 <Chip
                   key={label}
                   label={label}
@@ -835,6 +839,74 @@ export const HowItWorksContent: React.FC = () => {
              
             </SectionCard>
           </Box>
+
+          <SectionCard
+            id="student-how-it-works-gamification"
+            icon={<MonetizationOnIcon />}
+            title="Argus Coins & Daily Rewards"
+            subtitle="Earn coins as you learn, build streaks for bonus rewards, and redeem them in the Rewards Shop."
+          >
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 1.5, mb: 2.5 }}>
+              <MiniCard
+                icon={<WbTwilightIcon fontSize="small" />}
+                title="Question of the Day"
+                body="One fresh challenge every day from your practice bank. Answer once per day to earn coins — 20 for a correct answer, 5 for trying."
+                color="#f59e0b"
+              />
+              <MiniCard
+                icon={<LocalFireDepartmentIcon fontSize="small" />}
+                title="Login & QotD streaks"
+                body="Visit GYS daily to grow your login streak. Answer the Question of the Day on consecutive days to build a QotD streak. Hit 7- and 30-day milestones for bonus coins."
+                color="#ef4444"
+              />
+              <MiniCard
+                icon={<MonetizationOnIcon fontSize="small" />}
+                title="How you earn coins"
+                body="Official exams award 60 base coins plus up to 90 more based on your score. Weekly practice awards up to 30 base coins plus 4 per correct answer — once per week."
+                color="#fde68a"
+              />
+              <MiniCard
+                icon={<StorefrontIcon fontSize="small" />}
+                title="Rewards Shop"
+                body="Spend Argus Coins on streak freezes, profile frames, and gift cards from Amazon, Starbucks, Flipkart, and more. Redemptions are fulfilled manually by the GYS team."
+                color="#a78bfa"
+              />
+            </Box>
+
+            <TableContainer component={Box} sx={{ borderRadius: 2, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={tableHeaderSx}>Activity</TableCell>
+                    <TableCell sx={tableHeaderSx}>Coins</TableCell>
+                    <TableCell sx={tableHeaderSx}>Notes</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {[
+                    { activity: 'Question of the Day (correct)', coins: '20', notes: 'Once per day' },
+                    { activity: 'Question of the Day (attempted)', coins: '5', notes: 'Once per day if not correct' },
+                    { activity: 'Official exam', coins: '60 + score bonus', notes: 'Up to 90 extra based on performance' },
+                    { activity: 'Weekly practice', coins: '30 + per correct', notes: 'Once per week; thoughtful timing required' },
+                    { activity: '7-day streak milestone', coins: '50', notes: 'Login or QotD streak' },
+                    { activity: '30-day streak milestone', coins: '250', notes: 'Login or QotD streak' },
+                  ].map((row) => (
+                    <TableRow key={row.activity}>
+                      <TableCell sx={{ ...tableCellSx, color: 'white', fontWeight: 800 }}>{row.activity}</TableCell>
+                      <TableCell sx={tableCellSx}>{row.coins}</TableCell>
+                      <TableCell sx={tableCellSx}>{row.notes}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+
+            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.68)', mt: 2, lineHeight: 1.6 }}>
+              Find your coin balance and streaks in the sidebar, take today&apos;s question from the dashboard or{' '}
+              <Box component="span" sx={{ color: '#fde68a', fontWeight: 800 }}>Question of the Day</Box> page, and browse rewards under{' '}
+              <Box component="span" sx={{ color: '#fde68a', fontWeight: 800 }}>Rewards Shop</Box>.
+            </Typography>
+          </SectionCard>
 
           <Typography
             sx={{

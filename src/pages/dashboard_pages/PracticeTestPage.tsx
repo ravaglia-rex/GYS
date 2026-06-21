@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Box } from '@mui/material';
+import { Alert, Box } from '@mui/material';
+import { useLocation } from 'react-router-dom';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import * as Sentry from '@sentry/react';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -11,8 +12,26 @@ import { ASSESSMENT_ORDER, membershipLevelForAssessmentGate, type AssessmentProg
 import BigSpinner from '../../components/ui/BigSpinner';
 import PageTutorial from '../../components/tutorial/PageTutorial';
 import { useAssessmentConfig, useStudent } from '../../query/hooks';
+import { practiceCoinsNotEarnedMessage } from '../../utils/gamification';
+
+type PracticeLocationState = {
+  coinsFeedback?: { coins_awarded?: number; coins_reason?: string | null };
+};
 
 const PracticeTestPage: React.FC = () => {
+  const location = useLocation();
+  const coinsFeedback = (location.state as PracticeLocationState | null)?.coinsFeedback;
+  const [coinsAlert, setCoinsAlert] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!coinsFeedback) return;
+    if ((coinsFeedback.coins_awarded ?? 0) > 0) {
+      setCoinsAlert(`You earned ${coinsFeedback.coins_awarded} Argus Coins for this practice set!`);
+    } else {
+      const msg = practiceCoinsNotEarnedMessage(coinsFeedback.coins_reason);
+      if (msg) setCoinsAlert(msg);
+    }
+  }, [coinsFeedback]);
   const [uid, setUid] = useState(() => auth.currentUser?.uid ?? '');
   const { data: config, isLoading: configLoading, isError: configError } = useAssessmentConfig(Boolean(uid));
   const { data: student, isLoading: studentLoading, error: studentError } = useStudent(uid, Boolean(uid));
@@ -83,11 +102,14 @@ const PracticeTestPage: React.FC = () => {
       <DashboardLayout>
         <PageTutorial pageKey="student.practice" ready={!loading} />
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-            <BigSpinner />
-          </Box>
+          <BigSpinner />
         ) : (
           <Box data-tutorial-id="student-practice-content">
+            {coinsAlert && (
+              <Alert severity={(coinsFeedback?.coins_awarded ?? 0) > 0 ? 'success' : 'warning'} sx={{ mb: 2 }} onClose={() => setCoinsAlert(null)}>
+                {coinsAlert}
+              </Alert>
+            )}
             <PracticeModeContent
               storageScope={storageScope}
               grade={grade}

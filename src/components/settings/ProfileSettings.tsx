@@ -21,7 +21,8 @@ import {
   MapPin,
   Languages,
   Target,
-  Megaphone
+  Megaphone,
+  Coins,
 } from 'lucide-react';
 import { auth } from '../../firebase/firebase';
 import { updateStudent } from '../../db/studentCollection';
@@ -30,6 +31,7 @@ import { queryClient } from '../../query/queryClient';
 import { queryKeys } from '../../query/queryKeys';
 import { studentSectionHeadingSx } from '../../styles/studentTypography';
 import { toIndiaMobileNationalDigits, withIndiaCountryCode } from '../../utils/indiaMobile';
+import { readGamificationFromStudent } from '../../utils/gamification';
 
 const HEARD_FROM_OPTIONS = [
   { value: '', label: 'Select' },
@@ -72,6 +74,7 @@ const ProfileSettings: React.FC = () => {
   const [profileHydrated, setProfileHydrated] = useState(false);
 
   const { data: userData } = useStudent(currentUser?.uid, Boolean(currentUser?.uid));
+  const argusCoins = readGamificationFromStudent(userData).argus_coins;
   const schoolId =
     typeof userData?.school_id === 'string' && userData.school_id && userData.school_id !== 'not-listed'
       ? userData.school_id
@@ -308,6 +311,44 @@ const ProfileSettings: React.FC = () => {
                         fontWeight: 500
                       },
                       '& .MuiInputLabel-root.Mui-focused': { color: '#8b5cf6' },
+                    }}
+                  />
+                </Box>
+
+                <Box>
+                  <TextField
+                    fullWidth
+                    label="Argus Coins"
+                    value={argusCoins.toLocaleString()}
+                    disabled
+                    InputProps={{
+                      readOnly: true,
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Coins size={20} color="#fde68a" />
+                        </InputAdornment>
+                      ),
+                    }}
+                    helperText="Earned from exams, practice, and daily challenges. Redeem in the Rewards Shop."
+                    FormHelperTextProps={{
+                      sx: { color: 'rgba(255, 255, 255, 0.55)', mt: 1 },
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        color: '#fde68a',
+                        fontSize: '1rem',
+                        fontWeight: 700,
+                        '& fieldset': { borderColor: 'rgba(234, 179, 8, 0.45)' },
+                        '&.Mui-disabled': {
+                          color: '#fde68a',
+                          WebkitTextFillColor: '#fde68a',
+                        },
+                      },
+                      '& .MuiInputLabel-root': {
+                        color: 'rgba(255, 255, 255, 0.8)',
+                        fontSize: '1rem',
+                        fontWeight: 500,
+                      },
                     }}
                   />
                 </Box>

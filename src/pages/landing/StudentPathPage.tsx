@@ -17,6 +17,7 @@ import { getPreviewSampleAssessmentPath, DEFAULT_PREVIEW_SAMPLE_EXAM_ID } from '
 const STUDENT_NAV = [
   { id: 'sp-hero', label: 'Home' },
   { id: 'sp-get', label: 'Benefits' },
+  { id: 'argus-coins', label: 'Argus Coins' },
   { id: 'assessments', label: 'Exams' },
   { id: 'sp-plans', label: 'Plans' },
   { id: 'sp-economics', label: 'Upgrades' },
@@ -317,6 +318,26 @@ const StudentPathPage: React.FC = () => {
                   </div>
                   <p className="mt-2 text-xs text-slate-600 sm:text-sm">{item.body}</p>
                 </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section id="argus-coins" data-landing-reveal className="mt-12 scroll-mt-20 text-center sm:mt-16">
+          <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">Earn Argus Coins, Build Streaks, Win Rewards</h2>
+          <p className="mx-auto mt-3 max-w-2xl text-sm text-slate-600 sm:text-base">
+            Stay engaged every day with Question of the Day, login streaks, and Argus Coins you can redeem for gift cards from Amazon, Starbucks, Flipkart, and more.
+          </p>
+          <div className="mx-auto mt-8 grid max-w-4xl grid-cols-1 gap-4 sm:grid-cols-3">
+            {[
+              { icon: '🪙', title: 'Earn Coins', body: 'Complete exams, practice thoughtfully, and solve the daily question to earn Argus Coins.' },
+              { icon: '🔥', title: 'Daily Streaks', body: 'Log in and answer Question of the Day every day to build login and QotD streaks with milestone bonuses.' },
+              { icon: '🎁', title: 'Redeem Rewards', body: 'Trade coins for gift cards and perks in the Rewards Shop - the more consistent you are, the bigger the payoff.' },
+            ].map((item) => (
+              <div key={item.title} className="rounded-2xl bg-white px-5 py-6 shadow-sm ring-1 ring-slate-100">
+                <div className="text-3xl">{item.icon}</div>
+                <h3 className="mt-2 text-lg font-bold text-slate-900">{item.title}</h3>
+                <p className="mt-2 text-sm text-slate-600">{item.body}</p>
               </div>
             ))}
           </div>

@@ -34,6 +34,7 @@ interface ResultState {
   passed: boolean;
   nextTier?: number | null;
   completedAt?: string;
+  coinsAwarded?: number;
 }
 
 const AI_PROFICIENCY_LEVELS = [
@@ -55,7 +56,7 @@ const AssessmentResultPage: React.FC = () => {
     return null;
   }
 
-  const { assessmentId, tierNumber, scorePercent, correct, total, passed, nextTier, completedAt } = state;
+  const { assessmentId, tierNumber, scorePercent, correct, total, passed, nextTier, completedAt, coinsAwarded } = state;
   const isAiLiteracy = assessmentId === 'ai_literacy';
   const levelBased = isLevelBasedAssessment(assessmentId);
   const flow = getAssessmentFlowDefinition(assessmentId);
@@ -163,6 +164,26 @@ const AssessmentResultPage: React.FC = () => {
             {completedAt ? ` (${new Date(completedAt).toLocaleDateString()})` : ''}.
           </Typography>
         </Box>
+
+        {(coinsAwarded ?? 0) > 0 && (
+          <Box
+            sx={{
+              bgcolor: '#fef3c7',
+              borderRadius: 2,
+              p: 2,
+              mb: 2,
+              border: '1px solid #fcd34d',
+              textAlign: 'center',
+            }}
+          >
+            <Typography sx={{ fontWeight: 800, color: '#92400e' }}>
+              You earned {coinsAwarded} Argus Coins!
+            </Typography>
+            <Typography sx={{ color: '#b45309', fontSize: '0.85rem', mt: 0.5 }}>
+              Visit the Rewards Shop to redeem gift cards and perks.
+            </Typography>
+          </Box>
+        )}
 
         {!levelBased ? (
           <Box

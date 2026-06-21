@@ -2,6 +2,7 @@ import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Route, Routes, Outlet, Navigate } from 'react-router-dom';
 import Protected from '../components/route_protection/Protected';
 import SchoolAdminRoute from '../components/route_protection/SchoolAdminRoute';
+import PlatformAdminRoute from '../components/route_protection/PlatformAdminRoute';
 import NotFoundPage from '../pages/NotFoundPage';
 import BigSpinner from '../components/ui/BigSpinner';
 import StudentRegistrationFlowLayout from '../layouts/StudentRegistrationFlowLayout';
@@ -72,6 +73,8 @@ const LeaderboardPage = React.lazy(() => import('../pages/dashboard_pages/Leader
 const HowItWorksPage = React.lazy(() => import('../pages/dashboard_pages/HowItWorksPage'));
 const PracticeTestPage = React.lazy(() => import('../pages/dashboard_pages/PracticeTestPage'));
 const PracticeTakePage = React.lazy(() => import('../pages/dashboard_pages/PracticeTakePage'));
+const QuestionOfTheDayPage = React.lazy(() => import('../pages/dashboard_pages/QuestionOfTheDayPage'));
+const RewardsShopPage = React.lazy(() => import('../pages/dashboard_pages/RewardsShopPage'));
 const AssessmentTakePage = React.lazy(() => import('../pages/dashboard_pages/AssessmentTakePage'));
 const AssessmentResultPage = React.lazy(() => import('../pages/dashboard_pages/AssessmentResultPage'));
 const AssessmentDetailPage = React.lazy(() => import('../pages/dashboard_pages/AssessmentDetailPage'));
@@ -93,6 +96,16 @@ const SchoolAdminSubscriptionPage = React.lazy(() =>
   }))
 );
 const SchoolAdminStudentDetailPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminStudentDetailPage'));
+
+/*
+PLATFORM ADMIN PAGES: Internal ops dashboard for Argus team
+*/
+const PlatformAdminLayout = React.lazy(() => import('../layouts/PlatformAdminLayout'));
+const PlatformAdminDashboardPage = React.lazy(() => import('../pages/platform_admin_pages/PlatformAdminDashboardPage'));
+const PlatformAdminSchoolsPage = React.lazy(() => import('../pages/platform_admin_pages/PlatformAdminSchoolsPage'));
+const PlatformAdminSchoolDetailPage = React.lazy(() => import('../pages/platform_admin_pages/PlatformAdminSchoolDetailPage'));
+const PlatformAdminRewardsPage = React.lazy(() => import('../pages/platform_admin_pages/PlatformAdminRewardsPage'));
+const PlatformAdminStudentsPage = React.lazy(() => import('../pages/platform_admin_pages/PlatformAdminStudentsPage'));
 
 const AppRouter: React.FC = () => {
   return (
@@ -484,6 +497,30 @@ const AppRouter: React.FC = () => {
           }
           errorElement={<NotFoundPage />}
         />
+
+        <Route
+          path="/question-of-the-day"
+          element={
+            <Protected>
+              <Suspense fallback={<BigSpinner />}>
+                <QuestionOfTheDayPage />
+              </Suspense>
+            </Protected>
+          }
+          errorElement={<NotFoundPage />}
+        />
+
+        <Route
+          path="/rewards"
+          element={
+            <Protected>
+              <Suspense fallback={<BigSpinner />}>
+                <RewardsShopPage />
+              </Suspense>
+            </Protected>
+          }
+          errorElement={<NotFoundPage />}
+        />
         
         {/* Assessment list routes */}
         <Route
@@ -759,6 +796,75 @@ const AppRouter: React.FC = () => {
           errorElement={<NotFoundPage />}
         />
         {/* ------------------------------ SCHOOL ADMIN ROUTES END HERE ---------------------- */}
+
+        {/* ------------------------------ PLATFORM ADMIN ROUTES ---------------------- */}
+        <Route
+          path="/platform-admin/dashboard"
+          element={
+            <PlatformAdminRoute>
+              <Suspense fallback={<BigSpinner />}>
+                <PlatformAdminLayout>
+                  <PlatformAdminDashboardPage />
+                </PlatformAdminLayout>
+              </Suspense>
+            </PlatformAdminRoute>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        <Route
+          path="/platform-admin/schools"
+          element={
+            <PlatformAdminRoute>
+              <Suspense fallback={<BigSpinner />}>
+                <PlatformAdminLayout>
+                  <PlatformAdminSchoolsPage />
+                </PlatformAdminLayout>
+              </Suspense>
+            </PlatformAdminRoute>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        <Route
+          path="/platform-admin/schools/:schoolId"
+          element={
+            <PlatformAdminRoute>
+              <Suspense fallback={<BigSpinner />}>
+                <PlatformAdminLayout>
+                  <PlatformAdminSchoolDetailPage />
+                </PlatformAdminLayout>
+              </Suspense>
+            </PlatformAdminRoute>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        <Route
+          path="/platform-admin/rewards"
+          element={
+            <PlatformAdminRoute>
+              <Suspense fallback={<BigSpinner />}>
+                <PlatformAdminLayout>
+                  <PlatformAdminRewardsPage />
+                </PlatformAdminLayout>
+              </Suspense>
+            </PlatformAdminRoute>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        <Route
+          path="/platform-admin/students"
+          element={
+            <PlatformAdminRoute>
+              <Suspense fallback={<BigSpinner />}>
+                <PlatformAdminLayout>
+                  <PlatformAdminStudentsPage />
+                </PlatformAdminLayout>
+              </Suspense>
+            </PlatformAdminRoute>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        <Route path="/platform-admin" element={<Navigate to="/platform-admin/dashboard" replace />} />
+        {/* ------------------------------ PLATFORM ADMIN ROUTES END ---------------------- */}
         
         {/* ------------------------------   ANY OTHER ROUTES HERE    ---------------------- */}
         <Route path="*" element={<NotFoundPage/>} />

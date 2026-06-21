@@ -128,6 +128,12 @@ const StudentPreviewDashboardPage: React.FC = () => {
         }}
         previewDisableAssessmentStatClicks
         persistNotificationDismissals={false}
+        previewGamification={{
+          argus_coins: 1250,
+          login_streak: 5,
+          qotd_streak: 3,
+          qotd_answered_today: false,
+        }}
       />
       <Box id="your-assessments" sx={{ mt: 4, ml: 1, scrollMarginTop: 100 }}>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', gap: 1, mb: 2 }}>

@@ -8,6 +8,7 @@ import {
 } from '../db/assessmentCollection';
 import { getSchoolDetails } from '../db/schoolCollection';
 import { getPayments } from '../db/studentPaymentMappings';
+import { fetchQotd, fetchRewards } from '../db/gamificationCollection';
 import { queryKeys } from './queryKeys';
 
 const ASSESSMENT_CONFIG_STALE_MS = 15 * 60_000;
@@ -68,7 +69,28 @@ export function useInvalidateStudentQueries() {
     void qc.invalidateQueries({ queryKey: queryKeys.student(uid) });
     void qc.invalidateQueries({ queryKey: queryKeys.studentAssessments(uid) });
     void qc.invalidateQueries({ queryKey: queryKeys.payments(uid) });
+    void qc.invalidateQueries({ queryKey: queryKeys.rewards() });
+    void qc.invalidateQueries({ queryKey: queryKeys.qotd() });
   };
+}
+
+export function useQotd(enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.qotd(),
+    queryFn: fetchQotd,
+    enabled,
+    staleTime: 30_000,
+    refetchOnMount: 'always',
+  });
+}
+
+export function useRewards(enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.rewards(),
+    queryFn: fetchRewards,
+    enabled,
+    staleTime: 60_000,
+  });
 }
 
 export type { AssessmentType, AttemptRecord };

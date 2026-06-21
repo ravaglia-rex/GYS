@@ -10,7 +10,7 @@ export interface User {
 
 export interface AuthState {
     user: User | null;
-    role: 'student' | 'schooladmin' | null;
+    role: 'student' | 'schooladmin' | 'platformadmin' | null;
     schoolAdmin: SchoolAdmin | null;
     loading: boolean;
     error: string | null;
@@ -61,7 +61,7 @@ const authSlice = createSlice({
         setUser: (state, action: PayloadAction<User | null>) => {
             state.user = action.payload;
         },
-        setRole: (state, action: PayloadAction<'student' | 'schooladmin' | null>) => {
+        setRole: (state, action: PayloadAction<'student' | 'schooladmin' | 'platformadmin' | null>) => {
             state.role = action.payload;
         },
         setSchoolAdmin: (state, action: PayloadAction<SchoolAdmin | null>) => {

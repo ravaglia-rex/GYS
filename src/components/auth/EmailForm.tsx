@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { checkEmailExists } from '../../db/emailMappingCollection';
+import { checkPlatformAdminAccess } from '../../db/platformAdminCollection';
 import { auth } from '../../firebase/firebase';
 import { useNavigate } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -27,6 +28,7 @@ import * as Sentry from '@sentry/react';
 import analytics from '../../segment/segment';
 
 import SignInForm from './SignInForm';
+import PlatformAdminSignInForm from './PlatformAdminSignInForm';
 import SchoolAdminSchoolSelect from './SchoolAdminSchoolSelect';
 
 const EmailSchema = z.object({
@@ -45,6 +47,7 @@ const EmailEntryForm: React.FC = () => {
   const [isSchoolOfficial, setIsSchoolOfficial] = useState(false);
   const [schoolInfo, setSchoolInfo] = useState<SchoolEmailCheck | null>(null);
   const [, setCheckingSchool] = useState(false);
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
   const [showNoAccountDialog, setShowNoAccountDialog] = useState(false);
 
 
@@ -68,6 +71,12 @@ const EmailEntryForm: React.FC = () => {
       const user = auth.currentUser;
       if (!user) return;
       try {
+        const isPlatformAdmin = await checkPlatformAdminAccess();
+        if (cancelled) return;
+        if (isPlatformAdmin) {
+          navigate('/platform-admin/dashboard', { replace: true });
+          return;
+        }
         const schoolCheck = await checkSchoolEmail(user.email || '');
         if (cancelled) return;
         if (
@@ -90,6 +99,7 @@ const EmailEntryForm: React.FC = () => {
     // Never navigate to school-admin/dashboard from here. All users must go through SignInForm and enter password.
     setIsSubmitted(true);
     setCheckingSchool(false);
+    setIsPlatformAdmin(false);
 
     try {
       // If school official checkbox is checked
@@ -154,6 +164,9 @@ const EmailEntryForm: React.FC = () => {
       if (result.type === 'student' && result.registrationStatus === 'pending_payment') {
         analytics.track('[DIRECT] Pending Student Signup Resume', { email: normalizedEmail });
         navigate('/students/register', { state: { prefill: { email: normalizedEmail } } });
+      } else if (result.type === 'platformadmin') {
+        setIsPlatformAdmin(true);
+        setEmailExists(true);
       } else if (!result.exists) {
         analytics.track('[DIRECT] New User Flow', { email: data.email });
         setShowNoAccountDialog(true);
@@ -186,6 +199,9 @@ const EmailEntryForm: React.FC = () => {
     }
   };
   if (emailExists === true) {
+    if (isPlatformAdmin) {
+      return <PlatformAdminSignInForm email={email} />;
+    }
     if (isSchoolOfficial && schoolInfo) {
       if (!schoolInfo.verified) {
         return (
