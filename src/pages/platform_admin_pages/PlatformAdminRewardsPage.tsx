@@ -24,15 +24,15 @@ import {
   listPlatformAdminPendingRedemptions,
   type PlatformAdminPendingRedemption,
 } from '../../db/platformAdminCollection';
-import { PlatformAdminPageHeader, PlatformAdminTableSection } from './platformAdminComponents';
 import {
   platformAdminPageContainerSx,
-  platformAdminPalette as ip,
   platformAdminPrimaryButtonSx,
   platformAdminTableHeadRowSx,
   platformAdminTablePaperSx,
   platformAdminTableSx,
 } from './platformAdminPageStyles';
+import { institutionalPalette as ip } from '../../theme/institutionalPalette';
+import { PlatformAdminPageHeader, PlatformAdminTableSection } from './platformAdminComponents';
 
 function formatRequestedAt(entry: PlatformAdminPendingRedemption): string {
   const ts = entry.requested_at;

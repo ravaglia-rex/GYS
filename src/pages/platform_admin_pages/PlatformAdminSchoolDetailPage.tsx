@@ -40,14 +40,8 @@ import {
   type PlatformAdminSchoolDetail,
 } from '../../db/platformAdminCollection';
 import {
-  PlatformAdminChip,
-  formatPaymentStatusLabel,
-  paymentStatusChipTone,
-} from './platformAdminComponents';
-import {
   platformAdminCardSx,
   platformAdminPageContainerSx,
-  platformAdminPalette as ip,
   platformAdminDialogFieldLabelSx,
   platformAdminDialogPaperSx,
   platformAdminDialogSelectSx,
@@ -55,6 +49,12 @@ import {
   platformAdminPrimaryButtonSx,
   platformAdminSelectMenuPaperSx,
 } from './platformAdminPageStyles';
+import { institutionalPalette as ip } from '../../theme/institutionalPalette';
+import {
+  PlatformAdminChip,
+  formatPaymentStatusLabel,
+  paymentStatusChipTone,
+} from './platformAdminComponents';
 import {
   formatPlanAmountInrInput,
   resolveSchoolPlanPriceInr,

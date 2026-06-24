@@ -7,7 +7,7 @@ import {
   platformAdminFilterLabelSx,
   platformAdminFilterSelectSx,
   platformAdminSelectMenuPaperSx,
-} from './platformAdminPageStyles';
+} from './platformAdminStyleTokens';
 
 export type AdminChipTone = 'success' | 'warning' | 'error' | 'neutral' | 'info';
 

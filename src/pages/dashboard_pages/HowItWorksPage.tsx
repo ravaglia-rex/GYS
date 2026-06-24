@@ -887,7 +887,7 @@ export const HowItWorksContent: React.FC = () => {
                     { activity: 'Question of the Day (correct)', coins: '20', notes: 'Once per day' },
                     { activity: 'Question of the Day (attempted)', coins: '5', notes: 'Once per day if not correct' },
                     { activity: 'Official exam', coins: '60 + score bonus', notes: 'Up to 90 extra based on performance' },
-                    { activity: 'Weekly practice', coins: '30 + per correct', notes: 'Once per week; thoughtful timing required' },
+                    { activity: 'Weekly practice', coins: '30 + per correct', notes: 'Once per week; all 10 questions; thoughtful timing required' },
                     { activity: '7-day streak milestone', coins: '50', notes: 'Login or QotD streak' },
                     { activity: '30-day streak milestone', coins: '250', notes: 'Login or QotD streak' },
                   ].map((row) => (

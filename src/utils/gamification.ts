@@ -80,7 +80,7 @@ export function practiceCoinsNotEarnedMessage(reason: string | null | undefined)
     return 'You already earned your weekly practice coins. Come back next week for another reward!';
   }
   if (reason === 'insufficient_questions') {
-    return 'Complete a full practice set to earn weekly Argus coins.';
+    return 'Answer all 10 questions in a practice set to earn weekly Argus coins.';
   }
   return null;
 }

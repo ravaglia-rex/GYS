@@ -25,6 +25,7 @@ import { queryKeys } from '../../query/queryKeys';
 import { studentPageSubtitleSx, studentPageTitleSx } from '../../styles/studentTypography';
 import { auth } from '../../firebase/firebase';
 import type { ExamQuestion } from '../../db/assessmentCollection';
+import { ExamQuestionStimulus } from '../../components/assessment/ExamQuestionBody';
 
 const EXAM_LABELS: Record<string, string> = {
   symbolic_reasoning: 'Pattern & Logic',
@@ -43,7 +44,7 @@ function getQotdPassageText(question: ExamQuestion): string {
   const stimulus = question.stimulus;
   if (stimulus && typeof stimulus === 'object' && !Array.isArray(stimulus)) {
     const obj = stimulus as Record<string, unknown>;
-    for (const key of ['passage', 'reading_passage', 'text', 'setup'] as const) {
+    for (const key of ['passage', 'reading_passage'] as const) {
       const value = obj[key];
       if (typeof value === 'string' && value.trim()) return value.trim();
     }
@@ -132,6 +133,7 @@ const QuestionOfTheDayPage: React.FC = () => {
   const question = data?.question;
   const options = question?.options ?? [];
   const passageText = question ? getQotdPassageText(question) : '';
+  const renderMath = data?.exam_id === 'mathematical_reasoning';
 
   return (
     <DashboardLayout>
@@ -240,6 +242,36 @@ const QuestionOfTheDayPage: React.FC = () => {
               <Typography variant="h6" sx={{ mt: passageText ? 0 : 1, mb: 2, fontWeight: 600, lineHeight: 1.5 }}>
                 {question.prompt}
               </Typography>
+
+              {!passageText && (
+                <ExamQuestionStimulus
+                  q={question}
+                  border="rgba(168, 85, 247, 0.25)"
+                  renderMath={renderMath}
+                  variant="dark"
+                />
+              )}
+
+              {question.image_url && (
+                <Box
+                  sx={{
+                    mb: 2.5,
+                    borderRadius: 2,
+                    overflow: 'hidden',
+                    border: '1px solid rgba(168, 85, 247, 0.25)',
+                    bgcolor: 'rgba(168, 85, 247, 0.08)',
+                    display: 'grid',
+                    placeItems: 'center',
+                    minHeight: 200,
+                  }}
+                >
+                  <img
+                    src={question.image_url}
+                    alt=""
+                    style={{ width: '100%', maxHeight: 320, objectFit: 'contain' }}
+                  />
+                </Box>
+              )}
 
               {!showResult && !alreadyAnswered && (
                 <>

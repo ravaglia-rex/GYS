@@ -981,9 +981,9 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
         <DialogTitle sx={{ fontWeight: 800 }}>Start this practice set?</DialogTitle>
         <DialogContent>
           <DialogContentText component="div" sx={{ color: '#FFFFFF', typography: 'body2', lineHeight: 1.65 }}>
-            This starts a practice set of {PRACTICE_SESSION_BATCH_SIZE} questions. Try to work through all{' '}
-            {PRACTICE_SESSION_BATCH_SIZE} to finish the set, but you can still leave partway through if
-            you need to.
+            This starts a practice set of {PRACTICE_SESSION_BATCH_SIZE} questions. Answer all{' '}
+            {PRACTICE_SESSION_BATCH_SIZE} to finish the set and qualify for weekly Argus coins. You can
+            still leave partway through if you need to, but coins are only awarded for a complete set.
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>

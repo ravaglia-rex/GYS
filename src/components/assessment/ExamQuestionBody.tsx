@@ -828,8 +828,76 @@ function stripDuplicateExampleProseFromPrompt(raw: string, q: ExamQuestion): str
   return out.length > 0 ? out : raw;
 }
 
+export type StimulusVariant = 'light' | 'dark';
+
+export interface StimulusVisualTheme {
+  border: string;
+  panelBg: string;
+  text: string;
+  textMuted: string;
+  caption: string;
+  heading: string;
+  tileBg: string;
+  tileColor: string;
+  tileShadow: string;
+  blankBg: string;
+  blankColor: string;
+  tableHeaderBg: string;
+  tableCellBg: string;
+  qtyTileBg: string;
+}
+
+const LIGHT_STIMULUS_THEME = (border: string): StimulusVisualTheme => ({
+  border: border || '#e2e8f0',
+  panelBg: '#f8fafc',
+  text: '#334155',
+  textMuted: '#475569',
+  caption: '#64748b',
+  heading: '#0f172a',
+  tileBg: '#fff',
+  tileColor: '#0f172a',
+  tileShadow: '0 1px 2px rgba(15,23,42,0.06)',
+  blankBg: '#f1f5f9',
+  blankColor: '#64748b',
+  tableHeaderBg: '#f1f5f9',
+  tableCellBg: '#fff',
+  qtyTileBg: '#fff',
+});
+
+const DARK_STIMULUS_THEME = (border: string): StimulusVisualTheme => ({
+  border: border || 'rgba(168, 85, 247, 0.25)',
+  panelBg: 'rgba(168, 85, 247, 0.08)',
+  text: 'rgba(255, 255, 255, 0.85)',
+  textMuted: 'rgba(255, 255, 255, 0.65)',
+  caption: 'rgba(255, 255, 255, 0.55)',
+  heading: 'rgba(255, 255, 255, 0.92)',
+  tileBg: 'rgba(15, 23, 42, 0.55)',
+  tileColor: '#ffffff',
+  tileShadow: 'none',
+  blankBg: 'rgba(168, 85, 247, 0.12)',
+  blankColor: '#c4b5fd',
+  tableHeaderBg: 'rgba(15, 23, 42, 0.55)',
+  tableCellBg: 'rgba(30, 41, 59, 0.65)',
+  qtyTileBg: 'rgba(30, 41, 59, 0.65)',
+});
+
+function resolveStimulusTheme(variant: StimulusVariant, border: string): StimulusVisualTheme {
+  return variant === 'dark' ? DARK_STIMULUS_THEME(border) : LIGHT_STIMULUS_THEME(border);
+}
+
+function stimulusPanelSx(theme: StimulusVisualTheme, extra?: Record<string, unknown>) {
+  return {
+    mb: 2.5,
+    p: 2.5,
+    bgcolor: theme.panelBg,
+    borderRadius: 2,
+    border: `1px solid ${theme.border}`,
+    ...extra,
+  };
+}
+
 /** Shared tile style for symbol / shape stimuli (sequence, examples, pattern transfer). */
-function stimulusSymbolTileSx(border: string) {
+function stimulusSymbolTileSx(theme: StimulusVisualTheme) {
   return {
     fontSize: '1.65rem',
     lineHeight: 1,
@@ -837,11 +905,11 @@ function stimulusSymbolTileSx(border: string) {
     textAlign: 'center' as const,
     px: 1.25,
     py: 1,
-    color: '#0f172a',
-    bgcolor: '#fff',
+    color: theme.tileColor,
+    bgcolor: theme.tileBg,
     borderRadius: 1.5,
-    border: `1px solid ${border}`,
-    boxShadow: '0 1px 2px rgba(15,23,42,0.06)',
+    border: `1px solid ${theme.border}`,
+    boxShadow: theme.tileShadow,
   };
 }
 
@@ -1143,13 +1211,15 @@ function StimulusGridMatrixView(props: {
   matrix: string[][];
   border: string;
   renderMath: boolean;
+  theme?: StimulusVisualTheme;
 }): React.ReactNode {
-  const { matrix, border, renderMath } = props;
+  const { matrix, border, renderMath, theme: themeProp } = props;
+  const theme = themeProp ?? LIGHT_STIMULUS_THEME(border);
   if (!matrix.length) return null;
   const clueLines = clueLinesFromMatrix(matrix);
-  if (clueLines) return <StimulusClueListView lines={clueLines} />;
+  if (clueLines) return <StimulusClueListView lines={clueLines} theme={theme} />;
   const cols = Math.max(1, ...matrix.map((r) => r.length));
-  const symTileSx = stimulusSymbolTileSx(border);
+  const symTileSx = stimulusSymbolTileSx(theme);
   return (
     <Box
       sx={{
@@ -1180,7 +1250,7 @@ function StimulusGridMatrixView(props: {
                 alignItems: 'center',
                 justifyContent: 'center',
                 ...(isBlank
-                  ? { borderStyle: 'dashed', bgcolor: '#f1f5f9', color: '#64748b', fontWeight: 800 }
+                  ? { borderStyle: 'dashed', bgcolor: theme.blankBg, color: theme.blankColor, fontWeight: 800 }
                   : {}),
               }}
             >
@@ -1235,17 +1305,18 @@ function clueLinesFromMatrix(matrix: string[][]): string[] | null {
   return clueLines.length > 0 ? clueLines : null;
 }
 
-function StimulusClueListView(props: { lines: string[] }): React.ReactNode {
-  const { lines } = props;
+function StimulusClueListView(props: { lines: string[]; theme?: StimulusVisualTheme }): React.ReactNode {
+  const { lines, theme: themeProp } = props;
+  const theme = themeProp ?? LIGHT_STIMULUS_THEME('#e2e8f0');
   return (
     <Box sx={{ mb: 0 }}>
       <Typography
         variant="caption"
-        sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 1.25, letterSpacing: 0.02 }}
+        sx={{ fontWeight: 700, color: theme.caption, display: 'block', mb: 1.25, letterSpacing: 0.02 }}
       >
         Clues
       </Typography>
-      <Box component="ol" sx={{ m: 0, pl: 2.25, color: '#334155', '& li': { mb: 0.65 } }}>
+      <Box component="ol" sx={{ m: 0, pl: 2.25, color: theme.text, '& li': { mb: 0.65 } }}>
         {lines.map((line, i) => (
           <Typography component="li" key={i} sx={{ fontSize: '0.95rem', lineHeight: 1.55 }}>
             {line.replace(/^\d+\.\s*/, '')}
@@ -1262,15 +1333,17 @@ function StimulusSequenceView(props: {
   blankMeta: BlankSlot;
   blankHelp: string | null;
   mb?: number;
+  theme?: StimulusVisualTheme;
 }): React.ReactNode {
-  const { sequence, border, blankMeta, blankHelp, mb = 0 } = props;
-  const symTileSx = stimulusSymbolTileSx(border);
+  const { sequence, border, blankMeta, blankHelp, mb = 0, theme: themeProp } = props;
+  const theme = themeProp ?? LIGHT_STIMULUS_THEME(border);
+  const symTileSx = stimulusSymbolTileSx(theme);
   const interleaved = interleaveBlankSlot(stripEmbeddedBlankPlaceholder(sequence, blankMeta), blankMeta);
   return (
     <Box sx={{ mb }}>
       <Typography
         variant="caption"
-        sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 1.25, letterSpacing: 0.02 }}
+        sx={{ fontWeight: 700, color: theme.caption, display: 'block', mb: 1.25, letterSpacing: 0.02 }}
       >
         Input sequence
       </Typography>
@@ -1282,8 +1355,8 @@ function StimulusSequenceView(props: {
               sx={{
                 ...symTileSx,
                 borderStyle: 'dashed',
-                bgcolor: '#f1f5f9',
-                color: '#64748b',
+                bgcolor: theme.blankBg,
+                color: theme.blankColor,
                 fontWeight: 800,
                 fontSize: '1.35rem',
               }}
@@ -1299,7 +1372,7 @@ function StimulusSequenceView(props: {
         )}
       </Box>
       {blankHelp && (
-        <Typography variant="body2" sx={{ mt: 1.35, color: '#475569', lineHeight: 1.55, maxWidth: 520 }}>
+        <Typography variant="body2" sx={{ mt: 1.35, color: theme.textMuted, lineHeight: 1.55, maxWidth: 520 }}>
           {blankHelp}
         </Typography>
       )}
@@ -1436,14 +1509,19 @@ function parseStimulusDataTable(obj: Record<string, unknown>): StimulusDataTable
   };
 }
 
-function StimulusDataTableView(props: { table: StimulusDataTable; border: string }): React.ReactNode {
-  const { table, border } = props;
+function StimulusDataTableView(props: {
+  table: StimulusDataTable;
+  border: string;
+  theme?: StimulusVisualTheme;
+}): React.ReactNode {
+  const { table, border, theme: themeProp } = props;
+  const theme = themeProp ?? LIGHT_STIMULUS_THEME(border);
   return (
     <Box sx={{ overflowX: 'auto', mb: 2.25 }}>
       {table.title ? (
         <Typography
           variant="caption"
-          sx={{ fontWeight: 800, color: '#64748b', display: 'block', mb: 1, letterSpacing: 0.04 }}
+          sx={{ fontWeight: 800, color: theme.caption, display: 'block', mb: 1, letterSpacing: 0.04 }}
         >
           {table.title}
         </Typography>
@@ -1455,7 +1533,7 @@ function StimulusDataTableView(props: { table: StimulusDataTable; border: string
           minWidth: 420,
           borderCollapse: 'separate',
           borderSpacing: 0,
-          color: '#334155',
+          color: theme.text,
           fontSize: '0.95rem',
         }}
       >
@@ -1468,13 +1546,13 @@ function StimulusDataTableView(props: { table: StimulusDataTable; border: string
                 sx={{
                   p: 1.25,
                   textAlign: 'left',
-                  bgcolor: '#f1f5f9',
-                  borderTop: `1px solid ${border}`,
-                  borderBottom: `1px solid ${border}`,
-                  borderLeft: i === 0 ? `1px solid ${border}` : 0,
-                  borderRight: `1px solid ${border}`,
+                  bgcolor: theme.tableHeaderBg,
+                  borderTop: `1px solid ${theme.border}`,
+                  borderBottom: `1px solid ${theme.border}`,
+                  borderLeft: i === 0 ? `1px solid ${theme.border}` : 0,
+                  borderRight: `1px solid ${theme.border}`,
                   fontWeight: 800,
-                  color: '#475569',
+                  color: theme.textMuted,
                   whiteSpace: 'nowrap',
                 }}
               >
@@ -1492,12 +1570,12 @@ function StimulusDataTableView(props: { table: StimulusDataTable; border: string
                   key={`c-${ri}-${ci}`}
                   sx={{
                     p: 1.25,
-                    bgcolor: '#fff',
-                    borderBottom: `1px solid ${border}`,
-                    borderLeft: ci === 0 ? `1px solid ${border}` : 0,
-                    borderRight: `1px solid ${border}`,
+                    bgcolor: theme.tableCellBg,
+                    borderBottom: `1px solid ${theme.border}`,
+                    borderLeft: ci === 0 ? `1px solid ${theme.border}` : 0,
+                    borderRight: `1px solid ${theme.border}`,
                     fontWeight: ci === 0 ? 650 : 500,
-                    color: ci === 0 ? '#1f2937' : '#334155',
+                    color: ci === 0 ? theme.heading : theme.text,
                   }}
                 >
                   {cell}
@@ -1609,7 +1687,7 @@ function splitConstraintLines(raw: unknown): string[] {
  */
 function stimulusConstraintsAppendixForPatternTransferBox(
   obj: Record<string, unknown>,
-  border: string,
+  theme: StimulusVisualTheme,
   hideSharedRule: boolean,
   q: ExamQuestion
 ): React.ReactNode {
@@ -1630,20 +1708,20 @@ function stimulusConstraintsAppendixForPatternTransferBox(
 
   const capSx = {
     fontWeight: 700,
-    color: '#64748b',
+    color: theme.caption,
     display: 'block',
     mb: 1,
     letterSpacing: 0.02,
   } as const;
 
   return (
-    <Box sx={{ mt: 2.5, pt: 2, borderTop: `1px solid ${border}` }}>
+    <Box sx={{ mt: 2.5, pt: 2, borderTop: `1px solid ${theme.border}` }}>
       {hasCons ? (
         <Box sx={{ mb: showRules ? 2.25 : 0 }}>
           <Typography variant="caption" sx={capSx}>
             Constraints
           </Typography>
-          <Box component="ul" sx={{ m: 0, pl: 2.25, color: '#334155', '& li': { mb: 0.65 } }}>
+          <Box component="ul" sx={{ m: 0, pl: 2.25, color: theme.text, '& li': { mb: 0.65 } }}>
             {splitConstraintLines(rawCons).map((line, i) => (
               <Typography component="li" key={`pt-cons-${i}`} sx={{ fontSize: '0.92rem', lineHeight: 1.55 }}>
                 {line}
@@ -1657,7 +1735,7 @@ function stimulusConstraintsAppendixForPatternTransferBox(
           <Typography variant="caption" sx={{ ...capSx, mb: 1 }}>
             {forceConstraints ? 'Constraints' : 'Apply these rules'}
           </Typography>
-          <Box component="ul" sx={{ m: 0, pl: 2.25, color: '#334155', '& li': { mb: 0.5 } }}>
+          <Box component="ul" sx={{ m: 0, pl: 2.25, color: theme.text, '& li': { mb: 0.5 } }}>
             {rulesArr.map((r, i) => (
               <Typography component="li" key={`pt-rule-${i}`} sx={{ fontSize: '0.95rem', lineHeight: 1.55 }}>
                 {String(r ?? '')
@@ -1769,11 +1847,25 @@ function interleaveBlankSlot(syms: unknown[], blank: BlankSlot): Array<{ kind: '
 }
 
 /** Pattern-logic and generic structured stimuli - readable layout instead of raw JSON. */
-const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string; renderMath?: boolean }> = ({
+const HumanFriendlyStimulus: React.FC<{
+  q: ExamQuestion;
+  border: string;
+  renderMath?: boolean;
+  variant?: StimulusVariant;
+}> = ({
   q,
   border,
   renderMath = false,
+  variant = 'light',
 }) => {
+  const theme = resolveStimulusTheme(variant, border);
+  const capSx = {
+    fontWeight: 700,
+    color: theme.caption,
+    display: 'block',
+    mb: 1,
+    letterSpacing: 0.02,
+  } as const;
   const stimulus = q.stimulus;
   const stimulusType = q.stimulus_type;
 
@@ -1785,8 +1877,8 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string; renderM
     const gridMatrix = parseStimulusGridMatrix({ grid: text });
     if (gridMatrix) {
       return (
-        <Box sx={{ mb: 2.5, p: 2.5, bgcolor: '#f8fafc', borderRadius: 2, border: `1px solid ${border}` }}>
-          <StimulusGridMatrixView matrix={gridMatrix} border={border} renderMath={renderMath} />
+        <Box sx={stimulusPanelSx(theme)}>
+          <StimulusGridMatrixView matrix={gridMatrix} border={border} renderMath={renderMath} theme={theme} />
         </Box>
       );
     }
@@ -1795,14 +1887,20 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string; renderM
       const seqStrings = seq.map((x) => String(x));
       const blankMeta = blankSlotFromStimulus(undefined, sequenceLooksNumeric(seqStrings));
       return (
-        <Box sx={{ mb: 2.5, p: 2.5, bgcolor: '#f8fafc', borderRadius: 2, border: `1px solid ${border}` }}>
-          <StimulusSequenceView sequence={seqStrings} border={border} blankMeta={blankMeta} blankHelp={null} />
+        <Box sx={stimulusPanelSx(theme)}>
+          <StimulusSequenceView
+            sequence={seqStrings}
+            border={border}
+            blankMeta={blankMeta}
+            blankHelp={null}
+            theme={theme}
+          />
         </Box>
       );
     }
     return (
-      <Box sx={{ mb: 2.5, p: 2, bgcolor: '#f8fafc', borderRadius: 2, border: `1px solid ${border}` }}>
-        <Typography sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.65, color: '#334155', fontSize: '0.95rem' }}>
+      <Box sx={stimulusPanelSx(theme, { p: 2 })}>
+        <Typography sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.65, color: theme.text, fontSize: '0.95rem' }}>
           {text}
         </Typography>
       </Box>
@@ -1819,7 +1917,7 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string; renderM
   if (Array.isArray(examplesRaw) && examplesRaw.length > 0) {
     const pairs = examplesRaw.filter(isIoExamplePair);
     if (pairs.length > 0) {
-      const symTileSx = stimulusSymbolTileSx(border);
+      const symTileSx = stimulusSymbolTileSx(theme);
       const testRaw =
         obj.test_input ?? obj.test_query ?? obj.query_input ?? obj.test_case ?? obj.query;
       const testStr =
@@ -1828,18 +1926,15 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string; renderM
           : '';
 
       return (
-        <Box sx={{ mb: 2.5, p: 2.5, bgcolor: '#f8fafc', borderRadius: 2, border: `1px solid ${border}` }}>
+        <Box sx={stimulusPanelSx(theme)}>
           {pairs.map((row, i) => (
             <Box key={i} sx={{ mb: i < pairs.length - 1 || testStr ? 2 : 0 }}>
-              <Typography
-                variant="caption"
-                sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 1, letterSpacing: 0.02 }}
-              >
+              <Typography variant="caption" sx={capSx}>
                 Example {i + 1}
               </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25, alignItems: 'center' }}>
                 <Box sx={symTileSx}>{String(row.input)}</Box>
-                <Typography sx={{ color: '#64748b', fontWeight: 700, fontSize: '1.1rem' }} aria-hidden>
+                <Typography sx={{ color: theme.caption, fontWeight: 700, fontSize: '1.1rem' }} aria-hidden>
                   →
                 </Typography>
                 <Box sx={symTileSx}>{String(row.output)}</Box>
@@ -1851,26 +1946,23 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string; renderM
               sx={{
                 pt: pairs.length ? 2 : 0,
                 mt: pairs.length ? 0 : 0,
-                borderTop: pairs.length ? `1px solid ${border}` : 'none',
+                borderTop: pairs.length ? `1px solid ${theme.border}` : 'none',
               }}
             >
-              <Typography
-                variant="caption"
-                sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 1, letterSpacing: 0.02 }}
-              >
+              <Typography variant="caption" sx={capSx}>
                 Test input
               </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25, alignItems: 'center' }}>
                 <Box sx={symTileSx}>{testStr}</Box>
-                <Typography sx={{ color: '#64748b', fontWeight: 700, fontSize: '1.1rem' }} aria-hidden>
+                <Typography sx={{ color: theme.caption, fontWeight: 700, fontSize: '1.1rem' }} aria-hidden>
                   →
                 </Typography>
                 <Box
                   sx={{
                     ...symTileSx,
                     borderStyle: 'dashed',
-                    bgcolor: '#f1f5f9',
-                    color: '#64748b',
+                    bgcolor: theme.blankBg,
+                    color: theme.blankColor,
                     fontWeight: 800,
                     fontSize: '1.35rem',
                   }}
@@ -1901,12 +1993,12 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string; renderM
     hasPatternTransferVisual && !shouldSuppressPatternTransferStimulusBox(q, sourceSeq, shapeTokens);
 
   if (showPatternTransfer) {
-    const symTileSx = stimulusSymbolTileSx(border);
+    const symTileSx = stimulusSymbolTileSx(theme);
     const showRuleBlock = sourceRule.length > 0 && !hideSharedRule;
     const dualNarr = dualPatternNarrativeSplit(q.prompt ?? '');
     const showDualNarrative = dualNarr !== null && patternTransferStimulusPresent(q);
     return (
-      <Box sx={{ mb: 2.5, p: 2.5, bgcolor: '#f8fafc', borderRadius: 2, border: `1px solid ${border}` }}>
+      <Box sx={stimulusPanelSx(theme)}>
         {showDualNarrative ? (
           <Box sx={{ mb: 2.5 }}>
             {renderMath ? (
@@ -1914,7 +2006,7 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string; renderM
                 inline={false}
                 sx={{
                   fontWeight: 700,
-                  color: '#0f172a',
+                  color: theme.heading,
                   fontSize: '0.97rem',
                   lineHeight: 1.55,
                   whiteSpace: 'pre-line',
@@ -1926,7 +2018,7 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string; renderM
               <Typography
                 sx={{
                   fontWeight: 700,
-                  color: '#0f172a',
+                  color: theme.heading,
                   fontSize: '0.97rem',
                   lineHeight: 1.55,
                   whiteSpace: 'pre-line',
@@ -1939,10 +2031,7 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string; renderM
         ) : null}
         {sourceSeq.length > 0 ? (
           <Box sx={{ mb: shapeTokens.length > 0 ? 2.25 : showRuleBlock ? 2.25 : 1.5 }}>
-            <Typography
-              variant="caption"
-              sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 1.25, letterSpacing: 0.02 }}
-            >
+            <Typography variant="caption" sx={{ ...capSx, mb: 1.25 }}>
               Number pattern
             </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25, alignItems: 'center' }}>
@@ -1956,21 +2045,15 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string; renderM
         ) : null}
         {showRuleBlock ? (
           <Box sx={{ mb: shapeTokens.length > 0 ? 2.25 : 0 }}>
-            <Typography
-              variant="caption"
-              sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 1, letterSpacing: 0.02 }}
-            >
+            <Typography variant="caption" sx={capSx}>
               Rule
             </Typography>
-            <Typography sx={{ fontSize: '0.95rem', color: '#334155', lineHeight: 1.55 }}>{sourceRule}</Typography>
+            <Typography sx={{ fontSize: '0.95rem', color: theme.text, lineHeight: 1.55 }}>{sourceRule}</Typography>
           </Box>
         ) : null}
         {shapeTokens.length > 0 ? (
           <Box>
-            <Typography
-              variant="caption"
-              sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 1.25, letterSpacing: 0.02 }}
-            >
+            <Typography variant="caption" sx={{ ...capSx, mb: 1.25 }}>
               Shape pattern
             </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25, alignItems: 'center' }}>
@@ -1982,7 +2065,7 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string; renderM
             </Box>
           </Box>
         ) : null}
-        {stimulusConstraintsAppendixForPatternTransferBox(obj, border, hideSharedRule, q)}
+        {stimulusConstraintsAppendixForPatternTransferBox(obj, theme, hideSharedRule, q)}
       </Box>
     );
   }
@@ -1990,8 +2073,8 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string; renderM
   const passageOnlyText = gatherPassageOnlyStimulus(obj);
   if (passageOnlyText) {
     return (
-      <Box sx={{ mb: 2.5, p: 2.5, bgcolor: '#f8fafc', borderRadius: 2, border: `1px solid ${border}` }}>
-        <Typography sx={{ color: '#334155', fontSize: '1rem', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
+      <Box sx={stimulusPanelSx(theme)}>
+        <Typography sx={{ color: theme.text, fontSize: '1rem', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
           {passageOnlyText}
         </Typography>
       </Box>
@@ -2015,16 +2098,13 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string; renderM
 
   if (hasSeq || gridMatrix || (hasRules && !hideSharedRule) || textRule) {
     return (
-      <Box sx={{ mb: 2.5, p: 2.5, bgcolor: '#f8fafc', borderRadius: 2, border: `1px solid ${border}` }}>
+      <Box sx={stimulusPanelSx(theme)}>
         {textRule ? (
           <Box sx={{ mb: hasSeq || gridMatrix || (hasRules && !hideSharedRule) ? 2.25 : 0 }}>
-            <Typography
-              variant="caption"
-              sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 1, letterSpacing: 0.02 }}
-            >
+            <Typography variant="caption" sx={capSx}>
               Rules to apply
             </Typography>
-            <Typography sx={{ fontSize: '0.95rem', color: '#334155', lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>
+            <Typography sx={{ fontSize: '0.95rem', color: theme.text, lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>
               {textRule}
             </Typography>
           </Box>
@@ -2036,24 +2116,22 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string; renderM
             blankMeta={blankMeta}
             blankHelp={blankHelp}
             mb={gridMatrix || (hasRules && !hideSharedRule) ? 2.25 : 0}
+            theme={theme}
           />
         )}
         {gridMatrix ? (
           <Box sx={{ mb: hasRules && !hideSharedRule ? 2.25 : 0 }}>
-            <StimulusGridMatrixView matrix={gridMatrix} border={border} renderMath={renderMath} />
+            <StimulusGridMatrixView matrix={gridMatrix} border={border} renderMath={renderMath} theme={theme} />
           </Box>
         ) : null}
         {hasRules && !hideSharedRule && (
           <Box>
-            <Typography
-              variant="caption"
-              sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 1, letterSpacing: 0.02 }}
-            >
+            <Typography variant="caption" sx={capSx}>
               {stimulusType === 'symbol_sequence' || stimulusType === 'transformation'
                 ? 'Apply these rules'
                 : 'Rules to apply'}
             </Typography>
-            <Box component="ul" sx={{ m: 0, pl: 2.25, color: '#334155', '& li': { mb: 0.5 } }}>
+            <Box component="ul" sx={{ m: 0, pl: 2.25, color: theme.text, '& li': { mb: 0.5 } }}>
               {rulesArr.map((r, i) => (
                 <Typography component="li" key={i} sx={{ fontSize: '0.95rem', lineHeight: 1.55 }}>
                   {String(r ?? '')
@@ -2075,11 +2153,11 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string; renderM
       minWidth: 0,
       p: 2,
       borderRadius: 2,
-      border: `1px solid ${border}`,
-      bgcolor: '#fff',
+      border: `1px solid ${theme.border}`,
+      bgcolor: theme.qtyTileBg,
     };
     return (
-      <Box sx={{ mb: 2.5, p: 2.5, bgcolor: '#f8fafc', borderRadius: 2, border: `1px solid ${border}` }}>
+      <Box sx={stimulusPanelSx(theme)}>
         <Box
           sx={{
             display: 'flex',
@@ -2089,24 +2167,18 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string; renderM
           }}
         >
           <Box sx={qtyTileSx}>
-            <Typography
-              variant="caption"
-              sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 1, letterSpacing: 0.04 }}
-            >
+            <Typography variant="caption" sx={{ ...capSx, mb: 1, letterSpacing: 0.04 }}>
               Quantity A
             </Typography>
-            <Typography sx={{ fontWeight: 700, color: '#0f172a', fontSize: '1.05rem', lineHeight: 1.45 }}>
+            <Typography sx={{ fontWeight: 700, color: theme.heading, fontSize: '1.05rem', lineHeight: 1.45 }}>
               {comparisonQuantities.a}
             </Typography>
           </Box>
           <Box sx={qtyTileSx}>
-            <Typography
-              variant="caption"
-              sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 1, letterSpacing: 0.04 }}
-            >
+            <Typography variant="caption" sx={{ ...capSx, mb: 1, letterSpacing: 0.04 }}>
               Quantity B
             </Typography>
-            <Typography sx={{ fontWeight: 700, color: '#0f172a', fontSize: '1.05rem', lineHeight: 1.45 }}>
+            <Typography sx={{ fontWeight: 700, color: theme.heading, fontSize: '1.05rem', lineHeight: 1.45 }}>
               {comparisonQuantities.b}
             </Typography>
           </Box>
@@ -2134,19 +2206,15 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string; renderM
   return (
     <Box
       sx={{
-        mb: 2.5,
-        p: 2,
-        bgcolor: '#f8fafc',
-        borderRadius: 2,
-        border: `1px solid ${border}`,
+        ...stimulusPanelSx(theme, { p: 2 }),
         maxHeight: gridMatrix ? 520 : 320,
         overflow: 'auto',
       }}
     >
       {gridMatrix ? (
-        <StimulusGridMatrixView matrix={gridMatrix} border={border} renderMath={renderMath} />
+        <StimulusGridMatrixView matrix={gridMatrix} border={border} renderMath={renderMath} theme={theme} />
       ) : null}
-      {dataTable ? <StimulusDataTableView table={dataTable} border={border} /> : null}
+      {dataTable ? <StimulusDataTableView table={dataTable} border={border} theme={theme} /> : null}
       {entries.map(([key, value]) =>
         key === 'text' && typeof value === 'string' ? renderMath ? (
           <ExamMathText
@@ -2154,7 +2222,7 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string; renderM
             inline={false}
             sx={{
               fontSize: '0.95rem',
-              color: '#334155',
+              color: theme.text,
               lineHeight: 1.65,
               whiteSpace: 'pre-wrap',
               mb: 0.85,
@@ -2167,7 +2235,7 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string; renderM
             key={key}
             sx={{
               fontSize: '0.95rem',
-              color: '#334155',
+              color: theme.text,
               lineHeight: 1.65,
               whiteSpace: 'pre-wrap',
               mb: 0.85,
@@ -2177,13 +2245,10 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string; renderM
           </Typography>
         ) : key === 'constraints' ? (
           <Box key={key} sx={{ mb: 1.5 }}>
-            <Typography
-              variant="caption"
-              sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 1, letterSpacing: 0.02 }}
-            >
+            <Typography variant="caption" sx={{ ...capSx, mb: 1 }}>
               Constraints
             </Typography>
-            <Box component="ul" sx={{ m: 0, pl: 2.25, color: '#334155', '& li': { mb: 0.65 } }}>
+            <Box component="ul" sx={{ m: 0, pl: 2.25, color: theme.text, '& li': { mb: 0.65 } }}>
               {splitConstraintLines(value).map((line, i) => (
                 <Typography component="li" key={i} sx={{ fontSize: '0.92rem', lineHeight: 1.55 }}>
                   {line}
@@ -2192,8 +2257,8 @@ const HumanFriendlyStimulus: React.FC<{ q: ExamQuestion; border: string; renderM
             </Box>
           </Box>
         ) : (
-          <Typography key={key} sx={{ fontSize: '0.9rem', color: '#334155', mb: 0.85, lineHeight: 1.45 }}>
-            <Box component="span" sx={{ fontWeight: 700, color: '#475569' }}>
+          <Typography key={key} sx={{ fontSize: '0.9rem', color: theme.text, mb: 0.85, lineHeight: 1.45 }}>
+            <Box component="span" sx={{ fontWeight: 700, color: theme.textMuted }}>
               {humanizeFieldKey(key)}:{' '}
             </Box>
             {formatStimulusLeafValue(value)}
@@ -2938,3 +3003,6 @@ const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
 };
 
 export const ExamQuestionBody = React.memo(ExamQuestionBodyInner);
+
+/** Structured stimulus renderer (grids, sequences, tables) shared by practice and QotD. */
+export const ExamQuestionStimulus = HumanFriendlyStimulus;

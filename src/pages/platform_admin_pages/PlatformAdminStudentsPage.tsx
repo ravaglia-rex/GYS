@@ -37,24 +37,24 @@ import {
   type PlatformAdminStudentStats,
 } from '../../db/platformAdminCollection';
 import {
-  PlatformAdminPageHeader,
-  PlatformAdminChip,
-  PlatformAdminStatCard,
-  PlatformAdminFilterControl,
-  PlatformAdminTableSection,
-} from './platformAdminComponents';
-import {
   platformAdminCardSx,
   platformAdminClearFiltersButtonSx,
   platformAdminFilterToolbarRowSx,
   platformAdminPageContainerSx,
-  platformAdminPalette as ip,
   platformAdminSearchFieldSx,
   platformAdminStatsGridSx,
   platformAdminTableHeadRowSx,
   platformAdminTablePaperSx,
   platformAdminTableSx,
 } from './platformAdminPageStyles';
+import { institutionalPalette as ip } from '../../theme/institutionalPalette';
+import {
+  PlatformAdminPageHeader,
+  PlatformAdminChip,
+  PlatformAdminStatCard,
+  PlatformAdminFilterControl,
+  PlatformAdminTableSection,
+} from './platformAdminComponents';
 
 type StatusFilter = 'all' | 'approved' | 'pending';
 type RosterFilter = 'all' | 'yes' | 'no';

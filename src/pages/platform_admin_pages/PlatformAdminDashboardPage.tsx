@@ -39,14 +39,14 @@ import {
   type PlatformAdminNotification,
   type PlatformAdminOverviewStats,
 } from '../../db/platformAdminCollection';
-import { PlatformAdminPageHeader } from './platformAdminComponents';
 import {
   platformAdminCardSx,
   platformAdminMutedCardSx,
   platformAdminPageContainerSx,
-  platformAdminPalette as ip,
   platformAdminPrimaryButtonSx,
 } from './platformAdminPageStyles';
+import { institutionalPalette as ip } from '../../theme/institutionalPalette';
+import { PlatformAdminPageHeader } from './platformAdminComponents';
 
 type PipelineId = 'student' | 'school' | 'monthly';
 

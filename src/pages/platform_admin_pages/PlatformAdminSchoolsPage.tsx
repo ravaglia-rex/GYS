@@ -38,6 +38,19 @@ import {
   type PlatformAdminSchoolSummary,
 } from '../../db/platformAdminCollection';
 import {
+  platformAdminCardSx,
+  platformAdminClearFiltersButtonSx,
+  platformAdminFilterToolbarRowSx,
+  platformAdminPageContainerSx,
+  platformAdminSearchFieldSx,
+  platformAdminStatsGridSx,
+  platformAdminTableHeadRowSx,
+  platformAdminTablePaperSx,
+  platformAdminTableSx,
+  platformAdminTextButtonSx,
+} from './platformAdminPageStyles';
+import { institutionalPalette as ip } from '../../theme/institutionalPalette';
+import {
   PlatformAdminPageHeader,
   PlatformAdminChip,
   PlatformAdminStatCard,
@@ -46,19 +59,6 @@ import {
   formatPaymentStatusLabel,
   paymentStatusChipTone,
 } from './platformAdminComponents';
-import {
-  platformAdminCardSx,
-  platformAdminClearFiltersButtonSx,
-  platformAdminFilterToolbarRowSx,
-  platformAdminPageContainerSx,
-  platformAdminPalette as ip,
-  platformAdminSearchFieldSx,
-  platformAdminStatsGridSx,
-  platformAdminTableHeadRowSx,
-  platformAdminTablePaperSx,
-  platformAdminTableSx,
-  platformAdminTextButtonSx,
-} from './platformAdminPageStyles';
 import { isPlatformAdminTestSchool } from './platformAdminTestSchools';
 
 type PaymentFilter = 'all' | 'paid' | 'pending' | 'wire';
