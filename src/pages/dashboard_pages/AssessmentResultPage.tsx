@@ -268,7 +268,7 @@ const AssessmentResultPage: React.FC = () => {
               </Typography>
               <Typography sx={{ color: '#37474f', fontSize: '0.85rem', lineHeight: 1.55 }}>{unlock}</Typography>
               <Typography sx={{ color: '#78909c', fontSize: '0.72rem', mt: 1, lineHeight: 1.45 }}>
-                Higher membership levels unlock more exams: Reasoning Triad (1–3), then Reasoning + Skills (4–5), then Guided Decision for Insight (6–7) and counseling.
+                Higher membership levels unlock more exams: Reasoning Triad (1–3), then Stream Ready (4–5), then Career Ready for Pathways (6–7) and counseling.
               </Typography>
             </Box>
           </Box>

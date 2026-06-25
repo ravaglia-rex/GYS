@@ -81,13 +81,13 @@ const MEMBERSHIP_PACKAGES: PackageRow[] = [
   {
     level: 3,
     name: MEMBERSHIP_LEVEL_LABEL[3],
-    blurb: 'Annual - adds English & AI (Exams 4–5).',
+    blurb: 'Annual - adds Personality & AI (Exams 4–5).',
     note: 'Annual billing',
   },
   {
     level: 4,
     name: MEMBERSHIP_LEVEL_LABEL[4],
-    blurb: 'Annual - Insight exams & counseling features (6–7).',
+    blurb: 'Annual - Pathways exams & counseling features (6–7).',
     note: 'Annual billing',
   },
 ];
@@ -196,7 +196,7 @@ const StudentPreviewBillingPage: React.FC = () => {
           </Typography>
         </Box>
         <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)', mb: 2 }}>
-          Trial first, then three annual packages - Reasoning Triad, Reasoning + Skills, and Guided Decision. Your
+          Trial first, then three annual packages - Reasoning Triad, Stream Ready, and Career Ready. Your
           current package is highlighted.
         </Typography>
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' }, gap: 2 }}>

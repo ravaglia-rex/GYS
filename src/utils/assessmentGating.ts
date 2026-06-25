@@ -14,9 +14,9 @@ export const ASSESSMENT_ORDER = [
   'symbolic_reasoning',
   'verbal_reasoning',
   'mathematical_reasoning',
-  'english_proficiency',
-  'ai_literacy',
   'comprehensive_personality',
+  'ai_literacy',
+  'english_proficiency',
   'career_interest_inventory',
 ] as const;
 
@@ -51,8 +51,8 @@ export interface GateResult {
 }
 
 /**
- * Rev 13 - Level 1 Discovery (Exam 1); Level 2 Reasoning Triad (1–3); Level 3 Reasoning + Skills (1–5);
- * Level 4 Guided Decision (+ Insight: personality + career discovery).
+ * Rev 14 - Level 1 Discovery (Exam 1); Level 2 Reasoning Triad (1–3); Level 3 Stream Ready (1–5: + personality + AI);
+ * Level 4 Career Ready (+ Pathways: english + career discovery).
  */
 export const MEMBERSHIP_ALLOWED: Record<number, string[]> = {
   0: [],
@@ -62,7 +62,7 @@ export const MEMBERSHIP_ALLOWED: Record<number, string[]> = {
     'symbolic_reasoning',
     'verbal_reasoning',
     'mathematical_reasoning',
-    'english_proficiency',
+    'comprehensive_personality',
     'ai_literacy',
   ],
   4: [...ASSESSMENT_ORDER],
@@ -72,8 +72,8 @@ export const MEMBERSHIP_ALLOWED: Record<number, string[]> = {
 export const MEMBERSHIP_LEVEL_LABELS: Record<number, string> = {
   1: 'Trial - Discovery',
   2: 'Reasoning Triad',
-  3: 'Reasoning + Skills',
-  4: 'Guided Decision',
+  3: 'Stream Ready',
+  4: 'Career Ready',
 };
 
 /** Shown on the dashboard chart without a numeric score (non-competitive / profile assessments). */
@@ -82,7 +82,7 @@ export const NON_COMPETITIVE_CHART_ASSESSMENT_IDS: ReadonlySet<string> = new Set
   'career_interest_inventory',
 ]);
 
-/** Exams 6–7 are profile/insight instruments, not leveled skill assessments. */
+/** Exams 4 and 7 are profile/pathway instruments, not leveled skill assessments. */
 export const NON_LEVEL_ASSESSMENT_IDS: ReadonlySet<string> = new Set([
   'comprehensive_personality',
   'career_interest_inventory',
@@ -96,10 +96,10 @@ export const ASSESSMENT_NAMES: Record<string, string> = {
   symbolic_reasoning: 'Pattern and Logic',
   verbal_reasoning: 'Verbal Reasoning',
   mathematical_reasoning: 'Mathematical Reasoning',
-  english_proficiency: 'English Proficiency',
+  comprehensive_personality: 'Personality and Interest',
   ai_literacy: 'AI Proficiency',
-  comprehensive_personality: 'Comprehensive Personality',
-  career_interest_inventory: 'Interest & Career Discovery',
+  english_proficiency: 'English Proficiency',
+  career_interest_inventory: 'Career Discovery',
 };
 
 /** Sequence gate: prerequisites must be satisfied (membership gate is checked first). */
@@ -107,10 +107,10 @@ export const COMPLETION_PREREQUISITES: Record<string, string[]> = {
   symbolic_reasoning: [],
   verbal_reasoning: ['symbolic_reasoning'],
   mathematical_reasoning: ['verbal_reasoning'],
-  english_proficiency: ['verbal_reasoning', 'mathematical_reasoning'],
-  ai_literacy: ['english_proficiency'],
-  comprehensive_personality: ['english_proficiency', 'ai_literacy'],
-  career_interest_inventory: ['comprehensive_personality'],
+  comprehensive_personality: ['verbal_reasoning', 'mathematical_reasoning'],
+  ai_literacy: ['comprehensive_personality'],
+  english_proficiency: ['comprehensive_personality', 'ai_literacy'],
+  career_interest_inventory: ['english_proficiency'],
 };
 
 /** New accounts and missing level default to API level 1 (Discovery entry path in product copy). */

@@ -81,12 +81,12 @@ const MEMBERSHIP_PACKAGE_CARDS: Array<{
   },
   {
     level: 3,
-    blurb: 'Annual - adds English & AI (Exams 4–5).',
+    blurb: 'Annual - adds Personality & AI (Exams 4–5).',
     note: 'Annual billing',
   },
   {
     level: 4,
-    blurb: 'Annual - Insight exams & counseling features (6–7).',
+    blurb: 'Annual - Pathways exams & counseling features (6–7).',
     note: 'Annual billing',
   },
 ];
@@ -347,7 +347,7 @@ const MembershipUpgradeSection: React.FC = () => {
         </Typography>
       </Box>
       <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)', mb: 2 }}>
-        Trial first, then three annual packages - Reasoning Triad, Reasoning + Skills, and Guided Decision. Your current
+        Trial first, then three annual packages - Reasoning Triad, Stream Ready, and Career Ready. Your current
         package is highlighted. Amounts shown are base list prices; any applicable taxes, duties, or compliance charges
         are included unless separately stated. When upgrading you pay only the list-price difference (Trial Discovery
         credits toward higher tiers the same way).

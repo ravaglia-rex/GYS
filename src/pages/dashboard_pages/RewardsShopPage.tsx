@@ -241,7 +241,7 @@ const RewardsShopPage: React.FC = () => {
               {redemptions.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={5} align="center" sx={{ color: 'rgba(255, 255, 255, 0.55) !important' }}>
-                    No redemptions yet — start earning coins!
+                    No redemptions yet  -  start earning coins!
                   </TableCell>
                 </TableRow>
               )}

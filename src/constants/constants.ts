@@ -16,6 +16,7 @@ export const PLATFORM_ADMIN_SCHOOLS = '/schools';
 export const PLATFORM_ADMIN_STUDENTS = '/students';
 export const PLATFORM_ADMIN_STUDENTS_STATS = '/students/stats';
 export const PLATFORM_ADMIN_PENDING_REDEMPTIONS = '/pending-redemptions';
+export const PLATFORM_ADMIN_REDEMPTION_HISTORY = '/redemption-history';
 export const PLATFORM_ADMIN_FULFILL_REDEMPTION = '/fulfill-redemption';
 export const PLATFORM_ADMIN_RUN_PIPELINE = '/run-pipeline';
 export const PLATFORM_ADMIN_AUTHENTICATE = '/authenticate';

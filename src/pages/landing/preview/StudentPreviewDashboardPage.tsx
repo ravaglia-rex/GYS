@@ -24,7 +24,7 @@ import {
 
 const SAMPLE_ASSESSMENT_PATH = getPreviewSampleAssessmentPath(DEFAULT_PREVIEW_SAMPLE_EXAM_ID);
 const SAMPLE_ASSESSMENT_EXIT = '/students/preview/dashboard';
-const HIDE_SAMPLE_CTA_ASSESSMENT_IDS = ['english_proficiency', 'ai_literacy'] as const;
+const HIDE_SAMPLE_CTA_ASSESSMENT_IDS = ['comprehensive_personality', 'ai_literacy', 'english_proficiency', 'career_interest_inventory'] as const;
 const PREVIEW_NOTIFICATION_TIMESTAMP = '2026-05-01T04:30:00.000Z';
 
 const PREVIEW_BACKEND_NOTIFICATION_EVENTS: DashboardNotificationEventSource[] = [
@@ -59,7 +59,7 @@ const PREVIEW_BACKEND_NOTIFICATION_EVENTS: DashboardNotificationEventSource[] = 
     id: 'preview-payment-confirmed-pay-demo-001',
     type: 'success',
     title: 'Membership Upgrade Confirmed',
-    message: 'Your membership upgrade to Reasoning + Skills is confirmed. Your new access is available now.',
+    message: 'Your membership upgrade to Stream Ready is confirmed. Your new access is available now.',
     created_at_iso: '2026-05-01T04:15:00.000Z',
     category: 'payment',
     color: DASHBOARD_NOTIFICATION_COLORS.payment,
@@ -145,7 +145,7 @@ const StudentPreviewDashboardPage: React.FC = () => {
           </Typography>
         </Box>
         <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.65)', mb: 2 }}>
-          All assessments are listed below. Complete them in sequence where your membership allows: Reasoning Triad is Exams 1–3; Reasoning + Skills adds 4–5; Guided Decision adds Insight (6–7) and counseling features.
+          All assessments are listed below. Complete them in sequence where your membership allows: Reasoning Triad is Exams 1–3; Stream Ready adds 4–5; Career Ready adds Pathways (6–7) and counseling features.
         </Typography>
         <EnhancedAssessmentCardsGroup
           uid=""

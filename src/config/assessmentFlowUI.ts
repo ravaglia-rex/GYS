@@ -144,9 +144,9 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
     adaptiveForwardOnly: true,
   },
   english_proficiency: {
-    examOrdinal: 4,
+    examOrdinal: 6,
     examTitleShort: 'English Proficiency',
-    heroSubtitle: 'Advanced English - reading, writing, listening & speaking',
+    heroSubtitle: 'Exam 6 • Pathways group',
     statGrid: [
       { label: 'Duration', value: 'Varies' },
       { label: 'Sections', value: '4 skills' },
@@ -164,6 +164,7 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
     ],
     beforeBegin: englishBefore,
     theme: 'blue',
+    levelExclusiveBadge: 'Career Ready only',
     detailFooterFinePrint: 'Confirm microphone and speakers work before you begin.',
     defaultQuestionInteraction: 'listening_mcq',
     useTimer: true,
@@ -199,9 +200,9 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
     adaptiveForwardOnly: false,
   },
   comprehensive_personality: {
-    examOrdinal: 6,
-    examTitleShort: 'Comprehensive Personality',
-    heroSubtitle: 'Exam 6 • The deep-dive assessment',
+    examOrdinal: 4,
+    examTitleShort: 'Personality and Interest',
+    heroSubtitle: 'Exam 4 • Profile group',
     statGrid: [
       { label: 'Duration', value: '45 - 60 min' },
       { label: 'Dimensions', value: '~30' },
@@ -225,7 +226,7 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
       },
     ],
     theme: 'purple',
-    levelExclusiveBadge: 'Guided Decision only',
+    levelExclusiveBadge: 'Stream Ready only',
     isComprehensivePersonality: true,
     comprehensiveExtra: {
       howDifferentTitle: 'How This Is Different',
@@ -243,8 +244,8 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
   },
   career_interest_inventory: {
     examOrdinal: 7,
-    examTitleShort: 'Interest & Career Discovery',
-    heroSubtitle: 'Exam 7 • Insight group',
+    examTitleShort: 'Career Discovery',
+    heroSubtitle: 'Exam 7 • Pathways group',
     statGrid: [
       { label: 'Duration', value: 'Flexible' },
       { label: 'Format', value: 'Self-report' },
@@ -261,11 +262,11 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
     ],
     beforeBegin: [
       { icon: 'bolt', text: 'No right or wrong answers - candor improves recommendations.' },
-      { icon: 'chart', text: 'Pairs with Guided Decision counseling when you opt in.' },
+      { icon: 'chart', text: 'Pairs with Career Ready counseling when you opt in.' },
     ],
     theme: 'purple',
-    levelExclusiveBadge: 'Guided Decision only',
-    detailFooterFinePrint: 'Complete Comprehensive Personality first when prompted.',
+    levelExclusiveBadge: 'Career Ready only',
+    detailFooterFinePrint: 'Complete English Proficiency first when prompted.',
     defaultQuestionInteraction: 'likert',
     useTimer: false,
     adaptiveForwardOnly: false,
@@ -314,7 +315,7 @@ export function unlockNoticeForAssessment(assessmentId: string, passed: boolean)
       return 'Verbal Reasoning and Mathematical Reasoning are now available (within your membership).';
     case 'verbal_reasoning':
     case 'mathematical_reasoning':
-      return 'Continue the sequence - English (Exam 4) unlocks after the reasoning triad with Reasoning + Skills; AI Proficiency follows English; Insight instruments need Guided Decision.';
+      return 'Continue the sequence - Personality and Interest (Exam 4) unlocks after the reasoning triad with Stream Ready; AI Proficiency follows; Pathways instruments need Career Ready.';
     default:
       return null;
   }

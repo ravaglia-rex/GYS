@@ -227,7 +227,7 @@ const Dashboard: React.FC = () => {
                   </Box>
                   <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.65)', mb: 2 }}>
                     {STUDENT_OFFICIAL_ASSESSMENTS_ENABLED
-                      ? 'All assessments are listed below. Complete them in sequence where your membership allows - Reasoning Triad covers Exams 1-3; Reasoning + Skills adds English and AI Proficiency (4-5); Guided Decision adds the Insight group (6-7) and ongoing AI career counseling that begins after that baseline and grows as you log new experiences. Practice Mode uses a separate pool and does not change official scores.'
+                      ? 'All assessments are listed below. Complete them in sequence where your membership allows - Reasoning Triad covers Exams 1-3; Stream Ready adds Personality and Interest and AI Proficiency (4-5); Career Ready adds the Pathways group (6-7) and ongoing AI career counseling that begins after that baseline and grows as you log new experiences. Practice Mode uses a separate pool and does not change official scores.'
                       : 'Official exams are listed for reference, but they are not open yet while the real question banks are being prepared. Practice Mode remains available and uses a separate pool that does not change official scores.'}
                   </Typography>
                 </Box>

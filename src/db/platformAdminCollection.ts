@@ -7,6 +7,7 @@ import {
   PLATFORM_ADMIN_ME,
   PLATFORM_ADMIN_OVERVIEW,
   PLATFORM_ADMIN_PENDING_REDEMPTIONS,
+  PLATFORM_ADMIN_REDEMPTION_HISTORY,
   PLATFORM_ADMIN_RUN_PIPELINE,
   PLATFORM_ADMIN_SCHOOLS,
   PLATFORM_ADMIN_STUDENTS,
@@ -140,6 +141,32 @@ export type PlatformAdminPendingRedemption = {
   student_email: string;
   parent_email: string;
   requested_at?: { seconds?: number; _seconds?: number };
+};
+
+export type PlatformAdminRedemptionHistorySummary = {
+  pending_count: number;
+  fulfilled_count: number;
+  rejected_count: number;
+  coins_fulfilled: number;
+  coins_rejected_refunded: number;
+  inr_fulfilled_total: number;
+};
+
+export type PlatformAdminRedemptionHistoryEntry = {
+  redemption_id: string;
+  uid: string;
+  student_name: string;
+  student_email: string;
+  parent_email: string;
+  item_id: string;
+  item_name: string;
+  coins_spent: number;
+  status: 'fulfilled' | 'rejected';
+  face_value_inr: number;
+  admin_note: string | null;
+  voucher_code: string | null;
+  requested_at?: { seconds?: number; _seconds?: number };
+  action_at?: { seconds?: number; _seconds?: number } | null;
 };
 
 export async function checkPlatformAdminAccess(): Promise<boolean> {
@@ -333,6 +360,28 @@ export async function listPlatformAdminPendingRedemptions(): Promise<PlatformAdm
   return res.data.pending ?? [];
 }
 
+export async function getPlatformAdminRedemptionHistory(): Promise<{
+  summary: PlatformAdminRedemptionHistorySummary;
+  history: PlatformAdminRedemptionHistoryEntry[];
+}> {
+  const headers = await authHeaders();
+  const res = await axios.get(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_REDEMPTION_HISTORY}`,
+    { headers }
+  );
+  return {
+    summary: res.data.summary ?? {
+      pending_count: 0,
+      fulfilled_count: 0,
+      rejected_count: 0,
+      coins_fulfilled: 0,
+      coins_rejected_refunded: 0,
+      inr_fulfilled_total: 0,
+    },
+    history: res.data.history ?? [],
+  };
+}
+
 export async function fulfillPlatformAdminRedemption(body: {
   redemption_id: string;
   uid: string;
@@ -358,7 +407,7 @@ export async function runPlatformAdminPipeline(
 }
 
 export function formatInrFromPaise(paise: number | null | undefined): string {
-  if (typeof paise !== 'number' || !Number.isFinite(paise)) return '—';
+  if (typeof paise !== 'number' || !Number.isFinite(paise)) return ' - ';
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
     currency: 'INR',
@@ -367,7 +416,7 @@ export function formatInrFromPaise(paise: number | null | undefined): string {
 }
 
 export function formatInr(amount: number | null | undefined): string {
-  if (typeof amount !== 'number' || !Number.isFinite(amount)) return '—';
+  if (typeof amount !== 'number' || !Number.isFinite(amount)) return ' - ';
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
     currency: 'INR',
@@ -376,9 +425,9 @@ export function formatInr(amount: number | null | undefined): string {
 }
 
 export function formatDate(iso: string | null | undefined): string {
-  if (!iso) return '—';
+  if (!iso) return ' - ';
   const d = new Date(iso);
-  if (!Number.isFinite(d.getTime())) return '—';
+  if (!Number.isFinite(d.getTime())) return ' - ';
   return d.toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 

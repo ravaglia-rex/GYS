@@ -412,9 +412,9 @@ const PlatformAdminStudentsPage: React.FC = () => {
                   students.map((student) => (
                     <TableRow key={student.uid}>
                       <TableCell sx={{ fontWeight: 600, color: ip.heading }}>
-                        {[student.first_name, student.last_name].filter(Boolean).join(' ') || '—'}
+                        {[student.first_name, student.last_name].filter(Boolean).join(' ') || ' - '}
                       </TableCell>
-                      <TableCell sx={{ color: ip.heading }}>{student.email || '—'}</TableCell>
+                      <TableCell sx={{ color: ip.heading }}>{student.email || ' - '}</TableCell>
                       <TableCell sx={{ maxWidth: 220 }}>
                         {student.school_name ? (
                           <>
@@ -439,13 +439,13 @@ const PlatformAdminStudentsPage: React.FC = () => {
                           </>
                         ) : (
                           <Typography variant="body2" sx={{ color: ip.subtext }}>
-                            {student.school_id || '—'}
+                            {student.school_id || ' - '}
                           </Typography>
                         )}
                       </TableCell>
-                      <TableCell sx={{ color: ip.heading, fontWeight: 600 }}>{student.grade ?? '—'}</TableCell>
+                      <TableCell sx={{ color: ip.heading, fontWeight: 600 }}>{student.grade ?? ' - '}</TableCell>
                       <TableCell sx={{ color: ip.heading }}>
-                        {student.membership_level != null ? `Level ${student.membership_level}` : '—'}
+                        {student.membership_level != null ? `Level ${student.membership_level}` : ' - '}
                       </TableCell>
                       <TableCell>
                         {student.approval_status ? (
@@ -454,7 +454,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
                             tone={student.approval_status.toLowerCase() === 'approved' ? 'success' : 'warning'}
                           />
                         ) : (
-                          '—'
+                          ' - '
                         )}
                       </TableCell>
                       <TableCell sx={{ color: ip.subtext, whiteSpace: 'nowrap' }}>

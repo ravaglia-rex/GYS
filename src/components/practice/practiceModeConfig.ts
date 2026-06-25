@@ -2,6 +2,7 @@ import type { AssessmentType, ExamQuestion } from '../../db/assessmentCollection
 import {
   ASSESSMENT_NAMES,
   ASSESSMENT_ORDER,
+  NON_LEVEL_ASSESSMENT_IDS,
   computeGate,
   type AssessmentProgress,
   type GateResult,
@@ -23,10 +24,14 @@ export function practiceExamIsUnlocked(examId: string, gate: PracticeAssessmentG
   return !practiceExamGate(examId, gate).locked;
 }
 
-/** Exams 1–5 have skill-based practice pools. Exams 6–7 are profile-style (no practice pool). */
-export const PRACTICE_ELIGIBLE_EXAM_IDS = ASSESSMENT_ORDER.slice(0, 5) as readonly string[];
+/** Competitive exams with skill-based practice pools (excludes profile/pathway instruments). */
+export const PRACTICE_ELIGIBLE_EXAM_IDS = ASSESSMENT_ORDER.filter(
+  (id) => !NON_LEVEL_ASSESSMENT_IDS.has(id)
+) as readonly string[];
 
-export const NON_PRACTICE_EXAM_IDS = ASSESSMENT_ORDER.slice(5, 7) as readonly string[];
+export const NON_PRACTICE_EXAM_IDS = ASSESSMENT_ORDER.filter((id) =>
+  NON_LEVEL_ASSESSMENT_IDS.has(id)
+) as readonly string[];
 
 /** Reasoning triad: full-page interactive practice (practice_bank API + PracticeTakePage). */
 export const INTERACTIVE_PRACTICE_EXAM_IDS = [
@@ -535,7 +540,7 @@ export const PRACTICE_EXAM_CARD_STYLE: Record<
     accent: '#10b981',
   },
   english_proficiency: {
-    examNumber: 4,
+    examNumber: 6,
     gradient: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
     accent: '#ef4444',
   },
@@ -548,7 +553,7 @@ export const PRACTICE_EXAM_CARD_STYLE: Record<
 
 export const NON_PRACTICE_EXAM_CARD_STYLE: Record<string, { examNumber: number; gradient: string }> = {
   comprehensive_personality: {
-    examNumber: 6,
+    examNumber: 4,
     gradient: 'linear-gradient(135deg, rgba(236,72,153,0.35) 0%, rgba(190,24,93,0.25) 100%)',
   },
   career_interest_inventory: {

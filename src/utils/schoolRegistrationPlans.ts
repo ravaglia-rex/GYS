@@ -183,7 +183,7 @@ export function resolveRegisterPlanIdFromFields(
   return null;
 }
 
-/** Annual package fee in INR — prefers API value, falls back to plan catalog. */
+/** Annual package fee in INR  -  prefers API value, falls back to plan catalog. */
 export function resolveSchoolPlanPriceInr(params: {
   plan_price_inr?: number | null;
   selected_plan_id?: string | null;

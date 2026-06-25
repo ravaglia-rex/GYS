@@ -74,14 +74,13 @@ const ASSESSMENT_META: Record<string, {
     description: 'Quantitative reasoning, structure, and non-routine mathematical thinking beyond rote calculation.',
     languages: [],
   },
-  english_proficiency: {
+  comprehensive_personality: {
     assessmentNumber: 4,
-    color: '#ef4444',
-    gradient: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
-    icon: '✍️',
-    description: 'Advanced English - reading, writing, listening, and speaking (Reasoning + Skills and above).',
+    color: '#ec4899',
+    gradient: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)',
+    icon: '🌐',
+    description: '~30 dimensions for early stream recommendations. ~200 questions, 45 - 60 minutes.',
     languages: [],
-    needsMic: true,
   },
   ai_literacy: {
     assessmentNumber: 5,
@@ -92,20 +91,21 @@ const ASSESSMENT_META: Record<string, {
     languages: [],
     needsLaptop: true,
   },
-  comprehensive_personality: {
+  english_proficiency: {
     assessmentNumber: 6,
-    color: '#ec4899',
-    gradient: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)',
-    icon: '🌐',
-    description: '~30 college-specific dimensions. ~200 questions, 45 - 60 minutes. The capstone assessment.',
+    color: '#ef4444',
+    gradient: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
+    icon: '✍️',
+    description: 'Advanced English - reading, writing, listening, and speaking (Career Ready and above).',
     languages: [],
+    needsMic: true,
   },
   career_interest_inventory: {
     assessmentNumber: 7,
     color: '#a855f7',
     gradient: 'linear-gradient(135deg, #a855f7 0%, #6d28d9 100%)',
     icon: '🧭',
-    description: 'Interest inventory and career discovery - Guided Decision; completes after personality.',
+    description: 'Career Discovery - Career Ready; completes after English Proficiency.',
     languages: [],
   },
 };
@@ -222,10 +222,10 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
     ? `Unlocks after ${ASSESSMENT_NAMES[gate.missingPrerequisite ?? ''] ?? gate.missingPrerequisite}`
     : '';
 
-  const isGuidedDecisionExclusive =
-    assessment.id === 'comprehensive_personality' || assessment.id === 'career_interest_inventory';
+  const isCareerReadyExclusive =
+    assessment.id === 'english_proficiency' || assessment.id === 'career_interest_inventory';
   const membershipLocked = gate.reason === 'membership';
-  const isPurpleTier = isGuidedDecisionExclusive && membershipLocked;
+  const isPurpleTier = isCareerReadyExclusive && membershipLocked;
   const reasoningSubcategories = getReasoningExamSubcategories(assessment.id);
 
   /** Fixed slots so device chips, tier bar, and stats line up across cards in the same grid row */

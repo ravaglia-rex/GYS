@@ -95,7 +95,7 @@ const SCHOOL_PACKAGE_COMPARISON: SchoolComparisonSection[] = [
       },
       {
         label: 'Assessments 4–5 (English & AI proficiency)',
-        desc: 'Skills track for institutional cohorts',
+        desc: 'Profile track for institutional cohorts',
         inPlan: [false, false, true],
       },
     ],

@@ -32,7 +32,7 @@ const PA_NAV = [
 
 const PA_SECTION_IDS_JOIN = PA_NAV.map((s) => s.id).join('|');
 
-/** Rev 13 - three groupings: Reasoning (1–3), Skills (4–5), Insight (6–7). */
+/** Rev 14 - three groupings: Reasoning (1–3), Profile (4–5), Pathways (6–7). */
 const ASSESSMENTS = [
   {
     n: 1,
@@ -66,18 +66,18 @@ const ASSESSMENTS = [
   },
   {
     n: 4,
-    title: 'English Proficiency',
-    tag: 'Group B • Skills',
-    desc: 'Evaluates reading, writing, listening, and comprehension for academic and professional English fluency. Designed to reflect the communication demands of top universities and the workplace.',
-    highlights: ['Reading', 'Writing', 'Listening', 'Comprehension'],
-    icon: '💬',
-    stripe: '#14b8a6',
-    band: 'from-teal-50 to-white',
+    title: 'Personality and Interest',
+    tag: 'Group B • Profile',
+    desc: 'A psychometric evaluation across roughly 30 personality dimensions using self-report and situational judgment. There are no right or wrong answers; the result is a multi-dimensional behavioral profile that supports early stream recommendations. Results are private to the student and their family.',
+    highlights: ['~30 dimensions', 'No right answers', 'Private to family'],
+    icon: '✨',
+    stripe: '#ec4899',
+    band: 'from-pink-50 to-white',
   },
   {
     n: 5,
     title: 'AI Proficiency',
-    tag: 'Group B • Skills',
+    tag: 'Group B • Profile',
     desc: 'Measures understanding of AI concepts, computational thinking, and the ability to interact productively with AI tools. Scenario-based, not a coding test. Built independently by the GYS team for the India context.',
     highlights: ['AI concepts', 'Computational thinking', 'Scenario-based'],
     icon: '🤖',
@@ -86,20 +86,20 @@ const ASSESSMENTS = [
   },
   {
     n: 6,
-    title: 'Comprehensive Personality Assessment',
-    tag: 'Group C • Insight',
-    desc: 'A psychometric evaluation across roughly 30 personality dimensions using self-report and situational judgment. There are no right or wrong answers; the result is a multi-dimensional behavioral profile. Results are private to the student and their family.',
-    highlights: ['~30 dimensions', 'No right answers', 'Private to family'],
-    icon: '✨',
-    stripe: '#ec4899',
-    band: 'from-pink-50 to-white',
+    title: 'English Proficiency',
+    tag: 'Group C • Pathways',
+    desc: 'Evaluates reading, writing, listening, and comprehension for academic and professional English fluency. Designed to reflect the communication demands of top universities and the workplace.',
+    highlights: ['Reading', 'Writing', 'Listening', 'Comprehension'],
+    icon: '💬',
+    stripe: '#14b8a6',
+    band: 'from-teal-50 to-white',
   },
   {
     n: 7,
-    title: 'Comprehensive Interest Inventory & Career Discovery',
-    tag: 'Group C • Insight',
+    title: 'Career Discovery',
+    tag: 'Group C • Pathways',
     desc:
-      'Maps interests and career themes to support stream exploration and establish the Insight baseline for ongoing AI career counseling. Pairs with personality and reasoning signals; after Guided Decision, students keep enriching the counseling profile by logging real-world experiences.',
+      'Maps interests and career themes to support stream exploration and establish the baseline for ongoing AI career counseling. Pairs with personality and reasoning signals; after Career Ready, students keep enriching the counseling profile by logging real-world experiences.',
     highlights: ['Interests', 'Career themes', 'Baseline for counseling'],
     icon: '🧭',
     stripe: '#a855f7',
@@ -141,7 +141,7 @@ const PublicAssessmentsPage: React.FC = () => {
               <span style={{ color: GYS_GOLD }}>One Global Benchmark.</span>
             </h2>
             <p className="landing-hero-enter-3 mx-auto mt-5 max-w-2xl text-sm leading-relaxed text-white/88 sm:text-base">
-              Three exam groups (Reasoning, Skills, and Insight) for classes 6–12, normed globally. Profiles for
+              Three exam groups (Reasoning, Profile, and Pathways) for classes 6–12, normed globally. Profiles for
               students; cohort insight for schools.
             </p>
             <div className="landing-hero-enter-4 mx-auto mt-5 flex max-w-lg flex-wrap justify-center gap-2">
@@ -194,9 +194,9 @@ const PublicAssessmentsPage: React.FC = () => {
             <h3 className="text-2xl font-bold text-slate-900 sm:text-3xl">What We Measure</h3>
             <p className="mx-auto max-w-2xl text-sm text-slate-600 sm:text-base">
               <span className="font-semibold text-slate-800">Group A - Reasoning</span> (Exams 1–3) is the Reasoning Triad.
-              <span className="font-semibold text-slate-800"> Group B - Skills</span> adds English and AI Proficiency (4–5).
-              <span className="font-semibold text-slate-800"> Group C - Insight</span> (6–7) unlocks with Guided Decision and
-              establishes the baseline for ongoing AI career counseling; the relationship continues as students log new experiences on the platform.
+              <span className="font-semibold text-slate-800"> Group B - Profile</span> adds Personality and Interest plus AI Proficiency (4–5) with Stream Ready.
+              <span className="font-semibold text-slate-800"> Group C - Pathways</span> (6–7) unlocks with Career Ready and
+              adds English Proficiency and Career Discovery; ongoing AI career counseling continues as students log new experiences on the platform.
             </p>
           </div>
 

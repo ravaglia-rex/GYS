@@ -50,6 +50,6 @@ export function formatInrFromPaise(paise: number): string {
 export const MEMBERSHIP_LEVEL_LABEL: Record<1 | 2 | 3 | 4, string> = {
   1: 'Trial - Discovery',
   2: 'Reasoning Triad',
-  3: 'Reasoning + Skills',
-  4: 'Guided Decision',
+  3: 'Stream Ready',
+  4: 'Career Ready',
 };

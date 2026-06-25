@@ -147,12 +147,12 @@ export default function NotificationsDialog({
       fullWidth
       PaperProps={{
         sx: {
-          backgroundColor: 'rgba(30, 41, 59, 0.95)',
-          backdropFilter: 'blur(20px)',
+          backgroundColor: '#1e293b',
+          backgroundImage: 'none',
           border: '1px solid rgba(255, 255, 255, 0.1)',
           color: 'white',
-          maxHeight: '80vh'
-        }
+          maxHeight: '80vh',
+        },
       }}
     >
       <DialogTitle sx={{ 

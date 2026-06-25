@@ -44,7 +44,7 @@ export const studentFaqSections: { heading: string; items: LandingFaqItem[] }[] 
               <li>Stream-selection guidance</li>
               <li>Career discovery insights</li>
               <li>University-fit recommendations</li>
-              <li>Ongoing AI-supported guidance through the Guided Decision membership</li>
+              <li>Ongoing AI-supported guidance through the Career Ready membership</li>
             </ul>
             <p className="mt-3">
               For students in Classes 8–10, GYS can be especially helpful for stream-selection conversations,
@@ -68,12 +68,12 @@ export const studentFaqSections: { heading: string; items: LandingFaqItem[] }[] 
                 Reasoning. Students who complete the triad may earn a national GYS Performance Tier.
               </li>
               <li>
-                <strong>Reasoning + Skills</strong> - ₹1,799/year. Includes Exams 1–5, adding English &amp;
-                Communication and AI Proficiency.
+                <strong>Stream Ready</strong> - ₹1,799/year. Includes Exams 1–5, adding Personality and Interest
+                and AI Proficiency for early stream recommendations.
               </li>
               <li>
-                <strong>Guided Decision</strong> - ₹2,699/year. Includes all seven exams, including personality,
-                interests, career discovery, and ongoing AI-supported guidance.
+                <strong>Career Ready</strong> - ₹2,699/year. Includes all seven exams, including English Proficiency,
+                Career Discovery, and ongoing AI-supported guidance.
               </li>
             </ul>
             <p className="mt-3">
@@ -151,7 +151,7 @@ export const studentFaqSections: { heading: string; items: LandingFaqItem[] }[] 
           <p>
             GYS helps students understand their strengths across reasoning, skills, personality, and interests.
             These results can support decisions about academic streams, career pathways, and possible university
-            fit. At the Guided Decision level, students receive deeper career and university guidance. As students
+            fit. At the Career Ready level, students receive deeper career and university guidance. As students
             add more information about their experiences, interests, courses, internships, or activities, their
             profile can become more useful over time. GYS does not guarantee admission to any university, but it
             can help students build a clearer, more evidence-based picture of their strengths and future options.
@@ -164,10 +164,10 @@ export const studentFaqSections: { heading: string; items: LandingFaqItem[] }[] 
           <p>
             Yes. GYS collects only the information needed to provide assessments, reports, and guidance. Personal
             data is not sold. GYS does not share student data with third parties without appropriate consent.
-            Counseling and Insights data - including personality, interests, motivations, and career-discovery
+            Counseling and Pathways data - including personality, interests, motivations, and career-discovery
             information - is private to the student by default and is shared only when the student or family chooses
             to share it. If your child participates through a school institutional package, the school may receive
-            Reasoning and Skills assessment data for students in that program. Insights data remains private to the
+            Reasoning and Profile assessment data for students in that program. Pathways data remains private to the
             student unless the student or family chooses to share it.
           </p>
         ),
@@ -179,7 +179,7 @@ export const studentFaqSections: { heading: string; items: LandingFaqItem[] }[] 
             Maybe not. If your school has purchased an institutional GYS package, your child may already have
             access to some assessments at no additional family cost. Please check with your school to understand which
             GYS package they have selected. Families may be able to upgrade individually if they want access to
-            additional assessments or the full Guided Decision experience.
+            additional assessments or the full Career Ready experience.
           </p>
         ),
       },
@@ -192,7 +192,7 @@ export const studentFaqSections: { heading: string; items: LandingFaqItem[] }[] 
         question: 'Is this a subscription or a one-time payment?',
         answer: (
           <p>
-            Discovery is a one-time purchase. Reasoning Triad, Reasoning + Skills, and Guided Decision are annual
+            Discovery is a one-time purchase. Reasoning Triad, Stream Ready, and Career Ready are annual
             memberships. During the membership year, your child has access to the assessments and features
             included in the selected package.
           </p>
@@ -220,6 +220,58 @@ export const studentFaqSections: { heading: string; items: LandingFaqItem[] }[] 
             <FaqLink to={FAQ_PREVIEW_HUB}>interactive preview hub</FaqLink> for all preview options. No account or
             payment is required. The sample helps students and families understand the exam format and reporting
             experience before choosing a package.
+          </p>
+        ),
+      },
+    ],
+  },
+  {
+    heading: 'Understanding scores & standing',
+    items: [
+      {
+        question: 'What is an adaptive exam?',
+        answer: (
+          <p>
+            An exam that adjusts to the student in real time. It starts at a moderate difficulty, then gets harder when
+            answers are correct and easier when they&apos;re not - homing in on the right level for each student. In
+            short, it&apos;s personalized to your level.
+          </p>
+        ),
+      },
+      {
+        question: 'Why did two students who answered the same number of questions correctly get different scores?',
+        answer: (
+          <p>
+            Because adaptive exams weight questions by difficulty. The student who handled harder questions earns more
+            points. The score reflects how hard the questions were, not just how many were right.
+          </p>
+        ),
+      },
+      {
+        question: "What does my child's percentile mean?",
+        answer: (
+          <p>
+            It shows how your child compares with other students taking the same exam at the same level. An
+            80th-percentile result means your child did as well as or better than 80% of that group.
+          </p>
+        ),
+      },
+      {
+        question: 'Is a percentile the same as a grade or a percentage score?',
+        answer: (
+          <p>
+            No. A percentile is about standing relative to peers, not the share of questions answered correctly. An 80th
+            percentile is not &ldquo;80% correct.&rdquo;
+          </p>
+        ),
+      },
+      {
+        question: 'What does "personalized to your level" mean?',
+        answer: (
+          <p>
+            It&apos;s our plain-language way of describing the adaptive exam: the questions adapt to your child, so the
+            test spends its time measuring what they can actually do instead of asking questions that are far too easy or
+            far too hard.
           </p>
         ),
       },

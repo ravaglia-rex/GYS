@@ -12,6 +12,7 @@ import {
   TableRow,
   Typography,
 } from '@mui/material';
+import type { SxProps, Theme } from '@mui/material/styles';
 import * as Sentry from '@sentry/react';
 import {
   AutoAwesome as AutoAwesomeIcon,
@@ -20,7 +21,6 @@ import {
   LocalFireDepartment as LocalFireDepartmentIcon,
   MilitaryTech as MilitaryTechIcon,
   MonetizationOn as MonetizationOnIcon,
-  Psychology as PsychologyIcon,
   Quiz as QuizIcon,
   QueryStats as QueryStatsIcon,
   RocketLaunch as RocketLaunchIcon,
@@ -45,6 +45,7 @@ const tableCellSx = {
   borderColor: 'rgba(255, 255, 255, 0.08)',
   fontSize: '0.9rem',
   verticalAlign: 'top',
+  textAlign: 'justify',
 };
 
 const tableHeaderSx = {
@@ -59,16 +60,21 @@ const gradeTableFirstColumnSx = {
   whiteSpace: 'nowrap',
 };
 
+const justifiedTextSx = {
+  textAlign: 'justify',
+} as const;
+
 type SectionCardProps = {
   id?: string;
   icon: React.ReactElement;
   title: string;
   subtitle?: string;
   children: React.ReactNode;
+  sx?: SxProps<Theme>;
 };
 
-const SectionCard: React.FC<SectionCardProps> = ({ id, icon, title, subtitle, children }) => (
-  <Paper id={id} data-tutorial-id={id} sx={{ ...glassPanelSx, p: { xs: 2.25, md: 3 } }}>
+const SectionCard: React.FC<SectionCardProps> = ({ id, icon, title, subtitle, children, sx }) => (
+  <Paper id={id} data-tutorial-id={id} sx={{ ...glassPanelSx, p: { xs: 2.25, md: 3 }, ...sx }}>
     <Box sx={{ mb: 2 }}>
       <Box sx={{ display: { xs: 'flex', sm: 'none' }, alignItems: 'center', gap: 2, minWidth: 0 }}>
         <Avatar
@@ -87,7 +93,7 @@ const SectionCard: React.FC<SectionCardProps> = ({ id, icon, title, subtitle, ch
         </Typography>
       </Box>
       {subtitle && (
-        <Typography sx={{ display: { xs: 'block', sm: 'none' }, color: 'rgba(255, 255, 255, 0.68)', mt: 1.5, lineHeight: 1.6 }}>
+        <Typography sx={{ display: { xs: 'block', sm: 'none' }, color: 'rgba(255, 255, 255, 0.68)', mt: 1.5, lineHeight: 1.6, ...justifiedTextSx }}>
           {subtitle}
         </Typography>
       )}
@@ -109,7 +115,7 @@ const SectionCard: React.FC<SectionCardProps> = ({ id, icon, title, subtitle, ch
             {title}
           </Typography>
           {subtitle && (
-            <Typography sx={{ color: 'rgba(255, 255, 255, 0.68)', mt: 0.75, lineHeight: 1.6 }}>
+            <Typography sx={{ color: 'rgba(255, 255, 255, 0.68)', mt: 0.75, lineHeight: 1.6, ...justifiedTextSx }}>
               {subtitle}
             </Typography>
           )}
@@ -141,7 +147,7 @@ const MiniCard: React.FC<MiniCardProps> = ({ icon, title, body, color }) => (
       <Avatar sx={{ width: 34, height: 34, bgcolor: `${color}22`, color }}>{icon}</Avatar>
       <Typography sx={{ color: 'white', fontWeight: 800 }}>{title}</Typography>
     </Box>
-    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.72)', lineHeight: 1.55 }}>
+    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.72)', lineHeight: 1.55, ...justifiedTextSx }}>
       {body}
     </Typography>
   </Box>
@@ -180,7 +186,7 @@ const FlowStep: React.FC<{ step: string; title: string; body: React.ReactNode; c
       {step}
     </Typography>
     <Typography sx={{ color, fontWeight: 900, mb: 0.75 }}>{title}</Typography>
-    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.72)', lineHeight: 1.55 }}>
+    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.72)', lineHeight: 1.55, ...justifiedTextSx }}>
       {body}
     </Typography>
   </Box>
@@ -228,7 +234,7 @@ const membershipRows = [
   },
   {
     level: 3,
-    exams: ['Pattern and Logic', 'Verbal Reasoning', 'Mathematical Reasoning', 'English Proficiency', 'AI Proficiency'],
+    exams: ['Pattern and Logic', 'Verbal Reasoning', 'Mathematical Reasoning', 'Personality and Interest', 'AI Proficiency'],
   },
   {
     level: 4,
@@ -236,10 +242,10 @@ const membershipRows = [
       'Pattern and Logic',
       'Verbal Reasoning',
       'Mathematical Reasoning',
-      'English Proficiency',
+      'Personality and Interest',
       'AI Proficiency',
-      'Comprehensive Personality',
-      'Interest & Career Discovery',
+      'English Proficiency',
+      'Career Discovery',
     ],
   },
 ];
@@ -297,7 +303,7 @@ const examOrder = [
 
 export const HowItWorksContent: React.FC = () => {
   return (
-    <Box sx={{ maxWidth: '1200px', mx: 'auto' }}>
+    <Box sx={{ maxWidth: '1200px', mx: 'auto', ...justifiedTextSx }}>
           <Box
             id="student-how-it-works-hero"
             data-tutorial-id="student-how-it-works-hero"
@@ -336,7 +342,7 @@ export const HowItWorksContent: React.FC = () => {
                   How GYS Works
                 </Typography>
               </Box>
-              <Typography variant="h6" sx={{ ...studentPageSubtitleSx, display: { xs: 'block', sm: 'none' }, mt: 2, lineHeight: 1.65 }}>
+              <Typography variant="h6" sx={{ ...studentPageSubtitleSx, display: { xs: 'block', sm: 'none' }, mt: 2, lineHeight: 1.65, ...justifiedTextSx }}>
                 Think of GYS like a learning adventure map! You take exams, complete levels, unlock the next challenge,
                 and see how your skills grow compared with students in your class.
               </Typography>
@@ -361,7 +367,7 @@ export const HowItWorksContent: React.FC = () => {
                   >
                     How GYS Works
                   </Typography>
-                  <Typography variant="h6" sx={{ ...studentPageSubtitleSx, lineHeight: 1.65 }}>
+                  <Typography variant="h6" sx={{ ...studentPageSubtitleSx, lineHeight: 1.65, ...justifiedTextSx }}>
                     Think of GYS like a learning adventure map! You take exams, complete levels, unlock the next challenge,
                     and see how your skills grow compared with students in your class.
                   </Typography>
@@ -413,7 +419,7 @@ export const HowItWorksContent: React.FC = () => {
               <Typography sx={{ color: 'white', fontWeight: 900, fontSize: '1.05rem', mb: 0.5 }}>
                 Exams and levels unlock separately
               </Typography>
-              <Typography sx={{ color: 'rgba(255, 255, 255, 0.76)', lineHeight: 1.6 }}>
+              <Typography sx={{ color: 'rgba(255, 255, 255, 0.76)', lineHeight: 1.6, ...justifiedTextSx }}>
                 Attempting an exam can unlock the next exam when your package allows it.
                 <br />
                 Additionally, scoring{' '}
@@ -499,7 +505,7 @@ export const HowItWorksContent: React.FC = () => {
                         gridColumn: { md: detailsOnLeft ? '3' : '1' },
                         gridRow: { md: 1 },
                         justifyContent: { md: detailsOnLeft ? 'flex-start' : 'flex-end' },
-                        textAlign: { xs: 'left', md: detailsOnLeft ? 'left' : 'right' },
+                        textAlign: 'justify',
                         zIndex: 1,
                       }}
                     >
@@ -507,7 +513,7 @@ export const HowItWorksContent: React.FC = () => {
                         <Typography sx={{ color: 'white', fontWeight: 900, lineHeight: 1.2 }}>
                           {MEMBERSHIP_LEVEL_LABELS[row.level]}
                         </Typography>
-                        <Typography variant="caption" sx={{ color, fontWeight: 800, fontSize: '0.9rem', lineHeight: 1.45 }}>
+                        <Typography variant="caption" sx={{ color, fontWeight: 800, fontSize: '0.9rem', lineHeight: 1.45, ...justifiedTextSx }}>
                           {unlockedText}
                         </Typography>
                       </Box>
@@ -558,7 +564,7 @@ export const HowItWorksContent: React.FC = () => {
                     <Typography sx={{ color: '#93c5fd', fontWeight: 800, fontSize: '0.95rem', mb: 1.25 }}>
                       {row.comparisonLevel}
                     </Typography>
-                    <Typography sx={{ color: 'rgba(255, 255, 255, 0.76)', lineHeight: 1.55 }}>
+                    <Typography sx={{ color: 'rgba(255, 255, 255, 0.76)', lineHeight: 1.55, ...justifiedTextSx }}>
                       {row.childCopy}
                     </Typography>
                   </Box>
@@ -616,7 +622,7 @@ export const HowItWorksContent: React.FC = () => {
                       <Typography sx={{ color: 'white', fontWeight: 900, fontSize: '1.25rem' }}>
                         Achievement tiers
                       </Typography>
-                      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', lineHeight: 1.55 }}>
+                      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', lineHeight: 1.55, ...justifiedTextSx }}>
                         Your badge level <Box component="span" sx={{ fontWeight: 900 }}>across the country</Box>, compared with students in your class.
                       </Typography>
                     </Box>
@@ -667,7 +673,6 @@ export const HowItWorksContent: React.FC = () => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: 'rgba(255, 255, 255, 0.7)',
-                    textAlign: 'center',
                     px: 1,
                     position: 'relative',
                   }}
@@ -688,7 +693,7 @@ export const HowItWorksContent: React.FC = () => {
                     variant="caption"
                     sx={{
                       position: 'absolute',
-                      maxWidth: 100,
+                      textAlign: 'center',
                       bgcolor: 'rgba(15, 23, 42, 0.95)',
                       border: '1px solid rgba(255,255,255,0.08)',
                       borderRadius: 999,
@@ -696,9 +701,12 @@ export const HowItWorksContent: React.FC = () => {
                       py: 0.75,
                       color: 'rgba(255,255,255,0.72)',
                       fontWeight: 800,
+                      lineHeight: 1.35,
                     }}
                   >
-                    Built on your results
+                    Built on your
+                    <br />
+                    results
                   </Typography>
                 </Box>
 
@@ -718,7 +726,7 @@ export const HowItWorksContent: React.FC = () => {
                       <Typography sx={{ color: 'white', fontWeight: 900, fontSize: '1.25rem' }}>
                         Leaderboard
                       </Typography>
-                      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', lineHeight: 1.55 }}>
+                      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', lineHeight: 1.55, ...justifiedTextSx }}>
                         A <Box component="span" sx={{ fontWeight: 900 }}>school-level</Box> top 10 list for each exam and class.
                       </Typography>
                     </Box>
@@ -767,9 +775,23 @@ export const HowItWorksContent: React.FC = () => {
           <SectionCard
             id="student-how-it-works-percentiles"
             icon={<MilitaryTechIcon />}
-            title="Achievement Tier Badges"
-            subtitle="These badges come from percentile bands after the core reasoning results are ready for your class. A badge is useful, but remember that the real win is understanding your strengths and improving step by step."
+            title="Understanding Percentiles"
+            subtitle="A percentile shows how you compare with peers - not the percentage of questions you answered correctly."
           >
+            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.78)', lineHeight: 1.65, mb: 1.5, ...justifiedTextSx }}>
+              If you score in the 80th percentile, it means you performed as well as or better than 80% of the students
+              in your comparison group - other students taking GYS exams at the same level. A percentile answers
+              &ldquo;where do I stand relative to peers?&rdquo; rather than &ldquo;how many questions did I get right?&rdquo;
+              The middle of the pack sits around the 50th percentile, and a higher percentile means stronger standing
+              within the group.
+            </Typography>
+            <Typography sx={{ color: 'white', fontWeight: 900, fontSize: '1.05rem', mb: 1.5 }}>
+              Achievement Tier Badges
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.68)', lineHeight: 1.6, mb: 2, ...justifiedTextSx }}>
+              These badges come from percentile bands after the core reasoning results are ready for your class.
+              A badge is useful, but remember that the real win is understanding your strengths and improving step by step.
+            </Typography>
             <TableContainer component={Box} sx={{ borderRadius: 2, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
               <Table size="small">
                 <TableHead>
@@ -792,37 +814,39 @@ export const HowItWorksContent: React.FC = () => {
             </TableContainer>
           </SectionCard>
 
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 3, my: 3 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 3, my: 3, alignItems: 'stretch' }}>
             <SectionCard
+              sx={{ height: '100%' }}
               id="student-how-it-works-adaptive"
               icon={<AutoAwesomeIcon />}
-              title="Adaptive Exams"
-              subtitle="Adaptive exams try to measure your real skill without wasting too much time on questions that are far too easy or far too hard."
+              title="Exams Personalized to Your Level"
+              subtitle="Our exams adjust in real time to match your skill. A traditional test gives everyone the same fixed set of questions. An adaptive exam adjusts to your level."
             >
               <Box sx={{ display: 'grid', gap: 1.5 }}>
                 <MiniCard
                   icon={<RocketLaunchIcon fontSize="small" />}
-                  title="How your answers guide the exam"
-                  body="Correct answers may move the next question toward a stronger skill level, while missed questions may check the foundation to find where help is needed."
-                  color="#10b981"
+                  title="How the exam adapts and scores you"
+                  body="It starts with a question of moderate difficulty, then the questions get harder or easier depending on how you are doing - answer correctly and the next question is a little tougher; miss one and the next is a little easier. Your score is based on how many questions you got right, and how hard the questions were that you could answer. Tougher questions are worth more, so two students who answer the same number correctly can earn different scores."
+                  color="#06b6d4"
                 />
                 <MiniCard
-                  icon={<PsychologyIcon fontSize="small" />}
-                  title="Retake a level every 3 months"
-                  body="On adaptive exams, you can retake the same level every 3 months to show growth and refresh your official progress."
-                  color="#f59e0b"
+                  icon={<AutoAwesomeIcon fontSize="small" />}
+                  title="Fewer questions, clearer results"
+                  body="The payoff is a more accurate picture of your true level, with no time wasted on questions that are far too easy or far too hard. Instead of sitting through a long fixed test, the exam focuses on questions that actually show what you can do. You spend more time in the range where you are challenged and measured."
+                  color="#38bdf8"
                 />
+               
               </Box>
-            
             </SectionCard>
 
             <SectionCard
+              sx={{ height: '100%' }}
               id="student-how-it-works-practice"
               icon={<QuizIcon />}
               title="Practice Exams"
               subtitle="Practice helps you learn the format without changing your official score, badge, or leaderboard rank. Your practice exam level matches your real exam level."
             >
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr', gap: 1.5, mb: 2 }}>
+              <Box sx={{ display: 'grid', gap: 1.5 }}>
                 <MiniCard
                   icon={<QuizIcon fontSize="small" />}
                   title="Same level, no score pressure"
@@ -830,13 +854,19 @@ export const HowItWorksContent: React.FC = () => {
                   color="#38bdf8"
                 />
                 <MiniCard
+                  icon={<TimelineIcon fontSize="small" />}
+                  title="Separate question pool"
+                  body="Practice draws from its own question bank. You build confidence and learn the format without repeating items from your official attempt."
+                  color="#10b981"
+                />
+              
+                <MiniCard
                   icon={<AutoAwesomeIcon fontSize="small" />}
                   title="Practice as many times as you want"
-                  body="You can retry practice exams, attempt the same questions again, and review the solutions."
+                  body="You can retry practice exams, attempt the same questions again, and review the solutions whenever you like."
                   color="#8b5cf6"
                 />
               </Box>
-             
             </SectionCard>
           </Box>
 
@@ -850,7 +880,7 @@ export const HowItWorksContent: React.FC = () => {
               <MiniCard
                 icon={<WbTwilightIcon fontSize="small" />}
                 title="Question of the Day"
-                body="One fresh challenge every day from your practice bank. Answer once per day to earn coins — 20 for a correct answer, 5 for trying."
+                body="One fresh challenge every day from your practice bank. Answer once per day to earn coins  -  20 for a correct answer, 5 for trying."
                 color="#f59e0b"
               />
               <MiniCard
@@ -862,7 +892,7 @@ export const HowItWorksContent: React.FC = () => {
               <MiniCard
                 icon={<MonetizationOnIcon fontSize="small" />}
                 title="How you earn coins"
-                body="Official exams award 60 base coins plus up to 90 more based on your score. Weekly practice awards up to 30 base coins plus 4 per correct answer — once per week."
+                body="Official exams award 60 base coins plus up to 90 more based on your score. Weekly practice awards up to 30 base coins plus 4 per correct answer  -  once per week."
                 color="#fde68a"
               />
               <MiniCard
@@ -901,7 +931,7 @@ export const HowItWorksContent: React.FC = () => {
               </Table>
             </TableContainer>
 
-            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.68)', mt: 2, lineHeight: 1.6 }}>
+            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.68)', mt: 2, lineHeight: 1.6, ...justifiedTextSx }}>
               Find your coin balance and streaks in the sidebar, take today&apos;s question from the dashboard or{' '}
               <Box component="span" sx={{ color: '#fde68a', fontWeight: 800 }}>Question of the Day</Box> page, and browse rewards under{' '}
               <Box component="span" sx={{ color: '#fde68a', fontWeight: 800 }}>Rewards Shop</Box>.

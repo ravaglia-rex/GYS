@@ -318,10 +318,10 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
                 tone={paymentStatusChipTone(school.payment_status)}
               />
             </DetailRow>
-            <DetailRow label="Payment method" value={school.payment_method || '—'} />
+            <DetailRow label="Payment method" value={school.payment_method || ' - '} />
             <DetailRow
               label="Plan"
-              value={`${school.subscription_plan || '—'} (${formatInr(resolvedPlanPriceInr)}/yr)`}
+              value={`${school.subscription_plan || ' - '} (${formatInr(resolvedPlanPriceInr)}/yr)`}
             />
             <DetailRow label="POC setup" value={school.verified ? 'Complete' : 'Pending'} />
             <ContactEmailsRow primaryEmail={school.poc_email} contactEmails={school.contact_emails} />
@@ -345,8 +345,8 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
               school.wire_payment_id ||
               school.wire_order_id ? (
                 <>
-                  <DetailRow label="Payment ID" value={school.wire_payment_id || school.razorpay_payment_id || '—'} />
-                  <DetailRow label="Order ID" value={school.wire_order_id || '—'} />
+                  <DetailRow label="Payment ID" value={school.wire_payment_id || school.razorpay_payment_id || ' - '} />
+                  <DetailRow label="Order ID" value={school.wire_order_id || ' - '} />
                   <DetailRow label="Amount on file" value={formatInrFromPaise(school.wire_amount_paise)} />
                 </>
               ) : (
@@ -364,11 +364,11 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
                 <Typography variant="subtitle1" sx={{ fontWeight: 700, color: ip.heading, mb: 2 }}>
                   Analytics snapshot
                 </Typography>
-                <DetailRow label="Institutional tier" value={String(analytics.institutional_tier ?? '—')} />
-                <DetailRow label="Performance tier" value={String(analytics.institutional_performance_tier ?? '—')} />
-                <DetailRow label="Avg percentile" value={String(analytics.avg_percentile ?? '—')} />
-                <DetailRow label="Completion rate" value={String(analytics.completion_rate ?? '—')} />
-                <DetailRow label="Students assessed" value={String(analytics.students_assessed ?? '—')} />
+                <DetailRow label="Institutional tier" value={String(analytics.institutional_tier ?? ' - ')} />
+                <DetailRow label="Performance tier" value={String(analytics.institutional_performance_tier ?? ' - ')} />
+                <DetailRow label="Avg percentile" value={String(analytics.avg_percentile ?? ' - ')} />
+                <DetailRow label="Completion rate" value={String(analytics.completion_rate ?? ' - ')} />
+                <DetailRow label="Students assessed" value={String(analytics.students_assessed ?? ' - ')} />
                 <DetailRow label="Updated" value={formatDate(String(analytics.updated_at ?? ''))} />
               </CardContent>
             </Card>
@@ -399,10 +399,10 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
                   {paymentHistory.map((ph) => (
                     <TableRow key={ph.id} hover>
                       <TableCell sx={{ color: ip.subtext }}>{formatDate(ph.recorded_at)}</TableCell>
-                      <TableCell sx={{ color: ip.heading }}>{ph.kind || '—'}</TableCell>
+                      <TableCell sx={{ color: ip.heading }}>{ph.kind || ' - '}</TableCell>
                       <TableCell sx={{ color: ip.heading }}>{formatInrFromPaise(ph.amount_paise)}</TableCell>
-                      <TableCell sx={{ color: ip.heading }}>{ph.source || '—'}</TableCell>
-                      <TableCell sx={{ color: ip.heading }}>{ph.billing_invoice_number || '—'}</TableCell>
+                      <TableCell sx={{ color: ip.heading }}>{ph.source || ' - '}</TableCell>
+                      <TableCell sx={{ color: ip.heading }}>{ph.billing_invoice_number || ' - '}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -508,7 +508,7 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
               />
               {school.subscription_plan && resolvedPlanPriceInr != null && (
                 <Typography sx={{ color: ip.subtext, fontSize: '0.75rem', mt: 0.75, lineHeight: 1.4 }}>
-                  Plan: {school.subscription_plan} — default {formatInr(resolvedPlanPriceInr)}/yr
+                  Plan: {school.subscription_plan}  -  default {formatInr(resolvedPlanPriceInr)}/yr
                 </Typography>
               )}
             </Box>
@@ -633,7 +633,7 @@ function ContactEmailsRow({
         </Typography>
         {allEmails.length === 0 ? (
           <Typography variant="body2" sx={{ fontWeight: 600, color: ip.heading }}>
-            —
+             - 
           </Typography>
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, alignItems: 'flex-end' }}>

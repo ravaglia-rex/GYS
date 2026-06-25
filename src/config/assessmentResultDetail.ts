@@ -57,23 +57,23 @@ export function nextAssessmentNudge(assessmentId: string): { title: string; subt
       path: '/assessments/mathematical_reasoning/tier/1/detail',
     },
     mathematical_reasoning: {
-      title: 'Next: English Proficiency',
-      subtitle: 'Advanced English - unlocks after the reasoning triad with Reasoning + Skills (Membership 2).',
-      path: '/assessments/english_proficiency/tier/1/detail',
-    },
-    english_proficiency: {
-      title: 'Next: AI Proficiency',
-      subtitle: 'Build on English with applied AI skills.',
-      path: '/assessments/ai_literacy/tier/1/detail',
-    },
-    ai_literacy: {
-      title: 'Next: Comprehensive Personality',
-      subtitle: 'Insight group - complete all AI Proficiency levels first; Guided Decision membership required.',
+      title: 'Next: Personality and Interest',
+      subtitle: 'Profile group - unlocks after the reasoning triad with Stream Ready (Membership 2).',
       path: '/assessments/comprehensive_personality/tier/1/detail',
     },
     comprehensive_personality: {
-      title: 'Next: Interest & Career Discovery',
-      subtitle: 'Finish the Insight group after personality - Guided Decision.',
+      title: 'Next: AI Proficiency',
+      subtitle: 'Continue the Profile group after personality.',
+      path: '/assessments/ai_literacy/tier/1/detail',
+    },
+    ai_literacy: {
+      title: 'Next: English Proficiency',
+      subtitle: 'Pathways group - complete all AI Proficiency levels first; Career Ready membership required.',
+      path: '/assessments/english_proficiency/tier/1/detail',
+    },
+    english_proficiency: {
+      title: 'Next: Career Discovery',
+      subtitle: 'Finish the Pathways group after English - Career Ready.',
       path: '/assessments/career_interest_inventory/tier/1/detail',
     },
   };

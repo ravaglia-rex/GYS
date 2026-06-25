@@ -12,13 +12,13 @@ export type AssessmentProgressShape = {
   latest_attempt_score?: number | null;
 };
 
-/** Programme exams 1–5; must match backend FIRST_FIVE_SCORED_EXAM_IDS. */
-const FIRST_FIVE_SCORED_EXAM_ID_SET = new Set<string>([
+/** Programme competitive exams; must match backend COMPETITIVE_EXAM_IDS. */
+const COMPETITIVE_EXAM_ID_SET = new Set<string>([
   'symbolic_reasoning',
   'verbal_reasoning',
   'mathematical_reasoning',
-  'english_proficiency',
   'ai_literacy',
+  'english_proficiency',
 ]);
 
 const NON_LEVEL_ASSESSMENT_IDS = new Set<string>([
@@ -127,16 +127,16 @@ export function examSequencePrereqMet(
   progression: TierProgressionConfig | undefined,
   studentGrade: number | null | undefined
 ): boolean {
-  const comprehensiveAiGate =
-    assessmentId === 'comprehensive_personality' && prereqId === 'ai_literacy';
-  if (comprehensiveAiGate) {
+  const englishAiGate =
+    assessmentId === 'english_proficiency' && prereqId === 'ai_literacy';
+  if (englishAiGate) {
     return (
       prereqProgress != null && (prereqProgress.proficiency_tier ?? 0) > prereqMaxTiers
     );
   }
   if (
-    FIRST_FIVE_SCORED_EXAM_ID_SET.has(assessmentId) &&
-    FIRST_FIVE_SCORED_EXAM_ID_SET.has(prereqId)
+    COMPETITIVE_EXAM_ID_SET.has(assessmentId) &&
+    COMPETITIVE_EXAM_ID_SET.has(prereqId)
   ) {
     return hasAttemptedAssessment(prereqProgress);
   }

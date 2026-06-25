@@ -33,7 +33,7 @@ import {
 
 const SAMPLE_ASSESSMENT_PATH = getPreviewSampleAssessmentPath(DEFAULT_PREVIEW_SAMPLE_EXAM_ID);
 const SAMPLE_ASSESSMENT_EXIT = '/students/preview/assessments/available';
-const HIDE_SAMPLE_CTA_ASSESSMENT_IDS = ['english_proficiency', 'ai_literacy'] as const;
+const HIDE_SAMPLE_CTA_ASSESSMENT_IDS = ['comprehensive_personality', 'ai_literacy', 'english_proficiency', 'career_interest_inventory'] as const;
 
 function a11yProps(index: number) {
   return {
@@ -67,11 +67,11 @@ const MOCK_REPORTS = [
   },
   {
     id: 'preview-skills-baseline',
-    title: 'Skills Baseline Snapshot',
-    milestone: 'Skills track',
+    title: 'Profile Baseline Snapshot',
+    milestone: 'Profile track',
     generated: '18 Apr 2026',
     status: 'Sample',
-    summary: 'English proficiency is in progress; AI Proficiency is unlocked next in this sample path.',
+    summary: 'Personality and Interest is complete; AI Proficiency is unlocked next in this sample path.',
   },
 ];
 

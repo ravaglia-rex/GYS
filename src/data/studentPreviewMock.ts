@@ -30,7 +30,7 @@ export const PREVIEW_STUDENT_PROFILE = {
   /** Matches `grade` for settings dropdowns */
   gradeLabel: 'Class 10' as const,
   schoolName: 'Navrion Future Academy',
-  membershipLevelLabel: 'Reasoning + Skills',
+  membershipLevelLabel: 'Stream Ready',
   membershipExpiryLabel: 'Mar 2027',
   parentName: 'Neha Sharma',
   parentEmail: 'neha.sharma@example.com',
@@ -54,7 +54,7 @@ export const PREVIEW_SETTINGS_FORM_INITIAL = {
 
 export const PREVIEW_DASHBOARD_STATS = {
   totalAssessments: 7,
-  completedAssessments: 3,
+  completedAssessments: 4,
   averageScore: 840,
   availableAssessments: 1,
 };
@@ -63,16 +63,15 @@ export const PREVIEW_ASSESSMENT_TYPES: AssessmentType[] = [
   { id: 'symbolic_reasoning', name: 'Pattern and Logic', tiers: mkTiers(3) },
   { id: 'verbal_reasoning', name: 'Verbal Reasoning', tiers: mkTiers(3) },
   { id: 'mathematical_reasoning', name: 'Mathematical Reasoning', tiers: mkTiers(3) },
-  { id: 'english_proficiency', name: 'English Proficiency', tiers: mkTiers(3) },
+  { id: 'comprehensive_personality', name: 'Personality and Interest', tiers: [] },
   { id: 'ai_literacy', name: 'AI Proficiency', tiers: mkTiers(3) },
-  { id: 'comprehensive_personality', name: 'Comprehensive Personality', tiers: [] },
-  { id: 'career_interest_inventory', name: 'Interest & Career Discovery', tiers: [] },
+  { id: 'english_proficiency', name: 'English Proficiency', tiers: mkTiers(3) },
+  { id: 'career_interest_inventory', name: 'Career Discovery', tiers: [] },
 ];
 
 /**
- * Reasoning + Skills package. Reasoning triad complete; English passed L1–L2, focused on L3
- * (latest graded attempt was still L2 - clears “2/3 levels” vs “Level” under score).
- * AI level 1 not yet attempted - comprehensive stays prerequisite-locked until AI is finished.
+ * Stream Ready package. Reasoning triad complete; Personality complete; AI level 1 not yet attempted.
+ * English and Career Discovery stay locked until Career Ready.
  */
 export const PREVIEW_ASSESSMENT_PROGRESS: Record<string, AssessmentProgress> = {
   symbolic_reasoning: {
@@ -102,15 +101,10 @@ export const PREVIEW_ASSESSMENT_PROGRESS: Record<string, AssessmentProgress> = {
     latest_attempt_level: 3,
     latest_attempt_score: 0.88,
   },
-  english_proficiency: {
-    proficiency_tier: 3,
-    status: 'tier_advanced',
-    best_score: 0.82,
-    best_scores_by_level: { '1': 0.81, '2': 0.82 },
-    attempts_count: 3,
-    tiers_cleared: { '1': true, '2': true },
-    latest_attempt_level: 2,
-    latest_attempt_score: 0.82,
+  comprehensive_personality: {
+    status: 'completed',
+    best_score: null,
+    attempts_count: 1,
   },
   ai_literacy: {
     proficiency_tier: 1,
@@ -118,7 +112,7 @@ export const PREVIEW_ASSESSMENT_PROGRESS: Record<string, AssessmentProgress> = {
     best_score: null,
     attempts_count: 0,
   },
-  comprehensive_personality: {
+  english_proficiency: {
     status: 'locked',
     best_score: null,
     attempts_count: 0,
@@ -134,34 +128,14 @@ export const PREVIEW_MEMBERSHIP_LEVEL = 3;
 
 export const PREVIEW_ASSESSMENT_ATTEMPTS: AttemptRecord[] = [
   {
-    attempt_id: 'preview-english-l2-pass',
-    assessment_id: 'english_proficiency',
-    proficiency_tier: 2,
+    attempt_id: 'preview-personality-complete',
+    assessment_id: 'comprehensive_personality',
+    proficiency_tier: 1,
     status: 'completed',
-    score: 0.82,
+    score: 1,
     passed: true,
     started_at: '2026-04-23T09:30:00.000Z',
     completed_at: '2026-04-23T10:15:00.000Z',
-  },
-  {
-    attempt_id: 'preview-english-l2-retry',
-    assessment_id: 'english_proficiency',
-    proficiency_tier: 2,
-    status: 'completed',
-    score: 0.68,
-    passed: false,
-    started_at: '2026-04-18T09:30:00.000Z',
-    completed_at: '2026-04-18T10:15:00.000Z',
-  },
-  {
-    attempt_id: 'preview-english-l1-pass',
-    assessment_id: 'english_proficiency',
-    proficiency_tier: 1,
-    status: 'completed',
-    score: 0.81,
-    passed: true,
-    started_at: '2026-04-10T09:30:00.000Z',
-    completed_at: '2026-04-10T10:15:00.000Z',
   },
   {
     attempt_id: 'preview-math-l3-pass',

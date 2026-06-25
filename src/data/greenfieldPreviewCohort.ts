@@ -11,9 +11,9 @@ const CANONICAL_ASSESSMENT_IDS = [
   'symbolic_reasoning',
   'verbal_reasoning',
   'mathematical_reasoning',
-  'english_proficiency',
-  'ai_literacy',
   'comprehensive_personality',
+  'ai_literacy',
+  'english_proficiency',
   'career_interest_inventory',
 ] as const;
 

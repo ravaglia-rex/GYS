@@ -470,7 +470,7 @@ const PlatformAdminSchoolsPage: React.FC = () => {
                       </TableCell>
                       <TableCell>
                         <Typography sx={{ fontWeight: 600, color: ip.heading }}>
-                          {school.subscription_plan || '—'}
+                          {school.subscription_plan || ' - '}
                         </Typography>
                       </TableCell>
                       <TableCell>

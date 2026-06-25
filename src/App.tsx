@@ -26,7 +26,7 @@ function App() {
       mode: 'dark',
       background: {
         default: '#0f172a',
-        paper: 'rgba(30, 41, 59, 0.8)',
+        paper: '#1e293b',
       },
       text: {
         primary: '#ffffff',
@@ -80,6 +80,23 @@ function App() {
             '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
               backgroundColor: '#8b5cf6',
             },
+          },
+        },
+      },
+      MuiDialog: {
+        styleOverrides: {
+          paper: {
+            backgroundColor: '#1e293b',
+            backgroundImage: 'none',
+            opacity: 1,
+          },
+        },
+      },
+      MuiBackdrop: {
+        styleOverrides: {
+          root: {
+            backdropFilter: 'none',
+            WebkitBackdropFilter: 'none',
           },
         },
       },

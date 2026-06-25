@@ -16,8 +16,8 @@ const DIFFERENTIATORS = [
   },
   {
     emoji: '🎯',
-    title: 'Adaptive by Design',
-    body: 'Each official exam adjusts difficulty in real time. Stronger students keep moving into more challenging material, while every student receives a more accurate measure of ability instead of being limited by a fixed test ceiling.',
+    title: 'Personalized to Each Student',
+    body: 'Our exams are personalized to each student\'s level. They adjust in real time, getting harder as a student succeeds, so the score reflects the difficulty they\'ve mastered, not just the number of right answers.',
   },
   {
     emoji: '📋',
@@ -55,7 +55,7 @@ const OUTCOMES = [
   {
     emoji: '🧭',
     title: 'Stream & career guidance',
-    body: 'Recommendations that deepen as you complete more of the suite; at Guided Decision, counseling continues even after completing all the exams as students add real-world experiences.',
+    body: 'Recommendations that deepen as you complete more of the suite; at Career Ready, counseling continues even after completing all the exams as students add real-world experiences.',
   },
   {
     emoji: '🎓',
@@ -313,19 +313,25 @@ const LandingPage: React.FC = () => {
             <span className="font-semibold text-slate-800">Global Young Scholar (GYS)</span> is an assessment and guidance platform for schools and students in Classes 6–12. Across seven adaptive assessments, GYS builds a multi-dimensional profile of each student, measuring aptitude, academic readiness, personality, and future-facing skills - then translating those results into practical guidance on strengths, growth areas, streams, careers, and university fit.
           </p>
           <p>
-            The seven assessments are grouped into three tracks: Reasoning, Skills, and Insights.
+            The seven assessments are grouped into three tracks: Reasoning, Profile, and Pathways.
           </p>
           <p>
           <span className="font-semibold text-slate-800">Reasoning</span> includes Symbolic, Verbal, and Mathematical Reasoning, benchmarking the core thinking skills students need for advanced academic work.
           </p>
           <p>
-            <span className="font-semibold text-slate-800">Skills</span> focuses on 21st-century capabilities, including English and Communication, as well as students’ understanding of and proficiency working with AI.
+            <span className="font-semibold text-slate-800">Profile</span> captures personality and interest signals plus AI proficiency, supporting early stream recommendations from Membership 2 (Stream Ready).
           </p>
           <p>
-          <span className="font-semibold text-slate-800">Insights</span> helps students understand their personality, interests, motivations, and possible career pathways.
+          <span className="font-semibold text-slate-800">Pathways</span> adds English Proficiency and Career Discovery for deeper university and career guidance with Career Ready.
           </p>
           <p className="font-medium text-slate-800">
-            GYS is for schools and families who want more than marks. It helps students see where they stand, what they are good at, where they can grow, and what comes next.
+            GYS is for schools and families who want more than marks. It helps students see where they stand, what they
+            are good at, where they can grow, and what comes next.
+          </p>
+          <p>
+            Each official exam is personalized to the student&apos;s level - it adjusts in real time, an{' '}
+            <span className="font-semibold text-slate-800">adaptive exam</span> - so the test spends its time measuring
+            what they can actually do instead of asking questions that are far too easy or far too hard.
           </p>
         </div>
       </section>
@@ -373,7 +379,15 @@ const LandingPage: React.FC = () => {
               >
                 <h4 className="font-bold text-lg text-gray-900">Assess</h4>
                 <p className="mt-3 text-sm leading-relaxed text-gray-600">
-                  Students complete official GYS assessments online through a secure platform. Across seven exams, GYS measures reasoning, communication, AI readiness, personality, interests, and career direction - helping schools and families understand each student&apos;s strengths and recommend next steps for stream selection, career exploration, and university fit.
+                  Students complete official GYS assessments online through a secure platform. Across seven exams, GYS
+                  measures reasoning, communication, AI readiness, personality, interests, and career direction - helping
+                  schools and families understand each student&apos;s strengths and recommend next steps for stream
+                  selection, career exploration, and university fit.
+                </p>
+                <p className="mt-3 text-sm leading-relaxed text-gray-600">
+                  Our exams are personalized to each student&apos;s level. They adjust in real time, getting harder as a
+                  student succeeds, so the score reflects the difficulty they&apos;ve mastered, not just the number of
+                  right answers.
                 </p>
               </TabsContent>
               <TabsContent
@@ -383,7 +397,13 @@ const LandingPage: React.FC = () => {
               >
                 <h4 className="font-bold text-lg text-gray-900">Benchmark</h4>
                 <p className="mt-3 text-sm leading-relaxed text-gray-600">
-                Earn a performance tier (Explorer → Diamond) - benchmarked against students at each class level worldwide. Students work their way up the leaderboard to unlock opportunities and recognition.
+                  Earn a performance tier (Explorer → Diamond) benchmarked against students at each class level
+                  worldwide. Students work their way up the leaderboard to unlock opportunities and recognition.
+                </p>
+                <p className="mt-3 text-sm leading-relaxed text-gray-600">
+                  A percentile shows how a student compares with peers: an 80th-percentile result means they did as well
+                  as or better than 80% of students in their group. It&apos;s about standing, not the share of questions
+                  answered right.
                 </p>
               </TabsContent>
               <TabsContent
@@ -426,10 +446,20 @@ const LandingPage: React.FC = () => {
           </h3>
           <div className="mx-auto mt-2 max-w-3xl space-y-4 text-justify text-sm leading-relaxed text-gray-600">
             <p>
-              Every student earns a GYS Performance Tier that reflects their achievement against a growing national cohort. Tiers give schools, students, and families a clear way to understand performance beyond raw marks - from Explorer through Diamond.
+              Every student earns a GYS Performance Tier that reflects their achievement against a growing national cohort.
+              Tiers give schools, students, and families a clear way to understand performance beyond raw marks - from
+              Explorer through Diamond.
             </p>
             <p>
-              Students can improve their tier over time by retaking assessments and demonstrating higher levels of mastery. School leaderboards highlight the top-performing students by exam and class, helping schools recognize excellence and celebrate student achievement.
+              A percentile shows how a student&apos;s performance compares with others, and <strong>not</strong> the
+              percentage of questions they answered correctly. If a student scores in the 80th percentile, it means they
+              performed as well as or better than 80% of students taking GYS exams at the same level. The middle of the
+              pack sits around the 50th percentile.
+            </p>
+            <p>
+              Students can improve their tier over time by retaking assessments and demonstrating higher levels of
+              mastery. School leaderboards highlight the top-performing students by exam and class, helping schools
+              recognize excellence and celebrate student achievement.
             </p>
           </div>
           <div className="mx-auto mt-8 max-w-5xl md:mt-10">

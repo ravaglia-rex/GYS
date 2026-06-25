@@ -28,13 +28,13 @@ const STUDENT_NAV = [
 const MEMBERSHIP_TIER_LABELS = [
   'Discovery',
   'Reasoning Triad',
-  'Reasoning + Skills',
-  'Guided Decision',
+  'Stream Ready',
+  'Career Ready',
 ] as const;
 
 const STUDENT_SECTION_IDS_JOIN = STUDENT_NAV.map((s) => s.id).join('|');
 
-/** Discovery + three annual memberships; exams in Reasoning / Skills / Insights tracks. */
+/** Discovery + three annual memberships; exams in Reasoning / Profile / Pathways tracks. */
 const STUDENT_ASSESSMENTS = [
   {
     exam: 1,
@@ -74,11 +74,11 @@ const STUDENT_ASSESSMENTS = [
   },
   {
     exam: 4,
-    group: 'skills' as const,
-    label: 'English & Communication',
-    shortName: 'English',
-    desc: 'Listening, speaking, reading, writing, AI-assessed where applicable',
-    icon: '💬',
+    group: 'profile' as const,
+    label: 'Personality and Interest',
+    shortName: 'Personality',
+    desc: 'Deep profile across many dimensions (~30) for early stream recommendations',
+    icon: '✨',
     inL1: false,
     inL2: false,
     inL3: true,
@@ -86,7 +86,7 @@ const STUDENT_ASSESSMENTS = [
   },
   {
     exam: 5,
-    group: 'skills' as const,
+    group: 'profile' as const,
     label: 'AI Proficiency',
     shortName: 'AI',
     desc: 'Concepts, evaluation, and responsible use of AI tools',
@@ -98,11 +98,11 @@ const STUDENT_ASSESSMENTS = [
   },
   {
     exam: 6,
-    group: 'insight' as const,
-    label: 'Comprehensive Personality Assessment',
-    shortName: 'Personality',
-    desc: 'Deep profile across many dimensions (~30)',
-    icon: '✨',
+    group: 'pathways' as const,
+    label: 'English Proficiency',
+    shortName: 'English',
+    desc: 'Listening, speaking, reading, writing, AI-assessed where applicable',
+    icon: '💬',
     inL1: false,
     inL2: false,
     inL3: false,
@@ -110,8 +110,8 @@ const STUDENT_ASSESSMENTS = [
   },
   {
     exam: 7,
-    group: 'insight' as const,
-    label: 'Interest Inventory & Career Discovery',
+    group: 'pathways' as const,
+    label: 'Career Discovery',
     shortName: 'Career',
     desc: 'Interest themes and career discovery; establishes the baseline for ongoing AI career counseling',
     icon: '🧭',
@@ -140,13 +140,13 @@ const ASSESSMENT_SECTIONS: {
     hint: 'Exams 1–3',
   },
   {
-    group: 'skills',
-    title: 'Skills',
+    group: 'profile',
+    title: 'Profile',
     hint: 'Exams 4–5',
   },
   {
-    group: 'insight',
-    title: 'Insights',
+    group: 'pathways',
+    title: 'Pathways',
     hint: 'Exams 6–7',
   },
 ];
@@ -276,7 +276,7 @@ const StudentPathPage: React.FC = () => {
                 icon: '🧠',
                 title: 'Seven Assessments Across Three Tracks',
                 body:
-                  'GYS includes three tracks: Reasoning, Skills, and Insights. Higher memberships unlock deeper assessments and more personalized guidance.',
+                  'GYS includes three tracks: Reasoning, Profile, and Pathways. Higher memberships unlock deeper assessments and more personalized guidance.',
               },
               {
                 icon: '📊',
@@ -363,9 +363,9 @@ const StudentPathPage: React.FC = () => {
                 const accent =
                   section.group === 'reasoning'
                     ? GYS_BLUE
-                    : section.group === 'skills'
-                      ? '#14b8a6'
-                      : '#a855f7';
+                    : section.group === 'profile'
+                      ? '#ec4899'
+                      : '#14b8a6';
 
                 return (
                   <div key={section.group} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -456,9 +456,9 @@ const StudentPathPage: React.FC = () => {
                 const groupBand =
                   section.group === 'reasoning'
                     ? 'bg-gradient-to-r from-sky-50 via-indigo-50/60 to-transparent border-l-[3px] sm:border-l-4'
-                    : section.group === 'skills'
-                      ? 'bg-gradient-to-r from-teal-50/90 via-transparent to-transparent border-l-[3px] border-l-teal-300/80 sm:border-l-4'
-                      : 'bg-gradient-to-r from-purple-50/90 via-transparent to-transparent border-l-[3px] border-l-purple-300/80 sm:border-l-4';
+                    : section.group === 'profile'
+                      ? 'bg-gradient-to-r from-pink-50/90 via-transparent to-transparent border-l-[3px] border-l-pink-300/80 sm:border-l-4'
+                      : 'bg-gradient-to-r from-teal-50/90 via-transparent to-transparent border-l-[3px] border-l-teal-300/80 sm:border-l-4';
 
                 return (
                   <div key={section.group}>
@@ -549,18 +549,18 @@ const StudentPathPage: React.FC = () => {
                 bg: 'bg-[#fff7e0]',
               },
               {
-                name: 'Reasoning + Skills',
+                name: 'Stream Ready',
                 subLabel: 'Exams 1–5 · Annual membership',
                 price: '₹1,799/year',
-                blurb: 'Includes the Reasoning track plus English & Communication and AI Proficiency.',
+                blurb: 'Includes the Reasoning track plus Personality and Interest and AI Proficiency for early stream recommendations.',
                 bg: 'bg-[#e0f2fe]',
               },
               {
-                name: 'Guided Decision',
+                name: 'Career Ready',
                 subLabel: 'All seven exams · Annual membership',
                 price: '₹2,699/year',
                 blurb:
-                  'Includes the full GYS suite - personality, interests, career discovery, and ongoing AI-supported guidance.',
+                  'Includes the full GYS suite - English Proficiency, Career Discovery, and ongoing AI-supported guidance.',
                 bg: 'bg-[#f9e8ff]',
               },
             ].map((tier, index) => (
@@ -602,11 +602,11 @@ const StudentPathPage: React.FC = () => {
               <tbody className="text-slate-700">
                 {[
                   ['Discovery → Reasoning Triad', '₹600'],
-                  ['Discovery → Reasoning + Skills', '₹1,500'],
-                  ['Discovery → Guided Decision', '₹2,400'],
-                  ['Reasoning Triad → Reasoning + Skills', '₹900'],
-                  ['Reasoning Triad → Guided Decision', '₹1,800'],
-                  ['Reasoning + Skills → Guided Decision', '₹900'],
+                  ['Discovery → Stream Ready', '₹1,500'],
+                  ['Discovery → Career Ready', '₹2,400'],
+                  ['Reasoning Triad → Stream Ready', '₹900'],
+                  ['Reasoning Triad → Career Ready', '₹1,800'],
+                  ['Stream Ready → Career Ready', '₹900'],
                 ].map(([u, d]) => (
                   <tr key={u} className="border-b border-slate-100 last:border-0">
                     <td className="px-3 py-2">{u}</td>

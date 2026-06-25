@@ -99,7 +99,7 @@ const StudentMembershipStepPage: React.FC = () => {
         { text: 'Per-exam score report + category breakdowns', included: true },
         { text: 'Dashboard shows locked previews of features in higher packages', included: true },
         { text: 'No national performance tier or school leaderboard', included: false },
-        { text: 'Reasoning Exams 2–3, Skills & Insight groups', included: false },
+        { text: 'Reasoning Exams 2–3, Profile & Pathways groups', included: false },
       ],
       footer: 'Limited-time one-time entry: Not one of the three annual packages. Upgradable while active.',
     },
@@ -120,7 +120,7 @@ const StudentMembershipStepPage: React.FC = () => {
         { text: 'National performance tier + school leaderboard', included: true },
         { text: 'Three-level difficulty progression within Reasoning', included: true },
         { text: 'Light stream/career signaling from triad performance', included: true },
-        { text: 'Skills (Exams 4–5) & Insight (Exams 6–7)', included: false },
+        { text: 'Profile (Exams 4–5) & Pathways (Exams 6–7)', included: false },
       ],
       footer: 'Annual subscription • Renews each year.',
     },
@@ -128,7 +128,7 @@ const StudentMembershipStepPage: React.FC = () => {
       id: 'LEVEL_3' as MembershipLevel,
       numericLevel: 3 as const,
       label: 'Membership 2',
-      name: 'Reasoning + Skills',
+      name: 'Stream Ready',
       price: '₹1,799',
       priceSuffix: 'per year',
       oneTime: false,
@@ -137,18 +137,18 @@ const StudentMembershipStepPage: React.FC = () => {
       background: 'bg-white',
       accent: 'bg-sky-600',
       features: [
-        { text: 'Talent + 21st-century skills - Reasoning + English + AI (Exams 1-5)', included: true },
+        { text: 'Early stream recommendations - Reasoning + Personality and Interest + AI (Exams 1-5)', included: true },
         { text: 'Everything in Reasoning Triad', included: true },
-        { text: 'Skills credentialing (English Proficiency, AI Proficiency)', included: true },
-        { text: 'Insight group (personality & career discovery)', included: false },
+        { text: 'Profile group (Personality and Interest, AI Proficiency)', included: true },
+        { text: 'Pathways group (English Proficiency & Career Discovery)', included: false },
       ],
-      footer: 'Annual subscription • Insight stays locked until Guided Decision.',
+      footer: 'Annual subscription • Pathways stays locked until Career Ready.',
     },
     {
       id: 'LEVEL_4' as MembershipLevel,
       numericLevel: 4 as const,
       label: 'Membership 3',
-      name: 'Guided Decision',
+      name: 'Career Ready',
       price: '₹2,699',
       priceSuffix: 'per year',
       oneTime: false,
@@ -158,10 +158,10 @@ const StudentMembershipStepPage: React.FC = () => {
       accent: 'bg-orange-500',
       features: [
         {
-          text: 'Ongoing AI career counseling after the Insight baseline, students log experiences so the profile deepens over time (primary renewal driver for this package)',
+          text: 'Ongoing AI career counseling after the Pathways baseline; students log experiences so the profile deepens over time (primary renewal driver for this package)',
           included: true,
         },
-        { text: 'Full program: Reasoning + Skills + Insight (incl. comprehensive personality)', included: true },
+        { text: 'Full program: Reasoning + Profile + Pathways (incl. English Proficiency & Career Discovery)', included: true },
         {
           text: 'Counseling data available to third parties working with your student when your student chooses to share it,data travels with the student',
           included: true,
@@ -171,7 +171,7 @@ const StudentMembershipStepPage: React.FC = () => {
           included: true,
         },
       ],
-      footer: 'Annual subscription • Sustained value from the counseling relationship after Insight is complete.',
+      footer: 'Annual subscription • Sustained value from the counseling relationship after Pathways is complete.',
     },
   ];
 
@@ -294,7 +294,7 @@ const StudentMembershipStepPage: React.FC = () => {
           </h1>
           <p className="mt-2 text-xs sm:text-sm text-slate-600">
             GYS has <span className="font-semibold text-slate-800">three annual packages</span>{' '}
-            (Reasoning Triad, Reasoning + Skills, Guided Decision).{' '}
+            (Reasoning Triad, Stream Ready, Career Ready).{' '}
             <span className="font-semibold text-slate-800">Discovery </span> is a separate limited-time
             one-time entry, not counted as an annual package. You can upgrade anytime and pay only the
             difference.
@@ -506,12 +506,12 @@ const StudentMembershipStepPage: React.FC = () => {
                     {[
                       ['Reasoning Exam 1 (Symbolic)', '✓', '✓', '✓', '✓'],
                       ['Reasoning Exams 2–3 (Verbal & Mathematical)', ' - ', '✓', '✓', '✓'],
-                      ['Skills Exams 4–5 (English & AI)', ' - ', ' - ', '✓', '✓'],
-                      ['Insight group, personality & career discovery (Exams 6–7)', ' - ', ' - ', ' - ', '✓'],
+                      ['Profile Exams 4–5 (Personality & AI)', ' - ', ' - ', '✓', '✓'],
+                      ['Pathways group, English & Career Discovery (Exams 6–7)', ' - ', ' - ', ' - ', '✓'],
                       ['National performance tier (after triad)', ' - ', '✓', '✓', '✓'],
                       ['School leaderboard eligibility', ' - ', '✓', '✓', '✓'],
                       [
-                        'Ongoing AI career counseling (after Insight baseline; grows with logged experiences)',
+                        'Ongoing AI career counseling (after Pathways baseline; grows with logged experiences)',
                         ' - ',
                         ' - ',
                         ' - ',

@@ -794,8 +794,7 @@ export function SchoolAdminSubscriptionPage() {
         }}
         BackdropProps={{
           sx: {
-            bgcolor: 'rgba(15, 23, 42, 0.58)',
-            backdropFilter: 'blur(2px)',
+            bgcolor: 'rgba(15, 23, 42, 0.72)',
           },
         }}
       >

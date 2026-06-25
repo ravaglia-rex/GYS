@@ -118,7 +118,7 @@ export function PlatformAdminStatCard({
   onClick,
 }: {
   title: string;
-  value: number;
+  value: number | string;
   subtitle?: string;
   icon: ReactNode;
   accent: string;
@@ -153,10 +153,7 @@ export function PlatformAdminStatCard({
                 color: ip.subtext,
                 fontWeight: 600,
                 fontSize: '0.875rem',
-                lineHeight: 1.2,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
+                lineHeight: 1.3,
                 mb: 0.75,
               }}
             >
@@ -168,6 +165,7 @@ export function PlatformAdminStatCard({
                 color: ip.heading,
                 fontSize: '2rem',
                 lineHeight: 1.1,
+                wordBreak: 'break-word',
               }}
             >
               {value}
@@ -180,10 +178,7 @@ export function PlatformAdminStatCard({
                   display: 'block',
                   mt: 0.5,
                   fontSize: '0.8rem',
-                  lineHeight: 1.25,
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
+                  lineHeight: 1.35,
                 }}
               >
                 {subtitle}

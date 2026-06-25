@@ -20,7 +20,7 @@ export const schoolFaqSections: { heading: string; items: LandingFaqItem[] }[] =
           <p>
             Global Young Scholar (GYS) is a sequential assessment and guidance program for students in Classes 6–12. It helps identify students who show exceptional promise for higher education while giving schools a clearer view of student performance - individually, by class, and in aggregate - against national and international benchmarks.
 
-The GYS suite includes seven assessments across three tracks: Reasoning, Skills, and Insights. These assess symbolic reasoning, verbal reasoning, mathematical reasoning, English and communication skills, AI proficiency, personality, interests, and career discovery.
+The GYS suite includes seven assessments across three tracks: Reasoning, Profile, and Pathways. These assess symbolic reasoning, verbal reasoning, mathematical reasoning, personality and interest, AI proficiency, English proficiency, and career discovery.
 
 Students earn GYS Performance Tiers that signal academic readiness, growth, and potential, while schools receive reporting that can support academic planning, student guidance, and EducationWorld ranking participation.
           </p>
@@ -114,9 +114,9 @@ Schools can provide a list of student email addresses - school-issued or persona
         question: 'Do we control what data is shared?',
         answer: (
           <p>
-            For students whose assessment access is provided through your school’s institutional package, your school receives reporting on Reasoning and Skills assessments, including scores, subscores, performance tiers, and aggregate/class-level insights.
+            For students whose assessment access is provided through your school’s institutional package, your school receives reporting on Reasoning and Profile assessments, including scores, subscores, performance tiers, and aggregate/class-level insights.
 
-The Insights assessments - including personality, interests, motivations, and career-discovery information - are private to students by default. Students may choose to share this information with their school, parents, or counselors, but it is not automatically included in school-facing reports.
+The Pathways assessments - including English proficiency and career-discovery information - are private to students by default. Students may choose to share this information with their school, parents, or counselors, but it is not automatically included in school-facing reports.
 
 For students who subscribe independently through their families, school-level attribution may still count toward participation and recognition where applicable, but individual student data is not shared with the school unless the student or family has provided the required consent.
 
@@ -197,6 +197,58 @@ For schools joining at the Partner / Flagship level, wire transfer may also be a
         ),
       },
    
+    ],
+  },
+  {
+    heading: 'Understanding scores & standing',
+    items: [
+      {
+        question: 'What is an adaptive exam?',
+        answer: (
+          <p>
+            An exam that adjusts to the student in real time. It starts at a moderate difficulty, then gets harder when
+            answers are correct and easier when they&apos;re not - homing in on the right level for each student. In
+            short, it&apos;s personalized to your level.
+          </p>
+        ),
+      },
+      {
+        question: 'Why did two students who answered the same number of questions correctly get different scores?',
+        answer: (
+          <p>
+            Because adaptive exams weight questions by difficulty. The student who handled harder questions earns more
+            points. The score reflects how hard the questions were, not just how many were right.
+          </p>
+        ),
+      },
+      {
+        question: "What does a student's percentile mean?",
+        answer: (
+          <p>
+            It shows how a student compares with others taking the same GYS exam at the same level. An 80th-percentile
+            result means they did as well as or better than 80% of that comparison group.
+          </p>
+        ),
+      },
+      {
+        question: 'Is a percentile the same as a grade or a percentage score?',
+        answer: (
+          <p>
+            No. A percentile is about standing relative to peers, not the share of questions answered correctly. An 80th
+            percentile is not &ldquo;80% correct.&rdquo;
+          </p>
+        ),
+      },
+      {
+        question: 'What does "personalized to your level" mean?',
+        answer: (
+          <p>
+            It&apos;s our plain-language way of describing the adaptive exam: the questions adapt to each student, so
+            the test spends its time measuring what they can actually do instead of asking questions that are far too
+            easy or far too hard.
+          </p>
+        ),
+      },
     ],
   },
 ];

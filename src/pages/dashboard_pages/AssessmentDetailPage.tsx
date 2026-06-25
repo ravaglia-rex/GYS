@@ -216,7 +216,15 @@ const AssessmentDetailPage: React.FC = () => {
   // ── 7G membership lock (level gate) ─────────────────────────────────────
   if (gate.locked && gate.reason === 'membership') {
     const need = gate.requiredMembershipLevel ?? 3;
-    const isComprehensiveCapstone = assessmentId === 'comprehensive_personality';
+    const isStreamReadyProfile = assessmentId === 'comprehensive_personality';
+    const isCareerReadyPathways =
+      assessmentId === 'english_proficiency' || assessmentId === 'career_interest_inventory';
+    const showPremiumUpsell = isStreamReadyProfile || isCareerReadyPathways;
+    const exclusiveBadge = isStreamReadyProfile
+      ? 'Stream Ready only'
+      : isCareerReadyPathways
+      ? 'Career Ready only'
+      : null;
     return (
       <Box sx={{ minHeight: '100vh', bgcolor: '#f1f5f9', pb: 10 }}>
         <Box sx={{ bgcolor: '#fff', borderBottom: '1px solid #e2e8f0', px: 2, py: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -231,9 +239,9 @@ const AssessmentDetailPage: React.FC = () => {
 
         <Box sx={{ maxWidth: 480, mx: 'auto', px: 2, pt: 4 }}>
           <Box sx={{ textAlign: 'center', mb: 3, opacity: 0.85 }}>
-            {isComprehensiveCapstone && (
+            {exclusiveBadge && (
               <Typography sx={{ display: 'inline-block', px: 1.5, py: 0.4, borderRadius: 10, bgcolor: '#e0e0e0', color: '#616161', fontSize: '0.65rem', fontWeight: 800, letterSpacing: 0.6, mb: 2 }}>
-                Guided Decision only
+                {exclusiveBadge}
               </Typography>
             )}
             <Typography variant="h5" sx={{ fontWeight: 800, color: '#78909c' }}>
@@ -254,17 +262,33 @@ const AssessmentDetailPage: React.FC = () => {
             </Typography>
           </Box>
 
-          {isComprehensiveCapstone && (
+          {isStreamReadyProfile && (
             <Box sx={{ bgcolor: '#f3e5f5', borderRadius: 2, p: 2, mb: 2 }}>
               <Typography sx={{ fontWeight: 700, color: '#6a1b9a', mb: 1, fontSize: '0.9rem' }}>
-                What you get with Guided Decision (Membership 3)
+                What you get with Stream Ready (Membership 2)
               </Typography>
               {[
-                '30-dimension personality assessment (Exam 6)',
-                'Interest inventory & career discovery (Exam 7) - baseline for ongoing counseling',
-                'College matching & fit analysis',
-                'Ongoing AI career counseling after Insight: log experiences so guidance stays current',
-                'Everything in Reasoning + Skills (Exams 1-5) plus the full Insight group',
+                'Personality and Interest assessment (Exam 4) for early stream recommendations',
+                'AI Proficiency (Exam 5)',
+                'Everything in Reasoning Triad (Exams 1-3)',
+              ].map((t) => (
+                <Typography key={t} sx={{ fontSize: '0.82rem', color: '#4a148c', pl: 1, mb: 0.5, '&:before': { content: '"✓ "', fontWeight: 800 } }}>
+                  {t}
+                </Typography>
+              ))}
+            </Box>
+          )}
+
+          {isCareerReadyPathways && (
+            <Box sx={{ bgcolor: '#f3e5f5', borderRadius: 2, p: 2, mb: 2 }}>
+              <Typography sx={{ fontWeight: 700, color: '#6a1b9a', mb: 1, fontSize: '0.9rem' }}>
+                What you get with Career Ready (Membership 3)
+              </Typography>
+              {[
+                'English Proficiency (Exam 6)',
+                'Career Discovery (Exam 7) - baseline for ongoing counseling',
+                'Ongoing AI career counseling: log experiences so guidance stays current',
+                'Everything in Stream Ready (Exams 1-5) plus the full Pathways group',
               ].map((t) => (
                 <Typography key={t} sx={{ fontSize: '0.82rem', color: '#4a148c', pl: 1, mb: 0.5, '&:before': { content: '"✓ "', fontWeight: 800 } }}>
                   {t}
@@ -287,8 +311,8 @@ const AssessmentDetailPage: React.FC = () => {
               py: 1.5,
               borderRadius: 2,
               fontWeight: 700,
-              bgcolor: isComprehensiveCapstone ? '#7b1fa2' : primary.main,
-              '&:hover': { bgcolor: isComprehensiveCapstone ? '#6a1b9a' : primary.dark },
+              bgcolor: showPremiumUpsell ? '#7b1fa2' : primary.main,
+              '&:hover': { bgcolor: showPremiumUpsell ? '#6a1b9a' : primary.dark },
             }}
           >
             Upgrade membership →
