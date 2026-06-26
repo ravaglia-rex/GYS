@@ -26,6 +26,7 @@ import {
 import {
   ArrowBack as BackIcon,
   Payment as PaymentIcon,
+  Edit as EditIcon,
 } from '@mui/icons-material';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
@@ -34,6 +35,7 @@ import {
   formatInrFromPaise,
   getPlatformAdminSchool,
   markPlatformAdminSchoolPaid,
+  updatePlatformAdminSchoolBilling,
   PLATFORM_ADMIN_PAYMENT_METHOD_LABELS,
   type PlatformAdminMarkSchoolPaidMethod,
   type PlatformAdminPaymentHistoryItem,
@@ -57,11 +59,44 @@ import {
 } from './platformAdminComponents';
 import {
   formatPlanAmountInrInput,
+  REGISTER_PLAN_IDS,
+  resolveRegisterPlanIdFromFields,
   resolveSchoolPlanPriceInr,
+  SCHOOL_INSTITUTIONAL_BASE_INR,
+  type RegisterPlanId,
 } from '../../utils/schoolRegistrationPlans';
 import { isPlatformAdminTestSchool } from './platformAdminTestSchools';
 
 const PAYMENT_METHODS = Object.keys(PLATFORM_ADMIN_PAYMENT_METHOD_LABELS) as PlatformAdminMarkSchoolPaidMethod[];
+
+const PLAN_OPTIONS = REGISTER_PLAN_IDS.map((id) => ({
+  id,
+  label: id.charAt(0).toUpperCase() + id.slice(1),
+  listPriceInr: SCHOOL_INSTITUTIONAL_BASE_INR[id],
+}));
+
+function planLabelFromId(planId: string | null | undefined): string {
+  if (!planId) return '—';
+  const row = PLAN_OPTIONS.find((p) => p.id === planId);
+  return row ? `${row.label} (${formatInr(row.listPriceInr)}/yr)` : planId;
+}
+
+function resolveSchoolPlanId(school: PlatformAdminSchoolDetail): RegisterPlanId | '' {
+  return resolveRegisterPlanIdFromFields(school.selected_plan_id, school.subscription_plan) ?? '';
+}
+
+function resolveRegisteredPlanId(school: PlatformAdminSchoolDetail): RegisterPlanId | '' {
+  return (
+    resolveRegisterPlanIdFromFields(school.registered_plan_id, school.registered_subscription_plan) ?? ''
+  );
+}
+
+function defaultPaidAmountInr(school: PlatformAdminSchoolDetail): string {
+  if (typeof school.paid_amount_paise === 'number' && school.paid_amount_paise > 0) {
+    return formatPlanAmountInrInput(school.paid_amount_paise / 100);
+  }
+  return defaultMarkPaidAmountInr(school);
+}
 
 function todayDateInputValue(): string {
   const d = new Date();
@@ -107,6 +142,12 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
   const [transactionReference, setTransactionReference] = useState('');
   const [adminNote, setAdminNote] = useState('');
   const [sendConfirmationEmail, setSendConfirmationEmail] = useState(true);
+  const [paidPlanId, setPaidPlanId] = useState<RegisterPlanId | ''>('');
+  const [billingOpen, setBillingOpen] = useState(false);
+  const [billingPlanId, setBillingPlanId] = useState<RegisterPlanId | ''>('');
+  const [billingAmountInr, setBillingAmountInr] = useState('');
+  const [billingNote, setBillingNote] = useState('');
+  const [billingSubmitting, setBillingSubmitting] = useState(false);
 
   const load = useCallback(async () => {
     if (!schoolId) return;
@@ -136,6 +177,7 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
     setTransactionReference('');
     setAdminNote('');
     setSendConfirmationEmail(true);
+    setPaidPlanId(resolveSchoolPlanId(school) || resolveRegisteredPlanId(school) || '');
     setMarkPaidOpen(true);
     const next = new URLSearchParams(searchParams);
     next.delete('markPaid');
@@ -160,11 +202,63 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
     setTransactionReference('');
     setAdminNote('');
     setSendConfirmationEmail(true);
+    setPaidPlanId(resolveSchoolPlanId(school) || resolveRegisteredPlanId(school) || '');
     setMarkPaidOpen(true);
+  };
+
+  const openBillingDialog = () => {
+    if (!school) return;
+    setBillingPlanId(resolveSchoolPlanId(school));
+    setBillingAmountInr(school.payment_satisfied ? defaultPaidAmountInr(school) : '');
+    setBillingNote('');
+    setBillingOpen(true);
+  };
+
+  const handleUpdateBilling = async () => {
+    if (!schoolId || !school) return;
+
+    const parsedAmount = Number(billingAmountInr.replace(/,/g, '').trim());
+    const hasAmount = Number.isFinite(parsedAmount) && parsedAmount > 0;
+    const hasPlan = Boolean(billingPlanId);
+
+    if (!hasAmount && !hasPlan) {
+      setError('Choose an effective package and/or enter the amount paid.');
+      return;
+    }
+
+    setBillingSubmitting(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      await updatePlatformAdminSchoolBilling(schoolId, {
+        ...(hasPlan ? { effective_plan_id: billingPlanId } : {}),
+        ...(hasAmount ? { paid_amount_paise: Math.round(parsedAmount * 100) } : {}),
+        admin_note: billingNote.trim() || undefined,
+      });
+      setBillingOpen(false);
+      setSuccessMessage(
+        school.payment_satisfied
+          ? 'Package and billing updated.'
+          : 'Package updated. The school checkout and any new payment will use the corrected package.'
+      );
+      await load();
+    } catch (e: unknown) {
+      const msg =
+        typeof e === 'object' && e !== null && 'response' in e
+          ? (e as { response?: { data?: { error?: string } } }).response?.data?.error
+          : null;
+      setError(msg || 'Failed to update package and billing.');
+    } finally {
+      setBillingSubmitting(false);
+    }
   };
 
   const handleMarkPaid = async () => {
     if (!schoolId || !school) return;
+    if (!paidPlanId) {
+      setError('Please select the package they paid for.');
+      return;
+    }
     const paidAtIso = dateInputToIso(paidDate);
     if (!paidAtIso) {
       setError('Please enter a valid payment date.');
@@ -184,6 +278,7 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
         payment_method: paymentMethod,
         paid_at: paidAtIso,
         amount_paise: Math.round(parsedAmount * 100),
+        ...(paidPlanId ? { plan_id: paidPlanId } : {}),
         transaction_reference: transactionReference.trim() || undefined,
         admin_note: adminNote.trim() || undefined,
         send_confirmation_email: sendConfirmationEmail,
@@ -225,6 +320,11 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
   }
 
   const canMarkPaid = !school.payment_satisfied;
+  const registeredPlanId = resolveRegisteredPlanId(school);
+  const effectivePlanId = resolveSchoolPlanId(school);
+  const paidAmountLabel = formatInrFromPaise(school.paid_amount_paise);
+  const plansDiffer =
+    registeredPlanId && effectivePlanId && registeredPlanId !== effectivePlanId;
 
   return (
     <Box sx={platformAdminPageContainerSx}>
@@ -250,16 +350,26 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
             {school.id}
           </Typography>
         </Box>
-        {canMarkPaid && (
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
           <Button
-            variant="contained"
-            startIcon={<PaymentIcon />}
-            onClick={openMarkPaidDialog}
-            sx={{ ...platformAdminPrimaryButtonSx, bgcolor: ip.approveGreen, '&:hover': { bgcolor: '#16a34a' } }}
+            variant="outlined"
+            startIcon={<EditIcon />}
+            onClick={openBillingDialog}
+            sx={{ textTransform: 'none', color: ip.navy, borderColor: ip.cardBorder, fontWeight: 600 }}
           >
-            Mark as paid
+            Update package & billing
           </Button>
-        )}
+          {canMarkPaid && (
+            <Button
+              variant="contained"
+              startIcon={<PaymentIcon />}
+              onClick={openMarkPaidDialog}
+              sx={{ ...platformAdminPrimaryButtonSx, bgcolor: ip.approveGreen, '&:hover': { bgcolor: '#16a34a' } }}
+            >
+              Mark as paid
+            </Button>
+          )}
+        </Box>
       </Box>
 
       {canMarkPaid && (
@@ -272,8 +382,9 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
             '& .MuiAlert-icon': { color: '#d97706' },
           }}
         >
-          Payment not captured yet. Click <strong>Mark as paid</strong> (top right) to record an
-          off-platform payment and unlock the school portal.
+          Payment not captured yet. If they picked the wrong package, use{' '}
+          <strong>Update package & billing</strong> to fix it before they pay. Use{' '}
+          <strong>Mark as paid</strong> when an off-platform payment is received.
         </Alert>
       )}
 
@@ -320,9 +431,19 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
             </DetailRow>
             <DetailRow label="Payment method" value={school.payment_method || ' - '} />
             <DetailRow
-              label="Plan"
-              value={`${school.subscription_plan || ' - '} (${formatInr(resolvedPlanPriceInr)}/yr)`}
+              label="Package at registration"
+              value={planLabelFromId(registeredPlanId || effectivePlanId)}
             />
+            <DetailRow
+              label="Effective package"
+              value={
+                plansDiffer
+                  ? `${planLabelFromId(effectivePlanId)} (updated from ${planLabelFromId(registeredPlanId)})`
+                  : planLabelFromId(effectivePlanId)
+              }
+            />
+            <DetailRow label="List price" value={`${formatInr(resolvedPlanPriceInr)}/yr`} />
+            <DetailRow label="Amount paid" value={paidAmountLabel} />
             <DetailRow label="POC setup" value={school.verified ? 'Complete' : 'Pending'} />
             <ContactEmailsRow primaryEmail={school.poc_email} contactEmails={school.contact_emails} />
             <DetailRow label="Registered" value={formatDate(school.created_at)} />
@@ -494,6 +615,42 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
             </Box>
 
             <Box>
+              <Typography sx={platformAdminDialogFieldLabelSx} component="label" htmlFor="mark-paid-plan">
+                Package paid for
+              </Typography>
+              <Select
+                id="mark-paid-plan"
+                fullWidth
+                size="small"
+                value={paidPlanId}
+                onChange={(e) => {
+                  const nextPlan = e.target.value as RegisterPlanId | '';
+                  setPaidPlanId(nextPlan);
+                  if (nextPlan) {
+                    setAmountInr(formatPlanAmountInrInput(SCHOOL_INSTITUTIONAL_BASE_INR[nextPlan]));
+                  }
+                }}
+                displayEmpty
+                renderValue={(v) =>
+                  v ? planLabelFromId(v) : 'Select package'
+                }
+                MenuProps={{ PaperProps: { sx: platformAdminSelectMenuPaperSx } }}
+                sx={platformAdminDialogSelectSx}
+              >
+                {PLAN_OPTIONS.map((plan) => (
+                  <MenuItem key={plan.id} value={plan.id}>
+                    {plan.label} — {formatInr(plan.listPriceInr)}/yr list
+                  </MenuItem>
+                ))}
+              </Select>
+              {registeredPlanId && paidPlanId && registeredPlanId !== paidPlanId && (
+                <Typography sx={{ color: ip.subtext, fontSize: '0.75rem', mt: 0.75, lineHeight: 1.4 }}>
+                  Registered for {planLabelFromId(registeredPlanId)}; recording payment for a different package.
+                </Typography>
+              )}
+            </Box>
+
+            <Box>
               <Typography sx={platformAdminDialogFieldLabelSx} component="label" htmlFor="mark-paid-amount">
                 Amount (INR)
               </Typography>
@@ -508,7 +665,7 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
               />
               {school.subscription_plan && resolvedPlanPriceInr != null && (
                 <Typography sx={{ color: ip.subtext, fontSize: '0.75rem', mt: 0.75, lineHeight: 1.4 }}>
-                  Plan: {school.subscription_plan}  -  default {formatInr(resolvedPlanPriceInr)}/yr
+                  Override the list price if they paid a discounted amount.
                 </Typography>
               )}
             </Box>
@@ -594,6 +751,141 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
             sx={{ ...platformAdminPrimaryButtonSx, bgcolor: ip.approveGreen, '&:hover': { bgcolor: '#16a34a' } }}
           >
             {submitting ? 'Saving…' : 'Confirm & mark paid'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={billingOpen}
+        onClose={() => !billingSubmitting && setBillingOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        scroll="paper"
+        slotProps={{
+          backdrop: { sx: { bgcolor: 'rgba(15, 23, 42, 0.5)' } },
+        }}
+        PaperProps={{ sx: platformAdminDialogPaperSx }}
+      >
+        <DialogTitle
+          sx={{
+            fontWeight: 700,
+            color: ip.heading,
+            px: 3,
+            pt: 2.5,
+            pb: 2,
+            bgcolor: '#fff',
+          }}
+        >
+          Update package & billing
+        </DialogTitle>
+        <DialogContent
+          dividers
+          sx={{
+            px: 3,
+            py: 2.5,
+            bgcolor: '#fff',
+            borderColor: ip.cardBorder,
+            overflowY: 'auto',
+          }}
+        >
+          <Typography sx={{ color: ip.subtext, mb: 2.5, lineHeight: 1.55, fontSize: '0.9rem' }}>
+            {school.payment_satisfied ? (
+              <>
+                Set the package the school should receive access to and/or correct the amount they paid.
+                Registration package is preserved for audit when it differs.
+              </>
+            ) : (
+              <>
+                This school has not paid yet. Change <strong>Effective package</strong> if they registered
+                for the wrong tier — checkout and invoices will use the corrected package. Leave amount
+                blank until payment is captured (or enter it when using <strong>Mark as paid</strong>).
+              </>
+            )}
+          </Typography>
+
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box>
+              <Typography sx={platformAdminDialogFieldLabelSx} component="label" htmlFor="billing-plan">
+                Effective package
+              </Typography>
+              <Select
+                id="billing-plan"
+                fullWidth
+                size="small"
+                value={billingPlanId}
+                onChange={(e) => setBillingPlanId(e.target.value as RegisterPlanId)}
+                MenuProps={{ PaperProps: { sx: platformAdminSelectMenuPaperSx } }}
+                sx={platformAdminDialogSelectSx}
+              >
+                {PLAN_OPTIONS.map((plan) => (
+                  <MenuItem key={plan.id} value={plan.id}>
+                    {plan.label} — {formatInr(plan.listPriceInr)}/yr list
+                  </MenuItem>
+                ))}
+              </Select>
+            </Box>
+
+            <Box>
+              <Typography sx={platformAdminDialogFieldLabelSx} component="label" htmlFor="billing-amount">
+                {school.payment_satisfied ? 'Amount paid (INR)' : 'Expected amount (INR, optional)'}
+              </Typography>
+              <TextField
+                id="billing-amount"
+                size="small"
+                fullWidth
+                value={billingAmountInr}
+                onChange={(e) => setBillingAmountInr(e.target.value)}
+                placeholder={
+                  school.payment_satisfied
+                    ? 'Discounted or negotiated amount'
+                    : 'Leave blank — use list price at checkout'
+                }
+                sx={platformAdminDialogTextFieldSx}
+              />
+            </Box>
+
+            <Box>
+              <Typography sx={platformAdminDialogFieldLabelSx} component="label" htmlFor="billing-note">
+                Internal note (optional)
+              </Typography>
+              <TextField
+                id="billing-note"
+                size="small"
+                fullWidth
+                multiline
+                minRows={2}
+                value={billingNote}
+                onChange={(e) => setBillingNote(e.target.value)}
+                placeholder="e.g. Upgraded to Premium after paying Standard price"
+                sx={platformAdminDialogTextFieldSx}
+              />
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions
+          sx={{
+            px: 3,
+            py: 2,
+            bgcolor: '#f8fafc',
+            borderTop: `1px solid ${ip.cardBorder}`,
+            gap: 1,
+          }}
+        >
+          <Button
+            onClick={() => setBillingOpen(false)}
+            disabled={billingSubmitting}
+            sx={{ textTransform: 'none', color: ip.subtext }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            disabled={billingSubmitting}
+            onClick={handleUpdateBilling}
+            startIcon={billingSubmitting ? <CircularProgress size={16} color="inherit" /> : undefined}
+            sx={platformAdminPrimaryButtonSx}
+          >
+            {billingSubmitting ? 'Saving…' : 'Save changes'}
           </Button>
         </DialogActions>
       </Dialog>

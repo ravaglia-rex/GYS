@@ -16,6 +16,7 @@ import {
   PLATFORM_ADMIN_NOTIFICATIONS_MARK_READ,
   PLATFORM_ADMIN_NOTIFICATIONS_MARK_ALL_READ,
   PLATFORM_ADMIN_MARK_SCHOOL_PAID,
+  PLATFORM_ADMIN_UPDATE_SCHOOL_BILLING,
 } from '../constants/constants';
 
 function apiBase(): string {
@@ -72,8 +73,11 @@ export type PlatformAdminSchoolSummary = {
   payment_captured: string | null;
   payment_satisfied: boolean;
   selected_plan_id: string | null;
+  registered_plan_id: string | null;
   subscription_plan: string | null;
+  registered_subscription_plan: string | null;
   plan_price_inr: number | null;
+  paid_amount_paise: number | null;
   institutional_tier: string | null;
   institutional_performance_tier: string | null;
   created_at: string | null;
@@ -296,6 +300,7 @@ export async function markPlatformAdminSchoolPaid(
     payment_method: PlatformAdminMarkSchoolPaidMethod;
     paid_at: string;
     amount_paise?: number;
+    plan_id?: string;
     transaction_reference?: string;
     admin_note?: string;
     send_confirmation_email?: boolean;
@@ -312,6 +317,22 @@ export async function markPlatformAdminSchoolPaid(
     invoiceNumber: res.data.invoiceNumber,
     publicReference: res.data.publicReference,
   };
+}
+
+export async function updatePlatformAdminSchoolBilling(
+  schoolId: string,
+  body: {
+    effective_plan_id?: string;
+    paid_amount_paise?: number;
+    admin_note?: string;
+  }
+): Promise<void> {
+  const headers = await authHeaders();
+  await axios.post(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_SCHOOLS}/${encodeURIComponent(schoolId)}${PLATFORM_ADMIN_UPDATE_SCHOOL_BILLING}`,
+    body,
+    { headers }
+  );
 }
 
 export async function capturePlatformAdminSchoolPayment(schoolId: string): Promise<void> {

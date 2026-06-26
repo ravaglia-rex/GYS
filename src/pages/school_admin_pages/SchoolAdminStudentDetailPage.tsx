@@ -26,7 +26,11 @@ import { buildGreenfieldPreviewStudentRows } from '../../data/schoolPreviewMock'
 import { ASSESSMENT_NAMES, ASSESSMENT_ORDER, EXAM_MAX_SCORE_POINTS, isLevelBasedAssessment, tierPercentToExamPoints } from '../../utils/assessmentGating';
 import { formatAchievementTierLabel, normalizeAchievementTierId } from '../../utils/achievementTier';
 import PageTutorial from '../../components/tutorial/PageTutorial';
-import { getSchoolStudentProctoringFlags, type FlaggedProctoringAttempt } from '../../features/proctoring';
+import {
+  getSchoolStudentProctoringFlags,
+  isProctoringGloballyEnabled,
+  type FlaggedProctoringAttempt,
+} from '../../features/proctoring';
 
 const DEFAULT_LOCKED: AssessmentProgress = {
   proficiency_tier: 1,
@@ -173,7 +177,7 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
   }, [studentId, schoolAdmin?.schoolId, isSchoolAdminPreview, routeState?.email, routeState?.studentRow]);
 
   useEffect(() => {
-    if (!studentId || isSchoolAdminPreview) {
+    if (!isProctoringGloballyEnabled() || !studentId || isSchoolAdminPreview) {
       setProctoringFlags([]);
       return;
     }
@@ -487,19 +491,29 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card sx={{ mt: 3, border: `1px solid ${ip.cardBorder}`, boxShadow: 'none' }}>
+        {isProctoringGloballyEnabled() && (
+        <Card sx={{ bgcolor: '#fff', border: `1px solid ${ip.cardBorder}`, boxShadow: 'none' }}>
           <CardContent>
             <Typography variant="h6" sx={{ fontWeight: 700, color: ip.heading, mb: 1 }}>
               Proctoring review
             </Typography>
             <Typography variant="body2" sx={{ color: ip.subtext, mb: 2, lineHeight: 1.6 }}>
-              Flagged attempts appear here when automated proctoring is enabled for an assessment. While proctoring is
-              disabled globally, this section will usually stay empty.
+              Flagged attempts from automated proctoring appear here for your review.
             </Typography>
             {proctoringFlagsLoading ? (
               <Typography variant="body2" sx={{ color: ip.subtext }}>Loading proctoring flags…</Typography>
             ) : proctoringFlags.length === 0 ? (
-              <Alert severity="info">No flagged proctoring attempts for this student.</Alert>
+              <Alert
+                severity="info"
+                sx={{
+                  bgcolor: '#eff6ff',
+                  color: ip.heading,
+                  border: `1px solid ${ip.cardBorder}`,
+                  '& .MuiAlert-icon': { color: ip.statBlue },
+                }}
+              >
+                No flagged proctoring attempts for this student.
+              </Alert>
             ) : (
               <TableContainer
                 component={Paper}
@@ -559,6 +573,7 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
             )}
           </CardContent>
         </Card>
+        )}
       </Box>
     </Box>
   );

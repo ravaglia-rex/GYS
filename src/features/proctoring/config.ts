@@ -28,3 +28,8 @@ export function resolveProctoringConfig(
 export function isProctoringActive(config: ProctoringConfig): boolean {
   return config.enabled === true;
 }
+
+/** Global rollout gate for school-admin proctoring review UI. */
+export function isProctoringGloballyEnabled(): boolean {
+  return process.env.REACT_APP_PROCTORING_ENABLED === 'true';
+}

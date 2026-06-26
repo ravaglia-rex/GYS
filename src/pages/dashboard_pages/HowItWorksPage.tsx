@@ -898,7 +898,7 @@ export const HowItWorksContent: React.FC = () => {
               <MiniCard
                 icon={<StorefrontIcon fontSize="small" />}
                 title="Rewards Shop"
-                body="Spend Argus Coins on streak freezes, profile frames, and gift cards from Amazon, Starbucks, Flipkart, and more. Redemptions are fulfilled manually by the GYS team."
+                body="Spend Argus Coins on streak freezes and gift cards from Amazon, Starbucks, Flipkart, and more. Redemptions are fulfilled manually by the GYS team."
                 color="#a78bfa"
               />
             </Box>
