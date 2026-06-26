@@ -25,6 +25,7 @@ export const PLATFORM_ADMIN_NOTIFICATIONS_MARK_READ = '/notifications/mark-read'
 export const PLATFORM_ADMIN_NOTIFICATIONS_MARK_ALL_READ = '/notifications/mark-all-read';
 export const PLATFORM_ADMIN_MARK_SCHOOL_PAID = '/mark-paid';
 export const PLATFORM_ADMIN_UPDATE_SCHOOL_BILLING = '/update-billing';
+export const PLATFORM_ADMIN_DELETE_SCHOOL = '/delete';
 
 // Schools
 export const CREATE_EXPEDITED_SCHOOL='/createExpeditedSchool';

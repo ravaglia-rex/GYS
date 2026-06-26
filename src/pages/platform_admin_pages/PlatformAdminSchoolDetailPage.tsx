@@ -27,6 +27,7 @@ import {
   ArrowBack as BackIcon,
   Payment as PaymentIcon,
   Edit as EditIcon,
+  DeleteOutline as DeleteIcon,
 } from '@mui/icons-material';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
@@ -35,6 +36,7 @@ import {
   formatInrFromPaise,
   getPlatformAdminSchool,
   markPlatformAdminSchoolPaid,
+  deletePlatformAdminSchool,
   updatePlatformAdminSchoolBilling,
   PLATFORM_ADMIN_PAYMENT_METHOD_LABELS,
   type PlatformAdminMarkSchoolPaidMethod,
@@ -76,7 +78,7 @@ const PLAN_OPTIONS = REGISTER_PLAN_IDS.map((id) => ({
 }));
 
 function planLabelFromId(planId: string | null | undefined): string {
-  if (!planId) return '—';
+  if (!planId) return '-';
   const row = PLAN_OPTIONS.find((p) => p.id === planId);
   return row ? `${row.label} (${formatInr(row.listPriceInr)}/yr)` : planId;
 }
@@ -89,6 +91,16 @@ function resolveRegisteredPlanId(school: PlatformAdminSchoolDetail): RegisterPla
   return (
     resolveRegisterPlanIdFromFields(school.registered_plan_id, school.registered_subscription_plan) ?? ''
   );
+}
+
+function schoolDisplayName(school: PlatformAdminSchoolDetail): string {
+  return school.school_name.trim();
+}
+
+function schoolNamesMatch(typed: string, school: PlatformAdminSchoolDetail): boolean {
+  const normalizedConfirm = typed.trim().replace(/\s+/g, ' ').toLowerCase();
+  const normalizedSchool = schoolDisplayName(school).replace(/\s+/g, ' ').toLowerCase();
+  return Boolean(normalizedConfirm) && normalizedConfirm === normalizedSchool;
 }
 
 function defaultPaidAmountInr(school: PlatformAdminSchoolDetail): string {
@@ -148,6 +160,12 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
   const [billingAmountInr, setBillingAmountInr] = useState('');
   const [billingNote, setBillingNote] = useState('');
   const [billingSubmitting, setBillingSubmitting] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirmName, setDeleteConfirmName] = useState('');
+  const [deleteAdminAuth, setDeleteAdminAuth] = useState(true);
+  const [unlinkStudents, setUnlinkStudents] = useState(true);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!schoolId) return;
@@ -253,6 +271,48 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
     }
   };
 
+  const openDeleteDialog = () => {
+    if (!school) return;
+    setDeleteConfirmName('');
+    setDeleteAdminAuth(true);
+    setUnlinkStudents(true);
+    setDeleteError(null);
+    setDeleteOpen(true);
+  };
+
+  const handleDeleteSchool = async () => {
+    if (!schoolId || !school) return;
+    if (!schoolNamesMatch(deleteConfirmName, school)) {
+      setDeleteError(`Type "${schoolDisplayName(school)}" exactly to confirm.`);
+      return;
+    }
+
+    setDeleteSubmitting(true);
+    setDeleteError(null);
+    try {
+      const result = await deletePlatformAdminSchool(schoolId, {
+        confirm_school_name: deleteConfirmName.trim(),
+        delete_admin_auth: deleteAdminAuth,
+        unlink_students: unlinkStudents,
+      });
+      setDeleteOpen(false);
+      navigate('/platform-admin/schools', {
+        replace: true,
+        state: {
+          deleteSuccess: `${schoolDisplayName(school)} deleted. ${result.studentsUnlinked} student(s) unlinked, ${result.adminAuthDeleted} admin login(s) removed.`,
+        },
+      });
+    } catch (e: unknown) {
+      const msg =
+        typeof e === 'object' && e !== null && 'response' in e
+          ? (e as { response?: { data?: { error?: string } } }).response?.data?.error
+          : null;
+      setDeleteError(msg || 'Failed to delete school. Check the network tab or retry after redeploying functions.');
+    } finally {
+      setDeleteSubmitting(false);
+    }
+  };
+
   const handleMarkPaid = async () => {
     if (!schoolId || !school) return;
     if (!paidPlanId) {
@@ -325,6 +385,7 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
   const paidAmountLabel = formatInrFromPaise(school.paid_amount_paise);
   const plansDiffer =
     registeredPlanId && effectivePlanId && registeredPlanId !== effectivePlanId;
+  const deleteNameMatches = school ? schoolNamesMatch(deleteConfirmName, school) : false;
 
   return (
     <Box sx={platformAdminPageContainerSx}>
@@ -533,6 +594,35 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
         </Card>
       </Box>
 
+      <Card
+        sx={{
+          ...platformAdminCardSx,
+          mt: 3,
+          borderColor: '#fecaca',
+          bgcolor: '#fffafa',
+        }}
+      >
+        <CardContent>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#991b1b', mb: 1 }}>
+            Danger zone
+          </Typography>
+          <Typography variant="body2" sx={{ color: ip.subtext, mb: 2, lineHeight: 1.55, maxWidth: 720 }}>
+            Permanently delete this school, its payment history, analytics, quarterly reports, admin
+            preferences, and platform notifications. Optionally remove Firebase Auth logins for school
+            contacts and unlink rostered students (student accounts are kept).
+          </Typography>
+          <Button
+            variant="outlined"
+            color="error"
+            startIcon={<DeleteIcon />}
+            onClick={openDeleteDialog}
+            sx={{ textTransform: 'none', fontWeight: 600 }}
+          >
+            Delete school
+          </Button>
+        </CardContent>
+      </Card>
+
       <Dialog
         open={markPaidOpen}
         onClose={() => !submitting && setMarkPaidOpen(false)}
@@ -639,7 +729,7 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
               >
                 {PLAN_OPTIONS.map((plan) => (
                   <MenuItem key={plan.id} value={plan.id}>
-                    {plan.label} — {formatInr(plan.listPriceInr)}/yr list
+                    {plan.label} - {formatInr(plan.listPriceInr)}/yr list
                   </MenuItem>
                 ))}
               </Select>
@@ -797,7 +887,7 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
             ) : (
               <>
                 This school has not paid yet. Change <strong>Effective package</strong> if they registered
-                for the wrong tier — checkout and invoices will use the corrected package. Leave amount
+                for the wrong tier - checkout and invoices will use the corrected package. Leave amount
                 blank until payment is captured (or enter it when using <strong>Mark as paid</strong>).
               </>
             )}
@@ -819,7 +909,7 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
               >
                 {PLAN_OPTIONS.map((plan) => (
                   <MenuItem key={plan.id} value={plan.id}>
-                    {plan.label} — {formatInr(plan.listPriceInr)}/yr list
+                    {plan.label} - {formatInr(plan.listPriceInr)}/yr list
                   </MenuItem>
                 ))}
               </Select>
@@ -838,7 +928,7 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
                 placeholder={
                   school.payment_satisfied
                     ? 'Discounted or negotiated amount'
-                    : 'Leave blank — use list price at checkout'
+                    : 'Leave blank - use list price at checkout'
                 }
                 sx={platformAdminDialogTextFieldSx}
               />
@@ -886,6 +976,133 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
             sx={platformAdminPrimaryButtonSx}
           >
             {billingSubmitting ? 'Saving…' : 'Save changes'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={deleteOpen}
+        onClose={() => !deleteSubmitting && setDeleteOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        scroll="paper"
+        slotProps={{
+          backdrop: { sx: { bgcolor: 'rgba(15, 23, 42, 0.5)' } },
+        }}
+        PaperProps={{ sx: platformAdminDialogPaperSx }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, color: '#991b1b', px: 3, pt: 2.5, pb: 2 }}>
+          Delete school permanently?
+        </DialogTitle>
+        <DialogContent dividers sx={{ px: 3, py: 2.5 }}>
+          {deleteError && (
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setDeleteError(null)}>
+              {deleteError}
+            </Alert>
+          )}
+          <Alert severity="error" sx={{ mb: 2 }}>
+            This cannot be undone. You are about to delete <strong>{school.school_name}</strong> and
+            all school data stored in Firestore.
+          </Alert>
+
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={unlinkStudents}
+                  onChange={(e) => setUnlinkStudents(e.target.checked)}
+                  sx={{ color: ip.navy, '&.Mui-checked': { color: ip.navy } }}
+                />
+              }
+              label={
+                <Typography sx={{ color: ip.heading, fontSize: '0.9rem' }}>
+                  Unlink {school.student_count} rostered student(s) from this school
+                </Typography>
+              }
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={deleteAdminAuth}
+                  onChange={(e) => setDeleteAdminAuth(e.target.checked)}
+                  sx={{ color: ip.navy, '&.Mui-checked': { color: ip.navy } }}
+                />
+              }
+              label={
+                <Typography sx={{ color: ip.heading, fontSize: '0.9rem' }}>
+                  Delete Firebase Auth logins for school POC/contacts (skipped if also a student or
+                  linked to another school)
+                </Typography>
+              }
+            />
+
+            <Box>
+              <Typography sx={platformAdminDialogFieldLabelSx} component="label" htmlFor="delete-confirm-name">
+                Type school name to confirm
+              </Typography>
+              <TextField
+                id="delete-confirm-name"
+                size="small"
+                fullWidth
+                value={deleteConfirmName}
+                onChange={(e) => {
+                  setDeleteConfirmName(e.target.value);
+                  if (deleteError) setDeleteError(null);
+                }}
+                placeholder={schoolDisplayName(school)}
+                error={deleteConfirmName.length > 0 && !deleteNameMatches}
+                helperText={
+                  deleteConfirmName.length > 0 && !deleteNameMatches
+                    ? `Must match "${schoolDisplayName(school)}" exactly`
+                    : 'Delete stays disabled until the name matches exactly'
+                }
+                sx={platformAdminDialogTextFieldSx}
+              />
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions
+          sx={{
+            px: 3,
+            py: 2,
+            gap: 1.5,
+            bgcolor: '#f8fafc',
+            borderTop: `1px solid ${ip.cardBorder}`,
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'flex-end',
+            flexShrink: 0,
+          }}
+        >
+          <Button
+            type="button"
+            onClick={() => setDeleteOpen(false)}
+            disabled={deleteSubmitting}
+            sx={{ textTransform: 'none', color: ip.subtext }}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="contained"
+            color="error"
+            disabled={deleteSubmitting || !deleteNameMatches}
+            onClick={() => void handleDeleteSchool()}
+            startIcon={deleteSubmitting ? <CircularProgress size={16} color="inherit" /> : undefined}
+            sx={{
+              textTransform: 'none',
+              fontWeight: 600,
+              minWidth: 148,
+              bgcolor: '#dc2626',
+              '&:hover': { bgcolor: '#b91c1c' },
+              '&.Mui-disabled': {
+                bgcolor: '#fecaca',
+                color: '#991b1b',
+                opacity: 1,
+              },
+            }}
+          >
+            {deleteSubmitting ? 'Deleting…' : 'Delete permanently'}
           </Button>
         </DialogActions>
       </Dialog>

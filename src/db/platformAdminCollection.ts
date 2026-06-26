@@ -17,6 +17,7 @@ import {
   PLATFORM_ADMIN_NOTIFICATIONS_MARK_ALL_READ,
   PLATFORM_ADMIN_MARK_SCHOOL_PAID,
   PLATFORM_ADMIN_UPDATE_SCHOOL_BILLING,
+  PLATFORM_ADMIN_DELETE_SCHOOL,
 } from '../constants/constants';
 
 function apiBase(): string {
@@ -333,6 +334,41 @@ export async function updatePlatformAdminSchoolBilling(
     body,
     { headers }
   );
+}
+
+export type PlatformAdminDeleteSchoolResult = {
+  schoolId: string;
+  studentsUnlinked: number;
+  adminAuthDeleted: number;
+  adminAuthSkipped: number;
+  notificationsDeleted: number;
+  allowlistEntriesDeleted: number;
+  subcollectionsDeleted: Record<string, number>;
+};
+
+export async function deletePlatformAdminSchool(
+  schoolId: string,
+  body: {
+    confirm_school_name: string;
+    delete_admin_auth?: boolean;
+    unlink_students?: boolean;
+  }
+): Promise<PlatformAdminDeleteSchoolResult> {
+  const headers = await authHeaders();
+  const res = await axios.post(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_SCHOOLS}/${encodeURIComponent(schoolId)}${PLATFORM_ADMIN_DELETE_SCHOOL}`,
+    body,
+    { headers }
+  );
+  return {
+    schoolId: res.data.schoolId ?? schoolId,
+    studentsUnlinked: res.data.studentsUnlinked ?? 0,
+    adminAuthDeleted: res.data.adminAuthDeleted ?? 0,
+    adminAuthSkipped: res.data.adminAuthSkipped ?? 0,
+    notificationsDeleted: res.data.notificationsDeleted ?? 0,
+    allowlistEntriesDeleted: res.data.allowlistEntriesDeleted ?? 0,
+    subcollectionsDeleted: res.data.subcollectionsDeleted ?? {},
+  };
 }
 
 export async function capturePlatformAdminSchoolPayment(schoolId: string): Promise<void> {

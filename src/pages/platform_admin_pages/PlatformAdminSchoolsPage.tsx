@@ -29,7 +29,7 @@ import {
   CheckCircleOutline as CheckCircleIcon,
   WarningAmber as WarningIcon,
 } from '@mui/icons-material';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import {
   getPlatformAdminOverview,
   listPlatformAdminSchools,
@@ -87,6 +87,7 @@ const PLAN_LABELS: Record<PlanFilter, string> = {
 
 const PlatformAdminSchoolsPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialPayment = (searchParams.get('filter') as PaymentFilter) || 'all';
   const initialVerified = (searchParams.get('verified') as VerifiedFilter) || 'all';
@@ -106,6 +107,13 @@ const PlatformAdminSchoolsPage: React.FC = () => {
   const [planFilter, setPlanFilter] = useState<PlanFilter>(
     ['all', 'entry', 'standard', 'premium'].includes(initialPlan) ? initialPlan : 'all'
   );
+  const deleteSuccessMessage =
+    typeof location.state === 'object' &&
+    location.state !== null &&
+    'deleteSuccess' in location.state &&
+    typeof (location.state as { deleteSuccess?: unknown }).deleteSuccess === 'string'
+      ? (location.state as { deleteSuccess: string }).deleteSuccess
+      : null;
 
   const hasActiveFilters =
     paymentFilter !== 'all' || verifiedFilter !== 'all' || planFilter !== 'all' || search.trim().length > 0;
@@ -379,6 +387,16 @@ const PlatformAdminSchoolsPage: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {deleteSuccessMessage && (
+        <Alert
+          severity="success"
+          sx={{ mb: 2 }}
+          onClose={() => navigate('/platform-admin/schools', { replace: true, state: {} })}
+        >
+          {deleteSuccessMessage}
+        </Alert>
+      )}
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>

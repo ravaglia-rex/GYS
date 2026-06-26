@@ -49,9 +49,9 @@ import { PlatformAdminPageHeader, PlatformAdminStatCard, PlatformAdminTableSecti
 function formatFirestoreTimestamp(
   ts?: { seconds?: number; _seconds?: number } | null
 ): string {
-  if (!ts) return ' — ';
+  if (!ts) return ' - ';
   const seconds = ts.seconds ?? ts._seconds;
-  if (typeof seconds !== 'number') return ' — ';
+  if (typeof seconds !== 'number') return ' - ';
   return new Date(seconds * 1000).toLocaleDateString('en-IN', {
     year: 'numeric',
     month: 'short',
@@ -236,7 +236,7 @@ const PlatformAdminRewardsPage: React.FC = () => {
                   {pending.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} align="center" sx={{ py: 5, color: ip.subtext }}>
-                        No pending redemptions — all caught up!
+                        No pending redemptions - all caught up!
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -359,7 +359,7 @@ const PlatformAdminRewardsPage: React.FC = () => {
                           <TableCell sx={{ color: ip.heading }}>{row.item_name}</TableCell>
                           <TableCell sx={{ color: ip.heading }}>{row.coins_spent}</TableCell>
                           <TableCell sx={{ color: ip.heading }}>
-                            {row.face_value_inr > 0 ? formatInr(row.face_value_inr) : '—'}
+                            {row.face_value_inr > 0 ? formatInr(row.face_value_inr) : '-'}
                           </TableCell>
                           <TableCell sx={{ color: ip.subtext, maxWidth: 220 }}>
                             {row.status === 'fulfilled' && row.voucher_code && (
@@ -376,7 +376,7 @@ const PlatformAdminRewardsPage: React.FC = () => {
                               <Typography variant="caption">Coins refunded</Typography>
                             )}
                             {row.status === 'fulfilled' && !row.voucher_code && (
-                              <Typography variant="caption">—</Typography>
+                              <Typography variant="caption">-</Typography>
                             )}
                           </TableCell>
                         </TableRow>
@@ -394,7 +394,7 @@ const PlatformAdminRewardsPage: React.FC = () => {
         <DialogTitle>Fulfill redemption</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            {fulfillDialog?.student_name} — {fulfillDialog?.item_name}
+            {fulfillDialog?.student_name} - {fulfillDialog?.item_name}
           </Typography>
           <TextField
             autoFocus
