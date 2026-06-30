@@ -223,24 +223,25 @@ export default function StudentPreviewLayout() {
         />
       </ListItemButton>
 
-      <ListItemButton
-        onClick={() => {
-          navigate('/students#argus-coins');
-          if (isMobile) setMobileOpen(false);
-        }}
-        sx={{
-          borderRadius: 1.5,
-          mb: 0.5,
-          py: 1.1,
-          pl: 2,
-          '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' },
-        }}
-      >
-        <ListItemIcon sx={{ minWidth: 40, color: '#a855f7' }}>
-          <LightbulbIcon sx={iconSx} />
-        </ListItemIcon>
-        <ListItemText primary="Question of the Day" slotProps={{ primary: { fontWeight: 500, fontSize: '0.9rem', color: '#e2e8f0' } }} />
-      </ListItemButton>
+      <Tooltip title="Not available in the sample dashboard">
+        <Box component="span" sx={{ display: 'block' }}>
+          <ListItemButton
+            disabled
+            sx={{
+              borderRadius: 1.5,
+              mb: 0.5,
+              py: 1.1,
+              pl: 2,
+              opacity: 0.5,
+            }}
+          >
+            <ListItemIcon sx={{ minWidth: 40, color: '#a855f7' }}>
+              <LightbulbIcon sx={iconSx} />
+            </ListItemIcon>
+            <ListItemText primary="Question of the Day" slotProps={{ primary: { fontWeight: 500, fontSize: '0.9rem', color: '#e2e8f0' } }} />
+          </ListItemButton>
+        </Box>
+      </Tooltip>
 
       <ListItemButton
         onClick={() => {
