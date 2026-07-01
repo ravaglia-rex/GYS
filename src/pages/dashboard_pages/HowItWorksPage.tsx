@@ -30,7 +30,7 @@ import {
   WbTwilight as WbTwilightIcon,
 } from '@mui/icons-material';
 import DashboardLayout from '../../layouts/DashboardLayout';
-import { ASSESSMENT_NAMES, LEVEL_CLEAR_THRESHOLD_LABEL, MEMBERSHIP_LEVEL_LABELS } from '../../utils/assessmentGating';
+import { ASSESSMENT_NAMES, ASSESSMENT_ORDER, LEVEL_CLEAR_THRESHOLD_LABEL, MEMBERSHIP_LEVEL_LABELS } from '../../utils/assessmentGating';
 import { studentPageSubtitleSx, studentPageTitleSx } from '../../styles/studentTypography';
 
 const glassPanelSx = {
@@ -291,15 +291,7 @@ const achievementTierBadges = [
   { label: 'Diamond', symbol: '💎', color: '#a78bfa', bg: 'rgba(167, 139, 250, 0.16)' },
 ];
 
-const examOrder = [
-  ASSESSMENT_NAMES.symbolic_reasoning,
-  ASSESSMENT_NAMES.verbal_reasoning,
-  ASSESSMENT_NAMES.mathematical_reasoning,
-  ASSESSMENT_NAMES.english_proficiency,
-  ASSESSMENT_NAMES.ai_literacy,
-  ASSESSMENT_NAMES.comprehensive_personality,
-  ASSESSMENT_NAMES.career_interest_inventory,
-];
+const examOrder = ASSESSMENT_ORDER.map((id) => ASSESSMENT_NAMES[id]);
 
 export const HowItWorksContent: React.FC = () => {
   return (
@@ -776,14 +768,25 @@ export const HowItWorksContent: React.FC = () => {
             id="student-how-it-works-percentiles"
             icon={<MilitaryTechIcon />}
             title="Understanding Percentiles"
-            subtitle="A percentile shows how you compare with peers - not the percentage of questions you answered correctly."
+            subtitle="A percentile tells you where you stand compared to other students who took the same exam."
           >
             <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.78)', lineHeight: 1.65, mb: 1.5, ...justifiedTextSx }}>
-              If you score in the 80th percentile, it means you performed as well as or better than 80% of the students
-              in your comparison group - other students taking GYS exams at the same level. A percentile answers
-              &ldquo;where do I stand relative to peers?&rdquo; rather than &ldquo;how many questions did I get right?&rdquo;
-              The middle of the pack sits around the 50th percentile, and a higher percentile means stronger standing
-              within the group.
+              It is like your rank in a group. The higher your percentile, the better you performed compared to others.
+            </Typography>
+            <Typography sx={{ color: 'white', fontWeight: 900, fontSize: '0.95rem', mb: 1 }}>
+              Example
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.78)', lineHeight: 1.65, mb: 1.5, ...justifiedTextSx }}>
+              Imagine 100 students took the exam. A 90th percentile means you did better than 90 students - only 10
+              scored higher. A 75th percentile means you did better than 75. A 50th percentile means you are around
+              the middle.
+            </Typography>
+            <Typography sx={{ color: 'white', fontWeight: 900, fontSize: '0.95rem', mb: 1 }}>
+              Remember
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.78)', lineHeight: 1.65, mb: 1.5, ...justifiedTextSx }}>
+              A percentile does not tell you how many questions you got right. It tells you how well you performed
+              compared to other students.
             </Typography>
             <Typography sx={{ color: 'white', fontWeight: 900, fontSize: '1.05rem', mb: 1.5 }}>
               Achievement Tier Badges
@@ -820,19 +823,19 @@ export const HowItWorksContent: React.FC = () => {
               id="student-how-it-works-adaptive"
               icon={<AutoAwesomeIcon />}
               title="Exams Personalized to Your Level"
-              subtitle="Our exams adjust in real time to match your skill. A traditional test gives everyone the same fixed set of questions. An adaptive exam adjusts to your level."
+              subtitle="Your GYS exam adjusts as you go to match your skill level. A traditional test gives everyone the same fixed questions. An adaptive exam changes based on how you are doing."
             >
               <Box sx={{ display: 'grid', gap: 1.5 }}>
                 <MiniCard
                   icon={<RocketLaunchIcon fontSize="small" />}
                   title="How the exam adapts and scores you"
-                  body="It starts with a question of moderate difficulty, then the questions get harder or easier depending on how you are doing - answer correctly and the next question is a little tougher; miss one and the next is a little easier. Your score is based on how many questions you got right, and how hard the questions were that you could answer. Tougher questions are worth more, so two students who answer the same number correctly can earn different scores."
+                  body="You start with a medium-difficulty question. The exam then gets harder or easier based on how you are doing — get one right and the next is a little tougher; miss one and the next is a little easier. Your score looks at how many you got right and how hard those questions were. Harder questions count for more, so two students who get the same number right can still earn different scores."
                   color="#06b6d4"
                 />
                 <MiniCard
                   icon={<AutoAwesomeIcon fontSize="small" />}
                   title="Fewer questions, clearer results"
-                  body="The payoff is a more accurate picture of your true level, with no time wasted on questions that are far too easy or far too hard. Instead of sitting through a long fixed test, the exam focuses on questions that actually show what you can do. You spend more time in the range where you are challenged and measured."
+                  body="This gives you a clearer picture of your true level, without time wasted on questions that are far too easy or far too hard. Instead of a long fixed test, the exam focuses on questions that actually show what you can do. You spend more time where you are challenged and properly measured."
                   color="#38bdf8"
                 />
                

@@ -34,8 +34,8 @@ export type RegisterSchoolPayload = {
   registrant_last_name: string;
   registrant_designation: string;
   contact_emails: string[];
-  /** Optional at signup - required on Razorpay checkout step if not stored. */
-  poc_phone?: string;
+  /** India mobile (E.164, e.g. +919876543210) for the registrant / POC. */
+  poc_phone: string;
   selected_plan_id: string;
   gst_registration_status: 'yes' | 'no' | 'not_sure';
   gstin: string;

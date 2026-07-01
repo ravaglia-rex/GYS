@@ -130,6 +130,7 @@ function defaultPaymentMethod(school: PlatformAdminSchoolDetail): PlatformAdminM
   const raw = (school.payment_method ?? '').toLowerCase();
   if (raw === 'already_paid') return 'already_paid';
   if (raw === 'wire' || school.pending_wire_capture) return 'wire';
+  if (raw === 'razorpay_link') return 'razorpay_link';
   if (raw === 'neft_rtgs' || raw === 'upi' || raw === 'cheque' || raw === 'cash' || raw === 'other') {
     return raw as PlatformAdminMarkSchoolPaidMethod;
   }
@@ -152,6 +153,8 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
   const [paidDate, setPaidDate] = useState(todayDateInputValue());
   const [amountInr, setAmountInr] = useState('');
   const [transactionReference, setTransactionReference] = useState('');
+  const [razorpayOrderId, setRazorpayOrderId] = useState('');
+  const [razorpayPaymentId, setRazorpayPaymentId] = useState('');
   const [adminNote, setAdminNote] = useState('');
   const [sendConfirmationEmail, setSendConfirmationEmail] = useState(true);
   const [paidPlanId, setPaidPlanId] = useState<RegisterPlanId | ''>('');
@@ -193,6 +196,8 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
     setPaidDate(todayDateInputValue());
     setAmountInr(defaultMarkPaidAmountInr(school));
     setTransactionReference('');
+    setRazorpayOrderId('');
+    setRazorpayPaymentId('');
     setAdminNote('');
     setSendConfirmationEmail(true);
     setPaidPlanId(resolveSchoolPlanId(school) || resolveRegisteredPlanId(school) || '');
@@ -218,6 +223,8 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
     setPaidDate(todayDateInputValue());
     setAmountInr(defaultAmountInr);
     setTransactionReference('');
+    setRazorpayOrderId('');
+    setRazorpayPaymentId('');
     setAdminNote('');
     setSendConfirmationEmail(true);
     setPaidPlanId(resolveSchoolPlanId(school) || resolveRegisteredPlanId(school) || '');
@@ -329,6 +336,16 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
       setError('Please enter a valid payment amount in INR.');
       return;
     }
+    const trimmedRazorpayOrderId = razorpayOrderId.trim();
+    const trimmedRazorpayPaymentId = razorpayPaymentId.trim();
+    if (trimmedRazorpayOrderId && !trimmedRazorpayOrderId.startsWith('order_')) {
+      setError('Razorpay Order ID must start with order_.');
+      return;
+    }
+    if (trimmedRazorpayPaymentId && !trimmedRazorpayPaymentId.startsWith('pay_')) {
+      setError('Razorpay Payment ID must start with pay_.');
+      return;
+    }
 
     setSubmitting(true);
     setError(null);
@@ -339,6 +356,8 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
         paid_at: paidAtIso,
         amount_paise: Math.round(parsedAmount * 100),
         ...(paidPlanId ? { plan_id: paidPlanId } : {}),
+        ...(trimmedRazorpayOrderId ? { razorpay_order_id: trimmedRazorpayOrderId } : {}),
+        ...(trimmedRazorpayPaymentId ? { razorpay_payment_id: trimmedRazorpayPaymentId } : {}),
         transaction_reference: transactionReference.trim() || undefined,
         admin_note: adminNote.trim() || undefined,
         send_confirmation_email: sendConfirmationEmail,
@@ -525,10 +544,18 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
               {school.payment_method === 'wire' ||
               school.payment_method === 'already_paid' ||
               school.wire_payment_id ||
-              school.wire_order_id ? (
+              school.wire_order_id ||
+              school.razorpay_payment_id ||
+              school.razorpay_order_id ? (
                 <>
-                  <DetailRow label="Payment ID" value={school.wire_payment_id || school.razorpay_payment_id || ' - '} />
-                  <DetailRow label="Order ID" value={school.wire_order_id || ' - '} />
+                  <DetailRow
+                    label="Payment ID"
+                    value={school.razorpay_payment_id || school.wire_payment_id || ' - '}
+                  />
+                  <DetailRow
+                    label="Order ID"
+                    value={school.razorpay_order_id || school.wire_order_id || ' - '}
+                  />
                   <DetailRow label="Amount on file" value={formatInrFromPaise(school.wire_amount_paise)} />
                 </>
               ) : (
@@ -758,6 +785,40 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
                   Override the list price if they paid a discounted amount.
                 </Typography>
               )}
+            </Box>
+
+            <Box>
+              <Typography sx={platformAdminDialogFieldLabelSx} component="label" htmlFor="mark-paid-razorpay-order">
+                Razorpay Order ID (optional)
+              </Typography>
+              <TextField
+                id="mark-paid-razorpay-order"
+                size="small"
+                fullWidth
+                value={razorpayOrderId}
+                onChange={(e) => setRazorpayOrderId(e.target.value)}
+                placeholder="order_…"
+                sx={platformAdminDialogTextFieldSx}
+              />
+            </Box>
+
+            <Box>
+              <Typography sx={platformAdminDialogFieldLabelSx} component="label" htmlFor="mark-paid-razorpay-payment">
+                Razorpay Payment ID (optional)
+              </Typography>
+              <TextField
+                id="mark-paid-razorpay-payment"
+                size="small"
+                fullWidth
+                value={razorpayPaymentId}
+                onChange={(e) => setRazorpayPaymentId(e.target.value)}
+                placeholder="pay_…"
+                sx={platformAdminDialogTextFieldSx}
+              />
+              <Typography sx={{ color: ip.subtext, fontSize: '0.75rem', mt: 0.75, lineHeight: 1.4 }}>
+                If paid via Razorpay link or checkout, enter both IDs from the Razorpay dashboard. They are stored
+                separately on the school record and in payment history.
+              </Typography>
             </Box>
 
             <Box>

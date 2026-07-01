@@ -95,6 +95,7 @@ export type PlatformAdminSchoolDetail = PlatformAdminSchoolSummary & {
   billing_invoice_number: string | null;
   billing_public_reference: string | null;
   razorpay_payment_id: string | null;
+  razorpay_order_id: string | null;
   wire_payment_id: string | null;
   wire_order_id: string | null;
   wire_amount_paise: number | null;
@@ -278,6 +279,7 @@ export async function getPlatformAdminSchool(schoolId: string): Promise<{
 
 export type PlatformAdminMarkSchoolPaidMethod =
   | 'wire'
+  | 'razorpay_link'
   | 'neft_rtgs'
   | 'upi'
   | 'cheque'
@@ -287,6 +289,7 @@ export type PlatformAdminMarkSchoolPaidMethod =
 
 export const PLATFORM_ADMIN_PAYMENT_METHOD_LABELS: Record<PlatformAdminMarkSchoolPaidMethod, string> = {
   wire: 'Wire transfer',
+  razorpay_link: 'Razorpay link',
   neft_rtgs: 'NEFT / RTGS',
   upi: 'UPI',
   cheque: 'Cheque',
@@ -302,6 +305,8 @@ export async function markPlatformAdminSchoolPaid(
     paid_at: string;
     amount_paise?: number;
     plan_id?: string;
+    razorpay_order_id?: string;
+    razorpay_payment_id?: string;
     transaction_reference?: string;
     admin_note?: string;
     send_confirmation_email?: boolean;

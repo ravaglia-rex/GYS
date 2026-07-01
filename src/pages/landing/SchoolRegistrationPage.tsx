@@ -33,6 +33,11 @@ import {
   SCHOOL_REGISTRATION_PLANS as PLANS,
   schoolRegistrationCheckoutSummaryFromBaseInr,
 } from '../../utils/schoolRegistrationPlans';
+import {
+  isValidIndiaMobile,
+  toIndiaMobileNationalDigits,
+  withIndiaCountryCode,
+} from '../../utils/indiaMobile';
 
 const GYS_BLUE = '#1e3a8a';
 
@@ -111,7 +116,13 @@ const STEP2_FIELD_ORDER = [
   'addressState',
   'referralSource',
 ] as const;
-const STEP3_FIELD_ORDER = ['registrantFirstName', 'registrantLastName', 'registrantDesignation', 'emails'] as const;
+const STEP3_FIELD_ORDER = [
+  'registrantFirstName',
+  'registrantLastName',
+  'registrantDesignation',
+  'registrantPhone',
+  'emails',
+] as const;
 const STEP4_FIELD_ORDER = ['gstRegistrationStatus', 'gstin', 'commitToPay'] as const;
 
 function scrollToFirstError(
@@ -172,6 +183,7 @@ const SchoolRegistrationPage: React.FC = () => {
   const [registrantFirstName, setRegistrantFirstName] = useState('');
   const [registrantLastName, setRegistrantLastName] = useState('');
   const [registrantDesignation, setRegistrantDesignation] = useState('');
+  const [registrantPhone, setRegistrantPhone] = useState('');
   const [emails, setEmails] = useState<string[]>(['']);
 
   // Step 4: Plan + payment intent (invoice / details sent later)
@@ -308,6 +320,11 @@ const SchoolRegistrationPage: React.FC = () => {
     }
     if (!registrantDesignation.trim()) {
       newErrors.registrantDesignation = 'Please enter your designation.';
+    }
+    if (!registrantPhone.trim()) {
+      newErrors.registrantPhone = 'Please enter your mobile number.';
+    } else if (!isValidIndiaMobile(registrantPhone)) {
+      newErrors.registrantPhone = 'Enter a valid 10-digit Indian mobile number starting with 6–9.';
     }
     const filled = emails.filter((e) => e.trim() !== '');
     if (filled.length === 0) {
@@ -446,6 +463,7 @@ const SchoolRegistrationPage: React.FC = () => {
         registrant_first_name: registrantFirstName.trim(),
         registrant_last_name: registrantLastName.trim(),
         registrant_designation: registrantDesignation.trim(),
+        poc_phone: withIndiaCountryCode(registrantPhone),
         contact_emails: filledEmails,
         selected_plan_id: selectedPlan,
         gst_registration_status: validatedGstRegistrationStatus,
@@ -1280,6 +1298,39 @@ const SchoolRegistrationPage: React.FC = () => {
                   />
                   {errors.registrantDesignation && (
                     <p className="mt-1 text-xs text-red-600">{errors.registrantDesignation}</p>
+                  )}
+                </div>
+
+                <div id="field-registrantPhone" className="sm:col-span-2">
+                  <label className="block text-xs sm:text-sm font-bold text-slate-700">
+                    Your mobile number<span className="text-red-500"> *</span>
+                  </label>
+                  <div
+                    className={`mt-1.5 flex w-full overflow-hidden rounded-lg border bg-white text-sm sm:text-base focus-within:outline-none focus-within:ring-1 ${
+                      errors.registrantPhone
+                        ? 'border-red-400 focus-within:border-red-400 focus-within:ring-red-300'
+                        : 'border-slate-200 focus-within:border-slate-400 focus-within:ring-slate-400'
+                    }`}
+                  >
+                    <span className="flex items-center border-r border-slate-200 bg-slate-50 px-3.5 py-2.5 font-medium text-slate-600">
+                      +91
+                    </span>
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      value={registrantPhone}
+                      onChange={(e) => {
+                        setRegistrantPhone(toIndiaMobileNationalDigits(e.target.value));
+                        clearError('registrantPhone');
+                      }}
+                      className="w-full px-3.5 py-2.5 text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                      placeholder="98765 43210"
+                      autoComplete="tel-national"
+                      maxLength={10}
+                    />
+                  </div>
+                  {errors.registrantPhone && (
+                    <p className="mt-1 text-xs text-red-600">{errors.registrantPhone}</p>
                   )}
                 </div>
               </div>
