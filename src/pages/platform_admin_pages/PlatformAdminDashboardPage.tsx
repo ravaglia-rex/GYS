@@ -28,6 +28,7 @@ import {
   Notifications as NotificationsIcon,
   PersonAdd as PersonAddIcon,
   GroupAdd as GroupAddIcon,
+  CurrencyRupee as RupeeIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -36,6 +37,7 @@ import {
   markAllPlatformAdminNotificationsRead,
   markPlatformAdminNotificationsRead,
   runPlatformAdminPipeline,
+  formatInrFromPaise,
   type PlatformAdminNotification,
   type PlatformAdminOverviewStats,
 } from '../../db/platformAdminCollection';
@@ -296,6 +298,41 @@ const PlatformAdminDashboardPage: React.FC = () => {
       )}
 
       {stats && (
+        <Card
+          sx={{
+            ...platformAdminCardSx,
+            mb: 2,
+            background: `linear-gradient(135deg, ${ip.navy} 0%, #1e3a5f 100%)`,
+            borderColor: 'transparent',
+          }}
+        >
+          <CardContent sx={{ py: 2.5, px: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box
+                sx={{
+                  bgcolor: 'rgba(255,255,255,0.15)',
+                  color: '#fff',
+                  borderRadius: 2,
+                  p: 1.25,
+                  display: 'flex',
+                }}
+              >
+                <RupeeIcon />
+              </Box>
+              <Box>
+                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', mb: 0.25 }}>
+                  Total revenue collected (excl. test schools)
+                </Typography>
+                <Typography variant="h4" sx={{ fontWeight: 700, color: '#fff' }}>
+                  {formatInrFromPaise(stats.total_revenue_paise)}
+                </Typography>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+      )}
+
+      {stats && (
         <Box
           sx={{
             display: 'grid',
@@ -315,14 +352,9 @@ const PlatformAdminDashboardPage: React.FC = () => {
           <StatCard
             title="Pending payments"
             value={stats.schools_pending_payment}
-            subtitle={
-              stats.schools_pending_wire_capture > 0
-                ? `${stats.schools_pending_wire_capture} awaiting wire capture`
-                : undefined
-            }
             icon={<PaymentIcon />}
             accent="#d97706"
-            onClick={() => navigate('/platform-admin/schools?filter=wire')}
+            onClick={() => navigate('/platform-admin/schools?filter=pending')}
           />
           <StatCard
             title="Total students"

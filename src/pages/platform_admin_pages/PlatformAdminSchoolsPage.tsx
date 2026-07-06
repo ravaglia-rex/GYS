@@ -27,7 +27,6 @@ import {
   Payment as PaymentIcon,
   School as SchoolIcon,
   CheckCircleOutline as CheckCircleIcon,
-  WarningAmber as WarningIcon,
 } from '@mui/icons-material';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import {
@@ -264,19 +263,6 @@ const PlatformAdminSchoolsPage: React.FC = () => {
             onClick={() => {
               setVerifiedFilter('yes');
               setPaymentFilter('all');
-              setPlanFilter('all');
-              setSearch('');
-            }}
-          />
-          <PlatformAdminStatCard
-            title="Wire capture needed"
-            value={stats.schools_pending_wire_capture}
-            subtitle="Offline payment received"
-            icon={<WarningIcon />}
-            accent="#b45309"
-            onClick={() => {
-              setPaymentFilter('wire');
-              setVerifiedFilter('all');
               setPlanFilter('all');
               setSearch('');
             }}

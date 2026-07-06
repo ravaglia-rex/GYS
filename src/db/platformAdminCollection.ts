@@ -45,6 +45,7 @@ export type PlatformAdminOverviewStats = {
   students_total: number;
   pending_redemptions: number;
   unread_notifications: number;
+  total_revenue_paise: number;
 };
 
 export type PlatformAdminNotificationType =

@@ -122,7 +122,7 @@ export const platformAdminStatsGridSx = {
   gridTemplateColumns: {
     xs: '1fr 1fr',
     sm: 'repeat(2, 1fr)',
-    lg: 'repeat(5, 1fr)',
+    lg: 'repeat(4, 1fr)',
   },
   gap: 2,
   mb: 2.5,
