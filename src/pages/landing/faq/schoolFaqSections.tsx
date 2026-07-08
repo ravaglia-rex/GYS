@@ -158,8 +158,8 @@ This approach allows schools to understand academic readiness and skill developm
               </li>
               <li>
                 <strong>Premium</strong> - {SCHOOL_INSTITUTIONAL_PRICE_LANDING.premium} (
-                {INSTITUTIONAL_PLAN_STUDENT_LIMIT.premium}). Includes Exams 1–5 (reasoning triad plus English
-                proficiency and AI proficiency), cohort and partnership benefits in the institutional matrix,
+                {INSTITUTIONAL_PLAN_STUDENT_LIMIT.premium}). Includes Exams 1–5 (reasoning triad plus Personality
+                and Interest and AI Proficiency), cohort and partnership benefits in the institutional matrix,
                 plus dedicated support and implementation assistance.
               </li>
             </ul>

@@ -532,12 +532,12 @@ const LandingPage: React.FC = () => {
           </h3>
           <p className="mx-auto mt-3 max-w-3xl text-center text-sm leading-relaxed text-gray-600">
             GYS keeps students coming back with Argus Coins - earn them from official exams, weekly practice, and a daily Question of the Day.
-            Build login and QotD streaks, then redeem coins for gift cards and perks in the Rewards Shop.
+            Build login and QoD streaks, then redeem coins for gift cards and perks in the Rewards Shop.
           </p>
           <div className="mx-auto mt-8 grid max-w-4xl grid-cols-1 gap-4 sm:grid-cols-3">
             {[
               { emoji: '📝', title: 'Question of the Day', desc: 'One new challenge every day.' },
-              { emoji: '🔥', title: 'Streaks', desc: 'Daily login and QotD streaks with milestone coin bonuses.' },
+              { emoji: '🔥', title: 'Streaks', desc: 'Daily login and QoD streaks with milestone coin bonuses.' },
               { emoji: '🎁', title: 'Rewards Shop', desc: 'Redeem for Amazon, Starbucks, Flipkart vouchers and more.' },
             ].map((card) => (
               <div key={card.title} className="rounded-xl border border-slate-200 bg-slate-50 p-5 text-center shadow-sm">

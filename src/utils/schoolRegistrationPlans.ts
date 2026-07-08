@@ -99,10 +99,10 @@ const PLAN_COPY: Pick<SchoolPlanDisplay, 'id' | 'name' | 'tagline' | 'features' 
   {
     id: 'premium',
     name: 'Premium',
-    tagline: 'Standard plus Exams 4–5 (English & AI) and consulting',
+    tagline: 'Standard plus Exams 4–5 (Personality & AI) and consulting',
     features: [
       'Everything in Standard',
-      'Assessments 4–5 (English proficiency & AI proficiency)',
+      'Assessments 4–5 (Personality and Interest & AI Proficiency)',
 
       'Cohort analysis & cluster insights',
       'Consulting-style action plans',
@@ -247,5 +247,5 @@ export const INSTITUTIONAL_LANDING_PLAN_CARD_BLURBS: Record<RegisterPlanId, stri
   standard:
     'Full reasoning triad (Assessments 1–3), deep analytics, benchmarks, quarterly growth, and prioritized recommendations.',
   premium:
-    'Everything in Standard plus Assessments 4–5 (English & AI), flexible cohorts, cluster insights, consulting-style plans, a dedicated contact, and marketing toolkit.',
+    'Everything in Standard plus Assessments 4–5 (Personality & AI), flexible cohorts, cluster insights, consulting-style plans, a dedicated contact, and marketing toolkit.',
 };

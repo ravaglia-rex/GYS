@@ -19,8 +19,8 @@ import * as Sentry from '@sentry/react';
 import { useQueryClient } from '@tanstack/react-query';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import { LoadingSpinner } from '../../components/ui/spinner';
-import { useQotd, useInvalidateStudentQueries } from '../../query/hooks';
-import { submitQotdAnswer, type QotdResponse } from '../../db/gamificationCollection';
+import { useQod, useInvalidateStudentQueries } from '../../query/hooks';
+import { submitQodAnswer, type QodResponse } from '../../db/gamificationCollection';
 import { queryKeys } from '../../query/queryKeys';
 import { studentPageSubtitleSx, studentPageTitleSx } from '../../styles/studentTypography';
 import { auth } from '../../firebase/firebase';
@@ -34,7 +34,7 @@ const EXAM_LABELS: Record<string, string> = {
   ai_literacy: 'AI Literacy',
 };
 
-function getQotdPassageText(question: ExamQuestion): string {
+function getQodPassageText(question: ExamQuestion): string {
   const direct = typeof question.passage === 'string' ? question.passage.trim() : '';
   if (direct) return direct;
 
@@ -63,7 +63,7 @@ function splitPassageParagraphs(text: string): string[] {
 
 const QuestionOfTheDayPage: React.FC = () => {
   const queryClient = useQueryClient();
-  const { data, isLoading, error, refetch } = useQotd();
+  const { data, isLoading, error, refetch } = useQod();
   const invalidateStudent = useInvalidateStudentQueries();
   const [selected, setSelected] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -86,7 +86,7 @@ const QuestionOfTheDayPage: React.FC = () => {
     setSubmitting(true);
     setSubmitError('');
     try {
-      const res = await submitQotdAnswer(selected);
+      const res = await submitQodAnswer(selected);
       const nextResult = {
         correct: res.correct,
         coins_awarded: res.coins_awarded,
@@ -95,13 +95,13 @@ const QuestionOfTheDayPage: React.FC = () => {
       };
       setResult(nextResult);
 
-      queryClient.setQueryData<QotdResponse>(queryKeys.qotd(), (old) => {
+      queryClient.setQueryData<QodResponse>(queryKeys.qod(), (old) => {
         if (!old) return old;
         return {
           ...old,
           already_answered: true,
           argus_coins: res.argus_coins,
-          qotd_streak: res.qotd_streak,
+          qod_streak: res.qod_streak,
           last_result: {
             correct: res.correct,
             coins_awarded: res.coins_awarded,
@@ -132,7 +132,7 @@ const QuestionOfTheDayPage: React.FC = () => {
 
   const question = data?.question;
   const options = question?.options ?? [];
-  const passageText = question ? getQotdPassageText(question) : '';
+  const passageText = question ? getQodPassageText(question) : '';
   const renderMath = data?.exam_id === 'mathematical_reasoning';
 
   return (
@@ -154,7 +154,7 @@ const QuestionOfTheDayPage: React.FC = () => {
 
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
           <Chip label={`Login streak: ${data?.login_streak?.current ?? 0} days`} color="warning" variant="outlined" />
-          <Chip label={`QotD streak: ${data?.qotd_streak?.current ?? 0} days`} color="secondary" variant="outlined" />
+          <Chip label={`QoD streak: ${data?.qod_streak?.current ?? 0} days`} color="secondary" variant="outlined" />
           <Chip
             label={`${(data?.argus_coins ?? 0).toLocaleString()} Argus Coins`}
             sx={{

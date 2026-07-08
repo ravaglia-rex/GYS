@@ -3,14 +3,14 @@ import { Box, Button, Card, CardContent, Chip, Typography } from '@mui/material'
 import LightbulbIcon from '@mui/icons-material/Lightbulb';
 import { useNavigate } from 'react-router-dom';
 
-type QotdDashboardCardProps = {
-  qotdStreak: number;
+type QodDashboardCardProps = {
+  qodStreak: number;
   alreadyAnswered?: boolean;
   preview?: boolean;
 };
 
-const QotdDashboardCard: React.FC<QotdDashboardCardProps> = ({
-  qotdStreak,
+const QodDashboardCard: React.FC<QodDashboardCardProps> = ({
+  qodStreak,
   alreadyAnswered,
   preview = false,
 }) => {
@@ -50,7 +50,7 @@ const QotdDashboardCard: React.FC<QotdDashboardCardProps> = ({
                 ? 'Great job - you completed today\'s challenge!'
                 : 'Answer today\'s question to earn Argus Coins and grow your streak.'}
             </Typography>
-            <Chip label={`${qotdStreak} day streak`} size="small" sx={{ mt: 1, bgcolor: 'rgba(255,255,255,0.12)', color: 'white' }} />
+            <Chip label={`${qodStreak} day streak`} size="small" sx={{ mt: 1, bgcolor: 'rgba(255,255,255,0.12)', color: 'white' }} />
           </Box>
         </Box>
         <Button
@@ -66,4 +66,4 @@ const QotdDashboardCard: React.FC<QotdDashboardCardProps> = ({
   );
 };
 
-export default QotdDashboardCard;
+export default QodDashboardCard;

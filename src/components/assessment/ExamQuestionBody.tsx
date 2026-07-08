@@ -3004,5 +3004,5 @@ const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
 
 export const ExamQuestionBody = React.memo(ExamQuestionBodyInner);
 
-/** Structured stimulus renderer (grids, sequences, tables) shared by practice and QotD. */
+/** Structured stimulus renderer (grids, sequences, tables) shared by practice and QoD. */
 export const ExamQuestionStimulus = HumanFriendlyStimulus;

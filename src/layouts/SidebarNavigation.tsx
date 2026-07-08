@@ -65,7 +65,7 @@ const STUDENT_NAV_TUTORIAL_ID: Partial<Record<string, string>> = {
   '/assessments': 'student-nav-assessments',
   '/assessments/reports': 'student-nav-reports',
   '/practice-test': 'student-nav-practice',
-  '/question-of-the-day': 'student-nav-qotd',
+  '/question-of-the-day': 'student-nav-qod',
   '/rewards': 'student-nav-rewards',
   '/reports': 'student-nav-reports',
   '/payments': 'student-nav-payments',

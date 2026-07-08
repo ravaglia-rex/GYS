@@ -80,9 +80,13 @@ export const RECORD_PRACTICE_OUTCOME='/recordOutcome';
 export const RECORD_PRACTICE_SESSION_OUTCOMES='/recordSessionOutcomes';
 export const RESET_PRACTICE_PROGRESS='/resetProgress';
 
-// Gamification (Argus Coins, QotD, rewards)
-export const GET_GAMIFICATION_QOTD = '/qotd';
-export const POST_GAMIFICATION_QOTD_ANSWER = '/qotd/answer';
+// Gamification (Argus Coins, QoD, rewards)
+export const GET_GAMIFICATION_QOD = '/qod';
+export const POST_GAMIFICATION_QOD_ANSWER = '/qod/answer';
+/** @deprecated Legacy route alias — kept for older deployed backends */
+export const GET_GAMIFICATION_QOD_LEGACY = '/qotd';
+/** @deprecated Legacy route alias — kept for older deployed backends */
+export const POST_GAMIFICATION_QOD_ANSWER_LEGACY = '/qotd/answer';
 export const POST_GAMIFICATION_RECORD_DAILY_LOGIN = '/recordDailyLogin';
 export const GET_GAMIFICATION_REWARDS = '/rewards';
 export const POST_GAMIFICATION_REDEEM = '/redeem';

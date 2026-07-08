@@ -888,8 +888,8 @@ export const HowItWorksContent: React.FC = () => {
               />
               <MiniCard
                 icon={<LocalFireDepartmentIcon fontSize="small" />}
-                title="Login & QotD streaks"
-                body="Visit GYS daily to grow your login streak. Answer the Question of the Day on consecutive days to build a QotD streak. Hit 7- and 30-day milestones for bonus coins."
+                title="Login & QoD streaks"
+                body="Visit GYS daily to grow your login streak. Answer the Question of the Day on consecutive days to build a QoD streak. Hit 7- and 30-day milestones for bonus coins."
                 color="#ef4444"
               />
               <MiniCard
@@ -921,8 +921,8 @@ export const HowItWorksContent: React.FC = () => {
                     { activity: 'Question of the Day (attempted)', coins: '5', notes: 'Once per day if not correct' },
                     { activity: 'Official exam', coins: '60 + score bonus', notes: 'Up to 90 extra based on performance' },
                     { activity: 'Weekly practice', coins: '30 + per correct', notes: 'Once per week; all 10 questions; thoughtful timing required' },
-                    { activity: '7-day streak milestone', coins: '50', notes: 'Login or QotD streak' },
-                    { activity: '30-day streak milestone', coins: '250', notes: 'Login or QotD streak' },
+                    { activity: '7-day streak milestone', coins: '50', notes: 'Login or QoD streak' },
+                    { activity: '30-day streak milestone', coins: '250', notes: 'Login or QoD streak' },
                   ].map((row) => (
                     <TableRow key={row.activity}>
                       <TableCell sx={{ ...tableCellSx, color: 'white', fontWeight: 800 }}>{row.activity}</TableCell>

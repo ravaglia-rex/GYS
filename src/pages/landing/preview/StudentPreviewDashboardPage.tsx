@@ -131,8 +131,8 @@ const StudentPreviewDashboardPage: React.FC = () => {
         previewGamification={{
           argus_coins: 1250,
           login_streak: 5,
-          qotd_streak: 3,
-          qotd_answered_today: false,
+          qod_streak: 3,
+          qod_answered_today: false,
         }}
       />
       <Box id="your-assessments" sx={{ mt: 4, ml: 1, scrollMarginTop: 100 }}>

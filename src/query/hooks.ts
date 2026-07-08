@@ -8,7 +8,7 @@ import {
 } from '../db/assessmentCollection';
 import { getSchoolDetails } from '../db/schoolCollection';
 import { getPayments } from '../db/studentPaymentMappings';
-import { fetchQotd, fetchRewards } from '../db/gamificationCollection';
+import { fetchQod, fetchRewards } from '../db/gamificationCollection';
 import { queryKeys } from './queryKeys';
 
 const ASSESSMENT_CONFIG_STALE_MS = 15 * 60_000;
@@ -70,14 +70,14 @@ export function useInvalidateStudentQueries() {
     void qc.invalidateQueries({ queryKey: queryKeys.studentAssessments(uid) });
     void qc.invalidateQueries({ queryKey: queryKeys.payments(uid) });
     void qc.invalidateQueries({ queryKey: queryKeys.rewards() });
-    void qc.invalidateQueries({ queryKey: queryKeys.qotd() });
+    void qc.invalidateQueries({ queryKey: queryKeys.qod() });
   };
 }
 
-export function useQotd(enabled = true) {
+export function useQod(enabled = true) {
   return useQuery({
-    queryKey: queryKeys.qotd(),
-    queryFn: fetchQotd,
+    queryKey: queryKeys.qod(),
+    queryFn: fetchQod,
     enabled,
     staleTime: 30_000,
     refetchOnMount: 'always',

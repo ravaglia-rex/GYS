@@ -2,8 +2,10 @@ import axios from 'axios';
 import authTokenHandler from '../functions/auth_token/auth_token_handler';
 import {
   GAMIFICATION_APIS,
-  GET_GAMIFICATION_QOTD,
-  POST_GAMIFICATION_QOTD_ANSWER,
+  GET_GAMIFICATION_QOD,
+  GET_GAMIFICATION_QOD_LEGACY,
+  POST_GAMIFICATION_QOD_ANSWER,
+  POST_GAMIFICATION_QOD_ANSWER_LEGACY,
   POST_GAMIFICATION_RECORD_DAILY_LOGIN,
   GET_GAMIFICATION_REWARDS,
   POST_GAMIFICATION_REDEEM,
@@ -22,9 +24,9 @@ export type GamificationState = {
   argus_coins: number;
   coins_lifetime_earned: number;
   login_streak: GamificationStreak;
-  qotd_streak: GamificationStreak;
-  qotd_last_answered_date?: string;
-  qotd_last_result?: { correct: boolean; coins_awarded: number };
+  qod_streak: GamificationStreak;
+  qod_last_answered_date?: string;
+  qod_last_result?: { correct: boolean; coins_awarded: number };
   practice_last_awarded_week?: string;
   redemptions?: Record<string, RedemptionRecord>;
 };
@@ -50,7 +52,7 @@ export type RewardCatalogItem = {
   active: boolean;
 };
 
-export type QotdResponse = {
+export type QodResponse = {
   date: string;
   exam_id: string;
   item_id: string;
@@ -64,13 +66,13 @@ export type QotdResponse = {
   } | null;
   argus_coins: number;
   login_streak: GamificationStreak;
-  qotd_streak: GamificationStreak;
+  qod_streak: GamificationStreak;
 };
 
-export type QotdAnswerResponse = {
+export type QodAnswerResponse = {
   already_answered: boolean;
   coins_awarded: number;
-  qotd_streak: GamificationStreak;
+  qod_streak: GamificationStreak;
   milestone_coins: number;
   correct: boolean;
   correct_option_index: number | null;
@@ -93,22 +95,65 @@ async function authHeaders() {
   return { Authorization: `Bearer ${authToken}` };
 }
 
-export async function fetchQotd(): Promise<QotdResponse> {
-  const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS;
-  const headers = await authHeaders();
-  const response = await axios.get(`${base}${GAMIFICATION_APIS}${GET_GAMIFICATION_QOTD}`, { headers });
-  return response.data;
+function normalizeQodResponse(data: Record<string, unknown>): QodResponse {
+  const qodStreak = (data.qod_streak ?? data.qotd_streak) as GamificationStreak | undefined;
+  return {
+    ...(data as unknown as QodResponse),
+    qod_streak: qodStreak ?? { current: 0, longest: 0 },
+  };
 }
 
-export async function submitQotdAnswer(selectedOption: number): Promise<QotdAnswerResponse> {
+function normalizeQodAnswerResponse(data: Record<string, unknown>): QodAnswerResponse {
+  const qodStreak = (data.qod_streak ?? data.qotd_streak) as GamificationStreak | undefined;
+  return {
+    ...(data as unknown as QodAnswerResponse),
+    qod_streak: qodStreak ?? { current: 0, longest: 0 },
+  };
+}
+
+async function requestWithQodLegacyFallback<T>(
+  request: (path: string) => Promise<{ data: Record<string, unknown> }>,
+  primaryPath: string,
+  legacyPath: string,
+  normalize: (data: Record<string, unknown>) => T,
+): Promise<T> {
+  try {
+    const response = await request(primaryPath);
+    return normalize(response.data);
+  } catch (error) {
+    if (!axios.isAxiosError(error) || error.response?.status !== 404) {
+      throw error;
+    }
+    const response = await request(legacyPath);
+    return normalize(response.data);
+  }
+}
+
+export async function fetchQod(): Promise<QodResponse> {
   const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS;
   const headers = await authHeaders();
-  const response = await axios.post(
-    `${base}${GAMIFICATION_APIS}${POST_GAMIFICATION_QOTD_ANSWER}`,
-    { selected_option: selectedOption },
-    { headers }
+  return requestWithQodLegacyFallback(
+    (path) => axios.get(`${base}${GAMIFICATION_APIS}${path}`, { headers }),
+    GET_GAMIFICATION_QOD,
+    GET_GAMIFICATION_QOD_LEGACY,
+    normalizeQodResponse,
   );
-  return response.data;
+}
+
+export async function submitQodAnswer(selectedOption: number): Promise<QodAnswerResponse> {
+  const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS;
+  const headers = await authHeaders();
+  return requestWithQodLegacyFallback(
+    (path) =>
+      axios.post(
+        `${base}${GAMIFICATION_APIS}${path}`,
+        { selected_option: selectedOption },
+        { headers },
+      ),
+    POST_GAMIFICATION_QOD_ANSWER,
+    POST_GAMIFICATION_QOD_ANSWER_LEGACY,
+    normalizeQodAnswerResponse,
+  );
 }
 
 export async function recordDailyLogin(): Promise<{

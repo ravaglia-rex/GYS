@@ -41,16 +41,17 @@ export function readGamificationFromStudent(student: Record<string, unknown> | n
       argus_coins: 0,
       coins_lifetime_earned: 0,
       login_streak: { current: 0, longest: 0 },
-      qotd_streak: { current: 0, longest: 0 },
+      qod_streak: { current: 0, longest: 0 },
       redemptions: {},
     };
   }
   const g = raw as Record<string, unknown>;
   const login = (g.login_streak ?? {}) as Record<string, unknown>;
-  const qotd = (g.qotd_streak ?? {}) as Record<string, unknown>;
-  const qotdAnsweredDate =
-    readDateStringField(qotd.last_answered_date) ??
-    readDateStringField(g.qotd_last_answered_date);
+  const qod = (g.qod_streak ?? g['qotd_streak'] ?? {}) as Record<string, unknown>;
+  const qodAnsweredDate =
+    readDateStringField(qod.last_answered_date) ??
+    readDateStringField(g.qod_last_answered_date) ??
+    readDateStringField(g['qotd_last_answered_date']);
   return {
     argus_coins: typeof g.argus_coins === 'number' ? g.argus_coins : 0,
     coins_lifetime_earned: typeof g.coins_lifetime_earned === 'number' ? g.coins_lifetime_earned : 0,
@@ -59,14 +60,14 @@ export function readGamificationFromStudent(student: Record<string, unknown> | n
       longest: typeof login.longest === 'number' ? login.longest : 0,
       last_active_date: typeof login.last_active_date === 'string' ? login.last_active_date : undefined,
     },
-    qotd_streak: {
-      current: typeof qotd.current === 'number' ? qotd.current : 0,
-      longest: typeof qotd.longest === 'number' ? qotd.longest : 0,
-      last_answered_date: qotdAnsweredDate,
-      last_correct_date: typeof qotd.last_correct_date === 'string' ? qotd.last_correct_date : undefined,
+    qod_streak: {
+      current: typeof qod.current === 'number' ? qod.current : 0,
+      longest: typeof qod.longest === 'number' ? qod.longest : 0,
+      last_answered_date: qodAnsweredDate,
+      last_correct_date: typeof qod.last_correct_date === 'string' ? qod.last_correct_date : undefined,
     },
-    qotd_last_answered_date: qotdAnsweredDate,
-    qotd_last_result: g.qotd_last_result as GamificationState['qotd_last_result'],
+    qod_last_answered_date: qodAnsweredDate,
+    qod_last_result: (g.qod_last_result ?? g['qotd_last_result']) as GamificationState['qod_last_result'],
     practice_last_awarded_week: typeof g.practice_last_awarded_week === 'string' ? g.practice_last_awarded_week : undefined,
     redemptions: (g.redemptions ?? {}) as GamificationState['redemptions'],
   };

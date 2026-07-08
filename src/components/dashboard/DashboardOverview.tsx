@@ -38,7 +38,7 @@ import {
 } from '../../utils/dashboardNotifications';
 import { studentPageSubtitleSx, studentPageTitleSx } from '../../styles/studentTypography';
 import { readGamificationFromStudent, istDateStringClient } from '../../utils/gamification';
-import QotdDashboardCard from '../gamification/QotdDashboardCard';
+import QodDashboardCard from '../gamification/QodDashboardCard';
 
 export type { AssessmentChartRow } from '../../utils/assessmentGating';
 
@@ -383,8 +383,8 @@ interface DashboardOverviewProps {
   previewGamification?: {
     argus_coins: number;
     login_streak: number;
-    qotd_streak: number;
-    qotd_answered_today?: boolean;
+    qod_streak: number;
+    qod_answered_today?: boolean;
   };
 }
 
@@ -538,8 +538,8 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
       return {
         argus_coins: previewGamification.argus_coins,
         login_streak: { current: previewGamification.login_streak, longest: previewGamification.login_streak },
-        qotd_streak: { current: previewGamification.qotd_streak, longest: previewGamification.qotd_streak },
-        qotd_last_answered_date: previewGamification.qotd_answered_today ? istDateStringClient() : undefined,
+        qod_streak: { current: previewGamification.qod_streak, longest: previewGamification.qod_streak },
+        qod_last_answered_date: previewGamification.qod_answered_today ? istDateStringClient() : undefined,
       };
     }
     return readGamificationFromStudent(userData as Record<string, unknown> | undefined);
@@ -984,7 +984,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
               fontWeight: 700,
             }}
           >
-            QotD streak: {gamification.qotd_streak.current}d
+            QoD streak: {gamification.qod_streak.current}d
           </Box>
         </Box>
 
@@ -1066,9 +1066,9 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         />
       </Box>
 
-      <QotdDashboardCard
-        qotdStreak={gamification.qotd_streak.current}
-        alreadyAnswered={gamification.qotd_last_answered_date === istDateStringClient()}
+      <QodDashboardCard
+        qodStreak={gamification.qod_streak.current}
+        alreadyAnswered={gamification.qod_last_answered_date === istDateStringClient()}
         preview={Boolean(previewProfile)}
       />
 

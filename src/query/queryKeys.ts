@@ -4,6 +4,6 @@ export const queryKeys = {
   schoolDetails: (schoolId: string) => ['schoolDetails', schoolId] as const,
   payments: (uid: string) => ['payments', uid] as const,
   studentAssessments: (uid: string) => ['studentAssessments', uid] as const,
-  qotd: () => ['qotd'] as const,
+  qod: () => ['qod'] as const,
   rewards: () => ['rewards'] as const,
 };
