@@ -359,7 +359,7 @@ const PlatformAdminDashboardPage: React.FC = () => {
           <StatCard
             title="Total students"
             value={stats.students_total}
-            subtitle="Excludes seed mock accounts"
+            subtitle="Excludes test accounts"
             icon={<PeopleIcon />}
             accent={ip.approveGreen}
             onClick={() => navigate('/platform-admin/students')}

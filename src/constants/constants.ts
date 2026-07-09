@@ -26,12 +26,14 @@ export const PLATFORM_ADMIN_NOTIFICATIONS_MARK_ALL_READ = '/notifications/mark-a
 export const PLATFORM_ADMIN_MARK_SCHOOL_PAID = '/mark-paid';
 export const PLATFORM_ADMIN_UPDATE_SCHOOL_BILLING = '/update-billing';
 export const PLATFORM_ADMIN_DELETE_SCHOOL = '/delete';
+export const PLATFORM_ADMIN_BILLING_INVOICE_DOWNLOAD_URL = '/billing-invoice-download-url';
 
 // Schools
 export const CREATE_EXPEDITED_SCHOOL='/createExpeditedSchool';
 export const REGISTER_SCHOOL='/registerSchool';
 export const AMEND_SCHOOL_REGISTRATION='/amendSchoolRegistration';
 export const RESUME_SCHOOL_CHECKOUT='/resumeSchoolCheckout';
+export const LOOKUP_SCHOOL_REGISTRATION_PAYMENT='/lookupSchoolRegistrationPayment';
 export const FETCH_SCHOOL_NAME='/getSchoolDetails';
 export const CHECK_SCHOOL_EMAIL = '/checkSchoolEmail';
 export const VERIFY_SCHOOL_EMAIL = '/verifySchoolEmail';

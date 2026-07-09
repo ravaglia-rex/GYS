@@ -27,12 +27,14 @@ import {
   Payment as PaymentIcon,
   School as SchoolIcon,
   CheckCircleOutline as CheckCircleIcon,
+  CurrencyRupee as RupeeIcon,
 } from '@mui/icons-material';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import {
   getPlatformAdminOverview,
   listPlatformAdminSchools,
   formatDate,
+  formatInrFromPaise,
   type PlatformAdminOverviewStats,
   type PlatformAdminSchoolSummary,
 } from '../../db/platformAdminCollection';
@@ -161,14 +163,23 @@ const PlatformAdminSchoolsPage: React.FC = () => {
   }, [load, search]);
 
   const filteredSchools = useMemo(() => {
-    if (!search.trim()) return schools;
     const q = search.trim().toLowerCase();
-    return schools.filter(
-      (s) =>
-        s.school_name.toLowerCase().includes(q) ||
-        s.poc_email.toLowerCase().includes(q) ||
-        s.id.toLowerCase().includes(q)
-    );
+    const list = q
+      ? schools.filter(
+          (s) =>
+            s.school_name.toLowerCase().includes(q) ||
+            s.poc_email.toLowerCase().includes(q) ||
+            s.id.toLowerCase().includes(q)
+        )
+      : schools;
+    return [...list].sort((a, b) => {
+      const aTest = isPlatformAdminTestSchool(a.id);
+      const bTest = isPlatformAdminTestSchool(b.id);
+      if (aTest !== bTest) return aTest ? 1 : -1;
+      const aMs = a.created_at ? Date.parse(a.created_at) : 0;
+      const bMs = b.created_at ? Date.parse(b.created_at) : 0;
+      return bMs - aMs;
+    });
   }, [schools, search]);
 
   const activeFilterChips = useMemo(() => {
@@ -210,6 +221,41 @@ const PlatformAdminSchoolsPage: React.FC = () => {
         title="Schools"
         subtitle="Monitor registration, payments, and institutional status"
       />
+
+      {stats && (
+        <Card
+          sx={{
+            ...platformAdminCardSx,
+            mb: 2,
+            background: `linear-gradient(135deg, ${ip.navy} 0%, #1e3a5f 100%)`,
+            borderColor: 'transparent',
+          }}
+        >
+          <CardContent sx={{ py: 2.5, px: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box
+                sx={{
+                  bgcolor: 'rgba(255,255,255,0.15)',
+                  color: '#fff',
+                  borderRadius: 2,
+                  p: 1.25,
+                  display: 'flex',
+                }}
+              >
+                <RupeeIcon />
+              </Box>
+              <Box>
+                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', mb: 0.25 }}>
+                  Total revenue collected (excl. test schools)
+                </Typography>
+                <Typography variant="h4" sx={{ fontWeight: 700, color: '#fff' }}>
+                  {formatInrFromPaise(stats.total_revenue_paise)}
+                </Typography>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+      )}
 
       {stats && (
         <Box sx={platformAdminStatsGridSx}>

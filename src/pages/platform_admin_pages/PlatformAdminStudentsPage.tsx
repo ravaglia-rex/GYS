@@ -55,6 +55,7 @@ import {
   PlatformAdminFilterControl,
   PlatformAdminTableSection,
 } from './platformAdminComponents';
+import { isPlatformAdminTestStudent } from './platformAdminTestStudents';
 
 type StatusFilter = 'all' | 'approved' | 'pending';
 type RosterFilter = 'all' | 'yes' | 'no';
@@ -206,7 +207,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
           <PlatformAdminStatCard
             title="Total students"
             value={stats.students_total}
-            subtitle="Excludes seed mock accounts"
+            subtitle="Excludes test accounts"
             icon={<PeopleIcon />}
             accent={ip.statBlue}
           />
@@ -412,7 +413,17 @@ const PlatformAdminStudentsPage: React.FC = () => {
                   students.map((student) => (
                     <TableRow key={student.uid}>
                       <TableCell sx={{ fontWeight: 600, color: ip.heading }}>
-                        {[student.first_name, student.last_name].filter(Boolean).join(' ') || ' - '}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
+                          <Typography
+                            component="span"
+                            sx={{ fontWeight: 600, color: ip.heading, minWidth: 0 }}
+                          >
+                            {[student.first_name, student.last_name].filter(Boolean).join(' ') || ' - '}
+                          </Typography>
+                          {isPlatformAdminTestStudent(student) && (
+                            <PlatformAdminChip label="Test" tone="info" />
+                          )}
+                        </Box>
                       </TableCell>
                       <TableCell sx={{ color: ip.heading }}>{student.email || ' - '}</TableCell>
                       <TableCell sx={{ maxWidth: 220 }}>

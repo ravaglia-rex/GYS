@@ -2,6 +2,7 @@ import axios from 'axios';
 import {
   AMEND_SCHOOL_REGISTRATION,
   CREATE_EXPEDITED_SCHOOL,
+  LOOKUP_SCHOOL_REGISTRATION_PAYMENT,
   REGISTER_SCHOOL,
   RESUME_SCHOOL_CHECKOUT,
   SCHOOLS_APIS,
@@ -64,25 +65,104 @@ function pickCheckoutSecret(data: Record<string, unknown>): string {
   return "";
 }
 
-export const resumeSchoolCheckout = async (
-  schoolId: string,
-  pocEmail: string
-): Promise<{checkoutSecret: string}> => {
+export type SchoolRegistrationPaymentLookupResponse = {
+  schoolId: string;
+  schoolName: string;
+  pocEmail: string;
+  planId: string;
+  planName: string;
+  planPriceInr: number;
+  registrationEmail: string;
+};
+
+export const lookupSchoolRegistrationPayment = async (
+  registrationEmail: string
+): Promise<SchoolRegistrationPaymentLookupResponse> => {
   const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS ?? "";
   if (!base) {
     throw new Error("REACT_APP_GOOGLE_CLOUD_FUNCTIONS is not configured.");
   }
   try {
     const response = await axios.post(
-      `${base}${SCHOOLS_APIS}${RESUME_SCHOOL_CHECKOUT}`,
-      {school_id: schoolId, poc_email: pocEmail.trim().toLowerCase()},
+      `${base}${SCHOOLS_APIS}${LOOKUP_SCHOOL_REGISTRATION_PAYMENT}`,
+      {registration_email: registrationEmail.trim().toLowerCase()},
       {headers: {"Content-Type": "application/json"}}
     );
-    const secret = pickCheckoutSecret(response.data as Record<string, unknown>);
+    const data = response.data as Record<string, unknown>;
+    const schoolId = typeof data.schoolId === "string" ? data.schoolId : "";
+    if (!schoolId) {
+      throw new Error("Server did not return a school id.");
+    }
+    return {
+      schoolId,
+      schoolName: typeof data.schoolName === "string" ? data.schoolName : "Your school",
+      pocEmail: typeof data.pocEmail === "string" ? data.pocEmail : registrationEmail.trim().toLowerCase(),
+      planId: typeof data.planId === "string" ? data.planId : "",
+      planName: typeof data.planName === "string" ? data.planName : "Institutional plan",
+      planPriceInr: typeof data.planPriceInr === "number" ? data.planPriceInr : 0,
+      registrationEmail:
+        typeof data.registrationEmail === "string" ?
+          data.registrationEmail :
+          registrationEmail.trim().toLowerCase(),
+    };
+  } catch (e) {
+    if (axios.isAxiosError(e) && e.response?.data?.error) {
+      throw new Error(String(e.response.data.error));
+    }
+    throw new Error(
+      "Could not find your registration. Try again or contact globalyoungscholar@argus.ai."
+    );
+  }
+};
+
+export type ResumeSchoolCheckoutResponse = {
+  checkoutSecret: string;
+  schoolId: string;
+  schoolName: string;
+  pocEmail: string;
+  planId: string;
+  planName: string;
+  planPriceInr: number;
+};
+
+export const resumeSchoolCheckout = async (
+  registrationEmail: string,
+  schoolId?: string
+): Promise<ResumeSchoolCheckoutResponse> => {
+  const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS ?? "";
+  if (!base) {
+    throw new Error("REACT_APP_GOOGLE_CLOUD_FUNCTIONS is not configured.");
+  }
+  try {
+    const body: {registration_email: string; school_id?: string} = {
+      registration_email: registrationEmail.trim().toLowerCase(),
+    };
+    if (schoolId?.trim()) {
+      body.school_id = schoolId.trim();
+    }
+    const response = await axios.post(
+      `${base}${SCHOOLS_APIS}${RESUME_SCHOOL_CHECKOUT}`,
+      body,
+      {headers: {"Content-Type": "application/json"}}
+    );
+    const data = response.data as Record<string, unknown>;
+    const secret = pickCheckoutSecret(data);
     if (!secret) {
       throw new Error("Server did not return a checkout token.");
     }
-    return {checkoutSecret: secret};
+    const resolvedSchoolId = typeof data.schoolId === "string" ? data.schoolId : typeof data.school_id === "string" ? data.school_id : schoolId ?? "";
+    if (!resolvedSchoolId) {
+      throw new Error("Server did not return a school id.");
+    }
+    return {
+      checkoutSecret: secret,
+      schoolId: resolvedSchoolId,
+      schoolName: typeof data.schoolName === "string" ? data.schoolName : typeof data.school_name === "string" ? data.school_name : "Your school",
+      pocEmail: typeof data.pocEmail === "string" ? data.pocEmail : registrationEmail.trim().toLowerCase(),
+      planId: typeof data.planId === "string" ? data.planId : typeof data.plan_id === "string" ? data.plan_id : "",
+      planName: typeof data.planName === "string" ? data.planName : typeof data.plan_name === "string" ? data.plan_name : "Institutional plan",
+      planPriceInr: typeof data.planPriceInr === "number" ? data.planPriceInr : typeof data.plan_price_inr === "number" ? data.plan_price_inr : 0,
+    };
   } catch (e) {
     if (axios.isAxiosError(e) && e.response?.data?.error) {
       throw new Error(String(e.response.data.error));
@@ -251,7 +331,7 @@ export const registerSchool = async (
     let result = parseRegisterSchoolResponse(raw);
     if (!result.checkoutSecret && result.schoolId && result.pocEmail) {
       try {
-        const recovered = await resumeSchoolCheckout(result.schoolId, result.pocEmail);
+        const recovered = await resumeSchoolCheckout(result.pocEmail, result.schoolId);
         result = {...result, checkoutSecret: recovered.checkoutSecret};
       } catch {
         // leave empty; caller shows recovery UI

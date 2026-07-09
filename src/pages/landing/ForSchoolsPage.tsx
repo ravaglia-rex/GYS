@@ -35,7 +35,7 @@ const FOR_SCHOOLS_NAV = [
   { id: 'schools-ew', label: 'Partners' },
   { id: 'schools-quote', label: 'Voices' },
   { id: 'faq', label: 'FAQ' },
-  { id: 'for-schools-next-step', label: 'Register' },
+  { id: 'for-schools-next-step', label: 'Get started' },
 ] as const;
 
 const FOR_SCHOOLS_SECTION_IDS_JOIN = FOR_SCHOOLS_NAV.map((s) => s.id).join('|');
@@ -252,20 +252,29 @@ const ForSchoolsPage: React.FC = () => {
             <div className="landing-hero-enter-4 mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
               <button
                 type="button"
-                onClick={() => navigate('/for-schools/preview')}
-                className="rounded-xl border-2 border-white/80 bg-white/10 px-6 py-3 text-sm font-semibold text-white shadow-sm backdrop-blur transition hover:bg-white/20 hover:-translate-y-0.5 active:scale-[0.99]"
-              >
-                Try interactive preview
-              </button>
-              <button
-                type="button"
                 onClick={() => navigate('/for-schools/register')}
                 className="rounded-xl px-6 py-3 text-sm font-semibold shadow-md transition hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.99]"
                 style={{ backgroundColor: GYS_GOLD, color: '#0f172a' }}
               >
                 Register Your School →
               </button>
+              <button
+                type="button"
+                onClick={() => navigate('/for-schools/payment')}
+                className="rounded-xl border-2 border-white/80 bg-white/10 px-6 py-3 text-sm font-semibold text-white shadow-sm backdrop-blur transition hover:bg-white/20 hover:-translate-y-0.5 active:scale-[0.99]"
+              >
+                Proceed to Payment
+              </button>
             </div>
+            <p className="landing-hero-enter-4 mt-4 text-center text-xs text-white/75">
+              <button
+                type="button"
+                onClick={() => navigate('/for-schools/preview')}
+                className="underline underline-offset-2 hover:text-white"
+              >
+                Try interactive preview
+              </button>
+            </p>
           </div>
           <div className="pointer-events-none absolute bottom-0 left-0 right-0 text-slate-50" aria-hidden>
             <svg className="landing-section-wave block w-full" viewBox="0 0 1440 96" preserveAspectRatio="none">
@@ -615,7 +624,7 @@ const ForSchoolsPage: React.FC = () => {
             data-landing-reveal
             className="mt-10 scroll-mt-28 sm:mt-12"
           >
-            <div className="mx-auto max-w-md">
+            <div className="mx-auto max-w-md space-y-3">
               <button
                 type="button"
                 onClick={() => navigate('/for-schools/register')}
@@ -623,11 +632,17 @@ const ForSchoolsPage: React.FC = () => {
               >
                 Register Your School →
               </button>
+              <button
+                type="button"
+                onClick={() => navigate('/for-schools/payment')}
+                className="flex w-full items-center justify-center rounded-2xl border-2 border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm hover:border-slate-400 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 sm:text-base"
+              >
+                Proceed to Payment
+              </button>
             </div>
             <p className="pt-4 text-center text-xs text-slate-500 sm:text-sm">
-              Already registered? School administrators can log in with the school email addresses you
-              provided at registration and complete password setup from the secure link in their
-              inbox.
+              Already registered? Use <span className="font-medium">Proceed to Payment</span> with any
+              email from your registration, or log in after payment is complete.
             </p>
           </section>
         </div>

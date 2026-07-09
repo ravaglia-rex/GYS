@@ -10,8 +10,10 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableContainer,
   TableHead,
   TableRow,
+  Paper,
   Divider,
   Dialog,
   DialogTitle,
@@ -28,6 +30,7 @@ import {
   Payment as PaymentIcon,
   Edit as EditIcon,
   DeleteOutline as DeleteIcon,
+  FileDownload as DownloadIcon,
 } from '@mui/icons-material';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
@@ -35,13 +38,17 @@ import {
   formatInr,
   formatInrFromPaise,
   getPlatformAdminSchool,
+  getPlatformAdminSchoolInvoiceDownloadUrl,
   markPlatformAdminSchoolPaid,
   deletePlatformAdminSchool,
   updatePlatformAdminSchoolBilling,
   PLATFORM_ADMIN_PAYMENT_METHOD_LABELS,
   type PlatformAdminMarkSchoolPaidMethod,
+  type PlatformAdminEmailActivityRow,
   type PlatformAdminPaymentHistoryItem,
+  type PlatformAdminPocAccountRow,
   type PlatformAdminSchoolDetail,
+  type PlatformAdminSchoolRegistrant,
 } from '../../db/platformAdminCollection';
 import {
   platformAdminCardSx,
@@ -52,6 +59,9 @@ import {
   platformAdminDialogTextFieldSx,
   platformAdminPrimaryButtonSx,
   platformAdminSelectMenuPaperSx,
+  platformAdminTableHeadRowSx,
+  platformAdminTablePaperSx,
+  platformAdminTableSx,
 } from './platformAdminPageStyles';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import {
@@ -144,6 +154,10 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
   const [school, setSchool] = useState<PlatformAdminSchoolDetail | null>(null);
   const [paymentHistory, setPaymentHistory] = useState<PlatformAdminPaymentHistoryItem[]>([]);
   const [analytics, setAnalytics] = useState<Record<string, unknown> | null>(null);
+  const [pocAccounts, setPocAccounts] = useState<PlatformAdminPocAccountRow[]>([]);
+  const [emailActivity, setEmailActivity] = useState<PlatformAdminEmailActivityRow[]>([]);
+  const [registrant, setRegistrant] = useState<PlatformAdminSchoolRegistrant | null>(null);
+  const [invoiceDownloadingKey, setInvoiceDownloadingKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -176,10 +190,19 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
     setError(null);
     try {
       const data = await getPlatformAdminSchool(schoolId);
-      setSchool(data.school);
-      setPaymentHistory(data.payment_history);
-      setAnalytics(data.analytics);
+      setSchool(data.school ?? null);
+      setPaymentHistory(Array.isArray(data.payment_history) ? data.payment_history : []);
+      setAnalytics(data.analytics ?? null);
+      setPocAccounts(Array.isArray(data.poc_accounts) ? data.poc_accounts : []);
+      setEmailActivity(Array.isArray(data.email_activity) ? data.email_activity : []);
+      setRegistrant(data.registrant ?? null);
     } catch {
+      setSchool(null);
+      setPaymentHistory([]);
+      setAnalytics(null);
+      setPocAccounts([]);
+      setEmailActivity([]);
+      setRegistrant(null);
       setError('Failed to load school details.');
     } finally {
       setLoading(false);
@@ -379,6 +402,31 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
     }
   };
 
+  const handleDownloadInvoice = async (params: {
+    key: string;
+    payment_history_id?: string;
+    public_reference?: string;
+  }) => {
+    if (!schoolId) return;
+    setInvoiceDownloadingKey(params.key);
+    setError(null);
+    try {
+      const result = await getPlatformAdminSchoolInvoiceDownloadUrl(schoolId, {
+        payment_history_id: params.payment_history_id,
+        public_reference: params.public_reference,
+      });
+      window.open(result.url, '_blank', 'noopener,noreferrer');
+    } catch (e: unknown) {
+      const msg =
+        typeof e === 'object' && e !== null && 'response' in e
+          ? (e as { response?: { data?: { error?: string } } }).response?.data?.error
+          : null;
+      setError(msg || 'Failed to download invoice.');
+    } finally {
+      setInvoiceDownloadingKey(null);
+    }
+  };
+
   if (loading) {
     return (
       <Box sx={{ ...platformAdminPageContainerSx, display: 'flex', justifyContent: 'center', py: 8 }}>
@@ -525,7 +573,6 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
             <DetailRow label="List price" value={`${formatInr(resolvedPlanPriceInr)}/yr`} />
             <DetailRow label="Amount paid" value={paidAmountLabel} />
             <DetailRow label="POC setup" value={school.verified ? 'Complete' : 'Pending'} />
-            <ContactEmailsRow primaryEmail={school.poc_email} contactEmails={school.contact_emails} />
             <DetailRow label="Registered" value={formatDate(school.created_at)} />
             <DetailRow label="Paid at" value={formatDate(school.paid_at)} />
             <DetailRow label="Students rostered" value={String(school.student_count)} />
@@ -586,6 +633,83 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
 
         <Card sx={{ ...platformAdminCardSx, gridColumn: '1 / -1' }}>
           <CardContent>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
+              POC accounts
+            </Typography>
+            <Typography variant="body2" sx={{ color: ip.subtext, mb: 2, lineHeight: 1.55 }}>
+              {registrant ? (
+                <>
+                  Registration submitted by{' '}
+                  <Box component="span" sx={{ fontWeight: 600, color: ip.heading }}>
+                    {registrant.name || 'Unknown'}
+                  </Box>
+                  {registrant.designation ? ` (${registrant.designation})` : ''}.
+                  {' '}Each contact email below — whether they created a login and completed setup.
+                </>
+              ) : (
+                'Contact emails on file and whether each created a login and completed setup.'
+              )}
+            </Typography>
+            {pocAccounts.length === 0 ? (
+              <Typography variant="body2" sx={{ color: ip.subtext }}>
+                No contact emails on file.
+              </Typography>
+            ) : (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                {pocAccounts.filter((poc) => poc && poc.email).map((poc) => (
+                  <Box
+                    key={poc.email}
+                    sx={{
+                      border: `1px solid ${ip.cardBorder}`,
+                      borderRadius: 1.5,
+                      p: 2,
+                      bgcolor: ip.cardMutedBg,
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        alignItems: 'center',
+                        gap: 1,
+                        mb: 1,
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 700,
+                          color: ip.heading,
+                          flex: '1 1 200px',
+                          wordBreak: 'break-word',
+                        }}
+                      >
+                        {poc.email}
+                      </Typography>
+                      {poc.is_primary && <PlatformAdminChip label="Primary POC" tone="info" />}
+                      <PlatformAdminChip
+                        label={poc.account_created ? 'Account created' : 'No account yet'}
+                        tone={poc.account_created ? 'success' : 'neutral'}
+                      />
+                      <PlatformAdminChip
+                        label={poc.setup_complete ? 'Setup complete' : 'Setup pending'}
+                        tone={poc.setup_complete ? 'success' : 'warning'}
+                      />
+                    </Box>
+                    <Typography variant="caption" sx={{ color: ip.subtext, lineHeight: 1.5 }}>
+                      Account created: {formatDate(poc.auth_created_at)}
+                      {' · '}
+                      Last sign-in: {formatDate(poc.last_sign_in_at)}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card sx={{ ...platformAdminCardSx, gridColumn: '1 / -1' }}>
+          <CardContent>
             <Typography variant="subtitle1" sx={{ fontWeight: 700, color: ip.heading, mb: 2 }}>
               Payment history
             </Typography>
@@ -594,28 +718,111 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
                 No payment history recorded yet.
               </Typography>
             ) : (
-              <Table size="small">
-                <TableHead>
-                  <TableRow sx={{ bgcolor: ip.cardMutedBg }}>
-                    <TableCell sx={{ fontWeight: 700, color: ip.heading }}>Date</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: ip.heading }}>Kind</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: ip.heading }}>Amount</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: ip.heading }}>Source</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: ip.heading }}>Invoice</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {paymentHistory.map((ph) => (
-                    <TableRow key={ph.id} hover>
-                      <TableCell sx={{ color: ip.subtext }}>{formatDate(ph.recorded_at)}</TableCell>
-                      <TableCell sx={{ color: ip.heading }}>{ph.kind || ' - '}</TableCell>
-                      <TableCell sx={{ color: ip.heading }}>{formatInrFromPaise(ph.amount_paise)}</TableCell>
-                      <TableCell sx={{ color: ip.heading }}>{ph.source || ' - '}</TableCell>
-                      <TableCell sx={{ color: ip.heading }}>{ph.billing_invoice_number || ' - '}</TableCell>
+              <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
+                <Table size="small" sx={platformAdminTableSx}>
+                  <TableHead>
+                    <TableRow sx={platformAdminTableHeadRowSx}>
+                      <TableCell>Date</TableCell>
+                      <TableCell>Kind</TableCell>
+                      <TableCell>Amount</TableCell>
+                      <TableCell>Source</TableCell>
+                      <TableCell>Invoice</TableCell>
+                      <TableCell>PDF</TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHead>
+                  <TableBody>
+                    {paymentHistory.map((ph) => (
+                      <TableRow key={ph.id} hover>
+                        <TableCell sx={{ color: ip.subtext, whiteSpace: 'nowrap' }}>
+                          {formatDate(ph.recorded_at)}
+                        </TableCell>
+                        <TableCell>{ph.kind || ' - '}</TableCell>
+                        <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatInrFromPaise(ph.amount_paise)}</TableCell>
+                        <TableCell>{ph.source || ' - '}</TableCell>
+                        <TableCell sx={{ wordBreak: 'break-word', maxWidth: 200 }}>
+                          {ph.billing_invoice_number || ' - '}
+                        </TableCell>
+                        <TableCell>
+                          {ph.has_invoice_pdf ? (
+                            <Button
+                              size="small"
+                              startIcon={
+                                invoiceDownloadingKey === ph.id ? (
+                                  <CircularProgress size={14} color="inherit" />
+                                ) : (
+                                  <DownloadIcon fontSize="small" />
+                                )
+                              }
+                              disabled={invoiceDownloadingKey === ph.id}
+                              onClick={() =>
+                                void handleDownloadInvoice({
+                                  key: ph.id,
+                                  payment_history_id: ph.id,
+                                  public_reference: ph.public_reference ?? undefined,
+                                })
+                              }
+                              sx={{ textTransform: 'none', fontWeight: 600, color: ip.navy, minWidth: 0, px: 1 }}
+                            >
+                              Download
+                            </Button>
+                          ) : (
+                            <Typography variant="body2" sx={{ color: ip.subtext }}>
+                              -
+                            </Typography>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card sx={{ ...platformAdminCardSx, gridColumn: '1 / -1' }}>
+          <CardContent>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
+              Email history
+            </Typography>
+            <Typography variant="body2" sx={{ color: ip.subtext, mb: 2, lineHeight: 1.55 }}>
+              Dates and email types sent to school contacts (not full message bodies).
+            </Typography>
+            {emailActivity.length === 0 ? (
+              <Typography variant="body2" sx={{ color: ip.subtext }}>
+                No emails recorded yet.
+              </Typography>
+            ) : (
+              <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
+                <Table size="small" sx={{ ...platformAdminTableSx, minWidth: 640 }}>
+                  <TableHead>
+                    <TableRow sx={platformAdminTableHeadRowSx}>
+                      <TableCell>Date</TableCell>
+                      <TableCell>Email type</TableCell>
+                      <TableCell>Subject / detail</TableCell>
+                      <TableCell>Recipients</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {emailActivity.filter((row) => row && row.id).map((row) => (
+                      <TableRow key={row.id} hover>
+                        <TableCell sx={{ color: ip.subtext, whiteSpace: 'nowrap' }}>
+                          {formatDate(row.sent_at)}
+                        </TableCell>
+                        <TableCell sx={{ whiteSpace: 'nowrap' }}>{row.label}</TableCell>
+                        <TableCell sx={{ color: ip.subtext, wordBreak: 'break-word', minWidth: 180 }}>
+                          {row.subject || '-'}
+                        </TableCell>
+                        <TableCell sx={{ color: ip.subtext, wordBreak: 'break-word', minWidth: 160 }}>
+                          {(Array.isArray(row.recipients) ? row.recipients : []).length > 0
+                            ? (Array.isArray(row.recipients) ? row.recipients : []).join(', ')
+                            : '-'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
             )}
           </CardContent>
         </Card>
@@ -1170,61 +1377,6 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
     </Box>
   );
 };
-
-function ContactEmailsRow({
-  primaryEmail,
-  contactEmails,
-}: {
-  primaryEmail: string;
-  contactEmails: string[];
-}) {
-  const normalizedPrimary = primaryEmail.trim().toLowerCase();
-  const seen = new Set<string>();
-  const allEmails: string[] = [];
-
-  if (primaryEmail.trim()) {
-    seen.add(normalizedPrimary);
-    allEmails.push(primaryEmail.trim());
-  }
-  for (const raw of contactEmails) {
-    const email = raw.trim();
-    if (!email) continue;
-    const key = email.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    allEmails.push(email);
-  }
-
-  return (
-    <>
-      <Box sx={{ py: 0.75 }}>
-        <Typography variant="body2" sx={{ color: ip.subtext, mb: 0.75 }}>
-          Contact emails
-        </Typography>
-        {allEmails.length === 0 ? (
-          <Typography variant="body2" sx={{ fontWeight: 600, color: ip.heading }}>
-             - 
-          </Typography>
-        ) : (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, alignItems: 'flex-end' }}>
-            {allEmails.map((email) => {
-              const isPrimary = normalizedPrimary && email.toLowerCase() === normalizedPrimary;
-              return (
-                <Box key={email} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: ip.heading }}>
-                    {email}
-                  </Typography>
-                  {isPrimary && <PlatformAdminChip label="Primary POC" tone="info" />}
-                </Box>
-              );
-            })}
-          </Box>
-        )}
-      </Box>
-      <Divider />
-    </>
-  );
-}
 
 function DetailRow({
   label,

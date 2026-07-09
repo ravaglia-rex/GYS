@@ -18,6 +18,7 @@ import {
   PLATFORM_ADMIN_MARK_SCHOOL_PAID,
   PLATFORM_ADMIN_UPDATE_SCHOOL_BILLING,
   PLATFORM_ADMIN_DELETE_SCHOOL,
+  PLATFORM_ADMIN_BILLING_INVOICE_DOWNLOAD_URL,
 } from '../constants/constants';
 
 function apiBase(): string {
@@ -95,6 +96,7 @@ export type PlatformAdminSchoolDetail = PlatformAdminSchoolSummary & {
   student_registration_emails: string[];
   billing_invoice_number: string | null;
   billing_public_reference: string | null;
+  billing_invoice_pdf_available: boolean;
   razorpay_payment_id: string | null;
   razorpay_order_id: string | null;
   wire_payment_id: string | null;
@@ -112,7 +114,35 @@ export type PlatformAdminPaymentHistoryItem = {
   order_id: string | null;
   payment_id: string | null;
   billing_invoice_number: string | null;
+  public_reference: string | null;
+  has_invoice_pdf: boolean;
+  confirmation_email_sent_at: string | null;
   recorded_at: string | null;
+};
+
+export type PlatformAdminPocAccountRow = {
+  email: string;
+  is_primary: boolean;
+  account_created: boolean;
+  email_verified: boolean;
+  setup_complete: boolean;
+  auth_created_at: string | null;
+  last_sign_in_at: string | null;
+};
+
+export type PlatformAdminEmailActivityRow = {
+  id: string;
+  sent_at: string | null;
+  template_id: string;
+  label: string;
+  subject: string | null;
+  recipients: string[];
+  source: 'logged' | 'inferred';
+};
+
+export type PlatformAdminSchoolRegistrant = {
+  name: string | null;
+  designation: string | null;
 };
 
 export type PlatformAdminStudentRow = {
@@ -128,6 +158,7 @@ export type PlatformAdminStudentRow = {
   achievement_tier: string | null;
   argus_coins: number;
   created_at: string | null;
+  is_test?: boolean;
 };
 
 export type PlatformAdminStudentStats = {
@@ -265,6 +296,9 @@ export async function getPlatformAdminSchool(schoolId: string): Promise<{
   school: PlatformAdminSchoolDetail;
   payment_history: PlatformAdminPaymentHistoryItem[];
   analytics: Record<string, unknown> | null;
+  poc_accounts: PlatformAdminPocAccountRow[];
+  email_activity: PlatformAdminEmailActivityRow[];
+  registrant: PlatformAdminSchoolRegistrant | null;
 }> {
   const headers = await authHeaders();
   const res = await axios.get(
@@ -275,6 +309,25 @@ export async function getPlatformAdminSchool(schoolId: string): Promise<{
     school: res.data.school,
     payment_history: res.data.payment_history ?? [],
     analytics: res.data.analytics ?? null,
+    poc_accounts: Array.isArray(res.data.poc_accounts) ? res.data.poc_accounts : [],
+    email_activity: Array.isArray(res.data.email_activity) ? res.data.email_activity : [],
+    registrant: res.data.registrant ?? null,
+  };
+}
+
+export async function getPlatformAdminSchoolInvoiceDownloadUrl(
+  schoolId: string,
+  params?: { payment_history_id?: string; public_reference?: string }
+): Promise<{ url: string; filename: string; invoice_number: string | null }> {
+  const headers = await authHeaders();
+  const res = await axios.get(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_SCHOOLS}/${encodeURIComponent(schoolId)}${PLATFORM_ADMIN_BILLING_INVOICE_DOWNLOAD_URL}`,
+    { headers, params }
+  );
+  return {
+    url: res.data.url,
+    filename: res.data.filename,
+    invoice_number: res.data.invoice_number ?? null,
   };
 }
 

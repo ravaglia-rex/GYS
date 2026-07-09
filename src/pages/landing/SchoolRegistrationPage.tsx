@@ -4,7 +4,6 @@ import { useToast } from '../../components/ui/use-toast';
 import {
   amendSchoolRegistration,
   registerSchool,
-  resumeSchoolCheckout,
 } from '../../db/schoolCollection';
 import {
   partyNameLengthOk,
@@ -28,7 +27,6 @@ import PageFooter from '../../components/layout/LandingSiteFooter';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
 import { LandingHeaderScrollProgress } from '../../components/landing/LandingScrollChrome';
 import { useLandingScrollProgress } from '../../hooks/useLandingPageScroll';
-import SchoolRazorpayCheckout from '../../components/school-registration/SchoolRazorpayCheckout';
 import {
   SCHOOL_REGISTRATION_PLANS as PLANS,
   schoolRegistrationCheckoutSummaryFromBaseInr,
@@ -105,9 +103,6 @@ const MAX_EMAILS = 5;
 const TOTAL_STEPS = 4;
 type GstRegistrationStatus = '' | 'yes' | 'no' | 'not_sure';
 
-/** When true: skip embedded Razorpay; onboarding emails a payment link. Set false for Razorpay checkout after submit. */
-const SCHOOL_SIGNUP_TEMP_PAYMENT_LINK = false;
-
 const STEP1_FIELD_ORDER = ['schoolName', 'schoolBranch', 'confirmSchoolName'] as const;
 const STEP2_FIELD_ORDER = [
   'board',
@@ -160,8 +155,6 @@ const SchoolRegistrationPage: React.FC = () => {
   const [registeredSchoolId, setRegisteredSchoolId] = useState<string | null>(null);
   const [registeredPocEmail, setRegisteredPocEmail] = useState<string | null>(null);
   const [registeredCheckoutSecret, setRegisteredCheckoutSecret] = useState<string | null>(null);
-  const [paymentComplete, setPaymentComplete] = useState(false);
-  const [resumingCheckout, setResumingCheckout] = useState(false);
 
   // Step 1: School Identity
   const [schoolName, setSchoolName] = useState('');
@@ -358,9 +351,8 @@ const SchoolRegistrationPage: React.FC = () => {
       newErrors.gstin = 'GSTIN must be 15 characters.';
     }
     if (!commitToPay) {
-      newErrors.commitToPay = SCHOOL_SIGNUP_TEMP_PAYMENT_LINK
-        ? 'Please confirm that your institution will complete payment using the link we email you.'
-        : 'Please confirm that your institution will complete payment (secure checkout on the next step).';
+      newErrors.commitToPay =
+        'Please confirm that your institution intends to subscribe and will complete payment separately.';
     }
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) {
@@ -425,7 +417,7 @@ const SchoolRegistrationPage: React.FC = () => {
       toast({
         variant: 'destructive',
         title: 'Check your details',
-        description: 'Fix the highlighted fields before continuing to checkout.',
+        description: 'Fix the highlighted fields before submitting registration.',
       });
       return;
     }
@@ -533,31 +525,69 @@ const SchoolRegistrationPage: React.FC = () => {
     [currentPlan.priceNum]
   );
 
-  // ── Post-submit: payment link (temporary) or Razorpay checkout ───────────────
+  // ── Post-submit: registration complete (payment is a separate step) ────────
 
-  if (submitted && SCHOOL_SIGNUP_TEMP_PAYMENT_LINK && registeredSchoolId) {
+  if (submitted && registeredSchoolId) {
+    const primaryEmail = registeredPocEmail ?? emails.find((e) => e.trim())?.trim().toLowerCase() ?? '';
+
     return (
       <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
         <Header onBack={() => navigate('/for-schools')} />
         <main className="flex flex-1 items-center justify-center px-4 py-12">
           <div className="w-full max-w-lg rounded-2xl bg-white p-7 shadow-md ring-1 ring-slate-100 text-center">
-            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50">
               <span className="text-3xl" aria-hidden>
-                ✉️
+                ✓
               </span>
             </div>
-            <h2 className="text-2xl font-bold text-slate-900">Registration received</h2>
+            <h2 className="text-2xl font-bold text-slate-900">Registration complete</h2>
             <p className="mt-3 text-sm text-slate-600 leading-relaxed">
-              Thank you. <span className="font-semibold">{storedSchoolName}</span> is recorded for the{' '}
-              <span className="font-semibold">{currentPlan.name}</span> plan (
+              Thank you. <span className="font-semibold">{storedSchoolName}</span> is registered for
+              the <span className="font-semibold">{currentPlan.name}</span> plan (
               <span className="font-semibold">{institutionalCheckoutSummary.totalDisplay}</span>
-              /yr).{' '}
-              <span className="font-semibold">
-                We will email a secure Razorpay payment link
-              </span>{' '}
-              to your point-of-contact address(es) so you can complete payment online (UPI, cards, net
-              banking).
+              /yr).
             </p>
+            <p className="mt-3 text-sm text-slate-600 leading-relaxed">
+              A confirmation email has been sent to your point-of-contact address
+              {primaryEmail ? (
+                <>
+                  {' '}
+                  (<span className="font-semibold">{primaryEmail}</span>)
+                </>
+              ) : null}
+              . It includes your registration summary and next steps.
+            </p>
+            <p className="mt-4 text-sm text-slate-600 leading-relaxed">
+              Payment can be completed by a different person — share the payment page with your
+              accounts or finance team when ready.
+            </p>
+            <button
+              type="button"
+              onClick={() =>
+                navigate('/for-schools/payment', {
+                  state: {
+                    registrationEmail: primaryEmail,
+                    pocEmail: primaryEmail,
+                    schoolId: registeredSchoolId,
+                    checkoutSecret: registeredCheckoutSecret ?? undefined,
+                    schoolName: storedSchoolName,
+                    planName: currentPlan.name,
+                    planPriceInr: currentPlan.priceNum,
+                  },
+                })
+              }
+              className="mt-6 w-full rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-sm hover:brightness-110 active:scale-95 transition-all duration-200"
+              style={{ backgroundColor: GYS_BLUE }}
+            >
+              Proceed to payment →
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/for-schools')}
+              className="mt-3 w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 active:scale-[0.99] transition-all"
+            >
+              Back to For Schools
+            </button>
             <p className="mt-4 text-xs text-slate-500 leading-relaxed">
               Didn&apos;t get the email? Check spam, or write to{' '}
               <a
@@ -565,204 +595,6 @@ const SchoolRegistrationPage: React.FC = () => {
                 className="font-medium underline underline-offset-2"
                 style={{ color: GYS_BLUE }}
               >
-                globalyoungscholar@argus.ai
-              </a>{' '}
-              with your school name and contact email.
-            </p>
-            <button
-              type="button"
-              onClick={() => navigate('/for-schools')}
-              className="mt-6 w-full rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-sm hover:brightness-110 active:scale-95 transition-all duration-200"
-              style={{ backgroundColor: GYS_BLUE }}
-            >
-              Back to For Schools
-            </button>
-          </div>
-        </main>
-        <PageFooter />
-      </div>
-    );
-  }
-
-  // ── Embedded Razorpay (skipped when SCHOOL_SIGNUP_TEMP_PAYMENT_LINK is true) ──
-  if (
-    !SCHOOL_SIGNUP_TEMP_PAYMENT_LINK &&
-    submitted &&
-    !paymentComplete &&
-    registeredSchoolId &&
-    registeredPocEmail &&
-    registeredCheckoutSecret
-  ) {
-    return (
-      <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
-        <Header onBack={() => navigate('/for-schools')} />
-        <main className="flex flex-1 items-center justify-center px-4 py-12">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-7 shadow-md ring-1 ring-slate-100 text-center">
-            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50">
-              <span className="text-3xl">💳</span>
-            </div>
-            <h2 className="text-2xl font-bold text-slate-900">Complete payment</h2>
-            <p className="mt-3 text-sm text-slate-600 leading-relaxed">
-              <span className="font-semibold">{storedSchoolName}</span> is registered for the{' '}
-              <span className="font-semibold">{currentPlan.name}</span> plan. You will pay{' '}
-              <span className="font-semibold">{institutionalCheckoutSummary.totalDisplay}</span> for the first year.
-              Pay below with UPI, cards, or net banking.
-            </p>
-            <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
-                Price summary
-              </p>
-              <div className="space-y-1.5 text-sm text-slate-800">
-                <div className="flex justify-between gap-3">
-                  <span className="text-slate-600">Annual package fee</span>
-                  <span className="font-medium tabular-nums">{institutionalCheckoutSummary.totalDisplay}</span>
-                </div>
-                <div className="mt-2 flex justify-between gap-3 border-t border-slate-200 pt-2 font-semibold text-slate-900">
-                  <span>Total due</span>
-                  <span className="tabular-nums" style={{ color: GYS_BLUE }}>
-                    {institutionalCheckoutSummary.totalDisplay}
-                  </span>
-                </div>
-              </div>
-             
-            </div>
-           
-            <button
-              type="button"
-              onClick={() => {
-                setSubmitted(false);
-                setCurrentStep(1);
-              }}
-              className="mt-4 w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 active:scale-[0.99] transition-all"
-            >
-              Edit registration details
-            </button>
-         
-
-            <SchoolRazorpayCheckout
-              schoolId={registeredSchoolId}
-              checkoutSecret={registeredCheckoutSecret}
-              schoolName={storedSchoolName}
-              pocEmail={registeredPocEmail ?? ''}
-              planName={currentPlan.name}
-              onSuccess={() => setPaymentComplete(true)}
-            />
-            <p className="mt-3 text-xs text-slate-500 leading-relaxed">
-              Problems with checkout? Email{' '}
-              <a
-                href="mailto:globalyoungscholar@argus.ai"
-                className="font-medium underline underline-offset-2"
-                style={{ color: GYS_BLUE }}
-              >
-                globalyoungscholar@argus.ai
-              </a>{' '}
-              with your school name and contact email.
-            </p>
-          </div>
-        </main>
-        <PageFooter />
-      </div>
-    );
-  }
-
-  // ── Success Screen (Razorpay payment verified) ─
-
-  if (!SCHOOL_SIGNUP_TEMP_PAYMENT_LINK && submitted && paymentComplete) {
-    return (
-      <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
-        <Header onBack={() => navigate('/for-schools')} />
-        <main className="flex flex-1 items-center justify-center px-4 py-12">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-7 shadow-md ring-1 ring-slate-100 text-center">
-            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50">
-              <span className="text-3xl">✓</span>
-            </div>
-            <h2 className="text-2xl font-bold text-slate-900">Registration &amp; payment complete</h2>
-            <p className="mt-3 text-sm text-slate-600 leading-relaxed">
-              Thank you. <span className="font-semibold">{storedSchoolName}</span> is on the{' '}
-              <span className="font-semibold">{currentPlan.name}</span> plan and your Razorpay
-              payment was recorded. A receipt was emailed to your contact addresses.
-            </p>
-            <p className="mt-3 text-sm text-slate-600 leading-relaxed">
-              <span className="font-semibold">Next:</span> set up your school dashboard. Go to the
-              sign-in page, choose <span className="font-semibold">School official</span>, enter your
-              POC email, and follow the password-setup link to access reports and admin tools.
-            </p>
-            <p className="mt-3 text-xs text-slate-500 leading-relaxed">
-              Questions?{' '}
-              <a
-                href="mailto:globalyoungscholar@argus.ai"
-                className="font-medium underline underline-offset-2"
-                style={{ color: GYS_BLUE }}
-              >
-                globalyoungscholar@argus.ai
-              </a>
-            </p>
-            <button
-              type="button"
-              onClick={() => navigate('/for-schools')}
-              className="mt-6 w-full rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-sm hover:brightness-110 active:scale-95 transition-all duration-200"
-              style={{ backgroundColor: GYS_BLUE }}
-            >
-              Back to For Schools
-            </button>
-          </div>
-        </main>
-        <PageFooter />
-      </div>
-    );
-  }
-
-  if (submitted && !SCHOOL_SIGNUP_TEMP_PAYMENT_LINK) {
-    const canResumePayment = Boolean(registeredSchoolId && registeredPocEmail);
-
-    const handleResumeCheckout = async () => {
-      if (!registeredSchoolId || !registeredPocEmail) return;
-      setResumingCheckout(true);
-      try {
-        const { checkoutSecret } = await resumeSchoolCheckout(
-          registeredSchoolId,
-          registeredPocEmail
-        );
-        setRegisteredCheckoutSecret(checkoutSecret);
-        toast({
-          title: 'Ready for payment',
-          description: 'Open Razorpay below to complete checkout.',
-        });
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Could not resume checkout.';
-        toast({ variant: 'destructive', title: 'Could not load payment', description: message });
-      } finally {
-        setResumingCheckout(false);
-      }
-    };
-
-    return (
-      <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
-        <Header onBack={() => navigate('/for-schools')} />
-        <main className="flex flex-1 items-center justify-center px-4 py-12">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-7 shadow-md ring-1 ring-slate-100 text-center">
-            <h2 className="text-lg font-semibold text-slate-900">Payment step needs a refresh</h2>
-            <p className="mt-3 text-sm text-slate-600 leading-relaxed">
-              Your school registration was saved, but this browser session did not keep the secure
-              payment token (for example after a refresh, or if the API response was trimmed).
-            </p>
-            {canResumePayment ? (
-              <button
-                type="button"
-                disabled={resumingCheckout}
-                onClick={() => void handleResumeCheckout()}
-                className="mt-5 w-full rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-md hover:brightness-110 active:scale-95 transition-all disabled:opacity-60"
-                style={{ backgroundColor: GYS_BLUE }}
-              >
-                {resumingCheckout ? 'Loading…' : 'Continue to payment'}
-              </button>
-            ) : null}
-            <p className="mt-4 text-xs text-slate-500">
-              If this keeps failing, ensure the Functions emulator or deployed API includes{' '}
-              <span className="font-mono text-[11px]">resumeSchoolCheckout</span> and your latest{' '}
-              <span className="font-mono text-[11px]">registerSchool</span> code, then try again. Or
-              contact{' '}
-              <a href="mailto:globalyoungscholar@argus.ai" className="underline" style={{ color: GYS_BLUE }}>
                 globalyoungscholar@argus.ai
               </a>
               .
@@ -1615,9 +1447,7 @@ const SchoolRegistrationPage: React.FC = () => {
                 <label htmlFor="commit-to-pay" className="text-xs sm:text-sm text-slate-700 leading-relaxed cursor-pointer">
                   <span className="font-semibold text-slate-900">Required.</span>{' '}
                   On behalf of our institution, we confirm that we intend to subscribe at the plan
-                  selected above and{' '}
-                  <span className="font-semibold">will complete the payment process.</span>{' '}
-                 
+                  selected above. Payment will be completed separately on the school payment page.
                 </label>
               </div>
               {errors.commitToPay && (
