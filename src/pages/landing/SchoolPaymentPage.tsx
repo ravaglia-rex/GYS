@@ -21,9 +21,16 @@ type PaymentLocationState = {
   schoolId?: string;
   checkoutSecret?: string;
   schoolName?: string;
+  city?: string;
+  state?: string;
   planName?: string;
   planPriceInr?: number;
 };
+
+function formatSchoolLocation(city: string, state: string): string | null {
+  const parts = [city.trim(), state.trim()].filter(Boolean);
+  return parts.length > 0 ? parts.join(', ') : null;
+}
 
 type PaymentStep = 'email' | 'confirm' | 'checkout' | 'complete';
 
@@ -47,6 +54,8 @@ const SchoolPaymentPage: React.FC = () => {
   const [schoolId, setSchoolId] = useState<string | null>(navState.schoolId ?? null);
   const [checkoutSecret, setCheckoutSecret] = useState<string | null>(navState.checkoutSecret ?? null);
   const [schoolName, setSchoolName] = useState(navState.schoolName ?? '');
+  const [schoolCity, setSchoolCity] = useState(navState.city ?? '');
+  const [schoolState, setSchoolState] = useState(navState.state ?? '');
   const [pocEmail, setPocEmail] = useState(navState.pocEmail ?? initialRegistrationEmail);
   const [planName, setPlanName] = useState(navState.planName ?? '');
   const [planPriceInr, setPlanPriceInr] = useState(navState.planPriceInr ?? 0);
@@ -59,12 +68,19 @@ const SchoolPaymentPage: React.FC = () => {
     [planPriceInr]
   );
 
+  const schoolLocationDisplay = useMemo(
+    () => formatSchoolLocation(schoolCity, schoolState),
+    [schoolCity, schoolState]
+  );
+
   const resetToEmailStep = () => {
     setStep('email');
     setLookupError(null);
     setCheckoutSecret(null);
     setSchoolId(null);
     setSchoolName('');
+    setSchoolCity('');
+    setSchoolState('');
     setPlanName('');
     setPlanPriceInr(0);
   };
@@ -87,6 +103,8 @@ const SchoolPaymentPage: React.FC = () => {
       setRegistrationEmail(result.registrationEmail);
       setSchoolId(result.schoolId);
       setSchoolName(result.schoolName);
+      setSchoolCity(result.city);
+      setSchoolState(result.state);
       setPocEmail(result.pocEmail);
       setPlanName(result.planName);
       setPlanPriceInr(result.planPriceInr);
@@ -239,6 +257,9 @@ const SchoolPaymentPage: React.FC = () => {
                 Registered school
               </p>
               <p className="mt-2 text-lg font-bold text-slate-900 leading-snug">{schoolName}</p>
+              {schoolLocationDisplay ? (
+                <p className="mt-1 text-sm text-slate-600">{schoolLocationDisplay}</p>
+              ) : null}
               <p className="mt-2 text-sm text-slate-700">
                 Plan: <span className="font-semibold">{planName}</span>
                 {institutionalCheckoutSummary ? (

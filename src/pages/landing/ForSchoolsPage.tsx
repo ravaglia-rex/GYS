@@ -624,18 +624,18 @@ const ForSchoolsPage: React.FC = () => {
             data-landing-reveal
             className="mt-10 scroll-mt-28 sm:mt-12"
           >
-            <div className="mx-auto max-w-md space-y-3">
+            <div className="mx-auto flex max-w-2xl flex-row gap-3">
               <button
                 type="button"
                 onClick={() => navigate('/for-schools/register')}
-                className="flex w-full items-center justify-center rounded-2xl bg-[#fbbf24] px-4 py-3 text-sm font-semibold text-slate-900 shadow-md hover:shadow-lg hover:-translate-y-0.5 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 sm:text-base"
+                className="flex flex-1 items-center justify-center rounded-2xl bg-[#fbbf24] px-4 py-3 text-sm font-semibold text-slate-900 shadow-md hover:shadow-lg hover:-translate-y-0.5 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 sm:text-base"
               >
                 Register Your School →
               </button>
               <button
                 type="button"
                 onClick={() => navigate('/for-schools/payment')}
-                className="flex w-full items-center justify-center rounded-2xl border-2 border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm hover:border-slate-400 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 sm:text-base"
+                className="flex flex-1 items-center justify-center rounded-2xl border-2 border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm hover:border-slate-400 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 sm:text-base"
               >
                 Proceed to Payment
               </button>

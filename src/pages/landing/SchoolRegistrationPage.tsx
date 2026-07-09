@@ -557,10 +557,7 @@ const SchoolRegistrationPage: React.FC = () => {
               ) : null}
               . It includes your registration summary and next steps.
             </p>
-            <p className="mt-4 text-sm text-slate-600 leading-relaxed">
-              Payment can be completed by a different person — share the payment page with your
-              accounts or finance team when ready.
-            </p>
+           
             <button
               type="button"
               onClick={() =>
@@ -571,6 +568,8 @@ const SchoolRegistrationPage: React.FC = () => {
                     schoolId: registeredSchoolId,
                     checkoutSecret: registeredCheckoutSecret ?? undefined,
                     schoolName: storedSchoolName,
+                    city: city.trim(),
+                    state: addressState,
                     planName: currentPlan.name,
                     planPriceInr: currentPlan.priceNum,
                   },

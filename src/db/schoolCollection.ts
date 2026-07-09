@@ -68,6 +68,8 @@ function pickCheckoutSecret(data: Record<string, unknown>): string {
 export type SchoolRegistrationPaymentLookupResponse = {
   schoolId: string;
   schoolName: string;
+  city: string;
+  state: string;
   pocEmail: string;
   planId: string;
   planName: string;
@@ -96,6 +98,8 @@ export const lookupSchoolRegistrationPayment = async (
     return {
       schoolId,
       schoolName: typeof data.schoolName === "string" ? data.schoolName : "Your school",
+      city: typeof data.city === "string" ? data.city : "",
+      state: typeof data.state === "string" ? data.state : "",
       pocEmail: typeof data.pocEmail === "string" ? data.pocEmail : registrationEmail.trim().toLowerCase(),
       planId: typeof data.planId === "string" ? data.planId : "",
       planName: typeof data.planName === "string" ? data.planName : "Institutional plan",

@@ -104,6 +104,7 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
   const [missingBankError, setMissingBankError] = useState<string | null>(null);
   const [paymentStep, setPaymentStep] = useState<PaymentStep>('select');
   const wireRecordInFlightRef = useRef(false);
+  const alreadyPaidRecordedRef = useRef(false);
   const { toast } = useToast();
 
   const validateCheckoutPhone = (): string | undefined => {
@@ -322,11 +323,15 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
     if (wireRecordInFlightRef.current) {
       return;
     }
+    const paymentMethod = options?.paymentMethod ?? 'wire';
+    if (paymentMethod === 'already_paid' && alreadyPaidRecordedRef.current) {
+      setPaymentStep('already_paid');
+      return;
+    }
     const optionalPhone = normalizeIndiaMobileE164(checkoutPhone) ? withIndiaCountryCode(checkoutPhone) : undefined;
     wireRecordInFlightRef.current = true;
     setFieldErrors((prev) => ({ ...prev, phone: undefined }));
     setWireBusy(true);
-    const paymentMethod = options?.paymentMethod ?? 'wire';
     try {
       const result = await markSchoolManualPaymentAttempt({
         schoolId,
@@ -338,6 +343,7 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
         ...(options?.forceEmail ? { force_email: true } : {}),
       });
       if (paymentMethod === 'already_paid') {
+        alreadyPaidRecordedRef.current = true;
         setAlreadyPaidRecorded(true);
       } else {
         setWireAttemptRecorded(true);
@@ -347,13 +353,13 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
         toast({
           title:
             paymentMethod === 'already_paid'
-              ? 'Registration submitted'
+              ? 'Response captured'
               : result.details_email_sent || result.details_email_already_sent
                 ? 'Wire details emailed'
                 : 'Wire details ready',
           description:
             paymentMethod === 'already_paid'
-              ? 'We will verify the payment manually before activating your school account.'
+              ? 'We will verify that your payment has already been received before activating your school account.'
               : result.details_email_sent
                 ? `We emailed the wire transfer details to ${pocEmail}.`
                 : result.details_email_already_sent
@@ -386,8 +392,15 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
     }
   };
 
-  const submitAlreadyPaid = async () => {
+  const openAlreadyPaid = () => {
     setPaymentStep('already_paid');
+  };
+
+  const confirmAlreadyPaid = async () => {
+    if (alreadyPaidRecordedRef.current) {
+      setPaymentStep('already_paid');
+      return;
+    }
     await recordManualPaymentAttempt({
       paymentMethod: 'already_paid',
       source: 'already_paid',
@@ -479,7 +492,7 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => void submitAlreadyPaid()}
+            onClick={openAlreadyPaid}
             disabled={wireBusy}
             className="w-full rounded-xl border border-slate-200 bg-white p-4 text-left transition hover:border-blue-300 hover:bg-blue-50/40 disabled:opacity-60"
           >
@@ -640,16 +653,40 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
         </div>
       )}
 
-      {paymentStep === 'already_paid' && (
+      {paymentStep === 'already_paid' && !alreadyPaidRecorded && (
+        <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4">
+          <div>
+            <p className="text-sm font-semibold text-slate-900">Already paid through another channel?</p>
+            <p className="mt-2 text-xs leading-relaxed text-slate-600">
+              Choose this only if your school has already completed payment through a direct Razorpay link,
+              a group or chain payment, or another approved route, not if you still need to pay.
+            </p>
+            <p className="mt-2 text-xs leading-relaxed text-slate-600">
+              Click the button below to confirm. We will verify the payment on our end before activating your
+              school account. Please allow up to 5 business days for confirmation.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void confirmAlreadyPaid()}
+            disabled={wireBusy}
+            className="w-full rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-md hover:brightness-110 active:scale-95 transition-all duration-200 disabled:opacity-60 disabled:pointer-events-none"
+            style={{ backgroundColor: '#1e3a8a' }}
+          >
+            {wireBusy ? 'Submitting...' : 'I confirm my school has already paid'}
+          </button>
+          <div className="flex justify-end pt-1">{backToPaymentOptionsButton(wireBusy)}</div>
+        </div>
+      )}
+
+      {paymentStep === 'already_paid' && alreadyPaidRecorded && (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-center">
-          <p className="text-sm font-semibold text-emerald-950">
-            {wireBusy && !alreadyPaidRecorded ? 'Recording your registration...' : 'Registration complete'}
-          </p>
+          <p className="text-sm font-semibold text-emerald-950">Response captured</p>
           <p className="mt-2 text-justify text-xs leading-relaxed text-emerald-900">
             We will verify that your payment has already been received. Once we confirm it, your
             school account will be activated and you can continue account setup. Please let us know if you do not hear from us within 5 business days.
           </p>
-          <div className="mt-3 flex justify-end">{backToPaymentOptionsButton(wireBusy)}</div>
+          <div className="mt-3 flex justify-end">{backToPaymentOptionsButton()}</div>
         </div>
       )}
     </div>
