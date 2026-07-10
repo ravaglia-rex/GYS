@@ -7,10 +7,6 @@ import {
   Button,
   Alert,
   CircularProgress,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   List,
   ListItem,
   ListItemIcon,
@@ -22,9 +18,6 @@ import {
   People as PeopleIcon,
   Payment as PaymentIcon,
   CardGiftcard as RewardsIcon,
-  PlayArrow as RunIcon,
-  CheckCircleOutline as CheckIcon,
-  WarningAmber as WarningIcon,
   Notifications as NotificationsIcon,
   PersonAdd as PersonAddIcon,
   GroupAdd as GroupAddIcon,
@@ -36,76 +29,20 @@ import {
   listPlatformAdminNotifications,
   markAllPlatformAdminNotificationsRead,
   markPlatformAdminNotificationsRead,
-  runPlatformAdminPipeline,
   formatInrFromPaise,
   type PlatformAdminNotification,
   type PlatformAdminOverviewStats,
 } from '../../db/platformAdminCollection';
 import {
   platformAdminCardSx,
-  platformAdminMutedCardSx,
   platformAdminPageContainerSx,
-  platformAdminPrimaryButtonSx,
 } from './platformAdminPageStyles';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import { PlatformAdminPageHeader } from './platformAdminComponents';
 
-type PipelineId = 'student' | 'school' | 'monthly';
-
-type PipelineDefinition = {
-  id: PipelineId;
-  title: string;
-  subtitle: string;
-  duration: string;
-  summary: string;
-  steps: string[];
-  warning?: string;
-};
-
-const PIPELINE_DEFINITIONS: PipelineDefinition[] = [
-  {
-    id: 'student',
-    title: 'Student pipeline',
-    subtitle: 'National tiers + student PDF reports',
-    duration: 'Typically 5–20 minutes',
-    summary:
-      'Runs across every student account. Use after large assessment windows or when student tiers/reports look stale.',
-    steps: [
-      'Recalculates national performance tiers for all students (leaderboard rankings).',
-      'Scans each student for newly eligible Discovery and Reasoning Triad reports.',
-      'Generates missing PDF reports and stores them on the student record (S3 + Firestore).',
-      'Publishes in-app dashboard alerts (bell icon) for students  -  leaderboard and badge refresh. No email is sent.',
-    ],
-  },
-  {
-    id: 'school',
-    title: 'School pipeline',
-    subtitle: 'Institutional analytics + quarterly PDFs',
-    duration: 'Typically 3–15 minutes',
-    summary:
-      'Recomputes school-wide analytics from the current student roster. On quarter-start months it also builds quarterly institutional PDFs.',
-    steps: [
-      'Loads all students rostered to each school and recomputes avg percentile, completion rate, and assessed count.',
-      'Updates `schools/{id}/analytics/current` and institutional tier fields on the school document.',
-      'On Jan/Apr/Jul/Oct (IST): writes quarterly report metadata and uploads the institutional PDF to S3.',
-      'School POCs see new report alerts in the school admin portal  -  no email is sent by this pipeline.',
-    ],
-    warning: 'Quarter-start months also regenerate quarterly PDFs for every school.',
-  },
-  {
-    id: 'monthly',
-    title: 'Full monthly pipeline',
-    subtitle: 'Student stage, then school stage',
-    duration: 'Typically 10–35 minutes',
-    summary:
-      'Same job that runs automatically on the 1st of each month (IST). Runs the student pipeline first, then the school pipeline so institutional analytics use fresh student tiers.',
-    steps: [
-      'Stage 1  -  Student pipeline (tiers + student PDF reports for all students).',
-      'Stage 2  -  School pipeline (per-school analytics cache + quarterly PDFs when applicable).',
-    ],
-    warning: 'This is the heaviest operation. Avoid running during peak exam hours.',
-  },
-];
+const MAX_RECENT_ALERTS = 6;
+/** Roughly three notification rows visible before scrolling. */
+const RECENT_ALERTS_SCROLL_HEIGHT = 420;
 
 function notificationTypeLabel(type: PlatformAdminNotification['type']): string {
   switch (type) {
@@ -215,9 +152,6 @@ const PlatformAdminDashboardPage: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [pipelineRunning, setPipelineRunning] = useState<PipelineId | null>(null);
-  const [pipelineMessage, setPipelineMessage] = useState<string | null>(null);
-  const [confirmPipeline, setConfirmPipeline] = useState<PipelineDefinition | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -225,7 +159,7 @@ const PlatformAdminDashboardPage: React.FC = () => {
     try {
       const [overview, notificationData] = await Promise.all([
         getPlatformAdminOverview(),
-        listPlatformAdminNotifications(30),
+        listPlatformAdminNotifications(MAX_RECENT_ALERTS),
       ]);
       setStats(overview);
       setNotifications(notificationData.notifications);
@@ -260,22 +194,6 @@ const PlatformAdminDashboardPage: React.FC = () => {
     load();
   }, [load]);
 
-  const runPipeline = async (pipeline: PipelineId) => {
-    setConfirmPipeline(null);
-    setPipelineRunning(pipeline);
-    setPipelineMessage(null);
-    try {
-      await runPlatformAdminPipeline(pipeline);
-      const label = PIPELINE_DEFINITIONS.find((p) => p.id === pipeline)?.title ?? pipeline;
-      setPipelineMessage(`${label} completed successfully.`);
-      await load();
-    } catch {
-      setPipelineMessage('Pipeline run failed. Check Cloud Functions logs for details.');
-    } finally {
-      setPipelineRunning(null);
-    }
-  };
-
   if (loading) {
     return (
       <Box sx={{ ...platformAdminPageContainerSx, display: 'flex', justifyContent: 'center', py: 8 }}>
@@ -288,7 +206,7 @@ const PlatformAdminDashboardPage: React.FC = () => {
     <Box sx={platformAdminPageContainerSx}>
       <PlatformAdminPageHeader
         title="Overview"
-        subtitle="Platform-wide stats and manual pipeline controls"
+        subtitle="Platform-wide stats and recent alerts"
       />
 
       {error && (
@@ -399,40 +317,48 @@ const PlatformAdminDashboardPage: React.FC = () => {
           {notifications.length === 0 ? (
             <Typography sx={{ color: ip.subtext, fontSize: '0.9rem' }}>No alerts yet.</Typography>
           ) : (
-            <List disablePadding>
+            <Box
+              sx={{
+                maxHeight: RECENT_ALERTS_SCROLL_HEIGHT,
+                overflowY: 'auto',
+                overflowX: 'hidden',
+                scrollbarWidth: 'thin',
+                scrollbarColor: '#cbd5e1 transparent',
+                '&::-webkit-scrollbar': { width: 6 },
+                '&::-webkit-scrollbar-thumb': { bgcolor: '#cbd5e1', borderRadius: 3 },
+              }}
+            >
+              <List disablePadding>
               {notifications.map((notification, index) => {
                 const accent = notificationTypeColor(notification.type);
                 return (
                   <React.Fragment key={notification.id}>
                     {index > 0 && <Divider sx={{ my: 1 }} />}
-                    <ListItem
-                      disableGutters
+                    <Box
                       sx={{
+                        display: 'flex',
                         alignItems: 'flex-start',
+                        gap: 1.5,
                         py: 1.25,
+                        px: 1.5,
                         opacity: notification.read ? 0.72 : 1,
                         bgcolor: notification.read ? 'transparent' : ip.pendingBg,
                         borderRadius: 1.5,
-                        px: 1.5,
                       }}
-                      secondaryAction={
-                        !notification.read ? (
-                          <Button
-                            size="small"
-                            onClick={() => handleMarkNotificationRead(notification.id)}
-                            sx={{ textTransform: 'none', color: ip.subtext, minWidth: 0 }}
-                          >
-                            Mark read
-                          </Button>
-                        ) : undefined
-                      }
                     >
-                      <ListItemIcon sx={{ minWidth: 40, mt: 0.25, color: accent }}>
+                      <Box sx={{ color: accent, mt: 0.25, flexShrink: 0, display: 'flex' }}>
                         {notificationIcon(notification.type)}
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', pr: 8 }}>
+                      </Box>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            justifyContent: 'space-between',
+                            gap: 1,
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', minWidth: 0 }}>
                             <Typography sx={{ fontWeight: notification.read ? 600 : 700, color: ip.heading }}>
                               {notification.title}
                             </Typography>
@@ -446,166 +372,63 @@ const PlatformAdminDashboardPage: React.FC = () => {
                                 px: 1,
                                 py: 0.25,
                                 borderRadius: 999,
+                                flexShrink: 0,
                               }}
                             >
                               {notificationTypeLabel(notification.type)}
                             </Typography>
                           </Box>
-                        }
-                        secondary={
-                          <Box component="span" sx={{ display: 'block' }}>
-                            <Typography component="span" sx={{ display: 'block', color: ip.subtext, fontSize: '0.88rem', mt: 0.5 }}>
-                              {notification.message}
-                            </Typography>
-                            <Typography component="span" sx={{ display: 'block', color: ip.subtext, fontSize: '0.78rem', mt: 0.75 }}>
-                              {formatNotificationTime(notification.created_at)}
-                              {notification.school_id ? ` · School ID ${notification.school_id}` : ''}
-                            </Typography>
-                          </Box>
-                        }
-                      />
-                    </ListItem>
+                          {!notification.read && (
+                            <Button
+                              size="small"
+                              onClick={() => handleMarkNotificationRead(notification.id)}
+                              sx={{
+                                textTransform: 'none',
+                                color: ip.subtext,
+                                minWidth: 0,
+                                flexShrink: 0,
+                                px: 1,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              Mark read
+                            </Button>
+                          )}
+                        </Box>
+                        <Typography
+                          sx={{
+                            display: 'block',
+                            color: ip.subtext,
+                            fontSize: '0.88rem',
+                            mt: 0.5,
+                            lineHeight: 1.5,
+                            wordBreak: 'break-word',
+                          }}
+                        >
+                          {notification.message}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            display: 'block',
+                            color: ip.subtext,
+                            fontSize: '0.78rem',
+                            mt: 0.75,
+                            wordBreak: 'break-word',
+                          }}
+                        >
+                          {formatNotificationTime(notification.created_at)}
+                          {notification.school_id ? ` · School ID ${notification.school_id}` : ''}
+                        </Typography>
+                      </Box>
+                    </Box>
                   </React.Fragment>
                 );
               })}
-            </List>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card sx={platformAdminCardSx}>
-        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-          <Typography variant="h6" sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
-            Data pipelines
-          </Typography>
-          <Typography variant="body2" sx={{ color: ip.subtext, mb: 2.5, maxWidth: 720 }}>
-            These jobs normally run automatically on the 1st of each month (IST). Trigger manually only when
-            you need fresh tiers, reports, or school analytics outside that schedule.
-          </Typography>
-
-          {pipelineMessage && (
-            <Alert severity={pipelineMessage.includes('failed') ? 'error' : 'success'} sx={{ mb: 2.5 }}>
-              {pipelineMessage}
-            </Alert>
-          )}
-
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {PIPELINE_DEFINITIONS.map((pipeline) => {
-              const isRunning = pipelineRunning === pipeline.id;
-              const anyRunning = pipelineRunning !== null;
-              return (
-                <Box
-                  key={pipeline.id}
-                  sx={{
-                    ...platformAdminMutedCardSx,
-                    p: 2,
-                    display: 'flex',
-                    flexDirection: { xs: 'column', md: 'row' },
-                    alignItems: { xs: 'stretch', md: 'flex-start' },
-                    justifyContent: 'space-between',
-                    gap: 2,
-                  }}
-                >
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography sx={{ fontWeight: 700, color: ip.heading, fontSize: '1rem' }}>
-                      {pipeline.title}
-                    </Typography>
-                    <Typography sx={{ color: ip.sidebarActiveText, fontWeight: 600, fontSize: '0.82rem', mb: 0.75 }}>
-                      {pipeline.subtitle} · {pipeline.duration}
-                    </Typography>
-                    <Typography sx={{ color: ip.subtext, fontSize: '0.9rem', mb: 1.25, lineHeight: 1.55 }}>
-                      {pipeline.summary}
-                    </Typography>
-                    <List dense disablePadding sx={{ color: ip.heading }}>
-                      {pipeline.steps.map((step) => (
-                        <ListItem key={step} disableGutters sx={{ py: 0.25, alignItems: 'flex-start' }}>
-                          <ListItemIcon sx={{ minWidth: 28, mt: 0.35, color: ip.statBlue }}>
-                            <CheckIcon sx={{ fontSize: 16 }} />
-                          </ListItemIcon>
-                          <ListItemText
-                            primary={step}
-                            primaryTypographyProps={{ fontSize: '0.85rem', color: ip.heading, lineHeight: 1.45 }}
-                          />
-                        </ListItem>
-                      ))}
-                    </List>
-                    {pipeline.warning && (
-                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mt: 1, color: '#a16207' }}>
-                        <WarningIcon sx={{ fontSize: 18, mt: 0.15 }} />
-                        <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>{pipeline.warning}</Typography>
-                      </Box>
-                    )}
-                  </Box>
-                  <Button
-                    variant="contained"
-                    disabled={anyRunning}
-                    onClick={() => setConfirmPipeline(pipeline)}
-                    startIcon={isRunning ? <CircularProgress size={16} color="inherit" /> : <RunIcon />}
-                    sx={{ ...platformAdminPrimaryButtonSx, alignSelf: { xs: 'stretch', md: 'flex-start' }, minWidth: 160 }}
-                  >
-                    {isRunning ? 'Running…' : 'Run pipeline'}
-                  </Button>
-                </Box>
-              );
-            })}
-          </Box>
-        </CardContent>
-      </Card>
-
-      <Dialog open={Boolean(confirmPipeline)} onClose={() => setConfirmPipeline(null)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700, color: ip.heading }}>
-          Confirm pipeline run
-        </DialogTitle>
-        <DialogContent dividers>
-          {confirmPipeline && (
-            <>
-              <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
-                {confirmPipeline.title}
-              </Typography>
-              <Typography sx={{ color: ip.subtext, mb: 2, lineHeight: 1.55 }}>
-                {confirmPipeline.summary}
-              </Typography>
-              <Typography sx={{ fontWeight: 600, color: ip.heading, mb: 1, fontSize: '0.9rem' }}>
-                This will:
-              </Typography>
-              <List dense disablePadding>
-                {confirmPipeline.steps.map((step) => (
-                  <ListItem key={step} disableGutters sx={{ py: 0.35 }}>
-                    <ListItemIcon sx={{ minWidth: 28, color: ip.statBlue }}>
-                      <CheckIcon sx={{ fontSize: 16 }} />
-                    </ListItemIcon>
-                    <ListItemText primary={step} primaryTypographyProps={{ fontSize: '0.88rem', color: ip.heading }} />
-                  </ListItem>
-                ))}
               </List>
-              {confirmPipeline.warning && (
-                <>
-                  <Divider sx={{ my: 1.5 }} />
-                  <Alert severity="warning" sx={{ bgcolor: ip.pendingBg, color: '#92400e' }}>
-                    {confirmPipeline.warning}
-                  </Alert>
-                </>
-              )}
-              <Typography sx={{ color: ip.subtext, fontSize: '0.85rem', mt: 2 }}>
-                Estimated duration: {confirmPipeline.duration}. You can leave this page  -  the job continues on the server.
-              </Typography>
-            </>
+            </Box>
           )}
-        </DialogContent>
-        <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={() => setConfirmPipeline(null)} sx={{ textTransform: 'none', color: ip.subtext }}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            disabled={pipelineRunning !== null}
-            onClick={() => confirmPipeline && runPipeline(confirmPipeline.id)}
-            sx={platformAdminPrimaryButtonSx}
-          >
-            Yes, run {confirmPipeline?.title.toLowerCase()}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        </CardContent>
+      </Card>
     </Box>
   );
 };

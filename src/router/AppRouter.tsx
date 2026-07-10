@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Route, Routes, Outlet, Navigate } from 'react-
 import Protected from '../components/route_protection/Protected';
 import SchoolAdminRoute from '../components/route_protection/SchoolAdminRoute';
 import PlatformAdminRoute from '../components/route_protection/PlatformAdminRoute';
+import PlatformAdminSuperRoute from '../components/route_protection/PlatformAdminSuperRoute';
 import NotFoundPage from '../pages/NotFoundPage';
 import BigSpinner from '../components/ui/BigSpinner';
 import StudentRegistrationFlowLayout from '../layouts/StudentRegistrationFlowLayout';
@@ -107,6 +108,7 @@ const PlatformAdminSchoolsPage = React.lazy(() => import('../pages/platform_admi
 const PlatformAdminSchoolDetailPage = React.lazy(() => import('../pages/platform_admin_pages/PlatformAdminSchoolDetailPage'));
 const PlatformAdminRewardsPage = React.lazy(() => import('../pages/platform_admin_pages/PlatformAdminRewardsPage'));
 const PlatformAdminStudentsPage = React.lazy(() => import('../pages/platform_admin_pages/PlatformAdminStudentsPage'));
+const PlatformAdminPipelinePage = React.lazy(() => import('../pages/platform_admin_pages/PlatformAdminPipelinePage'));
 
 const AppRouter: React.FC = () => {
   return (
@@ -870,6 +872,19 @@ const AppRouter: React.FC = () => {
                 </PlatformAdminLayout>
               </Suspense>
             </PlatformAdminRoute>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        <Route
+          path="/platform-admin/pipelines"
+          element={
+            <PlatformAdminSuperRoute>
+              <Suspense fallback={<BigSpinner />}>
+                <PlatformAdminLayout>
+                  <PlatformAdminPipelinePage />
+                </PlatformAdminLayout>
+              </Suspense>
+            </PlatformAdminSuperRoute>
           }
           errorElement={<NotFoundPage />}
         />

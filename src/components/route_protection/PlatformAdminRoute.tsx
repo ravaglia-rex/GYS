@@ -4,8 +4,8 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../firebase/firebase';
 import BigSpinner from '../ui/BigSpinner';
 import { useDispatch } from 'react-redux';
-import { checkPlatformAdminAccess } from '../../db/platformAdminCollection';
-import { setRole, setUser } from '../../state_data/authSlice';
+import { getPlatformAdminMe } from '../../db/platformAdminCollection';
+import { setRole, setPlatformAdminRole, setUser } from '../../state_data/authSlice';
 import { AppDispatch } from '../../state_data/reducer';
 import authTokenHandler from '../../functions/auth_token/auth_token_handler';
 import { Alert, Box } from '@mui/material';
@@ -39,14 +39,15 @@ const PlatformAdminRoute: React.FC<PlatformAdminRouteProps> = ({ children }) => 
       const token = await firebaseUser.getIdToken();
       authTokenHandler.setAuthToken(token);
 
-      const isAdmin = await checkPlatformAdminAccess();
-      if (!isAdmin) {
+      const me = await getPlatformAdminMe();
+      if (!me?.ok) {
         setForbidden(true);
         setLoading(false);
         return;
       }
 
       dispatch(setRole('platformadmin'));
+      dispatch(setPlatformAdminRole(me.role));
       setLoading(false);
     });
 

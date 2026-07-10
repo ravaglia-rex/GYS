@@ -18,6 +18,7 @@ import {
   People as PeopleIcon,
   CardGiftcard as RewardsIcon,
   Logout as LogoutIcon,
+  Settings as PipelineIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
@@ -54,12 +55,18 @@ function OverviewColoredIcon() {
   );
 }
 
-const NAV_ITEMS = [
+const BASE_NAV_ITEMS = [
   { title: 'Overview', path: '/platform-admin/dashboard', icon: <OverviewColoredIcon /> },
   { title: 'Schools', path: '/platform-admin/schools', icon: <SchoolIcon sx={{ color: '#059669', fontSize: SIDEBAR_ICON_SIZE }} /> },
   { title: 'Students', path: '/platform-admin/students', icon: <PeopleIcon sx={{ color: '#64748b', fontSize: SIDEBAR_ICON_SIZE }} /> },
   { title: 'Rewards', path: '/platform-admin/rewards', icon: <RewardsIcon sx={{ color: '#b45309', fontSize: SIDEBAR_ICON_SIZE }} /> },
 ];
+
+const PIPELINE_NAV_ITEM = {
+  title: 'Pipelines',
+  path: '/platform-admin/pipelines',
+  icon: <PipelineIcon sx={{ color: '#7c3aed', fontSize: SIDEBAR_ICON_SIZE }} />,
+};
 
 interface PlatformAdminLayoutProps {
   children: React.ReactNode;
@@ -72,6 +79,12 @@ const PlatformAdminLayout: React.FC<PlatformAdminLayoutProps> = ({ children }) =
   const [mobileOpen, setMobileOpen] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const userEmail = useSelector((state: RootState) => state.auth.user?.email) ?? auth.currentUser?.email ?? '';
+  const platformAdminRole = useSelector((state: RootState) => state.auth.platformAdminRole);
+
+  const navItems = useMemo(
+    () => (platformAdminRole === 'super' ? [...BASE_NAV_ITEMS, PIPELINE_NAV_ITEM] : BASE_NAV_ITEMS),
+    [platformAdminRole]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -130,7 +143,7 @@ const PlatformAdminLayout: React.FC<PlatformAdminLayoutProps> = ({ children }) =
   };
 
   const renderSidebarNav = () =>
-    NAV_ITEMS.map((item) => {
+    navItems.map((item) => {
       const active = isNavActive(item.path);
       return (
         <Box

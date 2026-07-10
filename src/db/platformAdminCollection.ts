@@ -207,14 +207,29 @@ export type PlatformAdminRedemptionHistoryEntry = {
   action_at?: { seconds?: number; _seconds?: number } | null;
 };
 
-export async function checkPlatformAdminAccess(): Promise<boolean> {
+export type PlatformAdminRole = 'super' | 'member';
+
+export type PlatformAdminMe = {
+  ok: boolean;
+  email: string;
+  role: PlatformAdminRole;
+  is_super_admin: boolean;
+};
+
+export async function getPlatformAdminMe(): Promise<PlatformAdminMe | null> {
   try {
     const headers = await authHeaders();
     const res = await axios.get(`${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ME}`, { headers });
-    return res.data?.ok === true;
+    if (res.data?.ok !== true) return null;
+    return res.data as PlatformAdminMe;
   } catch {
-    return false;
+    return null;
   }
+}
+
+export async function checkPlatformAdminAccess(): Promise<boolean> {
+  const me = await getPlatformAdminMe();
+  return me?.ok === true;
 }
 
 /** Validates env-stored admin password and returns a Firebase custom token (no Firebase password login). */
