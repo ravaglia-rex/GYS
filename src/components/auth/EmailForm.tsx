@@ -29,6 +29,7 @@ import analytics from '../../segment/segment';
 
 import SignInForm from './SignInForm';
 import PlatformAdminSignInForm from './PlatformAdminSignInForm';
+import PlatformAdminPasswordSetup from './PlatformAdminPasswordSetup';
 import SchoolAdminSchoolSelect from './SchoolAdminSchoolSelect';
 
 const EmailSchema = z.object({
@@ -48,6 +49,7 @@ const EmailEntryForm: React.FC = () => {
   const [schoolInfo, setSchoolInfo] = useState<SchoolEmailCheck | null>(null);
   const [, setCheckingSchool] = useState(false);
   const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
+  const [platformAdminPasswordSetupComplete, setPlatformAdminPasswordSetupComplete] = useState(false);
   const [showNoAccountDialog, setShowNoAccountDialog] = useState(false);
 
 
@@ -100,6 +102,7 @@ const EmailEntryForm: React.FC = () => {
     setIsSubmitted(true);
     setCheckingSchool(false);
     setIsPlatformAdmin(false);
+    setPlatformAdminPasswordSetupComplete(false);
 
     try {
       // If school official checkbox is checked
@@ -166,6 +169,7 @@ const EmailEntryForm: React.FC = () => {
         navigate('/students/register', { state: { prefill: { email: normalizedEmail } } });
       } else if (result.type === 'platformadmin') {
         setIsPlatformAdmin(true);
+        setPlatformAdminPasswordSetupComplete(result.passwordSetupComplete === true);
         setEmailExists(true);
       } else if (!result.exists) {
         analytics.track('[DIRECT] New User Flow', { email: data.email });
@@ -200,7 +204,15 @@ const EmailEntryForm: React.FC = () => {
   };
   if (emailExists === true) {
     if (isPlatformAdmin) {
-      return <PlatformAdminSignInForm email={email} />;
+      if (!platformAdminPasswordSetupComplete) {
+        return <PlatformAdminPasswordSetup email={email} />;
+      }
+      return (
+        <PlatformAdminSignInForm
+          email={email}
+          onNeedsPasswordSetup={() => setPlatformAdminPasswordSetupComplete(false)}
+        />
+      );
     }
     if (isSchoolOfficial && schoolInfo) {
       if (!schoolInfo.verified) {

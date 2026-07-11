@@ -300,7 +300,7 @@ const PlatformAdminDashboardPage: React.FC = () => {
                 Recent alerts
               </Typography>
               <Typography variant="body2" sx={{ color: ip.subtext }}>
-                New school signups, roster updates, and student joins. Email copies go to platform admin addresses.
+                New school signups and roster updates. Email copies go to platform admin addresses.
               </Typography>
             </Box>
             {unreadCount > 0 && (

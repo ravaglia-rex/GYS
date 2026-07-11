@@ -1,3 +1,11 @@
+/** Greenfield seed cohort emails (hidden from the platform admin student list). */
+export function isGreenfieldSeedStudentEmail(email: string | null | undefined): boolean {
+  const cleaned = (email ?? '').trim().toLowerCase();
+  if (!cleaned.endsWith('@seed.argus.test')) return false;
+  const local = cleaned.slice(0, cleaned.indexOf('@'));
+  return local.startsWith('greenfield_seed_');
+}
+
 /** Student is an internal / demo account excluded from platform admin totals. */
 export function isPlatformAdminTestStudent(student: {
   is_test?: boolean | null;

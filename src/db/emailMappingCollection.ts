@@ -6,6 +6,8 @@ export type EmailExistsResult = {
   exists: boolean;
   type: string | null;
   registrationStatus?: string | null;
+  /** Present when type is platformadmin — personal password already created. */
+  passwordSetupComplete?: boolean;
 };
 
 // Returns { exists: boolean, type: 'student' | 'schooladmin' | null }.

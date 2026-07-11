@@ -20,13 +20,19 @@ export const PLATFORM_ADMIN_REDEMPTION_HISTORY = '/redemption-history';
 export const PLATFORM_ADMIN_FULFILL_REDEMPTION = '/fulfill-redemption';
 export const PLATFORM_ADMIN_RUN_PIPELINE = '/run-pipeline';
 export const PLATFORM_ADMIN_AUTHENTICATE = '/authenticate';
+export const PLATFORM_ADMIN_VERIFY_AND_SEND_PASSWORD_SETUP = '/verifyAndSendPasswordSetup';
+export const PLATFORM_ADMIN_VERIFY_PASSWORD_SETUP = '/verifyPasswordSetup';
 export const PLATFORM_ADMIN_NOTIFICATIONS = '/notifications';
 export const PLATFORM_ADMIN_NOTIFICATIONS_MARK_READ = '/notifications/mark-read';
 export const PLATFORM_ADMIN_NOTIFICATIONS_MARK_ALL_READ = '/notifications/mark-all-read';
 export const PLATFORM_ADMIN_MARK_SCHOOL_PAID = '/mark-paid';
 export const PLATFORM_ADMIN_UPDATE_SCHOOL_BILLING = '/update-billing';
 export const PLATFORM_ADMIN_DELETE_SCHOOL = '/delete';
+export const PLATFORM_ADMIN_DELETE_STUDENT = '/delete';
 export const PLATFORM_ADMIN_BILLING_INVOICE_DOWNLOAD_URL = '/billing-invoice-download-url';
+export const PLATFORM_ADMIN_INVITE_SCHOOL_ADMIN = '/invite-admin';
+export const PLATFORM_ADMIN_ADD_SCHOOL_ADMIN = '/admins';
+export const PLATFORM_ADMIN_REMOVE_SCHOOL_ADMIN = '/remove-admin';
 
 // Schools
 export const CREATE_EXPEDITED_SCHOOL='/createExpeditedSchool';

@@ -31,8 +31,12 @@ import {
   Edit as EditIcon,
   DeleteOutline as DeleteIcon,
   FileDownload as DownloadIcon,
+  MailOutline as InviteIcon,
+  PersonAddAlt as AddAdminIcon,
 } from '@mui/icons-material';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../state_data/reducer';
 import {
   formatDate,
   formatInr,
@@ -42,6 +46,9 @@ import {
   markPlatformAdminSchoolPaid,
   deletePlatformAdminSchool,
   updatePlatformAdminSchoolBilling,
+  invitePlatformAdminSchoolAdmin,
+  addPlatformAdminSchoolAdmin,
+  removePlatformAdminSchoolAdmin,
   PLATFORM_ADMIN_PAYMENT_METHOD_LABELS,
   type PlatformAdminMarkSchoolPaidMethod,
   type PlatformAdminEmailActivityRow,
@@ -141,7 +148,14 @@ function defaultPaymentMethod(school: PlatformAdminSchoolDetail): PlatformAdminM
   if (raw === 'already_paid') return 'already_paid';
   if (raw === 'wire' || school.pending_wire_capture) return 'wire';
   if (raw === 'razorpay_link') return 'razorpay_link';
-  if (raw === 'neft_rtgs' || raw === 'upi' || raw === 'cheque' || raw === 'cash' || raw === 'other') {
+  if (
+    raw === 'neft_rtgs' ||
+    raw === 'upi' ||
+    raw === 'cheque' ||
+    raw === 'cash' ||
+    raw === 'paid_to_education_world' ||
+    raw === 'other'
+  ) {
     return raw as PlatformAdminMarkSchoolPaidMethod;
   }
   return 'wire';
@@ -151,6 +165,8 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
   const { schoolId } = useParams<{ schoolId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const platformAdminRole = useSelector((state: RootState) => state.auth.platformAdminRole);
+  const isSuperAdmin = platformAdminRole === 'super';
   const [school, setSchool] = useState<PlatformAdminSchoolDetail | null>(null);
   const [paymentHistory, setPaymentHistory] = useState<PlatformAdminPaymentHistoryItem[]>([]);
   const [analytics, setAnalytics] = useState<Record<string, unknown> | null>(null);
@@ -183,6 +199,21 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
   const [unlinkStudents, setUnlinkStudents] = useState(true);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [inviteBusyEmail, setInviteBusyEmail] = useState<string | null>(null);
+  const [removeBusyEmail, setRemoveBusyEmail] = useState<string | null>(null);
+  const [addAdminOpen, setAddAdminOpen] = useState(false);
+  const [addAdminEmail, setAddAdminEmail] = useState('');
+  const [addAdminSendInvite, setAddAdminSendInvite] = useState(true);
+  const [addAdminSubmitting, setAddAdminSubmitting] = useState(false);
+  const [addAdminError, setAddAdminError] = useState<string | null>(null);
+
+  const apiErrorMessage = (e: unknown, fallback: string): string => {
+    if (typeof e === 'object' && e !== null && 'response' in e) {
+      const msg = (e as { response?: { data?: { error?: string } } }).response?.data?.error;
+      if (typeof msg === 'string' && msg.trim()) return msg;
+    }
+    return fallback;
+  };
 
   const load = useCallback(async () => {
     if (!schoolId) return;
@@ -214,7 +245,9 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
   }, [load]);
 
   useEffect(() => {
-    if (!school || school.payment_satisfied || searchParams.get('markPaid') !== '1') return;
+    if (!isSuperAdmin || !school || school.payment_satisfied || searchParams.get('markPaid') !== '1') {
+      return;
+    }
     setPaymentMethod(defaultPaymentMethod(school));
     setPaidDate(todayDateInputValue());
     setAmountInr(defaultMarkPaidAmountInr(school));
@@ -228,7 +261,7 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
     const next = new URLSearchParams(searchParams);
     next.delete('markPaid');
     setSearchParams(next, { replace: true });
-  }, [school, searchParams, setSearchParams]);
+  }, [isSuperAdmin, school, searchParams, setSearchParams]);
 
   const defaultAmountInr = useMemo(
     () => (school ? defaultMarkPaidAmountInr(school) : ''),
@@ -239,6 +272,85 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
     () => (school ? resolveSchoolPlanPriceInr(school) : null),
     [school]
   );
+
+  const openAddAdminDialog = () => {
+    setAddAdminEmail('');
+    setAddAdminSendInvite(true);
+    setAddAdminError(null);
+    setAddAdminOpen(true);
+  };
+
+  const handleInviteAdmin = async (email: string) => {
+    if (!schoolId) return;
+    setInviteBusyEmail(email);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      await invitePlatformAdminSchoolAdmin(schoolId, email);
+      setSuccessMessage(`Setup invitation sent to ${email}.`);
+      await load();
+    } catch (e: unknown) {
+      setError(apiErrorMessage(e, 'Failed to send invitation email.'));
+    } finally {
+      setInviteBusyEmail(null);
+    }
+  };
+
+  const handleAddAdmin = async () => {
+    if (!schoolId) return;
+    const email = addAdminEmail.trim().toLowerCase();
+    if (!email || !email.includes('@')) {
+      setAddAdminError('Enter a valid email address.');
+      return;
+    }
+    setAddAdminSubmitting(true);
+    setAddAdminError(null);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      const result = await addPlatformAdminSchoolAdmin(schoolId, {
+        email,
+        send_invite: addAdminSendInvite,
+      });
+      setAddAdminOpen(false);
+      if (result.warning) {
+        setSuccessMessage(result.warning);
+      } else if (result.invited) {
+        setSuccessMessage(
+          result.already_admin
+            ? `Invitation resent to ${result.email}.`
+            : `Added ${result.email} as school admin and sent setup invitation.`
+        );
+      } else {
+        setSuccessMessage(
+          result.already_admin
+            ? `${result.email} is already a school admin.`
+            : `Added ${result.email} as school admin.`
+        );
+      }
+      await load();
+    } catch (e: unknown) {
+      setAddAdminError(apiErrorMessage(e, 'Failed to add school admin.'));
+    } finally {
+      setAddAdminSubmitting(false);
+    }
+  };
+
+  const handleRemoveAdmin = async (email: string) => {
+    if (!schoolId) return;
+    setRemoveBusyEmail(email);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      await removePlatformAdminSchoolAdmin(schoolId, email);
+      setSuccessMessage(`Removed admin access for ${email}.`);
+      await load();
+    } catch (e: unknown) {
+      setError(apiErrorMessage(e, 'Failed to remove school admin.'));
+    } finally {
+      setRemoveBusyEmail(null);
+    }
+  };
 
   const openMarkPaidDialog = () => {
     if (!school) return;
@@ -446,7 +558,7 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
     );
   }
 
-  const canMarkPaid = !school.payment_satisfied;
+  const canMarkPaid = isSuperAdmin && !school.payment_satisfied;
   const registeredPlanId = resolveRegisteredPlanId(school);
   const effectivePlanId = resolveSchoolPlanId(school);
   const paidAmountLabel = formatInrFromPaise(school.paid_amount_paise);
@@ -478,29 +590,31 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
             {school.id}
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-          <Button
-            variant="outlined"
-            startIcon={<EditIcon />}
-            onClick={openBillingDialog}
-            sx={{ textTransform: 'none', color: ip.navy, borderColor: ip.cardBorder, fontWeight: 600 }}
-          >
-            Update package & billing
-          </Button>
-          {canMarkPaid && (
+        {isSuperAdmin && (
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
             <Button
-              variant="contained"
-              startIcon={<PaymentIcon />}
-              onClick={openMarkPaidDialog}
-              sx={{ ...platformAdminPrimaryButtonSx, bgcolor: ip.approveGreen, '&:hover': { bgcolor: '#16a34a' } }}
+              variant="outlined"
+              startIcon={<EditIcon />}
+              onClick={openBillingDialog}
+              sx={{ textTransform: 'none', color: ip.navy, borderColor: ip.cardBorder, fontWeight: 600 }}
             >
-              Mark as paid
+              Update package & billing
             </Button>
-          )}
-        </Box>
+            {canMarkPaid && (
+              <Button
+                variant="contained"
+                startIcon={<PaymentIcon />}
+                onClick={openMarkPaidDialog}
+                sx={{ ...platformAdminPrimaryButtonSx, bgcolor: ip.approveGreen, '&:hover': { bgcolor: '#16a34a' } }}
+              >
+                Mark as paid
+              </Button>
+            )}
+          </Box>
+        )}
       </Box>
 
-      {canMarkPaid && (
+      {isSuperAdmin && canMarkPaid && (
         <Alert
           severity="warning"
           sx={{
@@ -527,13 +641,22 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
         </Alert>
       )}
 
-      {canMarkPaid && school.pending_wire_capture && (
+      {isSuperAdmin && canMarkPaid && school.pending_wire_capture && (
         <Alert severity="info" sx={{ mb: 2, bgcolor: 'rgba(16, 64, 139, 0.08)', color: ip.navy }}>
           Wire/offline payment is on file but not captured yet. Use <strong>Mark as paid</strong> above.
         </Alert>
       )}
 
-      {!canMarkPaid && (
+      {!isSuperAdmin && !school.payment_satisfied && (
+        <Alert
+          severity="warning"
+          sx={{ mb: 2, bgcolor: ip.pendingBg, color: '#92400e', '& .MuiAlert-icon': { color: '#d97706' } }}
+        >
+          Payment not captured yet.
+        </Alert>
+      )}
+
+      {school.payment_satisfied && (
         <Alert severity="success" sx={{ mb: 2 }}>
           Payment is already captured{school.paid_at ? ` (${formatDate(school.paid_at)})` : ''}.
         </Alert>
@@ -557,7 +680,16 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
                 tone={paymentStatusChipTone(school.payment_status)}
               />
             </DetailRow>
-            <DetailRow label="Payment method" value={school.payment_method || ' - '} />
+            <DetailRow
+              label="Payment method"
+              value={
+                school.payment_method
+                  ? PLATFORM_ADMIN_PAYMENT_METHOD_LABELS[
+                      school.payment_method as PlatformAdminMarkSchoolPaidMethod
+                    ] ?? school.payment_method
+                  : ' - '
+              }
+            />
             <DetailRow
               label="Package at registration"
               value={planLabelFromId(registeredPlanId || effectivePlanId)}
@@ -633,9 +765,29 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
 
         <Card sx={{ ...platformAdminCardSx, gridColumn: '1 / -1' }}>
           <CardContent>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
-              POC accounts
-            </Typography>
+            <Box
+              sx={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'flex-start',
+                justifyContent: 'space-between',
+                gap: 1.5,
+                mb: 0.5,
+              }}
+            >
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: ip.heading }}>
+                POC &amp; school admins
+              </Typography>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<AddAdminIcon />}
+                onClick={openAddAdminDialog}
+                sx={{ textTransform: 'none', fontWeight: 600 }}
+              >
+                Add admin
+              </Button>
+            </Box>
             <Typography variant="body2" sx={{ color: ip.subtext, mb: 2, lineHeight: 1.55 }}>
               {registrant ? (
                 <>
@@ -644,10 +796,11 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
                     {registrant.name || 'Unknown'}
                   </Box>
                   {registrant.designation ? ` (${registrant.designation})` : ''}.
-                  {' '}Each contact email below — whether they created a login and completed setup.
+                  {' '}Invite school admins who have not created an account yet, or who need a fresh
+                  password-setup link. Additional admins can sign in to the school dashboard.
                 </>
               ) : (
-                'Contact emails on file and whether each created a login and completed setup.'
+                'Contact emails on file, dashboard admin access, and whether each person created a login. Invite anyone who still needs to set up their account.'
               )}
             </Typography>
             {pocAccounts.length === 0 ? (
@@ -656,53 +809,126 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
               </Typography>
             ) : (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                {pocAccounts.filter((poc) => poc && poc.email).map((poc) => (
-                  <Box
-                    key={poc.email}
-                    sx={{
-                      border: `1px solid ${ip.cardBorder}`,
-                      borderRadius: 1.5,
-                      p: 2,
-                      bgcolor: ip.cardMutedBg,
-                    }}
-                  >
+                {pocAccounts.filter((poc) => poc && poc.email).map((poc) => {
+                  const isAdmin = poc.is_primary || poc.is_admin;
+                  const inviteBusy = inviteBusyEmail === poc.email;
+                  const removeBusy = removeBusyEmail === poc.email;
+                  return (
                     <Box
+                      key={poc.email}
                       sx={{
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        alignItems: 'center',
-                        gap: 1,
-                        mb: 1,
+                        border: `1px solid ${ip.cardBorder}`,
+                        borderRadius: 1.5,
+                        p: 2,
+                        bgcolor: ip.cardMutedBg,
                       }}
                     >
-                      <Typography
-                        variant="body2"
+                      <Box
                         sx={{
-                          fontWeight: 700,
-                          color: ip.heading,
-                          flex: '1 1 200px',
-                          wordBreak: 'break-word',
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          alignItems: 'center',
+                          gap: 1,
+                          mb: 1,
                         }}
                       >
-                        {poc.email}
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontWeight: 700,
+                            color: ip.heading,
+                            flex: '1 1 200px',
+                            wordBreak: 'break-word',
+                          }}
+                        >
+                          {poc.email}
+                        </Typography>
+                        {poc.is_primary && <PlatformAdminChip label="Primary POC" tone="info" />}
+                        {!poc.is_primary && isAdmin && (
+                          <PlatformAdminChip label="School admin" tone="info" />
+                        )}
+                        {!isAdmin && (
+                          <PlatformAdminChip label="Contact only" tone="neutral" />
+                        )}
+                        <PlatformAdminChip
+                          label={poc.account_created ? 'Account created' : 'No account yet'}
+                          tone={poc.account_created ? 'success' : 'neutral'}
+                        />
+                        <PlatformAdminChip
+                          label={poc.setup_complete ? 'Setup complete' : 'Setup pending'}
+                          tone={poc.setup_complete ? 'success' : 'warning'}
+                        />
+                      </Box>
+                      <Typography variant="caption" sx={{ color: ip.subtext, lineHeight: 1.5, display: 'block' }}>
+                        Account created: {formatDate(poc.auth_created_at)}
+                        {' · '}
+                        Last sign-in: {formatDate(poc.last_sign_in_at)}
                       </Typography>
-                      {poc.is_primary && <PlatformAdminChip label="Primary POC" tone="info" />}
-                      <PlatformAdminChip
-                        label={poc.account_created ? 'Account created' : 'No account yet'}
-                        tone={poc.account_created ? 'success' : 'neutral'}
-                      />
-                      <PlatformAdminChip
-                        label={poc.setup_complete ? 'Setup complete' : 'Setup pending'}
-                        tone={poc.setup_complete ? 'success' : 'warning'}
-                      />
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1.5 }}>
+                        {isAdmin ? (
+                          <Button
+                            size="small"
+                            variant="contained"
+                            startIcon={
+                              inviteBusy ? (
+                                <CircularProgress size={14} color="inherit" />
+                              ) : (
+                                <InviteIcon fontSize="small" />
+                              )
+                            }
+                            disabled={Boolean(inviteBusyEmail) || !school?.payment_satisfied}
+                            onClick={() => void handleInviteAdmin(poc.email)}
+                            sx={{
+                              ...platformAdminPrimaryButtonSx,
+                              textTransform: 'none',
+                              fontWeight: 600,
+                              minWidth: 0,
+                              px: 1.5,
+                            }}
+                          >
+                            {poc.setup_complete ? 'Resend setup email' : 'Invite to create account'}
+                          </Button>
+                        ) : (
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<AddAdminIcon fontSize="small" />}
+                            disabled={addAdminSubmitting}
+                            onClick={() => {
+                              setAddAdminEmail(poc.email);
+                              setAddAdminSendInvite(true);
+                              setAddAdminError(null);
+                              setAddAdminOpen(true);
+                            }}
+                            sx={{ textTransform: 'none', fontWeight: 600 }}
+                          >
+                            Make school admin
+                          </Button>
+                        )}
+                        {!poc.is_primary && isAdmin && (
+                          <Button
+                            size="small"
+                            variant="text"
+                            color="error"
+                            disabled={Boolean(removeBusyEmail)}
+                            onClick={() => void handleRemoveAdmin(poc.email)}
+                            startIcon={
+                              removeBusy ? <CircularProgress size={14} color="inherit" /> : undefined
+                            }
+                            sx={{ textTransform: 'none', fontWeight: 600 }}
+                          >
+                            Remove admin
+                          </Button>
+                        )}
+                      </Box>
+                      {isAdmin && !school?.payment_satisfied && (
+                        <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mt: 1 }}>
+                          Mark the school as paid before sending an invitation.
+                        </Typography>
+                      )}
                     </Box>
-                    <Typography variant="caption" sx={{ color: ip.subtext, lineHeight: 1.5 }}>
-                      Account created: {formatDate(poc.auth_created_at)}
-                      {' · '}
-                      Last sign-in: {formatDate(poc.last_sign_in_at)}
-                    </Typography>
-                  </Box>
-                ))}
+                  );
+                })}
               </Box>
             )}
           </CardContent>
@@ -828,34 +1054,36 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
         </Card>
       </Box>
 
-      <Card
-        sx={{
-          ...platformAdminCardSx,
-          mt: 3,
-          borderColor: '#fecaca',
-          bgcolor: '#fffafa',
-        }}
-      >
-        <CardContent>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#991b1b', mb: 1 }}>
-            Danger zone
-          </Typography>
-          <Typography variant="body2" sx={{ color: ip.subtext, mb: 2, lineHeight: 1.55, maxWidth: 720 }}>
-            Permanently delete this school, its payment history, analytics, quarterly reports, admin
-            preferences, and platform notifications. Optionally remove Firebase Auth logins for school
-            contacts and unlink rostered students (student accounts are kept).
-          </Typography>
-          <Button
-            variant="outlined"
-            color="error"
-            startIcon={<DeleteIcon />}
-            onClick={openDeleteDialog}
-            sx={{ textTransform: 'none', fontWeight: 600 }}
-          >
-            Delete school
-          </Button>
-        </CardContent>
-      </Card>
+      {isSuperAdmin && (
+        <Card
+          sx={{
+            ...platformAdminCardSx,
+            mt: 3,
+            borderColor: '#fecaca',
+            bgcolor: '#fffafa',
+          }}
+        >
+          <CardContent>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#991b1b', mb: 1 }}>
+              Danger zone
+            </Typography>
+            <Typography variant="body2" sx={{ color: ip.subtext, mb: 2, lineHeight: 1.55, maxWidth: 720 }}>
+              Permanently delete this school, its payment history, analytics, quarterly reports, admin
+              preferences, and platform notifications. Optionally remove Firebase Auth logins for school
+              contacts and unlink rostered students (student accounts are kept).
+            </Typography>
+            <Button
+              variant="outlined"
+              color="error"
+              startIcon={<DeleteIcon />}
+              onClick={openDeleteDialog}
+              sx={{ textTransform: 'none', fontWeight: 600 }}
+            >
+              Delete school
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <Dialog
         open={markPaidOpen}
@@ -1371,6 +1599,69 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
             }}
           >
             {deleteSubmitting ? 'Deleting…' : 'Delete permanently'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={addAdminOpen}
+        onClose={() => !addAdminSubmitting && setAddAdminOpen(false)}
+        fullWidth
+        maxWidth="sm"
+        PaperProps={{ sx: platformAdminDialogPaperSx }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, color: ip.heading }}>Add school admin</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ color: ip.subtext, mb: 2, lineHeight: 1.55 }}>
+            Grant dashboard access to another school official. They can sign in with School official
+            using this email after completing password setup.
+          </Typography>
+          {addAdminError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {addAdminError}
+            </Alert>
+          )}
+          <Typography sx={platformAdminDialogFieldLabelSx}>Email</Typography>
+          <TextField
+            fullWidth
+            type="email"
+            value={addAdminEmail}
+            onChange={(e) => setAddAdminEmail(e.target.value)}
+            placeholder="admin@school.edu"
+            disabled={addAdminSubmitting}
+            sx={platformAdminDialogTextFieldSx}
+          />
+          <FormControlLabel
+            sx={{ mt: 1.5 }}
+            control={
+              <Checkbox
+                checked={addAdminSendInvite}
+                onChange={(e) => setAddAdminSendInvite(e.target.checked)}
+                disabled={addAdminSubmitting}
+              />
+            }
+            label="Send account setup invitation email now"
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button
+            onClick={() => setAddAdminOpen(false)}
+            disabled={addAdminSubmitting}
+            sx={{ textTransform: 'none' }}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="contained"
+            disabled={addAdminSubmitting}
+            onClick={() => void handleAddAdmin()}
+            startIcon={
+              addAdminSubmitting ? <CircularProgress size={16} color="inherit" /> : <AddAdminIcon />
+            }
+            sx={{ ...platformAdminPrimaryButtonSx, textTransform: 'none', fontWeight: 600 }}
+          >
+            {addAdminSubmitting ? 'Saving…' : 'Add admin'}
           </Button>
         </DialogActions>
       </Dialog>

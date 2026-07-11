@@ -99,7 +99,6 @@ const REFERRAL_SOURCES = [
   'Other',
 ];
 
-const MAX_EMAILS = 5;
 const TOTAL_STEPS = 4;
 type GstRegistrationStatus = '' | 'yes' | 'no' | 'not_sure';
 
@@ -295,7 +294,7 @@ const SchoolRegistrationPage: React.FC = () => {
   };
 
   const addEmail = () => {
-    if (emails.length < MAX_EMAILS) setEmails((prev) => [...prev, '']);
+    setEmails((prev) => [...prev, '']);
   };
 
   const removeEmail = (index: number) => {
@@ -1042,9 +1041,9 @@ const SchoolRegistrationPage: React.FC = () => {
                 Points of Contact
               </h1>
               <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Tell us who is filling out this registration, then add{' '}
-                <span className="font-semibold">1 - 5 email addresses</span> for school officials who
-                should have access to your school's reports and data on the GYS portal.
+                Tell us who is filling out this registration, then add email addresses for school
+                officials who should have access to your school&apos;s reports and data on the GYS
+                portal. Add as many as you need.
               </p>
 
               <div className="mt-4 rounded-xl bg-blue-50 border border-blue-100 px-4 py-3">
@@ -1216,23 +1215,14 @@ const SchoolRegistrationPage: React.FC = () => {
                   <p className="text-xs text-red-600">{errors.emails}</p>
                 )}
 
-                {emails.length < MAX_EMAILS ? (
-                  <button
-                    type="button"
-                    onClick={addEmail}
-                    className="mt-1 text-xs sm:text-sm font-medium hover:underline"
-                    style={{ color: GYS_BLUE }}
-                  >
-                    + Add another email{' '}
-                    <span className="text-slate-400 font-normal">
-                      ({emails.length}/{MAX_EMAILS})
-                    </span>
-                  </button>
-                ) : (
-                  <p className="text-xs text-slate-500 italic">
-                    Maximum of {MAX_EMAILS} emails reached.
-                  </p>
-                )}
+                <button
+                  type="button"
+                  onClick={addEmail}
+                  className="mt-1 text-xs sm:text-sm font-medium hover:underline"
+                  style={{ color: GYS_BLUE }}
+                >
+                  + Add another email
+                </button>
               </div>
 
               <div className="mt-6 flex gap-3">

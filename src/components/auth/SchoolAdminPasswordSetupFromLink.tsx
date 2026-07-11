@@ -87,32 +87,45 @@ const SchoolAdminPasswordSetupFromLink: React.FC<SchoolAdminPasswordSetupFromLin
         return;
       }
 
-      const schoolProbe = await checkSchoolEmail(email);
-      if (schoolProbe && schoolProbe.registrationPaymentComplete !== true) {
-        toast({
-          variant: "destructive",
-          title: "Payment required",
-          description:
-            "Complete your school’s subscription on the school registration page (/for-schools/register) before setting a password.",
-        });
-        setIsSubmitted(false);
-        clearPasswordResetInProgress();
-        return;
+      const { checkEmailExists } = await import("../../db/emailMappingCollection");
+      const emailCheck = await checkEmailExists(email);
+      const isPlatformAdmin = emailCheck.type === "platformadmin";
+
+      if (!isPlatformAdmin) {
+        const schoolProbe = await checkSchoolEmail(email);
+        if (schoolProbe && schoolProbe.registrationPaymentComplete !== true) {
+          toast({
+            variant: "destructive",
+            title: "Payment required",
+            description:
+              "Complete your school’s subscription on the school registration page (/for-schools/register) before setting a password.",
+          });
+          setIsSubmitted(false);
+          clearPasswordResetInProgress();
+          return;
+        }
       }
 
       await confirmPasswordReset(auth, actionCode, data.password);
 
       const { user } = await signInWithEmailAndPassword(auth, email, data.password);
       try {
-        const schoolInfo = await checkSchoolEmail(user.email!);
-        if (schoolInfo && !schoolInfo.verified) {
+        if (isPlatformAdmin) {
           const authToken = await user.getIdToken();
           authTokenHandler.setAuthToken(authToken);
-          await verifySchoolEmail(user.email!);
+          const { verifyPlatformAdminPasswordSetup } = await import("../../db/platformAdminCollection");
+          await verifyPlatformAdminPasswordSetup(email);
+        } else {
+          const schoolInfo = await checkSchoolEmail(user.email!);
+          if (schoolInfo && !schoolInfo.verified) {
+            const authToken = await user.getIdToken();
+            authTokenHandler.setAuthToken(authToken);
+            await verifySchoolEmail(user.email!);
+          }
         }
       } catch (error: any) {
-        console.error("Error verifying school email:", error);
-        const msg = error.response?.data?.error ?? error.message ?? "Could not mark school as verified.";
+        console.error("Error verifying account after password setup:", error);
+        const msg = error.response?.data?.error ?? error.message ?? "Could not finish account setup.";
         toast({
           variant: "destructive",
           title: "Verification update failed",

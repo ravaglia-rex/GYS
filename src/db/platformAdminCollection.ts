@@ -3,6 +3,8 @@ import authTokenHandler from '../functions/auth_token/auth_token_handler';
 import {
   PLATFORM_ADMIN_APIS,
   PLATFORM_ADMIN_AUTHENTICATE,
+  PLATFORM_ADMIN_VERIFY_AND_SEND_PASSWORD_SETUP,
+  PLATFORM_ADMIN_VERIFY_PASSWORD_SETUP,
   PLATFORM_ADMIN_FULFILL_REDEMPTION,
   PLATFORM_ADMIN_ME,
   PLATFORM_ADMIN_OVERVIEW,
@@ -18,7 +20,11 @@ import {
   PLATFORM_ADMIN_MARK_SCHOOL_PAID,
   PLATFORM_ADMIN_UPDATE_SCHOOL_BILLING,
   PLATFORM_ADMIN_DELETE_SCHOOL,
+  PLATFORM_ADMIN_DELETE_STUDENT,
   PLATFORM_ADMIN_BILLING_INVOICE_DOWNLOAD_URL,
+  PLATFORM_ADMIN_INVITE_SCHOOL_ADMIN,
+  PLATFORM_ADMIN_ADD_SCHOOL_ADMIN,
+  PLATFORM_ADMIN_REMOVE_SCHOOL_ADMIN,
 } from '../constants/constants';
 
 function apiBase(): string {
@@ -53,6 +59,10 @@ export type PlatformAdminNotificationType =
   | 'school_registered'
   | 'school_students_added'
   | 'student_joined';
+
+const HIDDEN_PLATFORM_ADMIN_NOTIFICATION_TYPES = new Set<PlatformAdminNotificationType>([
+  'student_joined',
+]);
 
 export type PlatformAdminNotification = {
   id: string;
@@ -91,6 +101,7 @@ export type PlatformAdminSchoolSummary = {
 
 export type PlatformAdminSchoolDetail = PlatformAdminSchoolSummary & {
   contact_emails: string[];
+  admin_emails: string[];
   gstin: string | null;
   gst_registration_status: string | null;
   student_registration_emails: string[];
@@ -123,6 +134,7 @@ export type PlatformAdminPaymentHistoryItem = {
 export type PlatformAdminPocAccountRow = {
   email: string;
   is_primary: boolean;
+  is_admin: boolean;
   account_created: boolean;
   email_verified: boolean;
   setup_complete: boolean;
@@ -212,8 +224,12 @@ export type PlatformAdminRole = 'super' | 'member';
 export type PlatformAdminMe = {
   ok: boolean;
   email: string;
+  name?: string;
+  position?: string;
   role: PlatformAdminRole;
+  permissions?: string[];
   is_super_admin: boolean;
+  password_setup_complete?: boolean;
 };
 
 export async function getPlatformAdminMe(): Promise<PlatformAdminMe | null> {
@@ -232,7 +248,7 @@ export async function checkPlatformAdminAccess(): Promise<boolean> {
   return me?.ok === true;
 }
 
-/** Validates env-stored admin password and returns a Firebase custom token (no Firebase password login). */
+/** Validates env-stored admin password and returns a Firebase custom token (legacy shared-password login). */
 export async function authenticatePlatformAdmin(
   email: string,
   password: string
@@ -246,6 +262,23 @@ export async function authenticatePlatformAdmin(
     throw new Error('Authentication failed');
   }
   return token;
+}
+
+/** Ensures Auth user exists for an allowlisted admin so a password-setup email can be sent. */
+export async function verifyPlatformAdminAndSendPasswordSetup(email: string): Promise<void> {
+  await axios.post(`${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_VERIFY_AND_SEND_PASSWORD_SETUP}`, {
+    email: email.trim().toLowerCase(),
+  });
+}
+
+/** Marks personal password setup complete after confirmPasswordReset (requires signed-in admin). */
+export async function verifyPlatformAdminPasswordSetup(email: string): Promise<void> {
+  const headers = await authHeaders();
+  await axios.post(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_VERIFY_PASSWORD_SETUP}`,
+    { email: email.trim().toLowerCase() },
+    { headers }
+  );
 }
 
 export async function getPlatformAdminOverview(): Promise<PlatformAdminOverviewStats> {
@@ -267,9 +300,22 @@ export async function listPlatformAdminNotifications(limit = 50): Promise<{
     headers,
     params: { limit },
   });
+  const rawList = (res.data.notifications ?? []) as PlatformAdminNotification[];
+  const notifications = rawList.filter(
+    (n) => !HIDDEN_PLATFORM_ADMIN_NOTIFICATION_TYPES.has(n.type)
+  );
+  const apiUnread = typeof res.data.unread_count === 'number' ? res.data.unread_count : null;
+  const hiddenUnreadInPage = rawList.filter(
+    (n) => HIDDEN_PLATFORM_ADMIN_NOTIFICATION_TYPES.has(n.type) && !n.read
+  ).length;
+  const unread_count =
+    apiUnread === null
+      ? notifications.filter((n) => !n.read).length
+      : Math.max(0, apiUnread - hiddenUnreadInPage);
+
   return {
-    notifications: res.data.notifications ?? [],
-    unread_count: res.data.unread_count ?? 0,
+    notifications,
+    unread_count,
   };
 }
 
@@ -321,10 +367,19 @@ export async function getPlatformAdminSchool(schoolId: string): Promise<{
     { headers }
   );
   return {
-    school: res.data.school,
+    school: {
+      ...res.data.school,
+      admin_emails: Array.isArray(res.data.school?.admin_emails) ? res.data.school.admin_emails : [],
+      contact_emails: Array.isArray(res.data.school?.contact_emails) ? res.data.school.contact_emails : [],
+    },
     payment_history: res.data.payment_history ?? [],
     analytics: res.data.analytics ?? null,
-    poc_accounts: Array.isArray(res.data.poc_accounts) ? res.data.poc_accounts : [],
+    poc_accounts: Array.isArray(res.data.poc_accounts)
+      ? res.data.poc_accounts.map((row: PlatformAdminPocAccountRow) => ({
+          ...row,
+          is_admin: Boolean(row?.is_primary || row?.is_admin),
+        }))
+      : [],
     email_activity: Array.isArray(res.data.email_activity) ? res.data.email_activity : [],
     registrant: res.data.registrant ?? null,
   };
@@ -354,6 +409,7 @@ export type PlatformAdminMarkSchoolPaidMethod =
   | 'cheque'
   | 'cash'
   | 'already_paid'
+  | 'paid_to_education_world'
   | 'other';
 
 export const PLATFORM_ADMIN_PAYMENT_METHOD_LABELS: Record<PlatformAdminMarkSchoolPaidMethod, string> = {
@@ -364,6 +420,7 @@ export const PLATFORM_ADMIN_PAYMENT_METHOD_LABELS: Record<PlatformAdminMarkSchoo
   cheque: 'Cheque',
   cash: 'Cash',
   already_paid: 'Paid before platform signup',
+  paid_to_education_world: 'Paid to Education World',
   other: 'Other',
 };
 
@@ -410,6 +467,61 @@ export async function updatePlatformAdminSchoolBilling(
   );
 }
 
+export async function invitePlatformAdminSchoolAdmin(
+  schoolId: string,
+  email: string
+): Promise<{ email: string; invited: boolean }> {
+  const headers = await authHeaders();
+  const res = await axios.post(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_SCHOOLS}/${encodeURIComponent(schoolId)}${PLATFORM_ADMIN_INVITE_SCHOOL_ADMIN}`,
+    { email },
+    { headers }
+  );
+  return {
+    email: res.data.email ?? email,
+    invited: res.data.invited !== false,
+  };
+}
+
+export async function addPlatformAdminSchoolAdmin(
+  schoolId: string,
+  body: { email: string; send_invite?: boolean }
+): Promise<{
+  email: string;
+  already_admin: boolean;
+  invited: boolean;
+  warning?: string;
+}> {
+  const headers = await authHeaders();
+  const res = await axios.post(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_SCHOOLS}/${encodeURIComponent(schoolId)}${PLATFORM_ADMIN_ADD_SCHOOL_ADMIN}`,
+    body,
+    { headers }
+  );
+  return {
+    email: res.data.email ?? body.email,
+    already_admin: Boolean(res.data.already_admin),
+    invited: Boolean(res.data.invited),
+    warning: typeof res.data.warning === 'string' ? res.data.warning : undefined,
+  };
+}
+
+export async function removePlatformAdminSchoolAdmin(
+  schoolId: string,
+  email: string
+): Promise<{ email: string; removed: boolean }> {
+  const headers = await authHeaders();
+  const res = await axios.post(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_SCHOOLS}/${encodeURIComponent(schoolId)}${PLATFORM_ADMIN_REMOVE_SCHOOL_ADMIN}`,
+    { email },
+    { headers }
+  );
+  return {
+    email: res.data.email ?? email,
+    removed: res.data.removed !== false,
+  };
+}
+
 export type PlatformAdminDeleteSchoolResult = {
   schoolId: string;
   studentsUnlinked: number;
@@ -445,6 +557,48 @@ export async function deletePlatformAdminSchool(
   };
 }
 
+export type PlatformAdminDeleteStudentResult = {
+  studentUid: string;
+  email: string;
+  authDeleted: boolean;
+  authSkipped: boolean;
+  pendingRedemptionsRemoved: number;
+};
+
+export async function deletePlatformAdminStudent(
+  studentUid: string,
+  body: {
+    confirm_email: string;
+    delete_auth?: boolean;
+  }
+): Promise<PlatformAdminDeleteStudentResult> {
+  const headers = await authHeaders();
+  const res = await axios.post(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_STUDENTS}/${encodeURIComponent(studentUid)}${PLATFORM_ADMIN_DELETE_STUDENT}`,
+    body,
+    { headers }
+  );
+  return {
+    studentUid: res.data.studentUid ?? studentUid,
+    email: res.data.email ?? '',
+    authDeleted: res.data.authDeleted === true,
+    authSkipped: res.data.authSkipped === true,
+    pendingRedemptionsRemoved: res.data.pendingRedemptionsRemoved ?? 0,
+  };
+}
+
+export async function getPlatformAdminStudent(studentUid: string): Promise<PlatformAdminStudentRow> {
+  const headers = await authHeaders();
+  const res = await axios.get(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_STUDENTS}/${encodeURIComponent(studentUid)}`,
+    { headers }
+  );
+  if (!res.data?.student) {
+    throw new Error('Student not found');
+  }
+  return res.data.student as PlatformAdminStudentRow;
+}
+
 export async function capturePlatformAdminSchoolPayment(schoolId: string): Promise<void> {
   const headers = await authHeaders();
   await axios.post(
@@ -466,17 +620,27 @@ export async function listPlatformAdminStudents(params?: {
   membership?: string;
   status?: 'approved' | 'pending' | 'all';
   roster?: 'yes' | 'no' | 'all';
+  /** Required: `'all'` or one/more school document IDs. Omitting returns no students. */
+  school_ids?: 'all' | string[];
   limit?: number;
 }): Promise<PlatformAdminStudentRow[]> {
   const headers = await authHeaders();
+  const schoolIdsParam =
+    params?.school_ids === 'all'
+      ? 'all'
+      : Array.isArray(params?.school_ids) && params.school_ids.length > 0
+        ? params.school_ids.join(',')
+        : undefined;
   const res = await axios.get(`${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_STUDENTS}`, {
     headers,
     params: {
-      ...params,
+      search: params?.search,
+      limit: params?.limit,
       grade: params?.grade && params.grade !== 'all' ? params.grade : undefined,
       membership: params?.membership && params.membership !== 'all' ? params.membership : undefined,
       status: params?.status && params.status !== 'all' ? params.status : undefined,
       roster: params?.roster && params.roster !== 'all' ? params.roster : undefined,
+      school_ids: schoolIdsParam,
     },
   });
   return res.data.students ?? [];

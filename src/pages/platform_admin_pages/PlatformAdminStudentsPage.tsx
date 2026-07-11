@@ -27,8 +27,10 @@ import {
   HourglassEmpty as PendingIcon,
   School as SchoolIcon,
   WorkspacePremium as LevelIcon,
+  Visibility as ViewIcon,
 } from '@mui/icons-material';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import {
   formatDate,
   getPlatformAdminStudentStats,
@@ -46,6 +48,7 @@ import {
   platformAdminTableHeadRowSx,
   platformAdminTablePaperSx,
   platformAdminTableSx,
+  platformAdminTextButtonSx,
 } from './platformAdminPageStyles';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import {
@@ -56,6 +59,7 @@ import {
   PlatformAdminTableSection,
 } from './platformAdminComponents';
 import { isPlatformAdminTestStudent } from './platformAdminTestStudents';
+import { RootState } from '../../state_data/reducer';
 
 type StatusFilter = 'all' | 'approved' | 'pending';
 type RosterFilter = 'all' | 'yes' | 'no';
@@ -94,6 +98,10 @@ const MEMBERSHIP_LABELS: Record<MembershipFilter, string> = {
 };
 
 const PlatformAdminStudentsPage: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const platformAdminRole = useSelector((state: RootState) => state.auth.platformAdminRole);
+  const isSuperAdmin = platformAdminRole === 'super';
   const [searchParams, setSearchParams] = useSearchParams();
   const initialStatus = (searchParams.get('status') as StatusFilter) || 'all';
   const initialRoster = (searchParams.get('roster') as RosterFilter) || 'all';
@@ -117,6 +125,14 @@ const PlatformAdminStudentsPage: React.FC = () => {
   const [membershipFilter, setMembershipFilter] = useState<MembershipFilter>(
     Object.keys(MEMBERSHIP_LABELS).includes(initialMembership) ? initialMembership : 'all'
   );
+
+  const deleteSuccessMessage =
+    typeof location.state === 'object' &&
+    location.state !== null &&
+    'deleteSuccess' in location.state &&
+    typeof (location.state as { deleteSuccess?: unknown }).deleteSuccess === 'string'
+      ? (location.state as { deleteSuccess: string }).deleteSuccess
+      : null;
 
   const hasActiveFilters =
     statusFilter !== 'all' ||
@@ -195,102 +211,82 @@ const PlatformAdminStudentsPage: React.FC = () => {
     return chips;
   }, [statusFilter, rosterFilter, gradeFilter, membershipFilter, search]);
 
+  const tableColSpan = isSuperAdmin ? 8 : 7;
+
   return (
     <Box sx={platformAdminPageContainerSx}>
       <PlatformAdminPageHeader
         title="Students"
-        subtitle="Browse registered students and membership levels"
+        subtitle="Platform-wide student roster with approval, school, and membership filters"
       />
 
-      {stats && (
-        <Box sx={platformAdminStatsGridSx}>
-          <PlatformAdminStatCard
-            title="Total students"
-            value={stats.students_total}
-            subtitle="Excludes test accounts"
-            icon={<PeopleIcon />}
-            accent={ip.statBlue}
-          />
-          <PlatformAdminStatCard
-            title="Approved"
-            value={stats.students_approved}
-            subtitle={
-              stats.students_total > 0
-                ? `${Math.round((stats.students_approved / stats.students_total) * 100)}% of total`
-                : undefined
-            }
-            icon={<CheckCircleIcon />}
-            accent={ip.approveGreen}
-            onClick={() => {
-              setStatusFilter('approved');
-              setSearch('');
-            }}
-          />
-          <PlatformAdminStatCard
-            title="Pending approval"
-            value={stats.students_pending}
-            subtitle="Not yet approved"
-            icon={<PendingIcon />}
-            accent="#d97706"
-            onClick={() => {
-              setStatusFilter('pending');
-              setSearch('');
-            }}
-          />
-          <PlatformAdminStatCard
-            title="Rostered to school"
-            value={stats.students_rostered}
-            subtitle="Linked to a school ID"
-            icon={<SchoolIcon />}
-            accent={ip.statBlue}
-            onClick={() => {
-              setRosterFilter('yes');
-              setSearch('');
-            }}
-          />
-          <PlatformAdminStatCard
-            title="Level 3+"
-            value={stats.students_level_3_plus}
-            subtitle="Premium membership access"
-            icon={<LevelIcon />}
-            accent="#7c3aed"
-            onClick={() => {
-              setMembershipFilter('3_plus');
-              setSearch('');
-            }}
-          />
-        </Box>
+      {deleteSuccessMessage && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          {deleteSuccessMessage}
+        </Alert>
       )}
 
+      <Box
+        sx={{
+          ...platformAdminStatsGridSx,
+          gridTemplateColumns: {
+            xs: '1fr 1fr',
+            sm: 'repeat(2, 1fr)',
+            md: 'repeat(3, 1fr)',
+            lg: 'repeat(5, 1fr)',
+          },
+        }}
+      >
+        <PlatformAdminStatCard
+          title="Total students"
+          value={stats?.students_total ?? '—'}
+          subtitle="Excludes test accounts"
+          icon={<PeopleIcon sx={{ fontSize: 22 }} />}
+          accent={ip.statBlue}
+        />
+        <PlatformAdminStatCard
+          title="Approved"
+          value={stats?.students_approved ?? '—'}
+          icon={<CheckCircleIcon sx={{ fontSize: 22 }} />}
+          accent={ip.approveGreen}
+        />
+        <PlatformAdminStatCard
+          title="Pending"
+          value={stats?.students_pending ?? '—'}
+          icon={<PendingIcon sx={{ fontSize: 22 }} />}
+          accent="#D97706"
+        />
+        <PlatformAdminStatCard
+          title="Rostered"
+          value={stats?.students_rostered ?? '—'}
+          icon={<SchoolIcon sx={{ fontSize: 22 }} />}
+          accent={ip.statBlue}
+        />
+        <PlatformAdminStatCard
+          title="Level 3+"
+          value={stats?.students_level_3_plus ?? '—'}
+          icon={<LevelIcon sx={{ fontSize: 22 }} />}
+          accent={ip.navy}
+        />
+      </Box>
+
       <Card sx={{ ...platformAdminCardSx, mb: 2.5 }}>
-        <CardContent sx={{ p: { xs: 2, sm: 2.5 }, '&:last-child': { pb: { xs: 2, sm: 2.5 } } }}>
-          <Box
-            sx={{
-              ...platformAdminFilterToolbarRowSx,
-              mb: activeFilterChips.length > 0 ? 1.5 : 0,
-            }}
-          >
+        <CardContent sx={{ py: 2, '&:last-child': { pb: 2 } }}>
+          <Box sx={platformAdminFilterToolbarRowSx}>
             <TextField
               size="small"
-              placeholder="Search by name, email, school, or UID…"
+              placeholder="Search name, email, school…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              sx={{
-                flex: '1 1 260px',
-                minWidth: 220,
-                mb: 0,
-                alignSelf: 'center',
-                ...platformAdminSearchFieldSx,
-              }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <SearchIcon fontSize="small" sx={{ color: ip.subtext }} />
+                    <SearchIcon sx={{ color: ip.subtext, fontSize: 20 }} />
                   </InputAdornment>
                 ),
               }}
+              sx={{ ...platformAdminSearchFieldSx, flex: 1, minWidth: 220 }}
             />
-
             <PlatformAdminFilterControl
               id="students-status-filter"
               label="Status"
@@ -299,16 +295,14 @@ const PlatformAdminStudentsPage: React.FC = () => {
               minWidth={148}
               onChange={setStatusFilter}
             />
-
             <PlatformAdminFilterControl
               id="students-roster-filter"
-              label="School"
+              label="Roster"
               value={rosterFilter}
               labels={ROSTER_LABELS}
-              minWidth={148}
+              minWidth={140}
               onChange={setRosterFilter}
             />
-
             <PlatformAdminFilterControl
               id="students-grade-filter"
               label="Grade"
@@ -317,7 +311,6 @@ const PlatformAdminStudentsPage: React.FC = () => {
               minWidth={132}
               onChange={setGradeFilter}
             />
-
             <PlatformAdminFilterControl
               id="students-membership-filter"
               label="Membership"
@@ -326,34 +319,19 @@ const PlatformAdminStudentsPage: React.FC = () => {
               minWidth={148}
               onChange={setMembershipFilter}
             />
-
             {hasActiveFilters && (
               <Button
                 size="small"
-                variant="outlined"
-                onClick={clearFilters}
                 startIcon={<CloseIcon sx={{ fontSize: 16 }} />}
+                onClick={clearFilters}
                 sx={platformAdminClearFiltersButtonSx}
               >
                 Clear
               </Button>
             )}
           </Box>
-
           {activeFilterChips.length > 0 && (
-            <Box
-              sx={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 0.75,
-                pt: 1.5,
-                borderTop: `1px solid ${ip.cardBorder}`,
-                alignItems: 'center',
-              }}
-            >
-              <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: ip.subtext, mr: 0.25 }}>
-                Active filters
-              </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1.5 }}>
               {activeFilterChips.map((chip) => (
                 <Chip
                   key={chip.key}
@@ -361,11 +339,9 @@ const PlatformAdminStudentsPage: React.FC = () => {
                   size="small"
                   onDelete={chip.onDelete}
                   sx={{
-                    height: 26,
-                    fontWeight: 600,
-                    fontSize: '0.75rem',
                     bgcolor: ip.sidebarActiveBg,
                     color: ip.sidebarActiveText,
+                    fontWeight: 600,
                     '& .MuiChip-deleteIcon': { color: ip.sidebarActiveText, fontSize: 16 },
                   }}
                 />
@@ -400,12 +376,13 @@ const PlatformAdminStudentsPage: React.FC = () => {
                   <TableCell>Membership</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell>Joined</TableCell>
+                  {isSuperAdmin && <TableCell align="right">Actions</TableCell>}
                 </TableRow>
               </TableHead>
               <TableBody>
                 {students.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 5, color: ip.subtext }}>
+                    <TableCell colSpan={tableColSpan} align="center" sx={{ py: 5, color: ip.subtext }}>
                       No students match your filters.
                     </TableCell>
                   </TableRow>
@@ -471,6 +448,18 @@ const PlatformAdminStudentsPage: React.FC = () => {
                       <TableCell sx={{ color: ip.subtext, whiteSpace: 'nowrap' }}>
                         {formatDate(student.created_at)}
                       </TableCell>
+                      {isSuperAdmin && (
+                        <TableCell align="right">
+                          <Button
+                            size="small"
+                            startIcon={<ViewIcon sx={{ fontSize: 18 }} />}
+                            onClick={() => navigate(`/platform-admin/students/${student.uid}`)}
+                            sx={platformAdminTextButtonSx}
+                          >
+                            View
+                          </Button>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))
                 )}

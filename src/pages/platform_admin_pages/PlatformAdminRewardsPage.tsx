@@ -27,6 +27,8 @@ import {
   HourglassEmpty as PendingIcon,
   MonetizationOn as CoinsIcon,
 } from '@mui/icons-material';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../state_data/reducer';
 import {
   fulfillPlatformAdminRedemption,
   formatInr,
@@ -71,6 +73,8 @@ const EMPTY_SUMMARY: PlatformAdminRedemptionHistorySummary = {
 };
 
 const PlatformAdminRewardsPage: React.FC = () => {
+  const platformAdminRole = useSelector((state: RootState) => state.auth.platformAdminRole);
+  const isSuperAdmin = platformAdminRole === 'super';
   const [pending, setPending] = useState<PlatformAdminPendingRedemption[]>([]);
   const [summary, setSummary] = useState<PlatformAdminRedemptionHistorySummary>(EMPTY_SUMMARY);
   const [history, setHistory] = useState<PlatformAdminRedemptionHistoryEntry[]>([]);
@@ -158,7 +162,11 @@ const PlatformAdminRewardsPage: React.FC = () => {
     <Box sx={platformAdminPageContainerSx}>
       <PlatformAdminPageHeader
         title="Rewards queue"
-        subtitle="Fulfill or reject student Argus Coins redemptions"
+        subtitle={
+          isSuperAdmin
+            ? 'Fulfill or reject student Argus Coins redemptions'
+            : 'View student Argus Coins redemption requests'
+        }
       />
 
       {error && (
@@ -229,13 +237,13 @@ const PlatformAdminRewardsPage: React.FC = () => {
                     <TableCell>Reward</TableCell>
                     <TableCell>Coins</TableCell>
                     <TableCell>Requested</TableCell>
-                    <TableCell align="right">Actions</TableCell>
+                    {isSuperAdmin && <TableCell align="right">Actions</TableCell>}
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {pending.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} align="center" sx={{ py: 5, color: ip.subtext }}>
+                      <TableCell colSpan={isSuperAdmin ? 5 : 4} align="center" sx={{ py: 5, color: ip.subtext }}>
                         No pending redemptions - all caught up!
                       </TableCell>
                     </TableRow>
@@ -255,47 +263,49 @@ const PlatformAdminRewardsPage: React.FC = () => {
                         <TableCell sx={{ color: ip.subtext }}>
                           {formatFirestoreTimestamp(row.requested_at)}
                         </TableCell>
-                        <TableCell align="right">
-                          <Button
-                            size="small"
-                            variant="contained"
-                            startIcon={<FulfillIcon />}
-                            disabled={actionLoading !== null}
-                            onClick={() => {
-                              setFulfillDialog(row);
-                              setVoucherCode('');
-                            }}
-                            sx={{
-                              ...platformAdminPrimaryButtonSx,
-                              mr: 1,
-                              bgcolor: ip.approveGreen,
-                              '&:hover': { bgcolor: '#16a34a' },
-                              py: 0.5,
-                              px: 1.5,
-                            }}
-                          >
-                            Fulfill
-                          </Button>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            startIcon={<RejectIcon />}
-                            disabled={actionLoading !== null}
-                            onClick={() => {
-                              setRejectDialog(row);
-                              setRejectNote('');
-                            }}
-                            sx={{
-                              textTransform: 'none',
-                              fontWeight: 600,
-                              color: '#b91c1c',
-                              borderColor: 'rgba(239, 68, 68, 0.35)',
-                              '&:hover': { bgcolor: 'rgba(239, 68, 68, 0.06)', borderColor: '#b91c1c' },
-                            }}
-                          >
-                            Reject
-                          </Button>
-                        </TableCell>
+                        {isSuperAdmin && (
+                          <TableCell align="right">
+                            <Button
+                              size="small"
+                              variant="contained"
+                              startIcon={<FulfillIcon />}
+                              disabled={actionLoading !== null}
+                              onClick={() => {
+                                setFulfillDialog(row);
+                                setVoucherCode('');
+                              }}
+                              sx={{
+                                ...platformAdminPrimaryButtonSx,
+                                mr: 1,
+                                bgcolor: ip.approveGreen,
+                                '&:hover': { bgcolor: '#16a34a' },
+                                py: 0.5,
+                                px: 1.5,
+                              }}
+                            >
+                              Fulfill
+                            </Button>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              startIcon={<RejectIcon />}
+                              disabled={actionLoading !== null}
+                              onClick={() => {
+                                setRejectDialog(row);
+                                setRejectNote('');
+                              }}
+                              sx={{
+                                textTransform: 'none',
+                                fontWeight: 600,
+                                color: '#b91c1c',
+                                borderColor: 'rgba(239, 68, 68, 0.35)',
+                                '&:hover': { bgcolor: 'rgba(239, 68, 68, 0.06)', borderColor: '#b91c1c' },
+                              }}
+                            >
+                              Reject
+                            </Button>
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))
                   )}
