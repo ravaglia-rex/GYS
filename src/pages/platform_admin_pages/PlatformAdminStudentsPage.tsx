@@ -18,6 +18,11 @@ import {
   CardContent,
   Chip,
   Tooltip,
+  Select,
+  MenuItem,
+  Checkbox,
+  ListItemText,
+  OutlinedInput,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -34,16 +39,20 @@ import { useSelector } from 'react-redux';
 import {
   formatDate,
   getPlatformAdminStudentStats,
+  listPlatformAdminSchools,
   listPlatformAdminStudents,
+  type PlatformAdminSchoolSummary,
   type PlatformAdminStudentRow,
   type PlatformAdminStudentStats,
 } from '../../db/platformAdminCollection';
 import {
   platformAdminCardSx,
   platformAdminClearFiltersButtonSx,
+  platformAdminFilterSelectSx,
   platformAdminFilterToolbarRowSx,
   platformAdminPageContainerSx,
   platformAdminSearchFieldSx,
+  platformAdminSelectMenuPaperSx,
   platformAdminStatsGridSx,
   platformAdminTableHeadRowSx,
   platformAdminTablePaperSx,
@@ -59,12 +68,15 @@ import {
   PlatformAdminTableSection,
 } from './platformAdminComponents';
 import { isPlatformAdminTestStudent } from './platformAdminTestStudents';
+import { isPlatformAdminTestSchool } from './platformAdminTestSchools';
 import { RootState } from '../../state_data/reducer';
 
 type StatusFilter = 'all' | 'approved' | 'pending';
 type RosterFilter = 'all' | 'yes' | 'no';
 type GradeFilter = 'all' | '6' | '7' | '8' | '9' | '10' | '11' | '12';
 type MembershipFilter = 'all' | '1' | '2' | '3' | '3_plus';
+
+const ALL_SCHOOLS_VALUE = '__all__';
 
 const STATUS_LABELS: Record<StatusFilter, string> = {
   all: 'All statuses',
@@ -97,6 +109,16 @@ const MEMBERSHIP_LABELS: Record<MembershipFilter, string> = {
   '3_plus': 'Level 3+',
 };
 
+function parseInitialSchoolSelection(raw: string | null): {
+  allSchoolsSelected: boolean;
+  selectedSchoolIds: string[];
+} {
+  if (!raw) return { allSchoolsSelected: false, selectedSchoolIds: [] };
+  if (raw.toLowerCase() === 'all') return { allSchoolsSelected: true, selectedSchoolIds: [] };
+  const ids = Array.from(new Set(raw.split(',').map((id) => id.trim()).filter(Boolean)));
+  return { allSchoolsSelected: false, selectedSchoolIds: ids };
+}
+
 const PlatformAdminStudentsPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -107,10 +129,16 @@ const PlatformAdminStudentsPage: React.FC = () => {
   const initialRoster = (searchParams.get('roster') as RosterFilter) || 'all';
   const initialGrade = (searchParams.get('grade') as GradeFilter) || 'all';
   const initialMembership = (searchParams.get('membership') as MembershipFilter) || 'all';
+  const initialSchool = parseInitialSchoolSelection(searchParams.get('schools'));
+
+  const [schools, setSchools] = useState<PlatformAdminSchoolSummary[]>([]);
+  const [schoolsLoading, setSchoolsLoading] = useState(true);
+  const [allSchoolsSelected, setAllSchoolsSelected] = useState(initialSchool.allSchoolsSelected);
+  const [selectedSchoolIds, setSelectedSchoolIds] = useState<string[]>(initialSchool.selectedSchoolIds);
 
   const [students, setStudents] = useState<PlatformAdminStudentRow[]>([]);
   const [stats, setStats] = useState<PlatformAdminStudentStats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(
@@ -126,6 +154,18 @@ const PlatformAdminStudentsPage: React.FC = () => {
     Object.keys(MEMBERSHIP_LABELS).includes(initialMembership) ? initialMembership : 'all'
   );
 
+  const schoolSelected = allSchoolsSelected || selectedSchoolIds.length > 0;
+
+  const schoolNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const school of schools) {
+      map.set(school.id, school.school_name || school.id);
+    }
+    return map;
+  }, [schools]);
+
+  const schoolSelectValue = allSchoolsSelected ? [ALL_SCHOOLS_VALUE] : selectedSchoolIds;
+
   const deleteSuccessMessage =
     typeof location.state === 'object' &&
     location.state !== null &&
@@ -134,14 +174,14 @@ const PlatformAdminStudentsPage: React.FC = () => {
       ? (location.state as { deleteSuccess: string }).deleteSuccess
       : null;
 
-  const hasActiveFilters =
+  const hasSecondaryFilters =
     statusFilter !== 'all' ||
     rosterFilter !== 'all' ||
     gradeFilter !== 'all' ||
     membershipFilter !== 'all' ||
     search.trim().length > 0;
 
-  const clearFilters = () => {
+  const clearSecondaryFilters = () => {
     setSearch('');
     setStatusFilter('all');
     setRosterFilter('all');
@@ -149,46 +189,139 @@ const PlatformAdminStudentsPage: React.FC = () => {
     setMembershipFilter('all');
   };
 
+  const clearSchoolSelection = () => {
+    setAllSchoolsSelected(false);
+    setSelectedSchoolIds([]);
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setSchoolsLoading(true);
+      try {
+        const rows = await listPlatformAdminSchools({ limit: 200 });
+        if (!cancelled) setSchools(rows);
+      } catch {
+        if (!cancelled) setError('Failed to load schools.');
+      } finally {
+        if (!cancelled) setSchoolsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const studentStats = await getPlatformAdminStudentStats();
+        if (!cancelled) setStats(studentStats);
+      } catch {
+        // Stats are secondary; table errors are surfaced separately.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useEffect(() => {
     const params = new URLSearchParams();
+    if (allSchoolsSelected) params.set('schools', 'all');
+    else if (selectedSchoolIds.length > 0) params.set('schools', selectedSchoolIds.join(','));
     if (statusFilter !== 'all') params.set('status', statusFilter);
     if (rosterFilter !== 'all') params.set('roster', rosterFilter);
     if (gradeFilter !== 'all') params.set('grade', gradeFilter);
     if (membershipFilter !== 'all') params.set('membership', membershipFilter);
     setSearchParams(params, { replace: true });
-  }, [statusFilter, rosterFilter, gradeFilter, membershipFilter, setSearchParams]);
+  }, [
+    allSchoolsSelected,
+    selectedSchoolIds,
+    statusFilter,
+    rosterFilter,
+    gradeFilter,
+    membershipFilter,
+    setSearchParams,
+  ]);
 
   const load = useCallback(async () => {
+    if (!schoolSelected) {
+      setStudents([]);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
-      const [studentData, studentStats] = await Promise.all([
-        listPlatformAdminStudents({
-          search: search.trim() || undefined,
-          status: statusFilter === 'all' ? undefined : statusFilter,
-          roster: rosterFilter === 'all' ? undefined : rosterFilter,
-          grade: gradeFilter === 'all' ? undefined : gradeFilter,
-          membership: membershipFilter === 'all' ? undefined : membershipFilter,
-          limit: 500,
-        }),
-        getPlatformAdminStudentStats(),
-      ]);
+      const studentData = await listPlatformAdminStudents({
+        search: search.trim() || undefined,
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        roster: rosterFilter === 'all' ? undefined : rosterFilter,
+        grade: gradeFilter === 'all' ? undefined : gradeFilter,
+        membership: membershipFilter === 'all' ? undefined : membershipFilter,
+        school_ids: allSchoolsSelected ? 'all' : selectedSchoolIds,
+        limit: 500,
+      });
       setStudents(studentData);
-      setStats(studentStats);
     } catch {
       setError('Failed to load students.');
     } finally {
       setLoading(false);
     }
-  }, [search, statusFilter, rosterFilter, gradeFilter, membershipFilter]);
+  }, [
+    schoolSelected,
+    search,
+    statusFilter,
+    rosterFilter,
+    gradeFilter,
+    membershipFilter,
+    allSchoolsSelected,
+    selectedSchoolIds,
+  ]);
 
   useEffect(() => {
-    const timer = setTimeout(load, search ? 300 : 0);
+    const timer = setTimeout(load, search && schoolSelected ? 300 : 0);
     return () => clearTimeout(timer);
-  }, [load, search]);
+  }, [load, search, schoolSelected]);
+
+  const handleSchoolSelectChange = (rawValues: string | string[]) => {
+    const values = typeof rawValues === 'string' ? rawValues.split(',') : rawValues;
+    const previouslyAll = allSchoolsSelected;
+    const justSelectedAll = values.includes(ALL_SCHOOLS_VALUE) && !previouslyAll;
+    const selectedSpecific = values.filter((v) => v !== ALL_SCHOOLS_VALUE);
+
+    if (justSelectedAll || (values.includes(ALL_SCHOOLS_VALUE) && selectedSpecific.length === 0)) {
+      setAllSchoolsSelected(true);
+      setSelectedSchoolIds([]);
+      return;
+    }
+
+    setAllSchoolsSelected(false);
+    setSelectedSchoolIds(selectedSpecific);
+  };
 
   const activeFilterChips = useMemo(() => {
     const chips: { key: string; label: string; onDelete: () => void }[] = [];
+    if (allSchoolsSelected) {
+      chips.push({ key: 'schools', label: 'All schools', onDelete: clearSchoolSelection });
+    } else if (selectedSchoolIds.length === 1) {
+      const id = selectedSchoolIds[0];
+      chips.push({
+        key: 'schools',
+        label: schoolNameById.get(id) || id,
+        onDelete: clearSchoolSelection,
+      });
+    } else if (selectedSchoolIds.length > 1) {
+      chips.push({
+        key: 'schools',
+        label: `${selectedSchoolIds.length} schools`,
+        onDelete: clearSchoolSelection,
+      });
+    }
     if (statusFilter !== 'all') {
       chips.push({ key: 'status', label: STATUS_LABELS[statusFilter], onDelete: () => setStatusFilter('all') });
     }
@@ -209,7 +342,16 @@ const PlatformAdminStudentsPage: React.FC = () => {
       chips.push({ key: 'search', label: `Search: ${search.trim()}`, onDelete: () => setSearch('') });
     }
     return chips;
-  }, [statusFilter, rosterFilter, gradeFilter, membershipFilter, search]);
+  }, [
+    allSchoolsSelected,
+    selectedSchoolIds,
+    schoolNameById,
+    statusFilter,
+    rosterFilter,
+    gradeFilter,
+    membershipFilter,
+    search,
+  ]);
 
   const tableColSpan = isSuperAdmin ? 8 : 7;
 
@@ -217,7 +359,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
     <Box sx={platformAdminPageContainerSx}>
       <PlatformAdminPageHeader
         title="Students"
-        subtitle="Platform-wide student roster with approval, school, and membership filters"
+        subtitle="Select a school to load students, then filter by status, grade, and membership"
       />
 
       {deleteSuccessMessage && (
@@ -272,7 +414,105 @@ const PlatformAdminStudentsPage: React.FC = () => {
 
       <Card sx={{ ...platformAdminCardSx, mb: 2.5 }}>
         <CardContent sx={{ py: 2, '&:last-child': { pb: 2 } }}>
-          <Box sx={platformAdminFilterToolbarRowSx}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.25,
+              width: '100%',
+            }}
+          >
+            <Typography
+              component="label"
+              htmlFor="students-school-filter"
+              variant="body2"
+              sx={{
+                color: ip.heading,
+                fontWeight: 700,
+                whiteSpace: 'nowrap',
+                fontSize: '0.8rem',
+                flexShrink: 0,
+              }}
+            >
+              School*
+            </Typography>
+            <Select
+              id="students-school-filter"
+              multiple
+              displayEmpty
+              size="small"
+              value={schoolSelectValue}
+              onChange={(e) => handleSchoolSelectChange(e.target.value)}
+              input={<OutlinedInput />}
+              disabled={schoolsLoading}
+              renderValue={(selected) => {
+                if (allSchoolsSelected) return 'All schools';
+                if (selected.length === 0) {
+                  return schoolsLoading ? 'Loading schools…' : 'Select school(s) — required';
+                }
+                if (selected.length === 1) {
+                  return schoolNameById.get(selected[0]) || selected[0];
+                }
+                return `${selected.length} schools`;
+              }}
+              MenuProps={{
+                PaperProps: {
+                  sx: {
+                    ...platformAdminSelectMenuPaperSx,
+                    maxHeight: 360,
+                    minWidth: 320,
+                  },
+                },
+              }}
+              sx={{
+                ...platformAdminFilterSelectSx(240),
+                flex: 1,
+                width: '100%',
+                minWidth: 0,
+                maxWidth: '100%',
+                '& .MuiSelect-select': {
+                  ...platformAdminFilterSelectSx(240)['& .MuiSelect-select'],
+                  color:
+                    schoolSelected || schoolsLoading
+                      ? `${ip.heading} !important`
+                      : `${ip.subtext} !important`,
+                  WebkitTextFillColor: schoolSelected || schoolsLoading ? ip.heading : ip.subtext,
+                },
+              }}
+            >
+              <MenuItem value={ALL_SCHOOLS_VALUE}>
+                <Checkbox checked={allSchoolsSelected} size="small" />
+                <ListItemText primary="All schools" />
+              </MenuItem>
+              {schools.map((school) => (
+                <MenuItem key={school.id} value={school.id}>
+                  <Checkbox
+                    checked={!allSchoolsSelected && selectedSchoolIds.includes(school.id)}
+                    size="small"
+                  />
+                  <ListItemText
+                    primary={school.school_name || school.id}
+                    secondary={
+                      isPlatformAdminTestSchool(school.id)
+                        ? `${school.id} · Test`
+                        : school.id
+                    }
+                    primaryTypographyProps={{ fontWeight: 600, color: ip.heading }}
+                    secondaryTypographyProps={{ sx: { color: ip.subtext, fontSize: '0.7rem' } }}
+                  />
+                </MenuItem>
+              ))}
+            </Select>
+          </Box>
+
+          <Box
+            sx={{
+              ...platformAdminFilterToolbarRowSx,
+              mt: 1.75,
+              pt: 1.75,
+              borderTop: `1px solid ${ip.cardBorder}`,
+            }}
+          >
             <TextField
               size="small"
               placeholder="Search name, email, school…"
@@ -285,7 +525,11 @@ const PlatformAdminStudentsPage: React.FC = () => {
                   </InputAdornment>
                 ),
               }}
-              sx={{ ...platformAdminSearchFieldSx, flex: 1, minWidth: 220 }}
+              sx={{
+                ...platformAdminSearchFieldSx,
+                flex: '1 1 220px',
+                minWidth: 200,
+              }}
             />
             <PlatformAdminFilterControl
               id="students-status-filter"
@@ -319,17 +563,21 @@ const PlatformAdminStudentsPage: React.FC = () => {
               minWidth={148}
               onChange={setMembershipFilter}
             />
-            {hasActiveFilters && (
+            {(hasSecondaryFilters || schoolSelected) && (
               <Button
                 size="small"
                 startIcon={<CloseIcon sx={{ fontSize: 16 }} />}
-                onClick={clearFilters}
+                onClick={() => {
+                  clearSecondaryFilters();
+                  clearSchoolSelection();
+                }}
                 sx={platformAdminClearFiltersButtonSx}
               >
                 Clear
               </Button>
             )}
           </Box>
+
           {activeFilterChips.length > 0 && (
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1.5 }}>
               {activeFilterChips.map((chip) => (
@@ -357,7 +605,19 @@ const PlatformAdminStudentsPage: React.FC = () => {
         </Alert>
       )}
 
-      {loading ? (
+      {!schoolSelected ? (
+        <Card sx={platformAdminCardSx}>
+          <CardContent sx={{ py: 6, textAlign: 'center' }}>
+            <SchoolIcon sx={{ fontSize: 40, color: ip.subtext, mb: 1.5 }} />
+            <Typography variant="h6" sx={{ color: ip.heading, fontWeight: 700, mb: 0.75 }}>
+              Select a school to view students
+            </Typography>
+            <Typography variant="body2" sx={{ color: ip.subtext, maxWidth: 420, mx: 'auto' }}>
+              Choose one or more schools (or All schools) in the School* filter above to load results.
+            </Typography>
+          </CardContent>
+        </Card>
+      ) : loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
           <CircularProgress sx={{ color: ip.navy }} />
         </Box>

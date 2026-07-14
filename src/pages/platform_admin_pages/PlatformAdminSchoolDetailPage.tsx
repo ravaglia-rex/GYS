@@ -287,7 +287,9 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
     setSuccessMessage(null);
     try {
       await invitePlatformAdminSchoolAdmin(schoolId, email);
-      setSuccessMessage(`Setup invitation sent to ${email}.`);
+      setSuccessMessage(
+        `Setup invitation sent to ${email}. The link is valid for about 1 hour; you can resend anytime if they need a new one.`
+      );
       await load();
     } catch (e: unknown) {
       setError(apiErrorMessage(e, 'Failed to send invitation email.'));
@@ -318,8 +320,8 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
       } else if (result.invited) {
         setSuccessMessage(
           result.already_admin
-            ? `Invitation resent to ${result.email}.`
-            : `Added ${result.email} as school admin and sent setup invitation.`
+            ? `Invitation resent to ${result.email}. The setup link is valid for about 1 hour; resend anytime if needed.`
+            : `Added ${result.email} as school admin and sent setup invitation. The link is valid for about 1 hour; you can resend anytime.`
         );
       } else {
         setSuccessMessage(
@@ -865,7 +867,7 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
                         Last sign-in: {formatDate(poc.last_sign_in_at)}
                       </Typography>
                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1.5 }}>
-                        {isAdmin ? (
+                        {isAdmin && !poc.last_sign_in_at ? (
                           <Button
                             size="small"
                             variant="contained"
@@ -886,9 +888,9 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
                               px: 1.5,
                             }}
                           >
-                            {poc.setup_complete ? 'Resend setup email' : 'Invite to create account'}
+                            {poc.account_created ? 'Resend setup email' : 'Invite to create account'}
                           </Button>
-                        ) : (
+                        ) : !isAdmin ? (
                           <Button
                             size="small"
                             variant="outlined"
@@ -904,7 +906,7 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
                           >
                             Make school admin
                           </Button>
-                        )}
+                        ) : null}
                         {!poc.is_primary && isAdmin && (
                           <Button
                             size="small"
@@ -921,7 +923,7 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
                           </Button>
                         )}
                       </Box>
-                      {isAdmin && !school?.payment_satisfied && (
+                      {isAdmin && !poc.last_sign_in_at && !school?.payment_satisfied && (
                         <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mt: 1 }}>
                           Mark the school as paid before sending an invitation.
                         </Typography>
@@ -1614,7 +1616,8 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
         <DialogContent>
           <Typography variant="body2" sx={{ color: ip.subtext, mb: 2, lineHeight: 1.55 }}>
             Grant dashboard access to another school official. They can sign in with School official
-            using this email after completing password setup.
+            using this email after completing password setup. Setup links are valid for about 1 hour and
+            can be resent any number of times.
           </Typography>
           {addAdminError && (
             <Alert severity="error" sx={{ mb: 2 }}>
@@ -1632,15 +1635,24 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
             sx={platformAdminDialogTextFieldSx}
           />
           <FormControlLabel
-            sx={{ mt: 1.5 }}
+            sx={{ mt: 1.5, ml: 0, alignItems: 'flex-start' }}
             control={
               <Checkbox
                 checked={addAdminSendInvite}
                 onChange={(e) => setAddAdminSendInvite(e.target.checked)}
                 disabled={addAdminSubmitting}
+                sx={{
+                  color: ip.navy,
+                  pt: 0.25,
+                  '&.Mui-checked': { color: ip.navy },
+                }}
               />
             }
-            label="Send account setup invitation email now"
+            label={
+              <Typography sx={{ color: ip.heading, fontSize: '0.9rem', lineHeight: 1.45, pt: 0.25 }}>
+                Send account setup invitation email now
+              </Typography>
+            }
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>

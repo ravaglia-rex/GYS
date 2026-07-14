@@ -50,7 +50,7 @@ const PlatformAdminPasswordSetup: React.FC<PlatformAdminPasswordSetupProps> = ({
       setLinkSent(true);
       toast({
         title: 'Setup link sent',
-        description: `Check inbox and spam for ${email}. Open the Firebase link to create your password.`,
+        description: `Check inbox and spam for ${email}. The link is valid for about 1 hour — resend anytime if it expires.`,
       });
     } catch (error: unknown) {
       const message = describeSendError(error);
@@ -94,6 +94,10 @@ const PlatformAdminPasswordSetup: React.FC<PlatformAdminPasswordSetupProps> = ({
             We&apos;ve sent a password setup link to{' '}
             <strong className="font-semibold text-slate-900">{email}</strong>. Open the link to create your
             password, then sign in to the admin portal.
+          </p>
+          <p className="mx-auto mb-4 max-w-md rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm leading-relaxed text-slate-700">
+            The link is valid for about <strong>1 hour</strong>. You can generate a new one any number of
+            times with Resend below — there is no limit on how often you request it.
           </p>
           <p className="mx-auto max-w-md border-t border-slate-200 pt-6 text-sm leading-relaxed text-slate-600">
             Didn&apos;t get it? Check spam/junk. Firebase sends this from{' '}

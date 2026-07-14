@@ -157,6 +157,16 @@ export function platformAdminFilterSelectSx(minWidth = 168) {
     '& .MuiOutlinedInput-notchedOutline': { borderColor: ip.cardBorder },
     '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: ip.navy },
     '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: ip.navy, borderWidth: 1 },
+    '&.Mui-disabled': {
+      bgcolor: '#F8FAFC',
+      opacity: 1,
+      '& .MuiOutlinedInput-notchedOutline': { borderColor: ip.cardBorder },
+      '& .MuiSelect-select': {
+        color: `${ip.subtext} !important`,
+        WebkitTextFillColor: ip.subtext,
+      },
+      '& .MuiSvgIcon-root': { color: ip.subtext },
+    },
     '& .MuiOutlinedInput-root': {
       height: PLATFORM_ADMIN_TOOLBAR_H,
       minHeight: PLATFORM_ADMIN_TOOLBAR_H,
@@ -165,6 +175,7 @@ export function platformAdminFilterSelectSx(minWidth = 168) {
     },
     '& .MuiSelect-select': {
       color: `${ip.heading} !important`,
+      WebkitTextFillColor: ip.heading,
       display: 'flex',
       alignItems: 'center',
       minHeight: PLATFORM_ADMIN_TOOLBAR_H - 2,

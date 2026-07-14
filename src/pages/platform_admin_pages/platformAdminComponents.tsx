@@ -214,6 +214,7 @@ export function PlatformAdminFilterControl<T extends string>({
   value,
   minWidth,
   onChange,
+  disabled = false,
 }: {
   id: string;
   label: string;
@@ -221,6 +222,7 @@ export function PlatformAdminFilterControl<T extends string>({
   value: T;
   minWidth: number;
   onChange: (value: T) => void;
+  disabled?: boolean;
 }) {
   return (
     <Box
@@ -236,7 +238,13 @@ export function PlatformAdminFilterControl<T extends string>({
         component="label"
         htmlFor={id}
         variant="body2"
-        sx={{ ...platformAdminFilterLabelSx, lineHeight: 1, display: 'flex', alignItems: 'center' }}
+        sx={{
+          ...platformAdminFilterLabelSx,
+          lineHeight: 1,
+          display: 'flex',
+          alignItems: 'center',
+          color: disabled ? ip.subtext : platformAdminFilterLabelSx.color,
+        }}
       >
         {label}
       </Typography>
@@ -244,6 +252,7 @@ export function PlatformAdminFilterControl<T extends string>({
         id={id}
         size="small"
         value={value}
+        disabled={disabled}
         onChange={(e) => onChange(e.target.value as T)}
         renderValue={(v) => labels[v as T]}
         MenuProps={{ PaperProps: { sx: platformAdminSelectMenuPaperSx } }}
