@@ -311,7 +311,7 @@ const SchoolPaymentPage: React.FC = () => {
             <h1 className="text-2xl font-bold text-slate-900">Proceed to payment</h1>
             <p className="mt-3 text-sm text-slate-600 leading-relaxed">
               Enter any <span className="font-semibold">email address used during registration</span>
-              — primary contact or any additional school official email you listed on the form.
+              ; primary contact or any additional school official email listed on the form.
             </p>
           </div>
 

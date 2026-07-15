@@ -33,7 +33,6 @@ import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import {
   getPlatformAdminOverview,
   listPlatformAdminSchools,
-  formatDate,
   formatInrFromPaise,
   type PlatformAdminOverviewStats,
   type PlatformAdminSchoolSummary,
@@ -459,7 +458,14 @@ const PlatformAdminSchoolsPage: React.FC = () => {
                       </Box>
                     </Tooltip>
                   </TableCell>
-                  <TableCell>Registered</TableCell>
+                  <TableCell>
+                    <Tooltip title="Student emails currently on this school's invite list">
+                      <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                        Invited
+                        <InfoIcon sx={{ fontSize: 14, color: ip.subtext }} />
+                      </Box>
+                    </Tooltip>
+                  </TableCell>
                   <TableCell align="right">Actions</TableCell>
                 </TableRow>
               </TableHead>
@@ -535,8 +541,8 @@ const PlatformAdminSchoolsPage: React.FC = () => {
                           tone={school.verified ? 'success' : 'neutral'}
                         />
                       </TableCell>
-                      <TableCell sx={{ color: ip.subtext, whiteSpace: 'nowrap' }}>
-                        {formatDate(school.created_at)}
+                      <TableCell sx={{ color: ip.heading, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                        {school.students_invited ?? 0}
                       </TableCell>
                       <TableCell align="right">
                         <Button

@@ -298,6 +298,11 @@ export const platformAdminFilterGroupSx = {
   },
 } as const;
 
+/** Keeps disabled/loading buttons readable on light pages under the global dark MUI theme. */
+const platformAdminButtonDisabledGuard = {
+  opacity: 1,
+} as const;
+
 export const platformAdminPrimaryButtonSx = {
   textTransform: 'none',
   fontWeight: 700,
@@ -306,7 +311,12 @@ export const platformAdminPrimaryButtonSx = {
   boxShadow: 'none',
   borderRadius: 1.5,
   '&:hover': { bgcolor: '#0b3366', boxShadow: 'none' },
-  '&.Mui-disabled': { bgcolor: '#94a3b8', color: '#fff' },
+  '&.Mui-disabled': {
+    ...platformAdminButtonDisabledGuard,
+    bgcolor: '#94a3b8',
+    color: '#fff',
+    WebkitTextFillColor: '#fff',
+  },
 } as const;
 
 export const platformAdminOutlinedButtonSx = {
@@ -317,6 +327,13 @@ export const platformAdminOutlinedButtonSx = {
   bgcolor: '#fff',
   borderRadius: 1.5,
   '&:hover': { borderColor: ip.navy, bgcolor: ip.cardMutedBg },
+  '&.Mui-disabled': {
+    ...platformAdminButtonDisabledGuard,
+    color: ip.subtext,
+    WebkitTextFillColor: ip.subtext,
+    borderColor: ip.cardBorder,
+    bgcolor: '#f8fafc',
+  },
 } as const;
 
 export const platformAdminTextButtonSx = {
@@ -327,6 +344,22 @@ export const platformAdminTextButtonSx = {
   px: 1.25,
   minWidth: 0,
   '&:hover': { bgcolor: 'rgba(16, 64, 139, 0.08)' },
+  '&.Mui-disabled': {
+    ...platformAdminButtonDisabledGuard,
+    color: ip.subtext,
+    WebkitTextFillColor: ip.subtext,
+  },
+} as const;
+
+export const platformAdminDangerTextButtonSx = {
+  ...platformAdminTextButtonSx,
+  color: '#dc2626',
+  '&:hover': { bgcolor: 'rgba(220, 38, 38, 0.08)' },
+  '&.Mui-disabled': {
+    ...platformAdminButtonDisabledGuard,
+    color: '#f87171',
+    WebkitTextFillColor: '#f87171',
+  },
 } as const;
 
 export const platformAdminTableHeadCellSx = {

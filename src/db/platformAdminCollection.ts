@@ -25,6 +25,7 @@ import {
   PLATFORM_ADMIN_INVITE_SCHOOL_ADMIN,
   PLATFORM_ADMIN_ADD_SCHOOL_ADMIN,
   PLATFORM_ADMIN_REMOVE_SCHOOL_ADMIN,
+  PLATFORM_ADMIN_DELETE_SCHOOL_CONTACT,
 } from '../constants/constants';
 
 function apiBase(): string {
@@ -93,6 +94,7 @@ export type PlatformAdminSchoolSummary = {
   paid_amount_paise: number | null;
   institutional_tier: string | null;
   institutional_performance_tier: string | null;
+  students_invited: number;
   created_at: string | null;
   updated_at: string | null;
   paid_at: string | null;
@@ -114,6 +116,8 @@ export type PlatformAdminSchoolDetail = PlatformAdminSchoolSummary & {
   wire_order_id: string | null;
   wire_amount_paise: number | null;
   student_count: number;
+  students_on_roster: number;
+  students_setup_complete: number;
 };
 
 export type PlatformAdminPaymentHistoryItem = {
@@ -519,6 +523,37 @@ export async function removePlatformAdminSchoolAdmin(
   return {
     email: res.data.email ?? email,
     removed: res.data.removed !== false,
+  };
+}
+
+export type PlatformAdminDeleteSchoolContactResult = {
+  email: string;
+  removed_from_admin_emails: boolean;
+  removed_from_contact_emails: boolean;
+  admin_docs_deleted: number;
+  auth_deleted: boolean;
+  auth_skipped: boolean;
+};
+
+/** Super admin only — strip contact from school records and delete Auth when safe. */
+export async function deletePlatformAdminSchoolContact(
+  schoolId: string,
+  email: string
+): Promise<PlatformAdminDeleteSchoolContactResult> {
+  const headers = await authHeaders();
+  const res = await axios.post(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_SCHOOLS}/${encodeURIComponent(schoolId)}${PLATFORM_ADMIN_DELETE_SCHOOL_CONTACT}`,
+    { email },
+    { headers }
+  );
+  return {
+    email: res.data.email ?? email,
+    removed_from_admin_emails: Boolean(res.data.removed_from_admin_emails),
+    removed_from_contact_emails: Boolean(res.data.removed_from_contact_emails),
+    admin_docs_deleted:
+      typeof res.data.admin_docs_deleted === 'number' ? res.data.admin_docs_deleted : 0,
+    auth_deleted: Boolean(res.data.auth_deleted),
+    auth_skipped: Boolean(res.data.auth_skipped),
   };
 }
 

@@ -33,6 +33,7 @@ export const PLATFORM_ADMIN_BILLING_INVOICE_DOWNLOAD_URL = '/billing-invoice-dow
 export const PLATFORM_ADMIN_INVITE_SCHOOL_ADMIN = '/invite-admin';
 export const PLATFORM_ADMIN_ADD_SCHOOL_ADMIN = '/admins';
 export const PLATFORM_ADMIN_REMOVE_SCHOOL_ADMIN = '/remove-admin';
+export const PLATFORM_ADMIN_DELETE_SCHOOL_CONTACT = '/delete-contact';
 
 // Schools
 export const CREATE_EXPEDITED_SCHOOL='/createExpeditedSchool';
