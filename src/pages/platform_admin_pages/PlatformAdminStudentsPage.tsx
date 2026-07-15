@@ -155,6 +155,8 @@ const PlatformAdminStudentsPage: React.FC = () => {
   );
 
   const schoolSelected = allSchoolsSelected || selectedSchoolIds.length > 0;
+  /** Unlinked students have no school_id — allow loading them without picking a school. */
+  const canLoadStudents = schoolSelected || rosterFilter === 'no';
 
   const schoolNameById = useMemo(() => {
     const map = new Map<string, string>();
@@ -247,7 +249,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
   ]);
 
   const load = useCallback(async () => {
-    if (!schoolSelected) {
+    if (!canLoadStudents) {
       setStudents([]);
       setLoading(false);
       setError(null);
@@ -257,13 +259,16 @@ const PlatformAdminStudentsPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
+      // "No school" students are never on a school list — always query across all schools.
+      const school_ids =
+        rosterFilter === 'no' || allSchoolsSelected ? 'all' : selectedSchoolIds;
       const studentData = await listPlatformAdminStudents({
         search: search.trim() || undefined,
         status: statusFilter === 'all' ? undefined : statusFilter,
         roster: rosterFilter === 'all' ? undefined : rosterFilter,
         grade: gradeFilter === 'all' ? undefined : gradeFilter,
         membership: membershipFilter === 'all' ? undefined : membershipFilter,
-        school_ids: allSchoolsSelected ? 'all' : selectedSchoolIds,
+        school_ids,
         limit: 500,
       });
       setStudents(studentData);
@@ -273,7 +278,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
       setLoading(false);
     }
   }, [
-    schoolSelected,
+    canLoadStudents,
     search,
     statusFilter,
     rosterFilter,
@@ -284,9 +289,18 @@ const PlatformAdminStudentsPage: React.FC = () => {
   ]);
 
   useEffect(() => {
-    const timer = setTimeout(load, search && schoolSelected ? 300 : 0);
+    const timer = setTimeout(load, search && canLoadStudents ? 300 : 0);
     return () => clearTimeout(timer);
-  }, [load, search, schoolSelected]);
+  }, [load, search, canLoadStudents]);
+
+  const handleRosterFilterChange = (value: RosterFilter) => {
+    setRosterFilter(value);
+    // Unlinked students only appear under All schools — switch automatically.
+    if (value === 'no') {
+      setAllSchoolsSelected(true);
+      setSelectedSchoolIds([]);
+    }
+  };
 
   const handleSchoolSelectChange = (rawValues: string | string[]) => {
     const values = typeof rawValues === 'string' ? rawValues.split(',') : rawValues;
@@ -451,7 +465,10 @@ const PlatformAdminStudentsPage: React.FC = () => {
                   return schoolsLoading ? 'Loading schools…' : 'Select school(s) — required';
                 }
                 if (selected.length === 1) {
-                  return schoolNameById.get(selected[0]) || selected[0];
+                  const school = schools.find((s) => s.id === selected[0]);
+                  const name = school?.school_name || schoolNameById.get(selected[0]) || selected[0];
+                  const count = school?.student_count ?? 0;
+                  return `${name} (${count})`;
                 }
                 return `${selected.length} schools`;
               }}
@@ -491,7 +508,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
                     size="small"
                   />
                   <ListItemText
-                    primary={school.school_name || school.id}
+                    primary={`${school.school_name || school.id} (${school.student_count ?? 0})`}
                     secondary={
                       isPlatformAdminTestSchool(school.id)
                         ? `${school.id} · Test`
@@ -545,7 +562,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
               value={rosterFilter}
               labels={ROSTER_LABELS}
               minWidth={140}
-              onChange={setRosterFilter}
+              onChange={handleRosterFilterChange}
             />
             <PlatformAdminFilterControl
               id="students-grade-filter"
@@ -605,7 +622,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
         </Alert>
       )}
 
-      {!schoolSelected ? (
+      {!canLoadStudents ? (
         <Card sx={platformAdminCardSx}>
           <CardContent sx={{ py: 6, textAlign: 'center' }}>
             <SchoolIcon sx={{ fontSize: 40, color: ip.subtext, mb: 1.5 }} />
@@ -614,6 +631,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
             </Typography>
             <Typography variant="body2" sx={{ color: ip.subtext, maxWidth: 420, mx: 'auto' }}>
               Choose one or more schools (or All schools) in the School* filter above to load results.
+              To find students with no school, set Roster to &quot;No school&quot;.
             </Typography>
           </CardContent>
         </Card>

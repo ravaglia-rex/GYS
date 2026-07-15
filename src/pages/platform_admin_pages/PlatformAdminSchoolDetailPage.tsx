@@ -24,6 +24,7 @@ import {
   Select,
   FormControlLabel,
   Checkbox,
+  LinearProgress,
 } from '@mui/material';
 import {
   ArrowBack as BackIcon,
@@ -33,6 +34,7 @@ import {
   FileDownload as DownloadIcon,
   MailOutline as InviteIcon,
   PersonAddAlt as AddAdminIcon,
+  PersonAdd as AddStudentsIcon,
 } from '@mui/icons-material';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
@@ -50,6 +52,7 @@ import {
   addPlatformAdminSchoolAdmin,
   removePlatformAdminSchoolAdmin,
   deletePlatformAdminSchoolContact,
+  importPlatformAdminStudentRegistrationEmails,
   PLATFORM_ADMIN_PAYMENT_METHOD_LABELS,
   type PlatformAdminMarkSchoolPaidMethod,
   type PlatformAdminEmailActivityRow,
@@ -82,12 +85,14 @@ import {
 } from './platformAdminComponents';
 import {
   formatPlanAmountInrInput,
+  INSTITUTIONAL_PLAN_STUDENT_CAP,
   REGISTER_PLAN_IDS,
   resolveRegisterPlanIdFromFields,
   resolveSchoolPlanPriceInr,
   SCHOOL_INSTITUTIONAL_BASE_INR,
   type RegisterPlanId,
 } from '../../utils/schoolRegistrationPlans';
+import { parseEmailsFromBulkText } from '../../utils/schoolAdminRosterUtils';
 import { isPlatformAdminTestSchool } from './platformAdminTestSchools';
 
 const PAYMENT_METHODS = Object.keys(PLATFORM_ADMIN_PAYMENT_METHOD_LABELS) as PlatformAdminMarkSchoolPaidMethod[];
@@ -213,6 +218,10 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
   const [addAdminSendInvite, setAddAdminSendInvite] = useState(true);
   const [addAdminSubmitting, setAddAdminSubmitting] = useState(false);
   const [addAdminError, setAddAdminError] = useState<string | null>(null);
+  const [addStudentsOpen, setAddStudentsOpen] = useState(false);
+  const [bulkStudentEmails, setBulkStudentEmails] = useState('');
+  const [addStudentsSubmitting, setAddStudentsSubmitting] = useState(false);
+  const [addStudentsError, setAddStudentsError] = useState<string | null>(null);
 
   const apiErrorMessage = (e: unknown, fallback: string): string => {
     if (typeof e === 'object' && e !== null && 'response' in e) {
@@ -285,6 +294,43 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
     setAddAdminSendInvite(true);
     setAddAdminError(null);
     setAddAdminOpen(true);
+  };
+
+  const openAddStudentsDialog = () => {
+    setBulkStudentEmails('');
+    setAddStudentsError(null);
+    setAddStudentsOpen(true);
+  };
+
+  const parsedBulkStudentEmails = useMemo(
+    () => parseEmailsFromBulkText(bulkStudentEmails),
+    [bulkStudentEmails]
+  );
+
+  const handleAddStudentEmails = async () => {
+    if (!schoolId) return;
+    const emails = parseEmailsFromBulkText(bulkStudentEmails);
+    if (emails.length === 0) {
+      setAddStudentsError('Paste at least one valid student email address.');
+      return;
+    }
+    setAddStudentsSubmitting(true);
+    setAddStudentsError(null);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      const result = await importPlatformAdminStudentRegistrationEmails(schoolId, emails);
+      setSuccessMessage(
+        `Sent invitation${result.imported === 1 ? '' : 's'} to ${result.imported} student${result.imported === 1 ? '' : 's'}.`
+      );
+      setAddStudentsOpen(false);
+      setBulkStudentEmails('');
+      await load();
+    } catch (e: unknown) {
+      setAddStudentsError(apiErrorMessage(e, 'Failed to add student emails.'));
+    } finally {
+      setAddStudentsSubmitting(false);
+    }
   };
 
   const handleInviteAdmin = async (email: string) => {
@@ -630,6 +676,16 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
   const plansDiffer =
     registeredPlanId && effectivePlanId && registeredPlanId !== effectivePlanId;
   const deleteNameMatches = school ? schoolNamesMatch(deleteConfirmName, school) : false;
+  const studentCap =
+    effectivePlanId && effectivePlanId in INSTITUTIONAL_PLAN_STUDENT_CAP
+      ? INSTITUTIONAL_PLAN_STUDENT_CAP[effectivePlanId]
+      : null;
+  const inviteListCount = Array.isArray(school.student_registration_emails)
+    ? school.student_registration_emails.length
+    : school.students_invited ?? 0;
+  const activeRosterCount = school.students_on_roster ?? school.student_count;
+  const remainingRosterSlots =
+    studentCap === null ? null : Math.max(0, studentCap - activeRosterCount);
 
   return (
     <Box sx={platformAdminPageContainerSx}>
@@ -834,6 +890,57 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
             </Card>
           )}
         </Box>
+
+        <Card sx={{ ...platformAdminCardSx, gridColumn: '1 / -1' }}>
+          <CardContent>
+            <Box
+              sx={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'flex-start',
+                justifyContent: 'space-between',
+                gap: 1.5,
+                mb: 0.5,
+              }}
+            >
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: ip.heading }}>
+                Student roster
+              </Typography>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<AddStudentsIcon />}
+                onClick={openAddStudentsDialog}
+                disabled={studentCap !== null && remainingRosterSlots === 0}
+                sx={platformAdminOutlinedButtonSx}
+              >
+                Add students
+              </Button>
+            </Box>
+            <Typography variant="body2" sx={{ color: ip.subtext, mb: 2, lineHeight: 1.55 }}>
+              Paste student emails onto this school&apos;s invite list the same way school admins do.
+              New addresses receive invitation emails automatically; students must register with the
+              same email to join the roster.
+            </Typography>
+            <DetailRow label="Active roster" value={String(activeRosterCount)} />
+            <DetailRow label="Registered accounts" value={String(school.student_count)} />
+            <DetailRow label="On invite list" value={String(inviteListCount)} />
+            <DetailRow
+              label="Plan student cap"
+              value={
+                studentCap === null
+                  ? 'Unlimited'
+                  : `${studentCap} (${remainingRosterSlots ?? 0} slot${(remainingRosterSlots ?? 0) === 1 ? '' : 's'} remaining)`
+              }
+            />
+            {studentCap !== null && remainingRosterSlots === 0 && (
+              <Alert severity="warning" sx={{ mt: 2 }}>
+                This school&apos;s plan is at its student cap. Upgrade the package or revoke unused
+                invitations before adding more students.
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
 
         <Card sx={{ ...platformAdminCardSx, gridColumn: '1 / -1' }}>
           <CardContent>
@@ -1798,6 +1905,87 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
             sx={platformAdminPrimaryButtonSx}
           >
             {addAdminSubmitting ? 'Saving…' : 'Add admin'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={addStudentsOpen}
+        onClose={() => !addStudentsSubmitting && setAddStudentsOpen(false)}
+        fullWidth
+        maxWidth="sm"
+        PaperProps={{ sx: platformAdminDialogPaperSx }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, color: ip.heading }}>Add student emails</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ color: ip.subtext, mb: 2, lineHeight: 1.55 }}>
+            Paste emails below, one per line or comma-separated. New addresses are added to this
+            school&apos;s student invite list and invitation emails are sent automatically.
+          </Typography>
+          {addStudentsError && (
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setAddStudentsError(null)}>
+              {addStudentsError}
+            </Alert>
+          )}
+          {studentCap !== null && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Current plan allows {studentCap} active students; {remainingRosterSlots ?? 0} slot
+              {(remainingRosterSlots ?? 0) === 1 ? '' : 's'} remain.
+            </Alert>
+          )}
+          <Typography sx={platformAdminDialogFieldLabelSx}>Student emails</Typography>
+          <TextField
+            multiline
+            minRows={6}
+            fullWidth
+            placeholder={'student1@school.edu\nstudent2@school.edu'}
+            value={bulkStudentEmails}
+            onChange={(e) => setBulkStudentEmails(e.target.value)}
+            disabled={addStudentsSubmitting}
+            sx={{
+              ...platformAdminDialogTextFieldSx,
+              '& .MuiInputBase-root': {
+                bgcolor: '#f8fafc',
+                alignItems: 'flex-start',
+              },
+            }}
+          />
+          <Typography variant="body2" sx={{ mt: 1.5, color: ip.heading, fontSize: '0.875rem', fontWeight: 500 }}>
+            {parsedBulkStudentEmails.length} valid address
+            {parsedBulkStudentEmails.length === 1 ? '' : 'es'} detected
+            <Typography
+              component="span"
+              variant="body2"
+              sx={{ color: ip.subtext, fontWeight: 400, display: 'block', mt: 0.5, fontSize: '0.8125rem' }}
+            >
+              Duplicates already on the invite list are skipped on save.
+            </Typography>
+          </Typography>
+          {addStudentsSubmitting && (
+            <LinearProgress
+              sx={{ mt: 2, borderRadius: 1, bgcolor: ip.cardMutedBg, '& .MuiLinearProgress-bar': { bgcolor: ip.navy } }}
+            />
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button
+            onClick={() => setAddStudentsOpen(false)}
+            disabled={addStudentsSubmitting}
+            sx={platformAdminTextButtonSx}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="contained"
+            disabled={addStudentsSubmitting || parsedBulkStudentEmails.length === 0}
+            onClick={() => void handleAddStudentEmails()}
+            startIcon={
+              addStudentsSubmitting ? <CircularProgress size={16} color="inherit" /> : <AddStudentsIcon />
+            }
+            sx={platformAdminPrimaryButtonSx}
+          >
+            {addStudentsSubmitting ? 'Sending…' : 'Send invitation'}
           </Button>
         </DialogActions>
       </Dialog>

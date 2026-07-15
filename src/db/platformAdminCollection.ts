@@ -26,6 +26,7 @@ import {
   PLATFORM_ADMIN_ADD_SCHOOL_ADMIN,
   PLATFORM_ADMIN_REMOVE_SCHOOL_ADMIN,
   PLATFORM_ADMIN_DELETE_SCHOOL_CONTACT,
+  PLATFORM_ADMIN_STUDENT_REGISTRATION_EMAILS,
 } from '../constants/constants';
 
 function apiBase(): string {
@@ -95,6 +96,8 @@ export type PlatformAdminSchoolSummary = {
   institutional_tier: string | null;
   institutional_performance_tier: string | null;
   students_invited: number;
+  /** Signed-up student accounts linked to this school (excludes test accounts). */
+  student_count: number;
   created_at: string | null;
   updated_at: string | null;
   paid_at: string | null;
@@ -115,7 +118,6 @@ export type PlatformAdminSchoolDetail = PlatformAdminSchoolSummary & {
   wire_payment_id: string | null;
   wire_order_id: string | null;
   wire_amount_paise: number | null;
-  student_count: number;
   students_on_roster: number;
   students_setup_complete: number;
 };
@@ -484,6 +486,22 @@ export async function invitePlatformAdminSchoolAdmin(
   return {
     email: res.data.email ?? email,
     invited: res.data.invited !== false,
+  };
+}
+
+export async function importPlatformAdminStudentRegistrationEmails(
+  schoolId: string,
+  emails: string[]
+): Promise<{ imported: number; total: number }> {
+  const headers = await authHeaders();
+  const res = await axios.post(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_SCHOOLS}/${encodeURIComponent(schoolId)}${PLATFORM_ADMIN_STUDENT_REGISTRATION_EMAILS}`,
+    { emails },
+    { headers }
+  );
+  return {
+    imported: Number(res.data.imported ?? 0),
+    total: Number(res.data.total ?? 0),
   };
 }
 
