@@ -53,3 +53,39 @@ export const MEMBERSHIP_LEVEL_LABEL: Record<1 | 2 | 3 | 4, string> = {
   3: 'Stream Ready',
   4: 'Career Ready',
 };
+
+export type StudentMembershipLevelCode = 'LEVEL_1' | 'LEVEL_2' | 'LEVEL_3' | 'LEVEL_4';
+
+const MEMBERSHIP_LEVEL_CODE: Record<1 | 2 | 3 | 4, StudentMembershipLevelCode> = {
+  1: 'LEVEL_1',
+  2: 'LEVEL_2',
+  3: 'LEVEL_3',
+  4: 'LEVEL_4',
+};
+
+/** Short package names used in student signup flow review / draft state. */
+export const MEMBERSHIP_LEVEL_SHORT_NAME: Record<1 | 2 | 3 | 4, string> = {
+  1: 'Discovery',
+  2: 'Reasoning Triad',
+  3: 'Stream Ready',
+  4: 'Career Ready',
+};
+
+const MEMBERSHIP_LEVEL_PRICE_LABEL: Record<1 | 2 | 3 | 4, string> = {
+  1: '₹299',
+  2: '₹899',
+  3: '₹1,799',
+  4: '₹2,699',
+};
+
+/** Signup draft fields for the school's included package (no student package picker). */
+export function schoolIncludedMembershipDraftFields(level: 1 | 2 | 3 | 4) {
+  return {
+    membershipLevel: MEMBERSHIP_LEVEL_CODE[level],
+    membershipName: MEMBERSHIP_LEVEL_SHORT_NAME[level],
+    membershipPrice: MEMBERSHIP_LEVEL_PRICE_LABEL[level],
+    schoolCoveredMembershipLevel: level,
+    membershipCoveredBySchool: true as const,
+    membershipUpgradeAmountPaise: null,
+  };
+}

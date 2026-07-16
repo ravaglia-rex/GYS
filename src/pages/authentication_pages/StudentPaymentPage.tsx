@@ -364,9 +364,11 @@ const StudentPaymentPage: React.FC = () => {
   };
 
   const goBackToMembershipStep = () => {
-    navigate('/students/register/membership', {
-      state: signupState,
-    });
+    // School-covered students never chose a package; return to school step instead.
+    navigate(
+      coveredBySchool ? '/students/register/school' : '/students/register/membership',
+      { state: signupState }
+    );
   };
 
   return (
@@ -471,16 +473,20 @@ const StudentPaymentPage: React.FC = () => {
                     </p>
                     <p className="mt-1 text-sm font-semibold text-slate-900">{membershipName}</p>
                     <p className="text-xs text-slate-600">
-                      {coveredBySchool ? 'Included by your school' : 'Payment required'}
+                      {coveredBySchool
+                        ? 'Included by your school — you can upgrade later from your account'
+                        : 'Payment required'}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={goBackToMembershipStep}
-                    className="text-xs font-semibold text-blue-700 hover:text-blue-800"
-                  >
-                    Edit
-                  </button>
+                  {!coveredBySchool && (
+                    <button
+                      type="button"
+                      onClick={goBackToMembershipStep}
+                      className="text-xs font-semibold text-blue-700 hover:text-blue-800"
+                    >
+                      Edit
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

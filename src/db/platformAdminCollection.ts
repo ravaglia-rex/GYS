@@ -24,7 +24,6 @@ import {
   PLATFORM_ADMIN_BILLING_INVOICE_DOWNLOAD_URL,
   PLATFORM_ADMIN_INVITE_SCHOOL_ADMIN,
   PLATFORM_ADMIN_ADD_SCHOOL_ADMIN,
-  PLATFORM_ADMIN_REMOVE_SCHOOL_ADMIN,
   PLATFORM_ADMIN_DELETE_SCHOOL_CONTACT,
   PLATFORM_ADMIN_STUDENT_REGISTRATION_EMAILS,
 } from '../constants/constants';
@@ -106,7 +105,6 @@ export type PlatformAdminSchoolSummary = {
 
 export type PlatformAdminSchoolDetail = PlatformAdminSchoolSummary & {
   contact_emails: string[];
-  admin_emails: string[];
   gstin: string | null;
   gst_registration_status: string | null;
   student_registration_emails: string[];
@@ -375,7 +373,6 @@ export async function getPlatformAdminSchool(schoolId: string): Promise<{
   return {
     school: {
       ...res.data.school,
-      admin_emails: Array.isArray(res.data.school?.admin_emails) ? res.data.school.admin_emails : [],
       contact_emails: Array.isArray(res.data.school?.contact_emails) ? res.data.school.contact_emails : [],
     },
     payment_history: res.data.payment_history ?? [],
@@ -383,7 +380,7 @@ export async function getPlatformAdminSchool(schoolId: string): Promise<{
     poc_accounts: Array.isArray(res.data.poc_accounts)
       ? res.data.poc_accounts.map((row: PlatformAdminPocAccountRow) => ({
           ...row,
-          is_admin: Boolean(row?.is_primary || row?.is_admin),
+          is_admin: true,
         }))
       : [],
     email_activity: Array.isArray(res.data.email_activity) ? res.data.email_activity : [],
@@ -507,7 +504,7 @@ export async function importPlatformAdminStudentRegistrationEmails(
 
 export async function addPlatformAdminSchoolAdmin(
   schoolId: string,
-  body: { email: string; send_invite?: boolean }
+  body: { email: string }
 ): Promise<{
   email: string;
   already_admin: boolean;
@@ -528,32 +525,15 @@ export async function addPlatformAdminSchoolAdmin(
   };
 }
 
-export async function removePlatformAdminSchoolAdmin(
-  schoolId: string,
-  email: string
-): Promise<{ email: string; removed: boolean }> {
-  const headers = await authHeaders();
-  const res = await axios.post(
-    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_SCHOOLS}/${encodeURIComponent(schoolId)}${PLATFORM_ADMIN_REMOVE_SCHOOL_ADMIN}`,
-    { email },
-    { headers }
-  );
-  return {
-    email: res.data.email ?? email,
-    removed: res.data.removed !== false,
-  };
-}
-
 export type PlatformAdminDeleteSchoolContactResult = {
   email: string;
-  removed_from_admin_emails: boolean;
   removed_from_contact_emails: boolean;
   admin_docs_deleted: number;
   auth_deleted: boolean;
   auth_skipped: boolean;
 };
 
-/** Super admin only — strip contact from school records and delete Auth when safe. */
+/** Super admin only — strip admin from school records and delete Auth when safe. */
 export async function deletePlatformAdminSchoolContact(
   schoolId: string,
   email: string
@@ -566,7 +546,6 @@ export async function deletePlatformAdminSchoolContact(
   );
   return {
     email: res.data.email ?? email,
-    removed_from_admin_emails: Boolean(res.data.removed_from_admin_emails),
     removed_from_contact_emails: Boolean(res.data.removed_from_contact_emails),
     admin_docs_deleted:
       typeof res.data.admin_docs_deleted === 'number' ? res.data.admin_docs_deleted : 0,

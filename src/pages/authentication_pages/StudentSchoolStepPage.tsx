@@ -6,6 +6,10 @@ import { useToast } from '../../components/ui/use-toast';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
 import { useStudentSignupExit } from '../../contexts/StudentSignupExitContext';
 import { useStudentSignupExitGuard } from '../../hooks/useStudentSignupExitGuard';
+import {
+  normalizeStudentMembershipLevel,
+  schoolIncludedMembershipDraftFields,
+} from '../../utils/studentMembershipPricing';
 import { mergeSignupState, writeSignupDraft } from '../../utils/studentSignupDraft';
 
 const GYS_BLUE = '#1e3a8a';
@@ -170,6 +174,24 @@ const StudentSchoolStepPage: React.FC = () => {
       delete nextState.signupSchoolName;
     }
 
+    const coveredLevel = normalizeStudentMembershipLevel(
+      lockedSchool?.coveredMembershipLevel
+    );
+    const schoolCoversPackage =
+      emailMatchedSchool &&
+      lockedSchool?.paymentComplete === true &&
+      coveredLevel >= 1;
+
+    if (schoolCoversPackage) {
+      const withSchoolPackage = {
+        ...nextState,
+        ...schoolIncludedMembershipDraftFields(coveredLevel as 1 | 2 | 3 | 4),
+      };
+      writeSignupDraft(withSchoolPackage);
+      navigate('/students/register/payment', { state: withSchoolPackage });
+      return;
+    }
+
     writeSignupDraft(nextState);
     navigate('/students/register/membership', { state: nextState });
   };
@@ -290,7 +312,11 @@ const StudentSchoolStepPage: React.FC = () => {
               <p className="rounded-lg bg-blue-50 px-3 py-2 text-xs leading-relaxed text-blue-900">
                 Your email is on this school&apos;s registration list.
                 If the school name, branch, campus, city, or any other detail looks wrong, please contact
-                globalyoungscholar@argus.ai before continuing. Otherwise, press Continue to choose your membership.
+                globalyoungscholar@argus.ai before continuing. Otherwise, press Continue
+                {lockedSchool.paymentComplete &&
+                normalizeStudentMembershipLevel(lockedSchool.coveredMembershipLevel) >= 1
+                  ? ' — your school package will be assigned automatically (you can upgrade later from your account).'
+                  : ' to choose your membership.'}
               </p>
             )}
             {!emailMatchedSchool && !isLoading && (

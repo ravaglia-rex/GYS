@@ -230,7 +230,6 @@ function PlatformAdminSchoolDetailPage() {
   const [deleteContactError, setDeleteContactError] = useState<string | null>(null);
   const [addAdminOpen, setAddAdminOpen] = useState(false);
   const [addAdminEmail, setAddAdminEmail] = useState('');
-  const [addAdminSendInvite, setAddAdminSendInvite] = useState(true);
   const [addAdminSubmitting, setAddAdminSubmitting] = useState(false);
   const [addAdminError, setAddAdminError] = useState<string | null>(null);
   const [addStudentsOpen, setAddStudentsOpen] = useState(false);
@@ -306,7 +305,6 @@ function PlatformAdminSchoolDetailPage() {
 
   const openAddAdminDialog = () => {
     setAddAdminEmail('');
-    setAddAdminSendInvite(true);
     setAddAdminError(null);
     setAddAdminOpen(true);
   };
@@ -356,11 +354,11 @@ function PlatformAdminSchoolDetailPage() {
     try {
       await invitePlatformAdminSchoolAdmin(schoolId, email);
       setSuccessMessage(
-        `Setup invitation sent to ${email}. The link is valid for about 1 hour; you can resend anytime if they need a new one.`
+        `Account setup link sent to ${email}. The link is valid for about 1 hour; you can resend anytime if they need a new one.`
       );
       await load();
     } catch (e: unknown) {
-      setError(apiErrorMessage(e, 'Failed to send invitation email.'));
+      setError(apiErrorMessage(e, 'Failed to send account setup link.'));
     } finally {
       setInviteBusyEmail(null);
     }
@@ -380,7 +378,6 @@ function PlatformAdminSchoolDetailPage() {
     try {
       const result = await addPlatformAdminSchoolAdmin(schoolId, {
         email,
-        send_invite: addAdminSendInvite,
       });
       setAddAdminOpen(false);
       if (result.warning) {
@@ -388,8 +385,8 @@ function PlatformAdminSchoolDetailPage() {
       } else if (result.invited) {
         setSuccessMessage(
           result.already_admin
-            ? `Invitation resent to ${result.email}. The setup link is valid for about 1 hour; resend anytime if needed.`
-            : `Added ${result.email} as school admin and sent setup invitation. The link is valid for about 1 hour; you can resend anytime.`
+            ? `Account setup link resent to ${result.email}. The link is valid for about 1 hour; resend anytime if needed.`
+            : `Added ${result.email} as school admin and sent an account setup link. The link is valid for about 1 hour; you can resend anytime.`
         );
       } else {
         setSuccessMessage(
@@ -946,11 +943,11 @@ function PlatformAdminSchoolDetailPage() {
                     {registrant.name || 'Unknown'}
                   </Box>
                   {registrant.designation ? ` (${registrant.designation})` : ''}.
-                  {' '}Invite any school admin who has not finished account setup — same
-                  password-setup link as when you add a new admin.
+                  {' '}Send or resend an account setup link to any school admin who has not
+                  finished setup — same password-setup link as when you add a new admin.
                 </>
               ) : (
-                'School admins on file and whether each person created a login. Invite anyone who still needs to set up their account.'
+                'School admins on file and whether each person created a login. Send an account setup link to anyone who still needs to set up their account.'
               )}
             </Typography>
             {pocAccounts.length === 0 ? (
@@ -1035,8 +1032,8 @@ function PlatformAdminSchoolDetailPage() {
                             {inviteBusy
                               ? 'Sending…'
                               : poc.account_created
-                                ? 'Resend setup email'
-                                : 'Invite to create account'}
+                                ? 'Resend account setup link'
+                                : 'Send account setup link'}
                           </Button>
                         ) : null}
                         {isSuperAdmin && !poc.is_primary && (
@@ -1056,7 +1053,7 @@ function PlatformAdminSchoolDetailPage() {
                       </Box>
                       {needsSetupInvite && !school?.payment_satisfied && (
                         <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mt: 1 }}>
-                          Mark the school as paid before sending an invitation.
+                          Mark the school as paid before sending an account setup link.
                         </Typography>
                       )}
                     </Box>
@@ -1145,7 +1142,7 @@ function PlatformAdminSchoolDetailPage() {
               Email history
             </Typography>
             <Typography variant="body2" sx={{ color: ip.subtext, mb: 2, lineHeight: 1.55 }}>
-              Dates and email types sent to school contacts (not full message bodies).
+              Dates and email types sent to school admins (not full message bodies). History is kept even if an admin is later deleted.
             </Typography>
             {emailActivity.length === 0 ? (
               <Typography variant="body2" sx={{ color: ip.subtext }}>
@@ -1757,9 +1754,8 @@ function PlatformAdminSchoolDetailPage() {
         <DialogTitle sx={{ fontWeight: 700, color: ip.heading }}>Add school admin</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ color: ip.subtext, mb: 2, lineHeight: 1.55 }}>
-            Grant dashboard access to another school official. They can sign in with School official
-            using this email after completing password setup. Setup links are valid for about 1 hour and
-            can be resent any number of times.
+            Adds them as a school admin and sends an account setup link once. Setup links are valid
+            for about 1 hour; use Send / Resend account setup link on their row anytime afterward.
           </Typography>
           {addAdminError && (
             <Alert severity="error" sx={{ mb: 2 }}>
@@ -1775,26 +1771,6 @@ function PlatformAdminSchoolDetailPage() {
             placeholder="admin@school.edu"
             disabled={addAdminSubmitting}
             sx={platformAdminDialogTextFieldSx}
-          />
-          <FormControlLabel
-            sx={{ mt: 1.5, ml: 0, alignItems: 'flex-start' }}
-            control={
-              <Checkbox
-                checked={addAdminSendInvite}
-                onChange={(e) => setAddAdminSendInvite(e.target.checked)}
-                disabled={addAdminSubmitting}
-                sx={{
-                  color: ip.navy,
-                  pt: 0.25,
-                  '&.Mui-checked': { color: ip.navy },
-                }}
-              />
-            }
-            label={
-              <Typography sx={{ color: ip.heading, fontSize: '0.9rem', lineHeight: 1.45, pt: 0.25 }}>
-                Send account setup invitation email now
-              </Typography>
-            }
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>

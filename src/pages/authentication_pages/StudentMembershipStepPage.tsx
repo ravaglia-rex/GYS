@@ -7,6 +7,7 @@ import {
   formatInrFromPaise,
   MEMBERSHIP_LEVEL_LABEL,
   normalizeStudentMembershipLevel,
+  schoolIncludedMembershipDraftFields,
   studentMembershipUpgradeAmountPaise,
 } from '../../utils/studentMembershipPricing';
 import { mergeSignupState, writeSignupDraft } from '../../utils/studentSignupDraft';
@@ -68,6 +69,18 @@ const StudentMembershipStepPage: React.FC = () => {
   const [showComparison, setShowComparison] = useState(true);
   const [isContinuing, setIsContinuing] = useState(false);
 
+  // School-invited students skip package selection; assign the school's included package.
+  useEffect(() => {
+    if (effectiveCoveredLevel < 1) return;
+    const base = mergeSignupState(location.state) as Record<string, unknown>;
+    const nextState = {
+      ...base,
+      ...schoolIncludedMembershipDraftFields(effectiveCoveredLevel as 1 | 2 | 3 | 4),
+    };
+    writeSignupDraft(nextState);
+    navigate('/students/register/payment', { state: nextState, replace: true });
+  }, [effectiveCoveredLevel, location.state, navigate]);
+
   useEffect(() => {
     if (
       effectiveCoveredLevel >= 1 &&
@@ -80,6 +93,10 @@ const StudentMembershipStepPage: React.FC = () => {
   const { requestLeave } = useStudentSignupExit();
 
   useStudentSignupExitGuard(true);
+
+  if (effectiveCoveredLevel >= 1) {
+    return null;
+  }
 
   const levels = [
     {
