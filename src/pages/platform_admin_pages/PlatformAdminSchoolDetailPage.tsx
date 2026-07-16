@@ -50,7 +50,6 @@ import {
   updatePlatformAdminSchoolBilling,
   invitePlatformAdminSchoolAdmin,
   addPlatformAdminSchoolAdmin,
-  removePlatformAdminSchoolAdmin,
   deletePlatformAdminSchoolContact,
   importPlatformAdminStudentRegistrationEmails,
   PLATFORM_ADMIN_PAYMENT_METHOD_LABELS,
@@ -92,8 +91,25 @@ import {
   SCHOOL_INSTITUTIONAL_BASE_INR,
   type RegisterPlanId,
 } from '../../utils/schoolRegistrationPlans';
-import { parseEmailsFromBulkText } from '../../utils/schoolAdminRosterUtils';
 import { isPlatformAdminTestSchool } from './platformAdminTestSchools';
+
+/** Local copy avoids pulling school-admin roster utils into this lazy chunk. */
+function parseEmailsFromBulkText(text: string): string[] {
+  const parts = text
+    .split(/[\n\r,;]+/g)
+    .map((s) => s.trim().replace(/^["']|["']$/g, ''))
+    .filter(Boolean);
+  const seen = new Set<string>();
+  const out: string[] = [];
+  const simple = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  for (const p of parts) {
+    const n = p.toLowerCase();
+    if (!simple.test(n) || seen.has(n)) continue;
+    seen.add(n);
+    out.push(n);
+  }
+  return out;
+}
 
 const PAYMENT_METHODS = Object.keys(PLATFORM_ADMIN_PAYMENT_METHOD_LABELS) as PlatformAdminMarkSchoolPaidMethod[];
 
@@ -170,7 +186,7 @@ function defaultPaymentMethod(school: PlatformAdminSchoolDetail): PlatformAdminM
   return 'wire';
 }
 
-const PlatformAdminSchoolDetailPage: React.FC = () => {
+function PlatformAdminSchoolDetailPage() {
   const { schoolId } = useParams<{ schoolId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -209,7 +225,6 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [inviteBusyEmail, setInviteBusyEmail] = useState<string | null>(null);
-  const [removeBusyEmail, setRemoveBusyEmail] = useState<string | null>(null);
   const [deleteContactEmail, setDeleteContactEmail] = useState<string | null>(null);
   const [deleteContactSubmitting, setDeleteContactSubmitting] = useState(false);
   const [deleteContactError, setDeleteContactError] = useState<string | null>(null);
@@ -351,34 +366,6 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
     }
   };
 
-  /** Promote a registration contact to school admin and send the same setup-invitation email. */
-  const handleInviteContactAsAdmin = async (email: string) => {
-    if (!schoolId) return;
-    setInviteBusyEmail(email);
-    setError(null);
-    setSuccessMessage(null);
-    try {
-      const result = await addPlatformAdminSchoolAdmin(schoolId, {
-        email,
-        send_invite: true,
-      });
-      if (result.warning) {
-        setSuccessMessage(result.warning);
-      } else if (result.invited) {
-        setSuccessMessage(
-          `Added ${result.email} as school admin and sent setup invitation. The link is valid for about 1 hour; you can resend anytime.`
-        );
-      } else {
-        setSuccessMessage(`Added ${result.email} as school admin.`);
-      }
-      await load();
-    } catch (e: unknown) {
-      setError(apiErrorMessage(e, 'Failed to invite school admin.'));
-    } finally {
-      setInviteBusyEmail(null);
-    }
-  };
-
   const handleAddAdmin = async () => {
     if (!schoolId) return;
     const email = addAdminEmail.trim().toLowerCase();
@@ -419,22 +406,6 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
     }
   };
 
-  const handleRemoveAdmin = async (email: string) => {
-    if (!schoolId) return;
-    setRemoveBusyEmail(email);
-    setError(null);
-    setSuccessMessage(null);
-    try {
-      await removePlatformAdminSchoolAdmin(schoolId, email);
-      setSuccessMessage(`Removed admin access for ${email}.`);
-      await load();
-    } catch (e: unknown) {
-      setError(apiErrorMessage(e, 'Failed to remove school admin.'));
-    } finally {
-      setRemoveBusyEmail(null);
-    }
-  };
-
   const openDeleteContactDialog = (email: string) => {
     setDeleteContactEmail(email);
     setDeleteContactError(null);
@@ -453,11 +424,11 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
         : result.auth_skipped
           ? ' Firebase login kept (linked to a student, another school, or platform admin).'
           : '';
-      setSuccessMessage(`Deleted ${result.email} from this school.${authNote}`);
+      setSuccessMessage(`Deleted school admin ${result.email}.${authNote}`);
       setDeleteContactEmail(null);
       await load();
     } catch (e: unknown) {
-      setDeleteContactError(apiErrorMessage(e, 'Failed to delete school contact.'));
+      setDeleteContactError(apiErrorMessage(e, 'Failed to delete school admin.'));
     } finally {
       setDeleteContactSubmitting(false);
     }
@@ -975,24 +946,22 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
                     {registrant.name || 'Unknown'}
                   </Box>
                   {registrant.designation ? ` (${registrant.designation})` : ''}.
-                  {' '}Invite the primary POC or any contact who has not finished account setup — same
+                  {' '}Invite any school admin who has not finished account setup — same
                   password-setup link as when you add a new admin.
                 </>
               ) : (
-                'Contact emails on file, dashboard admin access, and whether each person created a login. Invite anyone who still needs to set up their account.'
+                'School admins on file and whether each person created a login. Invite anyone who still needs to set up their account.'
               )}
             </Typography>
             {pocAccounts.length === 0 ? (
               <Typography variant="body2" sx={{ color: ip.subtext }}>
-                No contact emails on file.
+                No school admins on file.
               </Typography>
             ) : (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                 {pocAccounts.filter((poc) => poc && poc.email).map((poc) => {
-                  const isAdmin = poc.is_primary || poc.is_admin;
                   const needsSetupInvite = !poc.setup_complete;
                   const inviteBusy = inviteBusyEmail === poc.email;
-                  const removeBusy = removeBusyEmail === poc.email;
                   return (
                     <Box
                       key={poc.email}
@@ -1024,11 +993,8 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
                           {poc.email}
                         </Typography>
                         {poc.is_primary && <PlatformAdminChip label="Primary POC" tone="info" />}
-                        {!poc.is_primary && isAdmin && (
+                        {!poc.is_primary && (
                           <PlatformAdminChip label="School admin" tone="info" />
-                        )}
-                        {!isAdmin && (
-                          <PlatformAdminChip label="Contact only" tone="neutral" />
                         )}
                         <PlatformAdminChip
                           label={poc.account_created ? 'Account created' : 'No account yet'}
@@ -1045,7 +1011,7 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
                         Last sign-in: {formatDate(poc.last_sign_in_at)}
                       </Typography>
                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1.5 }}>
-                        {isAdmin && needsSetupInvite ? (
+                        {needsSetupInvite ? (
                           <Button
                             size="small"
                             variant="contained"
@@ -1072,74 +1038,19 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
                                 ? 'Resend setup email'
                                 : 'Invite to create account'}
                           </Button>
-                        ) : !isAdmin && needsSetupInvite ? (
-                          <Button
-                            size="small"
-                            variant="contained"
-                            startIcon={
-                              inviteBusy ? (
-                                <CircularProgress size={14} color="inherit" />
-                              ) : (
-                                <InviteIcon fontSize="small" />
-                              )
-                            }
-                            disabled={Boolean(inviteBusyEmail) || !school?.payment_satisfied}
-                            onClick={() => void handleInviteContactAsAdmin(poc.email)}
-                            sx={{
-                              ...platformAdminPrimaryButtonSx,
-                              textTransform: 'none',
-                              fontWeight: 600,
-                              minWidth: 0,
-                              px: 1.5,
-                            }}
-                          >
-                            {inviteBusy ? 'Sending…' : 'Invite as school admin'}
-                          </Button>
-                        ) : !isAdmin ? (
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            startIcon={<AddAdminIcon fontSize="small" />}
-                            disabled={addAdminSubmitting || Boolean(inviteBusyEmail)}
-                            onClick={() => {
-                              setAddAdminEmail(poc.email);
-                              setAddAdminSendInvite(true);
-                              setAddAdminError(null);
-                              setAddAdminOpen(true);
-                            }}
-                            sx={platformAdminOutlinedButtonSx}
-                          >
-                            Make school admin
-                          </Button>
                         ) : null}
-                        {!poc.is_primary && isAdmin && (
-                          <Button
-                            size="small"
-                            variant="text"
-                            disabled={Boolean(removeBusyEmail) || deleteContactSubmitting}
-                            onClick={() => void handleRemoveAdmin(poc.email)}
-                            startIcon={
-                              removeBusy ? <CircularProgress size={14} color="inherit" /> : undefined
-                            }
-                            sx={platformAdminDangerTextButtonSx}
-                          >
-                            {removeBusy ? 'Removing…' : 'Remove admin'}
-                          </Button>
-                        )}
                         {isSuperAdmin && !poc.is_primary && (
                           <Button
                             size="small"
                             variant="text"
                             disabled={
-                              Boolean(removeBusyEmail) ||
-                              deleteContactSubmitting ||
-                              deleteContactEmail === poc.email
+                              deleteContactSubmitting || deleteContactEmail === poc.email
                             }
                             onClick={() => openDeleteContactDialog(poc.email)}
                             startIcon={<DeleteIcon fontSize="small" />}
                             sx={platformAdminDangerTextButtonSx}
                           >
-                            Delete contact
+                            Delete admin
                           </Button>
                         )}
                       </Box>
@@ -1997,7 +1908,7 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
         maxWidth="sm"
         PaperProps={{ sx: platformAdminDialogPaperSx }}
       >
-        <DialogTitle sx={{ fontWeight: 700, color: '#991b1b' }}>Delete contact completely?</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700, color: '#991b1b' }}>Delete school admin?</DialogTitle>
         <DialogContent>
           {deleteContactError && (
             <Alert severity="error" sx={{ mb: 2 }} onClose={() => setDeleteContactError(null)}>
@@ -2005,14 +1916,10 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
             </Alert>
           )}
           <Alert severity="warning" sx={{ mb: 2 }}>
-            This removes <strong>{deleteContactEmail}</strong> from this school&apos;s admin and contact
-            lists. Their Firebase login is deleted when they are not also a student, platform admin, or
-            linked to another school.
+            This removes <strong>{deleteContactEmail}</strong> from this school&apos;s admin list and
+            revokes dashboard access. Their Firebase login is deleted when they are not also a student,
+            platform admin, or linked to another school.
           </Alert>
-          <Typography variant="body2" sx={{ color: ip.subtext, lineHeight: 1.55 }}>
-            Use <strong>Remove admin</strong> if you only want to revoke dashboard access and keep them
-            as a contact.
-          </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
           <Button
@@ -2040,13 +1947,13 @@ const PlatformAdminSchoolDetailPage: React.FC = () => {
               '&:hover': { bgcolor: '#991b1b' },
             }}
           >
-            {deleteContactSubmitting ? 'Deleting…' : 'Delete contact'}
+            {deleteContactSubmitting ? 'Deleting…' : 'Delete admin'}
           </Button>
         </DialogActions>
       </Dialog>
     </Box>
   );
-};
+}
 
 function DetailRow({
   label,
