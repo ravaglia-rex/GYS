@@ -40,8 +40,8 @@ const StudentWelcomePage: React.FC = () => {
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-md flex-col px-4 pb-12 pt-8 sm:px-6">
-        <section className="rounded-3xl bg-white p-6 sm:p-8 shadow-md ring-1 ring-slate-100">
+      <main className="mx-auto flex w-full max-w-2xl flex-col px-4 pb-12 pt-8 sm:px-6">
+        <section className="rounded-3xl bg-white p-6 sm:p-10 shadow-md ring-1 ring-slate-100">
           <div className="flex justify-center">
             <span className="text-4xl" aria-hidden="true">
               🎉
@@ -50,27 +50,27 @@ const StudentWelcomePage: React.FC = () => {
           <h2 className="mt-4 text-center text-2xl sm:text-3xl font-semibold text-slate-900">
             Setup complete
           </h2>
-          <p className="mt-2 text-center text-sm sm:text-base text-slate-600">
+          <p className="mt-3 mx-auto max-w-xl text-center text-sm sm:text-base leading-relaxed text-slate-600">
             Your {membershipName} membership is ready. We&apos;ve sent an email with your account
             confirmation, payment details if applicable, and a secure link to set your password.
             Please check your spam folder and mark the email as not spam if it lands there.
           </p>
 
-          <div className="mt-5 rounded-2xl bg-sky-50 px-4 py-4 sm:px-5 sm:py-5">
+          <div className="mt-6 rounded-2xl bg-sky-50 px-5 py-5 sm:px-6 sm:py-6">
             <p className="text-xs sm:text-sm font-semibold text-slate-800 mb-3">
               Next steps
             </p>
-            <ul className="space-y-1.5 text-sm sm:text-base text-slate-800">
-              <li className="flex items-center gap-2">
-                <span aria-hidden="true">1.</span>
+            <ul className="space-y-2 text-sm sm:text-base text-slate-800">
+              <li className="flex items-start gap-2.5">
+                <span className="shrink-0" aria-hidden="true">1.</span>
                 <span>Open the email we sent to your registered email address.</span>
               </li>
-              <li className="flex items-center gap-2">
-                <span aria-hidden="true">2.</span>
+              <li className="flex items-start gap-2.5">
+                <span className="shrink-0" aria-hidden="true">2.</span>
                 <span>Use the secure password setup link to create your password.</span>
               </li>
-              <li className="flex items-center gap-2">
-                <span aria-hidden="true">3.</span>
+              <li className="flex items-start gap-2.5">
+                <span className="shrink-0" aria-hidden="true">3.</span>
                 <span>Sign in and start using your student dashboard.</span>
               </li>
             </ul>

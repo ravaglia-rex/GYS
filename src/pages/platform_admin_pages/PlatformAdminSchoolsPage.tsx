@@ -367,13 +367,20 @@ const PlatformAdminSchoolsPage: React.FC = () => {
               }}
             />
 
-            <Box sx={platformAdminFilterToolbarRowSx}>
+            <Box
+              sx={{
+                ...platformAdminFilterToolbarRowSx,
+                width: '100%',
+                flexWrap: { xs: 'wrap', md: 'nowrap' },
+              }}
+            >
               <PlatformAdminFilterControl
                 id="schools-payment-filter"
                 label="Payment"
                 value={paymentFilter}
                 labels={PAYMENT_LABELS}
                 minWidth={176}
+                fullWidth
                 onChange={setPaymentFilter}
               />
 
@@ -383,6 +390,7 @@ const PlatformAdminSchoolsPage: React.FC = () => {
                 value={payeeFilter}
                 labels={PAYEE_LABELS}
                 minWidth={168}
+                fullWidth
                 onChange={setPayeeFilter}
               />
 
@@ -392,6 +400,7 @@ const PlatformAdminSchoolsPage: React.FC = () => {
                 value={verifiedFilter}
                 labels={POC_LABELS}
                 minWidth={168}
+                fullWidth
                 onChange={setVerifiedFilter}
               />
 
@@ -401,6 +410,7 @@ const PlatformAdminSchoolsPage: React.FC = () => {
                 value={planFilter}
                 labels={PLAN_LABELS}
                 minWidth={148}
+                fullWidth
                 onChange={setPlanFilter}
               />
 
@@ -410,7 +420,7 @@ const PlatformAdminSchoolsPage: React.FC = () => {
                   variant="outlined"
                   onClick={clearFilters}
                   startIcon={<CloseIcon sx={{ fontSize: 16 }} />}
-                  sx={platformAdminClearFiltersButtonSx}
+                  sx={{ ...platformAdminClearFiltersButtonSx, flexShrink: 0 }}
                 >
                   Clear
                 </Button>

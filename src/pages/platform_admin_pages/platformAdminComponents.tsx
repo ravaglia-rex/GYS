@@ -215,6 +215,7 @@ export function PlatformAdminFilterControl<T extends string>({
   minWidth,
   onChange,
   disabled = false,
+  fullWidth = false,
 }: {
   id: string;
   label: string;
@@ -223,6 +224,8 @@ export function PlatformAdminFilterControl<T extends string>({
   minWidth: number;
   onChange: (value: T) => void;
   disabled?: boolean;
+  /** Stretch select to fill available row space. */
+  fullWidth?: boolean;
 }) {
   return (
     <Box
@@ -231,7 +234,9 @@ export function PlatformAdminFilterControl<T extends string>({
         alignItems: 'center',
         gap: 1,
         height: PLATFORM_ADMIN_TOOLBAR_H,
-        flexShrink: 0,
+        ...(fullWidth
+          ? { flex: '1 1 0', minWidth: Math.min(minWidth, 140), width: '100%' }
+          : { flexShrink: 0 }),
       }}
     >
       <Typography
@@ -243,6 +248,7 @@ export function PlatformAdminFilterControl<T extends string>({
           lineHeight: 1,
           display: 'flex',
           alignItems: 'center',
+          flexShrink: 0,
           color: disabled ? ip.subtext : platformAdminFilterLabelSx.color,
         }}
       >
@@ -256,7 +262,10 @@ export function PlatformAdminFilterControl<T extends string>({
         onChange={(e) => onChange(e.target.value as T)}
         renderValue={(v) => labels[v as T]}
         MenuProps={{ PaperProps: { sx: platformAdminSelectMenuPaperSx } }}
-        sx={platformAdminFilterSelectSx(minWidth)}
+        sx={{
+          ...platformAdminFilterSelectSx(minWidth),
+          ...(fullWidth ? { width: '100%', minWidth: 0, maxWidth: 'none', flex: 1 } : null),
+        }}
       >
         {(Object.keys(labels) as T[]).map((key) => (
           <MenuItem key={key} value={key}>
