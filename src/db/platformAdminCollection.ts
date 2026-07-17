@@ -77,6 +77,29 @@ export type PlatformAdminNotification = {
   created_at: string | null;
 };
 
+/** Who received the school payment. Null when unpaid / not yet attributed. */
+export type PlatformAdminSchoolPaymentPayee = 'education_world' | 'argus';
+
+export const PLATFORM_ADMIN_PAYMENT_PAYEE_LABELS: Record<PlatformAdminSchoolPaymentPayee, string> = {
+  education_world: 'Education World',
+  argus: 'Argus',
+};
+
+/** Education World if method is paid_to_education_world; otherwise Argus when payment is captured. */
+export function resolvePlatformAdminSchoolPaymentPayee(params: {
+  payment_method: string | null | undefined;
+  payment_satisfied: boolean;
+  payment_payee?: PlatformAdminSchoolPaymentPayee | null;
+}): PlatformAdminSchoolPaymentPayee | null {
+  if (params.payment_payee === 'education_world' || params.payment_payee === 'argus') {
+    return params.payment_payee;
+  }
+  const method = (params.payment_method ?? '').trim().toLowerCase();
+  if (method === 'paid_to_education_world') return 'education_world';
+  if (params.payment_satisfied) return 'argus';
+  return null;
+}
+
 export type PlatformAdminSchoolSummary = {
   id: string;
   school_name: string;
@@ -86,6 +109,8 @@ export type PlatformAdminSchoolSummary = {
   payment_method: string | null;
   payment_captured: string | null;
   payment_satisfied: boolean;
+  /** Present when payment is attributed: Education World vs Argus. */
+  payment_payee?: PlatformAdminSchoolPaymentPayee | null;
   selected_plan_id: string | null;
   registered_plan_id: string | null;
   subscription_plan: string | null;
@@ -344,6 +369,8 @@ export async function markAllPlatformAdminNotificationsRead(): Promise<void> {
 
 export async function listPlatformAdminSchools(params?: {
   payment?: 'paid' | 'pending' | 'wire';
+  /** Filter by who received payment: Education World vs Argus. */
+  payee?: PlatformAdminSchoolPaymentPayee;
   verified?: 'yes' | 'no';
   plan?: 'entry' | 'standard' | 'premium';
   search?: string;
@@ -439,6 +466,8 @@ export async function markPlatformAdminSchoolPaid(
     transaction_reference?: string;
     admin_note?: string;
     send_confirmation_email?: boolean;
+    /** Include invoice PDF attachment when sending confirmation email. Defaults to true. */
+    attach_invoice?: boolean;
   }
 ): Promise<{ paymentId: string; invoiceNumber: string; publicReference: string }> {
   const headers = await authHeaders();

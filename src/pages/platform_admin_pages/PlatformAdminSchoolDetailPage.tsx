@@ -53,6 +53,8 @@ import {
   deletePlatformAdminSchoolContact,
   importPlatformAdminStudentRegistrationEmails,
   PLATFORM_ADMIN_PAYMENT_METHOD_LABELS,
+  PLATFORM_ADMIN_PAYMENT_PAYEE_LABELS,
+  resolvePlatformAdminSchoolPaymentPayee,
   type PlatformAdminMarkSchoolPaidMethod,
   type PlatformAdminEmailActivityRow,
   type PlatformAdminPaymentHistoryItem,
@@ -212,6 +214,7 @@ function PlatformAdminSchoolDetailPage() {
   const [razorpayPaymentId, setRazorpayPaymentId] = useState('');
   const [adminNote, setAdminNote] = useState('');
   const [sendConfirmationEmail, setSendConfirmationEmail] = useState(true);
+  const [attachInvoice, setAttachInvoice] = useState(true);
   const [paidPlanId, setPaidPlanId] = useState<RegisterPlanId | ''>('');
   const [billingOpen, setBillingOpen] = useState(false);
   const [billingPlanId, setBillingPlanId] = useState<RegisterPlanId | ''>('');
@@ -286,6 +289,7 @@ function PlatformAdminSchoolDetailPage() {
     setRazorpayPaymentId('');
     setAdminNote('');
     setSendConfirmationEmail(true);
+    setAttachInvoice(true);
     setPaidPlanId(resolveSchoolPlanId(school) || resolveRegisteredPlanId(school) || '');
     setMarkPaidOpen(true);
     const next = new URLSearchParams(searchParams);
@@ -441,6 +445,7 @@ function PlatformAdminSchoolDetailPage() {
     setRazorpayPaymentId('');
     setAdminNote('');
     setSendConfirmationEmail(true);
+    setAttachInvoice(true);
     setPaidPlanId(resolveSchoolPlanId(school) || resolveRegisteredPlanId(school) || '');
     setMarkPaidOpen(true);
   };
@@ -575,11 +580,16 @@ function PlatformAdminSchoolDetailPage() {
         transaction_reference: transactionReference.trim() || undefined,
         admin_note: adminNote.trim() || undefined,
         send_confirmation_email: sendConfirmationEmail,
+        attach_invoice: sendConfirmationEmail && attachInvoice,
       });
       setMarkPaidOpen(false);
       setSuccessMessage(
         `School marked as paid. Invoice ${result.invoiceNumber}.` +
-          (sendConfirmationEmail ? ' Confirmation email queued.' : '')
+          (sendConfirmationEmail
+            ? attachInvoice
+              ? ' Confirmation email + invoice queued.'
+              : ' Confirmation email queued (no invoice attached).'
+            : '')
       );
       await load();
     } catch (e: unknown) {
@@ -638,6 +648,7 @@ function PlatformAdminSchoolDetailPage() {
   }
 
   const canMarkPaid = isSuperAdmin && !school.payment_satisfied;
+  const paymentPayee = resolvePlatformAdminSchoolPaymentPayee(school);
   const registeredPlanId = resolveRegisteredPlanId(school);
   const effectivePlanId = resolveSchoolPlanId(school);
   const paidAmountLabel = formatInrFromPaise(school.paid_amount_paise);
@@ -673,6 +684,12 @@ function PlatformAdminSchoolDetailPage() {
             </Typography>
             {isPlatformAdminTestSchool(school.id) && (
               <PlatformAdminChip label="Test" tone="info" />
+            )}
+            {paymentPayee && (
+              <PlatformAdminChip
+                label={`Paid to ${PLATFORM_ADMIN_PAYMENT_PAYEE_LABELS[paymentPayee]}`}
+                tone={paymentPayee === 'education_world' ? 'warning' : 'info'}
+              />
             )}
           </Box>
           <Typography variant="body2" sx={{ color: ip.subtext }}>
@@ -747,7 +764,11 @@ function PlatformAdminSchoolDetailPage() {
 
       {school.payment_satisfied && (
         <Alert severity="success" sx={{ mb: 2 }}>
-          Payment is already captured{school.paid_at ? ` (${formatDate(school.paid_at)})` : ''}.
+          Payment is already captured{school.paid_at ? ` (${formatDate(school.paid_at)})` : ''}
+          {paymentPayee
+            ? ` — paid to ${PLATFORM_ADMIN_PAYMENT_PAYEE_LABELS[paymentPayee]}`
+            : ''}
+          .
         </Alert>
       )}
 
@@ -768,6 +789,18 @@ function PlatformAdminSchoolDetailPage() {
                 label={formatPaymentStatusLabel(school.payment_status)}
                 tone={paymentStatusChipTone(school.payment_status)}
               />
+            </DetailRow>
+            <DetailRow label="Paid to">
+              {paymentPayee ? (
+                <PlatformAdminChip
+                  label={PLATFORM_ADMIN_PAYMENT_PAYEE_LABELS[paymentPayee]}
+                  tone={paymentPayee === 'education_world' ? 'warning' : 'info'}
+                />
+              ) : (
+                <Typography component="span" sx={{ color: ip.subtext, fontSize: '0.9rem' }}>
+                  —
+                </Typography>
+              )}
             </DetailRow>
             <DetailRow
               label="Payment method"
@@ -1423,6 +1456,9 @@ function PlatformAdminSchoolDetailPage() {
                 pt: 2,
                 mt: 0.5,
                 borderTop: `1px solid ${ip.cardBorder}`,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 0.5,
               }}
             >
               <FormControlLabel
@@ -1430,7 +1466,11 @@ function PlatformAdminSchoolDetailPage() {
                 control={
                   <Checkbox
                     checked={sendConfirmationEmail}
-                    onChange={(e) => setSendConfirmationEmail(e.target.checked)}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setSendConfirmationEmail(checked);
+                      setAttachInvoice(checked);
+                    }}
                     sx={{
                       color: ip.navy,
                       pt: 0.25,
@@ -1440,7 +1480,34 @@ function PlatformAdminSchoolDetailPage() {
                 }
                 label={
                   <Typography sx={{ color: ip.heading, fontSize: '0.9rem', lineHeight: 1.45, pt: 0.25 }}>
-                    Send payment confirmation email + invoice to school contacts
+                    Send payment confirmation email to school contacts
+                  </Typography>
+                }
+              />
+              <FormControlLabel
+                sx={{ alignItems: 'flex-start', ml: 0, mr: 0 }}
+                control={
+                  <Checkbox
+                    checked={attachInvoice}
+                    disabled={!sendConfirmationEmail}
+                    onChange={(e) => setAttachInvoice(e.target.checked)}
+                    sx={{
+                      color: ip.navy,
+                      pt: 0.25,
+                      '&.Mui-checked': { color: ip.navy },
+                    }}
+                  />
+                }
+                label={
+                  <Typography
+                    sx={{
+                      color: sendConfirmationEmail ? ip.heading : ip.subtext,
+                      fontSize: '0.9rem',
+                      lineHeight: 1.45,
+                      pt: 0.25,
+                    }}
+                  >
+                    Attach invoice PDF to the email
                   </Typography>
                 }
               />

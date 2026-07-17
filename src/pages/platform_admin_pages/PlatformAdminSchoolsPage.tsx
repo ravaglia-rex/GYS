@@ -34,6 +34,8 @@ import {
   getPlatformAdminOverview,
   listPlatformAdminSchools,
   formatInrFromPaise,
+  resolvePlatformAdminSchoolPaymentPayee,
+  PLATFORM_ADMIN_PAYMENT_PAYEE_LABELS,
   type PlatformAdminOverviewStats,
   type PlatformAdminSchoolSummary,
 } from '../../db/platformAdminCollection';
@@ -62,6 +64,7 @@ import {
 import { isPlatformAdminTestSchool } from './platformAdminTestSchools';
 
 type PaymentFilter = 'all' | 'paid' | 'pending' | 'wire';
+type PayeeFilter = 'all' | 'education_world' | 'argus';
 type VerifiedFilter = 'all' | 'yes' | 'no';
 type PlanFilter = 'all' | 'entry' | 'standard' | 'premium';
 
@@ -70,6 +73,12 @@ const PAYMENT_LABELS: Record<PaymentFilter, string> = {
   paid: 'Paid',
   pending: 'Unpaid',
   wire: 'Wire capture needed',
+};
+
+const PAYEE_LABELS: Record<PayeeFilter, string> = {
+  all: 'All payees',
+  education_world: 'Education World',
+  argus: 'Argus',
 };
 
 const POC_LABELS: Record<VerifiedFilter, string> = {
@@ -90,6 +99,7 @@ const PlatformAdminSchoolsPage: React.FC = () => {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialPayment = (searchParams.get('filter') as PaymentFilter) || 'all';
+  const initialPayee = (searchParams.get('payee') as PayeeFilter) || 'all';
   const initialVerified = (searchParams.get('verified') as VerifiedFilter) || 'all';
   const initialPlan = (searchParams.get('plan') as PlanFilter) || 'all';
 
@@ -100,6 +110,9 @@ const PlatformAdminSchoolsPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>(
     ['all', 'paid', 'pending', 'wire'].includes(initialPayment) ? initialPayment : 'all'
+  );
+  const [payeeFilter, setPayeeFilter] = useState<PayeeFilter>(
+    ['all', 'education_world', 'argus'].includes(initialPayee) ? initialPayee : 'all'
   );
   const [verifiedFilter, setVerifiedFilter] = useState<VerifiedFilter>(
     ['all', 'yes', 'no'].includes(initialVerified) ? initialVerified : 'all'
@@ -116,11 +129,16 @@ const PlatformAdminSchoolsPage: React.FC = () => {
       : null;
 
   const hasActiveFilters =
-    paymentFilter !== 'all' || verifiedFilter !== 'all' || planFilter !== 'all' || search.trim().length > 0;
+    paymentFilter !== 'all' ||
+    payeeFilter !== 'all' ||
+    verifiedFilter !== 'all' ||
+    planFilter !== 'all' ||
+    search.trim().length > 0;
 
   const clearFilters = () => {
     setSearch('');
     setPaymentFilter('all');
+    setPayeeFilter('all');
     setVerifiedFilter('all');
     setPlanFilter('all');
   };
@@ -128,10 +146,11 @@ const PlatformAdminSchoolsPage: React.FC = () => {
   useEffect(() => {
     const params = new URLSearchParams();
     if (paymentFilter !== 'all') params.set('filter', paymentFilter);
+    if (payeeFilter !== 'all') params.set('payee', payeeFilter);
     if (verifiedFilter !== 'all') params.set('verified', verifiedFilter);
     if (planFilter !== 'all') params.set('plan', planFilter);
     setSearchParams(params, { replace: true });
-  }, [paymentFilter, verifiedFilter, planFilter, setSearchParams]);
+  }, [paymentFilter, payeeFilter, verifiedFilter, planFilter, setSearchParams]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -140,6 +159,7 @@ const PlatformAdminSchoolsPage: React.FC = () => {
       const [data, overview] = await Promise.all([
         listPlatformAdminSchools({
           payment: paymentFilter === 'all' ? undefined : paymentFilter,
+          payee: payeeFilter === 'all' ? undefined : payeeFilter,
           verified: verifiedFilter === 'all' ? undefined : verifiedFilter,
           plan: planFilter === 'all' ? undefined : planFilter,
           search: search.trim() || undefined,
@@ -154,7 +174,7 @@ const PlatformAdminSchoolsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [paymentFilter, verifiedFilter, planFilter, search]);
+  }, [paymentFilter, payeeFilter, verifiedFilter, planFilter, search]);
 
   useEffect(() => {
     const timer = setTimeout(load, search ? 300 : 0);
@@ -190,6 +210,13 @@ const PlatformAdminSchoolsPage: React.FC = () => {
         onDelete: () => setPaymentFilter('all'),
       });
     }
+    if (payeeFilter !== 'all') {
+      chips.push({
+        key: 'payee',
+        label: `Paid to ${PAYEE_LABELS[payeeFilter]}`,
+        onDelete: () => setPayeeFilter('all'),
+      });
+    }
     if (verifiedFilter !== 'all') {
       chips.push({
         key: 'poc',
@@ -212,7 +239,7 @@ const PlatformAdminSchoolsPage: React.FC = () => {
       });
     }
     return chips;
-  }, [paymentFilter, verifiedFilter, planFilter, search]);
+  }, [paymentFilter, payeeFilter, verifiedFilter, planFilter, search]);
 
   return (
     <Box sx={platformAdminPageContainerSx}>
@@ -277,6 +304,7 @@ const PlatformAdminSchoolsPage: React.FC = () => {
             accent={ip.approveGreen}
             onClick={() => {
               setPaymentFilter('paid');
+              setPayeeFilter('all');
               setVerifiedFilter('all');
               setPlanFilter('all');
               setSearch('');
@@ -290,6 +318,7 @@ const PlatformAdminSchoolsPage: React.FC = () => {
             accent="#d97706"
             onClick={() => {
               setPaymentFilter('pending');
+              setPayeeFilter('all');
               setVerifiedFilter('all');
               setPlanFilter('all');
               setSearch('');
@@ -308,6 +337,7 @@ const PlatformAdminSchoolsPage: React.FC = () => {
             onClick={() => {
               setVerifiedFilter('yes');
               setPaymentFilter('all');
+              setPayeeFilter('all');
               setPlanFilter('all');
               setSearch('');
             }}
@@ -351,6 +381,15 @@ const PlatformAdminSchoolsPage: React.FC = () => {
               labels={PAYMENT_LABELS}
               minWidth={176}
               onChange={setPaymentFilter}
+            />
+
+            <PlatformAdminFilterControl
+              id="schools-payee-filter"
+              label="Paid to"
+              value={payeeFilter}
+              labels={PAYEE_LABELS}
+              minWidth={168}
+              onChange={setPayeeFilter}
             />
 
             <PlatformAdminFilterControl
@@ -530,10 +569,22 @@ const PlatformAdminSchoolsPage: React.FC = () => {
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <PlatformAdminChip
-                          label={formatPaymentStatusLabel(school.payment_status)}
-                          tone={paymentStatusChipTone(school.payment_status)}
-                        />
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 0.5 }}>
+                          <PlatformAdminChip
+                            label={formatPaymentStatusLabel(school.payment_status)}
+                            tone={paymentStatusChipTone(school.payment_status)}
+                          />
+                          {(() => {
+                            const payee = resolvePlatformAdminSchoolPaymentPayee(school);
+                            if (!payee) return null;
+                            return (
+                              <PlatformAdminChip
+                                label={PLATFORM_ADMIN_PAYMENT_PAYEE_LABELS[payee]}
+                                tone={payee === 'education_world' ? 'warning' : 'info'}
+                              />
+                            );
+                          })()}
+                        </Box>
                       </TableCell>
                       <TableCell>
                         <PlatformAdminChip
