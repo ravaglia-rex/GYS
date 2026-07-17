@@ -276,7 +276,7 @@ const PlatformAdminAdminsPage: React.FC = () => {
         </Box>
       ) : (
         <TableContainer sx={platformAdminTablePaperSx}>
-          <Table sx={platformAdminTableSx} size="small">
+          <Table sx={{ ...platformAdminTableSx, minWidth: 980 }} size="small">
             <TableHead>
               <TableRow sx={platformAdminTableHeadRowSx}>
                 <TableCell>Name</TableCell>
@@ -285,8 +285,10 @@ const PlatformAdminAdminsPage: React.FC = () => {
                 <TableCell>Role</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Password</TableCell>
-                <TableCell>Updated</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableCell sx={{ whiteSpace: 'nowrap' }}>Updated</TableCell>
+                <TableCell align="right" sx={{ width: 1, whiteSpace: 'nowrap', pr: 2 }}>
+                  Actions
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -323,15 +325,26 @@ const PlatformAdminAdminsPage: React.FC = () => {
                           tone={admin.password_setup_complete ? 'success' : 'warning'}
                         />
                       </TableCell>
-                      <TableCell>{formatDate(admin.updated_at)}</TableCell>
-                      <TableCell align="right">
-                        <Box sx={{ display: 'inline-flex', gap: 0.25, alignItems: 'center' }}>
+                      <TableCell sx={{ whiteSpace: 'nowrap', color: ip.subtext }}>
+                        {formatDate(admin.updated_at)}
+                      </TableCell>
+                      <TableCell align="right" sx={{ width: 1, whiteSpace: 'nowrap', pr: 2, pl: 1 }}>
+                        <Box
+                          sx={{
+                            display: 'inline-flex',
+                            gap: 0.5,
+                            alignItems: 'center',
+                            justifyContent: 'flex-end',
+                            flexShrink: 0,
+                          }}
+                        >
                           <Tooltip title="Edit name / position">
                             <span>
                               <IconButton
                                 size="small"
                                 onClick={() => openEdit(admin)}
                                 aria-label={`Edit ${admin.email}`}
+                                sx={{ color: ip.navy }}
                               >
                                 <EditIcon fontSize="small" />
                               </IconButton>
@@ -345,6 +358,7 @@ const PlatformAdminAdminsPage: React.FC = () => {
                                   disabled={inviteBusy}
                                   onClick={() => void handleInvite(admin.email)}
                                   aria-label={`Invite ${admin.email}`}
+                                  sx={{ color: ip.navy }}
                                 >
                                   {inviteBusy ? (
                                     <CircularProgress size={16} />
