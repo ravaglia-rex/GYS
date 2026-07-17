@@ -1,14 +1,38 @@
-import React from 'react';
+import React, { useState } from 'react';
 import * as Sentry from '@sentry/react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import EmailEntryForm from '../../components/auth/EmailForm';
+import ExpiredPasswordLinkBanner from '../../components/auth/ExpiredPasswordLinkBanner';
 import LandingSiteFooter from '../../components/layout/LandingSiteFooter';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
+import {
+  isAuthLinkExpiredState,
+  type AuthLinkExpiredFlow,
+  type AuthLinkExpiredLocationState,
+} from './authLinkExpiredState';
 
 const GYS_BLUE = '#1e3a8a';
 
+function resolveExpiredLinkState(location: ReturnType<typeof useLocation>): AuthLinkExpiredLocationState | null {
+  if (isAuthLinkExpiredState(location.state)) return location.state;
+  // Preview: /login?authLinkExpired=1 or &flow=setupPassword
+  const params = new URLSearchParams(location.search);
+  if (params.get('authLinkExpired') !== '1') return null;
+  const flowParam = params.get('flow');
+  const flow: AuthLinkExpiredFlow = flowParam === 'setupPassword' ? 'setupPassword' : 'resetPassword';
+  return { authLinkExpired: true, flow };
+}
+
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const expiredFromLink = resolveExpiredLinkState(location);
+  const [showExpiredBanner, setShowExpiredBanner] = useState(Boolean(expiredFromLink));
+
+  const dismissExpiredBanner = () => {
+    setShowExpiredBanner(false);
+    navigate('/login', { replace: true, state: {} });
+  };
 
   return (
     <Sentry.ErrorBoundary
@@ -57,6 +81,12 @@ const LoginPage: React.FC = () => {
               {/* Auth card  -  appears first on mobile, second on desktop */}
               <section className="flex items-start justify-center order-first sm:order-last">
                 <div className="w-full max-w-md">
+                  {showExpiredBanner && expiredFromLink && (
+                    <ExpiredPasswordLinkBanner
+                      flow={expiredFromLink.flow}
+                      onDismiss={dismissExpiredBanner}
+                    />
+                  )}
                   <EmailEntryForm />
                   <p className="mt-4 text-center text-xs text-slate-600">
                     By continuing, you agree to the exam rules and honor code shared with your school.

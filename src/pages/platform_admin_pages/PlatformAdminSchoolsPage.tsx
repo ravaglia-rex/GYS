@@ -34,8 +34,6 @@ import {
   getPlatformAdminOverview,
   listPlatformAdminSchools,
   formatInrFromPaise,
-  resolvePlatformAdminSchoolPaymentPayee,
-  PLATFORM_ADMIN_PAYMENT_PAYEE_LABELS,
   type PlatformAdminOverviewStats,
   type PlatformAdminSchoolSummary,
 } from '../../db/platformAdminCollection';
@@ -574,22 +572,10 @@ const PlatformAdminSchoolsPage: React.FC = () => {
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 0.5 }}>
-                          <PlatformAdminChip
-                            label={formatPaymentStatusLabel(school.payment_status)}
-                            tone={paymentStatusChipTone(school.payment_status)}
-                          />
-                          {(() => {
-                            const payee = resolvePlatformAdminSchoolPaymentPayee(school);
-                            if (!payee) return null;
-                            return (
-                              <PlatformAdminChip
-                                label={PLATFORM_ADMIN_PAYMENT_PAYEE_LABELS[payee]}
-                                tone={payee === 'education_world' ? 'warning' : 'info'}
-                              />
-                            );
-                          })()}
-                        </Box>
+                        <PlatformAdminChip
+                          label={formatPaymentStatusLabel(school.payment_status)}
+                          tone={paymentStatusChipTone(school.payment_status)}
+                        />
                       </TableCell>
                       <TableCell>
                         <PlatformAdminChip

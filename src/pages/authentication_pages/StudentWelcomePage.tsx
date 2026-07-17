@@ -19,19 +19,19 @@ const StudentWelcomePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <header className="sticky top-0 z-40 bg-white/90 border-b border-gray-200 backdrop-blur">
-        <div className="mx-auto grid w-full max-w-6xl grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 py-4">
+        <div className="mx-auto grid w-full max-w-6xl grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 py-3">
           <div className="flex justify-start">
             <PublicHomeNavButton />
           </div>
           <div className="flex items-center gap-3 justify-center">
             <div
-              className="w-10 h-10 rounded flex items-center justify-center text-white font-bold text-sm shrink-0"
+              className="w-9 h-9 rounded flex items-center justify-center text-white font-bold text-sm shrink-0"
               style={{ backgroundColor: GYS_BLUE }}
             >
               GYS
             </div>
             <div>
-              <h1 className="font-bold text-lg text-gray-900 tracking-tight">
+              <h1 className="font-bold text-base sm:text-lg text-gray-900 tracking-tight">
                 Global Young Scholar
               </h1>
             </div>
@@ -40,46 +40,36 @@ const StudentWelcomePage: React.FC = () => {
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-2xl flex-col px-4 pb-12 pt-8 sm:px-6">
-        <section className="rounded-3xl bg-white p-6 sm:p-10 shadow-md ring-1 ring-slate-100">
+      <main className="mx-auto flex w-full max-w-xl flex-col justify-center px-4 py-6 sm:px-6 sm:py-8">
+        <section className="rounded-2xl bg-white p-5 sm:p-6 shadow-md ring-1 ring-slate-100">
           <div className="flex justify-center">
-            <span className="text-4xl" aria-hidden="true">
+            <span className="text-2xl" aria-hidden="true">
               🎉
             </span>
           </div>
-          <h2 className="mt-4 text-center text-2xl sm:text-3xl font-semibold text-slate-900">
+          <h2 className="mt-2 text-center text-xl sm:text-2xl font-semibold text-slate-900">
             Setup complete
           </h2>
-          <p className="mt-3 mx-auto max-w-xl text-center text-sm sm:text-base leading-relaxed text-slate-600">
-            Your {membershipName} membership is ready. We&apos;ve sent an email with your account
-            confirmation, payment details if applicable, and a secure link to set your password.
-            Please check your spam folder and mark the email as not spam if it lands there.
+          <p className="mt-2 text-center text-sm leading-snug text-slate-600">
+            Your {membershipName} membership is ready. We&apos;ve sent an email with your
+            account confirmation, payment details if applicable, and a secure link to set
+            your password. Please check your spam folder and mark the email as not spam if
+            it lands there.
           </p>
 
-          <div className="mt-6 rounded-2xl bg-sky-50 px-5 py-5 sm:px-6 sm:py-6">
-            <p className="text-xs sm:text-sm font-semibold text-slate-800 mb-3">
-              Next steps
-            </p>
-            <ul className="space-y-2 text-sm sm:text-base text-slate-800">
-              <li className="flex items-start gap-2.5">
-                <span className="shrink-0" aria-hidden="true">1.</span>
-                <span>Open the email we sent to your registered email address.</span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <span className="shrink-0" aria-hidden="true">2.</span>
-                <span>Use the secure password setup link to create your password.</span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <span className="shrink-0" aria-hidden="true">3.</span>
-                <span>Sign in and start using your student dashboard.</span>
-              </li>
-            </ul>
+          <div className="mt-4 rounded-xl bg-sky-50 px-4 py-3">
+            <p className="text-xs font-semibold text-slate-800 mb-1.5">Next steps</p>
+            <ol className="list-decimal space-y-1 pl-4 text-sm text-slate-800">
+              <li>Open the email we sent to your registered email address.</li>
+              <li>Use the secure password setup link to create your password.</li>
+              <li>Sign in and start using your student dashboard.</li>
+            </ol>
           </div>
 
           <button
             type="button"
             onClick={() => navigate('/login')}
-            className="mt-6 inline-flex w-full items-center justify-center rounded-2xl bg-amber-400 px-4 py-3 text-sm sm:text-base font-semibold text-slate-900 shadow-md hover:bg-amber-500 transition-colors duration-200"
+            className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-amber-400 px-4 py-2.5 text-sm font-semibold text-slate-900 shadow-md hover:bg-amber-500 transition-colors duration-200"
           >
             Go to Sign In →
           </button>
@@ -87,7 +77,7 @@ const StudentWelcomePage: React.FC = () => {
           <button
             type="button"
             onClick={() => navigate('/')}
-            className="mt-3 inline-flex w-full items-center justify-center rounded-2xl bg-white px-4 py-3 text-sm sm:text-base font-semibold text-slate-500 hover:bg-slate-50"
+            className="mt-2 inline-flex w-full items-center justify-center px-4 py-1.5 text-sm font-medium text-slate-500 hover:text-slate-700"
           >
             Back to Home
           </button>
@@ -98,4 +88,3 @@ const StudentWelcomePage: React.FC = () => {
 };
 
 export default StudentWelcomePage;
-
