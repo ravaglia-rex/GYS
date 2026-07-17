@@ -347,22 +347,15 @@ const PlatformAdminSchoolsPage: React.FC = () => {
 
       <Card sx={{ ...platformAdminCardSx, mb: 2.5 }}>
         <CardContent sx={{ p: { xs: 2, sm: 2.5 }, '&:last-child': { pb: { xs: 2, sm: 2.5 } } }}>
-          <Box
-            sx={{
-              ...platformAdminFilterToolbarRowSx,
-              mb: activeFilterChips.length > 0 ? 1.5 : 0,
-            }}
-          >
+          <Box sx={{ mb: activeFilterChips.length > 0 ? 1.5 : 0 }}>
             <TextField
               size="small"
+              fullWidth
               placeholder="Search by name, email, or ID…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               sx={{
-                flex: '1 1 260px',
-                minWidth: 220,
-                mb: 0,
-                alignSelf: 'center',
+                mb: 1.5,
                 ...platformAdminSearchFieldSx,
               }}
               InputProps={{
@@ -374,53 +367,55 @@ const PlatformAdminSchoolsPage: React.FC = () => {
               }}
             />
 
-            <PlatformAdminFilterControl
-              id="schools-payment-filter"
-              label="Payment"
-              value={paymentFilter}
-              labels={PAYMENT_LABELS}
-              minWidth={176}
-              onChange={setPaymentFilter}
-            />
+            <Box sx={platformAdminFilterToolbarRowSx}>
+              <PlatformAdminFilterControl
+                id="schools-payment-filter"
+                label="Payment"
+                value={paymentFilter}
+                labels={PAYMENT_LABELS}
+                minWidth={176}
+                onChange={setPaymentFilter}
+              />
 
-            <PlatformAdminFilterControl
-              id="schools-payee-filter"
-              label="Paid to"
-              value={payeeFilter}
-              labels={PAYEE_LABELS}
-              minWidth={168}
-              onChange={setPayeeFilter}
-            />
+              <PlatformAdminFilterControl
+                id="schools-payee-filter"
+                label="Paid to"
+                value={payeeFilter}
+                labels={PAYEE_LABELS}
+                minWidth={168}
+                onChange={setPayeeFilter}
+              />
 
-            <PlatformAdminFilterControl
-              id="schools-poc-filter"
-              label="POC setup"
-              value={verifiedFilter}
-              labels={POC_LABELS}
-              minWidth={168}
-              onChange={setVerifiedFilter}
-            />
+              <PlatformAdminFilterControl
+                id="schools-poc-filter"
+                label="POC setup"
+                value={verifiedFilter}
+                labels={POC_LABELS}
+                minWidth={168}
+                onChange={setVerifiedFilter}
+              />
 
-            <PlatformAdminFilterControl
-              id="schools-plan-filter"
-              label="Plan"
-              value={planFilter}
-              labels={PLAN_LABELS}
-              minWidth={148}
-              onChange={setPlanFilter}
-            />
+              <PlatformAdminFilterControl
+                id="schools-plan-filter"
+                label="Plan"
+                value={planFilter}
+                labels={PLAN_LABELS}
+                minWidth={148}
+                onChange={setPlanFilter}
+              />
 
-            {hasActiveFilters && (
-              <Button
-                size="small"
-                variant="outlined"
-                onClick={clearFilters}
-                startIcon={<CloseIcon sx={{ fontSize: 16 }} />}
-                sx={platformAdminClearFiltersButtonSx}
-              >
-                Clear
-              </Button>
-            )}
+              {hasActiveFilters && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={clearFilters}
+                  startIcon={<CloseIcon sx={{ fontSize: 16 }} />}
+                  sx={platformAdminClearFiltersButtonSx}
+                >
+                  Clear
+                </Button>
+              )}
+            </Box>
           </Box>
 
           {activeFilterChips.length > 0 && (
