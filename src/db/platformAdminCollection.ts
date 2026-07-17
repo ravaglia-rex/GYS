@@ -26,6 +26,10 @@ import {
   PLATFORM_ADMIN_ADD_SCHOOL_ADMIN,
   PLATFORM_ADMIN_DELETE_SCHOOL_CONTACT,
   PLATFORM_ADMIN_STUDENT_REGISTRATION_EMAILS,
+  PLATFORM_ADMIN_ADMINS,
+  PLATFORM_ADMIN_ADMINS_UPDATE,
+  PLATFORM_ADMIN_ADMINS_REMOVE,
+  PLATFORM_ADMIN_ADMINS_INVITE,
 } from '../constants/constants';
 
 function apiBase(): string {
@@ -758,6 +762,75 @@ export async function runPlatformAdminPipeline(
   await axios.post(
     `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_RUN_PIPELINE}`,
     { pipeline },
+    { headers }
+  );
+}
+
+export type PlatformAdminDirectoryRow = {
+  email: string;
+  name: string;
+  position: string;
+  role: 'super' | 'member';
+  permissions: string[];
+  active: boolean;
+  password_setup_complete: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export async function listPlatformAdminsDirectory(): Promise<PlatformAdminDirectoryRow[]> {
+  const headers = await authHeaders();
+  const res = await axios.get(`${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ADMINS}`, {
+    headers,
+  });
+  return res.data.admins ?? [];
+}
+
+export async function addPlatformAdmin(body: {
+  email: string;
+  name?: string;
+  position?: string;
+  send_invite?: boolean;
+}): Promise<{ admin: PlatformAdminDirectoryRow; invite_sent: boolean }> {
+  const headers = await authHeaders();
+  const res = await axios.post(`${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ADMINS}`, body, {
+    headers,
+  });
+  return {
+    admin: res.data.admin,
+    invite_sent: res.data.invite_sent === true,
+  };
+}
+
+export async function updatePlatformAdmin(body: {
+  email: string;
+  name?: string;
+  position?: string;
+}): Promise<PlatformAdminDirectoryRow> {
+  const headers = await authHeaders();
+  const res = await axios.post(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ADMINS_UPDATE}`,
+    body,
+    { headers }
+  );
+  return res.data.admin;
+}
+
+export async function removePlatformAdmin(email: string): Promise<PlatformAdminDirectoryRow> {
+  const headers = await authHeaders();
+  const res = await axios.post(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ADMINS_REMOVE}`,
+    { email },
+    { headers }
+  );
+  return res.data.admin;
+}
+
+export async function invitePlatformAdmin(email: string): Promise<void> {
+  const headers = await authHeaders();
+  await axios.post(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ADMINS_INVITE}`,
+    { email },
     { headers }
   );
 }

@@ -19,6 +19,7 @@ import {
   CardGiftcard as RewardsIcon,
   Logout as LogoutIcon,
   Settings as PipelineIcon,
+  AdminPanelSettings as AdminsIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
@@ -68,6 +69,12 @@ const PIPELINE_NAV_ITEM = {
   icon: <PipelineIcon sx={{ color: '#7c3aed', fontSize: SIDEBAR_ICON_SIZE }} />,
 };
 
+const ADMINS_NAV_ITEM = {
+  title: 'Admin Mgmt',
+  path: '/platform-admin/admins',
+  icon: <AdminsIcon sx={{ color: '#0f766e', fontSize: SIDEBAR_ICON_SIZE }} />,
+};
+
 interface PlatformAdminLayoutProps {
   children: React.ReactNode;
 }
@@ -82,7 +89,10 @@ const PlatformAdminLayout: React.FC<PlatformAdminLayoutProps> = ({ children }) =
   const platformAdminRole = useSelector((state: RootState) => state.auth.platformAdminRole);
 
   const navItems = useMemo(
-    () => (platformAdminRole === 'super' ? [...BASE_NAV_ITEMS, PIPELINE_NAV_ITEM] : BASE_NAV_ITEMS),
+    () =>
+      platformAdminRole === 'super'
+        ? [...BASE_NAV_ITEMS, PIPELINE_NAV_ITEM, ADMINS_NAV_ITEM]
+        : BASE_NAV_ITEMS,
     [platformAdminRole]
   );
 

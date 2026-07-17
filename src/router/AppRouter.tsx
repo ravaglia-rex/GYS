@@ -110,6 +110,7 @@ const PlatformAdminRewardsPage = React.lazy(() => import('../pages/platform_admi
 const PlatformAdminStudentsPage = React.lazy(() => import('../pages/platform_admin_pages/PlatformAdminStudentsPage'));
 const PlatformAdminStudentDetailPage = React.lazy(() => import('../pages/platform_admin_pages/PlatformAdminStudentDetailPage'));
 const PlatformAdminPipelinePage = React.lazy(() => import('../pages/platform_admin_pages/PlatformAdminPipelinePage'));
+const PlatformAdminAdminsPage = React.lazy(() => import('../pages/platform_admin_pages/PlatformAdminAdminsPage'));
 
 const AppRouter: React.FC = () => {
   return (
@@ -896,6 +897,19 @@ const AppRouter: React.FC = () => {
               <Suspense fallback={<BigSpinner />}>
                 <PlatformAdminLayout>
                   <PlatformAdminPipelinePage />
+                </PlatformAdminLayout>
+              </Suspense>
+            </PlatformAdminSuperRoute>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        <Route
+          path="/platform-admin/admins"
+          element={
+            <PlatformAdminSuperRoute>
+              <Suspense fallback={<BigSpinner />}>
+                <PlatformAdminLayout>
+                  <PlatformAdminAdminsPage />
                 </PlatformAdminLayout>
               </Suspense>
             </PlatformAdminSuperRoute>
