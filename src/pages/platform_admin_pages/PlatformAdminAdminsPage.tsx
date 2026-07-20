@@ -39,6 +39,9 @@ import {
 } from '../../db/platformAdminCollection';
 import {
   platformAdminCardSx,
+  platformAdminDialogFieldLabelSx,
+  platformAdminDialogPaperSx,
+  platformAdminDialogTextFieldSx,
   platformAdminOutlinedButtonSx,
   platformAdminPageContainerSx,
   platformAdminPrimaryButtonSx,
@@ -46,7 +49,6 @@ import {
   platformAdminTablePaperSx,
   platformAdminTableSx,
   platformAdminTextButtonSx,
-  platformAdminTextFieldSx,
 } from './platformAdminPageStyles';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import { PlatformAdminChip, PlatformAdminPageHeader } from './platformAdminComponents';
@@ -403,35 +405,65 @@ const PlatformAdminAdminsPage: React.FC = () => {
         </TableContainer>
       )}
 
-      <Dialog open={addOpen} onClose={() => !addBusy && setAddOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Add platform admin</DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-          <Typography variant="body2" sx={{ color: ip.subtext }}>
+      <Dialog
+        open={addOpen}
+        onClose={() => !addBusy && setAddOpen(false)}
+        fullWidth
+        maxWidth="sm"
+        PaperProps={{ sx: platformAdminDialogPaperSx }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, color: ip.heading, px: 3, pt: 2.5, pb: 1 }}>
+          Add platform admin
+        </DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, px: 3, pt: 1, pb: 1 }}>
+          <Typography variant="body2" sx={{ color: ip.subtext, lineHeight: 1.55 }}>
             New admins get member access (view-only portal). They cannot be promoted to head admin.
           </Typography>
-          <TextField
-            label="Email"
-            value={addEmail}
-            onChange={(e) => setAddEmail(e.target.value)}
-            required
-            fullWidth
-            autoFocus
-            sx={platformAdminTextFieldSx}
-          />
-          <TextField
-            label="Name"
-            value={addName}
-            onChange={(e) => setAddName(e.target.value)}
-            fullWidth
-            sx={platformAdminTextFieldSx}
-          />
-          <TextField
-            label="Position"
-            value={addPosition}
-            onChange={(e) => setAddPosition(e.target.value)}
-            fullWidth
-            sx={platformAdminTextFieldSx}
-          />
+          <Box>
+            <Typography sx={platformAdminDialogFieldLabelSx} component="label" htmlFor="add-admin-email">
+              Email
+            </Typography>
+            <TextField
+              id="add-admin-email"
+              value={addEmail}
+              onChange={(e) => setAddEmail(e.target.value)}
+              required
+              fullWidth
+              autoFocus
+              placeholder="admin@argus.ai"
+              sx={platformAdminDialogTextFieldSx}
+            />
+          </Box>
+          <Box>
+            <Typography sx={platformAdminDialogFieldLabelSx} component="label" htmlFor="add-admin-name">
+              Name
+            </Typography>
+            <TextField
+              id="add-admin-name"
+              value={addName}
+              onChange={(e) => setAddName(e.target.value)}
+              fullWidth
+              placeholder="Full name"
+              sx={platformAdminDialogTextFieldSx}
+            />
+          </Box>
+          <Box>
+            <Typography
+              sx={platformAdminDialogFieldLabelSx}
+              component="label"
+              htmlFor="add-admin-position"
+            >
+              Position
+            </Typography>
+            <TextField
+              id="add-admin-position"
+              value={addPosition}
+              onChange={(e) => setAddPosition(e.target.value)}
+              fullWidth
+              placeholder="e.g. Operations"
+              sx={platformAdminDialogTextFieldSx}
+            />
+          </Box>
           <FormControlLabel
             control={
               <Checkbox
@@ -440,10 +472,11 @@ const PlatformAdminAdminsPage: React.FC = () => {
               />
             }
             label="Send password-setup invitation email"
+            sx={{ color: ip.heading, ml: 0, alignItems: 'center' }}
           />
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setAddOpen(false)} disabled={addBusy}>
+        <DialogActions sx={{ px: 3, pb: 2.5, pt: 1 }}>
+          <Button onClick={() => setAddOpen(false)} disabled={addBusy} sx={platformAdminTextButtonSx}>
             Cancel
           </Button>
           <Button
@@ -462,29 +495,46 @@ const PlatformAdminAdminsPage: React.FC = () => {
         onClose={() => !editBusy && setEditAdmin(null)}
         fullWidth
         maxWidth="sm"
+        PaperProps={{ sx: platformAdminDialogPaperSx }}
       >
-        <DialogTitle>Edit platform admin</DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-          <Typography variant="body2" sx={{ color: ip.subtext }}>
+        <DialogTitle sx={{ fontWeight: 700, color: ip.heading, px: 3, pt: 2.5, pb: 1 }}>
+          Edit platform admin
+        </DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, px: 3, pt: 1, pb: 1 }}>
+          <Typography variant="body2" sx={{ color: ip.subtext, lineHeight: 1.55 }}>
             {editAdmin?.email}
           </Typography>
-          <TextField
-            label="Name"
-            value={editName}
-            onChange={(e) => setEditName(e.target.value)}
-            fullWidth
-            sx={platformAdminTextFieldSx}
-          />
-          <TextField
-            label="Position"
-            value={editPosition}
-            onChange={(e) => setEditPosition(e.target.value)}
-            fullWidth
-            sx={platformAdminTextFieldSx}
-          />
+          <Box>
+            <Typography sx={platformAdminDialogFieldLabelSx} component="label" htmlFor="edit-admin-name">
+              Name
+            </Typography>
+            <TextField
+              id="edit-admin-name"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              fullWidth
+              sx={platformAdminDialogTextFieldSx}
+            />
+          </Box>
+          <Box>
+            <Typography
+              sx={platformAdminDialogFieldLabelSx}
+              component="label"
+              htmlFor="edit-admin-position"
+            >
+              Position
+            </Typography>
+            <TextField
+              id="edit-admin-position"
+              value={editPosition}
+              onChange={(e) => setEditPosition(e.target.value)}
+              fullWidth
+              sx={platformAdminDialogTextFieldSx}
+            />
+          </Box>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setEditAdmin(null)} disabled={editBusy}>
+        <DialogActions sx={{ px: 3, pb: 2.5, pt: 1 }}>
+          <Button onClick={() => setEditAdmin(null)} disabled={editBusy} sx={platformAdminTextButtonSx}>
             Cancel
           </Button>
           <Button
@@ -503,16 +553,23 @@ const PlatformAdminAdminsPage: React.FC = () => {
         onClose={() => !removeBusy && setRemoveAdmin(null)}
         fullWidth
         maxWidth="sm"
+        PaperProps={{ sx: platformAdminDialogPaperSx }}
       >
-        <DialogTitle>Remove platform admin?</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" sx={{ color: ip.heading }}>
+        <DialogTitle sx={{ fontWeight: 700, color: '#991b1b', px: 3, pt: 2.5, pb: 1 }}>
+          Remove platform admin?
+        </DialogTitle>
+        <DialogContent sx={{ px: 3, pt: 1, pb: 1 }}>
+          <Typography variant="body2" sx={{ color: ip.heading, lineHeight: 1.55 }}>
             This deactivates <strong>{removeAdmin?.email}</strong>. They will lose platform admin
             access immediately. You can reactivate them later from this page.
           </Typography>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setRemoveAdmin(null)} disabled={removeBusy}>
+        <DialogActions sx={{ px: 3, pb: 2.5, pt: 1 }}>
+          <Button
+            onClick={() => setRemoveAdmin(null)}
+            disabled={removeBusy}
+            sx={platformAdminTextButtonSx}
+          >
             Cancel
           </Button>
           <Button
