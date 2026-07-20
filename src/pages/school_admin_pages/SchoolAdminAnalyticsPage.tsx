@@ -38,9 +38,8 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../../firebase/firebase';
-import { getSchoolDashboard, type StudentRow } from '../../db/schoolAdminCollection';
+import { type StudentRow } from '../../db/schoolAdminCollection';
+import { useSchoolAdminRoster } from '../../query/hooks';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import {
   allExamsWithAnyActivity,
@@ -132,8 +131,6 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
   const location = useLocation();
   const isSchoolAdminPreview = location.pathname.startsWith('/for-schools/preview');
   const { schoolAdmin } = useSelector((state: RootState) => state.auth);
-  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [tierAnalyticsStudents, setTierAnalyticsStudents] = useState<StudentRow[]>([]);
   const [examBreakdownId, setExamBreakdownId] = useState<string>('');
 
@@ -161,108 +158,54 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
     setExamBreakdownId(prev => (prev && examIdsWithActivity.includes(prev) ? prev : examIdsWithActivity[0]!));
   }, [examIdsWithActivity]);
 
+  // Shared, cached roster fetch (see query/hooks.ts) - Dashboard/Students pages loading the same
+  // school's roster within the staleTime window serve this straight from the React Query cache
+  // instead of each page re-reading the full student collection.
+  const rosterQuery = useSchoolAdminRoster(
+    schoolAdmin?.schoolId ? String(schoolAdmin.schoolId).trim() : undefined,
+    !isSchoolAdminPreview
+  );
+
   useEffect(() => {
-    const buildFromDashboardStudents = (dashboardStudents: StudentRow[]) => {
-      const gradeCounts: Record<number, number> = {};
-      for (const s of dashboardStudents) {
-        const grade = typeof s.grade === 'number' && s.grade > 0 ? s.grade : 0;
-        if (grade > 0) {
-          gradeCounts[grade] = (gradeCounts[grade] || 0) + 1;
-        }
-      }
-      const totalStudents = dashboardStudents.length;
-      const gradeDistribution = Object.entries(gradeCounts)
-        .map(([grade, count]) => ({
-          grade: parseInt(grade, 10),
-          count,
-          percentage: totalStudents > 0 ? Math.round((count / totalStudents) * 100) : 0,
-        }))
-        .sort((a, b) => a.grade - b.grade);
-
-      const examAverages = buildExamAverageChartRows(dashboardStudents);
-
-      setAnalyticsData({
-        gradeDistribution,
-        qualificationStats: { total: totalStudents },
-        examAverages,
-      });
-    };
-
     if (isSchoolAdminPreview) {
-      setLoading(true);
-      const dashboardStudents = buildGreenfieldPreviewStudentRows();
-      setTierAnalyticsStudents(dashboardStudents);
-      buildFromDashboardStudents(dashboardStudents);
-      setLoading(false);
+      setTierAnalyticsStudents(buildGreenfieldPreviewStudentRows());
       return;
     }
+    if (rosterQuery.data) {
+      setTierAnalyticsStudents(rosterQuery.data);
+    } else if (rosterQuery.isError) {
+      console.warn('School roster fetch failed (tier analytics)', rosterQuery.error);
+      setTierAnalyticsStudents([]);
+    }
+  }, [isSchoolAdminPreview, rosterQuery.data, rosterQuery.isError, rosterQuery.error]);
 
-    const fetchAnalyticsData = async () => {
-      if (!schoolAdmin?.schoolId) {
-        setLoading(false);
-        return;
+  const loading = isSchoolAdminPreview ? false : rosterQuery.isLoading;
+
+  // Grade distribution and exam averages are both derivable from the same roster fetch above -
+  // no need for a second, separate full-roster read just for grade counts.
+  const analyticsData = useMemo<AnalyticsData>(() => {
+    const gradeCounts: Record<number, number> = {};
+    for (const s of tierAnalyticsStudents) {
+      const grade = typeof s.grade === 'number' && s.grade > 0 ? s.grade : 0;
+      if (grade > 0) {
+        gradeCounts[grade] = (gradeCounts[grade] || 0) + 1;
       }
+    }
+    const totalStudents = tierAnalyticsStudents.length;
+    const gradeDistribution = Object.entries(gradeCounts)
+      .map(([grade, count]) => ({
+        grade: parseInt(grade, 10),
+        count,
+        percentage: totalStudents > 0 ? Math.round((count / totalStudents) * 100) : 0,
+      }))
+      .sort((a, b) => a.grade - b.grade);
 
-      try {
-        setLoading(true);
-        const schoolId = schoolAdmin.schoolId;
-
-        let dashboardStudents: StudentRow[] = [];
-        try {
-          const dash = await getSchoolDashboard(String(schoolId ?? '').trim());
-          dashboardStudents = (dash?.students ?? []) as StudentRow[];
-        } catch (e) {
-          console.warn('School dashboard fetch failed (tier analytics)', e);
-        }
-        setTierAnalyticsStudents(dashboardStudents);
-
-        const studentsQuery = query(collection(db, 'students'), where('school_id', '==', schoolId));
-        const studentsSnapshot = await getDocs(studentsQuery);
-        const students = studentsSnapshot.docs.map(d => ({
-          uid: d.id,
-          ...d.data(),
-        }));
-
-        const gradeCounts: Record<number, number> = {};
-        students.forEach(student => {
-          let grade = 0;
-          if ('grade' in student && typeof student['grade'] === 'number') {
-            grade = student['grade'] as number;
-          } else if ('class' in student && typeof student['class'] === 'number') {
-            grade = student['class'] as number;
-          }
-          if (grade > 0) {
-            gradeCounts[grade] = (gradeCounts[grade] || 0) + 1;
-          }
-        });
-
-        const totalStudents = students.length;
-        const gradeDistribution = Object.entries(gradeCounts)
-          .map(([grade, count]) => ({
-            grade: parseInt(grade, 10),
-            count,
-            percentage: totalStudents > 0 ? Math.round((count / totalStudents) * 100) : 0,
-          }))
-          .sort((a, b) => a.grade - b.grade);
-
-        const examAverages = buildExamAverageChartRows(dashboardStudents as StudentRow[]);
-
-        setAnalyticsData({
-          gradeDistribution,
-          qualificationStats: {
-            total: totalStudents,
-          },
-          examAverages,
-        });
-      } catch (error) {
-        console.error('Error fetching analytics data:', error);
-      } finally {
-        setLoading(false);
-      }
+    return {
+      gradeDistribution,
+      qualificationStats: { total: totalStudents },
+      examAverages: buildExamAverageChartRows(tierAnalyticsStudents),
     };
-
-    void fetchAnalyticsData();
-  }, [schoolAdmin, isSchoolAdminPreview]);
+  }, [tierAnalyticsStudents]);
 
   const gradePieData = useMemo(
     () =>

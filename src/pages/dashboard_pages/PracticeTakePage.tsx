@@ -25,6 +25,7 @@ import {
   fetchPracticeQuestions,
   PRACTICE_SESSION_BATCH_SIZE,
   recordPracticeSessionOutcomes,
+  revealPracticeSolutions,
 } from '../../db/practiceBank';
 import type { ExamQuestion } from '../../db/assessmentCollection';
 import { ExamQuestionBody, inferQuestionInteraction } from '../../components/assessment/ExamQuestionBody';
@@ -187,6 +188,7 @@ export default function PracticeTakePage() {
   const [selectedOptionsById, setSelectedOptionsById] = useState<Record<string, number>>({});
   /** After first primary-button press: show correct/incorrect + explanation; second press advances. */
   const [answerChecked, setAnswerChecked] = useState(false);
+  const [revealingSolutions, setRevealingSolutions] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [questionElapsedMs, setQuestionElapsedMs] = useState(0);
   /** Outcomes for the current batch; synced to Firestore once when the session completes. */
@@ -428,15 +430,58 @@ export default function PracticeTakePage() {
     sessionSubmitting,
   ]);
 
-  const handlePrimaryAction = useCallback(() => {
-    if (!allCurrentQuestionsSelected || !practiceLevel || !supported || sessionSubmitting) return;
+  const handlePrimaryAction = useCallback(async () => {
+    if (!allCurrentQuestionsSelected || !practiceLevel || !supported || sessionSubmitting || revealingSolutions) {
+      return;
+    }
     if (!answerChecked) {
       timeToFirstCheckMsRef.current = Date.now() - questionWallClockStartRef.current;
+      const itemIds = currentQuestions
+        .map((question) => resolvePracticeItemId(question))
+        .filter((id): id is string => Boolean(id));
+      if (itemIds.length > 0) {
+        setRevealingSolutions(true);
+        try {
+          const solutions = await revealPracticeSolutions({
+            examId,
+            level: practiceLevel,
+            itemIds,
+          });
+          setQuestions((prev) =>
+            prev.map((question) => {
+              const id = resolvePracticeItemId(question);
+              const revealed = id ? solutions[id] : undefined;
+              if (!revealed) return question;
+              return {
+                ...question,
+                correct_option_index: revealed.correct_option_index ?? question.correct_option_index,
+                solution_steps: revealed.solution_steps ?? question.solution_steps,
+              };
+            })
+          );
+        } catch (e) {
+          console.error('revealPracticeSolutions:', e);
+          setSessionSubmitError('Could not load answer feedback. Please try again.');
+          return;
+        } finally {
+          setRevealingSolutions(false);
+        }
+      }
       setAnswerChecked(true);
       return;
     }
     advanceToNextQuestion();
-  }, [allCurrentQuestionsSelected, practiceLevel, supported, answerChecked, advanceToNextQuestion, sessionSubmitting]);
+  }, [
+    allCurrentQuestionsSelected,
+    practiceLevel,
+    supported,
+    answerChecked,
+    advanceToNextQuestion,
+    sessionSubmitting,
+    revealingSolutions,
+    currentQuestions,
+    examId,
+  ]);
 
   const handleFooterBack = useCallback(() => {
     if (index > 0) {
@@ -882,9 +927,17 @@ export default function PracticeTakePage() {
           </Button>
           <Button
             variant="contained"
-            endIcon={sessionSubmitting ? <CircularProgress size={18} color="inherit" /> : <ArrowForwardIcon />}
-            disabled={!allCurrentQuestionsSelected || sessionSubmitting}
-            onClick={handlePrimaryAction}
+            endIcon={
+              sessionSubmitting || revealingSolutions ? (
+                <CircularProgress size={18} color="inherit" />
+              ) : (
+                <ArrowForwardIcon />
+              )
+            }
+            disabled={!allCurrentQuestionsSelected || sessionSubmitting || revealingSolutions}
+            onClick={() => {
+              void handlePrimaryAction();
+            }}
             sx={{
               bgcolor: primaryBtn,
               color: '#fff',
@@ -896,7 +949,15 @@ export default function PracticeTakePage() {
               '&.Mui-disabled': { bgcolor: '#cbd5e1', color: '#64748b' },
             }}
           >
-            {!answerChecked ? (groupedPassagePractice ? 'Check answers' : 'Check answer') : index + 1 >= totalPages ? 'Done' : 'Next'}
+            {revealingSolutions
+              ? 'Checking…'
+              : !answerChecked
+                ? groupedPassagePractice
+                  ? 'Check answers'
+                  : 'Check answer'
+                : index + 1 >= totalPages
+                  ? 'Done'
+                  : 'Next'}
           </Button>
         </Box>
       </Box>

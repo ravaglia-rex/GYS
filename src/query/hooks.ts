@@ -9,6 +9,7 @@ import {
 import { getSchoolDetails } from '../db/schoolCollection';
 import { getPayments } from '../db/studentPaymentMappings';
 import { fetchQod, fetchRewards } from '../db/gamificationCollection';
+import { getSchoolStudentRoster, getSchoolSummary } from '../db/schoolAdminCollection';
 import { queryKeys } from './queryKeys';
 
 const ASSESSMENT_CONFIG_STALE_MS = 15 * 60_000;
@@ -16,6 +17,8 @@ const STUDENT_STALE_MS = 2 * 60_000;
 const SCHOOL_STALE_MS = 30 * 60_000;
 const PAYMENTS_STALE_MS = 5 * 60_000;
 const STUDENT_ASSESSMENTS_STALE_MS = 60_000;
+const SCHOOL_ADMIN_SUMMARY_STALE_MS = 60_000;
+const SCHOOL_ADMIN_ROSTER_STALE_MS = 60_000;
 
 export function useStudent(uid: string | undefined, enabled = true) {
   return useQuery({
@@ -91,6 +94,41 @@ export function useRewards(enabled = true) {
     enabled,
     staleTime: 60_000,
   });
+}
+
+/**
+ * Shared, cached school-admin summary fetch. Every School Official page that needs summary data
+ * (Dashboard, Students, Subscription, tutorial preferences) reads from this single query key, so
+ * navigating between them within `staleTime` reuses the cached result instead of re-fetching.
+ */
+export function useSchoolAdminSummary(schoolId: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.schoolAdminSummary(schoolId ?? ''),
+    queryFn: () => getSchoolSummary(schoolId!),
+    enabled: Boolean(schoolId) && enabled,
+    staleTime: SCHOOL_ADMIN_SUMMARY_STALE_MS,
+  });
+}
+
+/**
+ * Shared, cached full-roster fetch (paginated server-side, see `getSchoolStudentRoster`). Shared
+ * across Dashboard/Students/Analytics pages via the same query key.
+ */
+export function useSchoolAdminRoster(schoolId: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.schoolAdminRoster(schoolId ?? ''),
+    queryFn: () => getSchoolStudentRoster(schoolId!),
+    enabled: Boolean(schoolId) && enabled,
+    staleTime: SCHOOL_ADMIN_ROSTER_STALE_MS,
+  });
+}
+
+export function useInvalidateSchoolAdminQueries() {
+  const qc = useQueryClient();
+  return (schoolId: string) => {
+    void qc.invalidateQueries({ queryKey: queryKeys.schoolAdminSummary(schoolId) });
+    void qc.invalidateQueries({ queryKey: queryKeys.schoolAdminRoster(schoolId) });
+  };
 }
 
 export type { AssessmentType, AttemptRecord };

@@ -504,7 +504,20 @@ const PlatformAdminAdminsPage: React.FC = () => {
               />
             }
             label="Send password-setup invitation email"
-            sx={{ color: ip.heading, ml: 0, alignItems: 'center' }}
+            sx={{
+              color: ip.heading,
+              ml: 0,
+              alignItems: 'center',
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+              MozUserSelect: 'none',
+              msUserSelect: 'none',
+              '& .MuiFormControlLabel-label': {
+                color: ip.heading,
+                userSelect: 'none',
+                WebkitUserSelect: 'none',
+              },
+            }}
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5, pt: 1 }}>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, Suspense, lazy } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -37,17 +37,24 @@ import { useAssessmentConfig, useInvalidateStudentQueries } from '../../query/ho
 import { MathJaxContext } from 'better-react-mathjax';
 import { getAssessmentFlowDefinition } from '../../config/assessmentFlowUI';
 import { EXAM_MATHJAX_CONFIG } from '../../components/assessment/examMathJaxConfig';
-import { ExamQuestionBody, inferQuestionInteraction } from '../../components/assessment/ExamQuestionBody';
+import { inferQuestionInteraction } from '../../components/assessment/inferQuestionInteraction';
 import { useExamIntegrity } from '../../hooks/useExamIntegrity';
 import { STUDENT_OFFICIAL_ASSESSMENTS_ENABLED } from '../../constants/constants';
 import { isLevelBasedAssessment } from '../../utils/assessmentGating';
 import {
   isProctoringActive,
-  PreExamProctoringSetup,
   resolveProctoringConfig,
   useProctoringMonitor,
 } from '../../features/proctoring';
 import * as Sentry from '@sentry/react';
+
+/** Heavy exam UI + face/proctoring setup - code-split until the student reaches those stages. */
+const ExamQuestionBody = lazy(() =>
+  import('../../components/assessment/ExamQuestionBody').then((m) => ({ default: m.ExamQuestionBody }))
+);
+const PreExamProctoringSetup = lazy(() =>
+  import('../../features/proctoring').then((m) => ({ default: m.PreExamProctoringSetup }))
+);
 
 const NEEDS_MIC = new Set(['english_proficiency']);
 const NEEDS_LAPTOP = new Set(['ai_literacy']);
@@ -594,11 +601,19 @@ export default function AssessmentTakePage() {
 
   if (stage === 'proctoring_setup') {
     return (
-      <PreExamProctoringSetup
-        config={proctoringConfig}
-        onReady={handleProctoringSetupReady}
-        onBack={() => navigate(`/assessments/${assessmentId}/tier/${tier}/detail`)}
-      />
+      <Suspense
+        fallback={
+          <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <CircularProgress />
+          </Box>
+        }
+      >
+        <PreExamProctoringSetup
+          config={proctoringConfig}
+          onReady={handleProctoringSetupReady}
+          onBack={() => navigate(`/assessments/${assessmentId}/tier/${tier}/detail`)}
+        />
+      </Suspense>
     );
   }
 
@@ -680,19 +695,27 @@ export default function AssessmentTakePage() {
   const questionNumber = currentIndex + 1;
 
   const questionBodyEl = (
-    <ExamQuestionBody
-      assessmentId={assessmentId}
-      question={currentQuestion}
-      questionNumber={questionNumber}
-      totalQuestions={totalQuestions}
-      selectedOption={selectedOption}
-      onSelectOption={setSelectedOption}
-      theme={flow.theme}
-      renderMath={mathExam}
-      questionReport={
-        uid && attemptId && currentQuestion ? { kind: 'official', uid, attemptId } : null
+    <Suspense
+      fallback={
+        <Box sx={{ py: 6, display: 'flex', justifyContent: 'center' }}>
+          <CircularProgress size={32} sx={{ color: primaryBtn }} />
+        </Box>
       }
-    />
+    >
+      <ExamQuestionBody
+        assessmentId={assessmentId}
+        question={currentQuestion}
+        questionNumber={questionNumber}
+        totalQuestions={totalQuestions}
+        selectedOption={selectedOption}
+        onSelectOption={setSelectedOption}
+        theme={flow.theme}
+        renderMath={mathExam}
+        questionReport={
+          uid && attemptId && currentQuestion ? { kind: 'official', uid, attemptId } : null
+        }
+      />
+    </Suspense>
   );
 
   return (

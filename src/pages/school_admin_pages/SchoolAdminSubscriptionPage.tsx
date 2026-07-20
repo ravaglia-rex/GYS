@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import type { SvgIconProps } from '@mui/material';
 import {
   Alert,
@@ -29,10 +29,10 @@ import { RootState } from '../../state_data/reducer';
 import { useLocation } from 'react-router-dom';
 import {
   downloadBillingInvoicePdf,
-  getSchoolDashboard,
   type SchoolDashboardBilling,
   type SchoolDashboardPaymentHistoryItem,
 } from '../../db/schoolAdminCollection';
+import { useSchoolAdminSummary } from '../../query/hooks';
 import {
   SCHOOL_INSTITUTIONAL_BASE_INR,
   SCHOOL_INSTITUTIONAL_PLAN_MATRIX,
@@ -190,57 +190,37 @@ export function SchoolAdminSubscriptionPage() {
     []
   );
   const schoolId = useSelector((state: RootState) => state.auth.schoolAdmin?.schoolId ?? '').trim();
-  const [billingMeta, setBillingMeta] = useState<{
+  // Shared, cached fetch (see query/hooks.ts) - Dashboard/Students/tutorial-prefs loading the same
+  // school's summary within the staleTime window serve this straight from the React Query cache
+  // instead of re-fetching on every page visit.
+  const summaryQuery = useSchoolAdminSummary(schoolId || undefined, !isInteractivePreview && Boolean(schoolId));
+  const billingLoading = !isInteractivePreview && summaryQuery.isLoading;
+  const billingMeta = useMemo((): {
     billing: SchoolDashboardBilling | null;
     s3Configured: boolean;
     selectedPlanId: RegisterPlanId;
     subscriptionPlan: string;
     paymentHistory: SchoolDashboardPaymentHistoryItem[];
-  }>(() => (isInteractivePreview ? PREVIEW_BILLING_META : EMPTY_BILLING_META));
-  const [billingLoading, setBillingLoading] = useState(false);
+  } => {
+    if (isInteractivePreview) return PREVIEW_BILLING_META;
+    const dash = summaryQuery.data;
+    if (!dash) return EMPTY_BILLING_META;
+    const selectedPlanId = resolvePlanId(dash.selected_plan_id, dash.subscription_plan);
+    return {
+      billing: dash.billing ?? null,
+      s3Configured: dash.s3_invoice_download_configured === true,
+      selectedPlanId,
+      subscriptionPlan: dash.subscription_plan || SCHOOL_INSTITUTIONAL_PLAN_MATRIX.find(
+        (p) => p.id === selectedPlanId
+      )?.name || 'Standard',
+      paymentHistory: Array.isArray(dash.payment_history) ? dash.payment_history : [],
+    };
+  }, [isInteractivePreview, summaryQuery.data]);
   const [invoiceDownloadingPaymentId, setInvoiceDownloadingPaymentId] = useState<string | null>(null);
   const [invoiceDownloadErr, setInvoiceDownloadErr] = useState<string | null>(null);
   const [upgradeTarget, setUpgradeTarget] = useState<Plan | null>(null);
   const [upgradeBusy, setUpgradeBusy] = useState<RegisterPlanId | null>(null);
   const [upgradeErr, setUpgradeErr] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (isInteractivePreview) {
-      setBillingMeta(PREVIEW_BILLING_META);
-      setBillingLoading(false);
-      return;
-    }
-    if (!schoolId) return;
-    let cancelled = false;
-    setBillingLoading(true);
-    void getSchoolDashboard(schoolId)
-      .then((dash) => {
-        if (cancelled) return;
-        const selectedPlanId = resolvePlanId(dash.selected_plan_id, dash.subscription_plan);
-        setBillingMeta({
-          billing: dash.billing ?? null,
-          s3Configured: dash.s3_invoice_download_configured === true,
-          selectedPlanId,
-          subscriptionPlan: dash.subscription_plan || SCHOOL_INSTITUTIONAL_PLAN_MATRIX.find(
-            (p) => p.id === selectedPlanId
-          )?.name || 'Standard',
-          paymentHistory: Array.isArray(dash.payment_history) ? dash.payment_history : [],
-        });
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setBillingMeta({
-            ...EMPTY_BILLING_META,
-          });
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setBillingLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [isInteractivePreview, schoolId]);
 
   const currentPlanId = billingMeta.selectedPlanId;
   const currentPlanName =
@@ -275,22 +255,8 @@ export function SchoolAdminSubscriptionPage() {
   };
 
   const refreshBilling = async () => {
-    if (isInteractivePreview) {
-      setBillingMeta(PREVIEW_BILLING_META);
-      return;
-    }
-    if (!schoolId) return;
-    const dash = await getSchoolDashboard(schoolId);
-    const selectedPlanId = resolvePlanId(dash.selected_plan_id, dash.subscription_plan);
-    setBillingMeta({
-      billing: dash.billing ?? null,
-      s3Configured: dash.s3_invoice_download_configured === true,
-      selectedPlanId,
-      subscriptionPlan: dash.subscription_plan || SCHOOL_INSTITUTIONAL_PLAN_MATRIX.find(
-        (p) => p.id === selectedPlanId
-      )?.name || 'Standard',
-      paymentHistory: Array.isArray(dash.payment_history) ? dash.payment_history : [],
-    });
+    if (isInteractivePreview || !schoolId) return;
+    await summaryQuery.refetch();
   };
 
   const startUpgradeCheckout = async () => {

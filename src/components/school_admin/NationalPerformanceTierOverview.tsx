@@ -20,7 +20,7 @@ export interface NationalPerformanceTierOverviewProps {
 /**
  * Horizontal stacked bar for national GYS performance tier distribution (`achievement_tier` on roster).
  */
-export const NationalPerformanceTierOverview: React.FC<NationalPerformanceTierOverviewProps> = ({
+export const NationalPerformanceTierOverview: React.FC<NationalPerformanceTierOverviewProps> = React.memo(({
   counts,
   total,
   subtitle,
@@ -89,4 +89,6 @@ export const NationalPerformanceTierOverview: React.FC<NationalPerformanceTierOv
       </Box>
     </Box>
   );
-};
+});
+
+NationalPerformanceTierOverview.displayName = 'NationalPerformanceTierOverview';

@@ -171,10 +171,18 @@ export const getStudentReports = async (uid: string): Promise<StudentReportsResp
   return response.data as StudentReportsResponse;
 };
 
+const STUDENT_REPORT_URL_CACHE_TTL_MS = 540_000;
+const studentReportUrlCache = new Map<string, { url: string; filename: string; expiresAt: number }>();
+
 export const getStudentReportDownloadUrl = async (
   uid: string,
   reportId: string
 ): Promise<{ url: string; filename: string; reportId: string }> => {
+  const cacheKey = `student-report:${uid}:${reportId}`;
+  const cached = studentReportUrlCache.get(cacheKey);
+  if (cached && Date.now() < cached.expiresAt) {
+    return { url: cached.url, filename: cached.filename, reportId };
+  }
   const authToken = await authTokenHandler.getAuthToken();
   if (!authToken) {
     throw new Error('You are not signed in. Please sign in again.');
@@ -185,7 +193,13 @@ export const getStudentReportDownloadUrl = async (
     `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${STUDENTS_APIS}${STUDENT_REPORT_DOWNLOAD_URL}/${encodedUID}/${encodedReportId}`,
     { headers: { Authorization: `Bearer ${authToken}` } }
   );
-  return response.data;
+  const data = response.data as { url: string; filename: string; reportId: string };
+  studentReportUrlCache.set(cacheKey, {
+    url: data.url,
+    filename: data.filename,
+    expiresAt: Date.now() + STUDENT_REPORT_URL_CACHE_TTL_MS,
+  });
+  return data;
 };
 
 export const downloadStudentReport = async (uid: string, reportId: string): Promise<void> => {

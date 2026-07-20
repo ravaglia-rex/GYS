@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { useLocation } from 'react-router-dom';
 import { RootState } from '../../state_data/reducer';
-import { getSchoolDashboard, putSchoolTutorialDismissal } from '../../db/schoolAdminCollection';
+import { putSchoolTutorialDismissal } from '../../db/schoolAdminCollection';
+import { useSchoolAdminSummary } from '../../query/hooks';
 import { TutorialProvider, useTutorialContext } from './TutorialContext';
 import { readTutorialPreferenceCache, writeTutorialPreferenceCache } from './tutorialPreferenceCache';
 
@@ -12,42 +13,33 @@ interface SchoolTutorialProviderProps {
 
 const SchoolTutorialPrefsLoader: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const setPreferences = useTutorialContext()?.setPreferences;
-  const loadedAdminKeyRef = useRef<string | null>(null);
   const schoolId = useSelector((s: RootState) => s.auth.schoolAdmin?.schoolId);
   const uid = useSelector((s: RootState) => s.auth.user?.uid);
   const location = useLocation();
   const isPreview = location.pathname.startsWith('/for-schools/preview');
+  const normalizedSchoolId = schoolId ? String(schoolId).trim() : undefined;
+
+  // Shared, cached fetch (see query/hooks.ts) - other School Official pages loading the same
+  // summary within the staleTime window serve this straight from the React Query cache.
+  const { data: summaryData } = useSchoolAdminSummary(
+    normalizedSchoolId,
+    !isPreview && Boolean(normalizedSchoolId) && Boolean(uid)
+  );
 
   useEffect(() => {
     if (!setPreferences) return;
-    if (isPreview || !schoolId || !uid) {
-      loadedAdminKeyRef.current = null;
+    if (isPreview || !normalizedSchoolId || !uid) {
       setPreferences(null);
       return;
     }
-    const normalizedSchoolId = String(schoolId).trim();
     const adminKey = `${normalizedSchoolId}:${uid}`;
-    if (loadedAdminKeyRef.current === adminKey) return;
-    loadedAdminKeyRef.current = adminKey;
-    setPreferences(readTutorialPreferenceCache('school', adminKey));
-
-    let cancelled = false;
-    (async () => {
-      try {
-        const dash = await getSchoolDashboard(normalizedSchoolId);
-        if (!cancelled) {
-          setPreferences(dash.ui_preferences);
-          writeTutorialPreferenceCache('school', adminKey, dash.ui_preferences);
-        }
-      } catch {
-        if (!cancelled) setPreferences(readTutorialPreferenceCache('school', adminKey));
-      }
-    })();
-    return () => {
-      cancelled = true;
-      loadedAdminKeyRef.current = null;
-    };
-  }, [setPreferences, schoolId, uid, isPreview]);
+    if (summaryData) {
+      setPreferences(summaryData.ui_preferences);
+      writeTutorialPreferenceCache('school', adminKey, summaryData.ui_preferences);
+    } else {
+      setPreferences(readTutorialPreferenceCache('school', adminKey));
+    }
+  }, [setPreferences, normalizedSchoolId, uid, isPreview, summaryData]);
 
   return <>{children}</>;
 };

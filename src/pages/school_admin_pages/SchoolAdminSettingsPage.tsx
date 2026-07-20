@@ -324,7 +324,6 @@ const SchoolAdminSettingsPage: React.FC = () => {
       const userEmail = user?.email || currentUser?.email;
 
       if (!schoolAdmin && userEmail) {
-        console.log('SchoolAdmin not loaded, checking user role for:', userEmail);
         setHasTriedLoading(true);
         try {
           await dispatch(checkUserRole(userEmail));
@@ -334,7 +333,6 @@ const SchoolAdminSettingsPage: React.FC = () => {
         }
       } else if (!userEmail) {
         // No user email, can't load schoolAdmin
-        console.log('No user email available');
         setLoading(false);
       }
     };
@@ -360,13 +358,11 @@ const SchoolAdminSettingsPage: React.FC = () => {
 
       // If schoolAdmin is still null, wait for it to load
       if (!schoolAdmin?.schoolId) {
-        console.log('Waiting for schoolAdmin...', { hasTriedLoading, schoolAdmin });
         return;
       }
 
       try {
         setLoading(true);
-        console.log('Fetching school data for schoolId:', schoolAdmin.schoolId);
         
         // Fetch school document from Firestore
         const schoolDoc = await getDoc(doc(db, 'schools', schoolAdmin.schoolId));
@@ -378,7 +374,6 @@ const SchoolAdminSettingsPage: React.FC = () => {
         }
 
         const schoolDocData = schoolDoc.data();
-        console.log('Fetched school data:', schoolDocData);
         if (schoolDocData) {
           const docRecord = schoolDocData as Record<string, unknown>;
           setSchoolInfo({

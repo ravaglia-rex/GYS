@@ -122,7 +122,7 @@ const PlatformAdminLayout: React.FC<PlatformAdminLayoutProps> = ({ children }) =
       window.clearInterval(interval);
       window.removeEventListener('platform-admin-notifications-updated', onUpdated);
     };
-  }, [location.pathname]);
+  }, []); // mount-only: do not rebind poll on every route change within the admin shell
 
   const avatarInitials = useMemo(() => {
     const raw = (userEmail || '?').trim();

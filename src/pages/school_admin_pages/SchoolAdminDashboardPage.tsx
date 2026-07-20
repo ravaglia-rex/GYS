@@ -24,19 +24,20 @@ import {
 import { alpha } from '@mui/material/styles';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import { useQueryClient } from '@tanstack/react-query';
 import { RootState } from '../../state_data/reducer';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../../firebase/firebase';
 import { LoadingSpinner } from '../../components/ui/spinner';
 import {
   downloadPdfFromUrl,
   downloadQuarterlyReportPdf,
   getQuarterlyReports,
-  getSchoolDashboard,
+  getSchoolStudentRoster,
+  getSchoolSummary,
   getStudentRegistrationEmailLists,
   type QuarterlyReportListItem,
   type StudentRow,
 } from '../../db/schoolAdminCollection';
+import { queryKeys } from '../../query/queryKeys';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import { useSchoolAdminBelowNav } from '../../layouts/schoolAdminBelowNavContext';
 import { summarizeSchoolTier123, summarizeNationalPerformanceTiers } from '../../utils/schoolAdminTierAnalytics';
@@ -57,6 +58,10 @@ import { SCHOOL_ADMIN_PAGE_MAX_WIDTH } from './schoolAdminPageStyles';
 // ─── Tier config ─────────────────────────────────────────────────────────────
 const SCHOOL_ADMIN_HELP_HREF =
   'mailto:globalyoungscholar@argus.ai?subject=' + encodeURIComponent('Argus school portal - help');
+
+/** Matches the staleTime used by `useSchoolAdminSummary`/`useSchoolAdminRoster` (query/hooks.ts)
+ * so this page's `ensureQueryData` calls share the same cache freshness window as other pages. */
+const SCHOOL_ADMIN_QUERY_STALE_MS = 60_000;
 
 type DashboardQuickAction =
   | { key: string; icon: React.ReactElement; label: string; subcaption: string; path: string }
@@ -247,7 +252,7 @@ function HeroRankTrend(props: {
 }
 
 /** Full-width strip above sidebar + main (mockup). */
-function InstitutionHeroStrip(props: {
+const InstitutionHeroStrip = React.memo(function InstitutionHeroStrip(props: {
   schoolName: string;
   schoolCity: string;
   schoolBoard: string;
@@ -483,7 +488,7 @@ function InstitutionHeroStrip(props: {
       </Box>
     </Box>
   );
-}
+});
 
 const StatCard: React.FC<StatCardProps> = ({ label, value, change, accent = ip.statBlue, icon }) => {
   const empty = value === '-';
@@ -526,6 +531,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
   const routeBase = isSchoolAdminPreview ? '/for-schools/preview' : '/school-admin';
   const { schoolAdmin } = useSelector((state: RootState) => state.auth);
   const { setBelowNav } = useSchoolAdminBelowNav();
+  const queryClient = useQueryClient();
 
   const [schoolName, setSchoolName] = useState('');
   const [schoolCity, setSchoolCity] = useState('');
@@ -602,39 +608,46 @@ const SchoolAdminDashboardPage: React.FC = () => {
         setLoading(true);
         setDashboardApiError(null);
 
-        const schoolSnap = await getDoc(doc(db, 'schools', schoolId));
-        const schoolData = schoolSnap.data() ?? {};
-        setSchoolName(schoolData.school_name ?? schoolData.name ?? 'Your School');
-        setSchoolCity(schoolData.city ?? schoolData.location ?? '');
-        setSchoolBoard(
-          Array.isArray(schoolData.boards) && schoolData.boards.length > 0
-            ? schoolData.boards.join(', ')
-            : (schoolData.board ?? schoolData.affiliation ?? '')
-        );
-        setSubscriptionPlan(
-          displaySubscriptionPlan(schoolData.subscription_plan ?? schoolData.plan ?? 'Standard Subscription')
-        );
-        setMemberSinceLabel(
-          formatMemberSince(
-            schoolData.created_at ??
-              schoolData.createdAt ??
-              schoolData.registered_at ??
-              schoolData.registration_created_at ??
-              schoolData.onboarding_completed_at
-          )
-        );
-
         let allStudents: StudentRow[] = [];
         let analyticsData: Record<string, any> = {};
         let registrationEmails: string[] = [];
+        let institutionalTier: string | null = null;
         try {
-          const dashboardData = await getSchoolDashboard(schoolId);
-          allStudents = dashboardData.students ?? [];
-          analyticsData = dashboardData.analytics ?? {};
+          // Single summary call also covers the school "header" fields (name/city/board/member
+          // since/institutional tier) that used to require a separate client-side
+          // `getDoc(schools/{id})` - the summary endpoint already reads that same doc
+          // server-side for billing/plan data.
+          // `ensureQueryData` reads/populates the same React Query cache entries the
+          // Students/Analytics/Subscription pages read via `useSchoolAdminSummary` /
+          // `useSchoolAdminRoster` - navigating between pages within staleTime reuses the
+          // cached result instead of re-fetching.
+          const [summaryData, rosterData] = await Promise.all([
+            queryClient.ensureQueryData({
+              queryKey: queryKeys.schoolAdminSummary(schoolId),
+              queryFn: () => getSchoolSummary(schoolId),
+              staleTime: SCHOOL_ADMIN_QUERY_STALE_MS,
+            }),
+            queryClient.ensureQueryData({
+              queryKey: queryKeys.schoolAdminRoster(schoolId),
+              queryFn: () => getSchoolStudentRoster(schoolId),
+              staleTime: SCHOOL_ADMIN_QUERY_STALE_MS,
+            }),
+          ]);
+          allStudents = rosterData ?? [];
+          analyticsData = summaryData.analytics ?? {};
+          institutionalTier = summaryData.institutional_tier ?? null;
+
+          setSchoolName(summaryData.school_name || 'Your School');
+          setSchoolCity(summaryData.city || '');
+          setSchoolBoard(summaryData.board_label || '');
+          setSubscriptionPlan(
+            displaySubscriptionPlan(summaryData.subscription_plan || 'Standard Subscription')
+          );
+          setMemberSinceLabel(formatMemberSince(summaryData.member_since_iso));
         } catch (apiErr) {
-          console.error('getSchoolDashboard failed:', apiErr);
+          console.error('School summary/roster fetch failed:', apiErr);
           setDashboardApiError(
-            'Could not load the student roster from the API (getSchoolDashboard). ' +
+            'Could not load the student roster from the API (getSchoolSummary/getSchoolStudentRoster). ' +
               'Confirm REACT_APP_GOOGLE_CLOUD_FUNCTIONS points at the same Firebase project you seeded, ' +
               'and that functions are deployed or your local emulator is running with the latest build.'
           );
@@ -663,8 +676,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
 
         setSchoolTier(
           parseInstitutionalTierSlug(
-            schoolData.institutional_tier ??
-              schoolData.institutional_performance_tier ??
+            institutionalTier ??
               analyticsData.institutional_tier ??
               analyticsData.institutional_performance_tier
           )
@@ -705,7 +717,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
       }
     };
     void fetchData();
-  }, [schoolAdmin, isSchoolAdminPreview]);
+  }, [schoolAdmin, isSchoolAdminPreview, queryClient]);
 
   useEffect(() => {
     if (loading) {

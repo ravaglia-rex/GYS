@@ -960,17 +960,15 @@ function PlatformAdminSchoolDetailPage() {
               <Typography variant="subtitle1" sx={{ fontWeight: 700, color: ip.heading }}>
                 POC &amp; school admins
               </Typography>
-              {isSuperAdmin && (
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<AddAdminIcon />}
-                  onClick={openAddAdminDialog}
-                  sx={platformAdminOutlinedButtonSx}
-                >
-                  Add admin
-                </Button>
-              )}
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<AddAdminIcon />}
+                onClick={openAddAdminDialog}
+                sx={platformAdminOutlinedButtonSx}
+              >
+                Add admin
+              </Button>
             </Box>
             <Typography variant="body2" sx={{ color: ip.subtext, mb: 2, lineHeight: 1.55 }}>
               {registrant ? (
@@ -980,14 +978,11 @@ function PlatformAdminSchoolDetailPage() {
                     {registrant.name || 'Unknown'}
                   </Box>
                   {registrant.designation ? ` (${registrant.designation})` : ''}.
-                  {isSuperAdmin
-                    ? ' Send or resend an account setup link to any school admin who has not finished setup — same password-setup link as when you add a new admin.'
-                    : ' Login and setup status for school admins on file.'}
+                  {' '}Send or resend an account setup link to any school admin who has not
+                  finished setup — same password-setup link as when you add a new admin.
                 </>
-              ) : isSuperAdmin ? (
-                'School admins on file and whether each person created a login. Send an account setup link to anyone who still needs to set up their account.'
               ) : (
-                'School admins on file and whether each person created a login.'
+                'School admins on file and whether each person created a login. Send an account setup link to anyone who still needs to set up their account.'
               )}
             </Typography>
             {pocAccounts.length === 0 ? (
@@ -1055,7 +1050,7 @@ function PlatformAdminSchoolDetailPage() {
                         )}
                       </Typography>
                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1.5 }}>
-                        {isSuperAdmin && needsSetupInvite ? (
+                        {needsSetupInvite ? (
                           <Button
                             size="small"
                             variant="contained"
@@ -1098,7 +1093,7 @@ function PlatformAdminSchoolDetailPage() {
                           </Button>
                         )}
                       </Box>
-                      {isSuperAdmin && needsSetupInvite && !school?.payment_satisfied && (
+                      {needsSetupInvite && !school?.payment_satisfied && (
                         <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mt: 1 }}>
                           Mark the school as paid before sending an account setup link.
                         </Typography>
@@ -1829,7 +1824,6 @@ function PlatformAdminSchoolDetailPage() {
         </DialogActions>
       </Dialog>
 
-      {isSuperAdmin && (
       <Dialog
         open={addAdminOpen}
         onClose={() => !addAdminSubmitting && setAddAdminOpen(false)}
@@ -1881,7 +1875,6 @@ function PlatformAdminSchoolDetailPage() {
           </Button>
         </DialogActions>
       </Dialog>
-      )}
 
       {isSuperAdmin && (
       <Dialog

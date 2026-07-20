@@ -19,7 +19,7 @@ import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../state_data/reducer';
-import { getSchoolDashboard, getSchoolStudent, type StudentRow, type AssessmentProgress } from '../../db/schoolAdminCollection';
+import { getSchoolStudent, type StudentRow, type AssessmentProgress } from '../../db/schoolAdminCollection';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import { countAssessmentsFromProgress } from '../../utils/schoolAdminRosterUtils';
 import { buildGreenfieldPreviewStudentRows } from '../../data/schoolPreviewMock';
@@ -28,6 +28,7 @@ import { formatAchievementTierLabel, normalizeAchievementTierId } from '../../ut
 import PageTutorial from '../../components/tutorial/PageTutorial';
 import {
   getSchoolStudentProctoringFlags,
+  getSchoolStudentProctoringSnapshotUrl,
   isProctoringGloballyEnabled,
   type FlaggedProctoringAttempt,
 } from '../../features/proctoring';
@@ -132,18 +133,10 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
       setError(null);
       setSchoolMismatch(false);
       try {
-        const schoolId = String(schoolAdmin.schoolId).trim();
-
         let srow: StudentRow | null =
           routeState?.studentRow?.uid === studentId
             ? { ...routeState.studentRow, assessment_progress: routeState.studentRow.assessment_progress ?? {} }
             : null;
-        try {
-          const dash = await getSchoolDashboard(schoolId);
-          srow = (dash.students ?? []).find(s => s.uid === studentId) ?? srow;
-        } catch {
-          /* dashboard optional */
-        }
 
         try {
           const directStudent = await getSchoolStudent(studentId);
@@ -540,7 +533,9 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
                       const violationSummary = Object.entries(attempt.proctoring_summary.violation_counts ?? {})
                         .map(([k, v]) => `${k.replace(/_/g, ' ')} (${v})`)
                         .join(', ');
-                      const snapshotLinks = (attempt.events ?? []).filter((e) => e.snapshot_url);
+                      const snapshotLinks = (attempt.events ?? []).filter(
+                        (e) => e.snapshot_s3_key || e.snapshot_url
+                      );
                       return (
                         <TableRow key={attempt.attempt_id} hover>
                           <TableCell>{assessmentLabel(String(attempt.assessment_id ?? ''))}</TableCell>
@@ -554,11 +549,24 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
                                   <Button
                                     key={`${attempt.attempt_id}-${i}`}
                                     size="small"
-                                    component="a"
-                                    href={e.snapshot_url!}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
                                     sx={{ mr: 0.5 }}
+                                    onClick={async () => {
+                                      try {
+                                        if (e.snapshot_url) {
+                                          window.open(e.snapshot_url, '_blank', 'noopener,noreferrer');
+                                          return;
+                                        }
+                                        const key = e.snapshot_s3_key?.trim();
+                                        if (!key || !studentId) return;
+                                        const { url } = await getSchoolStudentProctoringSnapshotUrl(
+                                          studentId,
+                                          key
+                                        );
+                                        window.open(url, '_blank', 'noopener,noreferrer');
+                                      } catch (err) {
+                                        console.error('proctoring snapshot open:', err);
+                                      }
+                                    }}
                                   >
                                     View {i + 1}
                                   </Button>

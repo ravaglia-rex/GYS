@@ -9,6 +9,7 @@ import {
   RECORD_PRACTICE_OUTCOME,
   RECORD_PRACTICE_SESSION_OUTCOMES,
   RESET_PRACTICE_PROGRESS,
+  REVEAL_PRACTICE_SOLUTIONS,
 } from '../constants/constants';
 
 /** Matches backend default batch size for one practice start. */
@@ -47,7 +48,7 @@ export async function fetchPracticePoolCounts(examId: string): Promise<PracticeP
   return response.data;
 }
 
-/** Random sample of normalized practice questions (includes correct index + solution_steps for feedback). */
+/** Random sample of practice questions (stem/options only; solutions via {@link revealPracticeSolutions}). */
 export async function fetchPracticeQuestions(
   examId: string,
   level: 1 | 2 | 3,
@@ -68,6 +69,40 @@ export async function fetchPracticeQuestions(
     params: { exam_id: examId, level: String(level), limit },
   });
   return response.data;
+}
+
+export type PracticeSolutionReveal = {
+  correct_option_index: number | null;
+  solution_steps: string[] | null;
+};
+
+/** Fetch answer keys + solution steps for the current page when the student checks answers. */
+export async function revealPracticeSolutions(params: {
+  examId: string;
+  level: 1 | 2 | 3;
+  itemIds: string[];
+}): Promise<Record<string, PracticeSolutionReveal>> {
+  const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS;
+  if (!base) {
+    throw new Error('REACT_APP_GOOGLE_CLOUD_FUNCTIONS is not set.');
+  }
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error('You must be signed in to reveal practice solutions.');
+  }
+  const authToken = await user.getIdToken();
+  authTokenHandler.setAuthToken(authToken);
+  const response = await axios.post(
+    `${base}${PRACTICE_APIS}${REVEAL_PRACTICE_SOLUTIONS}`,
+    {
+      exam_id: params.examId,
+      level: String(params.level),
+      item_ids: params.itemIds,
+    },
+    { headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' } }
+  );
+  const data = response.data as { ok?: boolean; solutions?: Record<string, PracticeSolutionReveal> };
+  return data.solutions ?? {};
 }
 
 export interface RecordPracticeOutcomeResponse {

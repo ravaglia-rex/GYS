@@ -2,7 +2,8 @@ import axios from "axios";
 import {
   BILLING_INVOICE_DOWNLOAD_URL,
   FETCH_SCHOOL_ADMIN_DATA,
-  FETCH_SCHOOL_DASHBOARD,
+  FETCH_SCHOOL_SUMMARY,
+  SCHOOL_STUDENTS_ROSTER,
   QUARTERLY_REPORT_DOWNLOAD_URL,
   QUARTERLY_REPORTS,
   SCHOOL_ADMINS_APIS,
@@ -19,6 +20,30 @@ const GYS_SUPPORT_EMAIL = "globalyoungscholar@argus.ai";
 
 /** Shown in UI for any PDF download failure; details go to console only. */
 const PDF_DOWNLOAD_USER_MESSAGE = `Something went wrong with your download. Please try again later. If it keeps happening, contact us at ${GYS_SUPPORT_EMAIL}.`;
+
+/**
+ * Client-side cache for S3 presigned GET URLs. Server default TTL is 600s
+ * (`REPORT_PDF_PRESIGN_TTL_SECONDS`); we expire early so a cached URL is never used after AWS rejects it.
+ */
+const SIGNED_URL_CACHE_TTL_MS = 540_000;
+const signedUrlCache = new Map<string, { url: string; filename: string; invoice_number?: string | null; expiresAt: number }>();
+
+function getCachedSignedDownload(cacheKey: string): { url: string; filename: string; invoice_number?: string | null } | null {
+  const hit = signedUrlCache.get(cacheKey);
+  if (!hit) return null;
+  if (Date.now() >= hit.expiresAt) {
+    signedUrlCache.delete(cacheKey);
+    return null;
+  }
+  return hit;
+}
+
+function putCachedSignedDownload(
+  cacheKey: string,
+  value: { url: string; filename: string; invoice_number?: string | null }
+): void {
+  signedUrlCache.set(cacheKey, { ...value, expiresAt: Date.now() + SIGNED_URL_CACHE_TTL_MS });
+}
 
 function parseS3ErrorCode(body: string): string | null {
   const m = body.match(/<Code>([^<]+)<\/Code>/);
@@ -100,11 +125,23 @@ export type SchoolTutorialUiPreferences = {
   };
 };
 
-export interface SchoolDashboardResponse {
+/**
+ * Lightweight school admin summary: live counts (denormalized on the school doc server-side),
+ * analytics, billing, payment history, and per-admin UI preferences. Deliberately excludes the
+ * per-student roster - fetch that separately via `getSchoolStudentRoster` (paginated `/students`)
+ * only on pages that actually need per-student rows.
+ */
+export interface SchoolSummaryResponse {
   schoolId: string;
   ui_preferences?: SchoolTutorialUiPreferences;
   selected_plan_id?: string | null;
   subscription_plan?: string | null;
+  /** Resolved server-side from the same school doc read for billing/plan data - see `schoolHeaderFieldsFromDoc`. */
+  school_name?: string;
+  city?: string;
+  board_label?: string;
+  member_since_iso?: string | null;
+  institutional_tier?: string | null;
   live: {
     total_students: number;
     pending_approval: number;
@@ -114,7 +151,6 @@ export interface SchoolDashboardResponse {
       level_3: number;
     };
   };
-  students: StudentRow[];
   analytics: Record<string, any>;
   billing?: SchoolDashboardBilling;
   payment_history?: SchoolDashboardPaymentHistoryItem[];
@@ -331,6 +367,11 @@ export const getQuarterlyReports = async (): Promise<QuarterlyReportsResponse> =
 export const getQuarterlyReportDownloadUrl = async (
   quarterKey: string
 ): Promise<{ url: string; filename: string; quarterKey: string }> => {
+  const cacheKey = `quarterly:${quarterKey}`;
+  const cached = getCachedSignedDownload(cacheKey);
+  if (cached) {
+    return { url: cached.url, filename: cached.filename, quarterKey };
+  }
   try {
     const authToken = await authTokenHandler.getAuthToken();
     const enc = encodeURIComponent(quarterKey);
@@ -338,7 +379,9 @@ export const getQuarterlyReportDownloadUrl = async (
       `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${QUARTERLY_REPORT_DOWNLOAD_URL}/${enc}`,
       { headers: { Authorization: `Bearer ${authToken}` } }
     );
-    return response.data;
+    const data = response.data as { url: string; filename: string; quarterKey: string };
+    putCachedSignedDownload(cacheKey, { url: data.url, filename: data.filename });
+    return data;
   } catch (error) {
     console.error("[getQuarterlyReportDownloadUrl]", {quarterKey, error});
     throw new Error(PDF_DOWNLOAD_USER_MESSAGE);
@@ -396,6 +439,15 @@ export const getBillingInvoiceDownloadUrl = async (paymentId?: string): Promise<
   filename: string;
   invoice_number: string | null;
 }> => {
+  const cacheKey = `invoice:${paymentId ?? "latest"}`;
+  const cached = getCachedSignedDownload(cacheKey);
+  if (cached) {
+    return {
+      url: cached.url,
+      filename: cached.filename,
+      invoice_number: cached.invoice_number ?? null,
+    };
+  }
   try {
     const authToken = await authTokenHandler.getAuthToken();
     const paymentQuery = paymentId ? `?payment_id=${encodeURIComponent(paymentId)}` : "";
@@ -403,7 +455,13 @@ export const getBillingInvoiceDownloadUrl = async (paymentId?: string): Promise<
       `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${BILLING_INVOICE_DOWNLOAD_URL}${paymentQuery}`,
       { headers: { Authorization: `Bearer ${authToken}` } }
     );
-    return response.data as { url: string; filename: string; invoice_number: string | null };
+    const data = response.data as { url: string; filename: string; invoice_number: string | null };
+    putCachedSignedDownload(cacheKey, {
+      url: data.url,
+      filename: data.filename,
+      invoice_number: data.invoice_number,
+    });
+    return data;
   } catch (error) {
     console.error("[getBillingInvoiceDownloadUrl]", error);
     throw new Error(PDF_DOWNLOAD_USER_MESSAGE);
@@ -415,29 +473,56 @@ export const downloadBillingInvoicePdf = async (paymentId?: string): Promise<voi
   await downloadPdfFromUrl(url, filename || "invoice.pdf");
 };
 
-export const getSchoolDashboard = async (schoolId: string): Promise<SchoolDashboardResponse> => {
-  const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS ?? "";
+/**
+ * Cache freshness is now owned by React Query (see `query/hooks.ts` `useSchoolAdminSummary` /
+ * `useSchoolAdminRoster`) rather than by defeating the HTTP cache on every call - the endpoint
+ * response can be cached normally; React Query's `staleTime`/manual `invalidateQueries` calls
+ * after mutations (billing upgrade, roster changes, etc.) control when a refetch actually happens.
+ */
+export const getSchoolSummary = async (schoolId: string): Promise<SchoolSummaryResponse> => {
   try {
     const authToken = await authTokenHandler.getAuthToken();
     const encodedSchoolId = encodeURIComponent(String(schoolId ?? "").trim());
-    // `fetch` + `cache: "no-store"` bypasses the browser HTTP cache more reliably than axios
-    // (fixes stale 304 / old tier data after Firestore updates). `_t` busts URL-keyed CDN caches.
-    const url = `${base}${SCHOOL_ADMINS_APIS}${FETCH_SCHOOL_DASHBOARD}/${encodedSchoolId}?_t=${Date.now()}`;
-    const res = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-        Accept: "application/json",
-      },
-      cache: "no-store",
-    });
-    if (!res.ok) {
-      throw new Error(`getSchoolDashboard HTTP ${res.status}`);
-    }
-    return (await res.json()) as SchoolDashboardResponse;
+    const response = await axios.get(
+      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${FETCH_SCHOOL_SUMMARY}/${encodedSchoolId}`,
+      {headers: {Authorization: `Bearer ${authToken}`}}
+    );
+    return response.data as SchoolSummaryResponse;
   } catch {
-    throw new Error("Error fetching school dashboard. Please contact globalyoungscholar@argus.ai");
+    throw new Error("Error fetching school summary. Please contact globalyoungscholar@argus.ai");
   }
+};
+
+const SCHOOL_ROSTER_PAGE_LIMIT = 500;
+/** Safety cap on pagination loops - matches the "no per-campus cap" premium plan ceiling. */
+const SCHOOL_ROSTER_MAX_PAGES = 40;
+
+/**
+ * Fetches the full student roster for the caller's school via the paginated `/students` endpoint,
+ * looping through pages until exhausted. Kept as a single "give me everything" helper so existing
+ * pages that compute roster-wide aggregates (tier breakdowns, grade distribution, etc.) don't need
+ * to manage pagination themselves; the endpoint being paginated still bounds each individual
+ * Firestore read even for large (premium, uncapped) school rosters.
+ */
+export const getSchoolStudentRoster = async (schoolId: string): Promise<StudentRow[]> => {
+  const authToken = await authTokenHandler.getAuthToken();
+  const all: StudentRow[] = [];
+  let cursor: string | null = null;
+
+  for (let page = 0; page < SCHOOL_ROSTER_MAX_PAGES; page += 1) {
+    const params = new URLSearchParams({limit: String(SCHOOL_ROSTER_PAGE_LIMIT)});
+    if (cursor) params.set("cursor", cursor);
+    const response = await axios.get(
+      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${SCHOOL_STUDENTS_ROSTER}?${params.toString()}`,
+      {headers: {Authorization: `Bearer ${authToken}`}}
+    );
+    const pageStudents: StudentRow[] = Array.isArray(response.data?.students) ? response.data.students : [];
+    all.push(...pageStudents);
+    cursor = typeof response.data?.next_cursor === "string" ? response.data.next_cursor : null;
+    if (!cursor) break;
+  }
+
+  return all;
 };
 
 export const getSchoolStudent = async (studentId: string): Promise<StudentRow> => {

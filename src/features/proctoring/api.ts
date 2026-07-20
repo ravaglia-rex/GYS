@@ -65,3 +65,20 @@ export async function getSchoolStudentProctoringFlags(
   );
   return response.data;
 }
+
+/** Presign a single proctoring snapshot on click (avoids N eager signs on flags list load). */
+export async function getSchoolStudentProctoringSnapshotUrl(
+  studentId: string,
+  objectKey: string
+): Promise<{ url: string; expires_in: number }> {
+  const authToken = await authTokenHandler.getAuthToken();
+  const encodedStudentId = encodeURIComponent(studentId);
+  const response = await axios.get(
+    `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}/students/${encodedStudentId}/proctoringSnapshotUrl`,
+    {
+      headers: { Authorization: `Bearer ${authToken}` },
+      params: { key: objectKey },
+    }
+  );
+  return response.data;
+}

@@ -21,7 +21,7 @@ export interface ProficiencyTier123OverviewProps {
 /**
  * Horizontal stacked bar + legend for all school students by overall proficiency band (1 / 2 / 3+).
  */
-export const ProficiencyTier123Overview: React.FC<ProficiencyTier123OverviewProps> = ({
+export const ProficiencyTier123Overview: React.FC<ProficiencyTier123OverviewProps> = React.memo(({
   summary,
   subtitle,
   barHeight = 28,
@@ -94,4 +94,6 @@ export const ProficiencyTier123Overview: React.FC<ProficiencyTier123OverviewProp
       </Box>
     </Box>
   );
-};
+});
+
+ProficiencyTier123Overview.displayName = 'ProficiencyTier123Overview';

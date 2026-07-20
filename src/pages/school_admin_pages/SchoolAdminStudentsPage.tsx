@@ -26,6 +26,7 @@ import {
   LinearProgress,
   Tooltip,
 } from '@mui/material';
+import { TableVirtuoso } from 'react-virtuoso';
 import {
   Search as SearchIcon,
   FilterList as FilterListIcon,
@@ -37,12 +38,15 @@ import {
 } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import {
-  getSchoolDashboard,
+  getSchoolStudentRoster,
+  getSchoolSummary,
   getStudentRegistrationEmailLists,
   putStudentRegistrationEmails,
   type StudentRow,
 } from '../../db/schoolAdminCollection';
+import { queryKeys } from '../../query/queryKeys';
 import { RootState } from '../../state_data/reducer';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import {
@@ -145,6 +149,48 @@ const rosterSelectMenuPaperSx = {
   '& .MuiMenuItem-root': { color: ip.heading },
 };
 
+const SCHOOL_ROSTER_VIRTUOSO_HEIGHT = 560;
+
+const SchoolRosterVirtuosoComponents = {
+  Scroller: React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(function SchoolRosterScroller(
+    { style, ...props },
+    ref
+  ) {
+    return (
+      <TableContainer
+        component={Paper}
+        elevation={0}
+        {...props}
+        ref={ref}
+        style={style}
+        sx={{
+          boxShadow: 'none',
+          bgcolor: '#fff',
+          color: ip.heading,
+          border: `1px solid ${ip.cardBorder}`,
+          borderRadius: 1,
+          overflowX: 'auto',
+          maxWidth: '100%',
+        }}
+      />
+    );
+  }),
+  Table: (props: React.ComponentProps<typeof Table>) => (
+    <Table {...props} size="medium" sx={{ bgcolor: '#fff', minWidth: 640, borderCollapse: 'separate' }} />
+  ),
+  TableHead: React.forwardRef<HTMLTableSectionElement, React.ComponentProps<typeof TableHead>>(
+    function SchoolRosterTableHead(props, ref) {
+      return <TableHead {...props} ref={ref} data-tutorial-id="school-students-table" />;
+    }
+  ),
+  TableRow,
+  TableBody: React.forwardRef<HTMLTableSectionElement, React.ComponentProps<typeof TableBody>>(
+    function SchoolRosterTableBody(props, ref) {
+      return <TableBody {...props} ref={ref} />;
+    }
+  ),
+};
+
 const rosterFilterSelectSx = {
   ...rosterToolbarSelectSx(ROSTER_FILTER_SELECT_MIN_W),
   width: ROSTER_FILTER_SELECT_MIN_W,
@@ -202,12 +248,17 @@ function getAchievementTierChipSx(tierRaw: string) {
   };
 }
 
+/** Matches the staleTime used by `useSchoolAdminSummary`/`useSchoolAdminRoster` (query/hooks.ts)
+ * so this page's `ensureQueryData` calls share the same cache freshness window as other pages. */
+const SCHOOL_ADMIN_QUERY_STALE_MS = 60_000;
+
 const SchoolAdminStudentsPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isSchoolAdminPreview = location.pathname.startsWith('/for-schools/preview');
   const routeBase = isSchoolAdminPreview ? '/for-schools/preview' : '/school-admin';
   const { schoolAdmin } = useSelector((state: RootState) => state.auth);
+  const queryClient = useQueryClient();
 
   const [registrationEmails, setRegistrationEmails] = useState<string[]>([]);
   const [revokedRegistrationEmails, setRevokedRegistrationEmails] = useState<string[]>([]);
@@ -293,9 +344,23 @@ const SchoolAdminStudentsPage: React.FC = () => {
       reg = (reg ?? []).map(normalizeRosterEmail);
       revoked = (revoked ?? []).map(normalizeRosterEmail);
 
-      const dash = await getSchoolDashboard(schoolId);
-      setSelectedPlanId(normalizeRegisterPlanId(dash.selected_plan_id));
-      const dashboardStudents = dash.students ?? [];
+      // `ensureQueryData` reads/populates the same React Query cache entries the
+      // Dashboard/Analytics/Subscription pages read via `useSchoolAdminSummary` /
+      // `useSchoolAdminRoster` - navigating between pages within staleTime reuses the cached
+      // result instead of re-fetching.
+      const [summary, dashboardStudents] = await Promise.all([
+        queryClient.ensureQueryData({
+          queryKey: queryKeys.schoolAdminSummary(schoolId),
+          queryFn: () => getSchoolSummary(schoolId),
+          staleTime: SCHOOL_ADMIN_QUERY_STALE_MS,
+        }),
+        queryClient.ensureQueryData({
+          queryKey: queryKeys.schoolAdminRoster(schoolId),
+          queryFn: () => getSchoolStudentRoster(schoolId),
+          staleTime: SCHOOL_ADMIN_QUERY_STALE_MS,
+        }),
+      ]);
+      setSelectedPlanId(normalizeRegisterPlanId(summary.selected_plan_id));
       setHasNoStudentsInDb(dashboardStudents.length === 0 && reg.length === 0 && revoked.length === 0);
 
       const registered: RosterRegistered[] = dashboardStudents.map(dr => {
@@ -340,7 +405,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [schoolAdmin?.schoolId, isSchoolAdminPreview]);
+  }, [schoolAdmin?.schoolId, isSchoolAdminPreview, queryClient]);
 
   useEffect(() => {
     void loadRoster();
@@ -569,9 +634,15 @@ const SchoolAdminStudentsPage: React.FC = () => {
   const studentCap = selectedPlanId ? INSTITUTIONAL_PLAN_STUDENT_CAP[selectedPlanId] : null;
   const capReached = studentCap !== null && activeRosterCount >= studentCap;
 
-  const uniqueGrades = Array.from(
-    new Set(rows.filter((r): r is RosterRegistered => r.kind === 'registered').map(r => r.grade).filter(g => g > 0))
-  ).sort((a, b) => a - b);
+  const uniqueGrades = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          rows.filter((r): r is RosterRegistered => r.kind === 'registered').map(r => r.grade).filter(g => g > 0)
+        )
+      ).sort((a, b) => a - b),
+    [rows]
+  );
 
   const hasActiveFilters =
     !!searchTerm.trim() ||
@@ -1019,21 +1090,55 @@ const SchoolAdminStudentsPage: React.FC = () => {
               <Typography variant="body2" sx={{ color: ip.subtext, mb: 2 }}>
                 Showing {filteredSorted.length} of {rows.length} rows
               </Typography>
-              <TableContainer
-                component={Paper}
-                elevation={0}
-                sx={{
-                  boxShadow: 'none',
-                  bgcolor: '#fff',
-                  color: ip.heading,
-                  border: `1px solid ${ip.cardBorder}`,
-                  borderRadius: 1,
-                  overflowX: 'auto',
-                  maxWidth: '100%',
-                }}
-              >
-                <Table size="medium" sx={{ bgcolor: '#fff', minWidth: 640 }}>
-                  <TableHead data-tutorial-id="school-students-table">
+              {filteredSorted.length === 0 ? (
+                <TableContainer
+                  component={Paper}
+                  elevation={0}
+                  sx={{
+                    boxShadow: 'none',
+                    bgcolor: '#fff',
+                    color: ip.heading,
+                    border: `1px solid ${ip.cardBorder}`,
+                    borderRadius: 1,
+                    overflowX: 'auto',
+                    maxWidth: '100%',
+                  }}
+                >
+                  <Table size="medium" sx={{ bgcolor: '#fff', minWidth: 640 }}>
+                    <TableHead data-tutorial-id="school-students-table">
+                      <TableRow
+                        sx={{
+                          bgcolor: ip.cardMutedBg,
+                          '& .MuiTableCell-root': {
+                            color: ip.heading,
+                            fontWeight: 700,
+                            borderBottom: `1px solid ${ip.cardBorder}`,
+                          },
+                        }}
+                      >
+                        <TableCell>Student</TableCell>
+                        <TableCell>Status</TableCell>
+                        <TableCell>Class</TableCell>
+                        <TableCell>Achievement</TableCell>
+                        <TableCell>Assessments</TableCell>
+                        <TableCell align="right">Actions</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      <TableRow sx={{ bgcolor: '#fff' }}>
+                        <TableCell colSpan={6} sx={{ textAlign: 'center', py: 4, color: ip.subtext, borderBottom: 'none' }}>
+                          No rows match your filters.
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              ) : (
+                <TableVirtuoso
+                  style={{ height: Math.min(SCHOOL_ROSTER_VIRTUOSO_HEIGHT, 72 + filteredSorted.length * 64) }}
+                  data={filteredSorted}
+                  components={SchoolRosterVirtuosoComponents}
+                  fixedHeaderContent={() => (
                     <TableRow
                       sx={{
                         bgcolor: ip.cardMutedBg,
@@ -1051,153 +1156,204 @@ const SchoolAdminStudentsPage: React.FC = () => {
                       <TableCell>Assessments</TableCell>
                       <TableCell align="right">Actions</TableCell>
                     </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {filteredSorted.length === 0 ? (
-                      <TableRow sx={{ bgcolor: '#fff' }}>
-                        <TableCell colSpan={6} sx={{ textAlign: 'center', py: 4, color: ip.subtext, borderBottom: 'none' }}>
-                          No rows match your filters.
+                  )}
+                  itemContent={(index, r) =>
+                    r.kind === 'registered' ? (
+                      <>
+                        <TableCell
+                          sx={{
+                            color: ip.heading,
+                            borderBottom: `1px solid ${ip.cardBorder}`,
+                            bgcolor: index % 2 === 1 ? ip.cardMutedBg : '#fff',
+                          }}
+                        >
+                          <Typography sx={{ fontWeight: 600, color: ip.heading }}>
+                            {r.firstName} {r.lastName}
+                          </Typography>
+                          {r.email ? (
+                            <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mt: 0.25 }}>
+                              {r.email}
+                            </Typography>
+                          ) : null}
                         </TableCell>
-                      </TableRow>
+                        <TableCell
+                          sx={{
+                            borderBottom: `1px solid ${ip.cardBorder}`,
+                            bgcolor: index % 2 === 1 ? ip.cardMutedBg : '#fff',
+                          }}
+                        >
+                          <Chip
+                            size="small"
+                            label="Registered"
+                            sx={{
+                              fontWeight: 600,
+                              bgcolor: 'rgba(34, 197, 94, 0.14)',
+                              color: '#166534',
+                              border: '1px solid rgba(34, 197, 94, 0.4)',
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            color: ip.heading,
+                            fontWeight: 500,
+                            borderBottom: `1px solid ${ip.cardBorder}`,
+                            bgcolor: index % 2 === 1 ? ip.cardMutedBg : '#fff',
+                          }}
+                        >
+                          {r.grade > 0 ? r.grade : '-'}
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            color: ip.heading,
+                            fontWeight: 500,
+                            borderBottom: `1px solid ${ip.cardBorder}`,
+                            bgcolor: index % 2 === 1 ? ip.cardMutedBg : '#fff',
+                          }}
+                        >
+                          <Chip
+                            size="small"
+                            label={formatAchievementTierLabel(r.achievementTier)}
+                            sx={{
+                              fontWeight: 600,
+                              ...getAchievementTierChipSx(r.achievementTier),
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            color: ip.heading,
+                            fontWeight: 500,
+                            borderBottom: `1px solid ${ip.cardBorder}`,
+                            bgcolor: index % 2 === 1 ? ip.cardMutedBg : '#fff',
+                          }}
+                        >
+                          {r.assessmentsCompleted}
+                        </TableCell>
+                        <TableCell
+                          align="right"
+                          sx={{
+                            borderBottom: `1px solid ${ip.cardBorder}`,
+                            bgcolor: index % 2 === 1 ? ip.cardMutedBg : '#fff',
+                          }}
+                        >
+                          <Button
+                            size="small"
+                            endIcon={<OpenInNewIcon sx={{ fontSize: '1rem !important' }} />}
+                            onClick={() =>
+                              navigate(`${routeBase}/students/${encodeURIComponent(r.uid)}`, {
+                                state: {
+                                  studentRow: r.dashboardRow,
+                                  email: r.email,
+                                },
+                              })
+                            }
+                            sx={{ color: ip.statBlue, fontWeight: 600, textTransform: 'none' }}
+                          >
+                            View
+                          </Button>
+                        </TableCell>
+                      </>
                     ) : (
-                      filteredSorted.map((r, index) =>
-                        r.kind === 'registered' ? (
-                          <TableRow
-                            key={r.uid}
-                            data-tutorial-id={index === 0 ? 'school-students-table' : undefined}
-                            hover
-                            sx={{
-                              bgcolor: '#fff',
-                              '&:nth-of-type(even)': { bgcolor: ip.cardMutedBg },
-                              '&:hover': { bgcolor: 'rgba(16, 64, 139, 0.06) !important' },
-                              '& .MuiTableCell-root': {
-                                color: ip.heading,
-                                borderBottom: `1px solid ${ip.cardBorder}`,
-                              },
-                            }}
-                          >
-                            <TableCell>
-                              <Typography sx={{ fontWeight: 600, color: ip.heading }}>
-                                {r.firstName} {r.lastName}
-                              </Typography>
-                              {r.email ? (
-                                <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mt: 0.25 }}>
-                                  {r.email}
-                                </Typography>
-                              ) : null}
-                            </TableCell>
-                            <TableCell>
-                              <Chip
-                                size="small"
-                                label="Registered"
-                                sx={{
-                                  fontWeight: 600,
-                                  bgcolor: 'rgba(34, 197, 94, 0.14)',
-                                  color: '#166534',
-                                  border: '1px solid rgba(34, 197, 94, 0.4)',
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell sx={{ color: ip.heading, fontWeight: 500 }}>{r.grade > 0 ? r.grade : '-'}</TableCell>
-                            <TableCell sx={{ color: ip.heading, fontWeight: 500 }}>
-                              <Chip
-                                size="small"
-                                label={formatAchievementTierLabel(r.achievementTier)}
-                                sx={{
-                                  fontWeight: 600,
-                                  ...getAchievementTierChipSx(r.achievementTier),
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell sx={{ color: ip.heading, fontWeight: 500 }}>{r.assessmentsCompleted}</TableCell>
-                            <TableCell align="right">
-                              <Button
-                                size="small"
-                                endIcon={<OpenInNewIcon sx={{ fontSize: '1rem !important' }} />}
-                                onClick={() =>
-                                  navigate(`${routeBase}/students/${encodeURIComponent(r.uid)}`, {
-                                    state: {
-                                      studentRow: r.dashboardRow,
-                                      email: r.email,
-                                    },
-                                  })
-                                }
-                                sx={{ color: ip.statBlue, fontWeight: 600, textTransform: 'none' }}
-                              >
-                                View
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          <TableRow
-                            key={`inv:${r.email}`}
-                            data-tutorial-id={index === 0 ? 'school-students-table' : undefined}
-                            hover
-                            sx={{
-                              bgcolor: '#fff',
-                              '&:nth-of-type(even)': { bgcolor: ip.cardMutedBg },
-                              '&:hover': { bgcolor: 'rgba(16, 64, 139, 0.06) !important' },
-                              '& .MuiTableCell-root': {
-                                color: ip.heading,
-                                borderBottom: `1px solid ${ip.cardBorder}`,
-                              },
-                            }}
-                          >
-                            <TableCell>
-                              <Typography sx={{ fontWeight: 600, color: ip.heading }}>{r.email}</Typography>
-                              <Typography variant="caption" sx={{ color: ip.subtext, display: 'block' }}>
-                                {r.status === 'revoked' ? 'Invitation revoked' : 'Invited - not registered yet'}
-                              </Typography>
-                            </TableCell>
-                            <TableCell>
-                              <Chip
-                                size="small"
-                                label={r.status === 'revoked' ? 'Revoked' : 'Invited'}
-                                sx={r.status === 'revoked' ? {
-                                  fontWeight: 600,
-                                  bgcolor: '#f1f5f9',
-                                  color: '#475569',
-                                  border: '1px solid #cbd5e1',
-                                } : {
-                                  fontWeight: 600,
-                                  bgcolor: 'rgba(245, 158, 11, 0.14)',
-                                  color: '#9a3412',
-                                  border: '1px solid rgba(245, 158, 11, 0.45)',
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell sx={{ color: ip.subtext }}>-</TableCell>
-                            <TableCell sx={{ color: ip.subtext }}>-</TableCell>
-                            <TableCell sx={{ color: ip.subtext }}>-</TableCell>
-                            <TableCell align="right">
-                              {r.status === 'revoked' ? (
-                                <Button
-                                  size="small"
-                                  disabled={resendingEmail === r.email}
-                                  onClick={() => setResendConfirmEmail(r.email)}
-                                  sx={{ color: ip.statBlue, fontWeight: 600, textTransform: 'none' }}
-                                >
-                                  {resendingEmail === r.email ? 'Sending...' : 'Resend invitation'}
-                                </Button>
-                              ) : (
-                                <Button
-                                  size="small"
-                                  color="error"
-                                  disabled={revokingEmail === r.email}
-                                  onClick={() => setRevokeConfirmEmail(r.email)}
-                                  sx={{ fontWeight: 600, textTransform: 'none' }}
-                                >
-                                  {revokingEmail === r.email ? 'Revoking...' : 'Revoke invitation'}
-                                </Button>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        )
-                      )
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                      <>
+                        <TableCell
+                          sx={{
+                            color: ip.heading,
+                            borderBottom: `1px solid ${ip.cardBorder}`,
+                            bgcolor: index % 2 === 1 ? ip.cardMutedBg : '#fff',
+                          }}
+                        >
+                          <Typography sx={{ fontWeight: 600, color: ip.heading }}>{r.email}</Typography>
+                          <Typography variant="caption" sx={{ color: ip.subtext, display: 'block' }}>
+                            {r.status === 'revoked' ? 'Invitation revoked' : 'Invited - not registered yet'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            borderBottom: `1px solid ${ip.cardBorder}`,
+                            bgcolor: index % 2 === 1 ? ip.cardMutedBg : '#fff',
+                          }}
+                        >
+                          <Chip
+                            size="small"
+                            label={r.status === 'revoked' ? 'Revoked' : 'Invited'}
+                            sx={
+                              r.status === 'revoked'
+                                ? {
+                                    fontWeight: 600,
+                                    bgcolor: '#f1f5f9',
+                                    color: '#475569',
+                                    border: '1px solid #cbd5e1',
+                                  }
+                                : {
+                                    fontWeight: 600,
+                                    bgcolor: 'rgba(245, 158, 11, 0.14)',
+                                    color: '#9a3412',
+                                    border: '1px solid rgba(245, 158, 11, 0.45)',
+                                  }
+                            }
+                          />
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            color: ip.subtext,
+                            borderBottom: `1px solid ${ip.cardBorder}`,
+                            bgcolor: index % 2 === 1 ? ip.cardMutedBg : '#fff',
+                          }}
+                        >
+                          -
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            color: ip.subtext,
+                            borderBottom: `1px solid ${ip.cardBorder}`,
+                            bgcolor: index % 2 === 1 ? ip.cardMutedBg : '#fff',
+                          }}
+                        >
+                          -
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            color: ip.subtext,
+                            borderBottom: `1px solid ${ip.cardBorder}`,
+                            bgcolor: index % 2 === 1 ? ip.cardMutedBg : '#fff',
+                          }}
+                        >
+                          -
+                        </TableCell>
+                        <TableCell
+                          align="right"
+                          sx={{
+                            borderBottom: `1px solid ${ip.cardBorder}`,
+                            bgcolor: index % 2 === 1 ? ip.cardMutedBg : '#fff',
+                          }}
+                        >
+                          {r.status === 'revoked' ? (
+                            <Button
+                              size="small"
+                              disabled={resendingEmail === r.email}
+                              onClick={() => setResendConfirmEmail(r.email)}
+                              sx={{ color: ip.statBlue, fontWeight: 600, textTransform: 'none' }}
+                            >
+                              {resendingEmail === r.email ? 'Sending...' : 'Resend invitation'}
+                            </Button>
+                          ) : (
+                            <Button
+                              size="small"
+                              color="error"
+                              disabled={revokingEmail === r.email}
+                              onClick={() => setRevokeConfirmEmail(r.email)}
+                              sx={{ fontWeight: 600, textTransform: 'none' }}
+                            >
+                              {revokingEmail === r.email ? 'Revoking...' : 'Revoke invitation'}
+                            </Button>
+                          )}
+                        </TableCell>
+                      </>
+                    )
+                  }
+                />
+              )}
             </CardContent>
           </Card>
         </>

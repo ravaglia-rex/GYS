@@ -39,6 +39,7 @@ import {
   Visibility as ViewIcon,
   CardGiftcard as ComplimentaryIcon,
 } from '@mui/icons-material';
+import { TableVirtuoso } from 'react-virtuoso';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
@@ -61,7 +62,6 @@ import {
   platformAdminDialogTextFieldSx,
   platformAdminFilterSelectSx,
   platformAdminFilterToolbarRowSx,
-  platformAdminOutlinedButtonSx,
   platformAdminPageContainerSx,
   platformAdminPrimaryButtonSx,
   platformAdminSearchFieldSx,
@@ -93,6 +93,8 @@ type MembershipFilter = 'all' | '1' | '2' | '3' | '3_plus';
 const ALL_SCHOOLS_VALUE = '__all__';
 /** Must match the backend's NO_SCHOOL_FILTER_VALUE sentinel in platformAdminCollection/index.ts. */
 const NO_SCHOOL_FILTER_VALUE = '__no_school__';
+/** Matches the backend's NOT_LISTED_SCHOOL_ID (students who picked "school not listed" at signup). */
+const NOT_LISTED_SCHOOL_ID = 'not-listed';
 
 const STATUS_LABELS: Record<StatusFilter, string> = {
   all: 'All statuses',
@@ -134,6 +136,39 @@ function parseInitialSchoolSelection(raw: string | null): {
   const ids = Array.from(new Set(raw.split(',').map((id) => id.trim()).filter(Boolean)));
   return { allSchoolsSelected: false, selectedSchoolIds: ids };
 }
+
+const PLATFORM_STUDENTS_VIRTUOSO_HEIGHT = 560;
+
+const PlatformStudentsVirtuosoComponents = {
+  Scroller: React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+    function PlatformStudentsScroller({ style, ...props }, ref) {
+      return (
+        <TableContainer
+          component={Paper}
+          elevation={0}
+          {...props}
+          ref={ref}
+          style={style}
+          sx={platformAdminTablePaperSx}
+        />
+      );
+    }
+  ),
+  Table: (props: React.ComponentProps<typeof Table>) => (
+    <Table {...props} size="medium" sx={{ ...platformAdminTableSx, borderCollapse: 'separate' }} />
+  ),
+  TableHead: React.forwardRef<HTMLTableSectionElement, React.ComponentProps<typeof TableHead>>(
+    function PlatformStudentsTableHead(props, ref) {
+      return <TableHead {...props} ref={ref} />;
+    }
+  ),
+  TableRow,
+  TableBody: React.forwardRef<HTMLTableSectionElement, React.ComponentProps<typeof TableBody>>(
+    function PlatformStudentsTableBody(props, ref) {
+      return <TableBody {...props} ref={ref} />;
+    }
+  ),
+};
 
 const PlatformAdminStudentsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -409,7 +444,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
       const id = selectedSchoolIds[0];
       chips.push({
         key: 'schools',
-        label: schoolNameById.get(id) || id,
+        label: id === NO_SCHOOL_FILTER_VALUE ? 'No specific school' : schoolNameById.get(id) || id,
         onDelete: clearSchoolSelection,
       });
     } else if (selectedSchoolIds.length > 1) {
@@ -531,86 +566,6 @@ const PlatformAdminStudentsPage: React.FC = () => {
         />
       </Box>
 
-      {isSuperAdmin && (
-      <Card sx={{ ...platformAdminCardSx, mb: 2.5 }}>
-        <CardContent sx={{ py: 2, '&:last-child': { pb: 2 } }}>
-          <Box
-            sx={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              alignItems: 'flex-start',
-              justifyContent: 'space-between',
-              gap: 1.5,
-              mb: 1,
-            }}
-          >
-            <Box>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: ip.heading }}>
-                Complimentary invites
-              </Typography>
-              <Typography variant="body2" sx={{ color: ip.subtext, mt: 0.5, lineHeight: 1.55 }}>
-                Email-bound free access for students who are not on a school roster. They register
-                normally with the invited email; payment is waived up to the awarded package.
-              </Typography>
-            </Box>
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={() => void loadComplimentaryInvites()}
-              disabled={complimentaryLoading}
-              sx={platformAdminOutlinedButtonSx}
-            >
-              Refresh
-            </Button>
-          </Box>
-          {complimentaryLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-              <CircularProgress size={28} />
-            </Box>
-          ) : complimentaryInvites.length === 0 ? (
-            <Typography variant="body2" sx={{ color: ip.subtext, py: 1 }}>
-              No pending complimentary invites.
-            </Typography>
-          ) : (
-            <TableContainer component={Paper} elevation={0} sx={{ ...platformAdminTablePaperSx, mt: 1 }}>
-              <Table size="small" sx={platformAdminTableSx}>
-                <TableHead>
-                  <TableRow sx={platformAdminTableHeadRowSx}>
-                    <TableCell>Email</TableCell>
-                    <TableCell>Package</TableCell>
-                    <TableCell>Created by</TableCell>
-                    <TableCell align="right">Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {complimentaryInvites.map((invite) => (
-                    <TableRow key={invite.email}>
-                      <TableCell sx={{ color: ip.heading }}>{invite.email}</TableCell>
-                      <TableCell sx={{ color: ip.heading }}>
-                        Level {invite.membership_level} ·{' '}
-                        {MEMBERSHIP_LEVEL_LABEL[invite.membership_level]}
-                      </TableCell>
-                      <TableCell sx={{ color: ip.subtext }}>{invite.created_by || '—'}</TableCell>
-                      <TableCell align="right">
-                        <Button
-                          size="small"
-                          disabled={revokeBusyEmail === invite.email}
-                          onClick={() => void handleRevokeComplimentaryInvite(invite.email)}
-                          sx={platformAdminTextButtonSx}
-                        >
-                          {revokeBusyEmail === invite.email ? 'Revoking…' : 'Revoke'}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-        </CardContent>
-      </Card>
-      )}
-
       <Card sx={{ ...platformAdminCardSx, mb: 2.5 }}>
         <CardContent sx={{ py: 2, '&:last-child': { pb: 2 } }}>
           <Box
@@ -650,8 +605,10 @@ const PlatformAdminStudentsPage: React.FC = () => {
                   return schoolsLoading ? 'Loading schools…' : 'Select school(s) — required';
                 }
                 if (selected.length === 1) {
-                  const school = schools.find((s) => s.id === selected[0]);
-                  const name = school?.school_name || schoolNameById.get(selected[0]) || selected[0];
+                  const id = selected[0];
+                  if (id === NO_SCHOOL_FILTER_VALUE) return 'No specific school';
+                  const school = schools.find((s) => s.id === id);
+                  const name = school?.school_name || schoolNameById.get(id) || id;
                   const count = school?.student_count ?? 0;
                   return `${name} (${count})`;
                 }
@@ -685,6 +642,18 @@ const PlatformAdminStudentsPage: React.FC = () => {
               <MenuItem value={ALL_SCHOOLS_VALUE}>
                 <Checkbox checked={allSchoolsSelected} size="small" />
                 <ListItemText primary="All schools" />
+              </MenuItem>
+              <MenuItem value={NO_SCHOOL_FILTER_VALUE}>
+                <Checkbox
+                  checked={!allSchoolsSelected && selectedSchoolIds.includes(NO_SCHOOL_FILTER_VALUE)}
+                  size="small"
+                />
+                <ListItemText
+                  primary="No specific school"
+                  secondary="Unrostered students & pending invites"
+                  primaryTypographyProps={{ fontWeight: 600, color: ip.heading }}
+                  secondaryTypographyProps={{ sx: { color: ip.subtext, fontSize: '0.7rem' } }}
+                />
               </MenuItem>
               {schools.map((school) => (
                 <MenuItem key={school.id} value={school.id}>
@@ -816,7 +785,8 @@ const PlatformAdminStudentsPage: React.FC = () => {
             </Typography>
             <Typography variant="body2" sx={{ color: ip.subtext, maxWidth: 420, mx: 'auto' }}>
               Choose one or more schools (or All schools) in the School* filter above to load results.
-              To find students with no school, set Roster to &quot;No school&quot;.
+              To find students with no school, plus pending invites, choose &quot;No specific
+              school&quot;.
             </Typography>
           </CardContent>
         </Card>
@@ -828,9 +798,36 @@ const PlatformAdminStudentsPage: React.FC = () => {
         <PlatformAdminTableSection
           countLabel={`Showing ${students.length} student${students.length === 1 ? '' : 's'}`}
         >
-          <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
-            <Table size="medium" sx={platformAdminTableSx}>
-              <TableHead>
+          {students.length === 0 ? (
+            <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
+              <Table size="medium" sx={platformAdminTableSx}>
+                <TableHead>
+                  <TableRow sx={platformAdminTableHeadRowSx}>
+                    <TableCell>Name</TableCell>
+                    <TableCell>Email</TableCell>
+                    <TableCell>School</TableCell>
+                    <TableCell>Grade</TableCell>
+                    <TableCell>Membership</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Joined</TableCell>
+                    {isSuperAdmin && <TableCell align="right">Actions</TableCell>}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  <TableRow>
+                    <TableCell colSpan={tableColSpan} align="center" sx={{ py: 5, color: ip.subtext }}>
+                      No students match your filters.
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </TableContainer>
+          ) : (
+            <TableVirtuoso
+              style={{ height: Math.min(PLATFORM_STUDENTS_VIRTUOSO_HEIGHT, 72 + students.length * 56) }}
+              data={students}
+              components={PlatformStudentsVirtuosoComponents}
+              fixedHeaderContent={() => (
                 <TableRow sx={platformAdminTableHeadRowSx}>
                   <TableCell>Name</TableCell>
                   <TableCell>Email</TableCell>
@@ -841,94 +838,107 @@ const PlatformAdminStudentsPage: React.FC = () => {
                   <TableCell>Joined</TableCell>
                   {isSuperAdmin && <TableCell align="right">Actions</TableCell>}
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {students.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={tableColSpan} align="center" sx={{ py: 5, color: ip.subtext }}>
-                      No students match your filters.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  students.map((student) => (
-                    <TableRow key={student.uid}>
-                      <TableCell sx={{ fontWeight: 600, color: ip.heading }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
-                          <Typography
-                            component="span"
-                            sx={{ fontWeight: 600, color: ip.heading, minWidth: 0 }}
-                          >
-                            {[student.first_name, student.last_name].filter(Boolean).join(' ') || ' - '}
-                          </Typography>
-                          {isPlatformAdminTestStudent(student) && (
-                            <PlatformAdminChip label="Test" tone="info" />
-                          )}
-                        </Box>
-                      </TableCell>
-                      <TableCell sx={{ color: ip.heading }}>{student.email || ' - '}</TableCell>
-                      <TableCell sx={{ maxWidth: 220 }}>
-                        {student.school_name ? (
-                          <>
-                            <Tooltip title={student.school_name} placement="top-start">
-                              <Typography
-                                variant="body2"
-                                sx={{
-                                  fontWeight: 600,
-                                  color: ip.heading,
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap',
-                                  maxWidth: 200,
-                                }}
-                              >
-                                {student.school_name}
-                              </Typography>
-                            </Tooltip>
-                            <Typography variant="caption" sx={{ color: ip.subtext, display: 'block' }}>
-                              {student.school_id}
-                            </Typography>
-                          </>
-                        ) : (
-                          <Typography variant="body2" sx={{ color: ip.subtext }}>
-                            {student.school_id || ' - '}
-                          </Typography>
-                        )}
-                      </TableCell>
-                      <TableCell sx={{ color: ip.heading, fontWeight: 600 }}>{student.grade ?? ' - '}</TableCell>
-                      <TableCell sx={{ color: ip.heading }}>
-                        {student.membership_level != null ? `Level ${student.membership_level}` : ' - '}
-                      </TableCell>
-                      <TableCell>
-                        {student.approval_status ? (
-                          <PlatformAdminChip
-                            label={student.approval_status}
-                            tone={student.approval_status.toLowerCase() === 'approved' ? 'success' : 'warning'}
-                          />
-                        ) : (
-                          ' - '
-                        )}
-                      </TableCell>
-                      <TableCell sx={{ color: ip.subtext, whiteSpace: 'nowrap' }}>
-                        {formatDate(student.created_at)}
-                      </TableCell>
-                      {isSuperAdmin && (
-                        <TableCell align="right">
-                          <Button
-                            size="small"
-                            startIcon={<ViewIcon sx={{ fontSize: 18 }} />}
-                            onClick={() => navigate(`/platform-admin/students/${student.uid}`)}
-                            sx={platformAdminTextButtonSx}
-                          >
-                            View
-                          </Button>
-                        </TableCell>
+              )}
+              itemContent={(_index, student) => (
+                <>
+                  <TableCell sx={{ fontWeight: 600, color: ip.heading }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
+                      <Typography
+                        component="span"
+                        sx={{
+                          fontWeight: 600,
+                          color: student.is_invite ? ip.subtext : ip.heading,
+                          fontStyle: student.is_invite ? 'italic' : 'normal',
+                          minWidth: 0,
+                        }}
+                      >
+                        {student.is_invite
+                          ? 'Not yet registered'
+                          : [student.first_name, student.last_name].filter(Boolean).join(' ') ||
+                            ' - '}
+                      </Typography>
+                      {isPlatformAdminTestStudent(student) && (
+                        <PlatformAdminChip label="Test" tone="info" />
                       )}
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                    </Box>
+                  </TableCell>
+                  <TableCell sx={{ color: ip.heading }}>{student.email || ' - '}</TableCell>
+                  <TableCell sx={{ maxWidth: 220 }}>
+                    {student.school_name ? (
+                      <>
+                        <Tooltip title={student.school_name} placement="top-start">
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontWeight: 600,
+                              color: ip.heading,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              maxWidth: 200,
+                            }}
+                          >
+                            {student.school_name}
+                          </Typography>
+                        </Tooltip>
+                        <Typography variant="caption" sx={{ color: ip.subtext, display: 'block' }}>
+                          {student.school_id}
+                        </Typography>
+                      </>
+                    ) : (
+                      <Typography variant="body2" sx={{ color: ip.subtext }}>
+                        {student.school_id && student.school_id !== NOT_LISTED_SCHOOL_ID
+                          ? student.school_id
+                          : 'No specific school'}
+                      </Typography>
+                    )}
+                  </TableCell>
+                  <TableCell sx={{ color: ip.heading, fontWeight: 600 }}>{student.grade ?? ' - '}</TableCell>
+                  <TableCell sx={{ color: ip.heading }}>
+                    {student.membership_level != null ? `Level ${student.membership_level}` : ' - '}
+                  </TableCell>
+                  <TableCell>
+                    {student.is_invite ? (
+                      <PlatformAdminChip label="Invited" tone="warning" />
+                    ) : student.approval_status ? (
+                      <PlatformAdminChip
+                        label={student.approval_status}
+                        tone={student.approval_status.toLowerCase() === 'approved' ? 'success' : 'warning'}
+                      />
+                    ) : (
+                      ' - '
+                    )}
+                  </TableCell>
+                  <TableCell sx={{ color: ip.subtext, whiteSpace: 'nowrap' }}>
+                    {formatDate(student.created_at)}
+                  </TableCell>
+                  {isSuperAdmin && (
+                    <TableCell align="right">
+                      {student.is_invite ? (
+                        <Button
+                          size="small"
+                          disabled={revokeBusyEmail === student.email}
+                          onClick={() => void handleRevokeComplimentaryInvite(student.email)}
+                          sx={platformAdminTextButtonSx}
+                        >
+                          {revokeBusyEmail === student.email ? 'Revoking…' : 'Revoke invite'}
+                        </Button>
+                      ) : (
+                        <Button
+                          size="small"
+                          startIcon={<ViewIcon sx={{ fontSize: 18 }} />}
+                          onClick={() => navigate(`/platform-admin/students/${student.uid}`)}
+                          sx={platformAdminTextButtonSx}
+                        >
+                          View
+                        </Button>
+                      )}
+                    </TableCell>
+                  )}
+                </>
+              )}
+            />
+          )}
         </PlatformAdminTableSection>
       )}
 

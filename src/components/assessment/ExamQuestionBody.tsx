@@ -3,32 +3,17 @@ import { Box, Typography, FormControl, FormControlLabel, RadioGroup, Radio, Butt
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import StopIcon from '@mui/icons-material/Stop';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
-import type { ExamQuestion, QuestionInteractionType } from '../../db/assessmentCollection';
+import type { ExamQuestion } from '../../db/assessmentCollection';
 import { resolvePracticeItemId } from '../practice/practiceModeConfig';
-import { getAssessmentFlowDefinition } from '../../config/assessmentFlowUI';
 import { ExamMathBlock, ExamMathText } from './ExamMathText';
 import { QuestionProblemReport, type QuestionReportFrame } from './QuestionProblemReport';
+import { inferQuestionInteraction } from './inferQuestionInteraction';
+
+export { inferQuestionInteraction } from './inferQuestionInteraction';
 
 const LIKERT_LEFT = 'Strongly disagree';
 const LIKERT_MID = 'Neutral';
 const LIKERT_RIGHT = 'Strongly agree';
-
-export function inferQuestionInteraction(
-  assessmentId: string,
-  q: ExamQuestion | null
-): QuestionInteractionType {
-  if (!q) return 'visual_mcq';
-  if (q.question_type) return q.question_type;
-  if (q.audio_url) return 'listening_mcq';
-  if (q.passage && q.passage.trim()) return 'passage_mcq';
-  const flow = getAssessmentFlowDefinition(assessmentId);
-  const pid = assessmentId === 'comprehensive_personality';
-  if (pid && q.options?.length >= 5) return 'likert';
-  if (flow.defaultQuestionInteraction === 'likert' && q.options?.length >= 5) return 'likert';
-  if (flow.defaultQuestionInteraction === 'listening_mcq' && q.audio_url) return 'listening_mcq';
-  if (flow.defaultQuestionInteraction === 'passage_mcq' && q.passage) return 'passage_mcq';
-  return 'visual_mcq';
-}
 
 /** Secondary stem line (canonical `presentation.instruction`). */
 const InstructionLine: React.FC<{ text: string }> = ({ text }) => (

@@ -65,7 +65,8 @@ export const SEND_NOTIFICATION_EMAILS='/sendNotificationEmails';
 
 // School admins
 export const FETCH_SCHOOL_ADMIN_DATA='/getSchoolAdminDetails';
-export const FETCH_SCHOOL_DASHBOARD='/getSchoolDashboard';
+export const FETCH_SCHOOL_SUMMARY='/getSchoolSummary';
+export const SCHOOL_STUDENTS_ROSTER='/students';
 export const STUDENT_REGISTRATION_EMAILS='/studentRegistrationEmails';
 export const UPDATE_SCHOOL_PROFILE='/schoolProfile';
 export const DISMISS_SCHOOL_TUTORIAL='/tutorialDismissal';
@@ -90,6 +91,7 @@ export const GET_ATTEMPT_PROCTORING='/getAttemptProctoring';
 // Practice bank (skill drills – authenticated)
 export const GET_PRACTICE_POOL_COUNTS='/poolCounts';
 export const GET_PRACTICE_QUESTIONS='/questions';
+export const REVEAL_PRACTICE_SOLUTIONS='/revealSolutions';
 export const RECORD_PRACTICE_OUTCOME='/recordOutcome';
 export const RECORD_PRACTICE_SESSION_OUTCOMES='/recordSessionOutcomes';
 export const RESET_PRACTICE_PROGRESS='/resetProgress';
