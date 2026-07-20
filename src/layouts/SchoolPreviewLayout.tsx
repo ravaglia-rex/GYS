@@ -1,4 +1,3 @@
-import React from 'react';
 import { Outlet } from 'react-router-dom';
 import SchoolAdminLayout from './SchoolAdminLayout';
 import { SchoolAdminBelowNavProvider } from './schoolAdminBelowNavContext';

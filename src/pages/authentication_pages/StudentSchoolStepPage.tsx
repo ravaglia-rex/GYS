@@ -7,8 +7,8 @@ import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
 import { useStudentSignupExit } from '../../contexts/StudentSignupExitContext';
 import { useStudentSignupExitGuard } from '../../hooks/useStudentSignupExitGuard';
 import {
+  coveredMembershipDraftFields,
   normalizeStudentMembershipLevel,
-  schoolIncludedMembershipDraftFields,
 } from '../../utils/studentMembershipPricing';
 import { mergeSignupState, writeSignupDraft } from '../../utils/studentSignupDraft';
 
@@ -28,6 +28,7 @@ interface LocationState {
   schoolId?: string;
   schoolName?: string;
   schoolCoveredMembershipLevel?: number;
+  complimentaryCoveredMembershipLevel?: number;
   schoolPaymentComplete?: boolean;
   schoolPlanId?: string | null;
   membershipLevel?: string;
@@ -51,6 +52,7 @@ const StudentSchoolStepPage: React.FC = () => {
     paymentComplete: boolean;
     planId: string | null;
   } | null>(null);
+  const [complimentaryCoveredLevel, setComplimentaryCoveredLevel] = useState(0);
   /** When email is not on any school list: free-text school name; stored with signup as school_id not-listed. */
   const [typedSchoolName, setTypedSchoolName] = useState(
     typeof merged.signupSchoolName === 'string' ? merged.signupSchoolName : ''
@@ -86,7 +88,12 @@ const StudentSchoolStepPage: React.FC = () => {
           schoolPaymentComplete: false,
           schoolPlanId: null,
           schoolCoveredMembershipLevel: 0,
+          complimentaryCoveredMembershipLevel: 0,
+          coveredMembershipLevel: 0,
         }));
+        setComplimentaryCoveredLevel(
+          normalizeStudentMembershipLevel(resolved.complimentaryCoveredMembershipLevel)
+        );
         if (resolved.schoolId && resolved.schoolName) {
           setLockedSchool({
             id: resolved.schoolId,
@@ -151,6 +158,12 @@ const StudentSchoolStepPage: React.FC = () => {
     const normalizedEmail = email.trim().toLowerCase();
     setIsContinuing(true);
 
+    const schoolCoveredLevel =
+      emailMatchedSchool && lockedSchool?.paymentComplete === true
+        ? normalizeStudentMembershipLevel(lockedSchool.coveredMembershipLevel)
+        : 0;
+    const complimentaryLevel = normalizeStudentMembershipLevel(complimentaryCoveredLevel);
+
     const nextState: Partial<LocationState> & Record<string, unknown> = {
       ...base,
       firstName,
@@ -163,7 +176,8 @@ const StudentSchoolStepPage: React.FC = () => {
       ...(lockedSchool?.name && { schoolName: lockedSchool.name }),
       schoolPaymentComplete: lockedSchool?.paymentComplete === true,
       schoolPlanId: lockedSchool?.planId ?? null,
-      schoolCoveredMembershipLevel: lockedSchool?.coveredMembershipLevel ?? 0,
+      schoolCoveredMembershipLevel: schoolCoveredLevel,
+      complimentaryCoveredMembershipLevel: complimentaryLevel,
       homeLanguage: undefined,
       aspiration: undefined,
       heardFrom,
@@ -174,21 +188,18 @@ const StudentSchoolStepPage: React.FC = () => {
       delete nextState.signupSchoolName;
     }
 
-    const coveredLevel = normalizeStudentMembershipLevel(
-      lockedSchool?.coveredMembershipLevel
-    );
-    const schoolCoversPackage =
-      emailMatchedSchool &&
-      lockedSchool?.paymentComplete === true &&
-      coveredLevel >= 1;
+    const effectiveCovered = Math.max(schoolCoveredLevel, complimentaryLevel) as 0 | 1 | 2 | 3 | 4;
 
-    if (schoolCoversPackage) {
-      const withSchoolPackage = {
+    if (effectiveCovered >= 1) {
+      const withCoveredPackage = {
         ...nextState,
-        ...schoolIncludedMembershipDraftFields(coveredLevel as 1 | 2 | 3 | 4),
+        ...coveredMembershipDraftFields({
+          schoolCoveredLevel,
+          complimentaryCoveredLevel: complimentaryLevel,
+        }),
       };
-      writeSignupDraft(withSchoolPackage);
-      navigate('/students/register/payment', { state: withSchoolPackage });
+      writeSignupDraft(withCoveredPackage);
+      navigate('/students/register/payment', { state: withCoveredPackage });
       return;
     }
 
@@ -283,6 +294,19 @@ const StudentSchoolStepPage: React.FC = () => {
           </p>
 
           <form onSubmit={handleSubmit} className="mt-5 space-y-4 sm:space-y-5">
+            {complimentaryCoveredLevel >= 1 && (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-3 text-sm text-emerald-900">
+                Complimentary invite applied for this email —{' '}
+                {complimentaryCoveredLevel === 1
+                  ? 'Discovery'
+                  : complimentaryCoveredLevel === 2
+                    ? 'Reasoning Triad'
+                    : complimentaryCoveredLevel === 3
+                      ? 'Stream Ready'
+                      : 'Career Ready'}{' '}
+                is included at no charge.
+              </div>
+            )}
             <div>
               <label className="block text-xs sm:text-sm font-bold text-slate-700">
                 School<span className="text-red-500"> *</span>

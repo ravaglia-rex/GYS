@@ -6,7 +6,6 @@ import {
   Typography, 
   TextField, 
   Button, 
-  Switch,
   Divider,
   Alert,
   Avatar,
@@ -15,9 +14,6 @@ import {
   Chip,
   List,
   ListItem,
-  FormControl,
-  Select,
-  MenuItem
 } from '@mui/material';
 import { 
   Shield, 
@@ -29,9 +25,6 @@ import {
   Key,
   CheckCircle,
   AlertTriangle,
-  Users,
-  Database,
-  Bell,
   Globe,
 } from 'lucide-react';
 import { updatePassword } from 'firebase/auth';
@@ -59,52 +52,12 @@ const SecurityPrivacySettings: React.FC = () => {
     confirmPassword: ''
   });
 
-  const [securitySettings, setSecuritySettings] = useState({
-    twoFactorAuth: false,
-    emailVerification: true,
-    loginAlerts: true,
-    sessionTimeout: 30,
-    requirePasswordChange: false,
-    blockSuspiciousActivity: true
-  });
-
-  const [privacySettings, setPrivacySettings] = useState({
-    profileVisibility: 'public',
-    showEmail: false,
-    showPhone: false,
-    showSchool: true,
-    showGrades: false,
-    shareAnalytics: true,
-    sharePerformance: false,
-    shareExamResults: 'friends',
-    allowResearch: false,
-    allowMessages: true,
-    allowFriendRequests: true,
-    showOnlineStatus: true,
-    allowNotifications: true,
-    autoDeleteData: false,
-    dataRetentionPeriod: 24
-  });
+  const emailVerification = true;
 
   const handlePasswordChange = (field: string, value: string) => {
     setPasswordData(prev => ({
       ...prev,
       [field]: value
-    }));
-  };
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleSecuritySettingChange = (key: string, value: boolean | number) => {
-    setSecuritySettings(prev => ({
-      ...prev,
-      [key]: value
-    }));
-  };
-
-  const handlePrivacySettingChange = (key: string, value: string | boolean | number) => {
-    setPrivacySettings(prev => ({
-      ...prev,
-      [key]: value
     }));
   };
 
@@ -180,20 +133,6 @@ const SecurityPrivacySettings: React.FC = () => {
     }
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleSaveSettings = async () => {
-    setIsSaving(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000);
-    } catch (error) {
-      console.error('Error saving settings:', error);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const securityFeatures = [
     {
       title: 'Two-Factor Authentication',
@@ -223,10 +162,10 @@ const SecurityPrivacySettings: React.FC = () => {
       icon: <Mail size={20} />,
       action: (
         <Chip
-          label={securitySettings.emailVerification ? 'Verified' : 'Not Verified'}
-          color={securitySettings.emailVerification ? 'success' : 'warning'}
+          label={emailVerification ? 'Verified' : 'Not Verified'}
+          color={emailVerification ? 'success' : 'warning'}
           size="small"
-          icon={securitySettings.emailVerification ? <CheckCircle size={16} /> : <AlertTriangle size={16} />}
+          icon={emailVerification ? <CheckCircle size={16} /> : <AlertTriangle size={16} />}
         />
       )
     },
@@ -253,167 +192,6 @@ const SecurityPrivacySettings: React.FC = () => {
       )
     }
   ];
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const privacyCategories = [
-    {
-      title: 'Profile Privacy',
-      description: 'Control who can see your profile information',
-      icon: <Users size={24} />,
-      color: '#8b5cf6',
-      settings: [
-        {
-          key: 'profileVisibility',
-          label: 'Profile Visibility',
-          description: 'Who can see your profile',
-          type: 'select',
-          options: [
-            { value: 'public', label: 'Public' },
-            { value: 'friends', label: 'Friends Only' },
-            { value: 'private', label: 'Private' }
-          ]
-        },
-        {
-          key: 'showEmail',
-          label: 'Show Email Address',
-          description: 'Display your email on profile',
-          type: 'switch'
-        },
-        {
-          key: 'showPhone',
-          label: 'Show Phone Number',
-          description: 'Display your phone on profile',
-          type: 'switch'
-        },
-        {
-          key: 'showSchool',
-          label: 'Show School Information',
-          description: 'Display your school details',
-          type: 'switch'
-        },
-        {
-          key: 'showGrades',
-          label: 'Show Academic Class',
-          description: 'Display your class information',
-          type: 'switch'
-        }
-      ]
-    },
-    {
-      title: 'Data Sharing',
-      description: 'Manage how your data is shared and used',
-      icon: <Database size={24} />,
-      color: '#10b981',
-      settings: [
-        {
-          key: 'shareAnalytics',
-          label: 'Share Analytics Data',
-          description: 'Help improve the platform with anonymous data',
-          type: 'switch'
-        },
-        {
-          key: 'sharePerformance',
-          label: 'Share Performance Data',
-          description: 'Allow others to see your performance metrics',
-          type: 'switch'
-        },
-        {
-          key: 'shareExamResults',
-          label: 'Share Assessment Results',
-          description: 'Who can see your assessment results',
-          type: 'select',
-          options: [
-            { value: 'public', label: 'Public' },
-            { value: 'friends', label: 'Friends Only' },
-            { value: 'private', label: 'Private' }
-          ]
-        },
-        {
-          key: 'allowResearch',
-          label: 'Allow Research Use',
-          description: 'Your data may be used for educational research',
-          type: 'switch'
-        }
-      ]
-    },
-    {
-      title: 'Communication',
-      description: 'Control how others can interact with you',
-      icon: <Bell size={24} />,
-      color: '#3b82f6',
-      settings: [
-        {
-          key: 'allowMessages',
-          label: 'Allow Direct Messages',
-          description: 'Receive messages from other users',
-          type: 'switch'
-        },
-        {
-          key: 'allowFriendRequests',
-          label: 'Allow Friend Requests',
-          description: 'Receive friend connection requests',
-          type: 'switch'
-        },
-        {
-          key: 'showOnlineStatus',
-          label: 'Show Online Status',
-          description: 'Display when you are online',
-          type: 'switch'
-        },
-        {
-          key: 'allowNotifications',
-          label: 'Allow Notifications',
-          description: 'Receive platform notifications',
-          type: 'switch'
-        }
-      ]
-    }
-  ];
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const renderPrivacySettingControl = (setting: any) => {
-    switch (setting.type) {
-      case 'switch':
-        return (
-          <Switch
-            checked={privacySettings[setting.key as keyof typeof privacySettings] as boolean}
-            onChange={(e) => handlePrivacySettingChange(setting.key, e.target.checked)}
-            sx={{
-              '& .MuiSwitch-switchBase.Mui-checked': {
-                color: '#10b981',
-              },
-              '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                backgroundColor: '#10b981',
-              },
-            }}
-          />
-        );
-      case 'select':
-        return (
-          <FormControl size="small" sx={{ minWidth: 120 }}>
-            <Select
-              value={privacySettings[setting.key as keyof typeof privacySettings] as string}
-              onChange={(e) => handlePrivacySettingChange(setting.key, e.target.value)}
-              sx={{
-                color: 'white',
-                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.3)' },
-                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255, 255, 255, 0.5)' },
-                '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#8b5cf6' },
-                '& .MuiSvgIcon-root': { color: 'rgba(255, 255, 255, 0.8)' }
-              }}
-            >
-              {setting.options.map((option: any) => (
-                <MenuItem key={option.value} value={option.value}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        );
-      default:
-        return null;
-    }
-  };
 
   return (
     <Box>
@@ -720,81 +498,6 @@ const SecurityPrivacySettings: React.FC = () => {
       </Card>
       </Box>
       </Box>     
-    {/* Additional Security Settings */}
-    {/* COMMENTED OUT - Additional Security Options
-      <Card sx={{
-        background: 'rgba(30, 41, 59, 0.8)',
-        border: '1px solid rgba(255, 255, 255, 0.15)',
-        borderRadius: 3,
-        mt: 3
-      }}>
-        <CardContent sx={{ p: 3 }}>
-          <Typography variant="h6" sx={{ color: 'white', fontWeight: 600, mb: 3, fontSize: '1.3rem' }}>
-            Additional Security Options
-          </Typography>
-
-          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 3 }}>
-            <Box sx={{ flex: 1 }}>
-                              <FormControlLabel
-                  control={
-                    <Switch
-                      checked={securitySettings.requirePasswordChange}
-                      onChange={(e) => handleSecuritySettingChange('requirePasswordChange', e.target.checked)}
-                      sx={{
-                        '& .MuiSwitch-switchBase.Mui-checked': {
-                          color: '#10b981',
-                        },
-                        '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                          backgroundColor: '#10b981',
-                        },
-                      }}
-                    />
-                  }
-                  label="Require Password Change Every 90 Days"
-                  sx={{ color: 'white', fontSize: '1rem', fontWeight: 500 }}
-                />
-            </Box>
-
-            <Box sx={{ flex: { xs: "100%", sm: "50%" } , flexGrow: 0}}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={securitySettings.blockSuspiciousActivity}
-                      onChange={(e) => handleSecuritySettingChange('blockSuspiciousActivity', e.target.checked)}
-                      sx={{
-                        '& .MuiSwitch-switchBase.Mui-checked': {
-                          color: '#10b981',
-                        },
-                        '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                          backgroundColor: '#10b981',
-                        },
-                      }}
-                    />
-                  }
-                  label="Block Suspicious Login Activity"
-                  sx={{ color: 'white', fontSize: '1rem', fontWeight: 500 }}
-                />
-            </Box>
-          </Box>
-
-          <Box sx={{ mt: 3, textAlign: 'center' }}>
-            <Button
-              variant="contained"
-              startIcon={<Save size={16} />}
-              onClick={handleSaveSettings}
-              disabled={isSaving}
-              sx={{
-                backgroundColor: '#10b981',
-                px: 4,
-                '&:hover': { backgroundColor: '#059669' }
-              }}
-            >
-              {isSaving ? 'Saving...' : 'Save All Settings'}
-            </Button>
-          </Box>
-        </CardContent>
-      </Card>
-    */}
 
       {/* Security Tips */}
       <Box sx={{ mt: 4, p: 3, borderRadius: 2, backgroundColor: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.4)' }}>

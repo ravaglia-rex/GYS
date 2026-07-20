@@ -220,7 +220,6 @@ const EmailEntryForm: React.FC = () => {
           <SchoolAdminSchoolSelect
             email={email}
             schoolInfo={schoolInfo}
-            onSchoolSelected={() => {}}
           />
         );
       }

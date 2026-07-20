@@ -40,7 +40,9 @@ interface SignupFlowState {
   membershipName?: string;
   membershipPrice?: string;
   schoolCoveredMembershipLevel?: number;
+  complimentaryCoveredMembershipLevel?: number;
   membershipCoveredBySchool?: boolean;
+  membershipCoveredByComplimentary?: boolean;
   membershipUpgradeAmountPaise?: number | null;
   billingPhone?: string;
 }
@@ -64,20 +66,32 @@ const StudentPaymentPage: React.FC = () => {
   const membershipPrice = state.membershipPrice || '₹899';
   const membershipLevelCode = state.membershipLevel;
   const schoolCoveredLevel = normalizeStudentMembershipLevel(state.schoolCoveredMembershipLevel);
+  const complimentaryCoveredLevel = normalizeStudentMembershipLevel(
+    state.complimentaryCoveredMembershipLevel
+  );
+  const effectiveCoveredLevel = Math.max(schoolCoveredLevel, complimentaryCoveredLevel) as
+    | 0
+    | 1
+    | 2
+    | 3
+    | 4;
   const numericLevel = useMemo(
     () => membershipCodeToNumericLevel(membershipLevelCode),
     [membershipLevelCode]
   );
-  const coveredBySchool =
+  const coveredFully =
     Boolean(numericLevel) &&
-    state.membershipCoveredBySchool === true &&
-    schoolCoveredLevel >= (numericLevel ?? 0);
+    effectiveCoveredLevel >= 1 &&
+    effectiveCoveredLevel >= (numericLevel ?? 0);
+  const coveredBySchool =
+    coveredFully && schoolCoveredLevel >= (numericLevel ?? 0) && schoolCoveredLevel >= 1;
+  const coveredByComplimentary = coveredFully && !coveredBySchool;
   const upgradeAmountDisplay =
     typeof state.membershipUpgradeAmountPaise === 'number'
       ? formatInrFromPaise(state.membershipUpgradeAmountPaise)
       : null;
   const taxableAmountPaise =
-    !coveredBySchool && numericLevel
+    !coveredFully && numericLevel
       ? (typeof state.membershipUpgradeAmountPaise === 'number'
         ? state.membershipUpgradeAmountPaise
         : STUDENT_SIGNUP_BASE_INR[numericLevel] * 100)
@@ -366,7 +380,7 @@ const StudentPaymentPage: React.FC = () => {
   const goBackToMembershipStep = () => {
     // School-covered students never chose a package; return to school step instead.
     navigate(
-      coveredBySchool ? '/students/register/school' : '/students/register/membership',
+      coveredFully ? '/students/register/school' : '/students/register/membership',
       { state: signupState }
     );
   };
@@ -475,10 +489,12 @@ const StudentPaymentPage: React.FC = () => {
                     <p className="text-xs text-slate-600">
                       {coveredBySchool
                         ? 'Included by your school — you can upgrade later from your account'
-                        : 'Payment required'}
+                        : coveredByComplimentary
+                          ? 'Included with your complimentary invite — you can upgrade later from your account'
+                          : 'Payment required'}
                     </p>
                   </div>
-                  {!coveredBySchool && (
+                  {!coveredFully && (
                     <button
                       type="button"
                       onClick={goBackToMembershipStep}
@@ -502,16 +518,18 @@ const StudentPaymentPage: React.FC = () => {
                 <p className="mt-1 text-xs sm:text-sm text-slate-600">
                   {coveredBySchool
                     ? 'School-covered package • No payment due'
-                    : upgradeAmountDisplay
-                      ? 'School-covered upgrade • Pay only the difference'
-                      : numericLevel === 1
-                        ? 'One-time purchase (non-renewable)'
-                        : 'Annual subscription'}
+                    : coveredByComplimentary
+                      ? 'Complimentary invite • No payment due'
+                      : upgradeAmountDisplay
+                        ? 'Covered upgrade • Pay only the difference'
+                        : numericLevel === 1
+                          ? 'One-time purchase (non-renewable)'
+                          : 'Annual subscription'}
                 </p>
               </div>
               <div className="text-right">
                 <p className="text-lg font-semibold" style={{ color: GYS_BLUE }}>
-                  {coveredBySchool
+                  {coveredFully
                     ? 'Included'
                     : totalAmountPaise != null
                       ? formatInrFromPaise(totalAmountPaise)
@@ -520,7 +538,9 @@ const StudentPaymentPage: React.FC = () => {
                 <p className="text-xs text-slate-500 mt-1">
                   {coveredBySchool
                     ? 'Paid by your school'
-                    : 'Total inclusive of applicable taxes, duties, or compliance charges'}
+                    : coveredByComplimentary
+                      ? 'Awarded by Global Young Scholar'
+                      : 'Total inclusive of applicable taxes, duties, or compliance charges'}
                 </p>
               </div>
             </div>
@@ -562,7 +582,7 @@ const StudentPaymentPage: React.FC = () => {
               >
                 ← Back
               </button>
-              {coveredBySchool ? (
+              {coveredFully ? (
                 <button
                   type="button"
                   onClick={() => void completeSignupAfterPayment()}
@@ -585,7 +605,7 @@ const StudentPaymentPage: React.FC = () => {
             </div>
           )}
 
-          {!coveredBySchool && (
+          {!coveredFully && (
             <div className="mt-4 flex flex-wrap items-center justify-center gap-4 border-t border-slate-200 pt-3 text-xs sm:text-sm text-slate-500">
               <span>🔒 SSL Encrypted</span>
               <span>🛡️ Razorpay Secure</span>

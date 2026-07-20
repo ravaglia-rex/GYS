@@ -70,7 +70,7 @@ interface SignInFormProps {
     isSchoolAdmin?: boolean;
     schoolInfo?: { schoolId: string; schoolName: string; verified?: boolean };
 }
-const SignInForm: React.FC<SignInFormProps> = ({ email, isSchoolAdmin, schoolInfo }) => {
+const SignInForm: React.FC<SignInFormProps> = ({ email, isSchoolAdmin }) => {
     const navigate = useNavigate();
     const { toast } = useToast();
     const form = useForm({

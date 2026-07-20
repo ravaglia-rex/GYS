@@ -32,9 +32,6 @@ export function getAuthActionContinueUrl(): string {
   return `${window.location.origin}/auth/action`;
 }
 
-/** @deprecated Use getAuthActionContinueUrl - same value, kept for existing imports. */
-export const getPasswordResetContinueUrl = getAuthActionContinueUrl;
-
 export function getAuthActionCodeSettings(): ActionCodeSettings {
   return {
     url: getAuthActionContinueUrl(),

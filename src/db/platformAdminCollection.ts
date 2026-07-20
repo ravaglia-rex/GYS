@@ -26,6 +26,7 @@ import {
   PLATFORM_ADMIN_ADD_SCHOOL_ADMIN,
   PLATFORM_ADMIN_DELETE_SCHOOL_CONTACT,
   PLATFORM_ADMIN_STUDENT_REGISTRATION_EMAILS,
+  PLATFORM_ADMIN_COMPLIMENTARY_INVITES,
   PLATFORM_ADMIN_ADMINS,
   PLATFORM_ADMIN_ADMINS_UPDATE,
   PLATFORM_ADMIN_ADMINS_REMOVE,
@@ -173,6 +174,8 @@ export type PlatformAdminPocAccountRow = {
   setup_complete: boolean;
   auth_created_at: string | null;
   last_sign_in_at: string | null;
+  last_invited_at: string | null;
+  last_invited_by: string | null;
 };
 
 export type PlatformAdminEmailActivityRow = {
@@ -182,6 +185,7 @@ export type PlatformAdminEmailActivityRow = {
   label: string;
   subject: string | null;
   recipients: string[];
+  invited_by: string | null;
   source: 'logged' | 'inferred';
 };
 
@@ -204,6 +208,9 @@ export type PlatformAdminStudentRow = {
   argus_coins: number;
   created_at: string | null;
   is_test?: boolean;
+  /** True for email-bound complimentary invites that haven't registered an account yet. */
+  is_invite?: boolean;
+  invited_by?: string | null;
 };
 
 export type PlatformAdminStudentStats = {
@@ -711,6 +718,58 @@ export async function listPlatformAdminStudents(params?: {
   return res.data.students ?? [];
 }
 
+export type PlatformAdminComplimentaryInvite = {
+  id: string;
+  email: string;
+  membership_level: 1 | 2 | 3 | 4;
+  status: 'pending' | 'redeemed' | 'revoked';
+  created_by: string;
+  created_at: unknown;
+  updated_at: unknown;
+  redeemed_at?: unknown;
+  redeemed_uid?: string | null;
+};
+
+export async function listPlatformAdminComplimentaryInvites(
+  status: 'pending' | 'redeemed' | 'revoked' | 'all' = 'pending'
+): Promise<PlatformAdminComplimentaryInvite[]> {
+  const headers = await authHeaders();
+  const res = await axios.get(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_COMPLIMENTARY_INVITES}`,
+    { headers, params: { status } }
+  );
+  return (res.data.invites ?? []) as PlatformAdminComplimentaryInvite[];
+}
+
+export async function createPlatformAdminComplimentaryInvite(params: {
+  email: string;
+  membership_level: 1 | 2 | 3 | 4;
+}): Promise<{
+  invite: PlatformAdminComplimentaryInvite;
+  updated: boolean;
+  invite_sent: boolean;
+}> {
+  const headers = await authHeaders();
+  const res = await axios.post(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_COMPLIMENTARY_INVITES}`,
+    params,
+    { headers }
+  );
+  return {
+    invite: res.data.invite as PlatformAdminComplimentaryInvite,
+    updated: res.data.updated === true,
+    invite_sent: res.data.invite_sent === true,
+  };
+}
+
+export async function revokePlatformAdminComplimentaryInvite(email: string): Promise<void> {
+  const headers = await authHeaders();
+  await axios.delete(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_COMPLIMENTARY_INVITES}/${encodeURIComponent(email)}`,
+    { headers }
+  );
+}
+
 export async function listPlatformAdminPendingRedemptions(): Promise<PlatformAdminPendingRedemption[]> {
   const headers = await authHeaders();
   const res = await axios.get(
@@ -774,6 +833,12 @@ export type PlatformAdminDirectoryRow = {
   permissions: string[];
   active: boolean;
   password_setup_complete: boolean;
+  /** Portal activity (API use while session open). Prefer this over last_login_at. */
+  last_seen_at: string | null;
+  /** Firebase Auth lastSignInTime — only updates on actual sign-in. */
+  last_login_at: string | null;
+  last_invite_sent_at: string | null;
+  last_invited_by: string | null;
   created_at: string | null;
   updated_at: string | null;
 };
@@ -858,6 +923,20 @@ export function formatDate(iso: string | null | undefined): string {
   const d = new Date(iso);
   if (!Number.isFinite(d.getTime())) return ' - ';
   return d.toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+/** Date + time for activity timestamps (last active / last login). */
+export function formatDateTime(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return '—';
+  return d.toLocaleString('en-IN', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 }
 
 export function paymentStatusChipColor(status: string): 'success' | 'warning' | 'error' | 'default' {

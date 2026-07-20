@@ -907,16 +907,18 @@ function PlatformAdminSchoolDetailPage() {
               <Typography variant="subtitle1" sx={{ fontWeight: 700, color: ip.heading }}>
                 Student roster
               </Typography>
-              <Button
-                size="small"
-                variant="outlined"
-                startIcon={<AddStudentsIcon />}
-                onClick={openAddStudentsDialog}
-                disabled={studentCap !== null && remainingRosterSlots === 0}
-                sx={platformAdminOutlinedButtonSx}
-              >
-                Add students
-              </Button>
+              {isSuperAdmin && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<AddStudentsIcon />}
+                  onClick={openAddStudentsDialog}
+                  disabled={studentCap !== null && remainingRosterSlots === 0}
+                  sx={platformAdminOutlinedButtonSx}
+                >
+                  Add students
+                </Button>
+              )}
             </Box>
             <Typography variant="body2" sx={{ color: ip.subtext, mb: 2, lineHeight: 1.55 }}>
               Paste student emails onto this school&apos;s invite list the same way school admins do.
@@ -958,15 +960,17 @@ function PlatformAdminSchoolDetailPage() {
               <Typography variant="subtitle1" sx={{ fontWeight: 700, color: ip.heading }}>
                 POC &amp; school admins
               </Typography>
-              <Button
-                size="small"
-                variant="outlined"
-                startIcon={<AddAdminIcon />}
-                onClick={openAddAdminDialog}
-                sx={platformAdminOutlinedButtonSx}
-              >
-                Add admin
-              </Button>
+              {isSuperAdmin && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<AddAdminIcon />}
+                  onClick={openAddAdminDialog}
+                  sx={platformAdminOutlinedButtonSx}
+                >
+                  Add admin
+                </Button>
+              )}
             </Box>
             <Typography variant="body2" sx={{ color: ip.subtext, mb: 2, lineHeight: 1.55 }}>
               {registrant ? (
@@ -976,11 +980,14 @@ function PlatformAdminSchoolDetailPage() {
                     {registrant.name || 'Unknown'}
                   </Box>
                   {registrant.designation ? ` (${registrant.designation})` : ''}.
-                  {' '}Send or resend an account setup link to any school admin who has not
-                  finished setup — same password-setup link as when you add a new admin.
+                  {isSuperAdmin
+                    ? ' Send or resend an account setup link to any school admin who has not finished setup — same password-setup link as when you add a new admin.'
+                    : ' Login and setup status for school admins on file.'}
                 </>
-              ) : (
+              ) : isSuperAdmin ? (
                 'School admins on file and whether each person created a login. Send an account setup link to anyone who still needs to set up their account.'
+              ) : (
+                'School admins on file and whether each person created a login.'
               )}
             </Typography>
             {pocAccounts.length === 0 ? (
@@ -1039,9 +1046,16 @@ function PlatformAdminSchoolDetailPage() {
                         Account created: {formatDate(poc.auth_created_at)}
                         {' · '}
                         Last sign-in: {formatDate(poc.last_sign_in_at)}
+                        {poc.last_invited_at && (
+                          <>
+                            {' · '}
+                            Last invited: {formatDate(poc.last_invited_at)}
+                            {poc.last_invited_by ? ` by ${poc.last_invited_by}` : ''}
+                          </>
+                        )}
                       </Typography>
                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1.5 }}>
-                        {needsSetupInvite ? (
+                        {isSuperAdmin && needsSetupInvite ? (
                           <Button
                             size="small"
                             variant="contained"
@@ -1084,7 +1098,7 @@ function PlatformAdminSchoolDetailPage() {
                           </Button>
                         )}
                       </Box>
-                      {needsSetupInvite && !school?.payment_satisfied && (
+                      {isSuperAdmin && needsSetupInvite && !school?.payment_satisfied && (
                         <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mt: 1 }}>
                           Mark the school as paid before sending an account setup link.
                         </Typography>
@@ -1190,6 +1204,7 @@ function PlatformAdminSchoolDetailPage() {
                       <TableCell>Email type</TableCell>
                       <TableCell>Subject / detail</TableCell>
                       <TableCell>Recipients</TableCell>
+                      <TableCell>Invited by</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -1206,6 +1221,9 @@ function PlatformAdminSchoolDetailPage() {
                           {(Array.isArray(row.recipients) ? row.recipients : []).length > 0
                             ? (Array.isArray(row.recipients) ? row.recipients : []).join(', ')
                             : '-'}
+                        </TableCell>
+                        <TableCell sx={{ color: ip.subtext, whiteSpace: 'nowrap' }}>
+                          {row.invited_by || '-'}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -1811,6 +1829,7 @@ function PlatformAdminSchoolDetailPage() {
         </DialogActions>
       </Dialog>
 
+      {isSuperAdmin && (
       <Dialog
         open={addAdminOpen}
         onClose={() => !addAdminSubmitting && setAddAdminOpen(false)}
@@ -1862,7 +1881,9 @@ function PlatformAdminSchoolDetailPage() {
           </Button>
         </DialogActions>
       </Dialog>
+      )}
 
+      {isSuperAdmin && (
       <Dialog
         open={addStudentsOpen}
         onClose={() => !addStudentsSubmitting && setAddStudentsOpen(false)}
@@ -1943,6 +1964,7 @@ function PlatformAdminSchoolDetailPage() {
           </Button>
         </DialogActions>
       </Dialog>
+      )}
 
       <Dialog
         open={Boolean(deleteContactEmail)}

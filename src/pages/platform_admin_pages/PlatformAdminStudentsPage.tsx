@@ -23,6 +23,10 @@ import {
   Checkbox,
   ListItemText,
   OutlinedInput,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -33,14 +37,17 @@ import {
   School as SchoolIcon,
   WorkspacePremium as LevelIcon,
   Visibility as ViewIcon,
+  CardGiftcard as ComplimentaryIcon,
 } from '@mui/icons-material';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
+  createPlatformAdminComplimentaryInvite,
   formatDate,
   getPlatformAdminStudentStats,
   listPlatformAdminSchools,
   listPlatformAdminStudents,
+  revokePlatformAdminComplimentaryInvite,
   type PlatformAdminSchoolSummary,
   type PlatformAdminStudentRow,
   type PlatformAdminStudentStats,
@@ -48,9 +55,15 @@ import {
 import {
   platformAdminCardSx,
   platformAdminClearFiltersButtonSx,
+  platformAdminDialogFieldLabelSx,
+  platformAdminDialogPaperSx,
+  platformAdminDialogSelectSx,
+  platformAdminDialogTextFieldSx,
   platformAdminFilterSelectSx,
   platformAdminFilterToolbarRowSx,
+  platformAdminOutlinedButtonSx,
   platformAdminPageContainerSx,
+  platformAdminPrimaryButtonSx,
   platformAdminSearchFieldSx,
   platformAdminSelectMenuPaperSx,
   platformAdminStatsGridSx,
@@ -70,6 +83,7 @@ import {
 import { isPlatformAdminTestStudent } from './platformAdminTestStudents';
 import { isPlatformAdminTestSchool } from './platformAdminTestSchools';
 import { RootState } from '../../state_data/reducer';
+import { MEMBERSHIP_LEVEL_LABEL } from '../../utils/studentMembershipPricing';
 
 type StatusFilter = 'all' | 'approved' | 'pending';
 type RosterFilter = 'all' | 'yes' | 'no';
@@ -77,6 +91,8 @@ type GradeFilter = 'all' | '6' | '7' | '8' | '9' | '10' | '11' | '12';
 type MembershipFilter = 'all' | '1' | '2' | '3' | '3_plus';
 
 const ALL_SCHOOLS_VALUE = '__all__';
+/** Must match the backend's NO_SCHOOL_FILTER_VALUE sentinel in platformAdminCollection/index.ts. */
+const NO_SCHOOL_FILTER_VALUE = '__no_school__';
 
 const STATUS_LABELS: Record<StatusFilter, string> = {
   all: 'All statuses',
@@ -154,6 +170,14 @@ const PlatformAdminStudentsPage: React.FC = () => {
     Object.keys(MEMBERSHIP_LABELS).includes(initialMembership) ? initialMembership : 'all'
   );
 
+  const [complimentaryError, setComplimentaryError] = useState<string | null>(null);
+  const [complimentaryMessage, setComplimentaryMessage] = useState<string | null>(null);
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteLevel, setInviteLevel] = useState<1 | 2 | 3 | 4>(1);
+  const [inviteBusy, setInviteBusy] = useState(false);
+  const [revokeBusyEmail, setRevokeBusyEmail] = useState<string | null>(null);
+
   const schoolSelected = allSchoolsSelected || selectedSchoolIds.length > 0;
   /** Unlinked students have no school_id — allow loading them without picking a school. */
   const canLoadStudents = schoolSelected || rosterFilter === 'no';
@@ -228,6 +252,65 @@ const PlatformAdminStudentsPage: React.FC = () => {
       cancelled = true;
     };
   }, []);
+
+  const openInviteDialog = () => {
+    setInviteEmail('');
+    setInviteLevel(1);
+    setInviteDialogOpen(true);
+  };
+
+  const handleCreateComplimentaryInvite = async () => {
+    const email = inviteEmail.trim().toLowerCase();
+    if (!email || !email.includes('@')) {
+      setComplimentaryError('Enter a valid student email.');
+      return;
+    }
+    setInviteBusy(true);
+    setComplimentaryError(null);
+    setComplimentaryMessage(null);
+    try {
+      const result = await createPlatformAdminComplimentaryInvite({
+        email,
+        membership_level: inviteLevel,
+      });
+      setInviteDialogOpen(false);
+      setComplimentaryMessage(
+        result.invite_sent
+          ? result.updated
+            ? `Updated complimentary invite for ${email} and resent the invitation email.`
+            : `Complimentary invite sent to ${email}.`
+          : result.updated
+            ? `Updated complimentary invite for ${email}, but the invitation email failed to send.`
+            : `Complimentary invite saved for ${email}, but the invitation email failed to send.`
+      );
+      await load();
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { error?: string } }; message?: string };
+      setComplimentaryError(
+        err?.response?.data?.error || err?.message || 'Failed to create complimentary invite.'
+      );
+    } finally {
+      setInviteBusy(false);
+    }
+  };
+
+  const handleRevokeComplimentaryInvite = async (email: string) => {
+    setRevokeBusyEmail(email);
+    setComplimentaryError(null);
+    setComplimentaryMessage(null);
+    try {
+      await revokePlatformAdminComplimentaryInvite(email);
+      setComplimentaryMessage(`Revoked complimentary invite for ${email}.`);
+      await load();
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { error?: string } }; message?: string };
+      setComplimentaryError(
+        err?.response?.data?.error || err?.message || 'Failed to revoke complimentary invite.'
+      );
+    } finally {
+      setRevokeBusyEmail(null);
+    }
+  };
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -374,11 +457,33 @@ const PlatformAdminStudentsPage: React.FC = () => {
       <PlatformAdminPageHeader
         title="Students"
         subtitle="Select a school to load students, then filter by status, grade, and membership"
+        action={
+          isSuperAdmin ? (
+            <Button
+              variant="contained"
+              startIcon={<ComplimentaryIcon />}
+              onClick={openInviteDialog}
+              sx={platformAdminPrimaryButtonSx}
+            >
+              Invite free student
+            </Button>
+          ) : undefined
+        }
       />
 
       {deleteSuccessMessage && (
         <Alert severity="success" sx={{ mb: 2 }}>
           {deleteSuccessMessage}
+        </Alert>
+      )}
+      {isSuperAdmin && complimentaryMessage && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setComplimentaryMessage(null)}>
+          {complimentaryMessage}
+        </Alert>
+      )}
+      {isSuperAdmin && complimentaryError && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setComplimentaryError(null)}>
+          {complimentaryError}
         </Alert>
       )}
 
@@ -425,6 +530,86 @@ const PlatformAdminStudentsPage: React.FC = () => {
           accent={ip.navy}
         />
       </Box>
+
+      {isSuperAdmin && (
+      <Card sx={{ ...platformAdminCardSx, mb: 2.5 }}>
+        <CardContent sx={{ py: 2, '&:last-child': { pb: 2 } }}>
+          <Box
+            sx={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'flex-start',
+              justifyContent: 'space-between',
+              gap: 1.5,
+              mb: 1,
+            }}
+          >
+            <Box>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: ip.heading }}>
+                Complimentary invites
+              </Typography>
+              <Typography variant="body2" sx={{ color: ip.subtext, mt: 0.5, lineHeight: 1.55 }}>
+                Email-bound free access for students who are not on a school roster. They register
+                normally with the invited email; payment is waived up to the awarded package.
+              </Typography>
+            </Box>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => void loadComplimentaryInvites()}
+              disabled={complimentaryLoading}
+              sx={platformAdminOutlinedButtonSx}
+            >
+              Refresh
+            </Button>
+          </Box>
+          {complimentaryLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+              <CircularProgress size={28} />
+            </Box>
+          ) : complimentaryInvites.length === 0 ? (
+            <Typography variant="body2" sx={{ color: ip.subtext, py: 1 }}>
+              No pending complimentary invites.
+            </Typography>
+          ) : (
+            <TableContainer component={Paper} elevation={0} sx={{ ...platformAdminTablePaperSx, mt: 1 }}>
+              <Table size="small" sx={platformAdminTableSx}>
+                <TableHead>
+                  <TableRow sx={platformAdminTableHeadRowSx}>
+                    <TableCell>Email</TableCell>
+                    <TableCell>Package</TableCell>
+                    <TableCell>Created by</TableCell>
+                    <TableCell align="right">Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {complimentaryInvites.map((invite) => (
+                    <TableRow key={invite.email}>
+                      <TableCell sx={{ color: ip.heading }}>{invite.email}</TableCell>
+                      <TableCell sx={{ color: ip.heading }}>
+                        Level {invite.membership_level} ·{' '}
+                        {MEMBERSHIP_LEVEL_LABEL[invite.membership_level]}
+                      </TableCell>
+                      <TableCell sx={{ color: ip.subtext }}>{invite.created_by || '—'}</TableCell>
+                      <TableCell align="right">
+                        <Button
+                          size="small"
+                          disabled={revokeBusyEmail === invite.email}
+                          onClick={() => void handleRevokeComplimentaryInvite(invite.email)}
+                          sx={platformAdminTextButtonSx}
+                        >
+                          {revokeBusyEmail === invite.email ? 'Revoking…' : 'Revoke'}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </CardContent>
+      </Card>
+      )}
 
       <Card sx={{ ...platformAdminCardSx, mb: 2.5 }}>
         <CardContent sx={{ py: 2, '&:last-child': { pb: 2 } }}>
@@ -745,6 +930,81 @@ const PlatformAdminStudentsPage: React.FC = () => {
             </Table>
           </TableContainer>
         </PlatformAdminTableSection>
+      )}
+
+      {isSuperAdmin && (
+      <Dialog
+        open={inviteDialogOpen}
+        onClose={() => !inviteBusy && setInviteDialogOpen(false)}
+        fullWidth
+        maxWidth="sm"
+        PaperProps={{ sx: platformAdminDialogPaperSx }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, color: ip.heading, px: 3, pt: 2.5, pb: 1 }}>
+          Invite free student
+        </DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, px: 3, pt: 1, pb: 1 }}>
+          <Typography variant="body2" sx={{ color: ip.subtext, lineHeight: 1.55 }}>
+            The student registers at the normal signup flow with this email. They are not added to
+            any school roster. Payment is waived up to the package you select.
+          </Typography>
+          <Box>
+            <Typography sx={platformAdminDialogFieldLabelSx} component="label" htmlFor="comp-invite-email">
+              Student email
+            </Typography>
+            <TextField
+              id="comp-invite-email"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              required
+              fullWidth
+              autoFocus
+              placeholder="student@example.com"
+              sx={platformAdminDialogTextFieldSx}
+            />
+          </Box>
+          <Box>
+            <Typography
+              sx={platformAdminDialogFieldLabelSx}
+              component="label"
+              htmlFor="comp-invite-level"
+            >
+              Complimentary package
+            </Typography>
+            <Select
+              id="comp-invite-level"
+              fullWidth
+              size="small"
+              value={inviteLevel}
+              onChange={(e) => setInviteLevel(Number(e.target.value) as 1 | 2 | 3 | 4)}
+              sx={platformAdminDialogSelectSx}
+            >
+              {([1, 2, 3, 4] as const).map((level) => (
+                <MenuItem key={level} value={level}>
+                  Level {level} · {MEMBERSHIP_LEVEL_LABEL[level]}
+                </MenuItem>
+              ))}
+            </Select>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5, pt: 1 }}>
+          <Button
+            onClick={() => setInviteDialogOpen(false)}
+            disabled={inviteBusy}
+            sx={platformAdminTextButtonSx}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => void handleCreateComplimentaryInvite()}
+            disabled={inviteBusy || !inviteEmail.trim()}
+            sx={platformAdminPrimaryButtonSx}
+          >
+            {inviteBusy ? 'Sending…' : 'Send invite'}
+          </Button>
+        </DialogActions>
+      </Dialog>
       )}
     </Box>
   );

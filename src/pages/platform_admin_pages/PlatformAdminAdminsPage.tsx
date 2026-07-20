@@ -30,7 +30,7 @@ import {
 } from '@mui/icons-material';
 import {
   addPlatformAdmin,
-  formatDate,
+  formatDateTime,
   invitePlatformAdmin,
   listPlatformAdminsDirectory,
   removePlatformAdmin,
@@ -268,7 +268,8 @@ const PlatformAdminAdminsPage: React.FC = () => {
           {activeCount} active admin{activeCount === 1 ? '' : 's'}
           {admins.length > activeCount ? ` · ${admins.length - activeCount} deactivated` : ''}
           . Member admins can view Overview, Schools, Students, and Rewards. Only you can run
-          pipelines, billing actions, deletes, and this page.
+          pipelines, billing actions, deletes, complimentary invites, and this page. Last active
+          updates when they use the portal (even if they never log out).
         </Typography>
       </Box>
 
@@ -278,7 +279,7 @@ const PlatformAdminAdminsPage: React.FC = () => {
         </Box>
       ) : (
         <TableContainer sx={platformAdminTablePaperSx}>
-          <Table sx={{ ...platformAdminTableSx, minWidth: 980 }} size="small">
+          <Table sx={{ ...platformAdminTableSx, minWidth: 1100 }} size="small">
             <TableHead>
               <TableRow sx={platformAdminTableHeadRowSx}>
                 <TableCell>Name</TableCell>
@@ -287,7 +288,8 @@ const PlatformAdminAdminsPage: React.FC = () => {
                 <TableCell>Role</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Password</TableCell>
-                <TableCell sx={{ whiteSpace: 'nowrap' }}>Updated</TableCell>
+                <TableCell sx={{ whiteSpace: 'nowrap' }}>Last active</TableCell>
+                <TableCell sx={{ whiteSpace: 'nowrap' }}>Last invite</TableCell>
                 <TableCell align="right" sx={{ width: 1, whiteSpace: 'nowrap', pr: 2 }}>
                   Actions
                 </TableCell>
@@ -296,7 +298,7 @@ const PlatformAdminAdminsPage: React.FC = () => {
             <TableBody>
               {admins.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8}>
+                  <TableCell colSpan={9}>
                     <Typography sx={{ color: ip.subtext, py: 2 }}>No platform admins found.</Typography>
                   </TableCell>
                 </TableRow>
@@ -304,6 +306,7 @@ const PlatformAdminAdminsPage: React.FC = () => {
                 admins.map((admin) => {
                   const isSuper = admin.role === 'super';
                   const inviteBusy = inviteBusyEmail === admin.email;
+                  const lastActive = admin.last_seen_at || admin.last_login_at;
                   return (
                     <TableRow key={admin.email}>
                       <TableCell sx={{ fontWeight: 600 }}>{admin.name || '—'}</TableCell>
@@ -327,8 +330,37 @@ const PlatformAdminAdminsPage: React.FC = () => {
                           tone={admin.password_setup_complete ? 'success' : 'warning'}
                         />
                       </TableCell>
-                      <TableCell sx={{ whiteSpace: 'nowrap', color: ip.subtext }}>
-                        {formatDate(admin.updated_at)}
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                        <Tooltip
+                          title={
+                            admin.last_seen_at
+                              ? `Portal activity${
+                                  admin.last_login_at
+                                    ? ` · Last sign-in ${formatDateTime(admin.last_login_at)}`
+                                    : ''
+                                }`
+                              : admin.last_login_at
+                                ? 'Firebase sign-in only (no portal activity recorded yet)'
+                                : 'No activity yet'
+                          }
+                        >
+                          <span>{formatDateTime(lastActive)}</span>
+                        </Tooltip>
+                      </TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                        {admin.last_invite_sent_at ? (
+                          <Tooltip
+                            title={
+                              admin.last_invited_by
+                                ? `Sent by ${admin.last_invited_by}`
+                                : 'Invite sent'
+                            }
+                          >
+                            <span>{formatDateTime(admin.last_invite_sent_at)}</span>
+                          </Tooltip>
+                        ) : (
+                          '—'
+                        )}
                       </TableCell>
                       <TableCell align="right" sx={{ width: 1, whiteSpace: 'nowrap', pr: 2, pl: 1 }}>
                         <Box

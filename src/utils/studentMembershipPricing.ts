@@ -78,14 +78,51 @@ const MEMBERSHIP_LEVEL_PRICE_LABEL: Record<1 | 2 | 3 | 4, string> = {
   4: '₹2,699',
 };
 
-/** Signup draft fields for the school's included package (no student package picker). */
-export function schoolIncludedMembershipDraftFields(level: 1 | 2 | 3 | 4) {
+/** Signup draft fields for a covered package (school or complimentary invite — no student package picker). */
+export function schoolIncludedMembershipDraftFields(
+  level: 1 | 2 | 3 | 4,
+  options?: { source?: 'school' | 'complimentary' }
+) {
+  const source = options?.source ?? 'school';
   return {
     membershipLevel: MEMBERSHIP_LEVEL_CODE[level],
     membershipName: MEMBERSHIP_LEVEL_SHORT_NAME[level],
     membershipPrice: MEMBERSHIP_LEVEL_PRICE_LABEL[level],
-    schoolCoveredMembershipLevel: level,
-    membershipCoveredBySchool: true as const,
+    schoolCoveredMembershipLevel: source === 'school' ? level : 0,
+    complimentaryCoveredMembershipLevel: source === 'complimentary' ? level : 0,
+    membershipCoveredBySchool: source === 'school',
+    membershipCoveredByComplimentary: source === 'complimentary',
     membershipUpgradeAmountPaise: null,
+  };
+}
+
+/** Draft fields when both school and complimentary coverage may apply (uses max as effective covered). */
+export function coveredMembershipDraftFields(params: {
+  schoolCoveredLevel: 0 | 1 | 2 | 3 | 4;
+  complimentaryCoveredLevel: 0 | 1 | 2 | 3 | 4;
+}) {
+  const schoolLevel = params.schoolCoveredLevel;
+  const complimentaryLevel = params.complimentaryCoveredLevel;
+  const effective = Math.max(schoolLevel, complimentaryLevel) as 0 | 1 | 2 | 3 | 4;
+  if (effective < 1) {
+    return {
+      schoolCoveredMembershipLevel: schoolLevel,
+      complimentaryCoveredMembershipLevel: complimentaryLevel,
+      membershipCoveredBySchool: false,
+      membershipCoveredByComplimentary: false,
+      membershipUpgradeAmountPaise: null as number | null,
+    };
+  }
+  const level = effective as 1 | 2 | 3 | 4;
+  const schoolWins = schoolLevel >= complimentaryLevel && schoolLevel >= 1;
+  return {
+    membershipLevel: MEMBERSHIP_LEVEL_CODE[level],
+    membershipName: MEMBERSHIP_LEVEL_SHORT_NAME[level],
+    membershipPrice: MEMBERSHIP_LEVEL_PRICE_LABEL[level],
+    schoolCoveredMembershipLevel: schoolLevel,
+    complimentaryCoveredMembershipLevel: complimentaryLevel,
+    membershipCoveredBySchool: schoolWins,
+    membershipCoveredByComplimentary: !schoolWins && complimentaryLevel >= 1,
+    membershipUpgradeAmountPaise: null as number | null,
   };
 }

@@ -405,6 +405,8 @@ export type ResolveRegistrationSchoolResult = {
   schoolPaymentComplete?: boolean;
   schoolPlanId?: string | null;
   schoolCoveredMembershipLevel?: number;
+  complimentaryCoveredMembershipLevel?: number;
+  coveredMembershipLevel?: number;
 };
 
 /** Matches signup email to this school’s `student_registration_emails` (and legacy allowlist). */
@@ -428,6 +430,14 @@ export const resolveRegistrationSchool = async (
       schoolCoveredMembershipLevel:
         typeof response.data?.schoolCoveredMembershipLevel === 'number'
           ? response.data.schoolCoveredMembershipLevel
+          : 0,
+      complimentaryCoveredMembershipLevel:
+        typeof response.data?.complimentaryCoveredMembershipLevel === 'number'
+          ? response.data.complimentaryCoveredMembershipLevel
+          : 0,
+      coveredMembershipLevel:
+        typeof response.data?.coveredMembershipLevel === 'number'
+          ? response.data.coveredMembershipLevel
           : 0,
     };
   } catch {

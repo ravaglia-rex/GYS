@@ -19,10 +19,9 @@ const schoolSelectSchema = z.object({
 interface SchoolAdminSchoolSelectProps {
   email: string;
   schoolInfo: { schoolId: string; schoolName: string; verified?: boolean };
-  onSchoolSelected: (selectedSchoolId: string) => void;
 }
 
-const SchoolAdminSchoolSelect: React.FC<SchoolAdminSchoolSelectProps> = ({ email, schoolInfo, onSchoolSelected }) => {
+const SchoolAdminSchoolSelect: React.FC<SchoolAdminSchoolSelectProps> = ({ email, schoolInfo }) => {
   const { toast } = useToast();
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -137,7 +136,7 @@ const SchoolAdminSchoolSelect: React.FC<SchoolAdminSchoolSelectProps> = ({ email
           <FormField
             control={form.control}
             name="school"
-            render={({ field }) => (
+            render={() => (
               <FormItem className="space-y-2">
                 <FormLabel className="text-sm font-medium text-slate-900">School</FormLabel>
                 <FormControl>

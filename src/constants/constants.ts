@@ -34,6 +34,7 @@ export const PLATFORM_ADMIN_INVITE_SCHOOL_ADMIN = '/invite-admin';
 export const PLATFORM_ADMIN_ADD_SCHOOL_ADMIN = '/admins';
 export const PLATFORM_ADMIN_DELETE_SCHOOL_CONTACT = '/delete-contact';
 export const PLATFORM_ADMIN_STUDENT_REGISTRATION_EMAILS = '/student-registration-emails';
+export const PLATFORM_ADMIN_COMPLIMENTARY_INVITES = '/complimentary-invites';
 export const PLATFORM_ADMIN_ADMINS = '/admins';
 export const PLATFORM_ADMIN_ADMINS_UPDATE = '/admins/update';
 export const PLATFORM_ADMIN_ADMINS_REMOVE = '/admins/remove';

@@ -38,13 +38,23 @@ const StudentMembershipStepPage: React.FC = () => {
       mergeSignupState(location.state) as {
         membershipLevel?: MembershipLevel;
         schoolCoveredMembershipLevel?: number;
+        complimentaryCoveredMembershipLevel?: number;
         schoolPaymentComplete?: boolean;
         schoolName?: string;
       },
     [location]
   );
-  const schoolCoveredLevel = normalizeStudentMembershipLevel(merged.schoolCoveredMembershipLevel);
-  const effectiveCoveredLevel = merged.schoolPaymentComplete === true ? schoolCoveredLevel : 0;
+  const schoolCoveredLevel =
+    merged.schoolPaymentComplete === true
+      ? normalizeStudentMembershipLevel(merged.schoolCoveredMembershipLevel)
+      : 0;
+  const complimentaryCoveredLevel = normalizeStudentMembershipLevel(
+    merged.complimentaryCoveredMembershipLevel
+  );
+  const effectiveCoveredLevel = Math.max(
+    schoolCoveredLevel,
+    complimentaryCoveredLevel
+  ) as 0 | 1 | 2 | 3 | 4;
   const savedMembershipLevel: MembershipLevel | undefined =
     merged.membershipLevel === 'LEVEL_1' ||
     merged.membershipLevel === 'LEVEL_2' ||
@@ -69,17 +79,29 @@ const StudentMembershipStepPage: React.FC = () => {
   const [showComparison, setShowComparison] = useState(true);
   const [isContinuing, setIsContinuing] = useState(false);
 
-  // School-invited students skip package selection; assign the school's included package.
+  // Covered students (school or complimentary) skip package selection; assign the included package.
   useEffect(() => {
     if (effectiveCoveredLevel < 1) return;
     const base = mergeSignupState(location.state) as Record<string, unknown>;
+    const source =
+      schoolCoveredLevel >= complimentaryCoveredLevel && schoolCoveredLevel >= 1
+        ? 'school'
+        : 'complimentary';
     const nextState = {
       ...base,
-      ...schoolIncludedMembershipDraftFields(effectiveCoveredLevel as 1 | 2 | 3 | 4),
+      ...schoolIncludedMembershipDraftFields(effectiveCoveredLevel as 1 | 2 | 3 | 4, { source }),
+      schoolCoveredMembershipLevel: schoolCoveredLevel,
+      complimentaryCoveredMembershipLevel: complimentaryCoveredLevel,
     };
     writeSignupDraft(nextState);
     navigate('/students/register/payment', { state: nextState, replace: true });
-  }, [effectiveCoveredLevel, location.state, navigate]);
+  }, [
+    effectiveCoveredLevel,
+    schoolCoveredLevel,
+    complimentaryCoveredLevel,
+    location.state,
+    navigate,
+  ]);
 
   useEffect(() => {
     if (
@@ -220,8 +242,11 @@ const StudentMembershipStepPage: React.FC = () => {
       membershipLevel: level.id,
       membershipName: level.name,
       membershipPrice: level.price,
-      schoolCoveredMembershipLevel: effectiveCoveredLevel,
-      membershipCoveredBySchool: coveredBySchool,
+      schoolCoveredMembershipLevel: schoolCoveredLevel,
+      complimentaryCoveredMembershipLevel: complimentaryCoveredLevel,
+      membershipCoveredBySchool: coveredBySchool && schoolCoveredLevel >= numericLevel,
+      membershipCoveredByComplimentary:
+        coveredBySchool && complimentaryCoveredLevel >= numericLevel && schoolCoveredLevel < numericLevel,
       membershipUpgradeAmountPaise: upgradeAmountPaise,
     });
   };
@@ -235,8 +260,14 @@ const StudentMembershipStepPage: React.FC = () => {
       membershipLevel: selected.id,
       membershipName: selected.name,
       membershipPrice: selected.price,
-      schoolCoveredMembershipLevel: effectiveCoveredLevel,
-      membershipCoveredBySchool: selectedCoveredBySchool,
+      schoolCoveredMembershipLevel: schoolCoveredLevel,
+      complimentaryCoveredMembershipLevel: complimentaryCoveredLevel,
+      membershipCoveredBySchool:
+        selectedCoveredBySchool && schoolCoveredLevel >= selectedNumericLevel,
+      membershipCoveredByComplimentary:
+        selectedCoveredBySchool &&
+        complimentaryCoveredLevel >= selectedNumericLevel &&
+        schoolCoveredLevel < selectedNumericLevel,
       membershipUpgradeAmountPaise: selectedUpgradeAmountPaise,
     };
     writeSignupDraft(nextState);
