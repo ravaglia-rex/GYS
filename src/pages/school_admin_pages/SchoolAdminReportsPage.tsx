@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import {
   Box,
   Card,
@@ -28,10 +29,12 @@ import {
 import { GREENFIELD_QUARTERLY_REPORTS } from '../../data/schoolPreviewMock';
 import PageTutorial from '../../components/tutorial/PageTutorial';
 import { SchoolAdminPageHeader, schoolAdminPageContainerSx } from './schoolAdminPageStyles';
+import { RootState } from '../../state_data/reducer';
 
 const SchoolAdminReportsPage: React.FC = () => {
   const location = useLocation();
   const isSchoolAdminPreview = location.pathname.startsWith('/for-schools/preview');
+  const schoolId = useSelector((state: RootState) => state.auth.schoolAdmin?.schoolId ?? '').trim();
   const [reports, setReports] = useState<QuarterlyReportListItem[]>([]);
   const [s3Configured, setS3Configured] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -47,10 +50,16 @@ const SchoolAdminReportsPage: React.FC = () => {
       setError(null);
       return;
     }
+    if (!schoolId) {
+      setLoading(false);
+      setError('School context is missing. Please sign in again.');
+      setReports([]);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      const data = await getQuarterlyReports();
+      const data = await getQuarterlyReports(schoolId);
       setReports(
         [...(data.reports ?? [])].sort((a, b) => b.quarterKey.localeCompare(a.quarterKey))
       );
@@ -61,7 +70,7 @@ const SchoolAdminReportsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [isSchoolAdminPreview]);
+  }, [isSchoolAdminPreview, schoolId]);
 
   useEffect(() => {
     void load();
@@ -88,9 +97,13 @@ const SchoolAdminReportsPage: React.FC = () => {
       setRowError('Server is not configured for S3 signed URLs (AWS env vars on Cloud Functions).');
       return;
     }
+    if (!schoolId) {
+      setRowError('School context is missing. Please sign in again.');
+      return;
+    }
     setDownloadingKey(r.quarterKey);
     try {
-      await downloadQuarterlyReportPdf(r.quarterKey);
+      await downloadQuarterlyReportPdf(r.quarterKey, schoolId);
     } catch (e) {
       setRowError((e as Error).message ?? 'Download failed.');
     } finally {

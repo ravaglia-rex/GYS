@@ -49,7 +49,11 @@ const SchoolTutorialProvider: React.FC<SchoolTutorialProviderProps> = ({ childre
   const uid = useSelector((s: RootState) => s.auth.user?.uid);
 
   const handleDismiss = useCallback(async (pageKey: string, nextDismissed: Record<string, boolean>) => {
-    await putSchoolTutorialDismissal(pageKey, nextDismissed);
+    const sid = schoolId ? String(schoolId).trim() : '';
+    if (!sid) {
+      throw new Error('School context is missing.');
+    }
+    await putSchoolTutorialDismissal(pageKey, nextDismissed, sid);
     if (schoolId && uid) {
       writeTutorialPreferenceCache('school', `${String(schoolId).trim()}:${uid}`, {
         tutorials: { dismissed: nextDismissed },

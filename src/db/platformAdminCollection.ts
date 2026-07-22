@@ -213,12 +213,59 @@ export type PlatformAdminStudentRow = {
   invited_by?: string | null;
 };
 
+export type PlatformAdminStudentPaymentHistoryItem = {
+  id: string;
+  payment_id: string;
+  order_id: string | null;
+  kind: string;
+  payment_status: string;
+  paid_at: string | null;
+  amount_paise: number | null;
+  membership_level: number | null;
+  from_membership_level: number | null;
+  target_membership_level: number | null;
+  payment_method: string;
+  invoice_number: string | null;
+  description: string;
+  error_code: string | null;
+  error_description: string | null;
+};
+
+export type PlatformAdminStudentDetail = PlatformAdminStudentRow & {
+  phone_number: string | null;
+  parent_name: string | null;
+  parent_email: string | null;
+  parent_phone: string | null;
+  heard_from: string | null;
+  signup_school_name: string | null;
+  registration_status: string | null;
+  school_covered_membership_level: number | null;
+  complimentary_invite_membership_level: number | null;
+  payment_status: string | null;
+  razorpay_payment_id: string | null;
+  razorpay_order_id: string | null;
+  razorpay_amount_paise: number | null;
+  paid_at: string | null;
+  billing_invoice_number: string | null;
+  password_setup_complete: boolean;
+  self_paid: boolean;
+  updated_at: string | null;
+  payment_history: PlatformAdminStudentPaymentHistoryItem[];
+};
+
 export type PlatformAdminStudentStats = {
+  /** Real (non-test) student accounts platform-wide. */
   students_total: number;
-  students_approved: number;
-  students_pending: number;
+  /** Invite-list emails ∪ registered accounts across real schools. */
+  students_on_roster: number;
+  /** Registered accounts linked to a school (subset of on_roster). */
   students_rostered: number;
-  students_level_3_plus: number;
+  /** Rostered accounts with password setup complete. */
+  students_active: number;
+  /** On roster but not active (invited / no account yet, or no password). Active + pending === on_roster. */
+  students_pending: number;
+  /** Students who paid individually (signup package and/or membership upgrade), not school-only covered. */
+  students_self_paid: number;
 };
 
 export type PlatformAdminPendingRedemption = {
@@ -549,6 +596,7 @@ export async function addPlatformAdminSchoolAdmin(
   email: string;
   already_admin: boolean;
   invited: boolean;
+  already_configured: boolean;
   warning?: string;
 }> {
   const headers = await authHeaders();
@@ -561,6 +609,7 @@ export async function addPlatformAdminSchoolAdmin(
     email: res.data.email ?? body.email,
     already_admin: Boolean(res.data.already_admin),
     invited: Boolean(res.data.invited),
+    already_configured: Boolean(res.data.already_configured),
     warning: typeof res.data.warning === 'string' ? res.data.warning : undefined,
   };
 }
@@ -659,7 +708,7 @@ export async function deletePlatformAdminStudent(
   };
 }
 
-export async function getPlatformAdminStudent(studentUid: string): Promise<PlatformAdminStudentRow> {
+export async function getPlatformAdminStudent(studentUid: string): Promise<PlatformAdminStudentDetail> {
   const headers = await authHeaders();
   const res = await axios.get(
     `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_STUDENTS}/${encodeURIComponent(studentUid)}`,
@@ -668,7 +717,11 @@ export async function getPlatformAdminStudent(studentUid: string): Promise<Platf
   if (!res.data?.student) {
     throw new Error('Student not found');
   }
-  return res.data.student as PlatformAdminStudentRow;
+  const student = res.data.student as PlatformAdminStudentDetail;
+  return {
+    ...student,
+    payment_history: Array.isArray(student.payment_history) ? student.payment_history : [],
+  };
 }
 
 export async function capturePlatformAdminSchoolPayment(schoolId: string): Promise<void> {

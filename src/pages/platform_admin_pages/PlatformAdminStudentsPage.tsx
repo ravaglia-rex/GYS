@@ -32,10 +32,11 @@ import {
   Search as SearchIcon,
   Close as CloseIcon,
   People as PeopleIcon,
-  CheckCircleOutline as CheckCircleIcon,
+  CheckCircleOutline as ActiveIcon,
   HourglassEmpty as PendingIcon,
   School as SchoolIcon,
-  WorkspacePremium as LevelIcon,
+  HowToReg as OnRosterIcon,
+  Payments as SelfPaidIcon,
   Visibility as ViewIcon,
   CardGiftcard as ComplimentaryIcon,
 } from '@mui/icons-material';
@@ -98,8 +99,8 @@ const NOT_LISTED_SCHOOL_ID = 'not-listed';
 
 const STATUS_LABELS: Record<StatusFilter, string> = {
   all: 'All statuses',
-  approved: 'Approved',
-  pending: 'Not approved',
+  approved: 'Registration complete',
+  pending: 'Registration incomplete',
 };
 
 const ROSTER_LABELS: Record<RosterFilter, string> = {
@@ -123,8 +124,8 @@ const MEMBERSHIP_LABELS: Record<MembershipFilter, string> = {
   all: 'All levels',
   '1': 'Level 1',
   '2': 'Level 2',
-  '3': 'Level 3',
-  '3_plus': 'Level 3+',
+  '3': 'Level 3 · Stream Ready',
+  '3_plus': 'Stream Ready+',
 };
 
 function parseInitialSchoolSelection(raw: string | null): {
@@ -491,7 +492,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
     <Box sx={platformAdminPageContainerSx}>
       <PlatformAdminPageHeader
         title="Students"
-        subtitle="Select a school to load students, then filter by status, grade, and membership"
+        subtitle="School invite lists and registered accounts. Active + Pending = On roster."
         action={
           isSuperAdmin ? (
             <Button
@@ -534,34 +535,38 @@ const PlatformAdminStudentsPage: React.FC = () => {
         }}
       >
         <PlatformAdminStatCard
-          title="Total students"
+          title="Total accounts"
           value={stats?.students_total ?? '—'}
-          subtitle="Excludes test accounts"
+          subtitle="Every real student account"
           icon={<PeopleIcon sx={{ fontSize: 22 }} />}
           accent={ip.statBlue}
         />
         <PlatformAdminStatCard
-          title="Approved"
-          value={stats?.students_approved ?? '—'}
-          icon={<CheckCircleIcon sx={{ fontSize: 22 }} />}
+          title="On roster"
+          value={stats?.students_on_roster ?? '—'}
+          subtitle="Invited or registered"
+          icon={<OnRosterIcon sx={{ fontSize: 22 }} />}
+          accent={ip.statBlue}
+        />
+        <PlatformAdminStatCard
+          title="Active"
+          value={stats?.students_active ?? '—'}
+          subtitle="On roster + password set"
+          icon={<ActiveIcon sx={{ fontSize: 22 }} />}
           accent={ip.approveGreen}
         />
         <PlatformAdminStatCard
           title="Pending"
           value={stats?.students_pending ?? '—'}
+          subtitle="Invited or no password yet"
           icon={<PendingIcon sx={{ fontSize: 22 }} />}
           accent="#D97706"
         />
         <PlatformAdminStatCard
-          title="Rostered"
-          value={stats?.students_rostered ?? '—'}
-          icon={<SchoolIcon sx={{ fontSize: 22 }} />}
-          accent={ip.statBlue}
-        />
-        <PlatformAdminStatCard
-          title="Level 3+"
-          value={stats?.students_level_3_plus ?? '—'}
-          icon={<LevelIcon sx={{ fontSize: 22 }} />}
+          title="Self-paid"
+          value={stats?.students_self_paid ?? '—'}
+          subtitle="Bought or upgraded themselves"
+          icon={<SelfPaidIcon sx={{ fontSize: 22 }} />}
           accent={ip.navy}
         />
       </Box>

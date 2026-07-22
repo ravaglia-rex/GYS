@@ -28,9 +28,11 @@ const initialState: AuthState = {
 
 export const checkUserRole = createAsyncThunk(
     'auth/checkUserRole',
-    async (email: string) => {
+    async (email: string, { getState }) => {
         try {
-            let schoolAdmin = await getSchoolAdmin(email);
+            const state = getState() as { auth?: AuthState };
+            const preferredSchoolId = state.auth?.schoolAdmin?.schoolId;
+            let schoolAdmin = await getSchoolAdmin(email, preferredSchoolId);
             // If not in schooladmins collection, check if they're a verified school official (schools collection poc_email)
             if (!schoolAdmin) {
                 const schoolCheck = await checkSchoolEmail(email);
@@ -40,7 +42,7 @@ export const checkUserRole = createAsyncThunk(
                 ) {
                     schoolAdmin = {
                         email,
-                        schoolId: schoolCheck.schoolId,
+                        schoolId: preferredSchoolId || schoolCheck.schoolId,
                         role: 'schooladmin'
                     };
                 }

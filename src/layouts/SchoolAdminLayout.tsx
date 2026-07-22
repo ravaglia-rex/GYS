@@ -12,6 +12,8 @@ import {
   Divider,
   Tooltip,
   Alert,
+  Dialog,
+  DialogContent,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -24,16 +26,24 @@ import {
   Logout as LogoutIcon,
   Home as HomeIcon,
   ArrowBack as ArrowBackIcon,
+  SwapHoriz as SwitchSchoolIcon,
 } from '@mui/icons-material';
 import { auth } from '../firebase/firebase';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
-import { useSelector } from 'react-redux';
-import { RootState } from '../state_data/reducer';
+import { useDispatch, useSelector } from 'react-redux';
+import { AppDispatch, RootState } from '../state_data/reducer';
+import { setRole, setSchoolAdmin } from '../state_data/authSlice';
 import authTokenHandler from '../functions/auth_token/auth_token_handler';
 import { institutionalPalette as ip } from '../theme/institutionalPalette';
 import { useSchoolAdminBelowNav } from './schoolAdminBelowNavContext';
 import ResetTutorialsButton from '../components/tutorial/ResetTutorialsButton';
+import SchoolAdminSchoolPicker, {
+  type SchoolAdminPickerOption,
+} from '../components/auth/SchoolAdminSchoolPicker';
+import { listSchoolsForAdminEmail } from '../db/schoolAdminCollection';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '../query/queryKeys';
 
 const HEADER_NAVY = '#002147';
 const DRAWER_WIDTH = 260;
@@ -105,9 +115,16 @@ const SIDEBAR_NAV: SidebarNavItem[] = [
 export default function SchoolAdminLayout({ children, interactivePreview }: SchoolAdminLayoutProps) {
   const theme = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [switchOpen, setSwitchOpen] = useState(false);
+  const [switchSchools, setSwitchSchools] = useState<SchoolAdminPickerOption[] | null>(null);
+  const [switchLoading, setSwitchLoading] = useState(false);
+  const [switchError, setSwitchError] = useState<string | null>(null);
+  const [multiSchoolEligible, setMultiSchoolEligible] = useState(false);
   const currentUser = auth.currentUser;
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useDispatch<AppDispatch>();
+  const queryClient = useQueryClient();
   const { schoolAdmin } = useSelector((state: RootState) => state.auth);
   const { belowNav } = useSchoolAdminBelowNav();
 
@@ -129,6 +146,66 @@ export default function SchoolAdminLayout({ children, interactivePreview }: Scho
     if (letters.length >= 2) return letters.slice(0, 2).toUpperCase();
     return raw.slice(0, 2).toUpperCase();
   }, [displayEmail]);
+
+  useEffect(() => {
+    if (interactivePreview) {
+      setMultiSchoolEligible(false);
+      return;
+    }
+    let cancelled = false;
+    const refreshMultiSchool = () => {
+      void listSchoolsForAdminEmail()
+        .then((schools) => {
+          if (!cancelled) setMultiSchoolEligible(schools.length > 1);
+        })
+        .catch(() => {
+          if (!cancelled) setMultiSchoolEligible(false);
+        });
+    };
+    refreshMultiSchool();
+    const onFocus = () => refreshMultiSchool();
+    window.addEventListener('focus', onFocus);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [interactivePreview, schoolAdmin?.email, schoolAdmin?.schoolId]);
+
+  const openSwitchSchool = async () => {
+    setSwitchError(null);
+    setSwitchLoading(true);
+    setSwitchOpen(true);
+    try {
+      const schools = await listSchoolsForAdminEmail();
+      setSwitchSchools(schools);
+      setMultiSchoolEligible(schools.length > 1);
+      if (schools.length <= 1) {
+        setSwitchError('You only administer one school portal with this email.');
+      }
+    } catch (e) {
+      setSwitchSchools(null);
+      setSwitchError(e instanceof Error ? e.message : 'Could not load schools.');
+    } finally {
+      setSwitchLoading(false);
+    }
+  };
+
+  const confirmSwitchSchool = async (school: SchoolAdminPickerOption) => {
+    const email = (displayEmail || schoolAdmin?.email || '').trim().toLowerCase();
+    dispatch(
+      setSchoolAdmin({
+        email,
+        schoolId: school.schoolId,
+        role: 'admin',
+      })
+    );
+    dispatch(setRole('schooladmin'));
+    await queryClient.invalidateQueries({ queryKey: queryKeys.schoolAdminSummary(school.schoolId) });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.schoolAdminRoster(school.schoolId) });
+    setSwitchOpen(false);
+    setSwitchSchools(null);
+    navigate('/school-admin/dashboard', { replace: true });
+  };
 
   const handleLogout = async () => {
     if (interactivePreview) {
@@ -280,6 +357,30 @@ export default function SchoolAdminLayout({ children, interactivePreview }: Scho
               },
             }}
           />
+          {multiSchoolEligible ? (
+            <Button
+              fullWidth
+              variant="outlined"
+              size="small"
+              startIcon={<SwitchSchoolIcon />}
+              onClick={() => void openSwitchSchool()}
+              sx={{
+                mt: 1,
+                color: ip.navy,
+                borderColor: ip.sidebarBorder,
+                bgcolor: '#fff',
+                textTransform: 'none',
+                fontWeight: 700,
+                justifyContent: 'flex-start',
+                '&:hover': {
+                  borderColor: ip.navy,
+                  bgcolor: ip.cardMutedBg,
+                },
+              }}
+            >
+              Switch school
+            </Button>
+          ) : null}
         </Box>
       )}
       <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', py: 2 }}>{renderSidebarNav()}</Box>
@@ -533,6 +634,52 @@ export default function SchoolAdminLayout({ children, interactivePreview }: Scho
           </Box>
         </Box>
       </Box>
+
+      <Dialog
+        open={switchOpen}
+        onClose={() => {
+          if (!switchLoading) {
+            setSwitchOpen(false);
+            setSwitchSchools(null);
+            setSwitchError(null);
+          }
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogContent sx={{ p: 0, bgcolor: 'transparent' }}>
+          {switchLoading ? (
+            <Box sx={{ p: 4, textAlign: 'center' }}>
+              <Typography sx={{ color: ip.subtext }}>Loading schools…</Typography>
+            </Box>
+          ) : switchError && (!switchSchools || switchSchools.length <= 1) ? (
+            <Box sx={{ p: 3 }}>
+              <Alert severity="info" sx={{ mb: 2 }}>
+                {switchError}
+              </Alert>
+              <Button fullWidth onClick={() => setSwitchOpen(false)}>
+                Close
+              </Button>
+            </Box>
+          ) : switchSchools && switchSchools.length > 1 ? (
+            <SchoolAdminSchoolPicker
+              schools={switchSchools}
+              email={displayEmail}
+              initialSchoolId={schoolAdmin?.schoolId}
+              title="Switch school"
+              subtitle="Choose which school portal to open."
+              confirmLabel="Open portal"
+              cancelLabel="Cancel"
+              onCancel={() => {
+                setSwitchOpen(false);
+                setSwitchSchools(null);
+                setSwitchError(null);
+              }}
+              onConfirm={confirmSwitchSchool}
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }

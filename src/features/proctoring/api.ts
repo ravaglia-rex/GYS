@@ -55,13 +55,17 @@ export async function getAttemptProctoring(uid: string, attemptId: string) {
 }
 
 export async function getSchoolStudentProctoringFlags(
-  studentId: string
+  studentId: string,
+  schoolId: string
 ): Promise<{ student_id: string; flagged_attempts: FlaggedProctoringAttempt[]; s3_configured: boolean }> {
   const authToken = await authTokenHandler.getAuthToken();
   const encodedStudentId = encodeURIComponent(studentId);
   const response = await axios.get(
     `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}/students/${encodedStudentId}/proctoringFlags`,
-    { headers: { Authorization: `Bearer ${authToken}` } }
+    {
+      headers: { Authorization: `Bearer ${authToken}` },
+      params: { schoolId },
+    }
   );
   return response.data;
 }
@@ -69,7 +73,8 @@ export async function getSchoolStudentProctoringFlags(
 /** Presign a single proctoring snapshot on click (avoids N eager signs on flags list load). */
 export async function getSchoolStudentProctoringSnapshotUrl(
   studentId: string,
-  objectKey: string
+  objectKey: string,
+  schoolId: string
 ): Promise<{ url: string; expires_in: number }> {
   const authToken = await authTokenHandler.getAuthToken();
   const encodedStudentId = encodeURIComponent(studentId);
@@ -77,7 +82,7 @@ export async function getSchoolStudentProctoringSnapshotUrl(
     `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}/students/${encodedStudentId}/proctoringSnapshotUrl`,
     {
       headers: { Authorization: `Bearer ${authToken}` },
-      params: { key: objectKey },
+      params: { key: objectKey, schoolId },
     }
   );
   return response.data;

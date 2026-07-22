@@ -139,7 +139,7 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
             : null;
 
         try {
-          const directStudent = await getSchoolStudent(studentId);
+          const directStudent = await getSchoolStudent(studentId, String(schoolAdmin.schoolId).trim());
           srow = { ...directStudent, assessment_progress: directStudent.assessment_progress ?? {} };
         } catch (studentError) {
           const message = (studentError as Error).message ?? '';
@@ -174,12 +174,17 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
       setProctoringFlags([]);
       return;
     }
+    const sid = schoolAdmin?.schoolId ? String(schoolAdmin.schoolId).trim() : '';
+    if (!sid) {
+      setProctoringFlags([]);
+      return;
+    }
     setProctoringFlagsLoading(true);
-    void getSchoolStudentProctoringFlags(studentId)
+    void getSchoolStudentProctoringFlags(studentId, sid)
       .then((res) => setProctoringFlags(res.flagged_attempts ?? []))
       .catch(() => setProctoringFlags([]))
       .finally(() => setProctoringFlagsLoading(false));
-  }, [studentId, isSchoolAdminPreview]);
+  }, [studentId, isSchoolAdminPreview, schoolAdmin?.schoolId]);
 
   if (!studentId) {
     return (
@@ -560,7 +565,8 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
                                         if (!key || !studentId) return;
                                         const { url } = await getSchoolStudentProctoringSnapshotUrl(
                                           studentId,
-                                          key
+                                          key,
+                                          String(schoolAdmin?.schoolId ?? '').trim()
                                         );
                                         window.open(url, '_blank', 'noopener,noreferrer');
                                       } catch (err) {

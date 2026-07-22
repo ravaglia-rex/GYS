@@ -246,7 +246,7 @@ export function SchoolAdminSubscriptionPage() {
     }
     setInvoiceDownloadingPaymentId(paymentId);
     try {
-      await downloadBillingInvoicePdf(paymentId);
+      await downloadBillingInvoicePdf(schoolId, paymentId);
     } catch (e: unknown) {
       setInvoiceDownloadErr(e instanceof Error ? e.message : 'Could not download invoice.');
     } finally {

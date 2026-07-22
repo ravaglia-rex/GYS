@@ -1,6 +1,6 @@
 /**
  * Greenfield International School - static snapshot aligned with Firestore seed
- * (`seedGreenfieldGysReport.js`, ADMIN_EMAIL srishti+6@argus.ai).
+ * (`seedGreenfieldGysReport.js`, ADMIN_EMAIL srishti+school@argus.ai).
  */
 import type { QuarterlyReportListItem } from '../db/schoolAdminCollection';
 import { PREVIEW_SAMPLE_QUESTIONS_BY_EXAM } from './previewSampleAssessments';
@@ -10,8 +10,8 @@ export {
   GREENFIELD_SCHOOL_FIRESTORE_ID,
 } from './greenfieldPreviewCohort';
 
-/** Primary POC on the seeded school document. */
-export const GREENFIELD_POC_EMAIL = 'srishti+6@argus.ai';
+/** Primary POC on the seeded school document (school-side alias; not platform admin). */
+export const GREENFIELD_POC_EMAIL = 'srishti+school@argus.ai';
 
 export const GREENFIELD_SCHOOL_DISPLAY = {
   schoolName: 'Greenfield International School',

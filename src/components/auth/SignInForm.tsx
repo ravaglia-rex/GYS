@@ -6,8 +6,13 @@ import { auth } from '../../firebase/firebase';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { checkSchoolEmail, verifySchoolEmail } from '../../db/schoolAdminCollection';
-import { checkUserRole } from '../../state_data/authSlice';
+import {
+  checkSchoolEmail,
+  listSchoolsForAdminEmail,
+  verifySchoolEmail,
+  type SchoolEmailCheck,
+} from '../../db/schoolAdminCollection';
+import { checkUserRole, setRole, setSchoolAdmin } from '../../state_data/authSlice';
 import { useDispatch } from 'react-redux';
 import { AppDispatch } from '../../state_data/reducer';
 
@@ -28,6 +33,7 @@ import { Button } from '../ui/button';
 import { PasswordInput } from '../ui/password-input';
 import { LoadingSpinner as Spinner } from '../ui/spinner';
 import { useToast } from '../ui/use-toast';
+import SchoolAdminSchoolPicker from './SchoolAdminSchoolPicker';
 
 const signinSchema = z.object({
     password: z.string().min(6, 'Password must be at least 6 characters'),
@@ -80,7 +86,28 @@ const SignInForm: React.FC<SignInFormProps> = ({ email, isSchoolAdmin }) => {
         },
     });
     const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
+    const [multiSchoolOptions, setMultiSchoolOptions] = useState<SchoolEmailCheck[] | null>(null);
     const dispatch = useDispatch<AppDispatch>();
+
+    const enterSchoolPortal = useCallback(
+      (school: Pick<SchoolEmailCheck, 'schoolId' | 'schoolName'>, signedInEmail: string) => {
+        dispatch(
+          setSchoolAdmin({
+            email: signedInEmail,
+            schoolId: school.schoolId,
+            role: 'admin',
+          })
+        );
+        dispatch(setRole('schooladmin'));
+        toast({
+          variant: 'default',
+          title: 'Signed in successfully!',
+          description: `Welcome to ${school.schoolName || 'your school'} portal`,
+        });
+        navigate('/school-admin/dashboard');
+      },
+      [dispatch, navigate, toast]
+    );
 
     const completeStudentSignIn = useCallback(
       async (userCredential: UserCredential) => {
@@ -166,13 +193,40 @@ const SignInForm: React.FC<SignInFormProps> = ({ email, isSchoolAdmin }) => {
                 setIsSubmitted(false);
                 return;
               }
-    
-              // Use schoolInfo.schoolId directly - no need for user selection
-              // schoolInfo is already validated from email check
-    
-              // Check user role and redirect
-              await dispatch(checkUserRole(userCredential.user.email || ''));
-              navigate('/school-admin/dashboard');
+
+              let schools: SchoolEmailCheck[] = [];
+              try {
+                schools = await listSchoolsForAdminEmail();
+              } catch (listErr) {
+                console.warn('listSchoolsForAdminEmail failed, falling back to checkSchoolEmail:', listErr);
+                schools = schoolCheck ? [schoolCheck] : [];
+                toast({
+                  variant: 'default',
+                  title: 'Could not load all schools',
+                  description:
+                    'Signed into one school only. Log out and try again, or use Switch school after the multi-school list loads.',
+                });
+              }
+
+              if (schools.length === 0) {
+                toast({
+                  variant: 'destructive',
+                  title: 'No school access',
+                  description:
+                    'No paid school portals are linked to this email yet. Finish registration payment, then try again.',
+                });
+                await signOut(auth);
+                setIsSubmitted(false);
+                return;
+              }
+
+              if (schools.length === 1) {
+                enterSchoolPortal(schools[0], signedInEmail);
+                return;
+              }
+
+              setMultiSchoolOptions(schools);
+              setIsSubmitted(false);
               return;
             }
     
@@ -193,6 +247,18 @@ const SignInForm: React.FC<SignInFormProps> = ({ email, isSchoolAdmin }) => {
             setIsSubmitted(false);
         }
     };
+
+    if (multiSchoolOptions && multiSchoolOptions.length > 1) {
+      return (
+        <SchoolAdminSchoolPicker
+          schools={multiSchoolOptions}
+          email={email}
+          onConfirm={(school) => {
+            enterSchoolPortal(school, email);
+          }}
+        />
+      );
+    }
 
     return (
         <div className="rounded-2xl border border-slate-200 bg-white px-6 py-7 shadow-lg sm:px-7 sm:py-8">

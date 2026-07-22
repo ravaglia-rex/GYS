@@ -75,6 +75,7 @@ export const QUARTERLY_REPORT_DOWNLOAD_URL='/quarterlyReportDownloadUrl';
 export const BILLING_INVOICE_DOWNLOAD_URL='/billingInvoiceDownloadUrl';
 export const SCHOOL_NOTIFICATIONS='/notifications';
 export const SCHOOL_SEND_NOTIFICATION_EMAILS='/sendNotificationEmails';
+export const SCHOOLS_FOR_ADMIN_EMAIL='/schoolsForEmail';
 
 // Assessments
 export const GET_ASSESSMENT_CONFIG='/getAssessmentConfig';

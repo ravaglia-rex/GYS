@@ -654,14 +654,14 @@ const SchoolAdminDashboardPage: React.FC = () => {
         }
 
         try {
-          const lists = await getStudentRegistrationEmailLists();
+          const lists = await getStudentRegistrationEmailLists(schoolId);
           registrationEmails = lists.emails ?? [];
         } catch (emailErr) {
           console.warn('getStudentRegistrationEmailLists failed:', emailErr);
         }
 
         try {
-          const qr = await getQuarterlyReports();
+          const qr = await getQuarterlyReports(schoolId);
           setQuarterlyS3Configured(qr.s3Configured !== false);
           const sorted = [...(qr.reports ?? [])].sort((a, b) => a.quarterKey.localeCompare(b.quarterKey));
           const pick =
@@ -790,7 +790,12 @@ const SchoolAdminDashboardPage: React.FC = () => {
       return;
     }
     try {
-      await downloadQuarterlyReportPdf(latestQuarterly.quarterKey);
+      const sid = String(schoolAdmin?.schoolId ?? '').trim();
+      if (!sid) {
+        setReportDownloadError('School context is missing. Please sign in again.');
+        return;
+      }
+      await downloadQuarterlyReportPdf(latestQuarterly.quarterKey, sid);
     } catch (e) {
       setReportDownloadError((e as Error).message ?? 'Download failed.');
     }

@@ -15,6 +15,13 @@ import {
   TextField,
   FormControlLabel,
   Checkbox,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
 } from '@mui/material';
 import {
   ArrowBack as BackIcon,
@@ -25,8 +32,9 @@ import axios from 'axios';
 import {
   deletePlatformAdminStudent,
   formatDate,
+  formatInrFromPaise,
   getPlatformAdminStudent,
-  type PlatformAdminStudentRow,
+  type PlatformAdminStudentDetail,
 } from '../../db/platformAdminCollection';
 import {
   platformAdminCardSx,
@@ -34,16 +42,20 @@ import {
   platformAdminDialogPaperSx,
   platformAdminDialogTextFieldSx,
   platformAdminPageContainerSx,
+  platformAdminTableHeadRowSx,
+  platformAdminTablePaperSx,
+  platformAdminTableSx,
 } from './platformAdminPageStyles';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import { PlatformAdminChip } from './platformAdminComponents';
 import { isPlatformAdminTestStudent } from './platformAdminTestStudents';
+import { MEMBERSHIP_LEVEL_LABEL } from '../../utils/studentMembershipPricing';
 
-function studentDisplayName(student: PlatformAdminStudentRow): string {
+function studentDisplayName(student: PlatformAdminStudentDetail): string {
   return [student.first_name, student.last_name].filter(Boolean).join(' ').trim() || student.email || student.uid;
 }
 
-function studentConfirmToken(student: PlatformAdminStudentRow): string {
+function studentConfirmToken(student: PlatformAdminStudentDetail): string {
   return (student.email || student.uid).trim();
 }
 
@@ -51,10 +63,26 @@ function confirmTokensMatch(a: string, b: string): boolean {
   return a.trim().toLowerCase() === b.trim().toLowerCase();
 }
 
+function membershipLabel(level: number | null | undefined): string {
+  if (level == null) return ' - ';
+  if (level === 1 || level === 2 || level === 3 || level === 4) {
+    return `Level ${level} · ${MEMBERSHIP_LEVEL_LABEL[level]}`;
+  }
+  return `Level ${level}`;
+}
+
+function paymentKindLabel(kind: string): string {
+  if (kind === 'student_registration_signup') return 'Package signup';
+  if (kind === 'student_membership_upgrade') return 'Membership upgrade';
+  if (kind === 'student_membership_renewal') return 'Renewal';
+  if (kind === 'failed') return 'Failed';
+  return kind || ' - ';
+}
+
 const PlatformAdminStudentDetailPage: React.FC = () => {
   const { studentId } = useParams<{ studentId: string }>();
   const navigate = useNavigate();
-  const [student, setStudent] = useState<PlatformAdminStudentRow | null>(null);
+  const [student, setStudent] = useState<PlatformAdminStudentDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -173,6 +201,7 @@ const PlatformAdminStudentDetailPage: React.FC = () => {
   }
 
   const deleteEmailMatches = confirmTokensMatch(deleteConfirmEmail, studentConfirmToken(student));
+  const paymentHistory = student.payment_history ?? [];
 
   return (
     <Box sx={platformAdminPageContainerSx}>
@@ -184,13 +213,28 @@ const PlatformAdminStudentDetailPage: React.FC = () => {
         Back to students
       </Button>
 
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, mb: 3 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: 2,
+          mb: 3,
+        }}
+      >
         <Box>
           <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1, mb: 0.5 }}>
             <Typography variant="h4" sx={{ fontWeight: 700, color: ip.heading }}>
               {studentDisplayName(student)}
             </Typography>
             {isPlatformAdminTestStudent(student) && <PlatformAdminChip label="Test" tone="info" />}
+            {student.self_paid && <PlatformAdminChip label="Self-paid" tone="success" />}
+            {student.password_setup_complete ? (
+              <PlatformAdminChip label="Password set" tone="success" />
+            ) : (
+              <PlatformAdminChip label="No password yet" tone="warning" />
+            )}
             {student.approval_status && (
               <PlatformAdminChip
                 label={student.approval_status}
@@ -225,28 +269,136 @@ const PlatformAdminStudentDetailPage: React.FC = () => {
             <DetailRow label="Email" value={student.email || ' - '} />
             <DetailRow label="First name" value={student.first_name || ' - '} />
             <DetailRow label="Last name" value={student.last_name || ' - '} />
+            <DetailRow label="Phone" value={student.phone_number || ' - '} />
             <DetailRow label="Grade" value={student.grade != null ? String(student.grade) : ' - '} />
-            <DetailRow
-              label="Membership"
-              value={student.membership_level != null ? `Level ${student.membership_level}` : ' - '}
-            />
+            <DetailRow label="Heard from" value={student.heard_from || ' - '} />
             <DetailRow label="Joined" value={formatDate(student.created_at)} />
+            <DetailRow label="Updated" value={formatDate(student.updated_at)} />
           </CardContent>
         </Card>
 
         <Card sx={platformAdminCardSx}>
           <CardContent>
             <Typography variant="subtitle1" sx={{ fontWeight: 700, color: ip.heading, mb: 2 }}>
-              School & gamification
+              Parent / guardian
+            </Typography>
+            <DetailRow label="Name" value={student.parent_name || ' - '} />
+            <DetailRow label="Email" value={student.parent_email || ' - '} />
+            <DetailRow label="Phone" value={student.parent_phone || ' - '} />
+          </CardContent>
+        </Card>
+
+        <Card sx={platformAdminCardSx}>
+          <CardContent>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: ip.heading, mb: 2 }}>
+              School & account
             </Typography>
             <DetailRow label="School" value={student.school_name || ' - '} />
             <DetailRow label="School ID" value={student.school_id || ' - '} />
+            <DetailRow label="Signup school name" value={student.signup_school_name || ' - '} />
+            <DetailRow
+              label="Password setup"
+              value={student.password_setup_complete ? 'Complete' : 'Not set'}
+            />
+            <DetailRow label="Registration status" value={student.registration_status || ' - '} />
             <DetailRow label="Approval" value={student.approval_status || ' - '} />
             <DetailRow label="Achievement tier" value={student.achievement_tier || ' - '} />
             <DetailRow label="Argus coins" value={String(student.argus_coins ?? 0)} />
           </CardContent>
         </Card>
+
+        <Card sx={platformAdminCardSx}>
+          <CardContent>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: ip.heading, mb: 2 }}>
+              Membership & payment
+            </Typography>
+            <DetailRow label="Membership" value={membershipLabel(student.membership_level)} />
+            <DetailRow
+              label="School-covered level"
+              value={
+                student.school_covered_membership_level != null &&
+                student.school_covered_membership_level > 0
+                  ? membershipLabel(student.school_covered_membership_level)
+                  : 'None'
+              }
+            />
+            <DetailRow
+              label="Complimentary level"
+              value={
+                student.complimentary_invite_membership_level != null &&
+                student.complimentary_invite_membership_level > 0
+                  ? membershipLabel(student.complimentary_invite_membership_level)
+                  : 'None'
+              }
+            />
+            <DetailRow label="Self-paid" value={student.self_paid ? 'Yes' : 'No'} />
+            <DetailRow label="Payment status" value={student.payment_status || ' - '} />
+            <DetailRow
+              label="Amount paid"
+              value={
+                student.razorpay_amount_paise != null
+                  ? formatInrFromPaise(student.razorpay_amount_paise)
+                  : ' - '
+              }
+            />
+            <DetailRow label="Paid at" value={formatDate(student.paid_at)} />
+            <DetailRow label="Razorpay payment ID" value={student.razorpay_payment_id || ' - '} />
+            <DetailRow label="Razorpay order ID" value={student.razorpay_order_id || ' - '} />
+            <DetailRow label="Invoice" value={student.billing_invoice_number || ' - '} />
+          </CardContent>
+        </Card>
       </Box>
+
+      <Card sx={{ ...platformAdminCardSx, mt: 2.5 }}>
+        <CardContent>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, color: ip.heading, mb: 2 }}>
+            Payment history
+          </Typography>
+          {paymentHistory.length === 0 ? (
+            <Typography variant="body2" sx={{ color: ip.subtext }}>
+              No individual payments recorded.
+            </Typography>
+          ) : (
+            <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
+              <Table size="medium" sx={platformAdminTableSx}>
+                <TableHead>
+                  <TableRow sx={platformAdminTableHeadRowSx}>
+                    <TableCell>When</TableCell>
+                    <TableCell>Type</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Amount</TableCell>
+                    <TableCell>Payment ID</TableCell>
+                    <TableCell>Invoice</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {paymentHistory.map((row) => (
+                    <TableRow key={row.id}>
+                      <TableCell>{formatDate(row.paid_at)}</TableCell>
+                      <TableCell>
+                        <Typography sx={{ fontWeight: 600, color: ip.heading, fontSize: '0.875rem' }}>
+                          {paymentKindLabel(row.kind)}
+                        </Typography>
+                        <Typography sx={{ color: ip.subtext, fontSize: '0.75rem' }}>
+                          {row.description}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>{row.payment_status || ' - '}</TableCell>
+                      <TableCell>
+                        {row.amount_paise != null ? formatInrFromPaise(row.amount_paise) : ' - '}
+                      </TableCell>
+                      <TableCell sx={{ fontFamily: 'ui-monospace, monospace', fontSize: '0.8rem' }}>
+                        {row.payment_id || ' - '}
+                      </TableCell>
+                      <TableCell>{row.invoice_number || ' - '}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </CardContent>
+      </Card>
 
       <Card
         sx={{
@@ -408,11 +560,19 @@ function DetailRow({
   return (
     <>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 0.75, gap: 2 }}>
-        <Typography variant="body2" sx={{ color: ip.subtext }}>
+        <Typography variant="body2" sx={{ color: ip.subtext, flexShrink: 0 }}>
           {label}
         </Typography>
         {children ?? (
-          <Typography variant="body2" sx={{ fontWeight: 600, textAlign: 'right', color: ip.heading }}>
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: 600,
+              textAlign: 'right',
+              color: ip.heading,
+              wordBreak: 'break-word',
+            }}
+          >
             {value}
           </Typography>
         )}

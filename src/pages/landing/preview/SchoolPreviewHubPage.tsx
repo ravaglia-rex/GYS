@@ -13,7 +13,7 @@ const cards = [
   {
     title: 'Institution dashboard & reports',
     body:
-      'Same navy header, sidebar, and Overview as a signed-in school admin - loaded with the Greenfield International School snapshot (srishti+6@argus.ai seed), no login required.',
+      'Same navy header, sidebar, and Overview as a signed-in school admin - loaded with the Greenfield International School snapshot (srishti+school@argus.ai seed), no login required.',
     path: '/for-schools/preview/dashboard',
     icon: <DashboardIcon sx={{ fontSize: 44, color: '#3b82f6' }} />,
     accent: '#3b82f6',

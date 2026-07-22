@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import {
   Box, Card, CardContent, Typography, Chip, Button, Divider, IconButton, CircularProgress,
 } from '@mui/material';
@@ -25,6 +26,7 @@ import {
   useReadSchoolAdminNotificationIds,
   type SchoolAdminAlert,
 } from '../../utils/schoolAdminNotifications';
+import { RootState } from '../../state_data/reducer';
 
 const ALERT_ICON: Record<string, React.ReactElement> = {
   report: <ReportIcon sx={{ fontSize: '1.1rem' }} />,
@@ -36,13 +38,14 @@ const ALERT_ICON: Record<string, React.ReactElement> = {
 const SchoolAdminAlertsPage: React.FC = () => {
   const location = useLocation();
   const isSchoolAdminPreview = location.pathname.startsWith('/for-schools/preview');
+  const authSchoolId = useSelector((state: RootState) => state.auth.schoolAdmin?.schoolId ?? '').trim();
   const [backendEvents, setBackendEvents] = useState<SchoolAdminNotificationEventSource[]>([]);
   const [schoolId, setSchoolId] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const notificationEmailSentRef = useRef<Set<string>>(new Set());
 
-  const effectiveSchoolId = isSchoolAdminPreview ? 'preview-greenfield' : schoolId;
+  const effectiveSchoolId = isSchoolAdminPreview ? 'preview-greenfield' : schoolId || authSchoolId;
   const { dismissedIds, dismissOne } = useDismissedSchoolAdminNotificationIds(effectiveSchoolId);
   const { readIds, markRead, markAllRead } = useReadSchoolAdminNotificationIds(effectiveSchoolId);
 
@@ -54,12 +57,19 @@ const SchoolAdminAlertsPage: React.FC = () => {
       setError(null);
       return;
     }
+    if (!authSchoolId) {
+      setLoading(false);
+      setError('School context is missing. Please sign in again.');
+      setBackendEvents([]);
+      setSchoolId('');
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      const data = await getSchoolNotifications();
+      const data = await getSchoolNotifications(authSchoolId);
       setBackendEvents(data.notifications ?? []);
-      setSchoolId(data.schoolId ?? '');
+      setSchoolId(data.schoolId ?? authSchoolId);
     } catch (e) {
       setError((e as Error).message ?? 'Could not load alerts.');
       setBackendEvents([]);
@@ -67,7 +77,7 @@ const SchoolAdminAlertsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [isSchoolAdminPreview]);
+  }, [isSchoolAdminPreview, authSchoolId]);
 
   useEffect(() => {
     void load();
@@ -86,7 +96,7 @@ const SchoolAdminAlertsPage: React.FC = () => {
   const unreadCount = alerts.filter((a) => !a.read).length;
 
   useEffect(() => {
-    if (isSchoolAdminPreview || alerts.length === 0) return;
+    if (isSchoolAdminPreview || alerts.length === 0 || !authSchoolId) return;
 
     const newIds = alerts
       .map((alert) => alert.id)
@@ -94,10 +104,10 @@ const SchoolAdminAlertsPage: React.FC = () => {
     if (newIds.length === 0) return;
     newIds.forEach((id) => notificationEmailSentRef.current.add(id));
 
-    void sendSchoolNotificationEmails({ notificationIds: newIds }).catch((sendError) => {
+    void sendSchoolNotificationEmails({ notificationIds: newIds, schoolId: authSchoolId }).catch((sendError) => {
       console.warn('School notification email send skipped:', sendError);
     });
-  }, [alerts, isSchoolAdminPreview]);
+  }, [alerts, isSchoolAdminPreview, authSchoolId]);
 
   const handleMarkRead = (id: string) => {
     markRead(id);

@@ -1,6 +1,6 @@
 /**
  * Deterministic cohort mirroring `seedGreenfieldGysReport.js` for Greenfield International School
- * (srishti+6@argus.ai / school id `greenfield_international_bangalore`).
+ * (srishti+school@argus.ai / school id `greenfield_international_bangalore`).
  * Same tier splits, triad counts (44 / 13 / 85), and grade mix (50×6, 52×7, 40×8) - order is fixed (no shuffle).
  */
 import type { AssessmentProgress, StudentRow } from '../db/schoolAdminCollection';

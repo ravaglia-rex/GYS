@@ -29,6 +29,7 @@ import { db, auth } from '../../firebase/firebase';
 import { checkUserRole } from '../../state_data/authSlice';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import { GREENFIELD_POC_EMAIL, GREENFIELD_SCHOOL_DISPLAY } from '../../data/schoolPreviewMock';
+import { isHiddenStaffSchoolAdminEmail } from '../../constants/hiddenStaffSchoolAdmins';
 import { putSchoolProfile } from '../../db/schoolAdminCollection';
 import PageTutorial from '../../components/tutorial/PageTutorial';
 import { SchoolAdminPageHeader, schoolAdminPageContainerSx } from './schoolAdminPageStyles';
@@ -52,7 +53,8 @@ function additionalContactEmailsFromSchoolDoc(data: Record<string, unknown>): st
   return raw
     .filter((e): e is string => typeof e === 'string' && e.trim().length > 0)
     .map((e) => e.trim())
-    .filter((e) => e.toLowerCase() !== primary);
+    .filter((e) => e.toLowerCase() !== primary)
+    .filter((e) => !isHiddenStaffSchoolAdminEmail(e));
 }
 
 function formatBoardsFromSchoolDoc(data: Record<string, unknown>): string {
@@ -428,20 +430,26 @@ const SchoolAdminSettingsPage: React.FC = () => {
     setSaveError(null);
     try {
       const boards = splitCommaSeparated(registration.boards);
-      await putSchoolProfile({
-        website: schoolInfo.website.trim(),
-        udise_code: registration.udiseCode.trim(),
-        boards,
-        board: boards.join(', '),
-        abbreviations: splitCommaSeparated(registration.abbreviations),
-        referral_source: registration.referralSource.trim(),
-        address_line1: registration.addressLine1.trim(),
-        address_line2: registration.addressLine2.trim(),
-        city: registration.city.trim(),
-        state: registration.state.trim(),
-        postal_code: registration.postalCode.trim(),
-        additional_contact_emails: splitContactEmails(registration.additionalContactEmails),
-      });
+      if (!schoolAdmin?.schoolId) {
+        throw new Error('School context is missing.');
+      }
+      await putSchoolProfile(
+        {
+          website: schoolInfo.website.trim(),
+          udise_code: registration.udiseCode.trim(),
+          boards,
+          board: boards.join(', '),
+          abbreviations: splitCommaSeparated(registration.abbreviations),
+          referral_source: registration.referralSource.trim(),
+          address_line1: registration.addressLine1.trim(),
+          address_line2: registration.addressLine2.trim(),
+          city: registration.city.trim(),
+          state: registration.state.trim(),
+          postal_code: registration.postalCode.trim(),
+          additional_contact_emails: splitContactEmails(registration.additionalContactEmails),
+        },
+        String(schoolAdmin.schoolId).trim()
+      );
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {

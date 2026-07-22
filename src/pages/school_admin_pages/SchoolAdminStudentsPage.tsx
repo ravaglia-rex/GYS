@@ -288,15 +288,23 @@ const SchoolAdminStudentsPage: React.FC = () => {
   const [resendConfirmEmail, setResendConfirmEmail] = useState<string | null>(null);
 
   const refreshRegistrationEmails = useCallback(async () => {
+    const sid = schoolAdmin?.schoolId ? String(schoolAdmin.schoolId).trim() : '';
+    if (!sid) {
+      setRegistrationEmails([]);
+      setRevokedRegistrationEmails([]);
+      return;
+    }
     try {
-      const lists = await getStudentRegistrationEmailLists();
+      const lists = await getStudentRegistrationEmailLists(sid);
       setRegistrationEmails(lists.emails.map(normalizeRosterEmail));
       setRevokedRegistrationEmails(lists.revokedEmails.map(normalizeRosterEmail));
     } catch {
       setRegistrationEmails([]);
       setRevokedRegistrationEmails([]);
     }
-  }, []);
+  }, [schoolAdmin?.schoolId]);
+
+  const activeSchoolId = schoolAdmin?.schoolId ? String(schoolAdmin.schoolId).trim() : '';
 
   const loadRoster = useCallback(async () => {
     if (isSchoolAdminPreview) {
@@ -335,7 +343,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
       let reg: string[] = [];
       let revoked: string[] = [];
       try {
-        const lists = await getStudentRegistrationEmailLists();
+        const lists = await getStudentRegistrationEmailLists(schoolId);
         reg = lists.emails;
         revoked = lists.revokedEmails;
       } catch (e) {
@@ -415,6 +423,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
 
   const mergeAndSaveEmails = async (additions: string[]) => {
     if (!additions.length) return;
+    if (!activeSchoolId) return;
     setSavingEmails(true);
     setRegistrationError(null);
     setUploadNotice(null);
@@ -422,7 +431,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
       let current: string[] = [];
       let revoked: string[] = [];
       try {
-        const lists = await getStudentRegistrationEmailLists();
+        const lists = await getStudentRegistrationEmailLists(activeSchoolId);
         current = lists.emails;
         revoked = lists.revokedEmails;
       } catch {
@@ -463,9 +472,9 @@ const SchoolAdminStudentsPage: React.FC = () => {
           return;
         }
       }
-      await putStudentRegistrationEmails(merged, nextRevoked);
+      await putStudentRegistrationEmails(merged, activeSchoolId, nextRevoked);
       setUploadNotice(
-        `Sent invitation${newInvitations.length === 1 ? '' : 's'} to ${newInvitations.length} student${newInvitations.length === 1 ? '' : 's'}.`
+        `Added ${newInvitations.length} student${newInvitations.length === 1 ? '' : 's'} to the invite list. Invitation emails will be sent automatically.`
       );
       await refreshRegistrationEmails();
       await loadRoster();
@@ -481,6 +490,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
   const handleRevokeInvitation = async (email: string) => {
     const target = normalizeRosterEmail(email);
     if (!target) return;
+    if (!activeSchoolId) return;
     setRevokingEmail(target);
     setRegistrationError(null);
     setUploadNotice(null);
@@ -488,7 +498,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
       let current: string[] = [];
       let revoked: string[] = [];
       try {
-        const lists = await getStudentRegistrationEmailLists();
+        const lists = await getStudentRegistrationEmailLists(activeSchoolId);
         current = lists.emails;
         revoked = lists.revokedEmails;
       } catch {
@@ -497,7 +507,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
       }
       const next = (current ?? []).map(normalizeRosterEmail).filter(e => e && e !== target);
       const nextRevoked = mergeRegistrationEmailLists(revoked, [target]).filter(e => !next.includes(e));
-      await putStudentRegistrationEmails(next, nextRevoked);
+      await putStudentRegistrationEmails(next, activeSchoolId, nextRevoked);
       setUploadNotice(`Revoked invitation for ${target}.`);
       setRevokeConfirmEmail(null);
       await refreshRegistrationEmails();
@@ -512,6 +522,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
   const handleResendInvitation = async (email: string) => {
     const target = normalizeRosterEmail(email);
     if (!target) return;
+    if (!activeSchoolId) return;
     setResendingEmail(target);
     setRegistrationError(null);
     setUploadNotice(null);
@@ -519,7 +530,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
       let current: string[] = [];
       let revoked: string[] = [];
       try {
-        const lists = await getStudentRegistrationEmailLists();
+        const lists = await getStudentRegistrationEmailLists(activeSchoolId);
         current = lists.emails;
         revoked = lists.revokedEmails;
       } catch {
@@ -528,7 +539,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
       }
       const next = mergeRegistrationEmailLists(current, [target]);
       const nextRevoked = (revoked ?? []).map(normalizeRosterEmail).filter(e => e && e !== target);
-      await putStudentRegistrationEmails(next, nextRevoked);
+      await putStudentRegistrationEmails(next, activeSchoolId, nextRevoked);
       setUploadNotice(`Resent invitation to ${target}.`);
       setResendConfirmEmail(null);
       await refreshRegistrationEmails();

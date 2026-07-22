@@ -338,7 +338,7 @@ function PlatformAdminSchoolDetailPage() {
     try {
       const result = await importPlatformAdminStudentRegistrationEmails(schoolId, emails);
       setSuccessMessage(
-        `Sent invitation${result.imported === 1 ? '' : 's'} to ${result.imported} student${result.imported === 1 ? '' : 's'}.`
+        `Added ${result.imported} student${result.imported === 1 ? '' : 's'} to the invite list. Invitation emails will be sent automatically.`
       );
       setAddStudentsOpen(false);
       setBulkStudentEmails('');
@@ -391,6 +391,10 @@ function PlatformAdminSchoolDetailPage() {
           result.already_admin
             ? `Account setup link resent to ${result.email}. The link is valid for about 1 hour; resend anytime if needed.`
             : `Added ${result.email} as school admin and sent an account setup link. The link is valid for about 1 hour; you can resend anytime.`
+        );
+      } else if (result.already_configured) {
+        setSuccessMessage(
+          `Added ${result.email} as school admin. They already have a password — sign in with the same account to access this school (use Switch school if they admin more than one).`
         );
       } else {
         setSuccessMessage(

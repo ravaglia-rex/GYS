@@ -8,6 +8,7 @@ import {
   QUARTERLY_REPORTS,
   SCHOOL_ADMINS_APIS,
   SCHOOLS_APIS,
+  SCHOOLS_FOR_ADMIN_EMAIL,
   STUDENT_REGISTRATION_EMAILS,
   UPDATE_SCHOOL_PROFILE,
   DISMISS_SCHOOL_TUTORIAL,
@@ -20,6 +21,21 @@ const GYS_SUPPORT_EMAIL = "globalyoungscholar@argus.ai";
 
 /** Shown in UI for any PDF download failure; details go to console only. */
 const PDF_DOWNLOAD_USER_MESSAGE = `Something went wrong with your download. Please try again later. If it keeps happening, contact us at ${GYS_SUPPORT_EMAIL}.`;
+
+function appendSchoolIdQuery(
+  params: URLSearchParams,
+  schoolId: string | undefined
+): void {
+  const id = typeof schoolId === "string" ? schoolId.trim() : "";
+  if (id) params.set("schoolId", id);
+}
+
+function schoolIdQueryString(schoolId: string | undefined): string {
+  const params = new URLSearchParams();
+  appendSchoolIdQuery(params, schoolId);
+  const qs = params.toString();
+  return qs ? `?${qs}` : "";
+}
 
 /**
  * Client-side cache for S3 presigned GET URLs. Server default TTL is 600s
@@ -74,6 +90,7 @@ export interface SchoolEmailCheck {
   email: string;
   /** True when Razorpay (or dev) marks registration fee as collected - required for dashboard access. */
   registrationPaymentComplete: boolean;
+  city?: string;
 }
 
 export interface AssessmentProgress {
@@ -197,11 +214,13 @@ export interface SchoolNotificationsResponse {
   notifications: SchoolAdminNotificationEventSource[];
 }
 
-export const getSchoolNotifications = async (): Promise<SchoolNotificationsResponse> => {
+export const getSchoolNotifications = async (
+  schoolId: string
+): Promise<SchoolNotificationsResponse> => {
   try {
     const authToken = await authTokenHandler.getAuthToken();
     const response = await axios.get(
-      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${SCHOOL_NOTIFICATIONS}`,
+      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${SCHOOL_NOTIFICATIONS}${schoolIdQueryString(schoolId)}`,
       { headers: { Authorization: `Bearer ${authToken}` } }
     );
     return response.data as SchoolNotificationsResponse;
@@ -215,6 +234,7 @@ export const getSchoolNotifications = async (): Promise<SchoolNotificationsRespo
 
 export const sendSchoolNotificationEmails = async (params: {
   notificationIds: string[];
+  schoolId: string;
 }): Promise<void> => {
   const authToken = await authTokenHandler.getAuthToken();
   if (!authToken) {
@@ -227,12 +247,15 @@ export const sendSchoolNotificationEmails = async (params: {
   );
 };
 
-export const getSchoolAdmin = async (email: string): Promise<SchoolAdmin | null> => {
+export const getSchoolAdmin = async (
+  email: string,
+  schoolId?: string
+): Promise<SchoolAdmin | null> => {
   try {
     const authToken = await authTokenHandler.getAuthToken();
     const encodedEmail = encodeURIComponent(email);
     const response = await axios.get(
-      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${FETCH_SCHOOL_ADMIN_DATA}/${encodedEmail}`,
+      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${FETCH_SCHOOL_ADMIN_DATA}/${encodedEmail}${schoolIdQueryString(schoolId)}`,
       { headers: { Authorization: `Bearer ${authToken}` } }
     );
     return response.data;
@@ -244,16 +267,37 @@ export const getSchoolAdmin = async (email: string): Promise<SchoolAdmin | null>
   }
 };
 
+/**
+ * Paid schools the signed-in admin email may enter (post-auth picker / switcher).
+ */
+export const listSchoolsForAdminEmail = async (): Promise<SchoolEmailCheck[]> => {
+  try {
+    const authToken = await authTokenHandler.getAuthToken();
+    const response = await axios.get(
+      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${SCHOOLS_FOR_ADMIN_EMAIL}`,
+      { headers: { Authorization: `Bearer ${authToken}` } }
+    );
+    return Array.isArray(response.data?.schools) ? response.data.schools : [];
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data?.error) {
+      throw new Error(String(error.response.data.error));
+    }
+    throw new Error("Could not load schools for this admin email.");
+  }
+};
+
 export type StudentRegistrationEmailLists = {
   emails: string[];
   revokedEmails: string[];
 };
 
-export const getStudentRegistrationEmailLists = async (): Promise<StudentRegistrationEmailLists> => {
+export const getStudentRegistrationEmailLists = async (
+  schoolId: string
+): Promise<StudentRegistrationEmailLists> => {
   try {
     const authToken = await authTokenHandler.getAuthToken();
     const response = await axios.get(
-      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${STUDENT_REGISTRATION_EMAILS}`,
+      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${STUDENT_REGISTRATION_EMAILS}${schoolIdQueryString(schoolId)}`,
       { headers: { Authorization: `Bearer ${authToken}` } }
     );
     return {
@@ -268,8 +312,8 @@ export const getStudentRegistrationEmailLists = async (): Promise<StudentRegistr
   }
 };
 
-export const getStudentRegistrationEmails = async (): Promise<string[]> => {
-  const lists = await getStudentRegistrationEmailLists();
+export const getStudentRegistrationEmails = async (schoolId: string): Promise<string[]> => {
+  const lists = await getStudentRegistrationEmailLists(schoolId);
   return lists.emails;
 };
 
@@ -291,13 +335,14 @@ export type UpdateSchoolProfilePayload = {
 
 export const putSchoolTutorialDismissal = async (
   pageKey: string,
-  dismissed: Record<string, boolean>
+  dismissed: Record<string, boolean>,
+  schoolId: string
 ): Promise<{ success: boolean }> => {
   try {
     const authToken = await authTokenHandler.getAuthToken();
     const response = await axios.put(
       `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${DISMISS_SCHOOL_TUTORIAL}`,
-      { pageKey, dismissed },
+      { pageKey, dismissed, schoolId },
       { headers: { Authorization: `Bearer ${authToken}` } }
     );
     return response.data ?? { success: true };
@@ -310,13 +355,14 @@ export const putSchoolTutorialDismissal = async (
 };
 
 export const putSchoolProfile = async (
-  payload: UpdateSchoolProfilePayload
+  payload: UpdateSchoolProfilePayload,
+  schoolId: string
 ): Promise<{ success: boolean; school_name: string; poc_email: string }> => {
   try {
     const authToken = await authTokenHandler.getAuthToken();
     const response = await axios.put(
       `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${UPDATE_SCHOOL_PROFILE}`,
-      payload,
+      { ...payload, schoolId },
       { headers: { Authorization: `Bearer ${authToken}` } }
     );
     return response.data;
@@ -330,13 +376,14 @@ export const putSchoolProfile = async (
 
 export const putStudentRegistrationEmails = async (
   emails: string[],
+  schoolId: string,
   revokedEmails?: string[]
 ): Promise<{ success: boolean; count: number }> => {
   try {
     const authToken = await authTokenHandler.getAuthToken();
     const response = await axios.put(
       `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${STUDENT_REGISTRATION_EMAILS}`,
-      revokedEmails ? { emails, revokedEmails } : { emails },
+      revokedEmails ? { emails, revokedEmails, schoolId } : { emails, schoolId },
       { headers: { Authorization: `Bearer ${authToken}` } }
     );
     return response.data ?? { success: true, count: emails.length };
@@ -348,11 +395,13 @@ export const putStudentRegistrationEmails = async (
   }
 };
 
-export const getQuarterlyReports = async (): Promise<QuarterlyReportsResponse> => {
+export const getQuarterlyReports = async (
+  schoolId: string
+): Promise<QuarterlyReportsResponse> => {
   try {
     const authToken = await authTokenHandler.getAuthToken();
     const response = await axios.get(
-      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${QUARTERLY_REPORTS}`,
+      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${QUARTERLY_REPORTS}${schoolIdQueryString(schoolId)}`,
       { headers: { Authorization: `Bearer ${authToken}` } }
     );
     return response.data as QuarterlyReportsResponse;
@@ -365,9 +414,10 @@ export const getQuarterlyReports = async (): Promise<QuarterlyReportsResponse> =
 };
 
 export const getQuarterlyReportDownloadUrl = async (
-  quarterKey: string
+  quarterKey: string,
+  schoolId: string
 ): Promise<{ url: string; filename: string; quarterKey: string }> => {
-  const cacheKey = `quarterly:${quarterKey}`;
+  const cacheKey = `quarterly:${schoolId}:${quarterKey}`;
   const cached = getCachedSignedDownload(cacheKey);
   if (cached) {
     return { url: cached.url, filename: cached.filename, quarterKey };
@@ -376,14 +426,14 @@ export const getQuarterlyReportDownloadUrl = async (
     const authToken = await authTokenHandler.getAuthToken();
     const enc = encodeURIComponent(quarterKey);
     const response = await axios.get(
-      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${QUARTERLY_REPORT_DOWNLOAD_URL}/${enc}`,
+      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${QUARTERLY_REPORT_DOWNLOAD_URL}/${enc}${schoolIdQueryString(schoolId)}`,
       { headers: { Authorization: `Bearer ${authToken}` } }
     );
     const data = response.data as { url: string; filename: string; quarterKey: string };
     putCachedSignedDownload(cacheKey, { url: data.url, filename: data.filename });
     return data;
   } catch (error) {
-    console.error("[getQuarterlyReportDownloadUrl]", {quarterKey, error});
+    console.error("[getQuarterlyReportDownloadUrl]", {quarterKey, schoolId, error});
     throw new Error(PDF_DOWNLOAD_USER_MESSAGE);
   }
 };
@@ -429,17 +479,23 @@ export const downloadPdfFromUrl = async (url: string, downloadFilename: string):
   }
 };
 
-export const downloadQuarterlyReportPdf = async (quarterKey: string): Promise<void> => {
-  const { url, filename } = await getQuarterlyReportDownloadUrl(quarterKey);
+export const downloadQuarterlyReportPdf = async (
+  quarterKey: string,
+  schoolId: string
+): Promise<void> => {
+  const { url, filename } = await getQuarterlyReportDownloadUrl(quarterKey, schoolId);
   await downloadPdfFromUrl(url, filename || `${quarterKey}.pdf`);
 };
 
-export const getBillingInvoiceDownloadUrl = async (paymentId?: string): Promise<{
+export const getBillingInvoiceDownloadUrl = async (
+  schoolId: string,
+  paymentId?: string
+): Promise<{
   url: string;
   filename: string;
   invoice_number: string | null;
 }> => {
-  const cacheKey = `invoice:${paymentId ?? "latest"}`;
+  const cacheKey = `invoice:${schoolId}:${paymentId ?? "latest"}`;
   const cached = getCachedSignedDownload(cacheKey);
   if (cached) {
     return {
@@ -450,9 +506,12 @@ export const getBillingInvoiceDownloadUrl = async (paymentId?: string): Promise<
   }
   try {
     const authToken = await authTokenHandler.getAuthToken();
-    const paymentQuery = paymentId ? `?payment_id=${encodeURIComponent(paymentId)}` : "";
+    const params = new URLSearchParams();
+    appendSchoolIdQuery(params, schoolId);
+    if (paymentId) params.set("payment_id", paymentId);
+    const qs = params.toString();
     const response = await axios.get(
-      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${BILLING_INVOICE_DOWNLOAD_URL}${paymentQuery}`,
+      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${BILLING_INVOICE_DOWNLOAD_URL}${qs ? `?${qs}` : ""}`,
       { headers: { Authorization: `Bearer ${authToken}` } }
     );
     const data = response.data as { url: string; filename: string; invoice_number: string | null };
@@ -468,8 +527,11 @@ export const getBillingInvoiceDownloadUrl = async (paymentId?: string): Promise<
   }
 };
 
-export const downloadBillingInvoicePdf = async (paymentId?: string): Promise<void> => {
-  const { url, filename } = await getBillingInvoiceDownloadUrl(paymentId);
+export const downloadBillingInvoicePdf = async (
+  schoolId: string,
+  paymentId?: string
+): Promise<void> => {
+  const { url, filename } = await getBillingInvoiceDownloadUrl(schoolId, paymentId);
   await downloadPdfFromUrl(url, filename || "invoice.pdf");
 };
 
@@ -511,6 +573,7 @@ export const getSchoolStudentRoster = async (schoolId: string): Promise<StudentR
 
   for (let page = 0; page < SCHOOL_ROSTER_MAX_PAGES; page += 1) {
     const params = new URLSearchParams({limit: String(SCHOOL_ROSTER_PAGE_LIMIT)});
+    appendSchoolIdQuery(params, schoolId);
     if (cursor) params.set("cursor", cursor);
     const response = await axios.get(
       `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${SCHOOL_STUDENTS_ROSTER}?${params.toString()}`,
@@ -525,12 +588,15 @@ export const getSchoolStudentRoster = async (schoolId: string): Promise<StudentR
   return all;
 };
 
-export const getSchoolStudent = async (studentId: string): Promise<StudentRow> => {
+export const getSchoolStudent = async (
+  studentId: string,
+  schoolId: string
+): Promise<StudentRow> => {
   try {
     const authToken = await authTokenHandler.getAuthToken();
     const encodedStudentId = encodeURIComponent(String(studentId ?? "").trim());
     const response = await axios.get(
-      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}/students/${encodedStudentId}`,
+      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}/students/${encodedStudentId}${schoolIdQueryString(schoolId)}`,
       { headers: { Authorization: `Bearer ${authToken}` } }
     );
     return response.data as StudentRow;
