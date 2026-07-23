@@ -26,6 +26,7 @@ import {
 import {
   ArrowBack as BackIcon,
   DeleteOutline as DeleteIcon,
+  FileDownload as DownloadIcon,
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
@@ -34,6 +35,7 @@ import {
   formatDate,
   formatInrFromPaise,
   getPlatformAdminStudent,
+  getPlatformAdminStudentInvoiceDownloadUrl,
   type PlatformAdminStudentDetail,
 } from '../../db/platformAdminCollection';
 import {
@@ -90,6 +92,7 @@ const PlatformAdminStudentDetailPage: React.FC = () => {
   const [deleteAuth, setDeleteAuth] = useState(true);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [invoiceDownloadingKey, setInvoiceDownloadingKey] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!studentId) return;
@@ -174,6 +177,29 @@ const PlatformAdminStudentDetailPage: React.FC = () => {
       setDeleteError(msg);
     } finally {
       setDeleteSubmitting(false);
+    }
+  };
+
+  const handleDownloadInvoice = async (params: {
+    key: string;
+    payment_history_id?: string;
+  }) => {
+    if (!studentId) return;
+    setInvoiceDownloadingKey(params.key);
+    setError(null);
+    try {
+      const result = await getPlatformAdminStudentInvoiceDownloadUrl(studentId, {
+        payment_history_id: params.payment_history_id,
+      });
+      window.open(result.url, '_blank', 'noopener,noreferrer');
+    } catch (e: unknown) {
+      const msg =
+        typeof e === 'object' && e !== null && 'response' in e
+          ? (e as { response?: { data?: { error?: string } } }).response?.data?.error
+          : null;
+      setError(msg || 'Failed to download invoice.');
+    } finally {
+      setInvoiceDownloadingKey(null);
     }
   };
 
@@ -344,7 +370,38 @@ const PlatformAdminStudentDetailPage: React.FC = () => {
             <DetailRow label="Paid at" value={formatDate(student.paid_at)} />
             <DetailRow label="Razorpay payment ID" value={student.razorpay_payment_id || ' - '} />
             <DetailRow label="Razorpay order ID" value={student.razorpay_order_id || ' - '} />
-            <DetailRow label="Invoice" value={student.billing_invoice_number || ' - '} />
+            <DetailRow label="Invoice">
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontWeight: 600,
+                    textAlign: 'right',
+                    color: ip.heading,
+                    wordBreak: 'break-word',
+                  }}
+                >
+                  {student.billing_invoice_number || ' - '}
+                </Typography>
+                {student.billing_invoice_pdf_available ? (
+                  <Button
+                    size="small"
+                    startIcon={
+                      invoiceDownloadingKey === 'latest' ? (
+                        <CircularProgress size={14} color="inherit" />
+                      ) : (
+                        <DownloadIcon fontSize="small" />
+                      )
+                    }
+                    disabled={invoiceDownloadingKey === 'latest'}
+                    onClick={() => void handleDownloadInvoice({ key: 'latest' })}
+                    sx={{ textTransform: 'none', fontWeight: 600, color: ip.navy, minWidth: 0, px: 1 }}
+                  >
+                    Download
+                  </Button>
+                ) : null}
+              </Box>
+            </DetailRow>
           </CardContent>
         </Card>
       </Box>
@@ -369,6 +426,7 @@ const PlatformAdminStudentDetailPage: React.FC = () => {
                     <TableCell>Amount</TableCell>
                     <TableCell>Payment ID</TableCell>
                     <TableCell>Invoice</TableCell>
+                    <TableCell>PDF</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -390,7 +448,37 @@ const PlatformAdminStudentDetailPage: React.FC = () => {
                       <TableCell sx={{ fontFamily: 'ui-monospace, monospace', fontSize: '0.8rem' }}>
                         {row.payment_id || ' - '}
                       </TableCell>
-                      <TableCell>{row.invoice_number || ' - '}</TableCell>
+                      <TableCell sx={{ wordBreak: 'break-word', maxWidth: 200 }}>
+                        {row.invoice_number || ' - '}
+                      </TableCell>
+                      <TableCell>
+                        {row.has_invoice_pdf ? (
+                          <Button
+                            size="small"
+                            startIcon={
+                              invoiceDownloadingKey === row.id ? (
+                                <CircularProgress size={14} color="inherit" />
+                              ) : (
+                                <DownloadIcon fontSize="small" />
+                              )
+                            }
+                            disabled={invoiceDownloadingKey === row.id}
+                            onClick={() =>
+                              void handleDownloadInvoice({
+                                key: row.id,
+                                payment_history_id: row.id,
+                              })
+                            }
+                            sx={{ textTransform: 'none', fontWeight: 600, color: ip.navy, minWidth: 0, px: 1 }}
+                          >
+                            Download
+                          </Button>
+                        ) : (
+                          <Typography variant="body2" sx={{ color: ip.subtext }}>
+                            -
+                          </Typography>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

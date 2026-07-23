@@ -6,6 +6,7 @@ import {
   Typography,
   Button,
   Alert,
+  Tooltip,
 } from '@mui/material';
 import {
   People as PeopleIcon,
@@ -40,7 +41,15 @@ import {
 import { queryKeys } from '../../query/queryKeys';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import { useSchoolAdminBelowNav } from '../../layouts/schoolAdminBelowNavContext';
-import { summarizeSchoolTier123, summarizeNationalPerformanceTiers } from '../../utils/schoolAdminTierAnalytics';
+import {
+  summarizeSchoolTier123,
+  summarizeNationalPerformanceTiers,
+  summarizeProficiencyByExam,
+  computeAttemptRatePct,
+  assessmentDisplayName,
+  type ExamProficiencySummary,
+} from '../../utils/schoolAdminTierAnalytics';
+import { SCHOOL_SCORED_ASSESSMENT_IDS } from '../../utils/assessmentGating';
 import { normalizeTierSlugForDashboard, parseInstitutionalTierSlug } from '../../utils/achievementTier';
 import { displaySubscriptionPlan } from '../../utils/displaySubscriptionPlan';
 import { normalizeRosterEmail } from '../../utils/schoolAdminRosterUtils';
@@ -168,25 +177,35 @@ function countInitializedStudents(students: StudentRow[], registrationEmails: st
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface PerformanceMetrics {
   avgPercentile: number;
-  /** Students per 100 whose weakest active assessment is in proficiency band 3+ (Gold). */
-  goldPlusPct: number;
-  /** Students per 100 whose weakest active assessment is in proficiency band 1 (Bronze). */
-  inBronzePct: number;
-  completionRate: number;
+  /** Count of roster whose highest active proficiency is level 3. */
+  atLevel3Count: number;
+  /** Count of roster whose highest active proficiency is level 2 or 3 (cleared L1). */
+  clearedLevel1Count: number;
+  rosterTotal: number;
+  /** % of roster who started/completed at least one assessment. */
+  attemptRate: number;
   avgPercentileChange: number;
   goldPlusChange: number;
   inBronzeChange: number;
   completionChange: number;
 }
 
-function formatPer100(value: number): string {
-  return value > 0 ? `${value} of 100` : '-';
+/** Real headcount, e.g. "3 of 10" - not a fake "per 100" cohort. */
+function formatCountOf(part: number, total: number): string {
+  if (total <= 0) return '-';
+  return `${part} of ${total}`;
+}
+
+function formatPct(value: number): string {
+  if (!Number.isFinite(value) || value < 0) return '-';
+  return `${Math.round(value)}%`;
 }
 
 // ─── Stat Card ───────────────────────────────────────────────────────────────
 interface StatCardProps {
   label: string;
   value: string | number;
+  description?: string;
   change?: { value: number; label: string };
   accent?: string;
   icon?: React.ReactNode;
@@ -490,16 +509,19 @@ const InstitutionHeroStrip = React.memo(function InstitutionHeroStrip(props: {
   );
 });
 
-const StatCard: React.FC<StatCardProps> = ({ label, value, change, accent = ip.statBlue, icon }) => {
+const StatCard: React.FC<StatCardProps> = ({ label, value, description, change, accent = ip.statBlue, icon }) => {
   const empty = value === '-';
-  return (
-    <Card sx={{ bgcolor: ip.cardMutedBg, border: `1px solid ${ip.cardBorder}`, flex: 1, minWidth: 160, borderRadius: 2, boxShadow: 'none' }}>
+  const card = (
+    <Card sx={{ bgcolor: ip.cardMutedBg, border: `1px solid ${ip.cardBorder}`, flex: 1, minWidth: 160, borderRadius: 2, boxShadow: 'none', height: '100%' }}>
       <CardContent sx={{ p: '20px !important' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5 }}>
           {icon}
           <Typography variant="caption" sx={{ color: ip.subtext, textTransform: 'uppercase', letterSpacing: 0.8, fontSize: '0.65rem' }}>
             {label}
           </Typography>
+          {description ? (
+            <HelpOutlineIcon sx={{ fontSize: '0.85rem', color: ip.subtext, opacity: 0.75 }} />
+          ) : null}
         </Box>
         {empty ? (
           <Box sx={{ height: 10, width: '58%', bgcolor: alpha(accent, 0.35), borderRadius: 1, my: 1 }} />
@@ -520,6 +542,13 @@ const StatCard: React.FC<StatCardProps> = ({ label, value, change, accent = ip.s
         )}
       </CardContent>
     </Card>
+  );
+
+  if (!description) return card;
+  return (
+    <Tooltip title={description} arrow placement="top" enterDelay={200}>
+      <Box sx={{ flex: 1, minWidth: 160, display: 'flex' }}>{card}</Box>
+    </Tooltip>
   );
 };
 
@@ -544,10 +573,17 @@ const SchoolAdminDashboardPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   const [performance, setPerformance] = useState<PerformanceMetrics>({
-    avgPercentile: 0, goldPlusPct: 0, inBronzePct: 0, completionRate: 0,
-    avgPercentileChange: 0, goldPlusChange: 0, inBronzeChange: 0, completionChange: 0,
+    avgPercentile: 0,
+    atLevel3Count: 0,
+    clearedLevel1Count: 0,
+    rosterTotal: 0,
+    attemptRate: 0,
+    avgPercentileChange: 0,
+    goldPlusChange: 0,
+    inBronzeChange: 0,
+    completionChange: 0,
   });
-  const [proficiencyTier123, setProficiencyTier123] = useState({ tier1: 0, tier2: 0, tier3: 0, total: 0 });
+  const [proficiencyByExam, setProficiencyByExam] = useState<ExamProficiencySummary[]>([]);
   const [nationalPerfTiers, setNationalPerfTiers] = useState(() => summarizeNationalPerformanceTiers([]));
   const [totalAssessmentsCompleted, setTotalAssessmentsCompleted] = useState(0);
   const [institutionalRank, setInstitutionalRank] = useState<number | null>(null);
@@ -575,16 +611,16 @@ const SchoolAdminDashboardPage: React.FC = () => {
       setInitializedStudentCount(allStudents.length);
       setTotalAssessmentsCompleted(countAssessmentsCompleted(allStudents));
       const tier123 = summarizeSchoolTier123(allStudents);
-      setProficiencyTier123(tier123);
+      setProficiencyByExam(summarizeProficiencyByExam(allStudents, SCHOOL_SCORED_ASSESSMENT_IDS));
       setNationalPerfTiers(summarizeNationalPerformanceTiers(allStudents));
-      const total = allStudents.length || 1;
       setInstitutionalRank(GREENFIELD_ANALYTICS_SNAPSHOT.institutional_rank);
       setRankChangeQ1(GREENFIELD_ANALYTICS_SNAPSHOT.rank_change_q1);
       setPerformance({
         avgPercentile: GREENFIELD_ANALYTICS_SNAPSHOT.avg_percentile,
-        goldPlusPct: Math.round((tier123.tier3 / total) * 100),
-        inBronzePct: Math.round((tier123.tier1 / total) * 100),
-        completionRate: GREENFIELD_ANALYTICS_SNAPSHOT.completion_rate,
+        atLevel3Count: tier123.tier3,
+        clearedLevel1Count: tier123.tier2 + tier123.tier3,
+        rosterTotal: tier123.total,
+        attemptRate: computeAttemptRatePct(allStudents),
         avgPercentileChange: GREENFIELD_ANALYTICS_SNAPSHOT.perf_change_percentile,
         goldPlusChange: 0,
         inBronzeChange: 0,
@@ -687,10 +723,8 @@ const SchoolAdminDashboardPage: React.FC = () => {
         setInitializedStudentCount(countInitializedStudents(allStudents, registrationEmails));
 
         const tier123 = summarizeSchoolTier123(allStudents);
-        setProficiencyTier123(tier123);
+        setProficiencyByExam(summarizeProficiencyByExam(allStudents, SCHOOL_SCORED_ASSESSMENT_IDS));
         setNationalPerfTiers(summarizeNationalPerformanceTiers(allStudents));
-
-        const total = allStudents.length || 1;
 
         const rankParsed = parseOptionalInt(
           analyticsData.institutional_rank ?? analyticsData.school_rank ?? analyticsData.national_rank
@@ -701,9 +735,10 @@ const SchoolAdminDashboardPage: React.FC = () => {
 
         setPerformance({
           avgPercentile: analyticsData.avg_percentile ?? 0,
-          goldPlusPct: Math.round((tier123.tier3 / total) * 100),
-          inBronzePct: Math.round((tier123.tier1 / total) * 100),
-          completionRate: analyticsData.completion_rate ?? 0,
+          atLevel3Count: tier123.tier3,
+          clearedLevel1Count: tier123.tier2 + tier123.tier3,
+          rosterTotal: tier123.total,
+          attemptRate: computeAttemptRatePct(allStudents),
           avgPercentileChange: analyticsData.perf_change_percentile ?? 0,
           goldPlusChange: 0,
           inBronzeChange: 0,
@@ -1083,40 +1118,48 @@ const SchoolAdminDashboardPage: React.FC = () => {
             />
           </Box>
           <Typography variant="body2" sx={{ color: ip.subtext, mb: 1, lineHeight: 1.55 }}>
-            For proficiency, we only look at assessments students have <strong>started or completed</strong>. Their overall proficiency band is the{' '}
-            <strong>lowest</strong> level among those-so if they’re strong in one subject but still in Level 1 on another, they count in Level 1
-            (that’s the gap to close first).
+            Headline stats use each student’s <strong>highest</strong> proficiency level across assessments they have
+            started or completed. The bars below break levels out <strong>per exam</strong> for a fairer view. For
+            class-level detail, open Analytics.
           </Typography>
           <Typography variant="caption" sx={{ color: ip.subtext, mb: 2, display: 'block', lineHeight: 1.5 }}>
-            <strong>Proficiency ladder (not tier names):</strong> Level 1 / 2 / 3 correspond to foundational / intermediate / advanced difficulty on
-            each assessment. Everyone on your school roster is included.
+            <strong>Proficiency ladder:</strong> Level 1 / 2 / 3 = foundational / intermediate / advanced difficulty on
+            each assessment (not GYS Explorer→Diamond tiers).
           </Typography>
           <Box data-tutorial-id="school-dashboard-stats" sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
             <StatCard
               label="Avg. Percentile"
               value={performance.avgPercentile > 0 ? ordinal(performance.avgPercentile) : '-'}
+              description="School-wide average percentile from analytics. Higher means stronger relative standing."
               change={performance.avgPercentileChange !== 0 ? { value: performance.avgPercentileChange, label: 'pts from Q1' } : undefined}
               accent={ip.statBlue}
               icon={<MiniBarChartIcon sx={{ fontSize: '1.15rem', color: ip.statBlue }} />}
             />
             <StatCard
-              label="At proficiency Level 3+"
-              value={formatPer100(performance.goldPlusPct)}
-              change={performance.goldPlusChange !== 0 ? { value: performance.goldPlusChange, label: 'per 100 from Q1' } : undefined}
+              label="At proficiency Level 3"
+              value={formatCountOf(performance.atLevel3Count, performance.rosterTotal)}
+              description="Students whose highest proficiency on any started/completed assessment is Level 3."
+              change={performance.goldPlusChange !== 0 ? { value: performance.goldPlusChange, label: 'pts from Q1' } : undefined}
               accent="#d97706"
               icon={<StarsIcon sx={{ fontSize: '1.15rem', color: '#f59e0b' }} />}
             />
             <StatCard
-              label="At proficiency Level 1"
-              value={formatPer100(performance.inBronzePct)}
-              change={performance.inBronzeChange !== 0 ? { value: performance.inBronzeChange, label: 'per 100 from Q1' } : undefined}
+              label="Cleared Level 1"
+              value={formatCountOf(performance.clearedLevel1Count, performance.rosterTotal)}
+              description="Students whose highest proficiency is Level 2 or 3 - they have moved past Level 1 on at least one assessment."
+              change={
+                performance.inBronzeChange !== 0
+                  ? { value: -performance.inBronzeChange, label: 'pts from Q1' }
+                  : undefined
+              }
               accent="#b45309"
               icon={<PriorityHighIcon sx={{ fontSize: '1.15rem', color: '#b45309' }} />}
             />
             <StatCard
-              label="Completion Rate"
-              value={formatPer100(performance.completionRate)}
-              change={performance.completionChange !== 0 ? { value: performance.completionChange, label: 'per 100 from Q1' } : undefined}
+              label="Attempt rate"
+              value={formatPct(performance.attemptRate)}
+              description="Share of roster students who have started or completed at least one assessment."
+              change={performance.completionChange !== 0 ? { value: performance.completionChange, label: 'pts from Q1' } : undefined}
               accent="#16a34a"
               icon={<CheckCircleIcon sx={{ fontSize: '1.15rem', color: '#22c55e' }} />}
             />
@@ -1124,12 +1167,33 @@ const SchoolAdminDashboardPage: React.FC = () => {
 
           <Box>
             <Typography variant="body2" sx={{ color: ip.heading, fontWeight: 600, mb: 0.5 }}>
-              Student proficiency bands (levels 1–3)
+              Proficiency by exam (levels 1–3)
             </Typography>
-            <ProficiencyTier123Overview
-              summary={proficiencyTier123}
-              subtitle="Same rule as above: lowest proficiency among that student’s active assessments. Levels 1 / 2 / 3 refer to difficulty bands on each assessment (see legend labels)."
-            />
+            <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 2, lineHeight: 1.5 }}>
+              Each bar counts only students with activity on that exam. Open Analytics for the same breakdown by class.
+            </Typography>
+            {proficiencyByExam.length === 0 ? (
+              <Typography variant="body2" sx={{ color: ip.subtext }}>
+                No exam activity yet.
+              </Typography>
+            ) : (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+                {proficiencyByExam.map(exam => (
+                  <Box key={exam.examId}>
+                    <Typography variant="body2" sx={{ color: ip.heading, fontWeight: 600, mb: 0.75 }}>
+                      {assessmentDisplayName(exam.examId)}
+                      <Typography component="span" variant="caption" sx={{ color: ip.subtext, ml: 1, fontWeight: 500 }}>
+                        {exam.total} with activity
+                      </Typography>
+                    </Typography>
+                    <ProficiencyTier123Overview
+                      summary={exam}
+                      barHeight={22}
+                    />
+                  </Box>
+                ))}
+              </Box>
+            )}
           </Box>
         </CardContent>
       </Card>

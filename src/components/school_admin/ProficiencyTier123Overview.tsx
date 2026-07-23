@@ -4,7 +4,7 @@ import type { Tier123Counts } from '../../utils/schoolAdminTierAnalytics';
 import { PROF_TIER_COLORS } from '../../utils/schoolAdminTierAnalytics';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 
-const LABELS = ['Level 1 (Bronze)', 'Level 2 (Silver)', 'Level 3+ (Gold)'] as const;
+const LABELS = ['Level 1', 'Level 2', 'Level 3'] as const;
 
 function pct(part: number, total: number): number {
   if (total <= 0) return 0;
@@ -19,7 +19,8 @@ export interface ProficiencyTier123OverviewProps {
 }
 
 /**
- * Horizontal stacked bar + legend for all school students by overall proficiency band (1 / 2 / 3+).
+ * Horizontal stacked bar + legend for all school students by overall proficiency level (1 / 2 / 3).
+ * These are assessment difficulty bands - not GYS achievement tiers (Explorer→Diamond).
  */
 export const ProficiencyTier123Overview: React.FC<ProficiencyTier123OverviewProps> = React.memo(({
   summary,

@@ -78,7 +78,7 @@ const MEMBERSHIP_LEVEL_PRICE_LABEL: Record<1 | 2 | 3 | 4, string> = {
   4: '₹2,699',
 };
 
-/** Signup draft fields for a covered package (school or complimentary invite — no student package picker). */
+/** Signup draft fields for a covered package (school or complimentary invite - no student package picker). */
 export function schoolIncludedMembershipDraftFields(
   level: 1 | 2 | 3 | 4,
   options?: { source?: 'school' | 'complimentary' }

@@ -829,7 +829,7 @@ export const HowItWorksContent: React.FC = () => {
                 <MiniCard
                   icon={<RocketLaunchIcon fontSize="small" />}
                   title="How the exam adapts and scores you"
-                  body="You start with a medium-difficulty question. The exam then gets harder or easier based on how you are doing — get one right and the next is a little tougher; miss one and the next is a little easier. Your score looks at how many you got right and how hard those questions were. Harder questions count for more, so two students who get the same number right can still earn different scores."
+                  body="You start with a medium-difficulty question. The exam then gets harder or easier based on how you are doing - get one right and the next is a little tougher; miss one and the next is a little easier. Your score looks at how many you got right and how hard those questions were. Harder questions count for more, so two students who get the same number right can still earn different scores."
                   color="#06b6d4"
                 />
                 <MiniCard

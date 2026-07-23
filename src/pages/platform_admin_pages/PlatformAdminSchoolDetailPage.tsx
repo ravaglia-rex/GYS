@@ -394,7 +394,7 @@ function PlatformAdminSchoolDetailPage() {
         );
       } else if (result.already_configured) {
         setSuccessMessage(
-          `Added ${result.email} as school admin. They already have a password — sign in with the same account to access this school (use Switch school if they admin more than one).`
+          `Added ${result.email} as school admin. They already have a password - sign in with the same account to access this school (use Switch school if they admin more than one).`
         );
       } else {
         setSuccessMessage(
@@ -770,7 +770,7 @@ function PlatformAdminSchoolDetailPage() {
         <Alert severity="success" sx={{ mb: 2 }}>
           Payment is already captured{school.paid_at ? ` (${formatDate(school.paid_at)})` : ''}
           {paymentPayee
-            ? ` — paid to ${PLATFORM_ADMIN_PAYMENT_PAYEE_LABELS[paymentPayee]}`
+            ? ` - paid to ${PLATFORM_ADMIN_PAYMENT_PAYEE_LABELS[paymentPayee]}`
             : ''}
           .
         </Alert>
@@ -802,7 +802,7 @@ function PlatformAdminSchoolDetailPage() {
                 />
               ) : (
                 <Typography component="span" sx={{ color: ip.subtext, fontSize: '0.9rem' }}>
-                  —
+                  -
                 </Typography>
               )}
             </DetailRow>
@@ -983,7 +983,7 @@ function PlatformAdminSchoolDetailPage() {
                   </Box>
                   {registrant.designation ? ` (${registrant.designation})` : ''}.
                   {' '}Send or resend an account setup link to any school admin who has not
-                  finished setup — same password-setup link as when you add a new admin.
+                  finished setup - same password-setup link as when you add a new admin.
                 </>
               ) : (
                 'School admins on file and whether each person created a login. Send an account setup link to anyone who still needs to set up their account.'

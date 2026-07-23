@@ -100,9 +100,9 @@ export const RESET_PRACTICE_PROGRESS='/resetProgress';
 // Gamification (Argus Coins, QoD, rewards)
 export const GET_GAMIFICATION_QOD = '/qod';
 export const POST_GAMIFICATION_QOD_ANSWER = '/qod/answer';
-/** @deprecated Legacy route alias — kept for older deployed backends */
+/** @deprecated Legacy route alias - kept for older deployed backends */
 export const GET_GAMIFICATION_QOD_LEGACY = '/qotd';
-/** @deprecated Legacy route alias — kept for older deployed backends */
+/** @deprecated Legacy route alias - kept for older deployed backends */
 export const POST_GAMIFICATION_QOD_ANSWER_LEGACY = '/qotd/answer';
 export const POST_GAMIFICATION_RECORD_DAILY_LOGIN = '/recordDailyLogin';
 export const GET_GAMIFICATION_REWARDS = '/rewards';

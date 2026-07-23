@@ -187,7 +187,7 @@ const SchoolPaymentPage: React.FC = () => {
             </div>
             <h2 className="text-2xl font-bold text-slate-900">Complete payment</h2>
             <p className="mt-3 text-sm text-slate-600 leading-relaxed">
-              <span className="font-semibold">{schoolName}</span> —{' '}
+              <span className="font-semibold">{schoolName}</span> -{' '}
               <span className="font-semibold">{planName}</span> plan.
               {institutionalCheckoutSummary ? (
                 <>

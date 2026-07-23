@@ -48,16 +48,37 @@ import {
   summarizeNationalPerformanceTiers,
 } from '../../utils/schoolAdminTierAnalytics';
 import {
-  ASSESSMENT_ORDER,
   EXAM_MAX_SCORE_POINTS,
-  NON_COMPETITIVE_CHART_ASSESSMENT_IDS,
+  SCHOOL_SCORED_ASSESSMENT_IDS,
+  isSchoolScoredAssessment,
   tierPercentToExamPoints,
 } from '../../utils/assessmentGating';
 import { NationalPerformanceTierOverview } from '../../components/school_admin/NationalPerformanceTierOverview';
-import { FAKE_SCORE_DISTRIBUTION_BY_EXAM } from '../../data/schoolAdminScoreSubcategoryMock';
 import { buildGreenfieldPreviewStudentRows } from '../../data/schoolPreviewMock';
+import { REASONING_EXAM_SUBCATEGORIES } from '../../data/reasoningExamSubcategories';
 import PageTutorial from '../../components/tutorial/PageTutorial';
 import { SchoolAdminPageHeader, schoolAdminPageContainerSx } from './schoolAdminPageStyles';
+
+const SCORE_BAND_ORDER = ['900-1000', '800-899', '700-799', '600-699', '500-599', 'Below 500'] as const;
+
+const SCORE_BAND_COLORS: Record<(typeof SCORE_BAND_ORDER)[number], string> = {
+  '900-1000': '#10b981',
+  '800-899': '#3b82f6',
+  '700-799': '#f59e0b',
+  '600-699': '#ef4444',
+  '500-599': '#6b7280',
+  'Below 500': '#cbd5e1',
+};
+
+/** Sub-strand scaffold for Score Distribution until sectional scores ship. */
+const SCORE_DISTRIBUTION_SCAFFOLD = (
+  ['symbolic_reasoning', 'mathematical_reasoning', 'verbal_reasoning'] as const
+).map(examId => ({
+  examId,
+  subcategories: [...(REASONING_EXAM_SUBCATEGORIES[examId] ?? [])],
+}));
+
+const PERSONALITY_ASSESSMENT_ID = 'comprehensive_personality';
 
 /** App theme is dark; school admin analytics cards are light - Select needs explicit light-field styles. */
 const examTierSelectFormSx = {
@@ -93,14 +114,21 @@ function bestScorePoints(raw: number | null | undefined): number | null {
 }
 
 function scoredExamIdsForAvgChart(): string[] {
-  if (!Array.isArray(ASSESSMENT_ORDER)) return [];
-  const nonCompetitive = NON_COMPETITIVE_CHART_ASSESSMENT_IDS ?? new Set<string>();
-  return ASSESSMENT_ORDER.filter((id) => !nonCompetitive.has(id));
+  return [...SCHOOL_SCORED_ASSESSMENT_IDS];
 }
 
-/** One bar per scored assessment; `current` is 0 when no student has a best score yet. */
-function buildExamAverageChartRows(students: StudentRow[]): Array<{ category: string; current: number }> {
-  return scoredExamIdsForAvgChart().map((id) => {
+function isPersonalityCompleted(progress: StudentRow['assessment_progress'] | undefined): boolean {
+  const p = progress?.[PERSONALITY_ASSESSMENT_ID];
+  if (!p) return false;
+  const st = p.status ?? '';
+  return st === 'completed' || st === 'tier_advanced';
+}
+
+/** One bar per school-scored assessment; `current` is 0 when no student has a best score yet. */
+function buildExamAverageChartRows(
+  students: StudentRow[]
+): Array<{ category: string; current: number; remainder: number }> {
+  return scoredExamIdsForAvgChart().map(id => {
     const scores: number[] = [];
     for (const s of students) {
       const points = bestScorePoints(s.assessment_progress?.[id]?.best_score ?? undefined);
@@ -110,8 +138,23 @@ function buildExamAverageChartRows(students: StudentRow[]): Array<{ category: st
     const top = scores.slice(0, TOP_STUDENTS_PER_EXAM_FOR_AVG);
     const current =
       top.length > 0 ? Math.round(top.reduce((acc, v) => acc + v, 0) / top.length) : 0;
-    return { category: assessmentDisplayName(id), current };
+    return {
+      category: assessmentDisplayName(id),
+      current,
+      remainder: Math.max(0, EXAM_MAX_SCORE_POINTS - current),
+    };
   });
+}
+
+function buildPersonalityCompletionStats(students: StudentRow[]): {
+  completed: number;
+  total: number;
+} {
+  let completed = 0;
+  for (const s of students) {
+    if (isPersonalityCompleted(s.assessment_progress)) completed += 1;
+  }
+  return { completed, total: students.length };
 }
 
 interface AnalyticsData {
@@ -123,8 +166,9 @@ interface AnalyticsData {
   qualificationStats: {
     total: number;
   };
-  /** Mean best score points among top performers per exam; one row per scored assessment (0 if none). */
-  examAverages: Array<{ category: string; current: number }>;
+  /** Mean best score points among top performers per exam; one row per school-scored assessment (0 if none). */
+  examAverages: Array<{ category: string; current: number; remainder: number }>;
+  personalityCompletion: { completed: number; total: number };
 }
 
 const SchoolAdminAnalyticsPage: React.FC = () => {
@@ -139,7 +183,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
     [tierAnalyticsStudents]
   );
   const examIdsWithActivity = useMemo(
-    () => allExamsWithAnyActivity(tierAnalyticsStudents),
+    () => allExamsWithAnyActivity(tierAnalyticsStudents).filter(isSchoolScoredAssessment),
     [tierAnalyticsStudents]
   );
   const examGradeTierRows = useMemo(
@@ -204,6 +248,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
       gradeDistribution,
       qualificationStats: { total: totalStudents },
       examAverages: buildExamAverageChartRows(tierAnalyticsStudents),
+      personalityCompletion: buildPersonalityCompletionStats(tierAnalyticsStudents),
     };
   }, [tierAnalyticsStudents]);
 
@@ -221,16 +266,6 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
 
   const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
-  const getScoreColor = (range: string) => {
-    const score = parseInt(range.split('-')[0], 10);
-    if (!Number.isNaN(score) && score >= 900) return '#10b981';
-    if (!Number.isNaN(score) && score >= 800) return '#3b82f6';
-    if (!Number.isNaN(score) && score >= 700) return '#f59e0b';
-    if (!Number.isNaN(score) && score >= 600) return '#ef4444';
-    return '#6b7280';
-  };
-
-  const SCORE_BAND_ORDER = ['900-1000', '800-899', '700-799', '600-699', '500-599', 'Below 500'] as const;
   const hasAnyAnalyticsData = Boolean(
     analyticsData &&
       (analyticsData.qualificationStats.total > 0 ||
@@ -405,10 +440,13 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
               <Typography variant="h6" sx={{ fontWeight: 600, color: '#1E293B', mb: 0.5 }}>
                 Proficiency level analytics
               </Typography>
-             
+              <Typography variant="body2" sx={{ color: '#94a3b8', mb: 2, lineHeight: 1.55 }}>
+                Counts students at Level 1 / 2 / 3 on a single assessment, broken down by class. Each student is
+                counted once for the selected exam based on their proficiency on that exam only (not their weakest
+                across subjects). Overview uses the same per-exam view without the class split.
+              </Typography>
 
-           
-              <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#1E293B', mt: 3, mb: 1 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#1E293B', mt: 1, mb: 1 }}>
                 By exam × class × level
               </Typography>
               <FormControl data-tutorial-id="school-analytics-exam-select" size="small" sx={examTierSelectFormSx}>
@@ -461,7 +499,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                         <TableCell>Class</TableCell>
                         <TableCell align="right">Level 1</TableCell>
                         <TableCell align="right">Level 2</TableCell>
-                        <TableCell align="right">Level 3+</TableCell>
+                        <TableCell align="right">Level 3</TableCell>
                         <TableCell align="right">Total</TableCell>
                       </TableRow>
                     </TableHead>
@@ -504,7 +542,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
             </CardContent>
           </Card>
 
-          {/* Score Distribution */}
+          {/* Score Distribution - structure only until sectional scores exist */}
           <Card
             sx={{
               bgcolor: '#ffffff',
@@ -517,20 +555,30 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
               <Typography variant="h6" sx={{ fontWeight: 600, color: '#1E293B', mb: 0.5 }}>
                 Score Distribution
               </Typography>
-              <Typography variant="body2" sx={{ color: '#94a3b8', mb: 2 }}>
-                Sub-strand breakdowns use illustrative sample data until sectional scores are available.
+              <Typography variant="body2" sx={{ color: '#94a3b8', mb: 2, lineHeight: 1.55 }}>
+                Sub-strand score bands will appear here once sectional scores are available. Empty tracks show where
+                each reasoning strand will fill in.
               </Typography>
 
               <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#1E293B', mb: 0.5 }}>
-                By reasoning sub-strand (sample)
+                By reasoning sub-strand
               </Typography>
               <Typography variant="caption" sx={{ color: '#94a3b8', display: 'block', mb: 1.5 }}>
-                Stacked bars show sample student counts in each score band; mean is shown for context only.
+                No sectional scores yet - bars stay empty until real student data arrives.
               </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25, alignItems: 'center', mb: 2 }}>
-                {SCORE_BAND_ORDER.map((r) => (
+                {SCORE_BAND_ORDER.map(r => (
                   <Box key={r} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Box sx={{ width: 10, height: 10, borderRadius: 0.5, bgcolor: getScoreColor(r), flexShrink: 0 }} />
+                    <Box
+                      sx={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: 0.5,
+                        bgcolor: SCORE_BAND_COLORS[r],
+                        flexShrink: 0,
+                        opacity: 0.45,
+                      }}
+                    />
                     <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.7rem' }}>
                       {r}
                     </Typography>
@@ -538,50 +586,99 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                 ))}
               </Box>
 
-              {FAKE_SCORE_DISTRIBUTION_BY_EXAM.map((examBlock) => (
+              {SCORE_DISTRIBUTION_SCAFFOLD.map(examBlock => (
                 <Box key={examBlock.examId} sx={{ mb: 3, '&:last-of-type': { mb: 0 } }}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1e3a8a', mb: 1.5 }}>
                     {assessmentDisplayName(examBlock.examId)}
                   </Typography>
-                  {examBlock.subcategories.map((sub) => (
-                    <Box key={sub.name} sx={{ mb: 2 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 0.75, gap: 1 }}>
+                  {examBlock.subcategories.map(name => (
+                    <Box key={name} sx={{ mb: 2 }}>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'baseline',
+                          mb: 0.75,
+                          gap: 1,
+                        }}
+                      >
                         <Typography variant="body2" sx={{ color: '#1E293B', fontWeight: 500 }}>
-                          {sub.name}
+                          {name}
                         </Typography>
                         <Typography variant="caption" sx={{ color: '#94a3b8', flexShrink: 0 }}>
-                          Mean {tierPercentToExamPoints(sub.meanScore)} / {EXAM_MAX_SCORE_POINTS}
+                          Mean - / {EXAM_MAX_SCORE_POINTS}
                         </Typography>
                       </Box>
                       <Box
                         sx={{
-                          display: 'flex',
                           width: '100%',
                           height: 10,
                           borderRadius: 5,
-                          overflow: 'hidden',
-                          bgcolor: '#f1f5f9',
+                          bgcolor: '#e2e8f0',
+                          border: `1px dashed ${ip.cardBorder}`,
                         }}
-                      >
-                        {sub.bands.map((b) =>
-                          b.percentage > 0 ? (
-                            <Box
-                              key={b.range}
-                              title={`${b.range}: ${b.percentage} of 100 sample students`}
-                              sx={{
-                                width: `${b.percentage}%`,
-                                minWidth: b.percentage > 0 ? 2 : 0,
-                                bgcolor: getScoreColor(b.range),
-                                transition: 'width 0.35s ease-out',
-                              }}
-                            />
-                          ) : null
-                        )}
-                      </Box>
+                        title="Sectional scores not available yet"
+                      />
                     </Box>
                   ))}
                 </Box>
               ))}
+            </CardContent>
+          </Card>
+
+          <Card
+            sx={{
+              bgcolor: '#ffffff',
+              boxShadow: 'none',
+              border: `1px solid ${ip.cardBorder}`,
+              mb: 4,
+            }}
+          >
+            <CardContent>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: '#1E293B', mb: 0.5 }}>
+                Personality and Interest
+              </Typography>
+              <Typography variant="body2" sx={{ color: '#94a3b8', mb: 2, lineHeight: 1.55 }}>
+                Personality results stay private to the student. Schools only see how many learners have completed the
+                assessment.
+              </Typography>
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 3,
+                  alignItems: 'baseline',
+                  p: 2,
+                  borderRadius: 2,
+                  bgcolor: ip.cardMutedBg,
+                  border: `1px solid ${ip.cardBorder}`,
+                }}
+              >
+                <Box>
+                  <Typography variant="h4" sx={{ fontWeight: 700, color: ip.heading, lineHeight: 1.2 }}>
+                    {analyticsData.personalityCompletion.completed}
+                    <Typography
+                      component="span"
+                      variant="h6"
+                      sx={{ fontWeight: 500, color: ip.subtext, ml: 0.75 }}
+                    >
+                      / {analyticsData.personalityCompletion.total}
+                    </Typography>
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: ip.subtext, mt: 0.5 }}>
+                    students completed
+                  </Typography>
+                </Box>
+                <Typography variant="body2" sx={{ color: ip.subtext }}>
+                  {analyticsData.personalityCompletion.total > 0
+                    ? `${Math.round(
+                        (analyticsData.personalityCompletion.completed /
+                          analyticsData.personalityCompletion.total) *
+                          100
+                      )}% of roster`
+                    : 'No students on roster yet'}
+                </Typography>
+              </Box>
             </CardContent>
           </Card>
 
@@ -598,10 +695,11 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
               </Box>
               <Typography variant="body2" sx={{ color: '#94a3b8', mb: 3, lineHeight: 1.6 }}>
                 For each exam, we pool students across all classes, rank them by their personal best score on that exam,
-                take the top {TOP_STUDENTS_PER_EXAM_FOR_AVG} performers, and plot the average of those scores. Every
-                scored assessment is listed; bars are 0 when no student has a recorded best score yet. Personality
-                assessments are excluded. These per-exam averages feed your school&apos;s ranking. If fewer than{' '}
-                {TOP_STUDENTS_PER_EXAM_FOR_AVG} students have a score for an exam, we average everyone who has one.
+                take the top {TOP_STUDENTS_PER_EXAM_FOR_AVG} performers, and plot the average of those scores. Charts
+                cover Pattern and Logic, Verbal Reasoning, Mathematical Reasoning, and AI Proficiency (school-scored
+                tracks). Bars are 0 when no student has a recorded best
+                score yet. If fewer than {TOP_STUDENTS_PER_EXAM_FOR_AVG} students have a score for an exam, we average
+                everyone who has one.
               </Typography>
               <Box sx={{ maxWidth: 650, width: '100%', mx: 'auto' }}>
                 <ResponsiveContainer width="100%" height={360}>
@@ -618,24 +716,44 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                       angle={-18}
                       textAnchor="end"
                       height={88}
-                      tick={{ fontSize: 11 }}
+                      tick={{ fontSize: 11, fill: '#64748b' }}
                     />
-                    <YAxis stroke="#94a3b8" domain={[0, EXAM_MAX_SCORE_POINTS]} width={44} tick={{ fontSize: 11 }} />
+                    <YAxis
+                      stroke="#94a3b8"
+                      domain={[0, EXAM_MAX_SCORE_POINTS]}
+                      width={44}
+                      tick={{ fontSize: 11, fill: '#64748b' }}
+                    />
                     <Tooltip
                       contentStyle={{
                         backgroundColor: '#ffffff',
                         border: `1px solid ${ip.cardBorder}`,
                         color: '#1E293B',
                       }}
-                      formatter={(value: number) => [`${value} / ${EXAM_MAX_SCORE_POINTS}`, `Top ${TOP_STUDENTS_PER_EXAM_FOR_AVG} avg`]}
+                      formatter={(value: number) => [
+                        `${value} / ${EXAM_MAX_SCORE_POINTS}`,
+                        `Top ${TOP_STUDENTS_PER_EXAM_FOR_AVG} avg`,
+                      ]}
                     />
                     <Legend wrapperStyle={{ fontSize: '0.8rem', paddingTop: 8 }} />
                     <Bar
                       dataKey="current"
+                      stackId="avg"
                       fill="#3b82f6"
                       name={`Top ${TOP_STUDENTS_PER_EXAM_FOR_AVG} avg score`}
                       barSize={68}
+                      radius={[0, 0, 0, 0]}
+                    />
+                    <Bar
+                      dataKey="remainder"
+                      stackId="avg"
+                      fill="#e2e8f0"
+                      name="Remaining to max"
+                      barSize={68}
                       radius={[4, 4, 0, 0]}
+                      legendType="none"
+                      tooltipType="none"
+                      isAnimationActive={false}
                     />
                   </BarChart>
                 </ResponsiveContainer>

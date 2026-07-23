@@ -783,7 +783,7 @@ const LandingPage: React.FC = () => {
             <div className="rounded-2xl border border-gray-200 bg-white px-4 py-4 shadow-sm sm:px-5 sm:py-4 md:px-6 md:py-5">
               <div className="flex flex-col items-center gap-4 text-center md:grid md:grid-cols-[6.5rem_minmax(0,1fr)] md:items-center md:gap-4 md:text-left">
                 <img
-                  src="/EW%20logo.png"
+                  src="/ew-logo.png"
                   alt="EducationWorld"
                   className="h-24 w-auto max-w-[11rem] shrink-0 object-contain md:h-28 md:max-w-[8rem] md:-ml-5 md:justify-self-start"
                 />

@@ -211,6 +211,8 @@ export type PlatformAdminStudentRow = {
   /** True for email-bound complimentary invites that haven't registered an account yet. */
   is_invite?: boolean;
   invited_by?: string | null;
+  password_setup_complete?: boolean;
+  self_paid?: boolean;
 };
 
 export type PlatformAdminStudentPaymentHistoryItem = {
@@ -226,6 +228,7 @@ export type PlatformAdminStudentPaymentHistoryItem = {
   target_membership_level: number | null;
   payment_method: string;
   invoice_number: string | null;
+  has_invoice_pdf: boolean;
   description: string;
   error_code: string | null;
   error_description: string | null;
@@ -247,6 +250,7 @@ export type PlatformAdminStudentDetail = PlatformAdminStudentRow & {
   razorpay_amount_paise: number | null;
   paid_at: string | null;
   billing_invoice_number: string | null;
+  billing_invoice_pdf_available: boolean;
   password_setup_complete: boolean;
   self_paid: boolean;
   updated_at: string | null;
@@ -622,7 +626,7 @@ export type PlatformAdminDeleteSchoolContactResult = {
   auth_skipped: boolean;
 };
 
-/** Super admin only — strip admin from school records and delete Auth when safe. */
+/** Super admin only - strip admin from school records and delete Auth when safe. */
 export async function deletePlatformAdminSchoolContact(
   schoolId: string,
   email: string
@@ -720,7 +724,29 @@ export async function getPlatformAdminStudent(studentUid: string): Promise<Platf
   const student = res.data.student as PlatformAdminStudentDetail;
   return {
     ...student,
-    payment_history: Array.isArray(student.payment_history) ? student.payment_history : [],
+    billing_invoice_pdf_available: student.billing_invoice_pdf_available === true,
+    payment_history: Array.isArray(student.payment_history)
+      ? student.payment_history.map((row) => ({
+          ...row,
+          has_invoice_pdf: row.has_invoice_pdf === true,
+        }))
+      : [],
+  };
+}
+
+export async function getPlatformAdminStudentInvoiceDownloadUrl(
+  studentUid: string,
+  params?: { payment_history_id?: string }
+): Promise<{ url: string; filename: string; invoice_number: string | null }> {
+  const headers = await authHeaders();
+  const res = await axios.get(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_STUDENTS}/${encodeURIComponent(studentUid)}${PLATFORM_ADMIN_BILLING_INVOICE_DOWNLOAD_URL}`,
+    { headers, params }
+  );
+  return {
+    url: res.data.url,
+    filename: res.data.filename,
+    invoice_number: res.data.invoice_number ?? null,
   };
 }
 
@@ -745,6 +771,8 @@ export async function listPlatformAdminStudents(params?: {
   membership?: string;
   status?: 'approved' | 'pending' | 'all';
   roster?: 'yes' | 'no' | 'all';
+  setup?: 'complete' | 'incomplete' | 'all';
+  payment?: 'self_paid' | 'all';
   /** Required: `'all'` or one/more school document IDs. Omitting returns no students. */
   school_ids?: 'all' | string[];
   limit?: number;
@@ -765,6 +793,8 @@ export async function listPlatformAdminStudents(params?: {
       membership: params?.membership && params.membership !== 'all' ? params.membership : undefined,
       status: params?.status && params.status !== 'all' ? params.status : undefined,
       roster: params?.roster && params.roster !== 'all' ? params.roster : undefined,
+      setup: params?.setup && params.setup !== 'all' ? params.setup : undefined,
+      payment: params?.payment && params.payment !== 'all' ? params.payment : undefined,
       school_ids: schoolIdsParam,
     },
   });
@@ -888,7 +918,7 @@ export type PlatformAdminDirectoryRow = {
   password_setup_complete: boolean;
   /** Portal activity (API use while session open). Prefer this over last_login_at. */
   last_seen_at: string | null;
-  /** Firebase Auth lastSignInTime — only updates on actual sign-in. */
+  /** Firebase Auth lastSignInTime - only updates on actual sign-in. */
   last_login_at: string | null;
   last_invite_sent_at: string | null;
   last_invited_by: string | null;
@@ -980,9 +1010,9 @@ export function formatDate(iso: string | null | undefined): string {
 
 /** Date + time for activity timestamps (last active / last login). */
 export function formatDateTime(iso: string | null | undefined): string {
-  if (!iso) return '—';
+  if (!iso) return '-';
   const d = new Date(iso);
-  if (!Number.isFinite(d.getTime())) return '—';
+  if (!Number.isFinite(d.getTime())) return '-';
   return d.toLocaleString('en-IN', {
     year: 'numeric',
     month: 'short',

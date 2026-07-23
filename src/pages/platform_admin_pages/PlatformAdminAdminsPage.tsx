@@ -228,7 +228,7 @@ const PlatformAdminAdminsPage: React.FC = () => {
     <Box sx={platformAdminPageContainerSx}>
       <PlatformAdminPageHeader
         title="Admin Management"
-        subtitle="Add or remove platform admins — visible only to the head admin (srishti@argus.ai)"
+        subtitle="Add or remove platform admins - visible only to the head admin (srishti@argus.ai)"
         action={
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             <Button
@@ -309,9 +309,9 @@ const PlatformAdminAdminsPage: React.FC = () => {
                   const lastActive = admin.last_seen_at || admin.last_login_at;
                   return (
                     <TableRow key={admin.email}>
-                      <TableCell sx={{ fontWeight: 600 }}>{admin.name || '—'}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{admin.name || '-'}</TableCell>
                       <TableCell>{admin.email}</TableCell>
-                      <TableCell>{admin.position || '—'}</TableCell>
+                      <TableCell>{admin.position || '-'}</TableCell>
                       <TableCell>
                         <PlatformAdminChip
                           label={isSuper ? 'Head admin' : 'Member'}
@@ -359,7 +359,7 @@ const PlatformAdminAdminsPage: React.FC = () => {
                             <span>{formatDateTime(admin.last_invite_sent_at)}</span>
                           </Tooltip>
                         ) : (
-                          '—'
+                          '-'
                         )}
                       </TableCell>
                       <TableCell align="right" sx={{ width: 1, whiteSpace: 'nowrap', pr: 2, pl: 1 }}>

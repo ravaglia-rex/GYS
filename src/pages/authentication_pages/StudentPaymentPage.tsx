@@ -488,9 +488,9 @@ const StudentPaymentPage: React.FC = () => {
                     <p className="mt-1 text-sm font-semibold text-slate-900">{membershipName}</p>
                     <p className="text-xs text-slate-600">
                       {coveredBySchool
-                        ? 'Included by your school — you can upgrade later from your account'
+                        ? 'Included by your school - you can upgrade later from your account'
                         : coveredByComplimentary
-                          ? 'Included with your complimentary invite — you can upgrade later from your account'
+                          ? 'Included with your complimentary invite - you can upgrade later from your account'
                           : 'Payment required'}
                     </p>
                   </div>

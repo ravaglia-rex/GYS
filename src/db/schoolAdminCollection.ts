@@ -116,6 +116,16 @@ export interface StudentRow {
   achievement_tier: string;
   assessment_progress: Record<string, AssessmentProgress>;
   created_at: any;
+  /**
+   * Max membership tier included in the school's current plan (detail endpoint).
+   * entry→1, standard→2, premium→3.
+   */
+  school_covered_membership_level?: number;
+  /**
+   * True when the student self-paid for a package above the school's current covered tier.
+   * Detail endpoint only.
+   */
+  individual_add_on_purchased?: boolean;
 }
 
 export interface SchoolDashboardBilling {

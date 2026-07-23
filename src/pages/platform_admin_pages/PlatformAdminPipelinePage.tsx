@@ -61,7 +61,7 @@ const PlatformAdminPipelinePage: React.FC = () => {
     <Box sx={platformAdminPageContainerSx}>
       <PlatformAdminPageHeader
         title="Pipelines"
-        subtitle="Manual data pipeline controls — super admin only"
+        subtitle="Manual data pipeline controls - super admin only"
       />
 
       <Card sx={platformAdminCardSx}>
@@ -175,7 +175,7 @@ const PlatformAdminPipelinePage: React.FC = () => {
                 </>
               )}
               <Typography sx={{ color: ip.subtext, fontSize: '0.85rem', mt: 2 }}>
-                Estimated duration: {confirmPipeline.duration}. You can leave this page — the job continues on the server.
+                Estimated duration: {confirmPipeline.duration}. You can leave this page - the job continues on the server.
               </Typography>
             </>
           )}

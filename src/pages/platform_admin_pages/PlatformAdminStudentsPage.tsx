@@ -88,8 +88,11 @@ import { MEMBERSHIP_LEVEL_LABEL } from '../../utils/studentMembershipPricing';
 
 type StatusFilter = 'all' | 'approved' | 'pending';
 type RosterFilter = 'all' | 'yes' | 'no';
+type SetupFilter = 'all' | 'complete' | 'incomplete';
+type PaymentFilter = 'all' | 'self_paid';
 type GradeFilter = 'all' | '6' | '7' | '8' | '9' | '10' | '11' | '12';
 type MembershipFilter = 'all' | '1' | '2' | '3' | '3_plus';
+type StudentStatFilter = 'total' | 'on_roster' | 'active' | 'pending' | 'self_paid';
 
 const ALL_SCHOOLS_VALUE = '__all__';
 /** Must match the backend's NO_SCHOOL_FILTER_VALUE sentinel in platformAdminCollection/index.ts. */
@@ -107,6 +110,17 @@ const ROSTER_LABELS: Record<RosterFilter, string> = {
   all: 'All roster',
   yes: 'Has school',
   no: 'No school',
+};
+
+const SETUP_LABELS: Record<SetupFilter, string> = {
+  all: 'All setup',
+  complete: 'Password set',
+  incomplete: 'No password yet',
+};
+
+const PAYMENT_LABELS: Record<PaymentFilter, string> = {
+  all: 'All payments',
+  self_paid: 'Self-paid',
 };
 
 const GRADE_LABELS: Record<GradeFilter, string> = {
@@ -140,6 +154,24 @@ function parseInitialSchoolSelection(raw: string | null): {
 
 const PLATFORM_STUDENTS_VIRTUOSO_HEIGHT = 560;
 
+/** Fixed % widths so TableVirtuoso rows don't reflow columns as rows virtualize in/out. */
+const STUDENT_COL = {
+  name: { width: '15%', minWidth: 120 },
+  email: { width: '18%', minWidth: 160 },
+  school: { width: '18%', minWidth: 140 },
+  grade: { width: '7%', minWidth: 64 },
+  membership: { width: '10%', minWidth: 88 },
+  status: { width: '12%', minWidth: 110 },
+  joined: { width: '10%', minWidth: 96 },
+  actions: { width: '10%', minWidth: 100 },
+} as const;
+
+const studentColSx = (key: keyof typeof STUDENT_COL, extra?: Record<string, unknown>) => ({
+  ...STUDENT_COL[key],
+  boxSizing: 'border-box' as const,
+  ...extra,
+});
+
 const PlatformStudentsVirtuosoComponents = {
   Scroller: React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
     function PlatformStudentsScroller({ style, ...props }, ref) {
@@ -156,7 +188,17 @@ const PlatformStudentsVirtuosoComponents = {
     }
   ),
   Table: (props: React.ComponentProps<typeof Table>) => (
-    <Table {...props} size="medium" sx={{ ...platformAdminTableSx, borderCollapse: 'separate' }} />
+    <Table
+      {...props}
+      size="medium"
+      sx={{
+        ...platformAdminTableSx,
+        tableLayout: 'fixed',
+        width: '100%',
+        minWidth: 960,
+        borderCollapse: 'separate',
+      }}
+    />
   ),
   TableHead: React.forwardRef<HTMLTableSectionElement, React.ComponentProps<typeof TableHead>>(
     function PlatformStudentsTableHead(props, ref) {
@@ -179,6 +221,8 @@ const PlatformAdminStudentsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialStatus = (searchParams.get('status') as StatusFilter) || 'all';
   const initialRoster = (searchParams.get('roster') as RosterFilter) || 'all';
+  const initialSetup = (searchParams.get('setup') as SetupFilter) || 'all';
+  const initialPayment = (searchParams.get('payment') as PaymentFilter) || 'all';
   const initialGrade = (searchParams.get('grade') as GradeFilter) || 'all';
   const initialMembership = (searchParams.get('membership') as MembershipFilter) || 'all';
   const initialSchool = parseInitialSchoolSelection(searchParams.get('schools'));
@@ -199,6 +243,12 @@ const PlatformAdminStudentsPage: React.FC = () => {
   const [rosterFilter, setRosterFilter] = useState<RosterFilter>(
     ['all', 'yes', 'no'].includes(initialRoster) ? initialRoster : 'all'
   );
+  const [setupFilter, setSetupFilter] = useState<SetupFilter>(
+    ['all', 'complete', 'incomplete'].includes(initialSetup) ? initialSetup : 'all'
+  );
+  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>(
+    ['all', 'self_paid'].includes(initialPayment) ? initialPayment : 'all'
+  );
   const [gradeFilter, setGradeFilter] = useState<GradeFilter>(
     Object.keys(GRADE_LABELS).includes(initialGrade) ? initialGrade : 'all'
   );
@@ -215,7 +265,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
   const [revokeBusyEmail, setRevokeBusyEmail] = useState<string | null>(null);
 
   const schoolSelected = allSchoolsSelected || selectedSchoolIds.length > 0;
-  /** Unlinked students have no school_id — allow loading them without picking a school. */
+  /** Unlinked students have no school_id - allow loading them without picking a school. */
   const canLoadStudents = schoolSelected || rosterFilter === 'no';
 
   const schoolNameById = useMemo(() => {
@@ -239,6 +289,8 @@ const PlatformAdminStudentsPage: React.FC = () => {
   const hasSecondaryFilters =
     statusFilter !== 'all' ||
     rosterFilter !== 'all' ||
+    setupFilter !== 'all' ||
+    paymentFilter !== 'all' ||
     gradeFilter !== 'all' ||
     membershipFilter !== 'all' ||
     search.trim().length > 0;
@@ -247,6 +299,8 @@ const PlatformAdminStudentsPage: React.FC = () => {
     setSearch('');
     setStatusFilter('all');
     setRosterFilter('all');
+    setSetupFilter('all');
+    setPaymentFilter('all');
     setGradeFilter('all');
     setMembershipFilter('all');
   };
@@ -254,6 +308,80 @@ const PlatformAdminStudentsPage: React.FC = () => {
   const clearSchoolSelection = () => {
     setAllSchoolsSelected(false);
     setSelectedSchoolIds([]);
+  };
+
+  const activeStatFilter = useMemo((): StudentStatFilter | null => {
+    if (!allSchoolsSelected) return null;
+    if (statusFilter !== 'all' || gradeFilter !== 'all' || membershipFilter !== 'all' || search.trim()) {
+      return null;
+    }
+    if (paymentFilter === 'self_paid' && rosterFilter === 'all' && setupFilter === 'all') {
+      return 'self_paid';
+    }
+    if (rosterFilter === 'yes' && setupFilter === 'complete' && paymentFilter === 'all') {
+      return 'active';
+    }
+    if (rosterFilter === 'yes' && setupFilter === 'incomplete' && paymentFilter === 'all') {
+      return 'pending';
+    }
+    if (rosterFilter === 'yes' && setupFilter === 'all' && paymentFilter === 'all') {
+      return 'on_roster';
+    }
+    if (rosterFilter === 'all' && setupFilter === 'all' && paymentFilter === 'all') {
+      return 'total';
+    }
+    return null;
+  }, [
+    allSchoolsSelected,
+    statusFilter,
+    gradeFilter,
+    membershipFilter,
+    search,
+    paymentFilter,
+    rosterFilter,
+    setupFilter,
+  ]);
+
+  const applyStatFilter = (stat: StudentStatFilter) => {
+    if (activeStatFilter === stat) {
+      clearSecondaryFilters();
+      return;
+    }
+    setAllSchoolsSelected(true);
+    setSelectedSchoolIds([]);
+    setSearch('');
+    setStatusFilter('all');
+    setGradeFilter('all');
+    setMembershipFilter('all');
+    switch (stat) {
+      case 'total':
+        setRosterFilter('all');
+        setSetupFilter('all');
+        setPaymentFilter('all');
+        break;
+      case 'on_roster':
+        setRosterFilter('yes');
+        setSetupFilter('all');
+        setPaymentFilter('all');
+        break;
+      case 'active':
+        setRosterFilter('yes');
+        setSetupFilter('complete');
+        setPaymentFilter('all');
+        break;
+      case 'pending':
+        setRosterFilter('yes');
+        setSetupFilter('incomplete');
+        setPaymentFilter('all');
+        break;
+      case 'self_paid':
+        setRosterFilter('all');
+        setSetupFilter('all');
+        setPaymentFilter('self_paid');
+        break;
+      default:
+        break;
+    }
   };
 
   useEffect(() => {
@@ -354,6 +482,8 @@ const PlatformAdminStudentsPage: React.FC = () => {
     else if (selectedSchoolIds.length > 0) params.set('schools', selectedSchoolIds.join(','));
     if (statusFilter !== 'all') params.set('status', statusFilter);
     if (rosterFilter !== 'all') params.set('roster', rosterFilter);
+    if (setupFilter !== 'all') params.set('setup', setupFilter);
+    if (paymentFilter !== 'all') params.set('payment', paymentFilter);
     if (gradeFilter !== 'all') params.set('grade', gradeFilter);
     if (membershipFilter !== 'all') params.set('membership', membershipFilter);
     setSearchParams(params, { replace: true });
@@ -362,6 +492,8 @@ const PlatformAdminStudentsPage: React.FC = () => {
     selectedSchoolIds,
     statusFilter,
     rosterFilter,
+    setupFilter,
+    paymentFilter,
     gradeFilter,
     membershipFilter,
     setSearchParams,
@@ -378,13 +510,15 @@ const PlatformAdminStudentsPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      // "No school" students are never on a school list — always query across all schools.
+      // "No school" students are never on a school list - always query across all schools.
       const school_ids =
         rosterFilter === 'no' || allSchoolsSelected ? 'all' : selectedSchoolIds;
       const studentData = await listPlatformAdminStudents({
         search: search.trim() || undefined,
         status: statusFilter === 'all' ? undefined : statusFilter,
         roster: rosterFilter === 'all' ? undefined : rosterFilter,
+        setup: setupFilter === 'all' ? undefined : setupFilter,
+        payment: paymentFilter === 'all' ? undefined : paymentFilter,
         grade: gradeFilter === 'all' ? undefined : gradeFilter,
         membership: membershipFilter === 'all' ? undefined : membershipFilter,
         school_ids,
@@ -401,6 +535,8 @@ const PlatformAdminStudentsPage: React.FC = () => {
     search,
     statusFilter,
     rosterFilter,
+    setupFilter,
+    paymentFilter,
     gradeFilter,
     membershipFilter,
     allSchoolsSelected,
@@ -414,7 +550,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
 
   const handleRosterFilterChange = (value: RosterFilter) => {
     setRosterFilter(value);
-    // Unlinked students only appear under All schools — switch automatically.
+    // Unlinked students only appear under All schools - switch automatically.
     if (value === 'no') {
       setAllSchoolsSelected(true);
       setSelectedSchoolIds([]);
@@ -461,6 +597,16 @@ const PlatformAdminStudentsPage: React.FC = () => {
     if (rosterFilter !== 'all') {
       chips.push({ key: 'roster', label: ROSTER_LABELS[rosterFilter], onDelete: () => setRosterFilter('all') });
     }
+    if (setupFilter !== 'all') {
+      chips.push({ key: 'setup', label: SETUP_LABELS[setupFilter], onDelete: () => setSetupFilter('all') });
+    }
+    if (paymentFilter !== 'all') {
+      chips.push({
+        key: 'payment',
+        label: PAYMENT_LABELS[paymentFilter],
+        onDelete: () => setPaymentFilter('all'),
+      });
+    }
     if (gradeFilter !== 'all') {
       chips.push({ key: 'grade', label: GRADE_LABELS[gradeFilter], onDelete: () => setGradeFilter('all') });
     }
@@ -481,6 +627,8 @@ const PlatformAdminStudentsPage: React.FC = () => {
     schoolNameById,
     statusFilter,
     rosterFilter,
+    setupFilter,
+    paymentFilter,
     gradeFilter,
     membershipFilter,
     search,
@@ -536,38 +684,48 @@ const PlatformAdminStudentsPage: React.FC = () => {
       >
         <PlatformAdminStatCard
           title="Total accounts"
-          value={stats?.students_total ?? '—'}
-          subtitle="Every real student account"
+          value={stats?.students_total ?? '-'}
+          subtitle="All accounts"
           icon={<PeopleIcon sx={{ fontSize: 22 }} />}
           accent={ip.statBlue}
+          selected={activeStatFilter === 'total'}
+          onClick={() => applyStatFilter('total')}
         />
         <PlatformAdminStatCard
           title="On roster"
-          value={stats?.students_on_roster ?? '—'}
-          subtitle="Invited or registered"
+          value={stats?.students_on_roster ?? '-'}
+          subtitle="Linked to a school"
           icon={<OnRosterIcon sx={{ fontSize: 22 }} />}
           accent={ip.statBlue}
+          selected={activeStatFilter === 'on_roster'}
+          onClick={() => applyStatFilter('on_roster')}
         />
         <PlatformAdminStatCard
           title="Active"
-          value={stats?.students_active ?? '—'}
-          subtitle="On roster + password set"
+          value={stats?.students_active ?? '-'}
+          subtitle="Password set"
           icon={<ActiveIcon sx={{ fontSize: 22 }} />}
           accent={ip.approveGreen}
+          selected={activeStatFilter === 'active'}
+          onClick={() => applyStatFilter('active')}
         />
         <PlatformAdminStatCard
           title="Pending"
-          value={stats?.students_pending ?? '—'}
-          subtitle="Invited or no password yet"
+          value={stats?.students_pending ?? '-'}
+          subtitle="No password yet"
           icon={<PendingIcon sx={{ fontSize: 22 }} />}
           accent="#D97706"
+          selected={activeStatFilter === 'pending'}
+          onClick={() => applyStatFilter('pending')}
         />
         <PlatformAdminStatCard
           title="Self-paid"
-          value={stats?.students_self_paid ?? '—'}
-          subtitle="Bought or upgraded themselves"
+          value={stats?.students_self_paid ?? '-'}
+          subtitle="Paid themselves"
           icon={<SelfPaidIcon sx={{ fontSize: 22 }} />}
           accent={ip.navy}
+          selected={activeStatFilter === 'self_paid'}
+          onClick={() => applyStatFilter('self_paid')}
         />
       </Box>
 
@@ -607,7 +765,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
               renderValue={(selected) => {
                 if (allSchoolsSelected) return 'All schools';
                 if (selected.length === 0) {
-                  return schoolsLoading ? 'Loading schools…' : 'Select school(s) — required';
+                  return schoolsLoading ? 'Loading schools…' : 'Select school(s) - required';
                 }
                 if (selected.length === 1) {
                   const id = selected[0];
@@ -805,17 +963,24 @@ const PlatformAdminStudentsPage: React.FC = () => {
         >
           {students.length === 0 ? (
             <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
-              <Table size="medium" sx={platformAdminTableSx}>
+              <Table
+                size="medium"
+                sx={{ ...platformAdminTableSx, tableLayout: 'fixed', width: '100%', minWidth: 960 }}
+              >
                 <TableHead>
                   <TableRow sx={platformAdminTableHeadRowSx}>
-                    <TableCell>Name</TableCell>
-                    <TableCell>Email</TableCell>
-                    <TableCell>School</TableCell>
-                    <TableCell>Grade</TableCell>
-                    <TableCell>Membership</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Joined</TableCell>
-                    {isSuperAdmin && <TableCell align="right">Actions</TableCell>}
+                    <TableCell sx={studentColSx('name')}>Name</TableCell>
+                    <TableCell sx={studentColSx('email')}>Email</TableCell>
+                    <TableCell sx={studentColSx('school')}>School</TableCell>
+                    <TableCell sx={studentColSx('grade')}>Grade</TableCell>
+                    <TableCell sx={studentColSx('membership')}>Membership</TableCell>
+                    <TableCell sx={studentColSx('status')}>Status</TableCell>
+                    <TableCell sx={studentColSx('joined')}>Joined</TableCell>
+                    {isSuperAdmin && (
+                      <TableCell align="right" sx={studentColSx('actions')}>
+                        Actions
+                      </TableCell>
+                    )}
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -834,19 +999,23 @@ const PlatformAdminStudentsPage: React.FC = () => {
               components={PlatformStudentsVirtuosoComponents}
               fixedHeaderContent={() => (
                 <TableRow sx={platformAdminTableHeadRowSx}>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Email</TableCell>
-                  <TableCell>School</TableCell>
-                  <TableCell>Grade</TableCell>
-                  <TableCell>Membership</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Joined</TableCell>
-                  {isSuperAdmin && <TableCell align="right">Actions</TableCell>}
+                  <TableCell sx={studentColSx('name')}>Name</TableCell>
+                  <TableCell sx={studentColSx('email')}>Email</TableCell>
+                  <TableCell sx={studentColSx('school')}>School</TableCell>
+                  <TableCell sx={studentColSx('grade')}>Grade</TableCell>
+                  <TableCell sx={studentColSx('membership')}>Membership</TableCell>
+                  <TableCell sx={studentColSx('status')}>Status</TableCell>
+                  <TableCell sx={studentColSx('joined')}>Joined</TableCell>
+                  {isSuperAdmin && (
+                    <TableCell align="right" sx={studentColSx('actions')}>
+                      Actions
+                    </TableCell>
+                  )}
                 </TableRow>
               )}
               itemContent={(_index, student) => (
                 <>
-                  <TableCell sx={{ fontWeight: 600, color: ip.heading }}>
+                  <TableCell sx={studentColSx('name', { fontWeight: 600, color: ip.heading })}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
                       <Typography
                         component="span"
@@ -855,6 +1024,9 @@ const PlatformAdminStudentsPage: React.FC = () => {
                           color: student.is_invite ? ip.subtext : ip.heading,
                           fontStyle: student.is_invite ? 'italic' : 'normal',
                           minWidth: 0,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
                         }}
                       >
                         {student.is_invite
@@ -867,8 +1039,19 @@ const PlatformAdminStudentsPage: React.FC = () => {
                       )}
                     </Box>
                   </TableCell>
-                  <TableCell sx={{ color: ip.heading }}>{student.email || ' - '}</TableCell>
-                  <TableCell sx={{ maxWidth: 220 }}>
+                  <TableCell
+                    sx={studentColSx('email', {
+                      color: ip.heading,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    })}
+                  >
+                    <Tooltip title={student.email || ''} placement="top-start">
+                      <Box component="span">{student.email || ' - '}</Box>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell sx={studentColSx('school')}>
                     {student.school_name ? (
                       <>
                         <Tooltip title={student.school_name} placement="top-start">
@@ -880,45 +1063,65 @@ const PlatformAdminStudentsPage: React.FC = () => {
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               whiteSpace: 'nowrap',
-                              maxWidth: 200,
                             }}
                           >
                             {student.school_name}
                           </Typography>
                         </Tooltip>
-                        <Typography variant="caption" sx={{ color: ip.subtext, display: 'block' }}>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: ip.subtext,
+                            display: 'block',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
                           {student.school_id}
                         </Typography>
                       </>
                     ) : (
-                      <Typography variant="body2" sx={{ color: ip.subtext }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: ip.subtext,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
                         {student.school_id && student.school_id !== NOT_LISTED_SCHOOL_ID
                           ? student.school_id
                           : 'No specific school'}
                       </Typography>
                     )}
                   </TableCell>
-                  <TableCell sx={{ color: ip.heading, fontWeight: 600 }}>{student.grade ?? ' - '}</TableCell>
-                  <TableCell sx={{ color: ip.heading }}>
+                  <TableCell sx={studentColSx('grade', { color: ip.heading, fontWeight: 600 })}>
+                    {student.grade ?? ' - '}
+                  </TableCell>
+                  <TableCell sx={studentColSx('membership', { color: ip.heading, whiteSpace: 'nowrap' })}>
                     {student.membership_level != null ? `Level ${student.membership_level}` : ' - '}
                   </TableCell>
-                  <TableCell>
+                  <TableCell sx={studentColSx('status')}>
                     {student.is_invite ? (
                       <PlatformAdminChip label="Invited" tone="warning" />
                     ) : student.approval_status ? (
                       <PlatformAdminChip
                         label={student.approval_status}
-                        tone={student.approval_status.toLowerCase() === 'approved' ? 'success' : 'warning'}
+                        tone={
+                          student.approval_status.toLowerCase() === 'approved' ? 'success' : 'warning'
+                        }
                       />
                     ) : (
                       ' - '
                     )}
                   </TableCell>
-                  <TableCell sx={{ color: ip.subtext, whiteSpace: 'nowrap' }}>
+                  <TableCell sx={studentColSx('joined', { color: ip.subtext, whiteSpace: 'nowrap' })}>
                     {formatDate(student.created_at)}
                   </TableCell>
                   {isSuperAdmin && (
-                    <TableCell align="right">
+                    <TableCell align="right" sx={studentColSx('actions', { whiteSpace: 'nowrap' })}>
                       {student.is_invite ? (
                         <Button
                           size="small"

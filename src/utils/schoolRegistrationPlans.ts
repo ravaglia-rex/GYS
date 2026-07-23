@@ -154,6 +154,16 @@ export const INSTITUTIONAL_PLAN_STUDENT_CAP: Record<RegisterPlanId, number | nul
   premium: null,
 };
 
+/**
+ * Max consumer membership tier included with each institutional school package.
+ * Keep in sync with backend `INSTITUTIONAL_PLAN_ASSESSMENT_GATE_MIN_LEVEL`.
+ */
+export const INSTITUTIONAL_PLAN_COVERED_MEMBERSHIP_LEVEL: Record<RegisterPlanId, number> = {
+  entry: 1,
+  standard: 2,
+  premium: 3,
+};
+
 export function normalizeRegisterPlanId(raw: unknown): RegisterPlanId | null {
   if (typeof raw !== 'string') return null;
   const normalized = raw.trim().toLowerCase();

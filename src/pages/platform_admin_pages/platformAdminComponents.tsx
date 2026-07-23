@@ -116,6 +116,7 @@ export function PlatformAdminStatCard({
   icon,
   accent,
   onClick,
+  selected = false,
 }: {
   title: string;
   value: number | string;
@@ -123,6 +124,7 @@ export function PlatformAdminStatCard({
   icon: ReactNode;
   accent: string;
   onClick?: () => void;
+  selected?: boolean;
 }) {
   return (
     <Card
@@ -131,11 +133,26 @@ export function PlatformAdminStatCard({
         height: '100%',
         cursor: onClick ? 'pointer' : 'default',
         transition: 'box-shadow 0.2s, border-color 0.2s',
-        '&:hover': onClick ?
-          { boxShadow: '0 4px 12px rgba(15, 23, 42, 0.08)', borderColor: '#cbd5e1' } :
-          undefined,
+        borderColor: selected ? accent : ip.cardBorder,
+        boxShadow: selected ? `0 0 0 1px ${accent}` : undefined,
+        '&:hover': onClick
+          ? { boxShadow: '0 4px 12px rgba(15, 23, 42, 0.08)', borderColor: selected ? accent : '#cbd5e1' }
+          : undefined,
       }}
       onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
+      aria-pressed={onClick ? selected : undefined}
     >
       <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
         <Box

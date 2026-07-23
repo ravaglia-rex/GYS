@@ -93,7 +93,7 @@ const PlatformAdminSignInForm: React.FC<PlatformAdminSignInFormProps> = ({
           variant: 'destructive',
           title: 'No password set yet',
           description:
-            'This admin account does not have a personal password. Use “Send password setup link” — that is what emails you the create-password link.',
+            'This admin account does not have a personal password. Use “Send password setup link” - that is what emails you the create-password link.',
         });
         onNeedsPasswordSetup();
         setIsSubmitted(false);

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
   Card,
@@ -151,6 +151,154 @@ const rosterSelectMenuPaperSx = {
 
 const SCHOOL_ROSTER_VIRTUOSO_HEIGHT = 560;
 
+/** Fixed roster columns - widths must not flex with cell content. */
+const ROSTER_COL_WIDTHS = ['30%', '13%', '9%', '15%', '12%', '21%'] as const;
+
+const rosterTableLayoutSx = {
+  bgcolor: '#fff',
+  width: '100%',
+  minWidth: 880,
+  tableLayout: 'fixed' as const,
+  borderCollapse: 'separate' as const,
+  borderSpacing: 0,
+};
+
+const rosterTableSx = {
+  ...rosterTableLayoutSx,
+  border: `1px solid ${ip.cardBorder}`,
+  borderRadius: 1,
+};
+
+function RosterColGroup() {
+  return (
+    <colgroup>
+      {ROSTER_COL_WIDTHS.map((width, i) => (
+        <col key={i} style={{ width }} />
+      ))}
+    </colgroup>
+  );
+}
+
+/**
+ * macOS overlay scrollbars stay hidden until the user scrolls, and Virtuoso sets
+ * inline overflowY: auto which wins over sx. Hide the native bar and draw a
+ * permanent rail beside the bordered table instead.
+ */
+const rosterScrollerSx = {
+  boxShadow: 'none',
+  bgcolor: 'transparent',
+  color: ip.heading,
+  border: 'none',
+  borderRadius: 0,
+  maxWidth: '100%',
+  overflowX: 'auto',
+  scrollbarWidth: 'none',
+  msOverflowStyle: 'none',
+  '&::-webkit-scrollbar': {
+    display: 'none',
+    width: 0,
+    height: 0,
+  },
+} as const;
+
+function RosterScrollRail({
+  scrollerEl,
+  listHeight,
+}: {
+  scrollerEl: HTMLElement | null;
+  listHeight: number;
+}) {
+  const [metrics, setMetrics] = useState({ scrollTop: 0, scrollHeight: 1, clientHeight: 1 });
+  const draggingRef = useRef(false);
+
+  useEffect(() => {
+    if (!scrollerEl) return;
+
+    const update = () => {
+      setMetrics({
+        scrollTop: scrollerEl.scrollTop,
+        scrollHeight: scrollerEl.scrollHeight,
+        clientHeight: scrollerEl.clientHeight,
+      });
+    };
+
+    update();
+    scrollerEl.addEventListener('scroll', update, { passive: true });
+    const ro = new ResizeObserver(update);
+    ro.observe(scrollerEl);
+    if (scrollerEl.firstElementChild) {
+      ro.observe(scrollerEl.firstElementChild);
+    }
+    return () => {
+      scrollerEl.removeEventListener('scroll', update);
+      ro.disconnect();
+    };
+  }, [scrollerEl, listHeight]);
+
+  const { scrollTop, scrollHeight, clientHeight } = metrics;
+  const canScroll = scrollHeight > clientHeight + 1;
+  const thumbH = canScroll ? Math.max(36, (clientHeight / scrollHeight) * listHeight) : listHeight;
+  const maxThumbTop = Math.max(0, listHeight - thumbH);
+  const thumbTop =
+    !canScroll || scrollHeight <= clientHeight
+      ? 0
+      : (scrollTop / (scrollHeight - clientHeight)) * maxThumbTop;
+
+  const scrollFromClientY = (clientY: number, track: HTMLElement) => {
+    if (!scrollerEl || !canScroll) return;
+    const rect = track.getBoundingClientRect();
+    const y = clientY - rect.top - thumbH / 2;
+    const ratio = maxThumbTop <= 0 ? 0 : Math.min(1, Math.max(0, y / maxThumbTop));
+    scrollerEl.scrollTop = ratio * (scrollHeight - clientHeight);
+  };
+
+  return (
+    <Box
+      role="presentation"
+      aria-hidden
+      onPointerDown={e => {
+        if (!canScroll) return;
+        e.currentTarget.setPointerCapture(e.pointerId);
+        draggingRef.current = true;
+        scrollFromClientY(e.clientY, e.currentTarget);
+      }}
+      onPointerMove={e => {
+        if (!draggingRef.current) return;
+        scrollFromClientY(e.clientY, e.currentTarget);
+      }}
+      onPointerUp={e => {
+        draggingRef.current = false;
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        }
+      }}
+      sx={{
+        width: 14,
+        flexShrink: 0,
+        height: listHeight,
+        bgcolor: ip.cardMutedBg,
+        border: `1px solid ${ip.cardBorder}`,
+        borderRadius: 1,
+        position: 'relative',
+        cursor: canScroll ? 'pointer' : 'default',
+      }}
+    >
+      <Box
+        sx={{
+          position: 'absolute',
+          left: 2,
+          width: 8,
+          top: thumbTop,
+          height: thumbH,
+          bgcolor: canScroll ? 'rgba(16, 64, 139, 0.55)' : 'rgba(16, 64, 139, 0.22)',
+          borderRadius: 1,
+          pointerEvents: 'none',
+        }}
+      />
+    </Box>
+  );
+}
+
 const SchoolRosterVirtuosoComponents = {
   Scroller: React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(function SchoolRosterScroller(
     { style, ...props },
@@ -162,21 +310,20 @@ const SchoolRosterVirtuosoComponents = {
         elevation={0}
         {...props}
         ref={ref}
-        style={style}
-        sx={{
-          boxShadow: 'none',
-          bgcolor: '#fff',
-          color: ip.heading,
-          border: `1px solid ${ip.cardBorder}`,
-          borderRadius: 1,
-          overflowX: 'auto',
-          maxWidth: '100%',
+        style={{
+          ...style,
+          // Virtuoso sets overflowY: 'auto' inline; keep scrolling without a native overlay bar.
+          overflowY: 'scroll',
         }}
+        sx={rosterScrollerSx}
       />
     );
   }),
-  Table: (props: React.ComponentProps<typeof Table>) => (
-    <Table {...props} size="medium" sx={{ bgcolor: '#fff', minWidth: 640, borderCollapse: 'separate' }} />
+  Table: ({ children, ...props }: React.ComponentProps<typeof Table>) => (
+    <Table {...props} size="medium" sx={rosterTableSx}>
+      <RosterColGroup />
+      {children}
+    </Table>
   ),
   TableHead: React.forwardRef<HTMLTableSectionElement, React.ComponentProps<typeof TableHead>>(
     function SchoolRosterTableHead(props, ref) {
@@ -286,6 +433,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
   const [resendingEmail, setResendingEmail] = useState<string | null>(null);
   const [revokeConfirmEmail, setRevokeConfirmEmail] = useState<string | null>(null);
   const [resendConfirmEmail, setResendConfirmEmail] = useState<string | null>(null);
+  const [rosterScrollerEl, setRosterScrollerEl] = useState<HTMLElement | null>(null);
 
   const refreshRegistrationEmails = useCallback(async () => {
     const sid = schoolAdmin?.schoolId ? String(schoolAdmin.schoolId).trim() : '';
@@ -1115,7 +1263,8 @@ const SchoolAdminStudentsPage: React.FC = () => {
                     maxWidth: '100%',
                   }}
                 >
-                  <Table size="medium" sx={{ bgcolor: '#fff', minWidth: 640 }}>
+                  <Table size="medium" sx={rosterTableLayoutSx}>
+                    <RosterColGroup />
                     <TableHead data-tutorial-id="school-students-table">
                       <TableRow
                         sx={{
@@ -1145,11 +1294,16 @@ const SchoolAdminStudentsPage: React.FC = () => {
                   </Table>
                 </TableContainer>
               ) : (
-                <TableVirtuoso
-                  style={{ height: Math.min(SCHOOL_ROSTER_VIRTUOSO_HEIGHT, 72 + filteredSorted.length * 64) }}
-                  data={filteredSorted}
-                  components={SchoolRosterVirtuosoComponents}
-                  fixedHeaderContent={() => (
+                <Box sx={{ display: 'flex', alignItems: 'stretch', gap: 1.25 }}>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <TableVirtuoso
+                      style={{ height: Math.min(SCHOOL_ROSTER_VIRTUOSO_HEIGHT, 72 + filteredSorted.length * 64) }}
+                      data={filteredSorted}
+                      components={SchoolRosterVirtuosoComponents}
+                      scrollerRef={el => {
+                        setRosterScrollerEl(el instanceof HTMLElement ? el : null);
+                      }}
+                      fixedHeaderContent={() => (
                     <TableRow
                       sx={{
                         bgcolor: ip.cardMutedBg,
@@ -1176,13 +1330,32 @@ const SchoolAdminStudentsPage: React.FC = () => {
                             color: ip.heading,
                             borderBottom: `1px solid ${ip.cardBorder}`,
                             bgcolor: index % 2 === 1 ? ip.cardMutedBg : '#fff',
+                            overflow: 'hidden',
                           }}
                         >
-                          <Typography sx={{ fontWeight: 600, color: ip.heading }}>
+                          <Typography
+                            sx={{
+                              fontWeight: 600,
+                              color: ip.heading,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
                             {r.firstName} {r.lastName}
                           </Typography>
                           {r.email ? (
-                            <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mt: 0.25 }}>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                color: ip.subtext,
+                                display: 'block',
+                                mt: 0.25,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
                               {r.email}
                             </Typography>
                           ) : null}
@@ -1272,10 +1445,30 @@ const SchoolAdminStudentsPage: React.FC = () => {
                             color: ip.heading,
                             borderBottom: `1px solid ${ip.cardBorder}`,
                             bgcolor: index % 2 === 1 ? ip.cardMutedBg : '#fff',
+                            overflow: 'hidden',
                           }}
                         >
-                          <Typography sx={{ fontWeight: 600, color: ip.heading }}>{r.email}</Typography>
-                          <Typography variant="caption" sx={{ color: ip.subtext, display: 'block' }}>
+                          <Typography
+                            sx={{
+                              fontWeight: 600,
+                              color: ip.heading,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {r.email}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: ip.subtext,
+                              display: 'block',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
                             {r.status === 'revoked' ? 'Invitation revoked' : 'Invited - not registered yet'}
                           </Typography>
                         </TableCell>
@@ -1363,7 +1556,13 @@ const SchoolAdminStudentsPage: React.FC = () => {
                       </>
                     )
                   }
-                />
+                    />
+                  </Box>
+                  <RosterScrollRail
+                    scrollerEl={rosterScrollerEl}
+                    listHeight={Math.min(SCHOOL_ROSTER_VIRTUOSO_HEIGHT, 72 + filteredSorted.length * 64)}
+                  />
+                </Box>
               )}
             </CardContent>
           </Card>

@@ -50,7 +50,7 @@ const PlatformAdminPasswordSetup: React.FC<PlatformAdminPasswordSetupProps> = ({
       setLinkSent(true);
       toast({
         title: 'Setup link sent',
-        description: `Check inbox and spam for ${email}. The link is valid for about 1 hour — resend anytime if it expires.`,
+        description: `Check inbox and spam for ${email}. The link is valid for about 1 hour - resend anytime if it expires.`,
       });
     } catch (error: unknown) {
       const message = describeSendError(error);
@@ -97,7 +97,7 @@ const PlatformAdminPasswordSetup: React.FC<PlatformAdminPasswordSetupProps> = ({
           </p>
           <p className="mx-auto mb-4 max-w-md rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm leading-relaxed text-slate-700">
             The link is valid for about <strong>1 hour</strong>. You can generate a new one any number of
-            times with Resend below — there is no limit on how often you request it.
+            times with Resend below - there is no limit on how often you request it.
           </p>
           <p className="mx-auto max-w-md border-t border-slate-200 pt-6 text-sm leading-relaxed text-slate-600">
             Didn&apos;t get it? Check spam/junk. Firebase sends this from{' '}
@@ -135,7 +135,7 @@ const PlatformAdminPasswordSetup: React.FC<PlatformAdminPasswordSetupProps> = ({
         <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Create your admin account</h2>
         <p className="mt-3 text-sm text-slate-600">
           <span className="font-medium text-slate-800">{email}</span> is on the Argus admin list. Send yourself a
-          link to create a password — signing in with the shared env password will not work.
+          link to create a password - signing in with the shared env password will not work.
         </p>
       </div>
       {lastError && (

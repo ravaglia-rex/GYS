@@ -22,7 +22,7 @@ export const PIPELINE_DEFINITIONS: PipelineDefinition[] = [
       'Recalculates national performance tiers for all students (leaderboard rankings).',
       'Scans each student for newly eligible Discovery and Reasoning Triad reports.',
       'Generates missing PDF reports and stores them on the student record (S3 + Firestore).',
-      'Publishes in-app dashboard alerts (bell icon) for students — leaderboard and badge refresh. No email is sent.',
+      'Publishes in-app dashboard alerts (bell icon) for students - leaderboard and badge refresh. No email is sent.',
     ],
   },
   {
@@ -36,7 +36,7 @@ export const PIPELINE_DEFINITIONS: PipelineDefinition[] = [
       'Loads all students rostered to each school and recomputes avg percentile, completion rate, and assessed count.',
       'Updates `schools/{id}/analytics/current` and institutional tier fields on the school document.',
       'On Jan/Apr/Jul/Oct (IST): writes quarterly report metadata and uploads the institutional PDF to S3.',
-      'School POCs see new report alerts in the school admin portal — no email is sent by this pipeline.',
+      'School POCs see new report alerts in the school admin portal - no email is sent by this pipeline.',
     ],
     warning: 'Quarter-start months also regenerate quarterly PDFs for every school.',
   },
@@ -48,8 +48,8 @@ export const PIPELINE_DEFINITIONS: PipelineDefinition[] = [
     summary:
       'Same job that runs automatically on the 1st of each month (IST). Runs the student pipeline first, then the school pipeline so institutional analytics use fresh student tiers.',
     steps: [
-      'Stage 1 — Student pipeline (tiers + student PDF reports for all students).',
-      'Stage 2 — School pipeline (per-school analytics cache + quarterly PDFs when applicable).',
+      'Stage 1 - Student pipeline (tiers + student PDF reports for all students).',
+      'Stage 2 - School pipeline (per-school analytics cache + quarterly PDFs when applicable).',
     ],
     warning: 'This is the heaviest operation. Avoid running during peak exam hours.',
   },

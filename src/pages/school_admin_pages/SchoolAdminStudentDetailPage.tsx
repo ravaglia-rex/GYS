@@ -23,8 +23,21 @@ import { getSchoolStudent, type StudentRow, type AssessmentProgress } from '../.
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import { countAssessmentsFromProgress } from '../../utils/schoolAdminRosterUtils';
 import { buildGreenfieldPreviewStudentRows } from '../../data/schoolPreviewMock';
-import { ASSESSMENT_NAMES, ASSESSMENT_ORDER, EXAM_MAX_SCORE_POINTS, isLevelBasedAssessment, tierPercentToExamPoints } from '../../utils/assessmentGating';
+import {
+  ASSESSMENT_NAMES,
+  ASSESSMENT_ORDER,
+  EXAM_MAX_SCORE_POINTS,
+  MEMBERSHIP_ALLOWED,
+  isLevelBasedAssessment,
+  isSchoolCompletionOnlyAssessment,
+  normalizeMembershipLevel,
+  tierPercentToExamPoints,
+} from '../../utils/assessmentGating';
 import { formatAchievementTierLabel, normalizeAchievementTierId } from '../../utils/achievementTier';
+import {
+  INSTITUTIONAL_PLAN_COVERED_MEMBERSHIP_LEVEL,
+  type RegisterPlanId,
+} from '../../utils/schoolRegistrationPlans';
 import PageTutorial from '../../components/tutorial/PageTutorial';
 import {
   getSchoolStudentProctoringFlags,
@@ -40,6 +53,30 @@ const DEFAULT_LOCKED: AssessmentProgress = {
   attempts_count: 0,
   tiers_cleared: {},
 };
+
+/** Preview cohort is treated as a Standard school (covers levels 1–2). */
+const PREVIEW_SCHOOL_PLAN_ID: RegisterPlanId = 'standard';
+
+/**
+ * Individual add-on = student self-paid above what the school currently includes.
+ * Prefer the detail API flag; fall back to membership vs school-covered tier.
+ */
+function resolveIndividualAddOnPurchased(
+  row: StudentRow,
+  options?: { preview?: boolean }
+): boolean {
+  if (typeof row.individual_add_on_purchased === 'boolean') {
+    return row.individual_add_on_purchased;
+  }
+  const covered =
+    typeof row.school_covered_membership_level === 'number'
+      ? row.school_covered_membership_level
+      : options?.preview
+        ? INSTITUTIONAL_PLAN_COVERED_MEMBERSHIP_LEVEL[PREVIEW_SCHOOL_PLAN_ID]
+        : null;
+  if (covered == null) return false;
+  return (row.membership_level ?? 0) > covered;
+}
 
 const STATUS_LABEL: Record<string, string> = {
   locked: 'Locked',
@@ -229,9 +266,13 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
   }
 
   const progress = row.assessment_progress ?? {};
-  const assessmentRows = ASSESSMENT_ORDER.map((id) => [id, progress[id] ?? DEFAULT_LOCKED] as const);
+  const membershipLevel = normalizeMembershipLevel(row.membership_level);
+  const packageExamIds = new Set(MEMBERSHIP_ALLOWED[membershipLevel] ?? []);
+  const assessmentRows = ASSESSMENT_ORDER.map(id => [id, progress[id] ?? DEFAULT_LOCKED] as const);
   const completedSlots = countAssessmentsFromProgress(row.assessment_progress);
-  const individualAddOnPaid = (row.membership_level ?? 0) >= 3;
+  const individualAddOnPaid = resolveIndividualAddOnPurchased(row, {
+    preview: isSchoolAdminPreview,
+  });
   const approval = String(row.approval_status ?? '').toLowerCase();
   const approvalLabel =
     approval === 'declined'
@@ -416,8 +457,10 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
               Assessments &amp; scores
             </Typography>
             <Typography variant="body2" sx={{ color: ip.subtext, mb: 2, lineHeight: 1.6 }}>
-              Slots with a score or advanced status count as completed: <strong>{completedSlots}</strong>. Best score is
-              shown as points out of {EXAM_MAX_SCORE_POINTS} (same scale as the student dashboard).
+              All seven program exams are listed. Tracks outside this student&apos;s membership package show as{' '}
+              <strong>Locked</strong>. Personality and Interest (and Career Discovery) stay completion-only for
+              schools - results remain private. Slots with a score or advanced status count as completed:{' '}
+              <strong>{completedSlots}</strong>. Best score is points out of {EXAM_MAX_SCORE_POINTS} where shown.
             </Typography>
             <TableContainer
               component={Paper}
@@ -452,15 +495,50 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
                 </TableHead>
                 <TableBody>
                   {assessmentRows.map(([key, p]) => {
-                    const st = p.status ?? 'locked';
-                    const statusText =
-                      STATUS_LABEL[st] ??
-                      st.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                    const inPackage = packageExamIds.has(key);
+                    const st: string = p.status ?? 'locked';
+                    const completionOnly =
+                      isSchoolCompletionOnlyAssessment(key) || key === 'career_interest_inventory';
+                    const completed = st === 'completed' || st === 'tier_advanced';
+                    const hasAttempts = (p.attempts_count ?? 0) > 0 || completed || p.best_score != null;
+
+                    let statusText: string;
+                    let statusKey = st;
+                    if (!inPackage) {
+                      statusText = 'Locked';
+                      statusKey = 'locked';
+                    } else if (completionOnly) {
+                      statusText = completed
+                        ? 'Completed'
+                        : st === 'available'
+                          ? 'Available'
+                          : st === 'locked'
+                            ? 'Not started'
+                            : STATUS_LABEL[st] ??
+                              st.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
+                      if (completed) statusKey = 'completed';
+                    } else {
+                      statusText =
+                        STATUS_LABEL[st] ??
+                        st.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
+                    }
+
+                    const showLevel =
+                      inPackage &&
+                      !completionOnly &&
+                      isLevelBasedAssessment(key) &&
+                      p.proficiency_tier != null &&
+                      (hasAttempts || st === 'available' || st === 'tier_advanced' || st === 'completed');
+
                     return (
                       <TableRow key={key} hover sx={{ '&:nth-of-type(even)': { bgcolor: ip.cardMutedBg } }}>
                         <TableCell sx={{ color: ip.heading, fontWeight: 600 }}>{assessmentLabel(key)}</TableCell>
                         <TableCell sx={{ color: ip.heading }}>
-                          {isLevelBasedAssessment(key) && p.proficiency_tier != null ? `Level ${p.proficiency_tier}` : '-'}
+                          {!inPackage || completionOnly
+                            ? '-'
+                            : showLevel
+                              ? `Level ${p.proficiency_tier}`
+                              : '-'}
                         </TableCell>
                         <TableCell>
                           <Chip
@@ -468,17 +546,17 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
                             size="small"
                             variant="outlined"
                             sx={{
-                              ...statusChipSx(st),
+                              ...statusChipSx(statusKey),
                               cursor: 'default',
                               pointerEvents: 'none',
                             }}
                           />
                         </TableCell>
                         <TableCell sx={{ color: ip.heading, fontVariantNumeric: 'tabular-nums' }}>
-                          {formatBestScore(p.best_score)}
+                          {!inPackage ? '-' : completionOnly ? 'Private' : formatBestScore(p.best_score)}
                         </TableCell>
                         <TableCell sx={{ color: ip.heading, fontVariantNumeric: 'tabular-nums' }}>
-                          {p.attempts_count ?? 0}
+                          {!inPackage || completionOnly ? '-' : p.attempts_count ?? 0}
                         </TableCell>
                       </TableRow>
                     );

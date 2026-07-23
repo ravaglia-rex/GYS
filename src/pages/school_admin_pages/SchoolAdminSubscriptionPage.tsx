@@ -563,7 +563,7 @@ export function SchoolAdminSubscriptionPage() {
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'center', gap: { xs: 3, sm: 4 } }}>
           <Box
             component="img"
-            src="/EW%20logo.png"
+            src="/ew-logo.png"
             alt="EducationWorld"
             sx={{
               flexShrink: 0,

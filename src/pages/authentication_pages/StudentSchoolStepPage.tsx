@@ -296,7 +296,7 @@ const StudentSchoolStepPage: React.FC = () => {
           <form onSubmit={handleSubmit} className="mt-5 space-y-4 sm:space-y-5">
             {complimentaryCoveredLevel >= 1 && (
               <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-3 text-sm text-emerald-900">
-                Complimentary invite applied for this email —{' '}
+                Complimentary invite applied for this email -{' '}
                 {complimentaryCoveredLevel === 1
                   ? 'Discovery'
                   : complimentaryCoveredLevel === 2
@@ -339,7 +339,7 @@ const StudentSchoolStepPage: React.FC = () => {
                 globalyoungscholar@argus.ai before continuing. Otherwise, press Continue
                 {lockedSchool.paymentComplete &&
                 normalizeStudentMembershipLevel(lockedSchool.coveredMembershipLevel) >= 1
-                  ? ' — your school package will be assigned automatically (you can upgrade later from your account).'
+                  ? ' - your school package will be assigned automatically (you can upgrade later from your account).'
                   : ' to choose your membership.'}
               </p>
             )}

@@ -52,15 +52,29 @@ export function slotProficiencyTierBand(p: Progress): 1 | 2 | 3 {
 }
 
 /**
- * Overall student band: weakest active assessment (min band).
- * 0 = no unlocked / attempted assessments yet.
+ * Overall student proficiency: highest level among active assessment slots.
+ * 0 = no started / attempted assessments yet.
  */
 export function studentOverallProficiencyBand(student: StudentRow): 0 | 1 | 2 | 3 {
   const progress = student.assessment_progress ?? {};
   const entries = Object.values(progress).filter(isActiveAssessmentProgress);
   if (entries.length === 0) return 0;
   const bands = entries.map(slotProficiencyTierBand);
-  return Math.min(...bands) as 1 | 2 | 3;
+  return Math.max(...bands) as 1 | 2 | 3;
+}
+
+/** Alias - highest active proficiency level (1–3), or 0 if none. */
+export const studentHighestProficiencyBand = studentOverallProficiencyBand;
+
+export function studentHasAnyAssessmentAttempt(student: StudentRow): boolean {
+  return studentOverallProficiencyBand(student) > 0;
+}
+
+/** Share of roster who have started or completed at least one assessment. */
+export function computeAttemptRatePct(students: StudentRow[]): number {
+  if (students.length === 0) return 0;
+  const attempted = students.filter(studentHasAnyAssessmentAttempt).length;
+  return Math.round((attempted / students.length) * 100);
 }
 
 export interface Tier123Counts {
@@ -134,8 +148,8 @@ export function summarizeNationalPerformanceTiers(
 }
 
 /**
- * Counts students by overall proficiency band: min band across active assessment slots (see `studentOverallProficiencyBand`).
- * UI legend uses “Level 1 (Bronze)…” as shorthand-this is the per-assessment proficiency ladder only, not Explorer→Diamond GYS tiers.
+ * Counts students by highest proficiency level across active assessments.
+ * Students with no attempts are omitted from L1/L2/L3 counts; `total` is full roster size.
  */
 export function summarizeSchoolTier123(students: StudentRow[]): Tier123Counts {
   const list = students;
@@ -144,7 +158,8 @@ export function summarizeSchoolTier123(students: StudentRow[]): Tier123Counts {
   let tier3 = 0;
   for (const s of list) {
     const b = studentOverallProficiencyBand(s);
-    if (b <= 1) tier1 += 1;
+    if (b === 0) continue;
+    if (b === 1) tier1 += 1;
     else if (b === 2) tier2 += 1;
     else tier3 += 1;
   }
@@ -166,7 +181,8 @@ export function summarizeTier123ByGrade(students: StudentRow[]): GradeTier123Row
     const row = byGrade[g]!;
     row.total += 1;
     const b = studentOverallProficiencyBand(s);
-    if (b <= 1) row.tier1 += 1;
+    if (b === 0) continue;
+    if (b === 1) row.tier1 += 1;
     else if (b === 2) row.tier2 += 1;
     else row.tier3 += 1;
   }
@@ -178,6 +194,33 @@ export function summarizeTier123ByGrade(students: StudentRow[]): GradeTier123Row
       if (b.grade === 0) return -1;
       return a.grade - b.grade;
     });
+}
+
+export interface ExamProficiencySummary extends Tier123Counts {
+  examId: string;
+}
+
+/** Per exam: how many students with activity on that exam sit in Level 1 / 2 / 3. */
+export function summarizeProficiencyByExam(
+  students: StudentRow[],
+  examIds: readonly string[]
+): ExamProficiencySummary[] {
+  return examIds.map(examId => {
+    let tier1 = 0;
+    let tier2 = 0;
+    let tier3 = 0;
+    let total = 0;
+    for (const s of students) {
+      const p = s.assessment_progress?.[examId];
+      if (!isActiveAssessmentProgress(p)) continue;
+      total += 1;
+      const band = slotProficiencyTierBand(p);
+      if (band === 1) tier1 += 1;
+      else if (band === 2) tier2 += 1;
+      else tier3 += 1;
+    }
+    return { examId, tier1, tier2, tier3, total };
+  });
 }
 
 export interface ExamGradeTierRow {

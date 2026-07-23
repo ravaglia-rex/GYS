@@ -82,6 +82,38 @@ export const NON_COMPETITIVE_CHART_ASSESSMENT_IDS: ReadonlySet<string> = new Set
   'career_interest_inventory',
 ]);
 
+/**
+ * Assessments schools see with numeric scores.
+ * Matches institutional Premium / Stream Ready coverage: reasoning triad + AI.
+ * English and Career Discovery are individual (level 4) add-ons - not school score charts.
+ */
+export const SCHOOL_SCORED_ASSESSMENT_IDS = [
+  'symbolic_reasoning',
+  'verbal_reasoning',
+  'mathematical_reasoning',
+  'ai_literacy',
+] as const;
+
+/**
+ * Profile assessments schools may see completion for only (no scores, levels, or results).
+ */
+export const SCHOOL_COMPLETION_ONLY_ASSESSMENT_IDS = ['comprehensive_personality'] as const;
+
+export type SchoolScoredAssessmentId = (typeof SCHOOL_SCORED_ASSESSMENT_IDS)[number];
+export type SchoolCompletionOnlyAssessmentId = (typeof SCHOOL_COMPLETION_ONLY_ASSESSMENT_IDS)[number];
+
+export function isSchoolScoredAssessment(assessmentId: string): boolean {
+  return (SCHOOL_SCORED_ASSESSMENT_IDS as readonly string[]).includes(assessmentId);
+}
+
+export function isSchoolCompletionOnlyAssessment(assessmentId: string): boolean {
+  return (SCHOOL_COMPLETION_ONLY_ASSESSMENT_IDS as readonly string[]).includes(assessmentId);
+}
+
+/** School portal exam list: scored tracks + personality completion row. */
+export function schoolFacingAssessmentIds(): string[] {
+  return [...SCHOOL_SCORED_ASSESSMENT_IDS, ...SCHOOL_COMPLETION_ONLY_ASSESSMENT_IDS];
+}
 /** Exams 4 and 7 are profile/pathway instruments, not leveled skill assessments. */
 export const NON_LEVEL_ASSESSMENT_IDS: ReadonlySet<string> = new Set([
   'comprehensive_personality',
