@@ -14,9 +14,6 @@ import {
   PLATFORM_ADMIN_SCHOOLS,
   PLATFORM_ADMIN_STUDENTS,
   PLATFORM_ADMIN_STUDENTS_STATS,
-  PLATFORM_ADMIN_NOTIFICATIONS,
-  PLATFORM_ADMIN_NOTIFICATIONS_MARK_READ,
-  PLATFORM_ADMIN_NOTIFICATIONS_MARK_ALL_READ,
   PLATFORM_ADMIN_MARK_SCHOOL_PAID,
   PLATFORM_ADMIN_UPDATE_SCHOOL_BILLING,
   PLATFORM_ADMIN_DELETE_SCHOOL,
@@ -57,29 +54,7 @@ export type PlatformAdminOverviewStats = {
   schools_pending_wire_capture: number;
   students_total: number;
   pending_redemptions: number;
-  unread_notifications: number;
   total_revenue_paise: number;
-};
-
-export type PlatformAdminNotificationType =
-  | 'school_registered'
-  | 'school_students_added'
-  | 'student_joined';
-
-const HIDDEN_PLATFORM_ADMIN_NOTIFICATION_TYPES = new Set<PlatformAdminNotificationType>([
-  'student_joined',
-]);
-
-export type PlatformAdminNotification = {
-  id: string;
-  type: PlatformAdminNotificationType;
-  title: string;
-  message: string;
-  school_id: string | null;
-  school_name: string | null;
-  metadata: Record<string, unknown>;
-  read: boolean;
-  created_at: string | null;
 };
 
 /** Who received the school payment. Null when unpaid / not yet attributed. */
@@ -375,58 +350,7 @@ export async function verifyPlatformAdminPasswordSetup(email: string): Promise<v
 export async function getPlatformAdminOverview(): Promise<PlatformAdminOverviewStats> {
   const headers = await authHeaders();
   const res = await axios.get(`${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_OVERVIEW}`, { headers });
-  const stats = res.data.stats ?? {};
-  return {
-    ...stats,
-    unread_notifications: stats.unread_notifications ?? 0,
-  };
-}
-
-export async function listPlatformAdminNotifications(limit = 50): Promise<{
-  notifications: PlatformAdminNotification[];
-  unread_count: number;
-}> {
-  const headers = await authHeaders();
-  const res = await axios.get(`${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_NOTIFICATIONS}`, {
-    headers,
-    params: { limit },
-  });
-  const rawList = (res.data.notifications ?? []) as PlatformAdminNotification[];
-  const notifications = rawList.filter(
-    (n) => !HIDDEN_PLATFORM_ADMIN_NOTIFICATION_TYPES.has(n.type)
-  );
-  const apiUnread = typeof res.data.unread_count === 'number' ? res.data.unread_count : null;
-  const hiddenUnreadInPage = rawList.filter(
-    (n) => HIDDEN_PLATFORM_ADMIN_NOTIFICATION_TYPES.has(n.type) && !n.read
-  ).length;
-  const unread_count =
-    apiUnread === null
-      ? notifications.filter((n) => !n.read).length
-      : Math.max(0, apiUnread - hiddenUnreadInPage);
-
-  return {
-    notifications,
-    unread_count,
-  };
-}
-
-export async function markPlatformAdminNotificationsRead(ids: string[]): Promise<number> {
-  const headers = await authHeaders();
-  const res = await axios.post(
-    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_NOTIFICATIONS_MARK_READ}`,
-    { ids },
-    { headers }
-  );
-  return res.data.unread_count ?? 0;
-}
-
-export async function markAllPlatformAdminNotificationsRead(): Promise<void> {
-  const headers = await authHeaders();
-  await axios.post(
-    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_NOTIFICATIONS_MARK_ALL_READ}`,
-    {},
-    { headers }
-  );
+  return (res.data.stats ?? {}) as PlatformAdminOverviewStats;
 }
 
 export async function listPlatformAdminSchools(params?: {
@@ -652,7 +576,6 @@ export type PlatformAdminDeleteSchoolResult = {
   studentsUnlinked: number;
   adminAuthDeleted: number;
   adminAuthSkipped: number;
-  notificationsDeleted: number;
   allowlistEntriesDeleted: number;
   subcollectionsDeleted: Record<string, number>;
 };
@@ -676,7 +599,6 @@ export async function deletePlatformAdminSchool(
     studentsUnlinked: res.data.studentsUnlinked ?? 0,
     adminAuthDeleted: res.data.adminAuthDeleted ?? 0,
     adminAuthSkipped: res.data.adminAuthSkipped ?? 0,
-    notificationsDeleted: res.data.notificationsDeleted ?? 0,
     allowlistEntriesDeleted: res.data.allowlistEntriesDeleted ?? 0,
     subcollectionsDeleted: res.data.subcollectionsDeleted ?? {},
   };

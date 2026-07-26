@@ -847,13 +847,13 @@ export const HowItWorksContent: React.FC = () => {
               id="student-how-it-works-practice"
               icon={<QuizIcon />}
               title="Practice Exams"
-              subtitle="Practice helps you learn the format without changing your official score, badge, or leaderboard rank. Your practice exam level matches your real exam level."
+              subtitle="Practice helps you learn the format without changing your official score, badge, or leaderboard rank. All Reasoning practice exams and levels stay open anytime."
             >
               <Box sx={{ display: 'grid', gap: 1.5 }}>
                 <MiniCard
                   icon={<QuizIcon fontSize="small" />}
-                  title="Same level, no score pressure"
-                  body="Practice matches your real unlocked or current level and does not affect official results, percentiles, achievement tiers, or leaderboard rank."
+                  title="Open anytime, no score pressure"
+                  body="All three Reasoning practice exams (every difficulty level) are available whenever you want. Practice does not affect official results, percentiles, achievement tiers, or leaderboard rank."
                   color="#38bdf8"
                 />
                 <MiniCard

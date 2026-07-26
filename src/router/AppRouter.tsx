@@ -4,6 +4,7 @@ import Protected from '../components/route_protection/Protected';
 import SchoolAdminRoute from '../components/route_protection/SchoolAdminRoute';
 import PlatformAdminRoute from '../components/route_protection/PlatformAdminRoute';
 import PlatformAdminSuperRoute from '../components/route_protection/PlatformAdminSuperRoute';
+import PlatformAdminAnalyticsRoute from '../components/route_protection/PlatformAdminAnalyticsRoute';
 import NotFoundPage from '../pages/NotFoundPage';
 import BigSpinner from '../components/ui/BigSpinner';
 import StudentRegistrationFlowLayout from '../layouts/StudentRegistrationFlowLayout';
@@ -111,6 +112,7 @@ const PlatformAdminStudentsPage = React.lazy(() => import('../pages/platform_adm
 const PlatformAdminStudentDetailPage = React.lazy(() => import('../pages/platform_admin_pages/PlatformAdminStudentDetailPage'));
 const PlatformAdminPipelinePage = React.lazy(() => import('../pages/platform_admin_pages/PlatformAdminPipelinePage'));
 const PlatformAdminAdminsPage = React.lazy(() => import('../pages/platform_admin_pages/PlatformAdminAdminsPage'));
+const PlatformAdminAnalyticsPage = React.lazy(() => import('../pages/platform_admin_pages/PlatformAdminAnalyticsPage'));
 
 const AppRouter: React.FC = () => {
   return (
@@ -878,6 +880,19 @@ const AppRouter: React.FC = () => {
           errorElement={<NotFoundPage />}
         />
         <Route
+          path="/platform-admin/analytics"
+          element={
+            <PlatformAdminAnalyticsRoute>
+              <Suspense fallback={<BigSpinner />}>
+                <PlatformAdminLayout>
+                  <PlatformAdminAnalyticsPage />
+                </PlatformAdminLayout>
+              </Suspense>
+            </PlatformAdminAnalyticsRoute>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        <Route
           path="/platform-admin/students/:studentId"
           element={
             <PlatformAdminSuperRoute>
@@ -916,7 +931,7 @@ const AppRouter: React.FC = () => {
           }
           errorElement={<NotFoundPage />}
         />
-        <Route path="/platform-admin" element={<Navigate to="/platform-admin/dashboard" replace />} />
+        <Route path="/platform-admin" element={<Navigate to="/platform-admin/schools" replace />} />
         {/* ------------------------------ PLATFORM ADMIN ROUTES END ---------------------- */}
         
         {/* ------------------------------   ANY OTHER ROUTES HERE    ---------------------- */}

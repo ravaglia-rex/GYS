@@ -39,6 +39,7 @@ import {
 import { studentPageSubtitleSx, studentPageTitleSx } from '../../styles/studentTypography';
 import { readGamificationFromStudent, istDateStringClient } from '../../utils/gamification';
 import QodDashboardCard from '../gamification/QodDashboardCard';
+import CoinsLeaderboardWidget from './CoinsLeaderboardWidget';
 
 export type { AssessmentChartRow } from '../../utils/assessmentGating';
 
@@ -1071,6 +1072,8 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         alreadyAnswered={gamification.qod_last_answered_date === istDateStringClient()}
         preview={Boolean(previewProfile)}
       />
+
+      {!previewProfile && <CoinsLeaderboardWidget uid={uid} />}
 
       {/* Performance Overview and Notifications - Side by side */}
       <Box sx={{ 

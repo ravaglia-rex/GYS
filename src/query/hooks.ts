@@ -10,6 +10,7 @@ import { getSchoolDetails } from '../db/schoolCollection';
 import { getPayments } from '../db/studentPaymentMappings';
 import { fetchQod, fetchRewards } from '../db/gamificationCollection';
 import { getSchoolStudentRoster, getSchoolSummary } from '../db/schoolAdminCollection';
+import { getStudentCoinsLeaderboard } from '../db/studentLeaderboardCollection';
 import { queryKeys } from './queryKeys';
 
 const ASSESSMENT_CONFIG_STALE_MS = 15 * 60_000;
@@ -19,6 +20,8 @@ const PAYMENTS_STALE_MS = 5 * 60_000;
 const STUDENT_ASSESSMENTS_STALE_MS = 60_000;
 const SCHOOL_ADMIN_SUMMARY_STALE_MS = 60_000;
 const SCHOOL_ADMIN_ROSTER_STALE_MS = 60_000;
+/** Coins boards refresh once/day server-side — keep client cache warm for most of a day. */
+const COINS_LEADERBOARD_STALE_MS = 12 * 60 * 60_000;
 
 export function useStudent(uid: string | undefined, enabled = true) {
   return useQuery({
@@ -120,6 +123,19 @@ export function useSchoolAdminRoster(schoolId: string | undefined, enabled = tru
     queryFn: () => getSchoolStudentRoster(schoolId!),
     enabled: Boolean(schoolId) && enabled,
     staleTime: SCHOOL_ADMIN_ROSTER_STALE_MS,
+  });
+}
+
+/**
+ * Daily-cached Argus Coins top-10 boards (overall + school). Source data refreshes once/day
+ * server-side, so a long staleTime avoids repeat network calls within a session day.
+ */
+export function useCoinsLeaderboard(uid: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.coinsLeaderboard(uid ?? ''),
+    queryFn: getStudentCoinsLeaderboard,
+    enabled: Boolean(uid) && enabled,
+    staleTime: COINS_LEADERBOARD_STALE_MS,
   });
 }
 

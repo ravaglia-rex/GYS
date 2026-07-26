@@ -4,30 +4,20 @@ import {
   Card,
   CardContent,
   Typography,
-  Button,
   Alert,
   CircularProgress,
-  List,
-  Divider,
 } from '@mui/material';
 import {
   School as SchoolIcon,
   People as PeopleIcon,
   Payment as PaymentIcon,
   CardGiftcard as RewardsIcon,
-  Notifications as NotificationsIcon,
-  PersonAdd as PersonAddIcon,
-  GroupAdd as GroupAddIcon,
   CurrencyRupee as RupeeIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import {
   getPlatformAdminOverview,
-  listPlatformAdminNotifications,
-  markAllPlatformAdminNotificationsRead,
-  markPlatformAdminNotificationsRead,
   formatInrFromPaise,
-  type PlatformAdminNotification,
   type PlatformAdminOverviewStats,
 } from '../../db/platformAdminCollection';
 import {
@@ -36,61 +26,6 @@ import {
 } from './platformAdminPageStyles';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import { PlatformAdminPageHeader } from './platformAdminComponents';
-
-const MAX_RECENT_ALERTS = 6;
-/** Roughly three notification rows visible before scrolling. */
-const RECENT_ALERTS_SCROLL_HEIGHT = 420;
-
-function notificationTypeLabel(type: PlatformAdminNotification['type']): string {
-  switch (type) {
-    case 'school_registered':
-      return 'New school';
-    case 'school_students_added':
-      return 'Roster updated';
-    case 'student_joined':
-      return 'Student joined';
-    default:
-      return 'Alert';
-  }
-}
-
-function notificationTypeColor(type: PlatformAdminNotification['type']): string {
-  switch (type) {
-    case 'school_registered':
-      return ip.statBlue;
-    case 'school_students_added':
-      return '#d97706';
-    case 'student_joined':
-      return ip.approveGreen;
-    default:
-      return ip.subtext;
-  }
-}
-
-function notificationIcon(type: PlatformAdminNotification['type']) {
-  switch (type) {
-    case 'school_registered':
-      return <SchoolIcon sx={{ fontSize: 20 }} />;
-    case 'school_students_added':
-      return <GroupAddIcon sx={{ fontSize: 20 }} />;
-    case 'student_joined':
-      return <PersonAddIcon sx={{ fontSize: 20 }} />;
-    default:
-      return <NotificationsIcon sx={{ fontSize: 20 }} />;
-  }
-}
-
-function formatNotificationTime(iso: string | null): string {
-  if (!iso) return ' - ';
-  const d = new Date(iso);
-  if (!Number.isFinite(d.getTime())) return ' - ';
-  return d.toLocaleString('en-IN', {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-}
 
 function StatCard({
   title,
@@ -145,8 +80,6 @@ function StatCard({
 const PlatformAdminDashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState<PlatformAdminOverviewStats | null>(null);
-  const [notifications, setNotifications] = useState<PlatformAdminNotification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -154,38 +87,13 @@ const PlatformAdminDashboardPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const [overview, notificationData] = await Promise.all([
-        getPlatformAdminOverview(),
-        listPlatformAdminNotifications(MAX_RECENT_ALERTS),
-      ]);
-      setStats(overview);
-      setNotifications(notificationData.notifications);
-      setUnreadCount(notificationData.unread_count);
-      window.dispatchEvent(
-        new CustomEvent('platform-admin-notifications-updated', {
-          detail: { unread_count: notificationData.unread_count },
-        })
-      );
+      setStats(await getPlatformAdminOverview());
     } catch {
       setError('Failed to load overview stats.');
     } finally {
       setLoading(false);
     }
   }, []);
-
-  const handleMarkNotificationRead = async (id: string) => {
-    const remaining = await markPlatformAdminNotificationsRead([id]);
-    setUnreadCount(remaining);
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
-    window.dispatchEvent(new CustomEvent('platform-admin-notifications-updated', { detail: { unread_count: remaining } }));
-  };
-
-  const handleMarkAllNotificationsRead = async () => {
-    await markAllPlatformAdminNotificationsRead();
-    setUnreadCount(0);
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    window.dispatchEvent(new CustomEvent('platform-admin-notifications-updated', { detail: { unread_count: 0 } }));
-  };
 
   useEffect(() => {
     load();
@@ -203,7 +111,7 @@ const PlatformAdminDashboardPage: React.FC = () => {
     <Box sx={platformAdminPageContainerSx}>
       <PlatformAdminPageHeader
         title="Overview"
-        subtitle="Platform-wide stats and recent alerts"
+        subtitle="Platform-wide stats"
       />
 
       {error && (
@@ -259,7 +167,7 @@ const PlatformAdminDashboardPage: React.FC = () => {
           <StatCard
             title="Total schools"
             value={stats.schools_total}
-            subtitle={`${stats.schools_paid} paid · ${stats.schools_verified} verified`}
+            subtitle={`${stats.schools_paid} paid`}
             icon={<SchoolIcon />}
             accent={ip.statBlue}
             onClick={() => navigate('/platform-admin/schools')}
@@ -288,144 +196,6 @@ const PlatformAdminDashboardPage: React.FC = () => {
           />
         </Box>
       )}
-
-      <Card sx={{ ...platformAdminCardSx, mb: 3 }}>
-        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, gap: 2 }}>
-            <Box>
-              <Typography variant="h6" sx={{ fontWeight: 700, color: ip.heading }}>
-                Recent alerts
-              </Typography>
-              <Typography variant="body2" sx={{ color: ip.subtext }}>
-                New school signups and roster updates. Email copies go to platform admin addresses.
-              </Typography>
-            </Box>
-            {unreadCount > 0 && (
-              <Button
-                size="small"
-                onClick={handleMarkAllNotificationsRead}
-                sx={{ textTransform: 'none', color: ip.statBlue, flexShrink: 0 }}
-              >
-                Mark all read ({unreadCount})
-              </Button>
-            )}
-          </Box>
-
-          {notifications.length === 0 ? (
-            <Typography sx={{ color: ip.subtext, fontSize: '0.9rem' }}>No alerts yet.</Typography>
-          ) : (
-            <Box
-              sx={{
-                maxHeight: RECENT_ALERTS_SCROLL_HEIGHT,
-                overflowY: 'auto',
-                overflowX: 'hidden',
-                scrollbarWidth: 'thin',
-                scrollbarColor: '#cbd5e1 transparent',
-                '&::-webkit-scrollbar': { width: 6 },
-                '&::-webkit-scrollbar-thumb': { bgcolor: '#cbd5e1', borderRadius: 3 },
-              }}
-            >
-              <List disablePadding>
-              {notifications.map((notification, index) => {
-                const accent = notificationTypeColor(notification.type);
-                return (
-                  <React.Fragment key={notification.id}>
-                    {index > 0 && <Divider sx={{ my: 1 }} />}
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: 1.5,
-                        py: 1.25,
-                        px: 1.5,
-                        opacity: notification.read ? 0.72 : 1,
-                        bgcolor: notification.read ? 'transparent' : ip.pendingBg,
-                        borderRadius: 1.5,
-                      }}
-                    >
-                      <Box sx={{ color: accent, mt: 0.25, flexShrink: 0, display: 'flex' }}>
-                        {notificationIcon(notification.type)}
-                      </Box>
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'flex-start',
-                            justifyContent: 'space-between',
-                            gap: 1,
-                          }}
-                        >
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', minWidth: 0 }}>
-                            <Typography sx={{ fontWeight: notification.read ? 600 : 700, color: ip.heading }}>
-                              {notification.title}
-                            </Typography>
-                            <Typography
-                              component="span"
-                              sx={{
-                                fontSize: '0.72rem',
-                                fontWeight: 700,
-                                color: accent,
-                                bgcolor: `${accent}18`,
-                                px: 1,
-                                py: 0.25,
-                                borderRadius: 999,
-                                flexShrink: 0,
-                              }}
-                            >
-                              {notificationTypeLabel(notification.type)}
-                            </Typography>
-                          </Box>
-                          {!notification.read && (
-                            <Button
-                              size="small"
-                              onClick={() => handleMarkNotificationRead(notification.id)}
-                              sx={{
-                                textTransform: 'none',
-                                color: ip.subtext,
-                                minWidth: 0,
-                                flexShrink: 0,
-                                px: 1,
-                                whiteSpace: 'nowrap',
-                              }}
-                            >
-                              Mark read
-                            </Button>
-                          )}
-                        </Box>
-                        <Typography
-                          sx={{
-                            display: 'block',
-                            color: ip.subtext,
-                            fontSize: '0.88rem',
-                            mt: 0.5,
-                            lineHeight: 1.5,
-                            wordBreak: 'break-word',
-                          }}
-                        >
-                          {notification.message}
-                        </Typography>
-                        <Typography
-                          sx={{
-                            display: 'block',
-                            color: ip.subtext,
-                            fontSize: '0.78rem',
-                            mt: 0.75,
-                            wordBreak: 'break-word',
-                          }}
-                        >
-                          {formatNotificationTime(notification.created_at)}
-                          {notification.school_id ? ` · School ID ${notification.school_id}` : ''}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </React.Fragment>
-                );
-              })}
-              </List>
-            </Box>
-          )}
-        </CardContent>
-      </Card>
     </Box>
   );
 };

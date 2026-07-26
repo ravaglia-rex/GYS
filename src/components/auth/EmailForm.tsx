@@ -76,7 +76,7 @@ const EmailEntryForm: React.FC = () => {
         const isPlatformAdmin = await checkPlatformAdminAccess();
         if (cancelled) return;
         if (isPlatformAdmin) {
-          navigate('/platform-admin/dashboard', { replace: true });
+          navigate('/platform-admin/schools', { replace: true });
           return;
         }
         const schoolCheck = await checkSchoolEmail(user.email || '');

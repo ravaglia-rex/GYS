@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Box,
   Drawer,
@@ -9,7 +9,6 @@ import {
   Button,
   Avatar,
   Divider,
-  Badge,
   useTheme,
 } from '@mui/material';
 import {
@@ -20,6 +19,7 @@ import {
   Logout as LogoutIcon,
   Settings as PipelineIcon,
   AdminPanelSettings as AdminsIcon,
+  Insights as AnalyticsIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
@@ -28,7 +28,7 @@ import authTokenHandler from '../functions/auth_token/auth_token_handler';
 import { useSelector } from 'react-redux';
 import { RootState } from '../state_data/reducer';
 import { institutionalPalette as ip } from '../theme/institutionalPalette';
-import { listPlatformAdminNotifications } from '../db/platformAdminCollection';
+import { canAccessPlatformAdminAnalytics } from '../utils/platformAdminAnalyticsAccess';
 
 const HEADER_NAVY = '#002147';
 const DRAWER_WIDTH = 260;
@@ -56,9 +56,15 @@ function OverviewColoredIcon() {
   );
 }
 
+const ANALYTICS_NAV_ITEM = {
+  title: 'Analytics',
+  path: '/platform-admin/analytics',
+  icon: <AnalyticsIcon sx={{ color: '#2563eb', fontSize: SIDEBAR_ICON_SIZE }} />,
+};
+
 const BASE_NAV_ITEMS = [
-  { title: 'Overview', path: '/platform-admin/dashboard', icon: <OverviewColoredIcon /> },
   { title: 'Schools', path: '/platform-admin/schools', icon: <SchoolIcon sx={{ color: '#059669', fontSize: SIDEBAR_ICON_SIZE }} /> },
+  { title: 'Overview', path: '/platform-admin/dashboard', icon: <OverviewColoredIcon /> },
   { title: 'Students', path: '/platform-admin/students', icon: <PeopleIcon sx={{ color: '#64748b', fontSize: SIDEBAR_ICON_SIZE }} /> },
   { title: 'Rewards', path: '/platform-admin/rewards', icon: <RewardsIcon sx={{ color: '#b45309', fontSize: SIDEBAR_ICON_SIZE }} /> },
 ];
@@ -84,45 +90,21 @@ const PlatformAdminLayout: React.FC<PlatformAdminLayoutProps> = ({ children }) =
   const location = useLocation();
   const theme = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const userEmail = useSelector((state: RootState) => state.auth.user?.email) ?? auth.currentUser?.email ?? '';
   const platformAdminRole = useSelector((state: RootState) => state.auth.platformAdminRole);
 
-  const navItems = useMemo(
-    () =>
-      platformAdminRole === 'super'
-        ? [...BASE_NAV_ITEMS, PIPELINE_NAV_ITEM, ADMINS_NAV_ITEM]
-        : BASE_NAV_ITEMS,
-    [platformAdminRole]
-  );
-
-  useEffect(() => {
-    let cancelled = false;
-    const loadUnread = async () => {
-      try {
-        const data = await listPlatformAdminNotifications(1);
-        if (!cancelled) setUnreadNotifications(data.unread_count);
-      } catch {
-        if (!cancelled) setUnreadNotifications(0);
-      }
-    };
-    loadUnread();
-    const interval = window.setInterval(loadUnread, 60_000);
-    const onUpdated = (event: Event) => {
-      const detail = (event as CustomEvent<{ unread_count?: number }>).detail;
-      if (typeof detail?.unread_count === 'number') {
-        setUnreadNotifications(detail.unread_count);
-      } else {
-        loadUnread();
-      }
-    };
-    window.addEventListener('platform-admin-notifications-updated', onUpdated);
-    return () => {
-      cancelled = true;
-      window.clearInterval(interval);
-      window.removeEventListener('platform-admin-notifications-updated', onUpdated);
-    };
-  }, []); // mount-only: do not rebind poll on every route change within the admin shell
+  const navItems = useMemo(() => {
+    const base = canAccessPlatformAdminAnalytics(userEmail)
+      ? [
+          BASE_NAV_ITEMS[0],
+          BASE_NAV_ITEMS[1],
+          BASE_NAV_ITEMS[2],
+          ANALYTICS_NAV_ITEM,
+          BASE_NAV_ITEMS[3],
+        ]
+      : BASE_NAV_ITEMS;
+    return platformAdminRole === 'super' ? [...base, PIPELINE_NAV_ITEM, ADMINS_NAV_ITEM] : base;
+  }, [platformAdminRole, userEmail]);
 
   const avatarInitials = useMemo(() => {
     const raw = (userEmail || '?').trim();
@@ -175,13 +157,7 @@ const PlatformAdminLayout: React.FC<PlatformAdminLayoutProps> = ({ children }) =
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, flexShrink: 0 }}>
-            {item.path === '/platform-admin/dashboard' && unreadNotifications > 0 ? (
-              <Badge badgeContent={unreadNotifications} color="error" max={99}>
-                {item.icon}
-              </Badge>
-            ) : (
-              item.icon
-            )}
+            {item.icon}
           </Box>
           <Typography sx={{ fontWeight: active ? 600 : 500, fontSize: '0.9rem', color: active ? ip.sidebarActiveText : '#334155' }}>
             {item.title}

@@ -11,6 +11,11 @@ interface VerifyEmailProps {
   actionCode: string;
 }
 
+function isExpiredOrInvalidActionCode(error: unknown): boolean {
+  const code = (error as { code?: string } | null)?.code;
+  return code === "auth/expired-action-code" || code === "auth/invalid-action-code";
+}
+
 const VerifyEmail: React.FC<VerifyEmailProps> = ({ actionCode }) => {
   const navigate = useNavigate();
   const [isVerified, setIsVerified] = useState(false);
@@ -47,10 +52,13 @@ const VerifyEmail: React.FC<VerifyEmailProps> = ({ actionCode }) => {
         navigate("/", { replace: true });
       })
       .catch((error: any) => {
-        Sentry.withScope((scope) => {
-          scope.setTag("location", "VerifyEmail.applyActionCode");
-          Sentry.captureException(error);
-        });
+        // Expired/already-used links are expected user behavior, not app bugs.
+        if (!isExpiredOrInvalidActionCode(error)) {
+          Sentry.withScope((scope) => {
+            scope.setTag("location", "VerifyEmail.applyActionCode");
+            Sentry.captureException(error);
+          });
+        }
         toast({
           variant: "destructive",
           title: "Email verification error",

@@ -23,7 +23,7 @@ const PlatformAdminRoute: React.FC<PlatformAdminRouteProps> = ({ children }) => 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (!firebaseUser) {
-        navigate('/login?redirect=/platform-admin/dashboard');
+        navigate('/login?redirect=/platform-admin/schools');
         return;
       }
 

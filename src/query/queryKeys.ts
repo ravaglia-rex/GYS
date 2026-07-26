@@ -8,4 +8,5 @@ export const queryKeys = {
   rewards: () => ['rewards'] as const,
   schoolAdminSummary: (schoolId: string) => ['schoolAdminSummary', schoolId] as const,
   schoolAdminRoster: (schoolId: string) => ['schoolAdminRoster', schoolId] as const,
+  coinsLeaderboard: (uid: string) => ['coinsLeaderboard', uid] as const,
 };

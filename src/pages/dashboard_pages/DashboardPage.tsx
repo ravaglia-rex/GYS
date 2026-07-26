@@ -48,11 +48,18 @@ interface DashboardStats {
 
 const Dashboard: React.FC = () => {
   const [uid, setUid] = useState(() => auth.currentUser?.uid ?? '');
-  const { data: student, isLoading: studentLoading, isError: studentError } = useStudent(uid, Boolean(uid));
+  const {
+    data: student,
+    isLoading: studentLoading,
+    isError: studentIsError,
+    error: studentErrorObj,
+  } = useStudent(uid, Boolean(uid));
   const { data: configFromBackend = [], isLoading: configLoading } = useAssessmentConfig(Boolean(uid));
 
   const loading = studentLoading || configLoading;
-  const loadError = studentError ? 'Could not load your dashboard data. Please refresh or try again later.' : '';
+  const loadError = studentIsError
+    ? 'Could not load your dashboard data. Please refresh or try again later.'
+    : '';
 
   const dashboardDerived = useMemo(() => {
     if (loading || !student) {
@@ -157,14 +164,14 @@ const Dashboard: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (studentError) {
+    if (studentIsError && studentErrorObj) {
       Sentry.withScope((scope) => {
         scope.setTag('location', 'DashboardPage.load');
         scope.setExtra('uid', uid);
-        scope.captureException(studentError);
+        scope.captureException(studentErrorObj);
       });
     }
-  }, [studentError, uid]);
+  }, [studentIsError, studentErrorObj, uid]);
 
   return (
     <Sentry.ErrorBoundary beforeCapture={(s) => s.setTag('location', 'DashboardPage')}>

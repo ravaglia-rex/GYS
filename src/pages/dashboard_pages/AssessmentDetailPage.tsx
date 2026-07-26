@@ -74,16 +74,22 @@ const AssessmentDetailPage: React.FC = () => {
   const tier = parseInt(tierNumber ?? '1', 10);
   const levelBased = assessmentId ? isLevelBasedAssessment(assessmentId) : true;
 
-  const { data: student, isLoading: studentLoading, isError: studentError } = useStudent(
-    uid,
-    Boolean(uid && assessmentId)
-  );
-  const { data: assessmentTypes = [], isLoading: configLoading, isError: configError } =
-    useAssessmentConfig(Boolean(uid && assessmentId));
+  const {
+    data: student,
+    isLoading: studentLoading,
+    isError: studentIsError,
+    error: studentErrorObj,
+  } = useStudent(uid, Boolean(uid && assessmentId));
+  const {
+    data: assessmentTypes = [],
+    isLoading: configLoading,
+    isError: configIsError,
+    error: configErrorObj,
+  } = useAssessmentConfig(Boolean(uid && assessmentId));
 
   const loading = studentLoading || configLoading;
   const error =
-    studentError || configError ? 'Could not load assessment details.' : null;
+    studentIsError || configIsError ? 'Could not load assessment details.' : null;
 
   const membershipLevel = membershipLevelForAssessmentGate(student);
   const progressMap = (student?.assessment_progress ?? {}) as Record<
@@ -94,10 +100,11 @@ const AssessmentDetailPage: React.FC = () => {
     typeof student?.grade === 'number' && !Number.isNaN(student.grade) ? student.grade : 8;
 
   useEffect(() => {
-    if (studentError || configError) {
-      Sentry.captureException(studentError ?? configError);
+    const err = studentErrorObj ?? configErrorObj;
+    if ((studentIsError || configIsError) && err) {
+      Sentry.captureException(err);
     }
-  }, [studentError, configError]);
+  }, [studentIsError, configIsError, studentErrorObj, configErrorObj]);
 
   const assessment = useMemo(
     () => assessmentTypes.find((a) => a.id === assessmentId),

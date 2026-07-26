@@ -10,6 +10,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TableSortLabel,
   Paper,
   Button,
   Alert,
@@ -102,8 +103,8 @@ const NOT_LISTED_SCHOOL_ID = 'not-listed';
 
 const STATUS_LABELS: Record<StatusFilter, string> = {
   all: 'All statuses',
-  approved: 'Registration complete',
-  pending: 'Registration incomplete',
+  approved: 'Payment complete',
+  pending: 'Payment incomplete',
 };
 
 const ROSTER_LABELS: Record<RosterFilter, string> = {
@@ -156,15 +157,19 @@ const PLATFORM_STUDENTS_VIRTUOSO_HEIGHT = 560;
 
 /** Fixed % widths so TableVirtuoso rows don't reflow columns as rows virtualize in/out. */
 const STUDENT_COL = {
-  name: { width: '15%', minWidth: 120 },
-  email: { width: '18%', minWidth: 160 },
-  school: { width: '18%', minWidth: 140 },
-  grade: { width: '7%', minWidth: 64 },
-  membership: { width: '10%', minWidth: 88 },
-  status: { width: '12%', minWidth: 110 },
-  joined: { width: '10%', minWidth: 96 },
+  name: { width: '14%', minWidth: 110 },
+  email: { width: '16%', minWidth: 150 },
+  school: { width: '16%', minWidth: 130 },
+  grade: { width: '6%', minWidth: 56 },
+  membership: { width: '9%', minWidth: 80 },
+  coins: { width: '8%', minWidth: 72 },
+  status: { width: '11%', minWidth: 100 },
+  joined: { width: '10%', minWidth: 90 },
   actions: { width: '10%', minWidth: 100 },
 } as const;
+
+type StudentSortKey = 'coins' | 'joined' | 'name';
+type StudentSortDir = 'asc' | 'desc';
 
 const studentColSx = (key: keyof typeof STUDENT_COL, extra?: Record<string, unknown>) => ({
   ...STUDENT_COL[key],
@@ -237,6 +242,8 @@ const PlatformAdminStudentsPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [sortKey, setSortKey] = useState<StudentSortKey>('joined');
+  const [sortDir, setSortDir] = useState<StudentSortDir>('desc');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(
     ['all', 'approved', 'pending'].includes(initialStatus) ? initialStatus : 'all'
   );
@@ -634,7 +641,35 @@ const PlatformAdminStudentsPage: React.FC = () => {
     search,
   ]);
 
-  const tableColSpan = isSuperAdmin ? 8 : 7;
+  const tableColSpan = isSuperAdmin ? 9 : 8;
+
+  const sortedStudents = useMemo(() => {
+    const rows = [...students];
+    const dir = sortDir === 'asc' ? 1 : -1;
+    rows.sort((a, b) => {
+      if (sortKey === 'coins') {
+        return (a.argus_coins - b.argus_coins) * dir;
+      }
+      if (sortKey === 'name') {
+        const an = `${a.first_name} ${a.last_name}`.trim().toLowerCase();
+        const bn = `${b.first_name} ${b.last_name}`.trim().toLowerCase();
+        return an.localeCompare(bn) * dir;
+      }
+      const aJoined = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const bJoined = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return (aJoined - bJoined) * dir;
+    });
+    return rows;
+  }, [students, sortKey, sortDir]);
+
+  const toggleSort = (key: StudentSortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    setSortKey(key);
+    setSortDir(key === 'name' ? 'asc' : 'desc');
+  };
 
   return (
     <Box sx={platformAdminPageContainerSx}>
@@ -959,9 +994,9 @@ const PlatformAdminStudentsPage: React.FC = () => {
         </Box>
       ) : (
         <PlatformAdminTableSection
-          countLabel={`Showing ${students.length} student${students.length === 1 ? '' : 's'}`}
+          countLabel={`Showing ${sortedStudents.length} student${sortedStudents.length === 1 ? '' : 's'}`}
         >
-          {students.length === 0 ? (
+          {sortedStudents.length === 0 ? (
             <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
               <Table
                 size="medium"
@@ -969,13 +1004,38 @@ const PlatformAdminStudentsPage: React.FC = () => {
               >
                 <TableHead>
                   <TableRow sx={platformAdminTableHeadRowSx}>
-                    <TableCell sx={studentColSx('name')}>Name</TableCell>
+                    <TableCell sx={studentColSx('name')}>
+                      <TableSortLabel
+                        active={sortKey === 'name'}
+                        direction={sortKey === 'name' ? sortDir : 'asc'}
+                        onClick={() => toggleSort('name')}
+                      >
+                        Name
+                      </TableSortLabel>
+                    </TableCell>
                     <TableCell sx={studentColSx('email')}>Email</TableCell>
                     <TableCell sx={studentColSx('school')}>School</TableCell>
                     <TableCell sx={studentColSx('grade')}>Grade</TableCell>
                     <TableCell sx={studentColSx('membership')}>Membership</TableCell>
+                    <TableCell sx={studentColSx('coins')} align="right">
+                      <TableSortLabel
+                        active={sortKey === 'coins'}
+                        direction={sortKey === 'coins' ? sortDir : 'desc'}
+                        onClick={() => toggleSort('coins')}
+                      >
+                        Coins
+                      </TableSortLabel>
+                    </TableCell>
                     <TableCell sx={studentColSx('status')}>Status</TableCell>
-                    <TableCell sx={studentColSx('joined')}>Joined</TableCell>
+                    <TableCell sx={studentColSx('joined')}>
+                      <TableSortLabel
+                        active={sortKey === 'joined'}
+                        direction={sortKey === 'joined' ? sortDir : 'desc'}
+                        onClick={() => toggleSort('joined')}
+                      >
+                        Joined
+                      </TableSortLabel>
+                    </TableCell>
                     {isSuperAdmin && (
                       <TableCell align="right" sx={studentColSx('actions')}>
                         Actions
@@ -994,18 +1054,43 @@ const PlatformAdminStudentsPage: React.FC = () => {
             </TableContainer>
           ) : (
             <TableVirtuoso
-              style={{ height: Math.min(PLATFORM_STUDENTS_VIRTUOSO_HEIGHT, 72 + students.length * 56) }}
-              data={students}
+              style={{ height: Math.min(PLATFORM_STUDENTS_VIRTUOSO_HEIGHT, 72 + sortedStudents.length * 56) }}
+              data={sortedStudents}
               components={PlatformStudentsVirtuosoComponents}
               fixedHeaderContent={() => (
                 <TableRow sx={platformAdminTableHeadRowSx}>
-                  <TableCell sx={studentColSx('name')}>Name</TableCell>
+                  <TableCell sx={studentColSx('name')}>
+                    <TableSortLabel
+                      active={sortKey === 'name'}
+                      direction={sortKey === 'name' ? sortDir : 'asc'}
+                      onClick={() => toggleSort('name')}
+                    >
+                      Name
+                    </TableSortLabel>
+                  </TableCell>
                   <TableCell sx={studentColSx('email')}>Email</TableCell>
                   <TableCell sx={studentColSx('school')}>School</TableCell>
                   <TableCell sx={studentColSx('grade')}>Grade</TableCell>
                   <TableCell sx={studentColSx('membership')}>Membership</TableCell>
+                  <TableCell sx={studentColSx('coins')} align="right">
+                    <TableSortLabel
+                      active={sortKey === 'coins'}
+                      direction={sortKey === 'coins' ? sortDir : 'desc'}
+                      onClick={() => toggleSort('coins')}
+                    >
+                      Coins
+                    </TableSortLabel>
+                  </TableCell>
                   <TableCell sx={studentColSx('status')}>Status</TableCell>
-                  <TableCell sx={studentColSx('joined')}>Joined</TableCell>
+                  <TableCell sx={studentColSx('joined')}>
+                    <TableSortLabel
+                      active={sortKey === 'joined'}
+                      direction={sortKey === 'joined' ? sortDir : 'desc'}
+                      onClick={() => toggleSort('joined')}
+                    >
+                      Joined
+                    </TableSortLabel>
+                  </TableCell>
                   {isSuperAdmin && (
                     <TableCell align="right" sx={studentColSx('actions')}>
                       Actions
@@ -1103,12 +1188,25 @@ const PlatformAdminStudentsPage: React.FC = () => {
                   <TableCell sx={studentColSx('membership', { color: ip.heading, whiteSpace: 'nowrap' })}>
                     {student.membership_level != null ? `Level ${student.membership_level}` : ' - '}
                   </TableCell>
+                  <TableCell
+                    align="right"
+                    sx={studentColSx('coins', { color: ip.heading, fontWeight: 700, whiteSpace: 'nowrap' })}
+                  >
+                    {typeof student.argus_coins === 'number' ? student.argus_coins.toLocaleString() : '0'}
+                  </TableCell>
                   <TableCell sx={studentColSx('status')}>
                     {student.is_invite ? (
                       <PlatformAdminChip label="Invited" tone="warning" />
                     ) : student.approval_status ? (
                       <PlatformAdminChip
-                        label={student.approval_status}
+                        label={
+                          student.approval_status.toLowerCase() === 'approved'
+                            ? 'Payment complete'
+                            : student.approval_status.toLowerCase() === 'pending_payment' ||
+                                student.approval_status.toLowerCase() === 'pending'
+                              ? 'Payment incomplete'
+                              : student.approval_status
+                        }
                         tone={
                           student.approval_status.toLowerCase() === 'approved' ? 'success' : 'warning'
                         }

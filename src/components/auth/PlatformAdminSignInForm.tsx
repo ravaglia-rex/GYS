@@ -78,7 +78,7 @@ const PlatformAdminSignInForm: React.FC<PlatformAdminSignInFormProps> = ({
         title: 'Signed in successfully',
         description: 'Welcome to the Argus admin portal.',
       });
-      navigate('/platform-admin/dashboard');
+      navigate('/platform-admin/schools');
     } catch (error: unknown) {
       const code = getFirebaseAuthErrorCode(error);
       const needsSetup = [

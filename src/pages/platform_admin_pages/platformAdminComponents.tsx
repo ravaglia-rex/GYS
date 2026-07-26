@@ -244,6 +244,10 @@ export function PlatformAdminFilterControl<T extends string>({
   /** Stretch select to fill available row space. */
   fullWidth?: boolean;
 }) {
+  // Guard against null/undefined during Fast Refresh (HMR) partial module reloads.
+  const safeLabels = labels ?? ({} as Record<T, string>);
+  const optionKeys = Object.keys(safeLabels) as T[];
+
   return (
     <Box
       sx={{
@@ -275,18 +279,18 @@ export function PlatformAdminFilterControl<T extends string>({
         id={id}
         size="small"
         value={value}
-        disabled={disabled}
+        disabled={disabled || optionKeys.length === 0}
         onChange={(e) => onChange(e.target.value as T)}
-        renderValue={(v) => labels[v as T]}
+        renderValue={(v) => safeLabels[v as T] ?? String(v)}
         MenuProps={{ PaperProps: { sx: platformAdminSelectMenuPaperSx } }}
         sx={{
           ...platformAdminFilterSelectSx(minWidth),
           ...(fullWidth ? { width: '100%', minWidth: 0, maxWidth: 'none', flex: 1 } : null),
         }}
       >
-        {(Object.keys(labels) as T[]).map((key) => (
+        {optionKeys.map((key) => (
           <MenuItem key={key} value={key}>
-            {labels[key]}
+            {safeLabels[key]}
           </MenuItem>
         ))}
       </Select>
