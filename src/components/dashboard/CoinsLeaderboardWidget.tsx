@@ -19,7 +19,7 @@ import type { CoinsLeaderboardEntry } from '../../db/studentLeaderboardCollectio
 
 export interface CoinsLeaderboardWidgetProps {
   uid?: string;
-  /** Static preview data — skips the live API. */
+  /** Static preview data - skips the live API. */
   previewData?: {
     global: CoinsLeaderboardEntry[];
     school: CoinsLeaderboardEntry[];
@@ -139,10 +139,10 @@ const MiniBoard: React.FC<{
                     </TableCell>
                     <TableCell sx={{ color: 'rgba(226,232,240,0.85)', fontSize: '0.8125rem' }}>
                       {mode === 'global'
-                        ? row.school_name?.trim() || '—'
+                        ? row.school_name?.trim() || '-'
                         : row.grade != null
                           ? `Class ${row.grade}`
-                          : '—'}
+                          : '-'}
                     </TableCell>
                     <TableCell
                       align="right"
@@ -216,7 +216,7 @@ const CoinsLeaderboardWidget: React.FC<CoinsLeaderboardWidgetProps> = ({ uid, pr
               Argus Coins Leaderboard
             </Typography>
             <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.55)' }}>
-              Lifetime coins earned — refreshes daily
+              Lifetime coins earned - refreshes daily
             </Typography>
           </Box>
         </Box>

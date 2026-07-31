@@ -114,6 +114,8 @@ export interface StudentRow {
   approval_status: string;
   /** Coalesced on the API; missing legacy docs read as `explorer`. */
   achievement_tier: string;
+  /** True after the student has set their Firebase password. */
+  password_setup_complete?: boolean;
   assessment_progress: Record<string, AssessmentProgress>;
   created_at: any;
   /**

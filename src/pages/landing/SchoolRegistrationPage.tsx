@@ -32,6 +32,10 @@ import {
   schoolRegistrationCheckoutSummaryFromBaseInr,
 } from '../../utils/schoolRegistrationPlans';
 import {
+  SCHOOL_LEGAL_PATHS,
+  SCHOOL_TERMS_ACCEPTANCE_VERSION,
+} from '../../constants/schoolLegal';
+import {
   isValidIndiaMobile,
   toIndiaMobileNationalDigits,
   withIndiaCountryCode,
@@ -117,7 +121,7 @@ const STEP3_FIELD_ORDER = [
   'registrantPhone',
   'emails',
 ] as const;
-const STEP4_FIELD_ORDER = ['gstRegistrationStatus', 'gstin', 'commitToPay'] as const;
+const STEP4_FIELD_ORDER = ['gstRegistrationStatus', 'gstin', 'acceptSchoolTerms', 'commitToPay'] as const;
 
 function scrollToFirstError(
   errorRecord: Record<string, string>,
@@ -182,6 +186,8 @@ const SchoolRegistrationPage: React.FC = () => {
   const [selectedPlan, setSelectedPlan] = useState('standard');
   const [gstRegistrationStatus, setGstRegistrationStatus] = useState<GstRegistrationStatus>('');
   const [gstin, setGstin] = useState('');
+  // Pre-checked contractual acceptance (not DPDP student-consent); user may uncheck.
+  const [acceptSchoolTerms, setAcceptSchoolTerms] = useState(true);
   const [commitToPay, setCommitToPay] = useState(false);
 
   // Validation errors
@@ -349,6 +355,10 @@ const SchoolRegistrationPage: React.FC = () => {
     if (gstRegistrationStatus === 'yes' && gstin.trim().length !== 15) {
       newErrors.gstin = 'GSTIN must be 15 characters.';
     }
+    if (!acceptSchoolTerms) {
+      newErrors.acceptSchoolTerms =
+        'Please confirm you are authorised and agree to the School Terms of Service and School Data Processing Terms.';
+    }
     if (!commitToPay) {
       newErrors.commitToPay =
         'Please confirm that your institution intends to subscribe and will complete payment separately.';
@@ -459,6 +469,8 @@ const SchoolRegistrationPage: React.FC = () => {
         selected_plan_id: selectedPlan,
         gst_registration_status: validatedGstRegistrationStatus,
         gstin: validatedGstRegistrationStatus === 'yes' ? gstin.trim().toUpperCase() : '',
+        accept_school_terms: acceptSchoolTerms,
+        school_terms_version: SCHOOL_TERMS_ACCEPTANCE_VERSION,
         commit_to_pay: commitToPay,
       };
       const amending = Boolean(registeredSchoolId && registeredCheckoutSecret);
@@ -1422,6 +1434,62 @@ const SchoolRegistrationPage: React.FC = () => {
 
               <div className="mt-5 flex gap-3 items-start">
                 <input
+                  id="accept-school-terms"
+                  type="checkbox"
+                  required
+                  aria-required="true"
+                  checked={acceptSchoolTerms}
+                  onChange={(e) => {
+                    setAcceptSchoolTerms(e.target.checked);
+                    clearError('acceptSchoolTerms');
+                  }}
+                  className="mt-1 h-4 w-4 rounded border-slate-300 text-[#1e3a8a] focus:ring-[#1e3a8a]"
+                />
+                <label htmlFor="accept-school-terms" className="text-xs sm:text-sm text-slate-700 leading-relaxed cursor-pointer">
+                  <span className="font-semibold text-slate-900">Required.</span>{' '}
+                  I confirm that I am authorised to act for the school identified in this registration.
+                  On the school’s behalf, I agree to the{' '}
+                  <a
+                    href={SCHOOL_LEGAL_PATHS.terms}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold underline"
+                    style={{ color: GYS_BLUE }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    GYS School Terms of Service
+                  </a>{' '}
+                  and the incorporated{' '}
+                  <a
+                    href={SCHOOL_LEGAL_PATHS.dataProcessing}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold underline"
+                    style={{ color: GYS_BLUE }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    School Data Processing Terms
+                  </a>
+                  , and I acknowledge the{' '}
+                  <a
+                    href={SCHOOL_LEGAL_PATHS.privacy}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold underline"
+                    style={{ color: GYS_BLUE }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    GYS Privacy Notice
+                  </a>
+                  .
+                </label>
+              </div>
+              {errors.acceptSchoolTerms && (
+                <p className="mt-2 text-xs text-red-600">{errors.acceptSchoolTerms}</p>
+              )}
+
+              <div className="mt-5 flex gap-3 items-start">
+                <input
                   id="commit-to-pay"
                   type="checkbox"
                   required
@@ -1435,8 +1503,8 @@ const SchoolRegistrationPage: React.FC = () => {
                 />
                 <label htmlFor="commit-to-pay" className="text-xs sm:text-sm text-slate-700 leading-relaxed cursor-pointer">
                   <span className="font-semibold text-slate-900">Required.</span>{' '}
-                  On behalf of our institution, we confirm that we intend to subscribe at the plan
-                  selected above. Payment will be completed separately on the school payment page.
+                  On behalf of our institution, I confirm that I intend to subscribe at the plan
+                  selected above and will complete the payment. 
                 </label>
               </div>
               {errors.commitToPay && (
@@ -1453,7 +1521,7 @@ const SchoolRegistrationPage: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting || !commitToPay}
+                  disabled={isSubmitting || !acceptSchoolTerms || !commitToPay}
                   className="flex-1 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-md hover:brightness-110 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 disabled:opacity-60 disabled:pointer-events-none"
                   style={{ backgroundColor: GYS_BLUE }}
                 >

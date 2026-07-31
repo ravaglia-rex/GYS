@@ -36,26 +36,6 @@ const APP_BAR_HEIGHT = 64;
 const PAGE_BG = '#f1f5f9';
 const SIDEBAR_ICON_SIZE = 22;
 
-function OverviewColoredIcon() {
-  return (
-    <Box
-      aria-hidden
-      sx={{
-        display: 'flex',
-        alignItems: 'flex-end',
-        justifyContent: 'center',
-        gap: '4px',
-        height: SIDEBAR_ICON_SIZE,
-        width: SIDEBAR_ICON_SIZE,
-      }}
-    >
-      <Box sx={{ width: 5, height: 11, bgcolor: '#22c55e', borderRadius: 0.5 }} />
-      <Box sx={{ width: 5, height: 18, bgcolor: '#3b82f6', borderRadius: 0.5 }} />
-      <Box sx={{ width: 5, height: 8, bgcolor: '#ef4444', borderRadius: 0.5 }} />
-    </Box>
-  );
-}
-
 const ANALYTICS_NAV_ITEM = {
   title: 'Analytics',
   path: '/platform-admin/analytics',
@@ -64,7 +44,6 @@ const ANALYTICS_NAV_ITEM = {
 
 const BASE_NAV_ITEMS = [
   { title: 'Schools', path: '/platform-admin/schools', icon: <SchoolIcon sx={{ color: '#059669', fontSize: SIDEBAR_ICON_SIZE }} /> },
-  { title: 'Overview', path: '/platform-admin/dashboard', icon: <OverviewColoredIcon /> },
   { title: 'Students', path: '/platform-admin/students', icon: <PeopleIcon sx={{ color: '#64748b', fontSize: SIDEBAR_ICON_SIZE }} /> },
   { title: 'Rewards', path: '/platform-admin/rewards', icon: <RewardsIcon sx={{ color: '#b45309', fontSize: SIDEBAR_ICON_SIZE }} /> },
 ];
@@ -98,9 +77,8 @@ const PlatformAdminLayout: React.FC<PlatformAdminLayoutProps> = ({ children }) =
       ? [
           BASE_NAV_ITEMS[0],
           BASE_NAV_ITEMS[1],
-          BASE_NAV_ITEMS[2],
           ANALYTICS_NAV_ITEM,
-          BASE_NAV_ITEMS[3],
+          BASE_NAV_ITEMS[2],
         ]
       : BASE_NAV_ITEMS;
     return platformAdminRole === 'super' ? [...base, PIPELINE_NAV_ITEM, ADMINS_NAV_ITEM] : base;
@@ -125,9 +103,7 @@ const PlatformAdminLayout: React.FC<PlatformAdminLayoutProps> = ({ children }) =
   };
 
   const isNavActive = (path: string) =>
-    path === '/platform-admin/dashboard'
-      ? location.pathname === path
-      : location.pathname === path || location.pathname.startsWith(`${path}/`);
+    location.pathname === path || location.pathname.startsWith(`${path}/`);
 
   const go = (path: string) => {
     navigate(path);

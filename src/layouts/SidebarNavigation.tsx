@@ -27,7 +27,7 @@ import {
   Logout as LogoutIcon,
   EmojiEvents as EmojiEventsIcon,
   Quiz as QuizIcon,
-  HelpOutline as HelpOutlineIcon,
+  ErrorOutline as ErrorOutlineIcon,
   Lightbulb as LightbulbIcon,
   Storefront as StorefrontIcon,
 } from '@mui/icons-material';
@@ -82,9 +82,9 @@ const navItems: NavItem[] = [
     icon: <DashboardIcon sx={{ color: '#8b5cf6' }} />,
   },
   {
-    title: 'How GYS Works',
+    title: 'Please Read',
     path: '/how-it-works',
-    icon: <HelpOutlineIcon sx={{ color: HOW_GYS_NAV_COLOR }} />,
+    icon: <ErrorOutlineIcon sx={{ color: HOW_GYS_NAV_COLOR }} />,
   },
   {
     title: 'School Leaderboard',

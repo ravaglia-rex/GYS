@@ -58,6 +58,7 @@ export const SIGN_UP_TRANSACTION='/runSignUpTransaction';
 export const PREPARE_SIGN_UP_TRANSACTION='/prepareSignUpTransaction';
 export const FETCH_STUDENT_DATA='/getStudentDetails';
 export const UPDATE_STUDENT_DATA='/updateStudentDetails';
+export const MARK_STUDENT_PASSWORD_SETUP_COMPLETE='/markPasswordSetupComplete';
 export const FETCH_PAYMENTS='/getPayments';
 export const FETCH_STUDENT_SCHOOL_LEADERBOARD='/schoolLeaderboard';
 export const FETCH_STUDENT_COINS_LEADERBOARD='/coinsLeaderboard';

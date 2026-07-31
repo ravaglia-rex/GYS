@@ -148,7 +148,7 @@ function schoolNamesMatch(typed: string, school: PlatformAdminSchoolDetail): boo
 }
 
 function defaultPaidAmountInr(school: PlatformAdminSchoolDetail): string {
-  if (typeof school.paid_amount_paise === 'number' && school.paid_amount_paise > 0) {
+  if (typeof school.paid_amount_paise === 'number' && school.paid_amount_paise >= 0) {
     return formatPlanAmountInrInput(school.paid_amount_paise / 100);
   }
   return defaultMarkPaidAmountInr(school);
@@ -465,9 +465,16 @@ function PlatformAdminSchoolDetailPage() {
   const handleUpdateBilling = async () => {
     if (!schoolId || !school) return;
 
-    const parsedAmount = Number(billingAmountInr.replace(/,/g, '').trim());
-    const hasAmount = Number.isFinite(parsedAmount) && parsedAmount > 0;
+    const trimmedBillingAmount = billingAmountInr.replace(/,/g, '').trim();
+    const parsedAmount = Number(trimmedBillingAmount);
+    const hasAmount =
+      trimmedBillingAmount.length > 0 && Number.isFinite(parsedAmount) && parsedAmount >= 0;
     const hasPlan = Boolean(billingPlanId);
+
+    if (trimmedBillingAmount.length > 0 && (!Number.isFinite(parsedAmount) || parsedAmount < 0)) {
+      setError('Please enter a valid payment amount in INR (0 or greater).');
+      return;
+    }
 
     if (!hasAmount && !hasPlan) {
       setError('Choose an effective package and/or enter the amount paid.');
@@ -554,9 +561,10 @@ function PlatformAdminSchoolDetailPage() {
       setError('Please enter a valid payment date.');
       return;
     }
-    const parsedAmount = Number(amountInr.replace(/,/g, '').trim());
-    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-      setError('Please enter a valid payment amount in INR.');
+    const trimmedAmount = amountInr.replace(/,/g, '').trim();
+    const parsedAmount = Number(trimmedAmount);
+    if (!trimmedAmount || !Number.isFinite(parsedAmount) || parsedAmount < 0) {
+      setError('Please enter a valid payment amount in INR (0 or greater).');
       return;
     }
     const trimmedRazorpayOrderId = razorpayOrderId.trim();
@@ -1397,7 +1405,7 @@ function PlatformAdminSchoolDetailPage() {
               />
               {school.subscription_plan && resolvedPlanPriceInr != null && (
                 <Typography sx={{ color: ip.subtext, fontSize: '0.75rem', mt: 0.75, lineHeight: 1.4 }}>
-                  Override the list price if they paid a discounted amount.
+                  Override the list price if they paid a discounted or complimentary (0) amount.
                 </Typography>
               )}
             </Box>

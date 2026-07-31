@@ -53,7 +53,7 @@ Sentry.init({
 ],
   tracesSampleRate: 0.1,
   tracePropagationTargets: ["https://argus-talent-search.web.app/", "https://exams.argus.ai"],
-  // Session Replay off — was burning the 50/month quota; we weren't using Replays.
+  // Session Replay off - was burning the 50/month quota; we weren't using Replays.
   replaysSessionSampleRate: 0,
   replaysOnErrorSampleRate: 0,
   beforeSend(event) {

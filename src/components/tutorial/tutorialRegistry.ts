@@ -85,13 +85,13 @@ export const TUTORIAL_REGISTRY: Record<TutorialPageKey, TutorialStepDefinition[]
     {
       targetId: 'student-practice-exam-picker',
       title: 'Pick an exam to practice',
-      body: 'Choose a Reasoning exam to drill. All three Reasoning practice exams are open; other exams stay locked until a practice bank is ready.',
+      body: 'Choose the assessment you want to drill. Locked exams follow the same unlock rules as your official dashboard.',
       placement: 'top',
     },
     {
       targetId: 'student-practice-level-picker',
       title: 'Choose a difficulty level',
-      body: 'Pick any of the three difficulty levels for Reasoning practice. We suggest one based on your class, but you can choose freely.',
+      body: 'Pick an unlocked level for the selected exam. Higher practice levels unlock as your official progress advances.',
       placement: 'top',
     },
     {

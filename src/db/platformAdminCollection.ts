@@ -233,18 +233,32 @@ export type PlatformAdminStudentDetail = PlatformAdminStudentRow & {
 };
 
 export type PlatformAdminStudentStats = {
-  /** Real (non-test) student accounts platform-wide. */
+  /** Accounts with password setup complete. */
   students_total: number;
-  /** Invite-list emails ∪ registered accounts across real schools. */
-  students_on_roster: number;
-  /** Registered accounts linked to a school (subset of on_roster). */
-  students_rostered: number;
-  /** Rostered accounts with password setup complete. */
+  /** On school roster + password set. */
   students_active: number;
-  /** On roster but not active (invited / no account yet, or no password). Active + pending === on_roster. */
-  students_pending: number;
-  /** Students who paid individually (signup package and/or membership upgrade), not school-only covered. */
+  /** Individual signup payers, set up or not (excludes membership upgrades). Overlaps every other bucket. */
   students_self_paid: number;
+  /** Subset of self_paid with password setup complete. */
+  students_self_paid_setup: number;
+  /** Subset of self_paid still missing password setup. */
+  students_self_paid_pending: number;
+  /** Unique students with a captured membership upgrade payment. */
+  students_membership_upgrade: number;
+  /** On roster with no account yet, or account without password. */
+  students_roster_pending: number;
+  /** Not on school roster; account exists but password not set (paid or unpaid). */
+  students_others: number;
+  /** @deprecated Prefer roster_pending + others. Kept for older clients. */
+  students_pending_setup?: number;
+  /** Invite-list emails with no account yet (subset of roster_pending). */
+  students_pending_invite?: number;
+  /** Invite-list emails ∪ registered accounts across real schools. */
+  students_on_roster?: number;
+  /** Registered accounts linked to a school (subset of on_roster). */
+  students_rostered?: number;
+  /** Alias of students_pending_setup. */
+  students_pending?: number;
 };
 
 export type PlatformAdminPendingRedemption = {
@@ -694,11 +708,17 @@ export async function listPlatformAdminStudents(params?: {
   status?: 'approved' | 'pending' | 'all';
   roster?: 'yes' | 'no' | 'all';
   setup?: 'complete' | 'incomplete' | 'all';
-  payment?: 'self_paid' | 'all';
+  payment?: 'self_paid' | 'membership_upgrade' | 'all';
+  /** registered = has account; invite = invite-list / complimentary stub, no account yet. */
+  account?: 'registered' | 'invite' | 'all';
   /** Required: `'all'` or one/more school document IDs. Omitting returns no students. */
   school_ids?: 'all' | string[];
   limit?: number;
-}): Promise<PlatformAdminStudentRow[]> {
+}): Promise<{
+  students: PlatformAdminStudentRow[];
+  /** Rows matching the filters platform-wide - can exceed `students.length` when `limit` clips. */
+  totalMatching: number;
+}> {
   const headers = await authHeaders();
   const schoolIdsParam =
     params?.school_ids === 'all'
@@ -717,10 +737,16 @@ export async function listPlatformAdminStudents(params?: {
       roster: params?.roster && params.roster !== 'all' ? params.roster : undefined,
       setup: params?.setup && params.setup !== 'all' ? params.setup : undefined,
       payment: params?.payment && params.payment !== 'all' ? params.payment : undefined,
+      account: params?.account && params.account !== 'all' ? params.account : undefined,
       school_ids: schoolIdsParam,
     },
   });
-  return res.data.students ?? [];
+  const students = (res.data.students ?? []) as PlatformAdminStudentRow[];
+  return {
+    students,
+    totalMatching:
+      typeof res.data.total_matching === 'number' ? res.data.total_matching : students.length,
+  };
 }
 
 export type PlatformAdminComplimentaryInvite = {

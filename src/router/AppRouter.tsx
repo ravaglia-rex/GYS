@@ -17,6 +17,9 @@ const ForSchoolsPage = React.lazy(() => import('../pages/landing/ForSchoolsPage'
 const SchoolRegistrationPage = React.lazy(
   () => import('../pages/landing/SchoolRegistrationPage')
 );
+const SchoolLegalDocumentPage = React.lazy(
+  () => import('../pages/landing/SchoolLegalDocumentPage')
+);
 const SchoolPaymentPage = React.lazy(() => import('../pages/landing/SchoolPaymentPage'));
 const SignupChoicePage = React.lazy(() => import('../pages/landing/SignupChoicePage'));
 const StudentPathPage = React.lazy(() => import('../pages/landing/StudentPathPage'));
@@ -104,7 +107,6 @@ const SchoolAdminStudentDetailPage = React.lazy(() => import('../pages/school_ad
 PLATFORM ADMIN PAGES: Internal ops dashboard for Argus team
 */
 const PlatformAdminLayout = React.lazy(() => import('../layouts/PlatformAdminLayout'));
-const PlatformAdminDashboardPage = React.lazy(() => import('../pages/platform_admin_pages/PlatformAdminDashboardPage'));
 const PlatformAdminSchoolsPage = React.lazy(() => import('../pages/platform_admin_pages/PlatformAdminSchoolsPage'));
 const PlatformAdminSchoolDetailPage = React.lazy(() => import('../pages/platform_admin_pages/PlatformAdminSchoolDetailPage'));
 const PlatformAdminRewardsPage = React.lazy(() => import('../pages/platform_admin_pages/PlatformAdminRewardsPage'));
@@ -309,6 +311,33 @@ const AppRouter: React.FC = () => {
           element={
             <Suspense fallback={<BigSpinner/>}>
               <SchoolRegistrationPage />
+            </Suspense>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        <Route
+          path="/in/privacy/schools"
+          element={
+            <Suspense fallback={<BigSpinner/>}>
+              <SchoolLegalDocumentPage />
+            </Suspense>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        <Route
+          path="/in/terms/schools"
+          element={
+            <Suspense fallback={<BigSpinner/>}>
+              <SchoolLegalDocumentPage />
+            </Suspense>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        <Route
+          path="/in/data-processing/schools"
+          element={
+            <Suspense fallback={<BigSpinner/>}>
+              <SchoolLegalDocumentPage />
             </Suspense>
           }
           errorElement={<NotFoundPage />}
@@ -814,19 +843,7 @@ const AppRouter: React.FC = () => {
         {/* ------------------------------ SCHOOL ADMIN ROUTES END HERE ---------------------- */}
 
         {/* ------------------------------ PLATFORM ADMIN ROUTES ---------------------- */}
-        <Route
-          path="/platform-admin/dashboard"
-          element={
-            <PlatformAdminRoute>
-              <Suspense fallback={<BigSpinner />}>
-                <PlatformAdminLayout>
-                  <PlatformAdminDashboardPage />
-                </PlatformAdminLayout>
-              </Suspense>
-            </PlatformAdminRoute>
-          }
-          errorElement={<NotFoundPage />}
-        />
+        <Route path="/platform-admin/dashboard" element={<Navigate to="/platform-admin/schools" replace />} />
         <Route
           path="/platform-admin/schools"
           element={

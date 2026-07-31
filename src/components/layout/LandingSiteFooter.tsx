@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { SCHOOL_LEGAL_PATHS } from '../../constants/schoolLegal';
 
 /** Same footer as the home page use on every public marketing route. */
 const LandingSiteFooter: React.FC = () => {
@@ -17,6 +18,27 @@ const LandingSiteFooter: React.FC = () => {
           <a href="mailto:globalyoungscholar@argus.ai" className="text-gray-600 hover:text-gray-900">
             Contact
           </a>
+          <button
+            type="button"
+            onClick={() => navigate(SCHOOL_LEGAL_PATHS.terms)}
+            className="text-gray-600 hover:text-gray-900"
+          >
+            Terms
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate(SCHOOL_LEGAL_PATHS.dataProcessing)}
+            className="text-gray-600 hover:text-gray-900"
+          >
+            Data processing
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate(SCHOOL_LEGAL_PATHS.privacy)}
+            className="text-gray-600 hover:text-gray-900"
+          >
+            Privacy
+          </button>
         </nav>
         <p className="mt-4 text-center text-xs leading-relaxed text-gray-500 sm:mt-5 sm:text-sm">
           © 2026 Global Young Scholar. A joint initiative of Access USA, Argus, and

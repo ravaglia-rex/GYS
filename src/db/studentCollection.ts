@@ -3,6 +3,7 @@ import {
   STUDENTS_APIS,
   FETCH_STUDENT_DATA,
   UPDATE_STUDENT_DATA,
+  MARK_STUDENT_PASSWORD_SETUP_COMPLETE,
   LIST_STUDENT_REPORTS,
   STUDENT_REPORT_DOWNLOAD_URL,
   SEND_NOTIFICATION_EMAILS,
@@ -127,6 +128,21 @@ export const updateStudent = async (user_id: string, student: UpdateStudentPaylo
         throw new Error(`Error updating student for user ${user_id}. Please contact globalyoungscholar@argus.ai`);
     }
 }
+
+/** After password setup, cache password_setup_complete on the student doc (no-ops if not a student). */
+export const markStudentPasswordSetupComplete = async (): Promise<void> => {
+  try {
+    const authToken = await authTokenHandler.getAuthToken();
+    if (!authToken) return;
+    await axios.post(
+      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${STUDENTS_APIS}${MARK_STUDENT_PASSWORD_SETUP_COMPLETE}`,
+      {},
+      { headers: { Authorization: `Bearer ${authToken}` } }
+    );
+  } catch (error) {
+    console.warn('markStudentPasswordSetupComplete failed:', error);
+  }
+};
 
 export const sendNotificationEmails = async (params: {
   notificationIds: string[];

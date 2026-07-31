@@ -134,7 +134,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
       const lower = msg.toLowerCase();
       if (lower.includes('index') || lower.includes('failed_precondition')) {
         setPracticeError(
-          'Firestore indexes for practice analytics are still building. Check the Firebase console Indexes tab — usually a few minutes. Refresh after they show Enabled.'
+          'Firestore indexes for practice analytics are still building. Check the Firebase console Indexes tab - usually a few minutes. Refresh after they show Enabled.'
         );
       } else {
         setPracticeError(msg);
@@ -471,8 +471,8 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                               <TableCell sx={{ fontWeight: 600, color: ip.heading }}>
                                 {[row.first_name, row.last_name].filter(Boolean).join(' ') || row.email || row.uid}
                               </TableCell>
-                              <TableCell>{row.school_name ?? '—'}</TableCell>
-                              <TableCell>{row.grade ?? '—'}</TableCell>
+                              <TableCell>{row.school_name ?? '-'}</TableCell>
+                              <TableCell>{row.grade ?? '-'}</TableCell>
                               <TableCell align="right">{row.total_correct.toLocaleString()}</TableCell>
                               <TableCell align="right">{(row.total_sessions ?? 0).toLocaleString()}</TableCell>
                               <TableCell align="right">{row.accuracy_pct}%</TableCell>
@@ -610,7 +610,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                               <TableCell sx={{ fontWeight: 600 }}>
                                 {[row.first_name, row.last_name].filter(Boolean).join(' ') || row.email}
                               </TableCell>
-                              <TableCell>{row.school_name ?? '—'}</TableCell>
+                              <TableCell>{row.school_name ?? '-'}</TableCell>
                               <TableCell align="right" sx={{ fontWeight: 700 }}>
                                 {row.argus_coins.toLocaleString()}
                               </TableCell>
@@ -651,7 +651,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                           schoolAdmins.map((row) => (
                             <TableRow key={row.email}>
                               <TableCell sx={{ fontWeight: 600 }}>{row.email}</TableCell>
-                              <TableCell>{row.school_name ?? row.school_id ?? '—'}</TableCell>
+                              <TableCell>{row.school_name ?? row.school_id ?? '-'}</TableCell>
                               <TableCell>{formatDate(row.last_active_at)}</TableCell>
                             </TableRow>
                           ))

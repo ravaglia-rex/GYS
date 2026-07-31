@@ -40,6 +40,10 @@ export type RegisterSchoolPayload = {
   selected_plan_id: string;
   gst_registration_status: 'yes' | 'no' | 'not_sure';
   gstin: string;
+  /** School Terms + Data Processing Terms acceptance (pre-checked in UI; required on submit). */
+  accept_school_terms: boolean;
+  /** Effective date / version string of the accepted school legal docs. */
+  school_terms_version: string;
   commit_to_pay: boolean;
 };
 

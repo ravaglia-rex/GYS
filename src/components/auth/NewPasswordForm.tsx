@@ -125,14 +125,18 @@ const NewPasswordForm: React.FC<PasswordResetProps> = ({ actionCode }) => {
           const { verifyPlatformAdminPasswordSetup } = await import("../../db/platformAdminCollection");
           await verifyPlatformAdminPasswordSetup(email);
         } else {
+          const authToken = await user.getIdToken();
+          const { default: authTokenHandler } = await import("../../functions/auth_token/auth_token_handler");
+          authTokenHandler.setAuthToken(authToken);
           const { checkSchoolEmail, verifySchoolEmail } = await import("../../db/schoolAdminCollection");
           const schoolInfo = await checkSchoolEmail(user.email!);
           if (schoolInfo && !schoolInfo.verified) {
-            const authToken = await user.getIdToken();
-            const { default: authTokenHandler } = await import("../../functions/auth_token/auth_token_handler");
-            authTokenHandler.setAuthToken(authToken);
             await verifySchoolEmail(user.email!);
           }
+          // Student accounts: cache password_setup_complete so platform Total/Active stay accurate.
+          // No-ops for school admins who are not also student docs.
+          const { markStudentPasswordSetupComplete } = await import("../../db/studentCollection");
+          await markStudentPasswordSetupComplete();
         }
       } catch (err: any) {
         console.error("Error verifying account after password reset:", err);

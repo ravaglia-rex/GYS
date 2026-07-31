@@ -228,6 +228,7 @@ export function PlatformAdminFilterControl<T extends string>({
   id,
   label,
   labels,
+  valueLabels,
   value,
   minWidth,
   onChange,
@@ -237,6 +238,8 @@ export function PlatformAdminFilterControl<T extends string>({
   id: string;
   label: string;
   labels: Record<T, string>;
+  /** Shorter labels for the closed select; menu items still use `labels`. */
+  valueLabels?: Partial<Record<T, string>>;
   value: T;
   minWidth: number;
   onChange: (value: T) => void;
@@ -281,7 +284,9 @@ export function PlatformAdminFilterControl<T extends string>({
         value={value}
         disabled={disabled || optionKeys.length === 0}
         onChange={(e) => onChange(e.target.value as T)}
-        renderValue={(v) => safeLabels[v as T] ?? String(v)}
+        renderValue={(v) =>
+          valueLabels?.[v as T] ?? safeLabels[v as T] ?? String(v)
+        }
         MenuProps={{ PaperProps: { sx: platformAdminSelectMenuPaperSx } }}
         sx={{
           ...platformAdminFilterSelectSx(minWidth),

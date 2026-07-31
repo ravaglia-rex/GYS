@@ -17,7 +17,7 @@ import * as Sentry from '@sentry/react';
 import {
   AutoAwesome as AutoAwesomeIcon,
   EmojiEvents as EmojiEventsIcon,
-  HelpOutline as HelpOutlineIcon,
+  ErrorOutline as ErrorOutlineIcon,
   LocalFireDepartment as LocalFireDepartmentIcon,
   MilitaryTech as MilitaryTechIcon,
   MonetizationOn as MonetizationOnIcon,
@@ -153,76 +153,6 @@ const MiniCard: React.FC<MiniCardProps> = ({ icon, title, body, color }) => (
   </Box>
 );
 
-const FlowStep: React.FC<{ step: string; title: string; body: React.ReactNode; color: string }> = ({
-  step,
-  title,
-  body,
-  color,
-}) => (
-  <Box
-    sx={{
-      p: 2.25,
-      borderRadius: 2,
-      bgcolor: 'rgba(15, 23, 42, 0.62)',
-      border: `1px solid ${color}66`,
-      overflow: 'hidden',
-      minHeight: 156,
-    }}
-  >
-    <Typography
-      sx={{
-        float: 'right',
-        ml: 1.5,
-        mb: 0.5,
-        mt: -0.75,
-        width: 56,
-        textAlign: 'right',
-        color: `${color}33`,
-        fontWeight: 900,
-        fontSize: '4.4rem',
-        lineHeight: 0.9,
-      }}
-    >
-      {step}
-    </Typography>
-    <Typography sx={{ color, fontWeight: 900, mb: 0.75 }}>{title}</Typography>
-    <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.72)', lineHeight: 1.55, ...justifiedTextSx }}>
-      {body}
-    </Typography>
-  </Box>
-);
-
-const journeySteps = [
-  {
-    step: '1',
-    title: 'Start Here',
-    body: 'Your dashboard shows the exams you can take today. Results show your performance and progress.',
-    color: '#8b5cf6',
-  },
-  {
-    step: '2',
-    title: 'Answer carefully',
-    body: 'The system uses your responses to choose helpful next questions and understand your true level.',
-    color: '#06b6d4',
-  },
-  {
-    step: '3',
-    title: 'Complete levels',
-    body: (
-      <>
-        Exams have levels. A level is completed when you score <Box component="span" sx={{ fontWeight: 900 }}>{LEVEL_CLEAR_THRESHOLD_LABEL}</Box> or higher. You can attempt a level once every <Box component="span" sx={{ fontWeight: 900 }}>3 months</Box>.
-      </>
-    ),
-    color: '#10b981',
-  },
-  {
-    step: '4',
-    title: 'Unlock the next goal',
-    body: 'Attempting exams and completing levels unlock next steps: insights, reports, better comparisons, and much more!',
-    color: '#f59e0b',
-  },
-];
-
 const membershipRows = [
   {
     level: 1,
@@ -320,7 +250,7 @@ export const HowItWorksContent: React.FC = () => {
                     color: 'white',
                   }}
                 >
-                  <HelpOutlineIcon sx={{ fontSize: 30 }} />
+                  <ErrorOutlineIcon sx={{ fontSize: 30 }} />
                 </Avatar>
                 <Typography
                   variant="h4"
@@ -331,7 +261,7 @@ export const HowItWorksContent: React.FC = () => {
                     minWidth: 0,
                   }}
                 >
-                  How GYS Works
+                  Please Read
                 </Typography>
               </Box>
               <Typography variant="h6" sx={{ ...studentPageSubtitleSx, display: { xs: 'block', sm: 'none' }, mt: 2, lineHeight: 1.65, ...justifiedTextSx }}>
@@ -348,7 +278,7 @@ export const HowItWorksContent: React.FC = () => {
                     color: 'white',
                   }}
                 >
-                  <HelpOutlineIcon sx={{ fontSize: 36 }} />
+                  <ErrorOutlineIcon sx={{ fontSize: 36 }} />
                 </Avatar>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography
@@ -357,7 +287,7 @@ export const HowItWorksContent: React.FC = () => {
                       ...studentPageTitleSx,
                     }}
                   >
-                    How GYS Works
+                    Please Read
                   </Typography>
                   <Typography variant="h6" sx={{ ...studentPageSubtitleSx, lineHeight: 1.65, ...justifiedTextSx }}>
                     Think of GYS like a learning adventure map! You take exams, complete levels, unlock the next challenge,
@@ -381,16 +311,6 @@ export const HowItWorksContent: React.FC = () => {
                 />
               ))}
             </Box>
-          </Box>
-
-          <Box
-            id="student-how-it-works-map"
-            data-tutorial-id="student-how-it-works-map"
-            sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(4, 1fr)' }, gap: 2, mb: 3 }}
-          >
-            {journeySteps.map((item) => (
-              <FlowStep key={item.step} {...item} />
-            ))}
           </Box>
 
           <Box
@@ -847,13 +767,13 @@ export const HowItWorksContent: React.FC = () => {
               id="student-how-it-works-practice"
               icon={<QuizIcon />}
               title="Practice Exams"
-              subtitle="Practice helps you learn the format without changing your official score, badge, or leaderboard rank. All Reasoning practice exams and levels stay open anytime."
+              subtitle="Practice helps you learn the format without changing your official score, badge, or leaderboard rank. Your practice exam level matches your real exam level."
             >
               <Box sx={{ display: 'grid', gap: 1.5 }}>
                 <MiniCard
                   icon={<QuizIcon fontSize="small" />}
-                  title="Open anytime, no score pressure"
-                  body="All three Reasoning practice exams (every difficulty level) are available whenever you want. Practice does not affect official results, percentiles, achievement tiers, or leaderboard rank."
+                  title="Same level, no score pressure"
+                  body="Practice matches your real unlocked or current level and does not affect official results, percentiles, achievement tiers, or leaderboard rank."
                   color="#38bdf8"
                 />
                 <MiniCard

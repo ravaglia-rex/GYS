@@ -76,6 +76,7 @@ type RosterRegistered = {
   achievementTier: string;
   membershipLevel: number;
   approvalStatus: string;
+  passwordSetupComplete: boolean;
   dashboardRow: StudentRow | null;
 };
 
@@ -88,7 +89,11 @@ type RosterInvited = {
 type RosterRow = RosterRegistered | RosterInvited;
 
 type AssessmentsCompletedFilter = 'all' | '0' | '1' | '2' | '3_plus';
-type StatusFilter = 'all' | 'registered' | 'invited' | 'revoked';
+/**
+ * `invited` covers everything that is not a finished signup - both "no account yet" and
+ * "account created but no password". `needs_password` / `no_account` drill into those two.
+ */
+type StatusFilter = 'all' | 'registered' | 'invited' | 'needs_password' | 'no_account' | 'revoked';
 type SortField = 'firstName' | 'lastName' | 'grade' | 'assessmentsCompleted' | 'email';
 type SortDirection = 'asc' | 'desc';
 
@@ -112,7 +117,39 @@ const STATUS_FILTER_LABELS: Record<StatusFilter, string> = {
   all: 'All',
   registered: 'Registered',
   invited: 'Invited',
+  needs_password: 'Invited - password not set up',
+  no_account: 'Invited - account not created',
   revoked: 'Revoked',
+};
+
+/**
+ * A student only counts as registered once the account exists *and* the password is set -
+ * an account without a password cannot sign in, so schools still need to chase it.
+ */
+const rosterStatusOf = (r: RosterRow): Exclude<StatusFilter, 'all' | 'invited'> => {
+  if (r.kind === 'invited') return r.status === 'revoked' ? 'revoked' : 'no_account';
+  return r.passwordSetupComplete ? 'registered' : 'needs_password';
+};
+
+const REGISTERED_CHIP_SX = {
+  fontWeight: 600,
+  bgcolor: 'rgba(34, 197, 94, 0.14)',
+  color: '#166534',
+  border: '1px solid rgba(34, 197, 94, 0.4)',
+};
+
+const INVITED_CHIP_SX = {
+  fontWeight: 600,
+  bgcolor: 'rgba(245, 158, 11, 0.14)',
+  color: '#9a3412',
+  border: '1px solid rgba(245, 158, 11, 0.45)',
+};
+
+const REVOKED_CHIP_SX = {
+  fontWeight: 600,
+  bgcolor: '#f1f5f9',
+  color: '#475569',
+  border: '1px solid #cbd5e1',
 };
 
 /** Search, sort, sort-direction, and Filters - one visual height */
@@ -470,6 +507,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
         achievementTier: normalizeAchievementTierId(dr.achievement_tier),
         membershipLevel: dr.membership_level,
         approvalStatus: dr.approval_status,
+        passwordSetupComplete: dr.password_setup_complete !== false,
         dashboardRow: dr,
       }));
       setRegistrationEmails([]);
@@ -534,6 +572,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
           achievementTier: normalizeAchievementTierId(dr.achievement_tier),
           membershipLevel: dr.membership_level ?? 0,
           approvalStatus: dr.approval_status ?? 'pending',
+          passwordSetupComplete: dr.password_setup_complete === true,
           dashboardRow: dr,
         };
       });
@@ -708,10 +747,10 @@ const SchoolAdminStudentsPage: React.FC = () => {
           if (!blob.includes(q)) return false;
         } else if (!r.email.toLowerCase().includes(q)) return false;
       }
-      if (statusFilter !== 'all') {
-        if (statusFilter === 'registered' && r.kind !== 'registered') return false;
-        if (statusFilter === 'invited' && (r.kind !== 'invited' || r.status !== 'invited')) return false;
-        if (statusFilter === 'revoked' && (r.kind !== 'invited' || r.status !== 'revoked')) return false;
+      if (statusFilter !== 'all' && rosterStatusOf(r) !== statusFilter) {
+        // `invited` is the umbrella for both incomplete states.
+        const isIncomplete = rosterStatusOf(r) === 'needs_password' || rosterStatusOf(r) === 'no_account';
+        if (!(statusFilter === 'invited' && isIncomplete)) return false;
       }
       if (gradeFilter !== 'all') {
         if (r.kind !== 'registered' || r.grade !== gradeFilter) return false;
@@ -785,9 +824,15 @@ const SchoolAdminStudentsPage: React.FC = () => {
     sortDirection,
   ]);
 
-  const registeredCount = useMemo(() => rows.filter(r => r.kind === 'registered').length, [rows]);
-  const invitedCount = useMemo(() => rows.filter(r => r.kind === 'invited' && r.status === 'invited').length, [rows]);
-  const revokedCount = useMemo(() => rows.filter(r => r.kind === 'invited' && r.status === 'revoked').length, [rows]);
+  const statusCounts = useMemo(() => {
+    const counts = {registered: 0, needs_password: 0, no_account: 0, revoked: 0};
+    for (const r of rows) counts[rosterStatusOf(r)] += 1;
+    return counts;
+  }, [rows]);
+
+  const registeredCount = statusCounts.registered;
+  const invitedCount = statusCounts.needs_password + statusCounts.no_account;
+  const revokedCount = statusCounts.revoked;
   const listTotal = registrationEmails.length;
   const activeRosterCount = registeredCount + invitedCount;
   const studentCap = selectedPlanId ? INSTITUTIONAL_PLAN_STUDENT_CAP[selectedPlanId] : null;
@@ -815,6 +860,22 @@ const SchoolAdminStudentsPage: React.FC = () => {
     setGradeFilter('all');
     setAssessmentsCompletedFilter('all');
   };
+
+  const toggleStatusFilter = (next: Exclude<StatusFilter, 'all'>) => {
+    setStatusFilter(prev => (prev === next ? 'all' : next));
+  };
+
+  const statusChipSx = (active: boolean) => ({
+    fontWeight: 600,
+    bgcolor: active ? 'rgba(16, 64, 139, 0.1)' : ip.cardMutedBg,
+    color: active ? ip.navy : ip.heading,
+    border: active ? '1px solid rgba(16, 64, 139, 0.25)' : `1px solid ${ip.cardBorder}`,
+    cursor: 'pointer',
+    '&:hover': {
+      bgcolor: active ? 'rgba(16, 64, 139, 0.16)' : '#e2e8f0',
+      borderColor: active ? 'rgba(16, 64, 139, 0.42)' : '#cbd5e1',
+    },
+  });
 
   if (loading) {
     return (
@@ -923,7 +984,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
           />
         </Tooltip>
         {studentCap !== null && (
-          <Tooltip title="Students currently counting against your plan cap: registered students plus active pending invitations.">
+          <Tooltip title="Students currently counting against your plan cap: fully registered students, accounts waiting on password setup, and active pending invitations.">
             <Chip
               label={`Active roster: ${activeRosterCount}/${studentCap}`}
               size="small"
@@ -941,46 +1002,33 @@ const SchoolAdminStudentsPage: React.FC = () => {
             />
           </Tooltip>
         )}
-        <Tooltip title="Students who have created accounts and are linked to your school roster.">
+        <Tooltip title="Students who created an account and set their password - they can sign in. Click to filter, click again to clear.">
           <Chip
             label={`Registered: ${registeredCount}`}
             size="small"
-            sx={{
-              fontWeight: 600,
-              bgcolor: ip.cardMutedBg,
-              color: ip.heading,
-              border: `1px solid ${ip.cardBorder}`,
-              cursor: 'help',
-              '&:hover': { bgcolor: '#e2e8f0', borderColor: '#cbd5e1' },
-            }}
+            onClick={() => toggleStatusFilter('registered')}
+            aria-pressed={statusFilter === 'registered'}
+            sx={statusChipSx(statusFilter === 'registered')}
           />
         </Tooltip>
-        <Tooltip title="Invitations that are still active, but the student has not registered yet.">
+        <Tooltip
+          title={`Invited but not able to sign in yet: ${statusCounts.no_account} have not created an account and ${statusCounts.needs_password} created an account but have not set a password. Click to filter, click again to clear.`}
+        >
           <Chip
             label={`Invited (not signed up): ${invitedCount}`}
             size="small"
-            sx={{
-              fontWeight: 600,
-              bgcolor: ip.cardMutedBg,
-              color: ip.heading,
-              border: `1px solid ${ip.cardBorder}`,
-              cursor: 'help',
-              '&:hover': { bgcolor: '#e2e8f0', borderColor: '#cbd5e1' },
-            }}
+            onClick={() => toggleStatusFilter('invited')}
+            aria-pressed={statusFilter === 'invited'}
+            sx={statusChipSx(statusFilter === 'invited')}
           />
         </Tooltip>
-        <Tooltip title="Invitations you removed. These no longer count as active roster seats unless resent.">
+        <Tooltip title="Invitations you removed. Click to filter, click again to clear.">
           <Chip
             label={`Revoked: ${revokedCount}`}
             size="small"
-            sx={{
-              fontWeight: 600,
-              bgcolor: ip.cardMutedBg,
-              color: ip.heading,
-              border: `1px solid ${ip.cardBorder}`,
-              cursor: 'help',
-              '&:hover': { bgcolor: '#e2e8f0', borderColor: '#cbd5e1' },
-            }}
+            onClick={() => toggleStatusFilter('revoked')}
+            aria-pressed={statusFilter === 'revoked'}
+            sx={statusChipSx(statusFilter === 'revoked')}
           />
         </Tooltip>
       </Box>
@@ -1163,7 +1211,9 @@ const SchoolAdminStudentsPage: React.FC = () => {
                     >
                       <MenuItem value="all">All</MenuItem>
                       <MenuItem value="registered">Registered</MenuItem>
-                      <MenuItem value="invited">Invited</MenuItem>
+                      <MenuItem value="invited">Invited (all)</MenuItem>
+                      <MenuItem value="needs_password">Invited - password not set up</MenuItem>
+                      <MenuItem value="no_account">Invited - account not created</MenuItem>
                       <MenuItem value="revoked">Revoked</MenuItem>
                     </Select>
                   </Box>
@@ -1359,6 +1409,20 @@ const SchoolAdminStudentsPage: React.FC = () => {
                               {r.email}
                             </Typography>
                           ) : null}
+                          {!r.passwordSetupComplete ? (
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                color: ip.subtext,
+                                display: 'block',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              Password not set up yet
+                            </Typography>
+                          ) : null}
                         </TableCell>
                         <TableCell
                           sx={{
@@ -1368,13 +1432,8 @@ const SchoolAdminStudentsPage: React.FC = () => {
                         >
                           <Chip
                             size="small"
-                            label="Registered"
-                            sx={{
-                              fontWeight: 600,
-                              bgcolor: 'rgba(34, 197, 94, 0.14)',
-                              color: '#166534',
-                              border: '1px solid rgba(34, 197, 94, 0.4)',
-                            }}
+                            label={r.passwordSetupComplete ? 'Registered' : 'Invited'}
+                            sx={r.passwordSetupComplete ? REGISTERED_CHIP_SX : INVITED_CHIP_SX}
                           />
                         </TableCell>
                         <TableCell
@@ -1469,7 +1528,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
                               whiteSpace: 'nowrap',
                             }}
                           >
-                            {r.status === 'revoked' ? 'Invitation revoked' : 'Invited - not registered yet'}
+                            {r.status === 'revoked' ? 'Invitation revoked' : 'Account not created yet'}
                           </Typography>
                         </TableCell>
                         <TableCell
@@ -1481,21 +1540,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
                           <Chip
                             size="small"
                             label={r.status === 'revoked' ? 'Revoked' : 'Invited'}
-                            sx={
-                              r.status === 'revoked'
-                                ? {
-                                    fontWeight: 600,
-                                    bgcolor: '#f1f5f9',
-                                    color: '#475569',
-                                    border: '1px solid #cbd5e1',
-                                  }
-                                : {
-                                    fontWeight: 600,
-                                    bgcolor: 'rgba(245, 158, 11, 0.14)',
-                                    color: '#9a3412',
-                                    border: '1px solid rgba(245, 158, 11, 0.45)',
-                                  }
-                            }
+                            sx={r.status === 'revoked' ? REVOKED_CHIP_SX : INVITED_CHIP_SX}
                           />
                         </TableCell>
                         <TableCell

@@ -34,10 +34,11 @@ import {
   Close as CloseIcon,
   People as PeopleIcon,
   CheckCircleOutline as ActiveIcon,
-  HourglassEmpty as PendingIcon,
   School as SchoolIcon,
-  HowToReg as OnRosterIcon,
   Payments as SelfPaidIcon,
+  TrendingUp as UpgradeIcon,
+  PersonOff as OthersIcon,
+  MarkEmailUnread as PendingInviteIcon,
   Visibility as ViewIcon,
   CardGiftcard as ComplimentaryIcon,
 } from '@mui/icons-material';
@@ -46,7 +47,6 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
   createPlatformAdminComplimentaryInvite,
-  formatDate,
   getPlatformAdminStudentStats,
   listPlatformAdminSchools,
   listPlatformAdminStudents,
@@ -90,10 +90,17 @@ import { MEMBERSHIP_LEVEL_LABEL } from '../../utils/studentMembershipPricing';
 type StatusFilter = 'all' | 'approved' | 'pending';
 type RosterFilter = 'all' | 'yes' | 'no';
 type SetupFilter = 'all' | 'complete' | 'incomplete';
-type PaymentFilter = 'all' | 'self_paid';
+type PaymentFilter = 'all' | 'self_paid' | 'membership_upgrade';
+type AccountFilter = 'all' | 'registered' | 'invite';
 type GradeFilter = 'all' | '6' | '7' | '8' | '9' | '10' | '11' | '12';
 type MembershipFilter = 'all' | '1' | '2' | '3' | '3_plus';
-type StudentStatFilter = 'total' | 'on_roster' | 'active' | 'pending' | 'self_paid';
+type StudentStatFilter =
+  | 'total'
+  | 'active'
+  | 'self_paid'
+  | 'membership_upgrade'
+  | 'roster_pending'
+  | 'others';
 
 const ALL_SCHOOLS_VALUE = '__all__';
 /** Must match the backend's NO_SCHOOL_FILTER_VALUE sentinel in platformAdminCollection/index.ts. */
@@ -109,8 +116,14 @@ const STATUS_LABELS: Record<StatusFilter, string> = {
 
 const ROSTER_LABELS: Record<RosterFilter, string> = {
   all: 'All roster',
-  yes: 'Has school',
-  no: 'No school',
+  yes: 'Linked to a school',
+  no: 'Not linked to a school',
+};
+
+/** Compact closed-select labels; menu + filter chips keep ROSTER_LABELS. */
+const ROSTER_VALUE_LABELS: Partial<Record<RosterFilter, string>> = {
+  yes: 'Linked',
+  no: 'Not linked',
 };
 
 const SETUP_LABELS: Record<SetupFilter, string> = {
@@ -122,6 +135,13 @@ const SETUP_LABELS: Record<SetupFilter, string> = {
 const PAYMENT_LABELS: Record<PaymentFilter, string> = {
   all: 'All payments',
   self_paid: 'Self-paid',
+  membership_upgrade: 'Membership upgrade',
+};
+
+const ACCOUNT_LABELS: Record<AccountFilter, string> = {
+  all: 'All accounts',
+  registered: 'Has account',
+  invite: 'Invite only',
 };
 
 const GRADE_LABELS: Record<GradeFilter, string> = {
@@ -155,19 +175,23 @@ function parseInitialSchoolSelection(raw: string | null): {
 
 const PLATFORM_STUDENTS_VIRTUOSO_HEIGHT = 560;
 
-/** Fixed % widths so TableVirtuoso rows don't reflow columns as rows virtualize in/out. */
+/**
+ * Fixed % widths so TableVirtuoso rows don't reflow columns as rows virtualize in/out.
+ * The joined date lives on the student detail page only, which leaves Status enough room to show
+ * labels like "Payment incomplete" without clipping.
+ */
 const STUDENT_COL = {
-  name: { width: '14%', minWidth: 110 },
-  email: { width: '16%', minWidth: 150 },
-  school: { width: '16%', minWidth: 130 },
+  name: { width: '15%', minWidth: 120 },
+  email: { width: '18%', minWidth: 160 },
+  school: { width: '17%', minWidth: 140 },
   grade: { width: '6%', minWidth: 56 },
-  membership: { width: '9%', minWidth: 80 },
-  coins: { width: '8%', minWidth: 72 },
-  status: { width: '11%', minWidth: 100 },
-  joined: { width: '10%', minWidth: 90 },
-  actions: { width: '10%', minWidth: 100 },
+  membership: { width: '9%', minWidth: 84 },
+  coins: { width: '7%', minWidth: 68 },
+  status: { width: '17%', minWidth: 150 },
+  actions: { width: '11%', minWidth: 104 },
 } as const;
 
+/** `joined` has no column header; it stays the default order (newest accounts first). */
 type StudentSortKey = 'coins' | 'joined' | 'name';
 type StudentSortDir = 'asc' | 'desc';
 
@@ -228,6 +252,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
   const initialRoster = (searchParams.get('roster') as RosterFilter) || 'all';
   const initialSetup = (searchParams.get('setup') as SetupFilter) || 'all';
   const initialPayment = (searchParams.get('payment') as PaymentFilter) || 'all';
+  const initialAccount = (searchParams.get('account') as AccountFilter) || 'all';
   const initialGrade = (searchParams.get('grade') as GradeFilter) || 'all';
   const initialMembership = (searchParams.get('membership') as MembershipFilter) || 'all';
   const initialSchool = parseInitialSchoolSelection(searchParams.get('schools'));
@@ -238,6 +263,8 @@ const PlatformAdminStudentsPage: React.FC = () => {
   const [selectedSchoolIds, setSelectedSchoolIds] = useState<string[]>(initialSchool.selectedSchoolIds);
 
   const [students, setStudents] = useState<PlatformAdminStudentRow[]>([]);
+  /** Matches platform-wide; larger than `students.length` when the page limit clips the result. */
+  const [totalMatching, setTotalMatching] = useState(0);
   const [stats, setStats] = useState<PlatformAdminStudentStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -254,7 +281,10 @@ const PlatformAdminStudentsPage: React.FC = () => {
     ['all', 'complete', 'incomplete'].includes(initialSetup) ? initialSetup : 'all'
   );
   const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>(
-    ['all', 'self_paid'].includes(initialPayment) ? initialPayment : 'all'
+    ['all', 'self_paid', 'membership_upgrade'].includes(initialPayment) ? initialPayment : 'all'
+  );
+  const [accountFilter, setAccountFilter] = useState<AccountFilter>(
+    ['all', 'registered', 'invite'].includes(initialAccount) ? initialAccount : 'all'
   );
   const [gradeFilter, setGradeFilter] = useState<GradeFilter>(
     Object.keys(GRADE_LABELS).includes(initialGrade) ? initialGrade : 'all'
@@ -298,6 +328,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
     rosterFilter !== 'all' ||
     setupFilter !== 'all' ||
     paymentFilter !== 'all' ||
+    accountFilter !== 'all' ||
     gradeFilter !== 'all' ||
     membershipFilter !== 'all' ||
     search.trim().length > 0;
@@ -308,6 +339,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
     setRosterFilter('all');
     setSetupFilter('all');
     setPaymentFilter('all');
+    setAccountFilter('all');
     setGradeFilter('all');
     setMembershipFilter('all');
   };
@@ -322,19 +354,52 @@ const PlatformAdminStudentsPage: React.FC = () => {
     if (statusFilter !== 'all' || gradeFilter !== 'all' || membershipFilter !== 'all' || search.trim()) {
       return null;
     }
-    if (paymentFilter === 'self_paid' && rosterFilter === 'all' && setupFilter === 'all') {
+    if (
+      paymentFilter === 'self_paid' &&
+      setupFilter === 'all' &&
+      rosterFilter === 'all' &&
+      accountFilter === 'registered'
+    ) {
       return 'self_paid';
     }
-    if (rosterFilter === 'yes' && setupFilter === 'complete' && paymentFilter === 'all') {
+    if (
+      paymentFilter === 'membership_upgrade' &&
+      setupFilter === 'all' &&
+      rosterFilter === 'all' &&
+      accountFilter === 'registered'
+    ) {
+      return 'membership_upgrade';
+    }
+    if (
+      rosterFilter === 'yes' &&
+      setupFilter === 'complete' &&
+      paymentFilter === 'all' &&
+      accountFilter === 'registered'
+    ) {
       return 'active';
     }
-    if (rosterFilter === 'yes' && setupFilter === 'incomplete' && paymentFilter === 'all') {
-      return 'pending';
+    if (
+      rosterFilter === 'yes' &&
+      setupFilter === 'incomplete' &&
+      paymentFilter === 'all' &&
+      accountFilter === 'all'
+    ) {
+      return 'roster_pending';
     }
-    if (rosterFilter === 'yes' && setupFilter === 'all' && paymentFilter === 'all') {
-      return 'on_roster';
+    if (
+      rosterFilter === 'no' &&
+      setupFilter === 'incomplete' &&
+      paymentFilter === 'all' &&
+      accountFilter === 'registered'
+    ) {
+      return 'others';
     }
-    if (rosterFilter === 'all' && setupFilter === 'all' && paymentFilter === 'all') {
+    if (
+      rosterFilter === 'all' &&
+      setupFilter === 'complete' &&
+      paymentFilter === 'all' &&
+      accountFilter === 'registered'
+    ) {
       return 'total';
     }
     return null;
@@ -347,6 +412,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
     paymentFilter,
     rosterFilter,
     setupFilter,
+    accountFilter,
   ]);
 
   const applyStatFilter = (stat: StudentStatFilter) => {
@@ -363,28 +429,39 @@ const PlatformAdminStudentsPage: React.FC = () => {
     switch (stat) {
       case 'total':
         setRosterFilter('all');
-        setSetupFilter('all');
+        setSetupFilter('complete');
         setPaymentFilter('all');
-        break;
-      case 'on_roster':
-        setRosterFilter('yes');
-        setSetupFilter('all');
-        setPaymentFilter('all');
+        setAccountFilter('registered');
         break;
       case 'active':
         setRosterFilter('yes');
         setSetupFilter('complete');
         setPaymentFilter('all');
-        break;
-      case 'pending':
-        setRosterFilter('yes');
-        setSetupFilter('incomplete');
-        setPaymentFilter('all');
+        setAccountFilter('registered');
         break;
       case 'self_paid':
         setRosterFilter('all');
         setSetupFilter('all');
         setPaymentFilter('self_paid');
+        setAccountFilter('registered');
+        break;
+      case 'membership_upgrade':
+        setRosterFilter('all');
+        setSetupFilter('all');
+        setPaymentFilter('membership_upgrade');
+        setAccountFilter('registered');
+        break;
+      case 'roster_pending':
+        setRosterFilter('yes');
+        setSetupFilter('incomplete');
+        setPaymentFilter('all');
+        setAccountFilter('all');
+        break;
+      case 'others':
+        setRosterFilter('no');
+        setSetupFilter('incomplete');
+        setPaymentFilter('all');
+        setAccountFilter('registered');
         break;
       default:
         break;
@@ -491,6 +568,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
     if (rosterFilter !== 'all') params.set('roster', rosterFilter);
     if (setupFilter !== 'all') params.set('setup', setupFilter);
     if (paymentFilter !== 'all') params.set('payment', paymentFilter);
+    if (accountFilter !== 'all') params.set('account', accountFilter);
     if (gradeFilter !== 'all') params.set('grade', gradeFilter);
     if (membershipFilter !== 'all') params.set('membership', membershipFilter);
     setSearchParams(params, { replace: true });
@@ -501,6 +579,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
     rosterFilter,
     setupFilter,
     paymentFilter,
+    accountFilter,
     gradeFilter,
     membershipFilter,
     setSearchParams,
@@ -509,6 +588,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
   const load = useCallback(async () => {
     if (!canLoadStudents) {
       setStudents([]);
+      setTotalMatching(0);
       setLoading(false);
       setError(null);
       return;
@@ -526,13 +606,17 @@ const PlatformAdminStudentsPage: React.FC = () => {
         roster: rosterFilter === 'all' ? undefined : rosterFilter,
         setup: setupFilter === 'all' ? undefined : setupFilter,
         payment: paymentFilter === 'all' ? undefined : paymentFilter,
+        account: accountFilter === 'all' ? undefined : accountFilter,
         grade: gradeFilter === 'all' ? undefined : gradeFilter,
         membership: membershipFilter === 'all' ? undefined : membershipFilter,
         school_ids,
         limit: 500,
       });
-      setStudents(studentData);
+      setStudents(studentData.students);
+      setTotalMatching(studentData.totalMatching);
     } catch {
+      setStudents([]);
+      setTotalMatching(0);
       setError('Failed to load students.');
     } finally {
       setLoading(false);
@@ -544,6 +628,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
     rosterFilter,
     setupFilter,
     paymentFilter,
+    accountFilter,
     gradeFilter,
     membershipFilter,
     allSchoolsSelected,
@@ -581,20 +666,25 @@ const PlatformAdminStudentsPage: React.FC = () => {
   };
 
   const activeFilterChips = useMemo(() => {
+    // Chips are prefixed with the filter they came from - several filters share school wording
+    // ("All schools" scope vs "Not linked to a school" roster), which reads as a contradiction
+    // once the chips sit side by side.
     const chips: { key: string; label: string; onDelete: () => void }[] = [];
     if (allSchoolsSelected) {
-      chips.push({ key: 'schools', label: 'All schools', onDelete: clearSchoolSelection });
+      chips.push({ key: 'schools', label: 'School: All schools', onDelete: clearSchoolSelection });
     } else if (selectedSchoolIds.length === 1) {
       const id = selectedSchoolIds[0];
       chips.push({
         key: 'schools',
-        label: id === NO_SCHOOL_FILTER_VALUE ? 'No specific school' : schoolNameById.get(id) || id,
+        label: `School: ${
+          id === NO_SCHOOL_FILTER_VALUE ? 'No specific school' : schoolNameById.get(id) || id
+        }`,
         onDelete: clearSchoolSelection,
       });
     } else if (selectedSchoolIds.length > 1) {
       chips.push({
         key: 'schools',
-        label: `${selectedSchoolIds.length} schools`,
+        label: `School: ${selectedSchoolIds.length} schools`,
         onDelete: clearSchoolSelection,
       });
     }
@@ -602,16 +692,31 @@ const PlatformAdminStudentsPage: React.FC = () => {
       chips.push({ key: 'status', label: STATUS_LABELS[statusFilter], onDelete: () => setStatusFilter('all') });
     }
     if (rosterFilter !== 'all') {
-      chips.push({ key: 'roster', label: ROSTER_LABELS[rosterFilter], onDelete: () => setRosterFilter('all') });
+      chips.push({
+        key: 'roster',
+        label: `Roster: ${ROSTER_LABELS[rosterFilter]}`,
+        onDelete: () => setRosterFilter('all'),
+      });
     }
     if (setupFilter !== 'all') {
-      chips.push({ key: 'setup', label: SETUP_LABELS[setupFilter], onDelete: () => setSetupFilter('all') });
+      chips.push({
+        key: 'setup',
+        label: `Setup: ${SETUP_LABELS[setupFilter]}`,
+        onDelete: () => setSetupFilter('all'),
+      });
     }
     if (paymentFilter !== 'all') {
       chips.push({
         key: 'payment',
-        label: PAYMENT_LABELS[paymentFilter],
+        label: `Payment: ${PAYMENT_LABELS[paymentFilter]}`,
         onDelete: () => setPaymentFilter('all'),
+      });
+    }
+    if (accountFilter !== 'all') {
+      chips.push({
+        key: 'account',
+        label: ACCOUNT_LABELS[accountFilter],
+        onDelete: () => setAccountFilter('all'),
       });
     }
     if (gradeFilter !== 'all') {
@@ -620,7 +725,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
     if (membershipFilter !== 'all') {
       chips.push({
         key: 'membership',
-        label: MEMBERSHIP_LABELS[membershipFilter],
+        label: `Membership: ${MEMBERSHIP_LABELS[membershipFilter]}`,
         onDelete: () => setMembershipFilter('all'),
       });
     }
@@ -636,12 +741,13 @@ const PlatformAdminStudentsPage: React.FC = () => {
     rosterFilter,
     setupFilter,
     paymentFilter,
+    accountFilter,
     gradeFilter,
     membershipFilter,
     search,
   ]);
 
-  const tableColSpan = isSuperAdmin ? 9 : 8;
+  const tableColSpan = isSuperAdmin ? 8 : 7;
 
   const sortedStudents = useMemo(() => {
     const rows = [...students];
@@ -675,7 +781,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
     <Box sx={platformAdminPageContainerSx}>
       <PlatformAdminPageHeader
         title="Students"
-        subtitle="School invite lists and registered accounts. Active + Pending = On roster."
+        subtitle="Total = accounts with password set. Self-paid = individual signup. Upgrades = membership upgrade payers. Roster pending + Others cover incomplete setup."
         action={
           isSuperAdmin ? (
             <Button
@@ -713,54 +819,68 @@ const PlatformAdminStudentsPage: React.FC = () => {
             xs: '1fr 1fr',
             sm: 'repeat(2, 1fr)',
             md: 'repeat(3, 1fr)',
-            lg: 'repeat(5, 1fr)',
+            lg: 'repeat(3, 1fr)',
+            xl: 'repeat(6, 1fr)',
           },
         }}
       >
         <PlatformAdminStatCard
-          title="Total accounts"
+          title="Total"
           value={stats?.students_total ?? '-'}
-          subtitle="All accounts"
+          subtitle="Account + password set"
           icon={<PeopleIcon sx={{ fontSize: 22 }} />}
           accent={ip.statBlue}
           selected={activeStatFilter === 'total'}
           onClick={() => applyStatFilter('total')}
         />
         <PlatformAdminStatCard
-          title="On roster"
-          value={stats?.students_on_roster ?? '-'}
-          subtitle="Linked to a school"
-          icon={<OnRosterIcon sx={{ fontSize: 22 }} />}
-          accent={ip.statBlue}
-          selected={activeStatFilter === 'on_roster'}
-          onClick={() => applyStatFilter('on_roster')}
-        />
-        <PlatformAdminStatCard
           title="Active"
           value={stats?.students_active ?? '-'}
-          subtitle="Password set"
+          subtitle="School roster · setup done"
           icon={<ActiveIcon sx={{ fontSize: 22 }} />}
           accent={ip.approveGreen}
           selected={activeStatFilter === 'active'}
           onClick={() => applyStatFilter('active')}
         />
         <PlatformAdminStatCard
-          title="Pending"
-          value={stats?.students_pending ?? '-'}
-          subtitle="No password yet"
-          icon={<PendingIcon sx={{ fontSize: 22 }} />}
-          accent="#D97706"
-          selected={activeStatFilter === 'pending'}
-          onClick={() => applyStatFilter('pending')}
-        />
-        <PlatformAdminStatCard
           title="Self-paid"
           value={stats?.students_self_paid ?? '-'}
-          subtitle="Paid themselves"
+          subtitle={
+            stats
+              ? `${stats.students_self_paid_setup ?? 0} setup · ${stats.students_self_paid_pending ?? 0} no password`
+              : 'Paid signup themselves'
+          }
           icon={<SelfPaidIcon sx={{ fontSize: 22 }} />}
           accent={ip.navy}
           selected={activeStatFilter === 'self_paid'}
           onClick={() => applyStatFilter('self_paid')}
+        />
+        <PlatformAdminStatCard
+          title="Upgrades"
+          value={stats?.students_membership_upgrade ?? '-'}
+          subtitle="Membership upgrade paid"
+          icon={<UpgradeIcon sx={{ fontSize: 22 }} />}
+          accent="#7C3AED"
+          selected={activeStatFilter === 'membership_upgrade'}
+          onClick={() => applyStatFilter('membership_upgrade')}
+        />
+        <PlatformAdminStatCard
+          title="Roster pending"
+          value={stats?.students_roster_pending ?? '-'}
+          subtitle="On roster · no account/password"
+          icon={<PendingInviteIcon sx={{ fontSize: 22 }} />}
+          accent="#B45309"
+          selected={activeStatFilter === 'roster_pending'}
+          onClick={() => applyStatFilter('roster_pending')}
+        />
+        <PlatformAdminStatCard
+          title="Others"
+          value={stats?.students_others ?? '-'}
+          subtitle="No school · password pending"
+          icon={<OthersIcon sx={{ fontSize: 22 }} />}
+          accent={ip.statBlue}
+          selected={activeStatFilter === 'others'}
+          onClick={() => applyStatFilter('others')}
         />
       </Box>
 
@@ -913,7 +1033,8 @@ const PlatformAdminStudentsPage: React.FC = () => {
               label="Roster"
               value={rosterFilter}
               labels={ROSTER_LABELS}
-              minWidth={140}
+              valueLabels={ROSTER_VALUE_LABELS}
+              minWidth={120}
               onChange={handleRosterFilterChange}
             />
             <PlatformAdminFilterControl
@@ -994,7 +1115,11 @@ const PlatformAdminStudentsPage: React.FC = () => {
         </Box>
       ) : (
         <PlatformAdminTableSection
-          countLabel={`Showing ${sortedStudents.length} student${sortedStudents.length === 1 ? '' : 's'}`}
+          countLabel={
+            totalMatching > sortedStudents.length
+              ? `Showing ${sortedStudents.length} of ${totalMatching} matching students`
+              : `Showing ${sortedStudents.length} student${sortedStudents.length === 1 ? '' : 's'}`
+          }
         >
           {sortedStudents.length === 0 ? (
             <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
@@ -1027,15 +1152,6 @@ const PlatformAdminStudentsPage: React.FC = () => {
                       </TableSortLabel>
                     </TableCell>
                     <TableCell sx={studentColSx('status')}>Status</TableCell>
-                    <TableCell sx={studentColSx('joined')}>
-                      <TableSortLabel
-                        active={sortKey === 'joined'}
-                        direction={sortKey === 'joined' ? sortDir : 'desc'}
-                        onClick={() => toggleSort('joined')}
-                      >
-                        Joined
-                      </TableSortLabel>
-                    </TableCell>
                     {isSuperAdmin && (
                       <TableCell align="right" sx={studentColSx('actions')}>
                         Actions
@@ -1082,15 +1198,6 @@ const PlatformAdminStudentsPage: React.FC = () => {
                     </TableSortLabel>
                   </TableCell>
                   <TableCell sx={studentColSx('status')}>Status</TableCell>
-                  <TableCell sx={studentColSx('joined')}>
-                    <TableSortLabel
-                      active={sortKey === 'joined'}
-                      direction={sortKey === 'joined' ? sortDir : 'desc'}
-                      onClick={() => toggleSort('joined')}
-                    >
-                      Joined
-                    </TableSortLabel>
-                  </TableCell>
                   {isSuperAdmin && (
                     <TableCell align="right" sx={studentColSx('actions')}>
                       Actions
@@ -1153,18 +1260,20 @@ const PlatformAdminStudentsPage: React.FC = () => {
                             {student.school_name}
                           </Typography>
                         </Tooltip>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: ip.subtext,
-                            display: 'block',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {student.school_id}
-                        </Typography>
+                        {student.school_id && student.school_id !== NOT_LISTED_SCHOOL_ID ? (
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: ip.subtext,
+                              display: 'block',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {student.school_id}
+                          </Typography>
+                        ) : null}
                       </>
                     ) : (
                       <Typography
@@ -1194,7 +1303,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
                   >
                     {typeof student.argus_coins === 'number' ? student.argus_coins.toLocaleString() : '0'}
                   </TableCell>
-                  <TableCell sx={studentColSx('status')}>
+                  <TableCell sx={studentColSx('status', { whiteSpace: 'nowrap' })}>
                     {student.is_invite ? (
                       <PlatformAdminChip label="Invited" tone="warning" />
                     ) : student.approval_status ? (
@@ -1215,12 +1324,9 @@ const PlatformAdminStudentsPage: React.FC = () => {
                       ' - '
                     )}
                   </TableCell>
-                  <TableCell sx={studentColSx('joined', { color: ip.subtext, whiteSpace: 'nowrap' })}>
-                    {formatDate(student.created_at)}
-                  </TableCell>
                   {isSuperAdmin && (
                     <TableCell align="right" sx={studentColSx('actions', { whiteSpace: 'nowrap' })}>
-                      {student.is_invite ? (
+                      {student.is_invite && student.uid.startsWith('invite:') ? (
                         <Button
                           size="small"
                           disabled={revokeBusyEmail === student.email}
@@ -1229,6 +1335,10 @@ const PlatformAdminStudentsPage: React.FC = () => {
                         >
                           {revokeBusyEmail === student.email ? 'Revoking…' : 'Revoke invite'}
                         </Button>
+                      ) : student.is_invite ? (
+                        <Typography variant="caption" sx={{ color: ip.subtext }}>
+                          School invite
+                        </Typography>
                       ) : (
                         <Button
                           size="small"

@@ -20,7 +20,7 @@ const PAYMENTS_STALE_MS = 5 * 60_000;
 const STUDENT_ASSESSMENTS_STALE_MS = 60_000;
 const SCHOOL_ADMIN_SUMMARY_STALE_MS = 60_000;
 const SCHOOL_ADMIN_ROSTER_STALE_MS = 60_000;
-/** Coins boards refresh once/day server-side — keep client cache warm for most of a day. */
+/** Coins boards refresh once/day server-side - keep client cache warm for most of a day. */
 const COINS_LEADERBOARD_STALE_MS = 12 * 60 * 60_000;
 
 export function useStudent(uid: string | undefined, enabled = true) {

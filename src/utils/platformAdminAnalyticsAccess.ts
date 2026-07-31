@@ -1,4 +1,4 @@
-/** Platform usage Analytics — only these platform admins (not all members). */
+/** Platform usage Analytics - only these platform admins (not all members). */
 export const PLATFORM_ADMIN_ANALYTICS_EMAILS = new Set([
   'srishti@argus.ai',
   'michael@argus.ai',

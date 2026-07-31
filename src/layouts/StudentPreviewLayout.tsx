@@ -33,7 +33,7 @@ import {
   BarChart as BarChartIcon,
   EmojiEvents as EmojiEventsIcon,
   Quiz as QuizIcon,
-  HelpOutline as HelpOutlineIcon,
+  ErrorOutline as ErrorOutlineIcon,
   Lightbulb as LightbulbIcon,
   Storefront as StorefrontIcon,
 } from '@mui/icons-material';
@@ -145,10 +145,10 @@ export default function StudentPreviewLayout() {
         }}
       >
         <ListItemIcon sx={{ minWidth: 40, color: HOW_GYS_NAV_COLOR }}>
-          <HelpOutlineIcon sx={iconSx} />
+          <ErrorOutlineIcon sx={iconSx} />
         </ListItemIcon>
         <ListItemText
-          primary="How GYS Works"
+          primary="Please Read"
           slotProps={{
             primary: {
               fontWeight: isActive('/students/preview/how-it-works') ? 600 : 500,

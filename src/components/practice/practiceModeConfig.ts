@@ -3,20 +3,25 @@ import {
   ASSESSMENT_NAMES,
   ASSESSMENT_ORDER,
   NON_LEVEL_ASSESSMENT_IDS,
+  computeGate,
   type AssessmentProgress,
   type GateResult,
 } from '../../utils/assessmentGating';
 
-/**
- * Legacy shape kept for call sites that still build dashboard-style gate inputs.
- * Practice unlock no longer mirrors official membership/prerequisites — only the
- * reasoning triad (interactive practice bank) is open; exams 4+ stay locked.
- */
+/** Same inputs as dashboard {@link computeGate} - membership + official prerequisites. */
 export interface PracticeAssessmentGateInput {
   membershipLevel: number;
   grade: number;
   assessments: AssessmentType[];
   progress: Record<string, AssessmentProgress>;
+}
+
+export function practiceExamGate(examId: string, gate: PracticeAssessmentGateInput): GateResult {
+  return computeGate(examId, gate.membershipLevel, gate.progress, gate.grade, gate.assessments);
+}
+
+export function practiceExamIsUnlocked(examId: string, gate: PracticeAssessmentGateInput): boolean {
+  return !practiceExamGate(examId, gate).locked;
 }
 
 /** Competitive exams with skill-based practice pools (excludes profile/pathway instruments). */
@@ -41,31 +46,25 @@ export function isInteractivePracticeExam(examId: string): boolean {
   return INTERACTIVE_PRACTICE_EXAM_SET.has(examId);
 }
 
-/** Practice availability is bank-driven, not official exam gating. */
-export function practiceExamGate(examId: string, _gate?: PracticeAssessmentGateInput): GateResult {
-  if (isInteractivePracticeExam(examId)) {
-    return { locked: false, reason: null };
-  }
-  return { locked: true, reason: null };
-}
-
-export function practiceExamIsUnlocked(
-  examId: string,
-  _gate?: PracticeAssessmentGateInput
-): boolean {
-  return isInteractivePracticeExam(examId);
-}
-
 /** First practice-eligible exam the student may access (same order as Step 1 cards). */
-export function firstUnlockedPracticeEligibleExamId(
-  _gate?: PracticeAssessmentGateInput | undefined
-): string {
-  return INTERACTIVE_PRACTICE_EXAM_IDS[0];
+export function firstUnlockedPracticeEligibleExamId(gate: PracticeAssessmentGateInput | undefined): string {
+  if (!gate) return PRACTICE_ELIGIBLE_EXAM_IDS[0];
+  for (const id of PRACTICE_ELIGIBLE_EXAM_IDS) {
+    if (practiceExamIsUnlocked(id, gate)) return id;
+  }
+  return PRACTICE_ELIGIBLE_EXAM_IDS[0];
 }
 
 export function practiceExamLockedTooltip(gateResult: GateResult): string {
   if (!gateResult.locked) return '';
-  return 'Practice for this exam is not available yet — coming soon.';
+  if (gateResult.reason === 'membership') {
+    return 'Upgrade your programme tier to unlock practice for this exam.';
+  }
+  if (gateResult.reason === 'prerequisite' && gateResult.missingPrerequisite) {
+    const name = ASSESSMENT_NAMES[gateResult.missingPrerequisite] ?? gateResult.missingPrerequisite;
+    return `Finish the official unlock path through ${name} before you can practice here.`;
+  }
+  return 'This exam is not available for practice yet.';
 }
 
 export type PracticeLevel = 1 | 2 | 3;
@@ -100,15 +99,24 @@ export function recommendedLevelLabel(level: PracticeLevel): string {
 }
 
 /**
- * Highest practice difficulty available for an exam.
- * Reasoning triad practice is always fully open (levels 1–3); other exams stay locked in the UI.
- * Args are unused — kept so existing call sites compile without churn.
+ * Highest practice difficulty this student may use for an exam, based on official tier unlocks.
+ * `proficiency_tier` is 1-based (which official level is in focus). If you have advanced to
+ * official level 2, you may practice at levels 1 and 2. After all official tiers are complete
+ * (proficiency_tier greater than the number of official tiers), all three practice levels unlock.
  */
 export function maxUnlockedPracticeLevel(
-  _progress?: Partial<Pick<AssessmentProgress, 'proficiency_tier'>> | null,
-  _totalOfficialTiers?: number
+  progress: Partial<Pick<AssessmentProgress, 'proficiency_tier'>> | null | undefined,
+  totalOfficialTiers: number
 ): PracticeLevel {
-  return 3;
+  const pt =
+    typeof progress?.proficiency_tier === 'number' && !Number.isNaN(progress.proficiency_tier)
+      ? progress.proficiency_tier
+      : 1;
+  const capTiers = totalOfficialTiers > 0 ? totalOfficialTiers : 3;
+  if (pt > capTiers) {
+    return 3;
+  }
+  return Math.min(3, Math.max(1, pt)) as PracticeLevel;
 }
 
 // ─── Local persistence (until practice API exists) ─────────────────────────────
@@ -186,23 +194,38 @@ export function saveLastPracticeSelection(scope: string, selection: PracticeHubS
 
 export function isValidPracticeHubSelection(
   selection: PracticeHubSelection,
-  gate?: PracticeAssessmentGateInput | undefined,
-  _progressByExam?: Record<string, AssessmentProgress | { proficiency_tier?: number }>,
-  _officialTierCountByExam?: Record<string, number>
+  gate: PracticeAssessmentGateInput | undefined,
+  progressByExam: Record<string, AssessmentProgress | { proficiency_tier?: number }> | undefined,
+  officialTierCountByExam: Record<string, number> | undefined
 ): boolean {
   if (!(PRACTICE_ELIGIBLE_EXAM_IDS as readonly string[]).includes(selection.examId)) return false;
-  if (!practiceExamIsUnlocked(selection.examId, gate)) return false;
-  return selection.level >= 1 && selection.level <= 3;
+  if (gate && !practiceExamIsUnlocked(selection.examId, gate)) return false;
+  const maxLevel =
+    progressByExam != null
+      ? maxUnlockedPracticeLevel(
+          progressByExam[selection.examId],
+          officialTierCountByExam?.[selection.examId] ?? 3
+        )
+      : 1;
+  return selection.level >= 1 && selection.level <= maxLevel;
 }
 
 export function defaultPracticeHubSelection(
   gate: PracticeAssessmentGateInput | undefined,
   grade: number,
-  _progressByExam?: Record<string, AssessmentProgress | { proficiency_tier?: number }>,
-  _officialTierCountByExam?: Record<string, number>
+  progressByExam?: Record<string, AssessmentProgress | { proficiency_tier?: number }>,
+  officialTierCountByExam?: Record<string, number>
 ): PracticeHubSelection {
   const examId = firstUnlockedPracticeEligibleExamId(gate);
-  return { examId, level: recommendedPracticeLevel(grade) };
+  const max0 =
+    progressByExam != null
+      ? maxUnlockedPracticeLevel(
+          progressByExam[examId],
+          officialTierCountByExam?.[examId] ?? 3
+        )
+      : 1;
+  const level = Math.min(recommendedPracticeLevel(grade), max0) as PracticeLevel;
+  return { examId, level };
 }
 
 /** Prefer navigation state, then persisted hub selection, then program defaults. */

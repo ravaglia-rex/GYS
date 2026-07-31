@@ -267,7 +267,7 @@ const PlatformAdminAdminsPage: React.FC = () => {
         <Typography sx={{ color: ip.subtext, fontSize: '0.9rem' }}>
           {activeCount} active admin{activeCount === 1 ? '' : 's'}
           {admins.length > activeCount ? ` · ${admins.length - activeCount} deactivated` : ''}
-          . Member admins can view Overview, Schools, Students, and Rewards. Only you can run
+          . Member admins can view Schools, Students, and Rewards. Only you can run
           pipelines, billing actions, deletes, complimentary invites, and this page. Last active
           updates when they use the portal (even if they never log out).
         </Typography>
