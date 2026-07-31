@@ -108,7 +108,14 @@ const Dashboard: React.FC = () => {
           assessmentName: a.name?.trim() || ASSESSMENT_NAMES[a.id] || a.id,
         });
       }
-      if (!gate.locked && !isAssessmentFullyComplete(a, p)) {
+      // Only treat exams as "available" when official assessments are startable.
+      // Membership gating alone would count Discovery (exam 1) for every new student
+      // even while STUDENT_OFFICIAL_ASSESSMENTS_ENABLED is false.
+      if (
+        STUDENT_OFFICIAL_ASSESSMENTS_ENABLED &&
+        !gate.locked &&
+        !isAssessmentFullyComplete(a, p)
+      ) {
         availableAssessments++;
         const hasAttemptedThisAssessment = (p.attempts_count ?? 0) > 0 || p.best_score !== null;
         const hasPrerequisite = (COMPLETION_PREREQUISITES[a.id] ?? []).length > 0;

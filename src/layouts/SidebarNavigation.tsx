@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Box,
   List,
@@ -10,7 +10,10 @@ import {
   IconButton,
   Tooltip,
   Collapse,
-  Button
+  Button,
+  Dialog,
+  DialogContent,
+  Alert,
 } from '@mui/material';
 import {
   Home as HomeIcon,
@@ -30,14 +33,24 @@ import {
   ErrorOutline as ErrorOutlineIcon,
   Lightbulb as LightbulbIcon,
   Storefront as StorefrontIcon,
+  SwapHoriz as SwitchSchoolIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { auth } from '../firebase/firebase';
 import { signOut } from 'firebase/auth';
 import authTokenHandler from '../functions/auth_token/auth_token_handler';
 import { useStudent } from '../query/hooks';
+import { queryKeys } from '../query/queryKeys';
 import { readGamificationFromStudent } from '../utils/gamification';
 import ResetTutorialsButton from '../components/tutorial/ResetTutorialsButton';
+import { isHiddenStaffStudentEmail } from '../constants/hiddenStaffStudents';
+import {
+  listSchoolsForStudentEmail,
+  setStudentActiveSchool,
+  type StudentSchoolOption,
+} from '../db/studentCollection';
+import SchoolAdminSchoolPicker from '../components/auth/SchoolAdminSchoolPicker';
 
 interface SidebarNavigationProps {
   collapsed: boolean;
@@ -82,7 +95,7 @@ const navItems: NavItem[] = [
     icon: <DashboardIcon sx={{ color: '#8b5cf6' }} />,
   },
   {
-    title: 'Please Read',
+    title: 'Very Important',
     path: '/how-it-works',
     icon: <ErrorOutlineIcon sx={{ color: HOW_GYS_NAV_COLOR }} />,
   },
@@ -131,11 +144,77 @@ const navItems: NavItem[] = [
 export default function SidebarNavigation({ collapsed, onCollapse, onClose }: SidebarNavigationProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const currentUser = auth.currentUser;
   const { data: studentData } = useStudent(currentUser?.uid, Boolean(currentUser?.uid));
   const gamification = readGamificationFromStudent(studentData as Record<string, unknown> | undefined);
-  const [openSubmenus, setOpenSubmenus] = React.useState<{ [key: string]: boolean }>({});
+  const [openSubmenus, setOpenSubmenus] = useState<{ [key: string]: boolean }>({});
+  const [multiSchoolEligible, setMultiSchoolEligible] = useState(false);
+  const [switchOpen, setSwitchOpen] = useState(false);
+  const [switchLoading, setSwitchLoading] = useState(false);
+  const [switchSchools, setSwitchSchools] = useState<StudentSchoolOption[] | null>(null);
+  const [switchError, setSwitchError] = useState<string | null>(null);
 
+  const isStaffStudent = isHiddenStaffStudentEmail(currentUser?.email);
+
+  useEffect(() => {
+    if (!isStaffStudent) {
+      setMultiSchoolEligible(false);
+      return;
+    }
+    let cancelled = false;
+    const refresh = () => {
+      void listSchoolsForStudentEmail()
+        .then((schools) => {
+          if (!cancelled) setMultiSchoolEligible(schools.length > 1);
+        })
+        .catch(() => {
+          if (!cancelled) setMultiSchoolEligible(false);
+        });
+    };
+    refresh();
+    const onFocus = () => refresh();
+    window.addEventListener('focus', onFocus);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [isStaffStudent, currentUser?.email]);
+
+  const openSwitchSchool = useCallback(async () => {
+    setSwitchError(null);
+    setSwitchLoading(true);
+    setSwitchOpen(true);
+    try {
+      const schools = await listSchoolsForStudentEmail();
+      setSwitchSchools(schools);
+      setMultiSchoolEligible(schools.length > 1);
+      if (schools.length <= 1) {
+        setSwitchError('This staff student alias is only linked to one school.');
+      }
+    } catch (e) {
+      setSwitchSchools(null);
+      setSwitchError(e instanceof Error ? e.message : 'Could not load schools.');
+    } finally {
+      setSwitchLoading(false);
+    }
+  }, []);
+
+  const confirmSwitchSchool = useCallback(
+    async (school: StudentSchoolOption) => {
+      await setStudentActiveSchool(school.schoolId);
+      const uid = currentUser?.uid;
+      if (uid) {
+        await queryClient.invalidateQueries({ queryKey: queryKeys.student(uid) });
+        await queryClient.invalidateQueries({ queryKey: queryKeys.schoolDetails(school.schoolId) });
+        await queryClient.invalidateQueries({ queryKey: queryKeys.coinsLeaderboard(uid) });
+      }
+      setSwitchOpen(false);
+      setSwitchSchools(null);
+      navigate('/dashboard', { replace: true });
+    },
+    [currentUser?.uid, navigate, queryClient]
+  );
   const handleItemClick = (path: string) => {
     if (location.pathname !== path) {
       navigate(path);
@@ -373,6 +452,29 @@ export default function SidebarNavigation({ collapsed, onCollapse, onClose }: Si
               },
             }}
           />
+          {multiSchoolEligible ? (
+            <Button
+              fullWidth
+              variant="outlined"
+              size="small"
+              startIcon={<SwitchSchoolIcon />}
+              onClick={() => void openSwitchSchool()}
+              sx={{
+                mt: 1,
+                color: 'rgba(255, 255, 255, 0.86)',
+                borderColor: 'rgba(255, 255, 255, 0.24)',
+                textTransform: 'none',
+                fontWeight: 700,
+                justifyContent: 'flex-start',
+                '&:hover': {
+                  borderColor: 'rgba(255, 255, 255, 0.45)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                },
+              }}
+            >
+              Switch school
+            </Button>
+          ) : null}
         </Box>
       )}
 
@@ -410,6 +512,54 @@ export default function SidebarNavigation({ collapsed, onCollapse, onClose }: Si
           {!collapsed && 'Logout'}
         </Button>
       </Box>
+
+      <Dialog
+        open={switchOpen}
+        onClose={() => {
+          if (!switchLoading) {
+            setSwitchOpen(false);
+            setSwitchSchools(null);
+            setSwitchError(null);
+          }
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogContent sx={{ p: 0, bgcolor: 'transparent' }}>
+          {switchLoading ? (
+            <Box sx={{ p: 4, textAlign: 'center' }}>
+              <Typography>Loading schools…</Typography>
+            </Box>
+          ) : switchError && (!switchSchools || switchSchools.length <= 1) ? (
+            <Box sx={{ p: 3 }}>
+              <Alert severity="info" sx={{ mb: 2 }}>
+                {switchError}
+              </Alert>
+              <Button fullWidth onClick={() => setSwitchOpen(false)}>
+                Close
+              </Button>
+            </Box>
+          ) : switchSchools && switchSchools.length > 1 ? (
+            <SchoolAdminSchoolPicker
+              schools={switchSchools}
+              email={currentUser?.email ?? undefined}
+              initialSchoolId={
+                typeof studentData?.school_id === 'string' ? studentData.school_id : undefined
+              }
+              title="Switch school"
+              subtitle="Choose which school dashboard to open with your staff student alias."
+              confirmLabel="Continue"
+              cancelLabel="Cancel"
+              onCancel={() => {
+                setSwitchOpen(false);
+                setSwitchSchools(null);
+                setSwitchError(null);
+              }}
+              onConfirm={(school) => void confirmSwitchSchool(school)}
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }

@@ -38,12 +38,31 @@ function apiBase(): string {
   return base;
 }
 
-async function authHeaders(): Promise<Record<string, string>> {
-  const token = await authTokenHandler.getAuthToken();
+async function authHeaders(forceRefresh = false): Promise<Record<string, string>> {
+  const token = await authTokenHandler.getAuthToken(forceRefresh);
   if (!token) {
     throw new Error('Not authenticated');
   }
   return { Authorization: `Bearer ${token}` };
+}
+
+function isAxiosUnauthorized(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'response' in error &&
+    (error as { response?: { status?: number } }).response?.status === 401
+  );
+}
+
+/** POST/GET with Bearer token; on 401, force-refresh Firebase ID token and retry once. */
+async function withAuthRetry<T>(request: (headers: Record<string, string>) => Promise<T>): Promise<T> {
+  try {
+    return await request(await authHeaders(false));
+  } catch (error) {
+    if (!isAxiosUnauthorized(error)) throw error;
+    return await request(await authHeaders(true));
+  }
 }
 
 export type PlatformAdminOverviewStats = {
@@ -437,10 +456,14 @@ export type PlatformAdminMarkSchoolPaidMethod =
   | 'neft_rtgs'
   | 'upi'
   | 'cheque'
-  | 'cash'
-  | 'already_paid'
   | 'paid_to_education_world'
   | 'other';
+
+/** Historical methods kept for display only — no longer selectable when marking paid. */
+const LEGACY_PLATFORM_ADMIN_PAYMENT_METHOD_LABELS: Record<string, string> = {
+  cash: 'Cash',
+  already_paid: 'Paid before platform signup',
+};
 
 export const PLATFORM_ADMIN_PAYMENT_METHOD_LABELS: Record<PlatformAdminMarkSchoolPaidMethod, string> = {
   wire: 'Wire transfer',
@@ -448,11 +471,17 @@ export const PLATFORM_ADMIN_PAYMENT_METHOD_LABELS: Record<PlatformAdminMarkSchoo
   neft_rtgs: 'NEFT / RTGS',
   upi: 'UPI',
   cheque: 'Cheque',
-  cash: 'Cash',
-  already_paid: 'Paid before platform signup',
   paid_to_education_world: 'Paid to Education World',
   other: 'Other',
 };
+
+export function platformAdminPaymentMethodLabel(method: string): string {
+  return (
+    PLATFORM_ADMIN_PAYMENT_METHOD_LABELS[method as PlatformAdminMarkSchoolPaidMethod] ??
+    LEGACY_PLATFORM_ADMIN_PAYMENT_METHOD_LABELS[method] ??
+    method
+  );
+}
 
 export async function markPlatformAdminSchoolPaid(
   schoolId: string,
@@ -470,11 +499,12 @@ export async function markPlatformAdminSchoolPaid(
     attach_invoice?: boolean;
   }
 ): Promise<{ paymentId: string; invoiceNumber: string; publicReference: string }> {
-  const headers = await authHeaders();
-  const res = await axios.post(
-    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_SCHOOLS}/${encodeURIComponent(schoolId)}${PLATFORM_ADMIN_MARK_SCHOOL_PAID}`,
-    body,
-    { headers }
+  const res = await withAuthRetry((headers) =>
+    axios.post(
+      `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_SCHOOLS}/${encodeURIComponent(schoolId)}${PLATFORM_ADMIN_MARK_SCHOOL_PAID}`,
+      body,
+      { headers }
+    )
   );
   return {
     paymentId: res.data.paymentId,

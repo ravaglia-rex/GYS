@@ -2,7 +2,6 @@ import React from 'react';
 import {
   Avatar,
   Box,
-  Chip,
   Paper,
   Table,
   TableBody,
@@ -30,7 +29,7 @@ import {
   WbTwilight as WbTwilightIcon,
 } from '@mui/icons-material';
 import DashboardLayout from '../../layouts/DashboardLayout';
-import { ASSESSMENT_NAMES, ASSESSMENT_ORDER, LEVEL_CLEAR_THRESHOLD_LABEL, MEMBERSHIP_LEVEL_LABELS } from '../../utils/assessmentGating';
+import { ASSESSMENT_NAMES, ASSESSMENT_ORDER, isLevelBasedAssessment, LEVEL_CLEAR_THRESHOLD_LABEL, MEMBERSHIP_LEVEL_LABELS } from '../../utils/assessmentGating';
 import { studentPageSubtitleSx, studentPageTitleSx } from '../../styles/studentTypography';
 
 const glassPanelSx = {
@@ -88,7 +87,7 @@ const SectionCard: React.FC<SectionCardProps> = ({ id, icon, title, subtitle, ch
         >
           {icon}
         </Avatar>
-        <Typography variant="h5" sx={{ color: 'white', fontWeight: 800, lineHeight: 1.15 }}>
+        <Typography variant="h5" sx={{ color: 'white', fontWeight: 800, lineHeight: 1.2, m: 0 }}>
           {title}
         </Typography>
       </Box>
@@ -98,7 +97,14 @@ const SectionCard: React.FC<SectionCardProps> = ({ id, icon, title, subtitle, ch
         </Typography>
       )}
 
-      <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'flex-start', gap: 2, minWidth: 0 }}>
+      <Box
+        sx={{
+          display: { xs: 'none', sm: 'flex' },
+          alignItems: subtitle ? 'flex-start' : 'center',
+          gap: 2,
+          minWidth: 0,
+        }}
+      >
         <Avatar
           sx={{
             width: 48,
@@ -111,7 +117,7 @@ const SectionCard: React.FC<SectionCardProps> = ({ id, icon, title, subtitle, ch
           {icon}
         </Avatar>
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography variant="h5" sx={{ color: 'white', fontWeight: 800, lineHeight: 1.15 }}>
+          <Typography variant="h5" sx={{ color: 'white', fontWeight: 800, lineHeight: 1.2, m: 0 }}>
             {title}
           </Typography>
           {subtitle && (
@@ -223,6 +229,227 @@ const achievementTierBadges = [
 
 const examOrder = ASSESSMENT_ORDER.map((id) => ASSESSMENT_NAMES[id]);
 
+const assessmentJourneyCards = [
+  { id: 'symbolic_reasoning' },
+  { id: 'verbal_reasoning' },
+  { id: 'mathematical_reasoning' },
+  { id: 'comprehensive_personality' },
+  { id: 'ai_literacy' },
+  { id: 'english_proficiency' },
+  { id: 'career_interest_inventory', unlockBadge: 'Unlocks After Completing All Assessments' },
+] as const;
+
+const journeyArrowSx = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  color: '#38bdf8',
+  fontWeight: 800,
+  fontSize: { xs: '1.25rem', sm: '1.5rem' },
+  flexShrink: 0,
+  userSelect: 'none',
+  lineHeight: 1,
+} as const;
+
+const AssessmentJourneyCardView: React.FC<{
+  card: (typeof assessmentJourneyCards)[number];
+  step: number;
+}> = ({ card, step }) => {
+  const name = ASSESSMENT_NAMES[card.id];
+  const showLevels = isLevelBasedAssessment(card.id);
+  const unlockBadge = 'unlockBadge' in card ? card.unlockBadge : undefined;
+
+  return (
+    <Box
+      sx={{
+        flex: '1 1 0',
+        minWidth: 0,
+        p: 1.75,
+        borderRadius: 3,
+        bgcolor: 'rgba(15, 23, 42, 0.72)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        boxShadow: '0 10px 25px rgba(0, 0, 0, 0.22)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 1,
+        alignSelf: 'stretch',
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+        <Avatar
+          sx={{
+            width: 28,
+            height: 28,
+            flexShrink: 0,
+            bgcolor: 'rgba(56, 189, 248, 0.16)',
+            border: '2px solid #38bdf8',
+            color: '#7dd3fc',
+            fontWeight: 900,
+            fontSize: '0.8rem',
+          }}
+        >
+          {step}
+        </Avatar>
+        <Typography
+          sx={{
+            color: 'white',
+            fontWeight: 900,
+            lineHeight: 1.25,
+            fontSize: '0.9rem',
+            wordBreak: 'break-word',
+          }}
+        >
+          {name}
+        </Typography>
+      </Box>
+
+      {showLevels ? (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.6, mt: 'auto' }}>
+          {[1, 2, 3].map((level) => (
+            <Box
+              key={level}
+              sx={{
+                bgcolor: 'rgba(51, 65, 85, 0.92)',
+                py: 0.65,
+                px: 1,
+                borderRadius: 1.5,
+                textAlign: 'center',
+                color: 'rgba(255, 255, 255, 0.88)',
+                fontWeight: 700,
+                fontSize: '0.78rem',
+              }}
+            >
+              Level {level}
+            </Box>
+          ))}
+        </Box>
+      ) : (
+        <Box
+          sx={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: 0,
+          }}
+        >
+          <Box
+            sx={{
+              width: '100%',
+              bgcolor: 'rgba(15, 118, 110, 0.85)',
+              py: 0.85,
+              px: 1.25,
+              borderRadius: 1.5,
+              textAlign: 'center',
+              color: 'white',
+              fontWeight: 800,
+              fontSize: '0.72rem',
+              lineHeight: 1.35,
+            }}
+          >
+            {unlockBadge ?? 'Single Assessment'}
+          </Box>
+        </Box>
+      )}
+    </Box>
+  );
+};
+
+const AssessmentJourneyPath: React.FC = () => {
+  const topRow = assessmentJourneyCards.slice(0, 4);
+  const bottomRow = assessmentJourneyCards.slice(4);
+
+  return (
+    <>
+      {/* Mobile: vertical path */}
+      <Box sx={{ display: { xs: 'flex', sm: 'none' }, flexDirection: 'column', gap: 1 }}>
+        {assessmentJourneyCards.map((card, index) => (
+          <React.Fragment key={card.id}>
+            <AssessmentJourneyCardView card={card} step={index + 1} />
+            {index < assessmentJourneyCards.length - 1 && (
+              <Box sx={journeyArrowSx} aria-hidden>
+                ↓
+              </Box>
+            )}
+          </React.Fragment>
+        ))}
+      </Box>
+
+      {/* Tablet / desktop: two rows with horizontal arrows only */}
+      <Box sx={{ display: { xs: 'none', sm: 'flex' }, flexDirection: 'column', gap: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'stretch', gap: 1 }}>
+          {topRow.map((card, index) => (
+            <React.Fragment key={card.id}>
+              <AssessmentJourneyCardView card={card} step={index + 1} />
+              {index < topRow.length - 1 && (
+                <Box sx={journeyArrowSx} aria-hidden>
+                  ➜
+                </Box>
+              )}
+            </React.Fragment>
+          ))}
+        </Box>
+
+        <Box sx={{ display: 'flex', alignItems: 'stretch', gap: 1, maxWidth: '75%', mx: 'auto', width: '100%' }}>
+          {bottomRow.map((card, index) => (
+            <React.Fragment key={card.id}>
+              <AssessmentJourneyCardView card={card} step={topRow.length + index + 1} />
+              {index < bottomRow.length - 1 && (
+                <Box sx={journeyArrowSx} aria-hidden>
+                  ➜
+                </Box>
+              )}
+            </React.Fragment>
+          ))}
+        </Box>
+      </Box>
+    </>
+  );
+};
+
+const expectedLevelRows = [
+  {
+    grades: '6 and 7',
+    expectedLevel: 'Level 1',
+    meaning:
+      'The Tier and national ranking are based only on Level 1 results. Higher levels are optional and do not affect the Tier.',
+  },
+  {
+    grades: '8 and 9',
+    expectedLevel: 'Level 2',
+    meaning:
+      'The Tier and national ranking are based only on Level 2 results. Other levels do not affect the Tier.',
+  },
+  {
+    grades: '10, 11 and 12',
+    expectedLevel: 'Level 3',
+    meaning:
+      'The Tier and national ranking are based only on Level 3 results. Lower levels must be completed first to unlock Level 3.',
+  },
+];
+
+const gysRoadmapStops = [
+  {
+    title: '🧩 Checkpoint 1 — Reasoning Triad',
+    items: [
+      ASSESSMENT_NAMES.symbolic_reasoning,
+      ASSESSMENT_NAMES.verbal_reasoning,
+      ASSESSMENT_NAMES.mathematical_reasoning,
+    ],
+    body: 'Complete all three at your Expected Level to earn your National Achievement Badge.',
+  },
+  {
+    title: '🤖 Checkpoint 2 — Stream Ready',
+    items: [ASSESSMENT_NAMES.comprehensive_personality, ASSESSMENT_NAMES.ai_literacy],
+    body: 'Understand yourself and build future-ready AI skills.',
+  },
+  {
+    title: '🎓 Checkpoint 3 — Career Ready',
+    items: [ASSESSMENT_NAMES.english_proficiency, ASSESSMENT_NAMES.career_interest_inventory],
+    body: 'Career Discovery unlocks after completing all assessments and helps you explore careers with AI.',
+  },
+];
+
 export const HowItWorksContent: React.FC = () => {
   return (
     <Box sx={{ maxWidth: '1200px', mx: 'auto', ...justifiedTextSx }}>
@@ -261,7 +488,7 @@ export const HowItWorksContent: React.FC = () => {
                     minWidth: 0,
                   }}
                 >
-                  Please Read
+                 How GYS Works - Very Important
                 </Typography>
               </Box>
               <Typography variant="h6" sx={{ ...studentPageSubtitleSx, display: { xs: 'block', sm: 'none' }, mt: 2, lineHeight: 1.65, ...justifiedTextSx }}>
@@ -287,7 +514,7 @@ export const HowItWorksContent: React.FC = () => {
                       ...studentPageTitleSx,
                     }}
                   >
-                    Please Read
+                    How GYS Works - Very Important
                   </Typography>
                   <Typography variant="h6" sx={{ ...studentPageSubtitleSx, lineHeight: 1.65, ...justifiedTextSx }}>
                     Think of GYS like a learning adventure map! You take exams, complete levels, unlock the next challenge,
@@ -296,22 +523,67 @@ export const HowItWorksContent: React.FC = () => {
                 </Box>
               </Box>
             </Box>
-
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 3 }}>
-              {['Exam levels', 'Achievement tiers', 'Class levels', 'Adaptive exams', 'Progress', 'Leaderboards', 'Percentiles', 'Argus Coins', 'Streaks'].map((label) => (
-                <Chip
-                  key={label}
-                  label={label}
-                  sx={{
-                    color: '#e0f2fe',
-                    bgcolor: 'rgba(14, 165, 233, 0.16)',
-                    border: '1px solid rgba(125, 211, 252, 0.35)',
-                    fontWeight: 700,
-                  }}
-                />
-              ))}
-            </Box>
           </Box>
+
+          <SectionCard
+            id="student-how-it-works-assessment-journey"
+            icon={<RocketLaunchIcon />}
+            title="Your Assessment Journey"
+            subtitle="Follow the numbered path through each assessment."
+            sx={{ mb: 3 }}
+          >
+            <AssessmentJourneyPath />
+          </SectionCard>
+
+          <SectionCard
+            id="student-how-it-works-expected-level"
+            icon={<SchoolIcon />}
+            title="Which Level Matters for You?"
+            sx={{ mb: 3 }}
+          >
+            <TableContainer
+              component={Box}
+              sx={{ borderRadius: 2, overflowX: 'auto', border: '1px solid rgba(255,255,255,0.08)' }}
+            >
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={tableHeaderSx}>Student Class</TableCell>
+                    <TableCell sx={tableHeaderSx}>Expected Level</TableCell>
+                    <TableCell sx={tableHeaderSx}>Rule</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {expectedLevelRows.map((row) => (
+                    <TableRow key={row.grades}>
+                      <TableCell sx={{ ...tableCellSx, color: 'white', fontWeight: 800 }}>{row.grades}</TableCell>
+                      <TableCell sx={{ ...tableCellSx, color: 'white', fontWeight: 800 }}>{row.expectedLevel}</TableCell>
+                      <TableCell sx={tableCellSx}>{row.meaning}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            <Box
+              sx={{
+                mt: 2,
+                p: 2,
+                borderRadius: 2,
+                bgcolor: 'rgba(15, 23, 42, 0.56)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+              }}
+            >
+              <Typography sx={{ color: 'rgba(255, 255, 255, 0.72)', lineHeight: 1.6, ...justifiedTextSx }}>
+                <Box component="span" sx={{ color: 'white', fontWeight: 800 }}>
+                  Remember:
+                </Box>{' '}
+                You can attempt higher levels for practice, but your National Tier is always calculated using your
+                Expected Level.
+              </Typography>
+            </Box>
+          </SectionCard>
+        
+
 
           <Box
             sx={{
@@ -342,6 +614,46 @@ export const HowItWorksContent: React.FC = () => {
               </Typography>
             </Box>
           </Box>
+
+
+          <SectionCard
+            id="student-how-it-works-national-badge"
+            icon={<MilitaryTechIcon />}
+            title="How Do You Earn Your National Badge?"
+            subtitle="Complete all three Reasoning assessments at your Expected Level. Until then, your badge remains Explorer."
+            sx={{ mb: 3 }}
+          >
+            <Box
+              sx={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: { xs: 1, sm: 1.5 },
+                color: '#38bdf8',
+                fontWeight: 800,
+                fontSize: { xs: '0.95rem', sm: '1.15rem' },
+                textAlign: 'center',
+                lineHeight: 1.4,
+              }}
+            >
+              <Box component="span">🧩 {ASSESSMENT_NAMES.symbolic_reasoning}</Box>
+              <Box component="span" aria-hidden>
+                ➜
+              </Box>
+              <Box component="span">💬 {ASSESSMENT_NAMES.verbal_reasoning}</Box>
+              <Box component="span" aria-hidden>
+                ➜
+              </Box>
+              <Box component="span">➗ {ASSESSMENT_NAMES.mathematical_reasoning}</Box>
+              <Box component="span" aria-hidden>
+                ➜
+              </Box>
+              <Box component="span" sx={{ color: '#fbbf24' }}>
+                🏆 National Achievement Badge
+              </Box>
+            </Box>
+          </SectionCard>
 
           <SectionCard
             id="student-how-it-works-membership"
@@ -453,56 +765,6 @@ export const HowItWorksContent: React.FC = () => {
           </SectionCard>
 
           <Box sx={{ display: 'grid', gridTemplateColumns: '1fr', gap: 3, mt: 3, mb: 3 }}>
-            <SectionCard
-              id="student-how-it-works-class-levels"
-              icon={<SchoolIcon />}
-              title="Compete within your class"
-              subtitle="Your standing depends on your level, which is decided by your class."
-            >
-              <Box sx={{ display: { xs: 'grid', sm: 'none' }, gap: 1.5 }}>
-                {gradeRows.map((row) => (
-                  <Box
-                    key={row.grades}
-                    sx={{
-                      p: 2,
-                      borderRadius: 2,
-                      bgcolor: 'rgba(15, 23, 42, 0.52)',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                    }}
-                  >
-                    <Typography sx={{ color: 'white', fontWeight: 900, fontSize: '1rem', mb: 0.75 }}>
-                      {row.grades}
-                    </Typography>
-                    <Typography sx={{ color: '#93c5fd', fontWeight: 800, fontSize: '0.95rem', mb: 1.25 }}>
-                      {row.comparisonLevel}
-                    </Typography>
-                    <Typography sx={{ color: 'rgba(255, 255, 255, 0.76)', lineHeight: 1.55, ...justifiedTextSx }}>
-                      {row.childCopy}
-                    </Typography>
-                  </Box>
-                ))}
-              </Box>
-              <TableContainer component={Box} sx={{ display: { xs: 'none', sm: 'block' }, borderRadius: 2, overflowX: 'auto', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ ...tableHeaderSx, ...gradeTableFirstColumnSx }}>Your class</TableCell>
-                      <TableCell sx={tableHeaderSx}>Your expected level</TableCell>
-                      <TableCell sx={tableHeaderSx}>What this means</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {gradeRows.map((row) => (
-                      <TableRow key={row.grades}>
-                        <TableCell sx={{ ...tableCellSx, ...gradeTableFirstColumnSx, color: 'white', fontWeight: 800 }}>{row.grades}</TableCell>
-                        <TableCell sx={tableCellSx}>{row.comparisonLevel}</TableCell>
-                        <TableCell sx={tableCellSx}>{row.childCopy}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </SectionCard>
 
             <SectionCard
               id="student-how-it-works-tiers-leaderboard"
@@ -743,22 +1005,21 @@ export const HowItWorksContent: React.FC = () => {
               id="student-how-it-works-adaptive"
               icon={<AutoAwesomeIcon />}
               title="Exams Personalized to Your Level"
-              subtitle="Your GYS exam adjusts as you go to match your skill level. A traditional test gives everyone the same fixed questions. An adaptive exam changes based on how you are doing."
+              subtitle="Your GYS exam adjusts as you go to match your skill level."
             >
               <Box sx={{ display: 'grid', gap: 1.5 }}>
                 <MiniCard
                   icon={<RocketLaunchIcon fontSize="small" />}
-                  title="How the exam adapts and scores you"
-                  body="You start with a medium-difficulty question. The exam then gets harder or easier based on how you are doing - get one right and the next is a little tougher; miss one and the next is a little easier. Your score looks at how many you got right and how hard those questions were. Harder questions count for more, so two students who get the same number right can still earn different scores."
+                  title="How to Approach an Adaptive Exam"
+                  body="In an adaptive exam, every question is compulsory, so make sure you answer them all. Leaving a question unanswered is more harmful than answering it incorrectly, because unanswered questions receive penalty points, which can lower your final score. If you are unsure of an answer, make your best guess and move on. Do not spend too much time on one question, or you may run out of time to complete the exam."
                   color="#06b6d4"
                 />
                 <MiniCard
                   icon={<AutoAwesomeIcon fontSize="small" />}
-                  title="Fewer questions, clearer results"
-                  body="This gives you a clearer picture of your true level, without time wasted on questions that are far too easy or far too hard. Instead of a long fixed test, the exam focuses on questions that actually show what you can do. You spend more time where you are challenged and properly measured."
+                  title="Stay confident as it gets harder"
+                  body="As you answer correctly, the exam will give you more difficult questions. Don't be worried if the questions become harder—it usually means you are doing well! Keep an eye on the timer, maintain a steady pace, and aim to attempt every question. The best strategy is to answer every question, manage your time wisely, and stay confident throughout the exam."
                   color="#38bdf8"
                 />
-               
               </Box>
             </SectionCard>
 
@@ -767,7 +1028,7 @@ export const HowItWorksContent: React.FC = () => {
               id="student-how-it-works-practice"
               icon={<QuizIcon />}
               title="Practice Exams"
-              subtitle="Practice helps you learn the format without changing your official score, badge, or leaderboard rank. Your practice exam level matches your real exam level."
+              subtitle="Practice helps you learn the format without changing your official score, badge, or leaderboard rank."
             >
               <Box sx={{ display: 'grid', gap: 1.5 }}>
                 <MiniCard

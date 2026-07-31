@@ -1,7 +1,17 @@
 import type { AssessmentProgress, StudentRow } from '../db/schoolAdminCollection';
+import { isHiddenStaffStudentEmail } from '../constants/hiddenStaffStudents';
 
 export function normalizeRosterEmail(raw: string): string {
   return raw.trim().toLowerCase();
+}
+
+/** Drop staff shadow student aliases from school-facing invite / roster lists. */
+export function filterHiddenStaffStudentEmails(emails: string[]): string[] {
+  return emails.filter((email) => !isHiddenStaffStudentEmail(normalizeRosterEmail(email)));
+}
+
+export function isVisibleSchoolRosterStudent(student: Pick<StudentRow, 'email'>): boolean {
+  return !isHiddenStaffStudentEmail(student.email);
 }
 
 /** Parse emails from CSV-ish text: newlines, commas, semicolons. */

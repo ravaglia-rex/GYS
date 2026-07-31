@@ -16,6 +16,10 @@ import {
   SCHOOL_SEND_NOTIFICATION_EMAILS,
 } from "../constants/constants";
 import authTokenHandler from "../functions/auth_token/auth_token_handler";
+import {
+  filterHiddenStaffStudentEmails,
+  isVisibleSchoolRosterStudent,
+} from "../utils/schoolAdminRosterUtils";
 
 const GYS_SUPPORT_EMAIL = "globalyoungscholar@argus.ai";
 
@@ -313,8 +317,12 @@ export const getStudentRegistrationEmailLists = async (
       { headers: { Authorization: `Bearer ${authToken}` } }
     );
     return {
-      emails: Array.isArray(response.data?.emails) ? response.data.emails : [],
-      revokedEmails: Array.isArray(response.data?.revokedEmails) ? response.data.revokedEmails : [],
+      emails: filterHiddenStaffStudentEmails(
+        Array.isArray(response.data?.emails) ? response.data.emails : []
+      ),
+      revokedEmails: filterHiddenStaffStudentEmails(
+        Array.isArray(response.data?.revokedEmails) ? response.data.revokedEmails : []
+      ),
     };
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data?.error) {
@@ -592,7 +600,7 @@ export const getSchoolStudentRoster = async (schoolId: string): Promise<StudentR
       {headers: {Authorization: `Bearer ${authToken}`}}
     );
     const pageStudents: StudentRow[] = Array.isArray(response.data?.students) ? response.data.students : [];
-    all.push(...pageStudents);
+    all.push(...pageStudents.filter(isVisibleSchoolRosterStudent));
     cursor = typeof response.data?.next_cursor === "string" ? response.data.next_cursor : null;
     if (!cursor) break;
   }

@@ -148,7 +148,7 @@ export default function StudentPreviewLayout() {
           <ErrorOutlineIcon sx={iconSx} />
         </ListItemIcon>
         <ListItemText
-          primary="Please Read"
+          primary="Very Important"
           slotProps={{
             primary: {
               fontWeight: isActive('/students/preview/how-it-works') ? 600 : 500,

@@ -51,6 +51,8 @@ import { RootState } from '../../state_data/reducer';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import {
   countAssessmentsFromProgress,
+  filterHiddenStaffStudentEmails,
+  isVisibleSchoolRosterStudent,
   mergeRegistrationEmailLists,
   normalizeRosterEmail,
   parseEmailsFromBulkText,
@@ -535,14 +537,14 @@ const SchoolAdminStudentsPage: React.FC = () => {
       } catch (e) {
         console.warn('getStudentRegistrationEmailLists', e);
       }
-      reg = (reg ?? []).map(normalizeRosterEmail);
-      revoked = (revoked ?? []).map(normalizeRosterEmail);
+      reg = filterHiddenStaffStudentEmails((reg ?? []).map(normalizeRosterEmail));
+      revoked = filterHiddenStaffStudentEmails((revoked ?? []).map(normalizeRosterEmail));
 
       // `ensureQueryData` reads/populates the same React Query cache entries the
       // Dashboard/Analytics/Subscription pages read via `useSchoolAdminSummary` /
       // `useSchoolAdminRoster` - navigating between pages within staleTime reuses the cached
       // result instead of re-fetching.
-      const [summary, dashboardStudents] = await Promise.all([
+      const [summary, dashboardStudentsRaw] = await Promise.all([
         queryClient.ensureQueryData({
           queryKey: queryKeys.schoolAdminSummary(schoolId),
           queryFn: () => getSchoolSummary(schoolId),
@@ -554,6 +556,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
           staleTime: SCHOOL_ADMIN_QUERY_STALE_MS,
         }),
       ]);
+      const dashboardStudents = dashboardStudentsRaw.filter(isVisibleSchoolRosterStudent);
       setSelectedPlanId(normalizeRegisterPlanId(summary.selected_plan_id));
       setHasNoStudentsInDb(dashboardStudents.length === 0 && reg.length === 0 && revoked.length === 0);
 

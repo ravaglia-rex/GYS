@@ -53,6 +53,7 @@ import {
   deletePlatformAdminSchoolContact,
   importPlatformAdminStudentRegistrationEmails,
   PLATFORM_ADMIN_PAYMENT_METHOD_LABELS,
+  platformAdminPaymentMethodLabel,
   PLATFORM_ADMIN_PAYMENT_PAYEE_LABELS,
   resolvePlatformAdminSchoolPaymentPayee,
   type PlatformAdminMarkSchoolPaidMethod,
@@ -172,14 +173,12 @@ function defaultMarkPaidAmountInr(school: PlatformAdminSchoolDetail): string {
 
 function defaultPaymentMethod(school: PlatformAdminSchoolDetail): PlatformAdminMarkSchoolPaidMethod {
   const raw = (school.payment_method ?? '').toLowerCase();
-  if (raw === 'already_paid') return 'already_paid';
   if (raw === 'wire' || school.pending_wire_capture) return 'wire';
   if (raw === 'razorpay_link') return 'razorpay_link';
   if (
     raw === 'neft_rtgs' ||
     raw === 'upi' ||
     raw === 'cheque' ||
-    raw === 'cash' ||
     raw === 'paid_to_education_world' ||
     raw === 'other'
   ) {
@@ -242,9 +241,20 @@ function PlatformAdminSchoolDetailPage() {
 
   const apiErrorMessage = (e: unknown, fallback: string): string => {
     if (typeof e === 'object' && e !== null && 'response' in e) {
-      const msg = (e as { response?: { data?: { error?: string } } }).response?.data?.error;
-      if (typeof msg === 'string' && msg.trim()) return msg;
+      const data = (e as { response?: { status?: number; data?: { error?: string; message?: string } } })
+        .response;
+      const msg = data?.data?.error || data?.data?.message;
+      if (typeof msg === 'string' && msg.trim()) {
+        if (data?.status === 401) {
+          return `${msg} Sign out and sign back in to the admin portal, then try again.`;
+        }
+        return msg;
+      }
+      if (data?.status === 401) {
+        return 'Session expired or not authorized. Sign out and sign back in, then try again.';
+      }
     }
+    if (e instanceof Error && e.message.trim()) return e.message;
     return fallback;
   };
 
@@ -605,11 +615,7 @@ function PlatformAdminSchoolDetailPage() {
       );
       await load();
     } catch (e: unknown) {
-      const msg =
-        typeof e === 'object' && e !== null && 'response' in e
-          ? (e as { response?: { data?: { error?: string } } }).response?.data?.error
-          : null;
-      setError(msg || 'Failed to mark school as paid.');
+      setError(apiErrorMessage(e, 'Failed to mark school as paid.'));
     } finally {
       setSubmitting(false);
     }
@@ -816,13 +822,7 @@ function PlatformAdminSchoolDetailPage() {
             </DetailRow>
             <DetailRow
               label="Payment method"
-              value={
-                school.payment_method
-                  ? PLATFORM_ADMIN_PAYMENT_METHOD_LABELS[
-                      school.payment_method as PlatformAdminMarkSchoolPaidMethod
-                    ] ?? school.payment_method
-                  : ' - '
-              }
+              value={school.payment_method ? platformAdminPaymentMethodLabel(school.payment_method) : ' - '}
             />
             <DetailRow
               label="Package at registration"

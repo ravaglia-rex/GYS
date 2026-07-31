@@ -52,16 +52,23 @@ const StudentWelcomePage: React.FC = () => {
           </h2>
           <p className="mt-2 text-center text-sm leading-snug text-slate-600">
             Your {membershipName} membership is ready. We&apos;ve sent an email with your
-            account confirmation, payment details if applicable, and a secure link to set
-            your password. Please check your spam folder and mark the email as not spam if
-            it lands there.
+            account confirmation, payment details if applicable, and a{' '}
+            <strong className="font-semibold text-slate-800">
+              secure link to set your password
+            </strong>
+            . Please check your spam folder and mark the email as not spam if it lands
+            there.
           </p>
 
           <div className="mt-4 rounded-xl bg-sky-50 px-4 py-3">
             <p className="text-xs font-semibold text-slate-800 mb-1.5">Next steps</p>
             <ol className="list-decimal space-y-1 pl-4 text-sm text-slate-800">
               <li>Open the email we sent to your registered email address.</li>
-              <li>Use the secure password setup link to create your password.</li>
+              <li>
+                <strong className="font-semibold">
+                  Use the secure password setup link to create your password.
+                </strong>
+              </li>
               <li>Sign in and start using your student dashboard.</li>
             </ol>
           </div>

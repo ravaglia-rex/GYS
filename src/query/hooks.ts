@@ -11,6 +11,7 @@ import { getPayments } from '../db/studentPaymentMappings';
 import { fetchQod, fetchRewards } from '../db/gamificationCollection';
 import { getSchoolStudentRoster, getSchoolSummary } from '../db/schoolAdminCollection';
 import { getStudentCoinsLeaderboard } from '../db/studentLeaderboardCollection';
+import { isVisibleSchoolRosterStudent } from '../utils/schoolAdminRosterUtils';
 import { queryKeys } from './queryKeys';
 
 const ASSESSMENT_CONFIG_STALE_MS = 15 * 60_000;
@@ -123,6 +124,8 @@ export function useSchoolAdminRoster(schoolId: string | undefined, enabled = tru
     queryFn: () => getSchoolStudentRoster(schoolId!),
     enabled: Boolean(schoolId) && enabled,
     staleTime: SCHOOL_ADMIN_ROSTER_STALE_MS,
+    // Runs on cached data too, so a stale cache from before staff-student filtering still hides them.
+    select: (students) => students.filter(isVisibleSchoolRosterStudent),
   });
 }
 

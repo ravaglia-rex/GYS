@@ -8,7 +8,7 @@ interface AuthTokenState {
 class AuthTokenHandler {
     private static instance: AuthTokenHandler;
     private tokenRefreshPromise: Promise<string | null> | null = null;
-    private readonly TOKEN_EXPIRY_MINUTES = 60;
+    private tokenRefreshForced = false;
     private state: AuthTokenState = {
         authToken: null,
         createdAt: null
@@ -32,64 +32,47 @@ class AuthTokenHandler {
         };
     }
 
-    private async refreshToken(): Promise<string | null> {
-        
-        if (this.tokenRefreshPromise) {
+    /**
+     * Ask Firebase Auth for an ID token. The SDK returns a cached token when still valid
+     * and refreshes when expired / near expiry (or always when forceRefresh is true).
+     */
+    private async fetchFromFirebase(forceRefresh: boolean): Promise<string | null> {
+        // Reuse an in-flight fetch unless caller needs a forced refresh and the in-flight one isn't forced.
+        if (this.tokenRefreshPromise && (!forceRefresh || this.tokenRefreshForced)) {
             return this.tokenRefreshPromise;
         }
 
+        this.tokenRefreshForced = forceRefresh;
         this.tokenRefreshPromise = (async () => {
             const user = auth.currentUser;
             if (!user) {
+                this.clearToken();
                 return null;
             }
 
-
             try {
-                const token = await user.getIdToken(true);
-                
+                const token = await user.getIdToken(forceRefresh);
                 this.setState({
                     authToken: token,
                     createdAt: new Date()
                 });
-                
-                
                 return token;
-            } catch (error) {
-                throw new Error("Failed to refresh token");
+            } catch {
+                this.clearToken();
+                return null;
             } finally {
                 this.tokenRefreshPromise = null;
+                this.tokenRefreshForced = false;
             }
         })();
 
         return this.tokenRefreshPromise;
     }
 
-    private async isTokenValid(): Promise<boolean> {
-        const { authToken, createdAt } = this.state;
-        
-        if (!authToken || !createdAt) {
-            return false;
-        }
-
-        const now = new Date();
-        const diff = now.getTime() - createdAt.getTime();
-        const diffInMinutes = Math.floor(diff / 1000 / 60);
-        
-        const isValid = diffInMinutes <= this.TOKEN_EXPIRY_MINUTES;
-
-        return isValid;
-    }
-
-    public async getAuthToken(): Promise<string | null> {
-        
-        const isValid = await this.isTokenValid();
-        
-        if (isValid) {
-            return this.state.authToken;
-        }
-
-        return await this.refreshToken();
+    public async getAuthToken(forceRefresh = false): Promise<string | null> {
+        // Always go through Firebase Auth so we never send a locally-cached expired JWT.
+        // getIdToken(false) is cheap when the SDK cache is still valid.
+        return await this.fetchFromFirebase(forceRefresh);
     }
 
     public async isAuthenticated(): Promise<boolean> {
@@ -115,7 +98,7 @@ class AuthTokenHandler {
                 authToken: token,
                 createdAt
             });
-        } catch (error) {
+        } catch {
             throw new Error("Failed to set auth token");
         }
     }

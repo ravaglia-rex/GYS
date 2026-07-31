@@ -7,6 +7,8 @@ import {
   LIST_STUDENT_REPORTS,
   STUDENT_REPORT_DOWNLOAD_URL,
   SEND_NOTIFICATION_EMAILS,
+  SCHOOLS_FOR_STUDENT_EMAIL,
+  SET_STUDENT_ACTIVE_SCHOOL,
 } from "../constants/constants";
 import authTokenHandler from "../functions/auth_token/auth_token_handler";
 import { downloadPdfFromUrl } from "./schoolAdminCollection";
@@ -141,6 +143,53 @@ export const markStudentPasswordSetupComplete = async (): Promise<void> => {
     );
   } catch (error) {
     console.warn('markStudentPasswordSetupComplete failed:', error);
+  }
+};
+
+export type StudentSchoolOption = {
+  schoolId: string;
+  schoolName: string;
+  city?: string;
+};
+
+/** Hidden staff student only: schools this email may enter (invite list + current school). */
+export const listSchoolsForStudentEmail = async (): Promise<StudentSchoolOption[]> => {
+  try {
+    const authToken = await authTokenHandler.getAuthToken();
+    const response = await axios.get(
+      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${STUDENTS_APIS}${SCHOOLS_FOR_STUDENT_EMAIL}`,
+      { headers: { Authorization: `Bearer ${authToken}` } }
+    );
+    return Array.isArray(response.data?.schools) ? response.data.schools : [];
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data?.message) {
+      throw new Error(String(error.response.data.message));
+    }
+    throw new Error('Could not load schools for this student email.');
+  }
+};
+
+/** Hidden staff student only: switch active school_id among invite-list schools. */
+export const setStudentActiveSchool = async (
+  schoolId: string
+): Promise<StudentSchoolOption> => {
+  try {
+    const authToken = await authTokenHandler.getAuthToken();
+    const response = await axios.post(
+      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${STUDENTS_APIS}${SET_STUDENT_ACTIVE_SCHOOL}`,
+      { schoolId },
+      { headers: { Authorization: `Bearer ${authToken}` } }
+    );
+    return {
+      schoolId: String(response.data?.schoolId ?? schoolId),
+      schoolName: typeof response.data?.schoolName === 'string' ? response.data.schoolName : '',
+      city: typeof response.data?.city === 'string' ? response.data.city : undefined,
+    };
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data?.message) {
+      throw new Error(String(error.response.data.message));
+    }
+    throw new Error('Could not switch school.');
   }
 };
 

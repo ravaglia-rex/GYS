@@ -52,7 +52,7 @@ import {
 import { SCHOOL_SCORED_ASSESSMENT_IDS } from '../../utils/assessmentGating';
 import { normalizeTierSlugForDashboard, parseInstitutionalTierSlug } from '../../utils/achievementTier';
 import { displaySubscriptionPlan } from '../../utils/displaySubscriptionPlan';
-import { normalizeRosterEmail } from '../../utils/schoolAdminRosterUtils';
+import { normalizeRosterEmail, filterHiddenStaffStudentEmails, isVisibleSchoolRosterStudent } from '../../utils/schoolAdminRosterUtils';
 import { ProficiencyTier123Overview } from '../../components/school_admin/ProficiencyTier123Overview';
 import { NationalPerformanceTierOverview } from '../../components/school_admin/NationalPerformanceTierOverview';
 import {
@@ -669,7 +669,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
               staleTime: SCHOOL_ADMIN_QUERY_STALE_MS,
             }),
           ]);
-          allStudents = rosterData ?? [];
+          allStudents = (rosterData ?? []).filter(isVisibleSchoolRosterStudent);
           analyticsData = summaryData.analytics ?? {};
           institutionalTier = summaryData.institutional_tier ?? null;
 
@@ -691,7 +691,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
 
         try {
           const lists = await getStudentRegistrationEmailLists(schoolId);
-          registrationEmails = lists.emails ?? [];
+          registrationEmails = filterHiddenStaffStudentEmails(lists.emails ?? []);
         } catch (emailErr) {
           console.warn('getStudentRegistrationEmailLists failed:', emailErr);
         }
