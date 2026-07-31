@@ -54,11 +54,6 @@ const tableHeaderSx = {
   bgcolor: 'rgba(15, 23, 42, 0.8)',
 };
 
-const gradeTableFirstColumnSx = {
-  minWidth: 150,
-  whiteSpace: 'nowrap',
-};
-
 const justifiedTextSx = {
   textAlign: 'justify',
 } as const;
@@ -187,27 +182,6 @@ const membershipRows = [
 ];
 
 const packageRoadmapColors = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b'];
-
-const gradeRows = [
-  {
-    grades: 'Classes 6-7',
-    comparisonLevel: 'Level 1',
-    clearanceBand: 'Classes 6-8',
-    childCopy: 'Your tier and ranking is decided based on your Level 1 performance only. Other levels do not affect it, but you can take them.',
-  },
-  {
-    grades: 'Classes 8-9',
-    comparisonLevel: 'Level 2',
-    clearanceBand: 'Classes 6-8 for class 8, Classes 9-10 for class 9',
-    childCopy: 'Your tier and ranking is decided based on your Level 2 performance only. Other levels do not affect it, but you can take them.',
-  },
-  {
-    grades: 'Classes 10-12',
-    comparisonLevel: 'Level 3',
-    clearanceBand: 'Classes 9-10 for class 10, Classes 11-12 for classes 11-12',
-    childCopy: 'Your tier and ranking is decided based on your Level 3 performance only. Lower levels do not affect it, but you need to take them to unlock this level.',
-  },
-];
 
 const percentileRows = [
   { percentile: 'No core results yet', badge: 'Explorer', meaning: 'You are still getting started.' },
@@ -425,28 +399,6 @@ const expectedLevelRows = [
     expectedLevel: 'Level 3',
     meaning:
       'The Tier and national ranking are based only on Level 3 results. Lower levels must be completed first to unlock Level 3.',
-  },
-];
-
-const gysRoadmapStops = [
-  {
-    title: '🧩 Checkpoint 1 — Reasoning Triad',
-    items: [
-      ASSESSMENT_NAMES.symbolic_reasoning,
-      ASSESSMENT_NAMES.verbal_reasoning,
-      ASSESSMENT_NAMES.mathematical_reasoning,
-    ],
-    body: 'Complete all three at your Expected Level to earn your National Achievement Badge.',
-  },
-  {
-    title: '🤖 Checkpoint 2 — Stream Ready',
-    items: [ASSESSMENT_NAMES.comprehensive_personality, ASSESSMENT_NAMES.ai_literacy],
-    body: 'Understand yourself and build future-ready AI skills.',
-  },
-  {
-    title: '🎓 Checkpoint 3 — Career Ready',
-    items: [ASSESSMENT_NAMES.english_proficiency, ASSESSMENT_NAMES.career_interest_inventory],
-    body: 'Career Discovery unlocks after completing all assessments and helps you explore careers with AI.',
   },
 ];
 

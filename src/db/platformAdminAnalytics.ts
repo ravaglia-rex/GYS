@@ -7,6 +7,7 @@ import {
   PLATFORM_ADMIN_ANALYTICS_TOP_COINS,
   PLATFORM_ADMIN_ANALYTICS_SCHOOL_ADMIN_ACTIVITY,
 } from '../constants/constants';
+import { isHiddenStaffSchoolAdminEmail } from '../constants/hiddenStaffSchoolAdmins';
 
 function apiBase(): string {
   const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS;
@@ -213,7 +214,11 @@ export async function getPlatformAdminSchoolAdminActivity(
     { headers, params: { limit, ...refreshParams(opts?.refresh) } }
   );
   return {
-    admins: Array.isArray(res.data.admins) ? res.data.admins : [],
+    admins: Array.isArray(res.data.admins)
+      ? res.data.admins.filter(
+          (row: SchoolAdminActivityRow) => !isHiddenStaffSchoolAdminEmail(row.email)
+        )
+      : [],
     generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
   };
 }

@@ -1,6 +1,10 @@
 import axios from 'axios';
 import authTokenHandler from '../functions/auth_token/auth_token_handler';
 import {
+  filterHiddenStaffSchoolAdminEmails,
+  isHiddenStaffSchoolAdminEmail,
+} from '../constants/hiddenStaffSchoolAdmins';
+import {
   PLATFORM_ADMIN_APIS,
   PLATFORM_ADMIN_AUTHENTICATE,
   PLATFORM_ADMIN_VERIFY_AND_SEND_PASSWORD_SETUP,
@@ -419,17 +423,28 @@ export async function getPlatformAdminSchool(schoolId: string): Promise<{
   return {
     school: {
       ...res.data.school,
-      contact_emails: Array.isArray(res.data.school?.contact_emails) ? res.data.school.contact_emails : [],
+      contact_emails: filterHiddenStaffSchoolAdminEmails(
+        Array.isArray(res.data.school?.contact_emails) ? res.data.school.contact_emails : []
+      ),
     },
     payment_history: res.data.payment_history ?? [],
     analytics: res.data.analytics ?? null,
     poc_accounts: Array.isArray(res.data.poc_accounts)
-      ? res.data.poc_accounts.map((row: PlatformAdminPocAccountRow) => ({
+      ? res.data.poc_accounts
+          .filter((row: PlatformAdminPocAccountRow) => !isHiddenStaffSchoolAdminEmail(row.email))
+          .map((row: PlatformAdminPocAccountRow) => ({
+            ...row,
+            is_admin: true,
+          }))
+      : [],
+    email_activity: Array.isArray(res.data.email_activity)
+      ? res.data.email_activity.map((row: PlatformAdminEmailActivityRow) => ({
           ...row,
-          is_admin: true,
+          recipients: filterHiddenStaffSchoolAdminEmails(
+            Array.isArray(row.recipients) ? row.recipients : []
+          ),
         }))
       : [],
-    email_activity: Array.isArray(res.data.email_activity) ? res.data.email_activity : [],
     registrant: res.data.registrant ?? null,
   };
 }
