@@ -330,6 +330,18 @@ const PlatformAdminStudentDetailPage: React.FC = () => {
             <DetailRow label="Approval" value={student.approval_status || ' - '} />
             <DetailRow label="Achievement tier" value={student.achievement_tier || ' - '} />
             <DetailRow label="Argus coins" value={String(student.argus_coins ?? 0)} />
+            <DetailRow
+              label="QoD attempted"
+              value={String(student.qod_attempted_total ?? 0)}
+            />
+            <DetailRow
+              label="QoD correct"
+              value={String(student.qod_correct_total ?? 0)}
+            />
+            <DetailRow
+              label="QoD accuracy"
+              value={`${student.qod_accuracy_pct ?? 0}%`}
+            />
           </CardContent>
         </Card>
 

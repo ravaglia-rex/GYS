@@ -25,6 +25,9 @@ export type GamificationState = {
   coins_lifetime_earned: number;
   login_streak: GamificationStreak;
   qod_streak: GamificationStreak;
+  qod_attempted_total: number;
+  qod_correct_total: number;
+  qod_accuracy_pct: number;
   qod_last_answered_date?: string;
   qod_last_result?: { correct: boolean; coins_awarded: number };
   practice_last_awarded_week?: string;
@@ -67,6 +70,9 @@ export type QodResponse = {
   argus_coins: number;
   login_streak: GamificationStreak;
   qod_streak: GamificationStreak;
+  qod_attempted_total: number;
+  qod_correct_total: number;
+  qod_accuracy_pct: number;
 };
 
 export type QodAnswerResponse = {
@@ -78,6 +84,9 @@ export type QodAnswerResponse = {
   correct_option_index: number | null;
   solution_steps?: string[] | null;
   argus_coins: number;
+  qod_attempted_total: number;
+  qod_correct_total: number;
+  qod_accuracy_pct: number;
 };
 
 export type RewardsResponse = {
@@ -97,17 +106,51 @@ async function authHeaders() {
 
 function normalizeQodResponse(data: Record<string, unknown>): QodResponse {
   const qodStreak = (data.qod_streak ?? data.qotd_streak) as GamificationStreak | undefined;
+  const attempted =
+    typeof data.qod_attempted_total === 'number' && data.qod_attempted_total > 0
+      ? Math.floor(data.qod_attempted_total)
+      : 0;
+  const correct =
+    typeof data.qod_correct_total === 'number' && data.qod_correct_total > 0
+      ? Math.floor(data.qod_correct_total)
+      : 0;
+  const accuracy =
+    typeof data.qod_accuracy_pct === 'number' && Number.isFinite(data.qod_accuracy_pct)
+      ? data.qod_accuracy_pct
+      : attempted > 0
+        ? Math.round((1000 * correct) / attempted) / 10
+        : 0;
   return {
     ...(data as unknown as QodResponse),
     qod_streak: qodStreak ?? { current: 0, longest: 0 },
+    qod_attempted_total: attempted,
+    qod_correct_total: correct,
+    qod_accuracy_pct: accuracy,
   };
 }
 
 function normalizeQodAnswerResponse(data: Record<string, unknown>): QodAnswerResponse {
   const qodStreak = (data.qod_streak ?? data.qotd_streak) as GamificationStreak | undefined;
+  const attempted =
+    typeof data.qod_attempted_total === 'number' && data.qod_attempted_total > 0
+      ? Math.floor(data.qod_attempted_total)
+      : 0;
+  const correct =
+    typeof data.qod_correct_total === 'number' && data.qod_correct_total > 0
+      ? Math.floor(data.qod_correct_total)
+      : 0;
+  const accuracy =
+    typeof data.qod_accuracy_pct === 'number' && Number.isFinite(data.qod_accuracy_pct)
+      ? data.qod_accuracy_pct
+      : attempted > 0
+        ? Math.round((1000 * correct) / attempted) / 10
+        : 0;
   return {
     ...(data as unknown as QodAnswerResponse),
     qod_streak: qodStreak ?? { current: 0, longest: 0 },
+    qod_attempted_total: attempted,
+    qod_correct_total: correct,
+    qod_accuracy_pct: accuracy,
   };
 }
 

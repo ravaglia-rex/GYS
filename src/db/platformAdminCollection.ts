@@ -204,6 +204,9 @@ export type PlatformAdminStudentRow = {
   approval_status: string | null;
   achievement_tier: string | null;
   argus_coins: number;
+  qod_attempted_total?: number;
+  qod_correct_total?: number;
+  qod_accuracy_pct?: number;
   created_at: string | null;
   is_test?: boolean;
   /** True for email-bound complimentary invites that haven't registered an account yet. */

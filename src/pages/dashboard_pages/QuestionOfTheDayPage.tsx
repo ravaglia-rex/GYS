@@ -102,6 +102,9 @@ const QuestionOfTheDayPage: React.FC = () => {
           already_answered: true,
           argus_coins: res.argus_coins,
           qod_streak: res.qod_streak,
+          qod_attempted_total: res.qod_attempted_total,
+          qod_correct_total: res.qod_correct_total,
+          qod_accuracy_pct: res.qod_accuracy_pct,
           last_result: {
             correct: res.correct,
             coins_awarded: res.coins_awarded,
@@ -155,6 +158,16 @@ const QuestionOfTheDayPage: React.FC = () => {
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
           <Chip label={`Login streak: ${data?.login_streak?.current ?? 0} days`} color="warning" variant="outlined" />
           <Chip label={`QoD streak: ${data?.qod_streak?.current ?? 0} days`} color="secondary" variant="outlined" />
+          <Chip
+            label={`QoD answered: ${data?.qod_attempted_total ?? 0}`}
+            variant="outlined"
+            sx={{ color: 'rgba(255,255,255,0.9)', borderColor: 'rgba(255,255,255,0.25)' }}
+          />
+          <Chip
+            label={`QoD accuracy: ${data?.qod_accuracy_pct ?? 0}%`}
+            variant="outlined"
+            sx={{ color: 'rgba(255,255,255,0.9)', borderColor: 'rgba(255,255,255,0.25)' }}
+          />
           <Chip
             label={`${(data?.argus_coins ?? 0).toLocaleString()} Argus Coins`}
             sx={{

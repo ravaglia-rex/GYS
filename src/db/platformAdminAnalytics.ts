@@ -5,6 +5,7 @@ import {
   PLATFORM_ADMIN_ANALYTICS_PRACTICE_EXAMS,
   PLATFORM_ADMIN_ANALYTICS_QUESTION_OF_DAY,
   PLATFORM_ADMIN_ANALYTICS_TOP_COINS,
+  PLATFORM_ADMIN_ANALYTICS_TOP_QOD,
   PLATFORM_ADMIN_ANALYTICS_SCHOOL_ADMIN_ACTIVITY,
 } from '../constants/constants';
 import { isHiddenStaffSchoolAdminEmail } from '../constants/hiddenStaffSchoolAdmins';
@@ -81,6 +82,19 @@ export type TopCoinsStudentRow = {
   school_name: string | null;
   grade: number | null;
   argus_coins: number;
+};
+
+export type TopQodStudentRow = {
+  uid: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  school_id: string | null;
+  school_name: string | null;
+  grade: number | null;
+  qod_attempted_total: number;
+  qod_correct_total: number;
+  qod_accuracy_pct: number;
 };
 
 export type SchoolAdminActivityRow = {
@@ -193,6 +207,24 @@ export async function getPlatformAdminTopCoins(
   const headers = await authHeaders();
   const res = await axios.get(
     `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_TOP_COINS}`,
+    { headers, params: { limit, ...refreshParams(opts?.refresh) } }
+  );
+  return {
+    students: Array.isArray(res.data.students) ? res.data.students : [],
+    generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
+  };
+}
+
+export async function getPlatformAdminTopQod(
+  limit = 10,
+  opts?: { refresh?: boolean }
+): Promise<{
+  students: TopQodStudentRow[];
+  generated_at: string;
+}> {
+  const headers = await authHeaders();
+  const res = await axios.get(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_TOP_QOD}`,
     { headers, params: { limit, ...refreshParams(opts?.refresh) } }
   );
   return {

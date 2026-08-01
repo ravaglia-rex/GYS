@@ -538,8 +538,16 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     if (previewGamification) {
       return {
         argus_coins: previewGamification.argus_coins,
+        coins_lifetime_earned: previewGamification.argus_coins,
         login_streak: { current: previewGamification.login_streak, longest: previewGamification.login_streak },
         qod_streak: { current: previewGamification.qod_streak, longest: previewGamification.qod_streak },
+        qod_attempted_total: previewGamification.qod_streak,
+        qod_correct_total: Math.max(0, previewGamification.qod_streak - 1),
+        qod_accuracy_pct:
+          previewGamification.qod_streak > 0
+            ? Math.round((1000 * Math.max(0, previewGamification.qod_streak - 1)) / previewGamification.qod_streak) /
+              10
+            : 0,
         qod_last_answered_date: previewGamification.qod_answered_today ? istDateStringClient() : undefined,
       };
     }

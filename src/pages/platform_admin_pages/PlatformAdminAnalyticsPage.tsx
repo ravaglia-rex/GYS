@@ -46,12 +46,14 @@ import {
   getPlatformAdminQodStats,
   getPlatformAdminSchoolAdminActivity,
   getPlatformAdminTopCoins,
+  getPlatformAdminTopQod,
   type PracticeExamSummaryRow,
   type PracticeGradeBreakdownRow,
   type PracticeLeaderboardRow,
   type QodDailyStatRow,
   type SchoolAdminActivityRow,
   type TopCoinsStudentRow,
+  type TopQodStudentRow,
 } from '../../db/platformAdminAnalytics';
 import { formatDate, formatDateTime } from '../../db/platformAdminCollection';
 import {
@@ -85,6 +87,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
 
   const [qodDays, setQodDays] = useState<QodDailyStatRow[]>([]);
   const [qodToday, setQodToday] = useState<QodDailyStatRow | null>(null);
+  const [topQod, setTopQod] = useState<TopQodStudentRow[]>([]);
   const [qodGeneratedAt, setQodGeneratedAt] = useState('');
   const [qodLoading, setQodLoading] = useState(false);
   const [qodError, setQodError] = useState<string | null>(null);
@@ -148,10 +151,14 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     setQodLoading(true);
     setQodError(null);
     try {
-      const data = await getPlatformAdminQodStats(30, { refresh: opts?.refresh });
-      setQodDays(data.days);
-      setQodToday(data.today);
-      setQodGeneratedAt(data.generated_at);
+      const [stats, top] = await Promise.all([
+        getPlatformAdminQodStats(30, { refresh: opts?.refresh }),
+        getPlatformAdminTopQod(10, { refresh: opts?.refresh }),
+      ]);
+      setQodDays(stats.days);
+      setQodToday(stats.today);
+      setTopQod(top.students);
+      setQodGeneratedAt(stats.generated_at || top.generated_at);
     } catch (e: unknown) {
       const err = e as { response?: { data?: { error?: string } }; message?: string };
       setQodError(err?.response?.data?.error || err?.message || 'Failed to load QoD analytics');
@@ -551,6 +558,55 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                       </LineChart>
                     </ResponsiveContainer>
                   </Box>
+                </CardContent>
+              </Card>
+
+              <Card sx={{ ...platformAdminCardSx, mt: 2.5 }}>
+                <CardContent>
+                  <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
+                    Top Question of the Day
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 2 }}>
+                    Lifetime attempts per student (tracked from when totals were introduced). Test/staff accounts excluded.
+                  </Typography>
+                  <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
+                    <Table size="small" sx={platformAdminTableSx}>
+                      <TableHead>
+                        <TableRow sx={platformAdminTableHeadRowSx}>
+                          <TableCell>#</TableCell>
+                          <TableCell>Student</TableCell>
+                          <TableCell>School</TableCell>
+                          <TableCell align="right">Attempted</TableCell>
+                          <TableCell align="right">Correct</TableCell>
+                          <TableCell align="right">Accuracy</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {topQod.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={6} align="center" sx={{ py: 3, color: ip.subtext }}>
+                              No QoD totals yet.
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          topQod.map((row, idx) => (
+                            <TableRow key={row.uid}>
+                              <TableCell>{idx + 1}</TableCell>
+                              <TableCell sx={{ fontWeight: 600 }}>
+                                {[row.first_name, row.last_name].filter(Boolean).join(' ') || row.email}
+                              </TableCell>
+                              <TableCell>{row.school_name ?? '-'}</TableCell>
+                              <TableCell align="right" sx={{ fontWeight: 700 }}>
+                                {row.qod_attempted_total.toLocaleString()}
+                              </TableCell>
+                              <TableCell align="right">{row.qod_correct_total.toLocaleString()}</TableCell>
+                              <TableCell align="right">{row.qod_accuracy_pct}%</TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
                 </CardContent>
               </Card>
             </>

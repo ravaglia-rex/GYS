@@ -42,6 +42,9 @@ export function readGamificationFromStudent(student: Record<string, unknown> | n
       coins_lifetime_earned: 0,
       login_streak: { current: 0, longest: 0 },
       qod_streak: { current: 0, longest: 0 },
+      qod_attempted_total: 0,
+      qod_correct_total: 0,
+      qod_accuracy_pct: 0,
       redemptions: {},
     };
   }
@@ -52,6 +55,18 @@ export function readGamificationFromStudent(student: Record<string, unknown> | n
     readDateStringField(qod.last_answered_date) ??
     readDateStringField(g.qod_last_answered_date) ??
     readDateStringField(g['qotd_last_answered_date']);
+  const attempted =
+    typeof g.qod_attempted_total === 'number' && g.qod_attempted_total > 0
+      ? Math.floor(g.qod_attempted_total)
+      : 0;
+  const correctTotal =
+    typeof g.qod_correct_total === 'number' && g.qod_correct_total > 0
+      ? Math.floor(g.qod_correct_total)
+      : 0;
+  const storedAccuracy =
+    typeof g.qod_accuracy_pct === 'number' && Number.isFinite(g.qod_accuracy_pct)
+      ? g.qod_accuracy_pct
+      : null;
   return {
     argus_coins: typeof g.argus_coins === 'number' ? g.argus_coins : 0,
     coins_lifetime_earned: typeof g.coins_lifetime_earned === 'number' ? g.coins_lifetime_earned : 0,
@@ -66,6 +81,10 @@ export function readGamificationFromStudent(student: Record<string, unknown> | n
       last_answered_date: qodAnsweredDate,
       last_correct_date: typeof qod.last_correct_date === 'string' ? qod.last_correct_date : undefined,
     },
+    qod_attempted_total: attempted,
+    qod_correct_total: correctTotal,
+    qod_accuracy_pct:
+      storedAccuracy ?? (attempted > 0 ? Math.round((1000 * correctTotal) / attempted) / 10 : 0),
     qod_last_answered_date: qodAnsweredDate,
     qod_last_result: (g.qod_last_result ?? g['qotd_last_result']) as GamificationState['qod_last_result'],
     practice_last_awarded_week: typeof g.practice_last_awarded_week === 'string' ? g.practice_last_awarded_week : undefined,

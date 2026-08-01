@@ -181,18 +181,19 @@ const PLATFORM_STUDENTS_VIRTUOSO_HEIGHT = 560;
  * labels like "Payment incomplete" without clipping.
  */
 const STUDENT_COL = {
-  name: { width: '15%', minWidth: 120 },
-  email: { width: '18%', minWidth: 160 },
-  school: { width: '17%', minWidth: 140 },
-  grade: { width: '6%', minWidth: 56 },
-  membership: { width: '9%', minWidth: 84 },
-  coins: { width: '7%', minWidth: 68 },
-  status: { width: '17%', minWidth: 150 },
+  name: { width: '14%', minWidth: 110 },
+  email: { width: '16%', minWidth: 140 },
+  school: { width: '15%', minWidth: 120 },
+  grade: { width: '5%', minWidth: 52 },
+  membership: { width: '8%', minWidth: 80 },
+  coins: { width: '6%', minWidth: 64 },
+  qod: { width: '9%', minWidth: 88 },
+  status: { width: '16%', minWidth: 140 },
   actions: { width: '11%', minWidth: 104 },
 } as const;
 
 /** `joined` has no column header; it stays the default order (newest accounts first). */
-type StudentSortKey = 'coins' | 'joined' | 'name';
+type StudentSortKey = 'coins' | 'qod' | 'joined' | 'name';
 type StudentSortDir = 'asc' | 'desc';
 
 const studentColSx = (key: keyof typeof STUDENT_COL, extra?: Record<string, unknown>) => ({
@@ -747,7 +748,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
     search,
   ]);
 
-  const tableColSpan = isSuperAdmin ? 8 : 7;
+  const tableColSpan = isSuperAdmin ? 9 : 8;
 
   const sortedStudents = useMemo(() => {
     const rows = [...students];
@@ -755,6 +756,12 @@ const PlatformAdminStudentsPage: React.FC = () => {
     rows.sort((a, b) => {
       if (sortKey === 'coins') {
         return (a.argus_coins - b.argus_coins) * dir;
+      }
+      if (sortKey === 'qod') {
+        const aQod = a.qod_attempted_total ?? 0;
+        const bQod = b.qod_attempted_total ?? 0;
+        if (aQod !== bQod) return (aQod - bQod) * dir;
+        return ((a.qod_accuracy_pct ?? 0) - (b.qod_accuracy_pct ?? 0)) * dir;
       }
       if (sortKey === 'name') {
         const an = `${a.first_name} ${a.last_name}`.trim().toLowerCase();
@@ -1151,6 +1158,15 @@ const PlatformAdminStudentsPage: React.FC = () => {
                         Coins
                       </TableSortLabel>
                     </TableCell>
+                    <TableCell sx={studentColSx('qod')} align="right">
+                      <TableSortLabel
+                        active={sortKey === 'qod'}
+                        direction={sortKey === 'qod' ? sortDir : 'desc'}
+                        onClick={() => toggleSort('qod')}
+                      >
+                        QoD
+                      </TableSortLabel>
+                    </TableCell>
                     <TableCell sx={studentColSx('status')}>Status</TableCell>
                     {isSuperAdmin && (
                       <TableCell align="right" sx={studentColSx('actions')}>
@@ -1195,6 +1211,15 @@ const PlatformAdminStudentsPage: React.FC = () => {
                       onClick={() => toggleSort('coins')}
                     >
                       Coins
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell sx={studentColSx('qod')} align="right">
+                    <TableSortLabel
+                      active={sortKey === 'qod'}
+                      direction={sortKey === 'qod' ? sortDir : 'desc'}
+                      onClick={() => toggleSort('qod')}
+                    >
+                      QoD
                     </TableSortLabel>
                   </TableCell>
                   <TableCell sx={studentColSx('status')}>Status</TableCell>
@@ -1302,6 +1327,23 @@ const PlatformAdminStudentsPage: React.FC = () => {
                     sx={studentColSx('coins', { color: ip.heading, fontWeight: 700, whiteSpace: 'nowrap' })}
                   >
                     {typeof student.argus_coins === 'number' ? student.argus_coins.toLocaleString() : '0'}
+                  </TableCell>
+                  <TableCell
+                    align="right"
+                    sx={studentColSx('qod', { color: ip.heading, whiteSpace: 'nowrap' })}
+                  >
+                    {(student.qod_attempted_total ?? 0) > 0 ? (
+                      <>
+                        <Typography component="span" sx={{ fontWeight: 700, fontSize: 'inherit' }}>
+                          {(student.qod_attempted_total ?? 0).toLocaleString()}
+                        </Typography>
+                        <Typography component="span" sx={{ color: ip.subtext, fontSize: '0.75rem', ml: 0.5 }}>
+                          · {student.qod_accuracy_pct ?? 0}%
+                        </Typography>
+                      </>
+                    ) : (
+                      '0'
+                    )}
                   </TableCell>
                   <TableCell sx={studentColSx('status', { whiteSpace: 'nowrap' })}>
                     {student.is_invite ? (
