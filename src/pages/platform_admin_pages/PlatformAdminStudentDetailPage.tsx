@@ -33,9 +33,12 @@ import axios from 'axios';
 import {
   deletePlatformAdminStudent,
   formatDate,
+  formatDateTime,
   formatInrFromPaise,
   getPlatformAdminStudent,
+  getPlatformAdminStudentCoinEvents,
   getPlatformAdminStudentInvoiceDownloadUrl,
+  type PlatformAdminCoinEventRow,
   type PlatformAdminStudentDetail,
 } from '../../db/platformAdminCollection';
 import {
@@ -81,10 +84,32 @@ function paymentKindLabel(kind: string): string {
   return kind || ' - ';
 }
 
+function coinReasonLabel(reason: string): string {
+  switch (reason) {
+    case 'qod':
+      return 'Question of the Day';
+    case 'qod_streak':
+      return 'QoD streak milestone';
+    case 'login_streak':
+      return 'Login streak milestone';
+    case 'practice':
+      return 'Practice';
+    case 'exam':
+      return 'Exam';
+    case 'redeem':
+      return 'Redemption';
+    case 'refund':
+      return 'Refund';
+    default:
+      return reason || ' - ';
+  }
+}
+
 const PlatformAdminStudentDetailPage: React.FC = () => {
   const { studentId } = useParams<{ studentId: string }>();
   const navigate = useNavigate();
   const [student, setStudent] = useState<PlatformAdminStudentDetail | null>(null);
+  const [coinEvents, setCoinEvents] = useState<PlatformAdminCoinEventRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -99,10 +124,15 @@ const PlatformAdminStudentDetailPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await getPlatformAdminStudent(studentId);
+      const [data, events] = await Promise.all([
+        getPlatformAdminStudent(studentId),
+        getPlatformAdminStudentCoinEvents(studentId, 50).catch(() => [] as PlatformAdminCoinEventRow[]),
+      ]);
       setStudent(data);
+      setCoinEvents(events);
     } catch {
       setStudent(null);
+      setCoinEvents([]);
       setError('Failed to load student details.');
     } finally {
       setLoading(false);
@@ -342,6 +372,86 @@ const PlatformAdminStudentDetailPage: React.FC = () => {
               label="QoD accuracy"
               value={`${student.qod_accuracy_pct ?? 0}%`}
             />
+            <DetailRow
+              label="QoD streak"
+              value={`current ${student.qod_streak_current ?? 0} · longest ${student.qod_streak_longest ?? 0}`}
+            />
+            <DetailRow
+              label="Login streak"
+              value={`current ${student.login_streak_current ?? 0} · longest ${student.login_streak_longest ?? 0}`}
+            />
+            <DetailRow
+              label="Practice sessions"
+              value={String(student.practice_sessions_total ?? 0)}
+            />
+            <DetailRow
+              label="Practice questions"
+              value={String(student.practice_questions_total ?? 0)}
+            />
+            <DetailRow
+              label="Practice correct"
+              value={String(student.practice_correct_total ?? 0)}
+            />
+            <DetailRow
+              label="Practice accuracy"
+              value={`${student.practice_accuracy_pct ?? 0}%`}
+            />
+            <DetailRow
+              label="Practice coins earned"
+              value={String(student.practice_coins_earned_total ?? 0)}
+            />
+          </CardContent>
+        </Card>
+
+        <Card sx={platformAdminCardSx}>
+          <CardContent>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
+              Coin ledger
+            </Typography>
+            <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 2 }}>
+              Forward-looking earn/spend events only (no pre-ledger history). Balance on the student
+              doc remains the source of truth.
+            </Typography>
+            <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
+              <Table size="small" sx={platformAdminTableSx}>
+                <TableHead>
+                  <TableRow sx={platformAdminTableHeadRowSx}>
+                    <TableCell>When</TableCell>
+                    <TableCell>Reason</TableCell>
+                    <TableCell align="right">Delta</TableCell>
+                    <TableCell align="right">Balance after</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {coinEvents.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} align="center" sx={{ py: 3, color: ip.subtext }}>
+                        No coin events yet.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    coinEvents.map((ev) => (
+                      <TableRow key={ev.id}>
+                        <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                          {ev.ts ? formatDateTime(ev.ts) : ev.date_ist || ' - '}
+                        </TableCell>
+                        <TableCell>{coinReasonLabel(ev.reason)}</TableCell>
+                        <TableCell
+                          align="right"
+                          sx={{
+                            fontWeight: 700,
+                            color: ev.delta >= 0 ? '#059669' : '#b91c1c',
+                          }}
+                        >
+                          {ev.delta >= 0 ? `+${ev.delta}` : String(ev.delta)}
+                        </TableCell>
+                        <TableCell align="right">{ev.balance_after.toLocaleString()}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
           </CardContent>
         </Card>
 

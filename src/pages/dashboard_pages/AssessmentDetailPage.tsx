@@ -40,7 +40,7 @@ import {
   BeforeBeginIconKey,
 } from '../../config/assessmentFlowUI';
 import { mergeStatGridWithTier } from '../../components/assessment/mergeStatGridWithTier';
-import { STUDENT_OFFICIAL_ASSESSMENTS_ENABLED } from '../../constants/constants';
+import { canAccessOfficialStudentAssessments } from '../../utils/officialStudentAssessmentsAccess';
 import { formatCooldownDate, nextEligibleAtMsForLevel } from '../../utils/examAttemptCooldown';
 
 const EXAM_TOTAL = 7;
@@ -71,6 +71,7 @@ const AssessmentDetailPage: React.FC = () => {
   const { assessmentId, tierNumber } = useParams<{ assessmentId: string; tierNumber: string }>();
   const navigate = useNavigate();
   const uid = auth.currentUser?.uid ?? '';
+  const officialAssessmentsEnabled = canAccessOfficialStudentAssessments(auth.currentUser?.email);
   const tier = parseInt(tierNumber ?? '1', 10);
   const levelBased = assessmentId ? isLevelBasedAssessment(assessmentId) : true;
 
@@ -593,11 +594,11 @@ const AssessmentDetailPage: React.FC = () => {
           <Button
             fullWidth
             variant="contained"
-            disabled={!tierAttemptAllowed || cooldownActive || !STUDENT_OFFICIAL_ASSESSMENTS_ENABLED}
+            disabled={!tierAttemptAllowed || cooldownActive || !officialAssessmentsEnabled}
             onClick={() =>
               tierAttemptAllowed &&
               !cooldownActive &&
-              STUDENT_OFFICIAL_ASSESSMENTS_ENABLED &&
+              officialAssessmentsEnabled &&
               navigate(`/assessments/${assessmentId}/tier/${tier}/take`)
             }
             sx={{
@@ -610,7 +611,7 @@ const AssessmentDetailPage: React.FC = () => {
               textTransform: 'none',
             }}
           >
-            {!STUDENT_OFFICIAL_ASSESSMENTS_ENABLED
+            {!officialAssessmentsEnabled
               ? 'Official exams coming soon'
               : cooldownActive && cooldownNextEligibleMs != null
                 ? `Available ${formatCooldownDate(cooldownNextEligibleMs)}`
@@ -623,7 +624,7 @@ const AssessmentDetailPage: React.FC = () => {
               This exact assessment level can be retaken every 3 months. Try a new level or assessment, or return on {formatCooldownDate(cooldownNextEligibleMs)}.
             </Typography>
           )}
-          {!STUDENT_OFFICIAL_ASSESSMENTS_ENABLED && (
+          {!officialAssessmentsEnabled && (
             <Typography sx={{ textAlign: 'center', fontSize: '0.72rem', color: '#94a3b8', mt: 1.25 }}>
               Real exam question banks are being prepared. Practice mode remains available.
             </Typography>

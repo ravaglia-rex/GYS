@@ -107,44 +107,65 @@ const RewardsShopPage: React.FC = () => {
 
   return (
     <DashboardLayout>
-      <Box sx={{ maxWidth: 1100, mx: 'auto' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-          <Avatar sx={{ bgcolor: '#eab308', color: '#1e293b', width: 56, height: 56 }}>
-            <StorefrontIcon />
-          </Avatar>
-          <Box>
-            <Typography variant="h4" sx={studentPageTitleSx}>
-              Rewards Shop
-            </Typography>
-            <Typography variant="body1" sx={studentPageSubtitleSx}>
-              Redeem your Argus Coins for gift cards, vouchers, and profile perks.
-            </Typography>
-          </Box>
-        </Box>
-
-        <Box
-          sx={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            mb: 3,
-            px: 2,
-            py: 1.25,
-            borderRadius: 999,
-            bgcolor: 'rgba(234, 179, 8, 0.12)',
-            border: '1px solid rgba(234, 179, 8, 0.45)',
-          }}
-        >
-          <Typography
-            component="span"
+      <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
+        <Box sx={{ mb: 4 }}>
+          <Box
             sx={{
-              color: '#fde68a',
-              fontWeight: 800,
-              fontSize: '1rem',
-              letterSpacing: '0.01em',
+              display: 'flex',
+              alignItems: { xs: 'flex-start', sm: 'center' },
+              justifyContent: 'space-between',
+              gap: 2,
+              flexWrap: 'wrap',
             }}
           >
-            {balance.toLocaleString()} Argus Coins available
-          </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 2 }, minWidth: 0 }}>
+              <Avatar
+                sx={{
+                  width: 64,
+                  height: 64,
+                  bgcolor: '#eab308',
+                  color: '#1e293b',
+                  flexShrink: 0,
+                }}
+              >
+                <StorefrontIcon sx={{ fontSize: 32 }} />
+              </Avatar>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography variant="h4" sx={{ ...studentPageTitleSx, minWidth: 0 }}>
+                  Rewards Shop
+                </Typography>
+                <Typography variant="h6" sx={studentPageSubtitleSx}>
+                  Redeem your Argus Coins for gift cards, vouchers, and profile perks.
+                </Typography>
+              </Box>
+            </Box>
+            <Box
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                px: 2,
+                py: 1.25,
+                borderRadius: 999,
+                bgcolor: 'rgba(234, 179, 8, 0.12)',
+                border: '1px solid rgba(234, 179, 8, 0.45)',
+                flexShrink: 0,
+                ml: { xs: '80px', sm: 0 },
+              }}
+            >
+              <Typography
+                component="span"
+                sx={{
+                  color: '#fde68a',
+                  fontWeight: 800,
+                  fontSize: '1rem',
+                  letterSpacing: '0.01em',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {balance.toLocaleString()} Argus Coins available
+              </Typography>
+            </Box>
+          </Box>
         </Box>
 
         {redeemSuccess && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setRedeemSuccess('')}>{redeemSuccess}</Alert>}

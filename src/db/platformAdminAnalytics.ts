@@ -4,6 +4,8 @@ import {
   PLATFORM_ADMIN_APIS,
   PLATFORM_ADMIN_ANALYTICS_PRACTICE_EXAMS,
   PLATFORM_ADMIN_ANALYTICS_QUESTION_OF_DAY,
+  PLATFORM_ADMIN_ANALYTICS_PRACTICE_DAILY,
+  PLATFORM_ADMIN_ANALYTICS_PRACTICE_DAILY_BY_EXAM,
   PLATFORM_ADMIN_ANALYTICS_TOP_COINS,
   PLATFORM_ADMIN_ANALYTICS_TOP_QOD,
   PLATFORM_ADMIN_ANALYTICS_SCHOOL_ADMIN_ACTIVITY,
@@ -71,6 +73,19 @@ export type QodDailyStatRow = {
   total_answered: number;
   total_correct: number;
   accuracy_pct: number;
+};
+
+export type PracticeDailyStatRow = {
+  date: string;
+  total_sessions: number;
+  total_questions: number;
+  total_correct: number;
+  accuracy_pct: number;
+};
+
+export type PracticeDailyByExamStatRow = {
+  date: string;
+  by_exam: Record<string, { sessions: number; questions: number; correct: number }>;
 };
 
 export type TopCoinsStudentRow = {
@@ -193,6 +208,46 @@ export async function getPlatformAdminQodStats(
   return {
     days: Array.isArray(res.data.days) ? res.data.days : [],
     today: res.data.today ?? null,
+    generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
+  };
+}
+
+export async function getPlatformAdminPracticeDailyStats(
+  days = 30,
+  opts?: { refresh?: boolean }
+): Promise<{
+  days: PracticeDailyStatRow[];
+  today: PracticeDailyStatRow | null;
+  generated_at: string;
+}> {
+  const headers = await authHeaders();
+  const res = await axios.get(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_PRACTICE_DAILY}`,
+    { headers, params: { days, ...refreshParams(opts?.refresh) } }
+  );
+  return {
+    days: Array.isArray(res.data.days) ? res.data.days : [],
+    today: res.data.today ?? null,
+    generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
+  };
+}
+
+export async function getPlatformAdminPracticeDailyStatsByExam(
+  days = 30,
+  opts?: { refresh?: boolean }
+): Promise<{
+  days: PracticeDailyByExamStatRow[];
+  exam_ids: string[];
+  generated_at: string;
+}> {
+  const headers = await authHeaders();
+  const res = await axios.get(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_PRACTICE_DAILY_BY_EXAM}`,
+    { headers, params: { days, ...refreshParams(opts?.refresh) } }
+  );
+  return {
+    days: Array.isArray(res.data.days) ? res.data.days : [],
+    exam_ids: Array.isArray(res.data.exam_ids) ? res.data.exam_ids : [],
     generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
   };
 }

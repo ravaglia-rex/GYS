@@ -31,7 +31,8 @@ import {
 } from '../../utils/assessmentGating';
 import { countClearedTiersFromProgress } from '../../utils/tierProgression';
 import { getReasoningExamSubcategories } from '../../data/reasoningExamSubcategories';
-import { STUDENT_OFFICIAL_ASSESSMENTS_ENABLED } from '../../constants/constants';
+import { auth } from '../../firebase/firebase';
+import { canAccessOfficialStudentAssessments } from '../../utils/officialStudentAssessmentsAccess';
 import { formatCooldownDate, nextEligibleAtMsForLevel } from '../../utils/examAttemptCooldown';
 import {
   getPreviewSampleAssessmentPath,
@@ -875,8 +876,11 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
       : 8;
   }, [previewBundle, studentData]);
 
+  const officialAssessmentsEnabled =
+    Boolean(previewBundle) || canAccessOfficialStudentAssessments(auth.currentUser?.email);
+
   const handleStart = (assessmentId: string, tierNumber: number) => {
-    if (!STUDENT_OFFICIAL_ASSESSMENTS_ENABLED && !previewBundle) {
+    if (!officialAssessmentsEnabled) {
       return;
     }
     if (previewBundle?.previewDisableStartNavigation) {
@@ -975,7 +979,7 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
                 previewSampleCtaHidden={Boolean(
                   previewBundle?.previewHideSampleCtaForIds?.includes(assessment.id)
                 )}
-                officialStartPaused={!previewBundle && !STUDENT_OFFICIAL_ASSESSMENTS_ENABLED}
+                officialStartPaused={!officialAssessmentsEnabled}
               />
             </Box>
           ))}

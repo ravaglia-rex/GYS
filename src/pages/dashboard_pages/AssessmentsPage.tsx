@@ -8,9 +8,9 @@ import { EnhancedAssessmentCardsGroup } from '../../components/dashboard/Enhance
 import AssessmentAttemptHistorySection from '../../components/dashboard/AssessmentAttemptHistorySection';
 import { auth } from '../../firebase/firebase';
 import * as Sentry from '@sentry/react';
-import { STUDENT_OFFICIAL_ASSESSMENTS_ENABLED } from '../../constants/constants';
 import PageTutorial from '../../components/tutorial/PageTutorial';
 import { studentPageSubtitleSx, studentPageTitleSx } from '../../styles/studentTypography';
+import { canAccessOfficialStudentAssessments } from '../../utils/officialStudentAssessmentsAccess';
 
 
 interface TabPanelProps {
@@ -52,6 +52,7 @@ const AssessmentsPage: React.FC = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const uid = auth.currentUser?.uid || '';
+  const officialAssessmentsEnabled = canAccessOfficialStudentAssessments(auth.currentUser?.email);
   const [activeTab, setActiveTab] = useState(0);
 
   // Determine active tab based on current route
@@ -114,7 +115,7 @@ const AssessmentsPage: React.FC = () => {
                   Assessments
                 </Typography>
                 <Typography variant="h6" sx={studentPageSubtitleSx}>
-                  {STUDENT_OFFICIAL_ASSESSMENTS_ENABLED
+                  {officialAssessmentsEnabled
                     ? 'Take assessments, view results, and track your progress'
                     : 'Official exams are coming soon; practice mode remains available'}
                 </Typography>
@@ -172,7 +173,7 @@ const AssessmentsPage: React.FC = () => {
                 filterType="available" 
                 showDashboardOverview={false}
                 description={
-                  STUDENT_OFFICIAL_ASSESSMENTS_ENABLED
+                  officialAssessmentsEnabled
                     ? 'These are the assessments currently available for you to take. Make sure your device meets all requirements before starting.'
                     : 'Official exams are shown for reference, but they are not open yet while the real question banks are being prepared.'
                 }

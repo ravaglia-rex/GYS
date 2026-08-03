@@ -32,7 +32,7 @@ import {
 } from '../../db/studentCollection';
 import PageTutorial from '../../components/tutorial/PageTutorial';
 import { studentPageSubtitleSx, studentPageTitleSx } from '../../styles/studentTypography';
-import { STUDENT_OFFICIAL_ASSESSMENTS_ENABLED } from '../../constants/constants';
+import { canAccessOfficialStudentAssessments } from '../../utils/officialStudentAssessmentsAccess';
 
 function a11yProps(index: number) {
   return {
@@ -157,7 +157,7 @@ const ReportsPage: React.FC = () => {
                   Assessments
                 </Typography>
                 <Typography variant="h6" sx={studentPageSubtitleSx}>
-                  {STUDENT_OFFICIAL_ASSESSMENTS_ENABLED
+                  {canAccessOfficialStudentAssessments(auth.currentUser?.email)
                     ? 'Take assessments, view results, and track your progress'
                     : 'Official exams are coming soon; practice mode remains available'}
                 </Typography>

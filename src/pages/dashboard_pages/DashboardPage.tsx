@@ -19,8 +19,8 @@ import {
   buildDashboardExamChartRows,
   type AssessmentChartRow,
 } from '../../utils/assessmentGating';
-import { STUDENT_OFFICIAL_ASSESSMENTS_ENABLED } from '../../constants/constants';
 import PageTutorial from '../../components/tutorial/PageTutorial';
+import { canAccessOfficialStudentAssessments } from '../../utils/officialStudentAssessmentsAccess';
 import type {
   CompletedAssessmentNotificationSource,
   DashboardNotificationEventSource,
@@ -48,6 +48,7 @@ interface DashboardStats {
 
 const Dashboard: React.FC = () => {
   const [uid, setUid] = useState(() => auth.currentUser?.uid ?? '');
+  const [userEmail, setUserEmail] = useState(() => auth.currentUser?.email ?? '');
   const {
     data: student,
     isLoading: studentLoading,
@@ -60,12 +61,29 @@ const Dashboard: React.FC = () => {
   const loadError = studentIsError
     ? 'Could not load your dashboard data. Please refresh or try again later.'
     : '';
+  const officialAssessmentsEnabled = canAccessOfficialStudentAssessments(userEmail);
 
   const dashboardDerived = useMemo(() => {
     if (loading || !student) {
       return {
         stats: {
-          totalAssessments: PROGRAM_EXAM_COUNT,
+          totalAssessments: officialAssessmentsEnabled ? PROGRAM_EXAM_COUNT : 0,
+          tiersCompleted: 0,
+          averageScore: 0,
+          availableAssessments: 0,
+        } as DashboardStats,
+        scoresByAssessment: [] as AssessmentChartRow[],
+        completedAssessments: [] as CompletedAssessmentNotificationSource[],
+        unlockedAssessments: [] as UnlockedAssessmentNotificationSource[],
+        backendNotificationEvents: [] as DashboardNotificationEventSource[],
+        assessmentScopeLine: '',
+      };
+    }
+
+    if (!officialAssessmentsEnabled) {
+      return {
+        stats: {
+          totalAssessments: 0,
           tiersCompleted: 0,
           averageScore: 0,
           availableAssessments: 0,
@@ -109,13 +127,7 @@ const Dashboard: React.FC = () => {
         });
       }
       // Only treat exams as "available" when official assessments are startable.
-      // Membership gating alone would count Discovery (exam 1) for every new student
-      // even while STUDENT_OFFICIAL_ASSESSMENTS_ENABLED is false.
-      if (
-        STUDENT_OFFICIAL_ASSESSMENTS_ENABLED &&
-        !gate.locked &&
-        !isAssessmentFullyComplete(a, p)
-      ) {
+      if (!gate.locked && !isAssessmentFullyComplete(a, p)) {
         availableAssessments++;
         const hasAttemptedThisAssessment = (p.attempts_count ?? 0) > 0 || p.best_score !== null;
         const hasPrerequisite = (COMPLETION_PREREQUISITES[a.id] ?? []).length > 0;
@@ -152,7 +164,7 @@ const Dashboard: React.FC = () => {
       backendNotificationEvents: dashboardNotificationEvents,
       assessmentScopeLine: `${tiersCompleted} of ${listedTotal} complete`,
     };
-  }, [student, configFromBackend, loading]);
+  }, [student, configFromBackend, loading, officialAssessmentsEnabled]);
 
   const {
     stats,
@@ -166,6 +178,7 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, user => {
       setUid(user?.uid ?? '');
+      setUserEmail(user?.email ?? '');
     });
     return () => unsub();
   }, []);
@@ -223,6 +236,7 @@ const Dashboard: React.FC = () => {
                 unlockedAssessments={unlockedAssessments}
                 backendNotificationEvents={backendNotificationEvents}
               />
+              {officialAssessmentsEnabled && (
               <Box sx={{ mt: 4, ml: { xs: 0, sm: 1 }, minWidth: 0 }} data-tutorial-id="student-dashboard-assessments">
                 <Box>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', gap: 1, mb: 2 }}>
@@ -240,13 +254,12 @@ const Dashboard: React.FC = () => {
                     )}
                   </Box>
                   <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.65)', mb: 2 }}>
-                    {STUDENT_OFFICIAL_ASSESSMENTS_ENABLED
-                      ? 'All assessments are listed below. Complete them in sequence where your membership allows - Reasoning Triad covers Exams 1-3; Stream Ready adds Personality and Interest and AI Proficiency (4-5); Career Ready adds the Pathways group (6-7) and ongoing AI career counseling that begins after that baseline and grows as you log new experiences. Practice Mode uses a separate pool and does not change official scores.'
-                      : 'Official exams are listed for reference, but they are not open yet while the real question banks are being prepared. Practice Mode remains available and uses a separate pool that does not change official scores.'}
+                    All assessments are listed below. Complete them in sequence where your membership allows - Reasoning Triad covers Exams 1-3; Stream Ready adds Personality and Interest and AI Proficiency (4-5); Career Ready adds the Pathways group (6-7) and ongoing AI career counseling that begins after that baseline and grows as you log new experiences. Practice Mode uses a separate pool and does not change official scores.
                   </Typography>
                 </Box>
                 <EnhancedAssessmentCardsGroup uid={uid} filterType="all" />
               </Box>
+              )}
             </>
           )}
         </Box>

@@ -45,6 +45,11 @@ export function readGamificationFromStudent(student: Record<string, unknown> | n
       qod_attempted_total: 0,
       qod_correct_total: 0,
       qod_accuracy_pct: 0,
+      practice_sessions_total: 0,
+      practice_questions_total: 0,
+      practice_correct_total: 0,
+      practice_accuracy_pct: 0,
+      practice_coins_earned_total: 0,
       redemptions: {},
     };
   }
@@ -87,6 +92,26 @@ export function readGamificationFromStudent(student: Record<string, unknown> | n
       storedAccuracy ?? (attempted > 0 ? Math.round((1000 * correctTotal) / attempted) / 10 : 0),
     qod_last_answered_date: qodAnsweredDate,
     qod_last_result: (g.qod_last_result ?? g['qotd_last_result']) as GamificationState['qod_last_result'],
+    practice_sessions_total:
+      typeof g.practice_sessions_total === 'number' && g.practice_sessions_total > 0
+        ? Math.floor(g.practice_sessions_total)
+        : 0,
+    practice_questions_total:
+      typeof g.practice_questions_total === 'number' && g.practice_questions_total > 0
+        ? Math.floor(g.practice_questions_total)
+        : 0,
+    practice_correct_total:
+      typeof g.practice_correct_total === 'number' && g.practice_correct_total > 0
+        ? Math.floor(g.practice_correct_total)
+        : 0,
+    practice_accuracy_pct:
+      typeof g.practice_accuracy_pct === 'number' && Number.isFinite(g.practice_accuracy_pct)
+        ? g.practice_accuracy_pct
+        : 0,
+    practice_coins_earned_total:
+      typeof g.practice_coins_earned_total === 'number' && g.practice_coins_earned_total > 0
+        ? Math.floor(g.practice_coins_earned_total)
+        : 0,
     practice_last_awarded_week: typeof g.practice_last_awarded_week === 'string' ? g.practice_last_awarded_week : undefined,
     redemptions: (g.redemptions ?? {}) as GamificationState['redemptions'],
   };

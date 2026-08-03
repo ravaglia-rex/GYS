@@ -548,6 +548,11 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             ? Math.round((1000 * Math.max(0, previewGamification.qod_streak - 1)) / previewGamification.qod_streak) /
               10
             : 0,
+        practice_sessions_total: 4,
+        practice_questions_total: 40,
+        practice_correct_total: 28,
+        practice_accuracy_pct: 70,
+        practice_coins_earned_total: 62,
         qod_last_answered_date: previewGamification.qod_answered_today ? istDateStringClient() : undefined,
       };
     }

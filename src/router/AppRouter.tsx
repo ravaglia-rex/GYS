@@ -5,6 +5,7 @@ import SchoolAdminRoute from '../components/route_protection/SchoolAdminRoute';
 import PlatformAdminRoute from '../components/route_protection/PlatformAdminRoute';
 import PlatformAdminSuperRoute from '../components/route_protection/PlatformAdminSuperRoute';
 import PlatformAdminAnalyticsRoute from '../components/route_protection/PlatformAdminAnalyticsRoute';
+import OfficialStudentAssessmentsRoute from '../components/route_protection/OfficialStudentAssessmentsRoute';
 import NotFoundPage from '../pages/NotFoundPage';
 import BigSpinner from '../components/ui/BigSpinner';
 import StudentRegistrationFlowLayout from '../layouts/StudentRegistrationFlowLayout';
@@ -567,14 +568,16 @@ const AppRouter: React.FC = () => {
           errorElement={<NotFoundPage />}
         />
         
-        {/* Assessment list routes */}
+        {/* Assessment list routes (beta-gated until global official exam launch) */}
         <Route
           path="/assessments"
           element={
             <Protected>
-              <Suspense fallback={<BigSpinner/>}>
-                <AssessmentsPage />
-              </Suspense>
+              <OfficialStudentAssessmentsRoute>
+                <Suspense fallback={<BigSpinner/>}>
+                  <AssessmentsPage />
+                </Suspense>
+              </OfficialStudentAssessmentsRoute>
             </Protected>
           }
           errorElement={<NotFoundPage />}
@@ -584,9 +587,11 @@ const AppRouter: React.FC = () => {
           path="/assessments/available"
           element={
             <Protected>
-              <Suspense fallback={<BigSpinner/>}>
-                <AssessmentsPage />
-              </Suspense>
+              <OfficialStudentAssessmentsRoute>
+                <Suspense fallback={<BigSpinner/>}>
+                  <AssessmentsPage />
+                </Suspense>
+              </OfficialStudentAssessmentsRoute>
             </Protected>
           }
           errorElement={<NotFoundPage />}
@@ -596,9 +601,11 @@ const AppRouter: React.FC = () => {
           path="/assessments/completed"
           element={
             <Protected>
-              <Suspense fallback={<BigSpinner/>}>
-                <AssessmentsPage />
-              </Suspense>
+              <OfficialStudentAssessmentsRoute>
+                <Suspense fallback={<BigSpinner/>}>
+                  <AssessmentsPage />
+                </Suspense>
+              </OfficialStudentAssessmentsRoute>
             </Protected>
           }
           errorElement={<NotFoundPage />}
@@ -607,9 +614,11 @@ const AppRouter: React.FC = () => {
           path="/assessments/reports"
           element={
             <Protected>
-              <Suspense fallback={<BigSpinner/>}>
-                <ReportsPage />
-              </Suspense>
+              <OfficialStudentAssessmentsRoute>
+                <Suspense fallback={<BigSpinner/>}>
+                  <ReportsPage />
+                </Suspense>
+              </OfficialStudentAssessmentsRoute>
             </Protected>
           }
           errorElement={<NotFoundPage />}
@@ -623,9 +632,11 @@ const AppRouter: React.FC = () => {
           path="/assessments/:assessmentId/tier/:tierNumber/detail"
           element={
             <Protected>
-              <Suspense fallback={<BigSpinner/>}>
-                <AssessmentDetailPage />
-              </Suspense>
+              <OfficialStudentAssessmentsRoute>
+                <Suspense fallback={<BigSpinner/>}>
+                  <AssessmentDetailPage />
+                </Suspense>
+              </OfficialStudentAssessmentsRoute>
             </Protected>
           }
           errorElement={<NotFoundPage />}
@@ -635,9 +646,11 @@ const AppRouter: React.FC = () => {
           path="/assessments/:assessmentId/tier/:tierNumber/take"
           element={
             <Protected>
-              <Suspense fallback={<BigSpinner/>}>
-                <AssessmentTakePage />
-              </Suspense>
+              <OfficialStudentAssessmentsRoute>
+                <Suspense fallback={<BigSpinner/>}>
+                  <AssessmentTakePage />
+                </Suspense>
+              </OfficialStudentAssessmentsRoute>
             </Protected>
           }
           errorElement={<NotFoundPage />}
@@ -647,9 +660,11 @@ const AppRouter: React.FC = () => {
           path="/assessments/:assessmentId/result"
           element={
             <Protected>
-              <Suspense fallback={<BigSpinner/>}>
-                <AssessmentResultPage />
-              </Suspense>
+              <OfficialStudentAssessmentsRoute>
+                <Suspense fallback={<BigSpinner/>}>
+                  <AssessmentResultPage />
+                </Suspense>
+              </OfficialStudentAssessmentsRoute>
             </Protected>
           }
           errorElement={<NotFoundPage />}
@@ -659,9 +674,11 @@ const AppRouter: React.FC = () => {
           path="/assessments/:assessmentId/result/details"
           element={
             <Protected>
-              <Suspense fallback={<BigSpinner/>}>
-                <AssessmentResultDetailPage />
-              </Suspense>
+              <OfficialStudentAssessmentsRoute>
+                <Suspense fallback={<BigSpinner/>}>
+                  <AssessmentResultDetailPage />
+                </Suspense>
+              </OfficialStudentAssessmentsRoute>
             </Protected>
           }
           errorElement={<NotFoundPage />}
@@ -672,9 +689,11 @@ const AppRouter: React.FC = () => {
           path="/reports"
           element={
             <Protected>
-              <Suspense fallback={<BigSpinner/>}>
-                <ReportsPage />
-              </Suspense>
+              <OfficialStudentAssessmentsRoute>
+                <Suspense fallback={<BigSpinner/>}>
+                  <ReportsPage />
+                </Suspense>
+              </OfficialStudentAssessmentsRoute>
             </Protected>
           }
           errorElement={<NotFoundPage />}

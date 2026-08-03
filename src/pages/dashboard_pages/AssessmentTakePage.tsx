@@ -39,7 +39,8 @@ import { getAssessmentFlowDefinition } from '../../config/assessmentFlowUI';
 import { EXAM_MATHJAX_CONFIG } from '../../components/assessment/examMathJaxConfig';
 import { inferQuestionInteraction } from '../../components/assessment/inferQuestionInteraction';
 import { useExamIntegrity } from '../../hooks/useExamIntegrity';
-import { STUDENT_OFFICIAL_ASSESSMENTS_ENABLED } from '../../constants/constants';
+import { canAccessOfficialStudentAssessments } from '../../utils/officialStudentAssessmentsAccess';
+import { getExamDeviceFingerprint } from '../../utils/examDeviceFingerprint';
 import { isLevelBasedAssessment } from '../../utils/assessmentGating';
 import {
   isProctoringActive,
@@ -298,10 +299,15 @@ export default function AssessmentTakePage() {
     void reportProctoringEvent(type, severity, snapshot);
   };
 
-  const { leftFullscreen, tryEnterFullscreen, dismissFullscreenWarning } = useExamIntegrity({
+  const { leftFullscreen, tryEnterFullscreen } = useExamIntegrity({
     active: Boolean(attemptId && stage === 'taking'),
     onBackgroundTooLong: () =>
       endAttemptForIntegrity('This attempt ended because the exam stayed in the background too long.'),
+    onFullscreenExitTooLong: () =>
+      endAttemptForIntegrity(
+        'This attempt ended because fullscreen was exited. Stay in fullscreen for the whole exam.'
+      ),
+    enforceFullscreen: true,
     onPrintScreen: () => {
       setScreenshotNudge(true);
       if (proctoringEnabled) {
@@ -329,7 +335,13 @@ export default function AssessmentTakePage() {
     setIsInitializing(true);
 
     try {
-      const result = await initializeExam(uid, assessmentId, tier);
+      const result = await initializeExam(
+        uid,
+        assessmentId,
+        tier,
+        undefined,
+        getExamDeviceFingerprint()
+      );
       setAttemptId(result.attempt_id);
       setCurrentQuestion(result.question);
       setCurrentIndex(result.current_index);
@@ -504,7 +516,14 @@ export default function AssessmentTakePage() {
     setIsSubmitting(true);
 
     try {
-      const response = await recordAnswer(uid, attemptId, currentQuestion.id, selectedOption, timeSpentMs);
+      const response = await recordAnswer(
+        uid,
+        attemptId,
+        currentQuestion.id,
+        selectedOption,
+        timeSpentMs,
+        getExamDeviceFingerprint()
+      );
 
       if (response.done) {
         const result = await completeExam(uid, attemptId);
@@ -575,7 +594,7 @@ export default function AssessmentTakePage() {
     return null;
   }
 
-  if (!STUDENT_OFFICIAL_ASSESSMENTS_ENABLED) {
+  if (!canAccessOfficialStudentAssessments(auth.currentUser?.email)) {
     return (
       <Box sx={{ minHeight: '100vh', bgcolor: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, p: 3 }}>
         <Alert severity="info" sx={{ maxWidth: 500, width: '100%' }}>
@@ -786,16 +805,15 @@ export default function AssessmentTakePage() {
 
       {leftFullscreen && (
         <Alert
-          severity="warning"
+          severity="error"
           sx={{ borderRadius: 0 }}
-          onClose={dismissFullscreenWarning}
           action={
             <Button color="inherit" size="small" onClick={tryEnterFullscreen}>
-              Enter Fullscreen
+              Re-enter Fullscreen
             </Button>
           }
         >
-          Fullscreen was exited. Re-enter for the best secure exam experience (optional on some devices).
+          Fullscreen is required. Re-enter within a few seconds or this attempt will end.
         </Alert>
       )}
 

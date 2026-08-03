@@ -24,6 +24,8 @@ import {
   Checkbox,
   ListItemText,
   OutlinedInput,
+  FormControl,
+  InputLabel,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -193,8 +195,25 @@ const STUDENT_COL = {
 } as const;
 
 /** `joined` has no column header; it stays the default order (newest accounts first). */
-type StudentSortKey = 'coins' | 'qod' | 'joined' | 'name';
+type StudentSortKey =
+  | 'coins'
+  | 'qod'
+  | 'joined'
+  | 'name'
+  | 'login_streak'
+  | 'qod_streak'
+  | 'practice';
 type StudentSortDir = 'asc' | 'desc';
+
+const STUDENT_SORT_LABELS: Record<StudentSortKey, string> = {
+  joined: 'Joined (newest)',
+  name: 'Name',
+  coins: 'Coins',
+  qod: 'QoD attempted',
+  login_streak: 'Login streak (longest)',
+  qod_streak: 'QoD streak (longest)',
+  practice: 'Practice sessions',
+};
 
 const studentColSx = (key: keyof typeof STUDENT_COL, extra?: Record<string, unknown>) => ({
   ...STUDENT_COL[key],
@@ -763,6 +782,15 @@ const PlatformAdminStudentsPage: React.FC = () => {
         if (aQod !== bQod) return (aQod - bQod) * dir;
         return ((a.qod_accuracy_pct ?? 0) - (b.qod_accuracy_pct ?? 0)) * dir;
       }
+      if (sortKey === 'login_streak') {
+        return ((a.login_streak_longest ?? 0) - (b.login_streak_longest ?? 0)) * dir;
+      }
+      if (sortKey === 'qod_streak') {
+        return ((a.qod_streak_longest ?? 0) - (b.qod_streak_longest ?? 0)) * dir;
+      }
+      if (sortKey === 'practice') {
+        return ((a.practice_sessions_total ?? 0) - (b.practice_sessions_total ?? 0)) * dir;
+      }
       if (sortKey === 'name') {
         const an = `${a.first_name} ${a.last_name}`.trim().toLowerCase();
         const bn = `${b.first_name} ${b.last_name}`.trim().toLowerCase();
@@ -1060,6 +1088,29 @@ const PlatformAdminStudentsPage: React.FC = () => {
               minWidth={148}
               onChange={setMembershipFilter}
             />
+            <FormControl size="small" sx={{ minWidth: 190 }}>
+              <InputLabel id="students-sort-label" sx={{ color: ip.subtext }}>
+                Sort by
+              </InputLabel>
+              <Select
+                labelId="students-sort-label"
+                label="Sort by"
+                value={sortKey}
+                onChange={(e) => {
+                  const key = e.target.value as StudentSortKey;
+                  setSortKey(key);
+                  setSortDir(key === 'name' ? 'asc' : 'desc');
+                }}
+                MenuProps={{ PaperProps: { sx: platformAdminSelectMenuPaperSx } }}
+                sx={platformAdminFilterSelectSx(190)}
+              >
+                {(Object.keys(STUDENT_SORT_LABELS) as StudentSortKey[]).map((key) => (
+                  <MenuItem key={key} value={key}>
+                    {STUDENT_SORT_LABELS[key]}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
             {(hasSecondaryFilters || schoolSelected) && (
               <Button
                 size="small"

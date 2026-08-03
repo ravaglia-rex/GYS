@@ -29,7 +29,16 @@ export type GamificationState = {
   qod_correct_total: number;
   qod_accuracy_pct: number;
   qod_last_answered_date?: string;
-  qod_last_result?: { correct: boolean; coins_awarded: number };
+  qod_last_result?: {
+    correct: boolean;
+    coins_awarded: number;
+    selected_option_index?: number | null;
+  };
+  practice_sessions_total: number;
+  practice_questions_total: number;
+  practice_correct_total: number;
+  practice_accuracy_pct: number;
+  practice_coins_earned_total: number;
   practice_last_awarded_week?: string;
   redemptions?: Record<string, RedemptionRecord>;
 };
@@ -65,6 +74,7 @@ export type QodResponse = {
     correct: boolean;
     coins_awarded: number;
     correct_option_index?: number | null;
+    selected_option_index?: number | null;
     solution_steps?: string[] | null;
   } | null;
   argus_coins: number;
@@ -82,6 +92,7 @@ export type QodAnswerResponse = {
   milestone_coins: number;
   correct: boolean;
   correct_option_index: number | null;
+  selected_option_index?: number | null;
   solution_steps?: string[] | null;
   argus_coins: number;
   qod_attempted_total: number;

@@ -2,22 +2,36 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 
 /** If the tab is hidden longer than this, we treat it as an integrity violation. */
 export const EXAM_BACKGROUND_MS = 45_000;
+/** Grace period to re-enter fullscreen before the attempt is ended. */
+export const EXAM_FULLSCREEN_EXIT_GRACE_MS = 12_000;
 
 type UseExamIntegrityOptions = {
   /** Exam in progress with a live attempt */
   active: boolean;
   onBackgroundTooLong: () => void | Promise<void>;
   onPrintScreen?: () => void;
+  /** Fired if fullscreen stays exited longer than the grace period (forced fullscreen). */
+  onFullscreenExitTooLong?: () => void | Promise<void>;
+  /** When true, leaving fullscreen starts the grace timer (default true while active). */
+  enforceFullscreen?: boolean;
 };
 
 /**
  * While active: blocks copy/cut/paste/context menu on the document, detects extended
- * backgrounding, discourages PrintScreen, and tracks fullscreen exit (mobile/desktop).
+ * backgrounding, discourages PrintScreen, and enforces fullscreen with a short grace period.
  */
-export function useExamIntegrity({ active, onBackgroundTooLong, onPrintScreen }: UseExamIntegrityOptions) {
+export function useExamIntegrity({
+  active,
+  onBackgroundTooLong,
+  onPrintScreen,
+  onFullscreenExitTooLong,
+  enforceFullscreen = true,
+}: UseExamIntegrityOptions) {
   const [leftFullscreen, setLeftFullscreen] = useState(false);
   const hiddenAtRef = useRef<number | null>(null);
   const backgroundFiredRef = useRef(false);
+  const fullscreenExitFiredRef = useRef(false);
+  const fullscreenGraceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const tryEnterFullscreen = useCallback(() => {
     const el = document.documentElement;
@@ -31,6 +45,11 @@ export function useExamIntegrity({ active, onBackgroundTooLong, onPrintScreen }:
       setLeftFullscreen(false);
       hiddenAtRef.current = null;
       backgroundFiredRef.current = false;
+      fullscreenExitFiredRef.current = false;
+      if (fullscreenGraceTimerRef.current) {
+        clearTimeout(fullscreenGraceTimerRef.current);
+        fullscreenGraceTimerRef.current = null;
+      }
       return;
     }
 
@@ -58,11 +77,34 @@ export function useExamIntegrity({ active, onBackgroundTooLong, onPrintScreen }:
     };
     document.addEventListener('visibilitychange', onVisibility);
 
+    const clearFsGrace = () => {
+      if (fullscreenGraceTimerRef.current) {
+        clearTimeout(fullscreenGraceTimerRef.current);
+        fullscreenGraceTimerRef.current = null;
+      }
+    };
+
     const onFsChange = () => {
-      setLeftFullscreen(!document.fullscreenElement);
+      const exited = !document.fullscreenElement;
+      setLeftFullscreen(exited);
+      if (!enforceFullscreen || !onFullscreenExitTooLong) return;
+      if (exited) {
+        clearFsGrace();
+        fullscreenGraceTimerRef.current = setTimeout(() => {
+          if (!document.fullscreenElement && !fullscreenExitFiredRef.current) {
+            fullscreenExitFiredRef.current = true;
+            void Promise.resolve(onFullscreenExitTooLong());
+          }
+        }, EXAM_FULLSCREEN_EXIT_GRACE_MS);
+      } else {
+        clearFsGrace();
+      }
     };
     document.addEventListener('fullscreenchange', onFsChange);
     setLeftFullscreen(!document.fullscreenElement);
+    if (enforceFullscreen && !document.fullscreenElement) {
+      void document.documentElement.requestFullscreen?.().catch(() => {});
+    }
 
     const onKeyCapture = (e: KeyboardEvent) => {
       if (e.key === 'PrintScreen') {
@@ -80,8 +122,13 @@ export function useExamIntegrity({ active, onBackgroundTooLong, onPrintScreen }:
       document.removeEventListener('visibilitychange', onVisibility);
       document.removeEventListener('fullscreenchange', onFsChange);
       window.removeEventListener('keydown', onKeyCapture, true);
+      clearFsGrace();
     };
-  }, [active, onBackgroundTooLong, onPrintScreen]);
+  }, [active, onBackgroundTooLong, onPrintScreen, onFullscreenExitTooLong, enforceFullscreen]);
 
-  return { leftFullscreen, tryEnterFullscreen, dismissFullscreenWarning: () => setLeftFullscreen(false) };
+  return {
+    leftFullscreen,
+    tryEnterFullscreen,
+    dismissFullscreenWarning: () => setLeftFullscreen(false),
+  };
 }

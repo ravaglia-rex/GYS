@@ -169,12 +169,19 @@ export const initializeExam = async (
   uid: string,
   assessment_id: string,
   tier_number: number,
-  language?: string
+  language?: string,
+  device_fingerprint?: string
 ): Promise<InitializedExam> => {
   const authToken = await authTokenHandler.getAuthToken();
   const response = await axios.post(
     `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${ASSESSMENTS_APIS}${INITIALIZE_EXAM}`,
-    { uid, assessment_id, tier_number, language },
+    {
+      uid,
+      assessment_id,
+      tier_number,
+      language,
+      ...(device_fingerprint ? { device_fingerprint } : {}),
+    },
     { headers: { Authorization: `Bearer ${authToken}` } }
   );
   return response.data;
@@ -185,12 +192,20 @@ export const recordAnswer = async (
   attempt_id: string,
   item_id: string,
   selected_option: number,
-  time_spent_ms?: number
+  time_spent_ms?: number,
+  device_fingerprint?: string
 ): Promise<RecordAnswerResponse> => {
   const authToken = await authTokenHandler.getAuthToken();
   const response = await axios.post(
     `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${ASSESSMENTS_APIS}${RECORD_ANSWER}`,
-    { uid, attempt_id, item_id, selected_option, time_spent_ms },
+    {
+      uid,
+      attempt_id,
+      item_id,
+      selected_option,
+      time_spent_ms,
+      ...(device_fingerprint ? { device_fingerprint } : {}),
+    },
     { headers: { Authorization: `Bearer ${authToken}` } }
   );
   return response.data;

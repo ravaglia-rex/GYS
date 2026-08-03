@@ -71,6 +71,7 @@ const QuestionOfTheDayPage: React.FC = () => {
     correct: boolean;
     coins_awarded: number;
     correct_option_index: number | null;
+    selected_option_index?: number | null;
     solution_steps?: string[] | null;
   } | null>(null);
   const [submitError, setSubmitError] = useState('');
@@ -80,6 +81,10 @@ const QuestionOfTheDayPage: React.FC = () => {
   const showResult = alreadyAnswered ? persistedResult : result;
   const solutionSteps = result?.solution_steps ?? persistedResult?.solution_steps ?? null;
   const correctOptionIndex = result?.correct_option_index ?? persistedResult?.correct_option_index ?? null;
+  const selectedOptionIndex =
+    result?.selected_option_index ??
+    persistedResult?.selected_option_index ??
+    selected;
 
   const handleSubmit = async () => {
     if (selected === null || alreadyAnswered) return;
@@ -91,6 +96,7 @@ const QuestionOfTheDayPage: React.FC = () => {
         correct: res.correct,
         coins_awarded: res.coins_awarded,
         correct_option_index: res.correct_option_index,
+        selected_option_index: res.selected_option_index ?? selected,
         solution_steps: res.solution_steps,
       };
       setResult(nextResult);
@@ -109,6 +115,7 @@ const QuestionOfTheDayPage: React.FC = () => {
             correct: res.correct,
             coins_awarded: res.coins_awarded,
             correct_option_index: res.correct_option_index,
+            selected_option_index: res.selected_option_index ?? selected,
             solution_steps: res.solution_steps ?? null,
           },
         };
@@ -140,22 +147,40 @@ const QuestionOfTheDayPage: React.FC = () => {
 
   return (
     <DashboardLayout>
-      <Box sx={{ maxWidth: 720, mx: 'auto' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-          <Avatar sx={{ bgcolor: '#a855f7', width: 56, height: 56 }}>
-            <LightbulbIcon />
-          </Avatar>
-          <Box>
-            <Typography variant="h4" sx={studentPageTitleSx}>
-              Question of the Day
-            </Typography>
-            <Typography variant="body1" sx={studentPageSubtitleSx}>
-              One fresh challenge every day - earn Argus Coins and build your streak.
-            </Typography>
+      <Box sx={{ maxWidth: 960, mx: 'auto' }}>
+        <Box sx={{ mb: 4 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 2 }, mb: 2 }}>
+            <Avatar
+              sx={{
+                width: 64,
+                height: 64,
+                bgcolor: '#a855f7',
+                color: 'white',
+                flexShrink: 0,
+              }}
+            >
+              <LightbulbIcon sx={{ fontSize: 32 }} />
+            </Avatar>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography variant="h4" sx={{ ...studentPageTitleSx, minWidth: 0 }}>
+                Question of the Day
+              </Typography>
+              <Typography variant="h6" sx={studentPageSubtitleSx}>
+                One fresh challenge every day - earn Argus Coins and build your streak.
+              </Typography>
+            </Box>
           </Box>
         </Box>
 
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 1,
+            flexWrap: { xs: 'wrap', md: 'nowrap' },
+            mb: 2,
+            overflowX: { md: 'auto' },
+          }}
+        >
           <Chip label={`Login streak: ${data?.login_streak?.current ?? 0} days`} color="warning" variant="outlined" />
           <Chip label={`QoD streak: ${data?.qod_streak?.current ?? 0} days`} color="secondary" variant="outlined" />
           <Chip
@@ -286,31 +311,140 @@ const QuestionOfTheDayPage: React.FC = () => {
                 </Box>
               )}
 
+              <RadioGroup
+                value={showResult ? (selectedOptionIndex ?? '') : (selected ?? '')}
+                onChange={(e) => {
+                  if (showResult || alreadyAnswered) return;
+                  setSelected(Number(e.target.value));
+                }}
+                sx={{ mt: 0.5 }}
+              >
+                {options.map((opt, idx) => {
+                  const isCorrect = showResult && correctOptionIndex === idx;
+                  const isWrongPick =
+                    showResult &&
+                    selectedOptionIndex === idx &&
+                    correctOptionIndex != null &&
+                    selectedOptionIndex !== correctOptionIndex;
+                  const isSelected = !showResult && selected === idx;
+
+                  let borderColor = 'rgba(255,255,255,0.18)';
+                  let bg = 'transparent';
+                  let letterBg = 'rgba(255,255,255,0.08)';
+                  let letterBorder = 'rgba(255,255,255,0.25)';
+                  let letterFg = 'rgba(255,255,255,0.7)';
+                  let labelColor = 'rgba(255,255,255,0.9)';
+                  let statusLabel: string | null = null;
+
+                  if (isCorrect) {
+                    borderColor = '#34d399';
+                    bg = 'rgba(16, 185, 129, 0.14)';
+                    letterBg = '#059669';
+                    letterBorder = '#059669';
+                    letterFg = '#fff';
+                    labelColor = '#d1fae5';
+                    statusLabel = 'Correct';
+                  } else if (isWrongPick) {
+                    borderColor = '#f87171';
+                    bg = 'rgba(239, 68, 68, 0.12)';
+                    letterBg = '#dc2626';
+                    letterBorder = '#dc2626';
+                    letterFg = '#fff';
+                    labelColor = '#fecaca';
+                    statusLabel = 'Your answer';
+                  } else if (isSelected) {
+                    borderColor = '#a855f7';
+                    bg = 'rgba(168, 85, 247, 0.12)';
+                    letterBg = '#a855f7';
+                    letterBorder = '#a855f7';
+                    letterFg = '#fff';
+                    labelColor = '#fff';
+                  }
+
+                  return (
+                    <FormControlLabel
+                      key={idx}
+                      value={idx}
+                      disabled={Boolean(showResult || alreadyAnswered)}
+                      control={<Radio sx={{ display: 'none' }} />}
+                      onClick={() => {
+                        if (showResult || alreadyAnswered) return;
+                        setSelected(idx);
+                      }}
+                      label={
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
+                          <Box
+                            sx={{
+                              width: 28,
+                              height: 28,
+                              borderRadius: '50%',
+                              bgcolor: letterBg,
+                              border: `2px solid ${letterBorder}`,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <Typography sx={{ fontSize: '0.75rem', fontWeight: 800, color: letterFg }}>
+                              {String.fromCharCode(65 + idx)}
+                            </Typography>
+                          </Box>
+                          <Typography
+                            sx={{
+                              color: labelColor,
+                              fontSize: '0.95rem',
+                              fontWeight: isCorrect || isWrongPick || isSelected ? 700 : 500,
+                              lineHeight: 1.45,
+                              flex: 1,
+                            }}
+                          >
+                            {opt}
+                          </Typography>
+                          {statusLabel && (
+                            <Typography
+                              sx={{
+                                fontSize: '0.7rem',
+                                fontWeight: 800,
+                                letterSpacing: '0.04em',
+                                textTransform: 'uppercase',
+                                color: isCorrect ? '#6ee7b7' : '#fca5a5',
+                                flexShrink: 0,
+                              }}
+                            >
+                              {statusLabel}
+                            </Typography>
+                          )}
+                        </Box>
+                      }
+                      sx={{
+                        m: 0,
+                        mb: 1.25,
+                        p: '12px 14px',
+                        borderRadius: 2,
+                        border: `2px solid ${borderColor}`,
+                        bgcolor: bg,
+                        cursor: showResult || alreadyAnswered ? 'default' : 'pointer',
+                        alignItems: 'center',
+                        opacity: 1,
+                        '&.Mui-disabled': { opacity: 1 },
+                        transition: 'all 0.15s',
+                        '&:hover': showResult || alreadyAnswered ? {} : { borderColor: 'rgba(168, 85, 247, 0.7)' },
+                      }}
+                    />
+                  );
+                })}
+              </RadioGroup>
+
               {!showResult && !alreadyAnswered && (
-                <>
-                  <RadioGroup
-                    value={selected ?? ''}
-                    onChange={(e) => setSelected(Number(e.target.value))}
-                  >
-                    {options.map((opt, idx) => (
-                      <FormControlLabel
-                        key={idx}
-                        value={idx}
-                        control={<Radio sx={{ color: '#a855f7' }} />}
-                        label={opt}
-                        sx={{ color: 'white', mb: 0.5 }}
-                      />
-                    ))}
-                  </RadioGroup>
-                  <Button
-                    variant="contained"
-                    disabled={selected === null || submitting}
-                    onClick={() => void handleSubmit()}
-                    sx={{ mt: 2, bgcolor: '#a855f7', fontWeight: 700 }}
-                  >
-                    {submitting ? <CircularProgress size={22} color="inherit" /> : 'Submit answer'}
-                  </Button>
-                </>
+                <Button
+                  variant="contained"
+                  disabled={selected === null || submitting}
+                  onClick={() => void handleSubmit()}
+                  sx={{ mt: 1, bgcolor: '#a855f7', fontWeight: 700 }}
+                >
+                  {submitting ? <CircularProgress size={22} color="inherit" /> : 'Submit answer'}
+                </Button>
               )}
 
               {showResult && (
@@ -320,11 +454,6 @@ const QuestionOfTheDayPage: React.FC = () => {
                       ? `Correct! You earned ${showResult.coins_awarded ?? data?.last_result?.coins_awarded ?? 0} Argus Coins.`
                       : `Not quite - you still earned ${showResult.coins_awarded ?? data?.last_result?.coins_awarded ?? 5} Argus Coins for trying. Come back tomorrow!`}
                   </Alert>
-                  {!showResult.correct && correctOptionIndex != null && options[correctOptionIndex] && (
-                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.85)' }}>
-                      Correct answer: {options[correctOptionIndex]}
-                    </Typography>
-                  )}
                   {solutionSteps && solutionSteps.length > 0 && (
                     <Box sx={{ mt: 2 }}>
                       <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>

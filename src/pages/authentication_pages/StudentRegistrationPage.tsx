@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { fetchSignInMethodsForEmail } from 'firebase/auth';
 import { checkEmailExists } from '../../db/emailMappingCollection';
 import { auth } from '../../firebase/firebase';
@@ -18,22 +18,43 @@ function toIndiaMobileLocalDigits(raw: unknown): string {
   return digits.slice(0, 10);
 }
 
+function inviteEmailFromSearchParams(searchParams: URLSearchParams): string {
+  const raw = searchParams.get('email');
+  if (!raw) return '';
+  try {
+    return decodeURIComponent(raw).trim().toLowerCase();
+  } catch {
+    return raw.trim().toLowerCase();
+  }
+}
+
 const StudentRegistrationPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const locationState = (location.state || {}) as any;
+  const inviteEmail = useMemo(
+    () => inviteEmailFromSearchParams(searchParams),
+    [searchParams]
+  );
 
   const regInitial = useMemo(() => {
     const m = mergeSignupState(location.state) as Record<string, unknown>;
     const p = (m.prefill || {}) as Record<string, unknown>;
+    // Invite-link ?email= wins so roster email cannot be overwritten by a stale draft typo.
+    const emailFromState = String(m.email ?? p.email ?? '');
+    const lockedFromState = m.emailLockedFromInvite === true;
     return {
       firstName: String(m.firstName ?? p.firstName ?? ''),
       lastName: String(m.lastName ?? p.lastName ?? ''),
-      email: String(m.email ?? p.email ?? ''),
+      email: inviteEmail || emailFromState,
+      emailLockedFromInvite: Boolean(inviteEmail) || lockedFromState,
       whatsappPhone: toIndiaMobileLocalDigits(m.whatsappPhone ?? p.whatsappPhone),
       grade: String(m.grade ?? p.grade ?? ''),
     };
-  }, [location.state]);
+  }, [location.state, inviteEmail]);
+
+  const emailLockedFromInvite = regInitial.emailLockedFromInvite;
 
   const [firstName, setFirstName] = useState(regInitial.firstName);
   const [lastName, setLastName] = useState(regInitial.lastName);
@@ -124,6 +145,7 @@ const StudentRegistrationPage: React.FC = () => {
         firstName,
         lastName,
         email: normalizedEmail,
+        emailLockedFromInvite,
         whatsappPhone: normalizedWhatsappPhone,
         grade,
         dob: undefined,
@@ -247,13 +269,29 @@ const StudentRegistrationPage: React.FC = () => {
               <input
                 type="email"
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                className="mt-1.5 w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm sm:text-base text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                onChange={(event) => {
+                  if (emailLockedFromInvite) return;
+                  setEmail(event.target.value);
+                }}
+                readOnly={emailLockedFromInvite}
+                className={`mt-1.5 w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm sm:text-base text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 ${
+                  emailLockedFromInvite ? 'bg-slate-50 text-slate-700 cursor-default' : ''
+                }`}
                 placeholder="arjun@example.com"
                 required
+                autoComplete="email"
               />
               <p className="mt-1 text-xs text-slate-500">
-                Please use your <span className="font-semibold">school email ID</span>.
+                {emailLockedFromInvite ? (
+                  <>
+                    This email came from your school invitation and cannot be changed here.
+                    Contact support if it looks wrong.
+                  </>
+                ) : (
+                  <>
+                    Please use your <span className="font-semibold">school email ID</span>.
+                  </>
+                )}
               </p>
             </div>
 

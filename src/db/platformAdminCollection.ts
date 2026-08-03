@@ -207,6 +207,15 @@ export type PlatformAdminStudentRow = {
   qod_attempted_total?: number;
   qod_correct_total?: number;
   qod_accuracy_pct?: number;
+  practice_sessions_total?: number;
+  practice_questions_total?: number;
+  practice_correct_total?: number;
+  practice_accuracy_pct?: number;
+  practice_coins_earned_total?: number;
+  login_streak_current?: number;
+  login_streak_longest?: number;
+  qod_streak_current?: number;
+  qod_streak_longest?: number;
   created_at: string | null;
   is_test?: boolean;
   /** True for email-bound complimentary invites that haven't registered an account yet. */
@@ -694,6 +703,30 @@ export async function deletePlatformAdminStudent(
     authSkipped: res.data.authSkipped === true,
     pendingRedemptionsRemoved: res.data.pendingRedemptionsRemoved ?? 0,
   };
+}
+
+export type PlatformAdminCoinEventRow = {
+  id: string;
+  ts: string | null;
+  date_ist: string | null;
+  delta: number;
+  balance_after: number;
+  lifetime_after: number;
+  reason: string;
+  ref_id: string | null;
+  meta: Record<string, unknown> | null;
+};
+
+export async function getPlatformAdminStudentCoinEvents(
+  studentUid: string,
+  limit = 50
+): Promise<PlatformAdminCoinEventRow[]> {
+  const headers = await authHeaders();
+  const res = await axios.get(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_STUDENTS}/${encodeURIComponent(studentUid)}/coin-events`,
+    { headers, params: { limit } }
+  );
+  return Array.isArray(res.data?.events) ? res.data.events : [];
 }
 
 export async function getPlatformAdminStudent(studentUid: string): Promise<PlatformAdminStudentDetail> {

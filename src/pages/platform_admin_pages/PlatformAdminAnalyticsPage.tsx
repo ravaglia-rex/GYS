@@ -41,12 +41,16 @@ import {
   YAxis,
 } from 'recharts';
 import {
+  getPlatformAdminPracticeDailyStats,
+  getPlatformAdminPracticeDailyStatsByExam,
   getPlatformAdminPracticeExamDetail,
   getPlatformAdminPracticeExamSummaries,
   getPlatformAdminQodStats,
   getPlatformAdminSchoolAdminActivity,
   getPlatformAdminTopCoins,
   getPlatformAdminTopQod,
+  type PracticeDailyByExamStatRow,
+  type PracticeDailyStatRow,
   type PracticeExamSummaryRow,
   type PracticeGradeBreakdownRow,
   type PracticeLeaderboardRow,
@@ -76,6 +80,10 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
   const [tab, setTab] = useState<AnalyticsTab>('practice');
 
   const [practiceSummaries, setPracticeSummaries] = useState<PracticeExamSummaryRow[]>([]);
+  const [practiceDaily, setPracticeDaily] = useState<PracticeDailyStatRow[]>([]);
+  const [practiceDailyByExam, setPracticeDailyByExam] = useState<PracticeDailyByExamStatRow[]>([]);
+  const [practiceDailyExamIds, setPracticeDailyExamIds] = useState<string[]>([]);
+  const [practiceDailyToday, setPracticeDailyToday] = useState<PracticeDailyStatRow | null>(null);
   const [selectedExamId, setSelectedExamId] = useState<string>('');
   const [sortBy, setSortBy] = useState<'total_correct' | 'total_sessions'>('total_correct');
   const [byGrade, setByGrade] = useState<PracticeGradeBreakdownRow[]>([]);
@@ -103,7 +111,16 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     setPracticeError(null);
     setPracticeIndexesBuilding(false);
     try {
-      let summaries = await getPlatformAdminPracticeExamSummaries({ refresh: opts?.refresh });
+      const [daily, dailyByExam, summariesInitial] = await Promise.all([
+        getPlatformAdminPracticeDailyStats(30, { refresh: opts?.refresh }),
+        getPlatformAdminPracticeDailyStatsByExam(30, { refresh: opts?.refresh }),
+        getPlatformAdminPracticeExamSummaries({ refresh: opts?.refresh }),
+      ]);
+      setPracticeDaily(daily.days);
+      setPracticeDailyToday(daily.today);
+      setPracticeDailyByExam(dailyByExam.days);
+      setPracticeDailyExamIds(dailyByExam.exam_ids);
+      let summaries = summariesInitial;
       // Stale cache from before session backfill: attempts exist but sessions are all 0.
       const staleSessions =
         !opts?.refresh &&
@@ -114,7 +131,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
         summaries = await getPlatformAdminPracticeExamSummaries({ refresh: true });
       }
       setPracticeSummaries(summaries.exams);
-      setPracticeGeneratedAt(summaries.generated_at);
+      setPracticeGeneratedAt(daily.generated_at || summaries.generated_at);
       setPracticeIndexesBuilding(summaries.indexes_building === true);
       const examId = selectedExamId || summaries.exams[0]?.exam_id || '';
       if (!selectedExamId && examId) {
@@ -128,7 +145,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
         });
         setByGrade(detail.by_grade);
         setTopStudents(detail.top_students);
-        setPracticeGeneratedAt(detail.generated_at || summaries.generated_at);
+        setPracticeGeneratedAt(detail.generated_at || daily.generated_at || summaries.generated_at);
         if (detail.indexes_building) setPracticeIndexesBuilding(true);
       }
     } catch (e: unknown) {
@@ -226,6 +243,49 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     [qodDays]
   );
 
+  const practiceDailyChartData = useMemo(
+    () =>
+      practiceDaily.map((d) => ({
+        date: d.date.slice(5),
+        sessions: d.total_sessions,
+        questions: d.total_questions,
+        correct: d.total_correct,
+      })),
+    [practiceDaily]
+  );
+
+  const examLabelById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const exam of practiceSummaries) map.set(exam.exam_id, exam.label);
+    return map;
+  }, [practiceSummaries]);
+
+  const practiceDailyByExamChartData = useMemo(
+    () =>
+      practiceDailyByExam.map((d) => {
+        const row: Record<string, string | number> = { date: d.date.slice(5) };
+        for (const examId of practiceDailyExamIds) {
+          row[examId] = d.by_exam[examId]?.sessions ?? 0;
+        }
+        return row;
+      }),
+    [practiceDailyByExam, practiceDailyExamIds]
+  );
+
+  const EXAM_SERIES_COLORS = ['#2563eb', '#059669', '#7c3aed', '#b45309', '#dc2626', '#0891b2'];
+
+  const practiceDailyTotals = useMemo(() => {
+    const sessions = practiceDaily.reduce((s, d) => s + d.total_sessions, 0);
+    const questions = practiceDaily.reduce((s, d) => s + d.total_questions, 0);
+    const correct = practiceDaily.reduce((s, d) => s + d.total_correct, 0);
+    return {
+      sessions,
+      questions,
+      correct,
+      accuracy: questions > 0 ? Math.round((1000 * correct) / questions) / 10 : 0,
+    };
+  }, [practiceDaily]);
+
   const qodTotals = useMemo(() => {
     const answered = qodDays.reduce((s, d) => s + d.total_answered, 0);
     const correct = qodDays.reduce((s, d) => s + d.total_correct, 0);
@@ -295,11 +355,11 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
             </Alert>
           )}
 
-          {practiceLoading && practiceSummaries.length === 0 ? (
+          {practiceLoading && practiceSummaries.length === 0 && practiceDaily.length === 0 ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
               <CircularProgress sx={{ color: ip.navy }} />
             </Box>
-          ) : practiceSummaries.length === 0 ? (
+          ) : practiceSummaries.length === 0 && practiceDaily.length === 0 ? (
             <Card sx={platformAdminCardSx}>
               <CardContent sx={{ py: 5, textAlign: 'center' }}>
                 <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.75 }}>
@@ -317,7 +377,127 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
               <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1.5 }}>
                 {staleHint(practiceGeneratedAt)}
               </Typography>
+
               <Box sx={{ ...platformAdminStatsGridSx, mb: 2.5 }}>
+                <PlatformAdminStatCard
+                  title="Sessions today"
+                  value={(practiceDailyToday?.total_sessions ?? 0).toLocaleString()}
+                  icon={<QuizIcon sx={{ color: '#2563eb' }} />}
+                  accent="#2563eb"
+                />
+                <PlatformAdminStatCard
+                  title="Questions today"
+                  value={(practiceDailyToday?.total_questions ?? 0).toLocaleString()}
+                  icon={<CorrectIcon sx={{ color: '#059669' }} />}
+                  accent="#059669"
+                />
+                <PlatformAdminStatCard
+                  title="30-day sessions"
+                  value={practiceDailyTotals.sessions.toLocaleString()}
+                  icon={<PeopleIcon sx={{ color: '#7c3aed' }} />}
+                  accent="#7c3aed"
+                />
+                <PlatformAdminStatCard
+                  title="30-day accuracy"
+                  value={`${practiceDailyTotals.accuracy}%`}
+                  icon={<TimelineIcon sx={{ color: '#b45309' }} />}
+                  accent="#b45309"
+                />
+              </Box>
+
+              <Card sx={{ ...platformAdminCardSx, mb: 2.5 }}>
+                <CardContent>
+                  <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
+                    Practice volume · last 30 days (IST)
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 2 }}>
+                    Platform-wide daily counters (test/staff excluded). Historical days are
+                    reconstructed from practice attempt timestamps.
+                  </Typography>
+                  <Box sx={{ width: '100%', height: 280 }}>
+                    <ResponsiveContainer>
+                      <LineChart data={practiceDailyChartData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis dataKey="date" interval={1} tick={{ fontSize: 11 }} />
+                        <YAxis tick={{ fontSize: 12 }} />
+                        <Tooltip />
+                        <Legend />
+                        <Line
+                          type="monotone"
+                          dataKey="sessions"
+                          name="Sessions"
+                          stroke="#2563eb"
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="questions"
+                          name="Questions"
+                          stroke="#7c3aed"
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="correct"
+                          name="Correct"
+                          stroke="#059669"
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </Box>
+                </CardContent>
+              </Card>
+
+              <Card sx={{ ...platformAdminCardSx, mb: 2.5 }}>
+                <CardContent>
+                  <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
+                    Sessions by exam · last 30 days (IST)
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 2 }}>
+                    Same daily counters, split by exam type. Reconstructed from historical practice
+                    attempts, so days before an exam had any activity stay at zero.
+                  </Typography>
+                  <Box sx={{ width: '100%', height: 280 }}>
+                    <ResponsiveContainer>
+                      <LineChart data={practiceDailyByExamChartData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis dataKey="date" interval={1} tick={{ fontSize: 11 }} />
+                        <YAxis tick={{ fontSize: 12 }} />
+                        <Tooltip />
+                        <Legend />
+                        {practiceDailyExamIds.map((examId, idx) => (
+                          <Line
+                            key={examId}
+                            type="monotone"
+                            dataKey={examId}
+                            name={examLabelById.get(examId) ?? examId}
+                            stroke={EXAM_SERIES_COLORS[idx % EXAM_SERIES_COLORS.length]}
+                            strokeWidth={2}
+                            dot={false}
+                          />
+                        ))}
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </Box>
+                </CardContent>
+              </Card>
+
+              <Box
+                sx={{
+                  ...platformAdminStatsGridSx,
+                  gridTemplateColumns: {
+                    xs: '1fr 1fr',
+                    sm: 'repeat(2, 1fr)',
+                    md: 'repeat(3, 1fr)',
+                    lg: `repeat(${Math.max(practiceSummaries.length, 1)}, 1fr)`,
+                  },
+                  mb: 2.5,
+                }}
+              >
                 {practiceSummaries.map((exam) => (
                   <Card
                     key={exam.exam_id}

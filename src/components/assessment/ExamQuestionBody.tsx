@@ -1856,6 +1856,86 @@ const HumanFriendlyStimulus: React.FC<{
 
   if (stimulus == null) return null;
 
+  // ─── Symbolic section inventory v2 stimulus types ─────────────────────────
+  if (typeof stimulus === 'object' && !Array.isArray(stimulus)) {
+    const v2 = stimulus as Record<string, unknown>;
+    const v2Type = typeof v2.type === 'string' ? v2.type : stimulusType;
+
+    if (v2Type === 'grid_v2') {
+      const cells = Array.isArray(v2.cells) ? v2.cells.map(String) : [];
+      const rows = Number(v2.row_count) || 0;
+      const cols = Number(v2.col_count) || 0;
+      if (cells.length > 0 && rows > 0 && cols > 0) {
+        const matrix: string[][] = [];
+        for (let r = 0; r < rows; r++) {
+          matrix.push(cells.slice(r * cols, (r + 1) * cols));
+        }
+        return (
+          <Box sx={stimulusPanelSx(theme)}>
+            <StimulusGridMatrixView matrix={matrix} border={border} renderMath={renderMath} theme={theme} />
+          </Box>
+        );
+      }
+    }
+
+    if (v2Type === 'sequence_v2') {
+      const tokens = Array.isArray(v2.tokens) ? v2.tokens.map(String) : [];
+      if (tokens.length > 0) {
+        return (
+          <Box sx={stimulusPanelSx(theme)}>
+            <StimulusSequenceView
+              sequence={tokens}
+              border={border}
+              blankMeta={{ kind: 'none' }}
+              blankHelp={null}
+              theme={theme}
+            />
+          </Box>
+        );
+      }
+    }
+
+    if (v2Type === 'example_rule_v2') {
+      const examplesRaw = Array.isArray(v2.examples) ? v2.examples : [];
+      const pairs = examplesRaw.filter(isIoExamplePair);
+      const newInput = typeof v2.new_input === 'string' ? v2.new_input.trim() : '';
+      if (pairs.length > 0 || newInput) {
+        const symTileSx = stimulusSymbolTileSx(theme);
+        return (
+          <Box sx={stimulusPanelSx(theme)}>
+            {pairs.map((row, i) => (
+              <Box key={i} sx={{ mb: 2 }}>
+                <Typography variant="caption" sx={capSx}>
+                  Example {i + 1}
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25, alignItems: 'center' }}>
+                  <Box sx={symTileSx}>{String(row.input)}</Box>
+                  <Typography sx={{ color: theme.caption, fontWeight: 700, fontSize: '1.1rem' }} aria-hidden>
+                    →
+                  </Typography>
+                  <Box sx={symTileSx}>{String(row.output)}</Box>
+                </Box>
+              </Box>
+            ))}
+            {newInput ? (
+              <Box sx={{ pt: pairs.length ? 2 : 0, borderTop: pairs.length ? `1px solid ${theme.border}` : 'none' }}>
+                <Typography variant="caption" sx={capSx}>
+                  New input
+                </Typography>
+                <Box sx={symTileSx}>{newInput}</Box>
+              </Box>
+            ) : null}
+          </Box>
+        );
+      }
+    }
+
+    if (v2Type === 'partition_groups_v2') {
+      // Options already show the four groups; no extra stimulus panel needed.
+      return null;
+    }
+  }
+
   if (typeof stimulus === 'string') {
     const text = stimulus.trim();
     if (!text) return null;

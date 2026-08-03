@@ -38,6 +38,8 @@ export const PLATFORM_ADMIN_ADMINS_REMOVE = '/admins/remove';
 export const PLATFORM_ADMIN_ADMINS_INVITE = '/admins/invite';
 export const PLATFORM_ADMIN_ANALYTICS_PRACTICE_EXAMS = '/analytics/practice-exams';
 export const PLATFORM_ADMIN_ANALYTICS_QUESTION_OF_DAY = '/analytics/question-of-day';
+export const PLATFORM_ADMIN_ANALYTICS_PRACTICE_DAILY = '/analytics/practice-daily';
+export const PLATFORM_ADMIN_ANALYTICS_PRACTICE_DAILY_BY_EXAM = '/analytics/practice-daily-by-exam';
 export const PLATFORM_ADMIN_ANALYTICS_TOP_COINS = '/analytics/top-coins';
 export const PLATFORM_ADMIN_ANALYTICS_TOP_QOD = '/analytics/top-qod';
 export const PLATFORM_ADMIN_ANALYTICS_SCHOOL_ADMIN_ACTIVITY = '/analytics/school-admin-activity';
@@ -113,6 +115,7 @@ export const POST_GAMIFICATION_QOD_ANSWER_LEGACY = '/qotd/answer';
 export const POST_GAMIFICATION_RECORD_DAILY_LOGIN = '/recordDailyLogin';
 export const GET_GAMIFICATION_REWARDS = '/rewards';
 export const POST_GAMIFICATION_REDEEM = '/redeem';
+export const GET_GAMIFICATION_COIN_EVENTS = '/coin-events';
 
 // Razorpay
 export const CREATE_SCHOOL_RAZORPAY_ORDER='/createSchoolOrder';
@@ -128,5 +131,6 @@ export const VERIFY_STUDENT_UPGRADE_PAYMENT = '/verifyStudentUpgradePayment';
 // Email check
 export const CHECK_EMAIL_EXISTS='/checkEmailExists';
 
-// Temporary launch gate: keep official student exams hidden until real question banks are ready.
+// Temporary launch gate: keep official student exams closed until ready.
+// Beta override (srishti2k1@gmail.com) lives in utils/officialStudentAssessmentsAccess.ts.
 export const STUDENT_OFFICIAL_ASSESSMENTS_ENABLED = false;
