@@ -15,6 +15,7 @@ import { type AssessmentType, type AttemptRecord } from '../../db/assessmentColl
 import { useAssessmentConfig, useStudentAssessments } from '../../query/hooks';
 import {
   ASSESSMENT_NAMES,
+  assessmentDisplayName,
   EXAM_MAX_SCORE_POINTS,
   isLevelBasedAssessment,
   tierPercentToExamPoints,
@@ -91,7 +92,7 @@ const AssessmentAttemptHistorySection: React.FC<AssessmentAttemptHistorySectionP
   const assessmentNameById = useMemo(() => {
     const map = new Map<string, string>();
     assessments.forEach((assessment) => {
-      map.set(assessment.id, assessment.name?.trim() || ASSESSMENT_NAMES[assessment.id] || assessment.id);
+      map.set(assessment.id, assessmentDisplayName(assessment.id, assessment.name));
     });
     return map;
   }, [assessments]);

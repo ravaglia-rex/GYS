@@ -552,7 +552,7 @@ const StudentMembershipStepPage: React.FC = () => {
                   </thead>
                   <tbody>
                     {[
-                      ['Reasoning Exam 1 (Symbolic)', '✓', '✓', '✓', '✓'],
+                      ['Reasoning Exam 1 (Symbolic Reasoning)', '✓', '✓', '✓', '✓'],
                       ['Reasoning Exams 2–3 (Verbal & Mathematical)', ' - ', '✓', '✓', '✓'],
                       ['Profile Exams 4–5 (Personality & AI)', ' - ', ' - ', '✓', '✓'],
                       ['Pathways group, English & Career Discovery (Exams 6–7)', ' - ', ' - ', ' - ', '✓'],

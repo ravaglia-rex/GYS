@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Avatar,
   Box,
@@ -29,6 +29,8 @@ import {
   WbTwilight as WbTwilightIcon,
 } from '@mui/icons-material';
 import DashboardLayout from '../../layouts/DashboardLayout';
+import { auth } from '../../firebase/firebase';
+import { markHowGysWorksVisited } from '../../utils/howGysWorksAck';
 import { ASSESSMENT_NAMES, ASSESSMENT_ORDER, isLevelBasedAssessment, LEVEL_CLEAR_THRESHOLD_LABEL, MEMBERSHIP_LEVEL_LABELS } from '../../utils/assessmentGating';
 import { studentPageSubtitleSx, studentPageTitleSx } from '../../styles/studentTypography';
 
@@ -157,20 +159,20 @@ const MiniCard: React.FC<MiniCardProps> = ({ icon, title, body, color }) => (
 const membershipRows = [
   {
     level: 1,
-    exams: ['Pattern and Logic'],
+    exams: ['Symbolic Reasoning'],
   },
   {
     level: 2,
-    exams: ['Pattern and Logic', 'Verbal Reasoning', 'Mathematical Reasoning'],
+    exams: ['Symbolic Reasoning', 'Verbal Reasoning', 'Mathematical Reasoning'],
   },
   {
     level: 3,
-    exams: ['Pattern and Logic', 'Verbal Reasoning', 'Mathematical Reasoning', 'Personality and Interest', 'AI Proficiency'],
+    exams: ['Symbolic Reasoning', 'Verbal Reasoning', 'Mathematical Reasoning', 'Personality and Interest', 'AI Proficiency'],
   },
   {
     level: 4,
     exams: [
-      'Pattern and Logic',
+      'Symbolic Reasoning',
       'Verbal Reasoning',
       'Mathematical Reasoning',
       'Personality and Interest',
@@ -403,6 +405,11 @@ const expectedLevelRows = [
 ];
 
 export const HowItWorksContent: React.FC = () => {
+  useEffect(() => {
+    const uid = auth.currentUser?.uid;
+    if (uid) void markHowGysWorksVisited(uid);
+  }, []);
+
   return (
     <Box sx={{ maxWidth: '1200px', mx: 'auto', ...justifiedTextSx }}>
           <Box

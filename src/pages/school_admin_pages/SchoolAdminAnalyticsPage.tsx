@@ -696,7 +696,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
               <Typography variant="body2" sx={{ color: '#94a3b8', mb: 3, lineHeight: 1.6 }}>
                 For each exam, we pool students across all classes, rank them by their personal best score on that exam,
                 take the top {TOP_STUDENTS_PER_EXAM_FOR_AVG} performers, and plot the average of those scores. Charts
-                cover Pattern and Logic, Verbal Reasoning, Mathematical Reasoning, and AI Proficiency (school-scored
+                cover Symbolic Reasoning, Verbal Reasoning, Mathematical Reasoning, and AI Proficiency (school-scored
                 tracks). Bars are 0 when no student has a recorded best
                 score yet. If fewer than {TOP_STUDENTS_PER_EXAM_FOR_AVG} students have a score for an exam, we average
                 everyone who has one.

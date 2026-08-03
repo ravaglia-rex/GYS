@@ -41,7 +41,7 @@ const STUDENT_ASSESSMENTS = [
     group: 'reasoning' as const,
     label: 'Symbolic Reasoning',
     shortName: 'Symbolic',
-    desc: 'Patterns, rules, and structured logic (also shown as Pattern & Logic)',
+    desc: 'Patterns, rules, and structured logic',
     icon: '🔢',
     inL1: true,
     inL2: true,
@@ -545,7 +545,7 @@ const StudentPathPage: React.FC = () => {
                 name: 'Reasoning Triad',
                 subLabel: 'Exams 1–3 · Annual membership',
                 price: '₹899/year',
-                blurb: 'Includes the full Reasoning track: Symbolic, Verbal, and Mathematical Reasoning.',
+                blurb: 'Includes the full Reasoning track: Symbolic Reasoning, Verbal Reasoning, and Mathematical Reasoning.',
                 bg: 'bg-[#fff7e0]',
               },
               {

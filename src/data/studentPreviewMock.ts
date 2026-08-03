@@ -60,7 +60,7 @@ export const PREVIEW_DASHBOARD_STATS = {
 };
 
 export const PREVIEW_ASSESSMENT_TYPES: AssessmentType[] = [
-  { id: 'symbolic_reasoning', name: 'Pattern and Logic', tiers: mkTiers(3) },
+  { id: 'symbolic_reasoning', name: 'Symbolic Reasoning', tiers: mkTiers(3) },
   { id: 'verbal_reasoning', name: 'Verbal Reasoning', tiers: mkTiers(3) },
   { id: 'mathematical_reasoning', name: 'Mathematical Reasoning', tiers: mkTiers(3) },
   { id: 'comprehensive_personality', name: 'Personality and Interest', tiers: [] },

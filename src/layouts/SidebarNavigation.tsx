@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Box,
   List,
@@ -51,8 +51,6 @@ import {
   type StudentSchoolOption,
 } from '../db/studentCollection';
 import SchoolAdminSchoolPicker from '../components/auth/SchoolAdminSchoolPicker';
-import { canAccessOfficialStudentAssessments } from '../utils/officialStudentAssessmentsAccess';
-
 interface SidebarNavigationProps {
   collapsed: boolean;
   onCollapse: () => void;
@@ -157,14 +155,6 @@ export default function SidebarNavigation({ collapsed, onCollapse, onClose }: Si
   const [switchError, setSwitchError] = useState<string | null>(null);
 
   const isStaffStudent = isHiddenStaffStudentEmail(currentUser?.email);
-  const showOfficialAssessments = canAccessOfficialStudentAssessments(currentUser?.email);
-  const visibleNavItems = useMemo(
-    () =>
-      showOfficialAssessments
-        ? navItems
-        : navItems.filter((item) => item.path !== '/assessments'),
-    [showOfficialAssessments]
-  );
 
   useEffect(() => {
     if (!isStaffStudent) {
@@ -490,7 +480,7 @@ export default function SidebarNavigation({ collapsed, onCollapse, onClose }: Si
       {/* Navigation Items */}
       <Box sx={{ flex: 1, overflow: 'auto', py: 2 }}>
         <List>
-          {visibleNavItems.map((item) => renderNavItem(item))}
+          {navItems.map((item) => renderNavItem(item))}
         </List>
       </Box>
 

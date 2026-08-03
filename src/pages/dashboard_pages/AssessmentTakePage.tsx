@@ -39,7 +39,9 @@ import { getAssessmentFlowDefinition } from '../../config/assessmentFlowUI';
 import { EXAM_MATHJAX_CONFIG } from '../../components/assessment/examMathJaxConfig';
 import { inferQuestionInteraction } from '../../components/assessment/inferQuestionInteraction';
 import { useExamIntegrity } from '../../hooks/useExamIntegrity';
-import { canAccessOfficialStudentAssessments } from '../../utils/officialStudentAssessmentsAccess';
+import {
+  canStartOfficialAssessment,
+} from '../../utils/officialStudentAssessmentsAccess';
 import { getExamDeviceFingerprint } from '../../utils/examDeviceFingerprint';
 import { isLevelBasedAssessment } from '../../utils/assessmentGating';
 import {
@@ -594,7 +596,7 @@ export default function AssessmentTakePage() {
     return null;
   }
 
-  if (!canAccessOfficialStudentAssessments(auth.currentUser?.email)) {
+  if (!canStartOfficialAssessment(assessmentId, auth.currentUser?.email)) {
     return (
       <Box sx={{ minHeight: '100vh', bgcolor: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, p: 3 }}>
         <Alert severity="info" sx={{ maxWidth: 500, width: '100%' }}>

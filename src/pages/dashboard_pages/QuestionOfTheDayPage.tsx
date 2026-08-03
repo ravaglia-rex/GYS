@@ -25,13 +25,14 @@ import { queryKeys } from '../../query/queryKeys';
 import { studentPageSubtitleSx, studentPageTitleSx } from '../../styles/studentTypography';
 import { auth } from '../../firebase/firebase';
 import type { ExamQuestion } from '../../db/assessmentCollection';
+import { ASSESSMENT_NAMES } from '../../utils/assessmentGating';
 import { ExamQuestionStimulus } from '../../components/assessment/ExamQuestionBody';
 
 const EXAM_LABELS: Record<string, string> = {
-  symbolic_reasoning: 'Pattern & Logic',
-  verbal_reasoning: 'Verbal Reasoning',
-  mathematical_reasoning: 'Mathematical Reasoning',
-  ai_literacy: 'AI Literacy',
+  symbolic_reasoning: ASSESSMENT_NAMES.symbolic_reasoning,
+  verbal_reasoning: ASSESSMENT_NAMES.verbal_reasoning,
+  mathematical_reasoning: ASSESSMENT_NAMES.mathematical_reasoning,
+  ai_literacy: ASSESSMENT_NAMES.ai_literacy,
 };
 
 function getQodPassageText(question: ExamQuestion): string {

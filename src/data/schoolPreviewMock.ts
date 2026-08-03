@@ -72,7 +72,7 @@ export const GREENFIELD_QUARTERLY_REPORTS: QuarterlyReportListItem[] = [
   },
 ];
 
-/** Pattern and Logic sample items for the school preview (frontend only). */
+/** Symbolic Reasoning sample items for the school preview (frontend only). */
 export const PREVIEW_PATTERN_LOGIC_SAMPLE_QUESTIONS = PREVIEW_SAMPLE_QUESTIONS_BY_EXAM.symbolic_reasoning;
 
 /** Static preview notifications for `/for-schools/preview/alerts`. */

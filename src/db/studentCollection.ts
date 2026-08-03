@@ -87,10 +87,16 @@ export const getStudent = async (userId: string) => {
   }
 };
 
+export type HowGysWorksUiPreferences = {
+    visited?: boolean;
+    acknowledged?: boolean;
+};
+
 export type StudentTutorialUiPreferences = {
     tutorials?: {
         dismissed?: Record<string, boolean>;
     };
+    how_gys_works?: HowGysWorksUiPreferences;
 };
 
 export type UpdateStudentPayload = {

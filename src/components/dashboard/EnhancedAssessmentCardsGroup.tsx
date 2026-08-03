@@ -19,6 +19,7 @@ import type { AssessmentProgress, GateResult } from '../../utils/assessmentGatin
 import {
   ASSESSMENT_ORDER,
   ASSESSMENT_NAMES,
+  assessmentDisplayName,
   computeGate,
   membershipLevelForAssessmentGate,
   defaultAssessmentProgress,
@@ -32,7 +33,7 @@ import {
 import { countClearedTiersFromProgress } from '../../utils/tierProgression';
 import { getReasoningExamSubcategories } from '../../data/reasoningExamSubcategories';
 import { auth } from '../../firebase/firebase';
-import { canAccessOfficialStudentAssessments } from '../../utils/officialStudentAssessmentsAccess';
+import { canStartOfficialAssessment } from '../../utils/officialStudentAssessmentsAccess';
 import { formatCooldownDate, nextEligibleAtMsForLevel } from '../../utils/examAttemptCooldown';
 import {
   getPreviewSampleAssessmentPath,
@@ -293,7 +294,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
                 </Typography>
               </Box>
               <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 700, lineHeight: 1.2, fontSize: '1.05rem' }}>
-                {assessment.name}
+                {assessmentDisplayName(assessment.id, assessment.name)}
               </Typography>
             </Box>
           </Box>
@@ -876,11 +877,10 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
       : 8;
   }, [previewBundle, studentData]);
 
-  const officialAssessmentsEnabled =
-    Boolean(previewBundle) || canAccessOfficialStudentAssessments(auth.currentUser?.email);
+  const viewerEmail = auth.currentUser?.email;
 
   const handleStart = (assessmentId: string, tierNumber: number) => {
-    if (!officialAssessmentsEnabled) {
+    if (!previewBundle && !canStartOfficialAssessment(assessmentId, viewerEmail)) {
       return;
     }
     if (previewBundle?.previewDisableStartNavigation) {
@@ -979,7 +979,9 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
                 previewSampleCtaHidden={Boolean(
                   previewBundle?.previewHideSampleCtaForIds?.includes(assessment.id)
                 )}
-                officialStartPaused={!officialAssessmentsEnabled}
+                officialStartPaused={
+                  !previewBundle && !canStartOfficialAssessment(assessment.id, viewerEmail)
+                }
               />
             </Box>
           ))}

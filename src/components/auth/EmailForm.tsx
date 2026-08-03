@@ -321,7 +321,7 @@ const EmailEntryForm: React.FC = () => {
                   </FormControl>
                   <div className="space-y-1 leading-none">
                     <FormLabel className="text-sm text-slate-800 cursor-pointer">
-                      I am a school official logging into the school dashboard
+                      Check this box if you are a school official logging into the school dashboard. If you are a student, do NOT select this option.
                     </FormLabel>
                   </div>
                 </FormItem>

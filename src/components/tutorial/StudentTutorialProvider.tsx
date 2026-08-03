@@ -7,6 +7,7 @@ import { queryClient } from '../../query/queryClient';
 import { queryKeys } from '../../query/queryKeys';
 import { TutorialProvider, useTutorialContext } from './TutorialContext';
 import { readTutorialPreferenceCache, writeTutorialPreferenceCache } from './tutorialPreferenceCache';
+import type { StudentTutorialUiPreferences } from '../../db/studentCollection';
 
 interface StudentTutorialProviderProps {
   children: React.ReactNode;
@@ -46,11 +47,18 @@ const StudentTutorialProvider: React.FC<StudentTutorialProviderProps> = ({ child
   const handleDismiss = useCallback(async (_pageKey: string, nextDismissed: Record<string, boolean>) => {
     const uid = auth.currentUser?.uid;
     if (!uid) return;
+    const cached = queryClient.getQueryData(queryKeys.student(uid)) as
+      | { ui_preferences?: StudentTutorialUiPreferences }
+      | undefined;
+    const nextPrefs: StudentTutorialUiPreferences = {
+      ...(cached?.ui_preferences ?? {}),
+      tutorials: { dismissed: nextDismissed },
+    };
     await updateStudent(uid, {
-      ui_preferences: { tutorials: { dismissed: nextDismissed } },
+      ui_preferences: nextPrefs,
     });
     void queryClient.invalidateQueries({ queryKey: queryKeys.student(uid) });
-    writeTutorialPreferenceCache('student', uid, { tutorials: { dismissed: nextDismissed } });
+    writeTutorialPreferenceCache('student', uid, nextPrefs);
   }, []);
 
   return (

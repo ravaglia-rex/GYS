@@ -8,7 +8,7 @@ const LEADERBOARD_EXCLUDED_IDS = new Set<string>([
 
 const LEADERBOARD_ASSESSMENT_ORDER = ASSESSMENT_ORDER.filter((id) => !LEADERBOARD_EXCLUDED_IDS.has(id));
 
-/** Exam accordion expanded when the student first opens the leaderboard (Pattern and Logic). */
+/** Exam accordion expanded when the student first opens the leaderboard (Symbolic Reasoning). */
 export const LEADERBOARD_DEFAULT_EXPANDED_EXAM_IDS: ReadonlySet<string> = new Set([
   'symbolic_reasoning',
 ]);
@@ -76,7 +76,7 @@ export interface ExamLeaderboardSection {
 }
 
 const EXAM_NAMES: Record<string, string> = {
-  symbolic_reasoning: 'Pattern and Logic',
+  symbolic_reasoning: 'Symbolic Reasoning',
   verbal_reasoning: 'Verbal Reasoning',
   mathematical_reasoning: 'Mathematical Reasoning',
   english_proficiency: 'English Proficiency',

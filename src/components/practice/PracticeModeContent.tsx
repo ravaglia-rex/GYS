@@ -441,7 +441,7 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
           const meta = PRACTICE_EXAM_CARD_STYLE[id];
           const selected = selectedExamId === id;
           const gateResult = assessmentGate ? practiceExamGate(id, assessmentGate) : null;
-          /** No gate payload (e.g. profile error): only Exam 1 - Pattern and Logic - is practiceable. */
+          /** No gate payload (e.g. profile error): only Exam 1 - Symbolic Reasoning - is practiceable. */
           const lockedByProgram = assessmentGate
             ? Boolean(gateResult?.locked)
             : id !== PRACTICE_ELIGIBLE_EXAM_IDS[0];
@@ -450,7 +450,7 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
             lockedByProgram && assessmentGate && gateResult
               ? practiceExamLockedTooltip(gateResult)
               : lockedByProgram && !assessmentGate
-                ? 'Assessment unlocks could not be loaded - you can still practice Pattern and Logic (Exam 1). Open Practice Mode again after your profile loads for the full list.'
+                ? 'Assessment unlocks could not be loaded - you can still practice Symbolic Reasoning (Exam 1). Open Practice Mode again after your profile loads for the full list.'
                 : '';
           const showTooltip = Boolean(lockTooltipText);
 
@@ -611,11 +611,12 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
           >
             <Box>
               <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.75, lineHeight: 1.35 }}>
-                Exams 6 &amp; 7 - No Practice Pool
+                Exams 4 &amp; 7 - No Practice Pool
               </Typography>
               <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.75)', lineHeight: 1.5, fontSize: '0.8rem' }}>
-                These last two focus on personality and career interests, not skill drills, so there is no practice bank.
-                You&apos;ll complete them once in your official flow when your membership unlocks them.
+                Personality and Interest and Career Discovery focus on profile and pathway fit, not skill drills, so
+                there is no practice bank. You&apos;ll complete them once in your official flow when your membership
+                unlocks them.
               </Typography>
             </Box>
           </Alert>

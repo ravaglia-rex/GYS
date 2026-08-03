@@ -125,7 +125,7 @@ export function isLevelBasedAssessment(assessmentId: string): boolean {
 }
 
 export const ASSESSMENT_NAMES: Record<string, string> = {
-  symbolic_reasoning: 'Pattern and Logic',
+  symbolic_reasoning: 'Symbolic Reasoning',
   verbal_reasoning: 'Verbal Reasoning',
   mathematical_reasoning: 'Mathematical Reasoning',
   comprehensive_personality: 'Personality and Interest',
@@ -133,6 +133,11 @@ export const ASSESSMENT_NAMES: Record<string, string> = {
   english_proficiency: 'English Proficiency',
   career_interest_inventory: 'Career Discovery',
 };
+
+/** Prefer canonical titles over legacy Firestore assessment_types.name values. */
+export function assessmentDisplayName(assessmentId: string, fallbackName?: string | null): string {
+  return ASSESSMENT_NAMES[assessmentId] ?? (fallbackName?.trim() || assessmentId);
+}
 
 /** Sequence gate: prerequisites must be satisfied (membership gate is checked first). */
 export const COMPLETION_PREREQUISITES: Record<string, string[]> = {
@@ -263,13 +268,8 @@ export type AssessmentChartRow = {
   chartScoreIsBestFallback?: boolean;
 };
 
-function chartExamDisplayName(
-  assessmentId: string,
-  assessment: AssessmentType | undefined
-): string {
-  const fromConfig = assessment?.name?.trim();
-  if (fromConfig) return fromConfig;
-  return ASSESSMENT_NAMES[assessmentId] ?? assessmentId;
+function chartExamDisplayName(assessmentId: string): string {
+  return assessmentDisplayName(assessmentId);
 }
 
 /**
@@ -350,7 +350,7 @@ export function buildAssessmentLevelScoreBreakdown(
 /**
  * Builds exactly five rows for the landing chart (first five program assessments).
  * Uses latest attempt score/level when present; otherwise best_score for legacy profiles.
- * X-axis labels use each assessment’s configured name (fallback: {@link ASSESSMENT_NAMES}).
+ * X-axis labels use canonical {@link ASSESSMENT_NAMES} (current programme sequence titles).
  */
 export function buildDashboardExamChartRows(
   assessments: AssessmentType[],
@@ -366,7 +366,7 @@ export function buildDashboardExamChartRows(
 
   return DASHBOARD_CHART_EXAM_IDS.map((id) => {
     const a = sorted.find((x) => x.id === id);
-    const subject = chartExamDisplayName(id, a);
+    const subject = chartExamDisplayName(id);
     const p = progress[id] ?? defaultAssessmentProgress;
     const gate = a ? computeGate(id, membershipLevel, progress, studentGrade, sorted) : { locked: true as const };
     const picked = pickLatestOrBestAssessmentScore(p);

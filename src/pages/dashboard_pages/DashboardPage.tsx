@@ -9,9 +9,9 @@ import DashboardOverview from '../../components/dashboard/DashboardOverview';
 import { EnhancedAssessmentCardsGroup } from '../../components/dashboard/EnhancedAssessmentCardsGroup';
 import {
   ASSESSMENT_ORDER,
-  ASSESSMENT_NAMES,
   COMPLETION_PREREQUISITES,
   PROGRAM_EXAM_COUNT,
+  assessmentDisplayName,
   computeGate,
   membershipLevelForAssessmentGate,
   defaultAssessmentProgress,
@@ -20,7 +20,10 @@ import {
   type AssessmentChartRow,
 } from '../../utils/assessmentGating';
 import PageTutorial from '../../components/tutorial/PageTutorial';
-import { canAccessOfficialStudentAssessments } from '../../utils/officialStudentAssessmentsAccess';
+import {
+  canAccessOfficialStudentAssessments,
+  canStartOfficialAssessment,
+} from '../../utils/officialStudentAssessmentsAccess';
 import type {
   CompletedAssessmentNotificationSource,
   DashboardNotificationEventSource,
@@ -67,23 +70,7 @@ const Dashboard: React.FC = () => {
     if (loading || !student) {
       return {
         stats: {
-          totalAssessments: officialAssessmentsEnabled ? PROGRAM_EXAM_COUNT : 0,
-          tiersCompleted: 0,
-          averageScore: 0,
-          availableAssessments: 0,
-        } as DashboardStats,
-        scoresByAssessment: [] as AssessmentChartRow[],
-        completedAssessments: [] as CompletedAssessmentNotificationSource[],
-        unlockedAssessments: [] as UnlockedAssessmentNotificationSource[],
-        backendNotificationEvents: [] as DashboardNotificationEventSource[],
-        assessmentScopeLine: '',
-      };
-    }
-
-    if (!officialAssessmentsEnabled) {
-      return {
-        stats: {
-          totalAssessments: 0,
+          totalAssessments: PROGRAM_EXAM_COUNT,
           tiersCompleted: 0,
           averageScore: 0,
           availableAssessments: 0,
@@ -123,18 +110,22 @@ const Dashboard: React.FC = () => {
         tiersCompleted++;
         completedForNotifications.push({
           assessmentId: a.id,
-          assessmentName: a.name?.trim() || ASSESSMENT_NAMES[a.id] || a.id,
+          assessmentName: assessmentDisplayName(a.id, a.name),
         });
       }
-      // Only treat exams as "available" when official assessments are startable.
-      if (!gate.locked && !isAssessmentFullyComplete(a, p)) {
+      // Only treat exams as "available" when membership-unlocked and publicly live (or beta).
+      if (
+        canStartOfficialAssessment(a.id, userEmail) &&
+        !gate.locked &&
+        !isAssessmentFullyComplete(a, p)
+      ) {
         availableAssessments++;
         const hasAttemptedThisAssessment = (p.attempts_count ?? 0) > 0 || p.best_score !== null;
         const hasPrerequisite = (COMPLETION_PREREQUISITES[a.id] ?? []).length > 0;
         if (!hasAttemptedThisAssessment && hasPrerequisite) {
           unlockedForNotifications.push({
             assessmentId: a.id,
-            assessmentName: a.name?.trim() || ASSESSMENT_NAMES[a.id] || a.id,
+            assessmentName: assessmentDisplayName(a.id, a.name),
           });
         }
       }
@@ -164,7 +155,7 @@ const Dashboard: React.FC = () => {
       backendNotificationEvents: dashboardNotificationEvents,
       assessmentScopeLine: `${tiersCompleted} of ${listedTotal} complete`,
     };
-  }, [student, configFromBackend, loading, officialAssessmentsEnabled]);
+  }, [student, configFromBackend, loading, userEmail]);
 
   const {
     stats,
@@ -236,7 +227,6 @@ const Dashboard: React.FC = () => {
                 unlockedAssessments={unlockedAssessments}
                 backendNotificationEvents={backendNotificationEvents}
               />
-              {officialAssessmentsEnabled && (
               <Box sx={{ mt: 4, ml: { xs: 0, sm: 1 }, minWidth: 0 }} data-tutorial-id="student-dashboard-assessments">
                 <Box>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', gap: 1, mb: 2 }}>
@@ -254,12 +244,13 @@ const Dashboard: React.FC = () => {
                     )}
                   </Box>
                   <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.65)', mb: 2 }}>
-                    All assessments are listed below. Complete them in sequence where your membership allows - Reasoning Triad covers Exams 1-3; Stream Ready adds Personality and Interest and AI Proficiency (4-5); Career Ready adds the Pathways group (6-7) and ongoing AI career counseling that begins after that baseline and grows as you log new experiences. Practice Mode uses a separate pool and does not change official scores.
+                    {officialAssessmentsEnabled
+                      ? 'All assessments are listed below. Complete them in sequence where your membership allows - Reasoning Triad covers Exams 1-3; Stream Ready adds Personality and Interest and AI Proficiency (4-5); Career Ready adds the Pathways group (6-7) and ongoing AI career counseling that begins after that baseline and grows as you log new experiences. Practice Mode uses a separate pool and does not change official scores.'
+                      : 'Official exams are shown below for reference and will unlock soon. Practice Mode remains available in the meantime.'}
                   </Typography>
                 </Box>
                 <EnhancedAssessmentCardsGroup uid={uid} filterType="all" />
               </Box>
-              )}
             </>
           )}
         </Box>

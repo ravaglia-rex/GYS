@@ -8,7 +8,7 @@ import {
   Clock,
   BarChart3,
   Lock,
-  Coins,
+  Bell,
 } from 'lucide-react';
 import { Close as CloseIcon, Notifications as NotificationsIcon } from '@mui/icons-material';
 import { auth } from '../../firebase/firebase';
@@ -40,6 +40,7 @@ import { studentPageSubtitleSx, studentPageTitleSx } from '../../styles/studentT
 import { readGamificationFromStudent, istDateStringClient } from '../../utils/gamification';
 import QodDashboardCard from '../gamification/QodDashboardCard';
 import CoinsLeaderboardWidget from './CoinsLeaderboardWidget';
+import HowGysWorksImportantBanner from './HowGysWorksImportantBanner';
 
 export type { AssessmentChartRow } from '../../utils/assessmentGating';
 
@@ -528,6 +529,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   const [sessionDismissedNotificationIds, setSessionDismissedNotificationIds] = useState<Set<string>>(() => new Set());
   const notificationEmailSentRef = useRef<Set<string>>(new Set());
   const notificationListRef = useRef<HTMLDivElement | null>(null);
+  const latestNotificationsSectionRef = useRef<HTMLDivElement | null>(null);
   const performanceOverviewRef = useRef<HTMLDivElement | null>(null);
   const [performanceOverviewHeight, setPerformanceOverviewHeight] = useState<number | null>(null);
 
@@ -785,6 +787,13 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         window.location.href = path;
       }
     }, 150);
+  };
+
+  const scrollToLatestNotifications = () => {
+    latestNotificationsSectionRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
   };
 
   const getDisplayResults = () => {
@@ -1072,13 +1081,15 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         />
         
         <StatCard
-          title="Argus Coins"
-          value={gamification.argus_coins.toLocaleString()}
-          icon={<Coins size={24} />}
-          color="#eab308"
-          onClick={previewProfile ? undefined : () => handleNavigation('/rewards')}
+          title="Notifications"
+          value={notifications.length}
+          icon={<Bell size={24} />}
+          color="#f59e0b"
+          onClick={scrollToLatestNotifications}
         />
       </Box>
+
+      {!previewProfile && uid ? <HowGysWorksImportantBanner uid={uid} /> : null}
 
       <QodDashboardCard
         qodStreak={gamification.qod_streak.current}
@@ -1195,6 +1206,8 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
         {/* Latest Notifications */}
         <Card
+          ref={latestNotificationsSectionRef}
+          id="latest-notifications"
           data-tutorial-id="student-dashboard-notifications"
           sx={{
           background: 'rgba(30, 41, 59, 0.8)',
@@ -1206,6 +1219,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           height: { xs: 420, lg: performanceOverviewHeight ? `${performanceOverviewHeight}px` : 'auto' },
           minHeight: 0,
           overflow: 'hidden',
+          scrollMarginTop: 24,
         }}>
           <CardContent sx={{ p: 3, display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>

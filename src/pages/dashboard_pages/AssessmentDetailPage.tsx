@@ -30,6 +30,7 @@ import {
   membershipLevelForAssessmentGate,
   defaultAssessmentProgress,
   ASSESSMENT_NAMES,
+  assessmentDisplayName,
   LEVEL_CLEAR_THRESHOLD_LABEL,
   MEMBERSHIP_LEVEL_LABELS,
   isLevelBasedAssessment,
@@ -40,7 +41,9 @@ import {
   BeforeBeginIconKey,
 } from '../../config/assessmentFlowUI';
 import { mergeStatGridWithTier } from '../../components/assessment/mergeStatGridWithTier';
-import { canAccessOfficialStudentAssessments } from '../../utils/officialStudentAssessmentsAccess';
+import {
+  canStartOfficialAssessment,
+} from '../../utils/officialStudentAssessmentsAccess';
 import { formatCooldownDate, nextEligibleAtMsForLevel } from '../../utils/examAttemptCooldown';
 
 const EXAM_TOTAL = 7;
@@ -71,7 +74,9 @@ const AssessmentDetailPage: React.FC = () => {
   const { assessmentId, tierNumber } = useParams<{ assessmentId: string; tierNumber: string }>();
   const navigate = useNavigate();
   const uid = auth.currentUser?.uid ?? '';
-  const officialAssessmentsEnabled = canAccessOfficialStudentAssessments(auth.currentUser?.email);
+  const officialExamStartable = Boolean(
+    assessmentId && canStartOfficialAssessment(assessmentId, auth.currentUser?.email)
+  );
   const tier = parseInt(tierNumber ?? '1', 10);
   const levelBased = assessmentId ? isLevelBasedAssessment(assessmentId) : true;
 
@@ -253,7 +258,7 @@ const AssessmentDetailPage: React.FC = () => {
               </Typography>
             )}
             <Typography variant="h5" sx={{ fontWeight: 800, color: '#78909c' }}>
-              {assessment.name}
+              {assessmentDisplayName(assessment.id, assessment.name)}
             </Typography>
             <Typography sx={{ color: '#90a4ae', fontSize: '0.85rem', mt: 0.5 }}>
               Requires Level {need} ({MEMBERSHIP_LEVEL_LABELS[need]})
@@ -594,11 +599,11 @@ const AssessmentDetailPage: React.FC = () => {
           <Button
             fullWidth
             variant="contained"
-            disabled={!tierAttemptAllowed || cooldownActive || !officialAssessmentsEnabled}
+            disabled={!tierAttemptAllowed || cooldownActive || !officialExamStartable}
             onClick={() =>
               tierAttemptAllowed &&
               !cooldownActive &&
-              officialAssessmentsEnabled &&
+              officialExamStartable &&
               navigate(`/assessments/${assessmentId}/tier/${tier}/take`)
             }
             sx={{
@@ -611,7 +616,7 @@ const AssessmentDetailPage: React.FC = () => {
               textTransform: 'none',
             }}
           >
-            {!officialAssessmentsEnabled
+            {!officialExamStartable
               ? 'Official exams coming soon'
               : cooldownActive && cooldownNextEligibleMs != null
                 ? `Available ${formatCooldownDate(cooldownNextEligibleMs)}`
@@ -624,7 +629,7 @@ const AssessmentDetailPage: React.FC = () => {
               This exact assessment level can be retaken every 3 months. Try a new level or assessment, or return on {formatCooldownDate(cooldownNextEligibleMs)}.
             </Typography>
           )}
-          {!officialAssessmentsEnabled && (
+          {!officialExamStartable && (
             <Typography sx={{ textAlign: 'center', fontSize: '0.72rem', color: '#94a3b8', mt: 1.25 }}>
               Real exam question banks are being prepared. Practice mode remains available.
             </Typography>

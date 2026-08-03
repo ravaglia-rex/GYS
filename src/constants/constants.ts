@@ -131,6 +131,9 @@ export const VERIFY_STUDENT_UPGRADE_PAYMENT = '/verifyStudentUpgradePayment';
 // Email check
 export const CHECK_EMAIL_EXISTS='/checkEmailExists';
 
-// Temporary launch gate: keep official student exams closed until ready.
-// Beta override (srishti2k1@gmail.com) lives in utils/officialStudentAssessmentsAccess.ts.
+// Temporary launch gate: official student exams stay start-paused until listed in
+// OFFICIAL_LIVE_ASSESSMENT_IDS (utils/officialStudentAssessmentsAccess.ts).
+// Browse UI remains visible with "coming soon" locks.
+// Beta override (srishti2k1@gmail.com) can start any exam for testing.
+// Do not flip this or live ids without CAPS authorization.
 export const STUDENT_OFFICIAL_ASSESSMENTS_ENABLED = false;

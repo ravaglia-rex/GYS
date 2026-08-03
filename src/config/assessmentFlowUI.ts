@@ -44,7 +44,7 @@ export interface AssessmentFlowDefinition {
   adaptiveForwardOnly: boolean;
 }
 
-const patternAndLogicBefore: BeforeBeginItem[] = [
+const symbolicReasoningBefore: BeforeBeginItem[] = [
   { icon: 'clock', text: 'You have a fixed time once you start - the timer cannot be paused.' },
   { icon: 'block', text: 'No calculators, notes, or outside help.' },
   { icon: 'chart', text: 'Your score is compared to students worldwide.' },
@@ -63,7 +63,7 @@ const englishBefore: BeforeBeginItem[] = [
 export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
   symbolic_reasoning: {
     examOrdinal: 1,
-    examTitleShort: 'Pattern and Logic',
+    examTitleShort: 'Symbolic Reasoning',
     heroSubtitle: 'Your first assessment',
     statGrid: [
       { label: 'Duration', value: '40 min' },
@@ -80,7 +80,7 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
       'Spatial relationship processing',
       'Non-verbal problem solving',
     ],
-    beforeBegin: patternAndLogicBefore,
+    beforeBegin: symbolicReasoningBefore,
     theme: 'blue',
     detailFooterFinePrint: 'Once started, you must complete this in one sitting.',
     defaultQuestionInteraction: 'visual_mcq',
@@ -136,7 +136,7 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
       'Problem decomposition',
       'Visual-mathematical patterns',
     ],
-    beforeBegin: patternAndLogicBefore.filter((b) => b.icon !== 'chart'),
+    beforeBegin: symbolicReasoningBefore.filter((b) => b.icon !== 'chart'),
     theme: 'blue',
     detailFooterFinePrint: 'Once started, you must complete this in one sitting.',
     defaultQuestionInteraction: 'visual_mcq',

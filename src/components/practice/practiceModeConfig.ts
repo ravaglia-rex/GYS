@@ -3,6 +3,7 @@ import {
   ASSESSMENT_NAMES,
   ASSESSMENT_ORDER,
   NON_LEVEL_ASSESSMENT_IDS,
+  assessmentDisplayName,
   computeGate,
   type AssessmentProgress,
   type GateResult,
@@ -516,7 +517,7 @@ export function resetLocalPracticeProgress(scope: string, examId: string, level:
 }
 
 export function getAssessmentDisplayName(id: string): string {
-  return ASSESSMENT_NAMES[id] ?? id;
+  return assessmentDisplayName(id);
 }
 
 /** Card chrome aligned with programme assessment cards on the dashboard. */

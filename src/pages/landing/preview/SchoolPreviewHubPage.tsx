@@ -31,7 +31,7 @@ const cards = [
   {
     title: 'Sample student assessments',
     body:
-      'Walk through Pattern and Logic, Verbal Reasoning, and Mathematical Reasoning sample items in the same full-screen layout students see - sample banner, timer look, and exit anytime.',
+      'Walk through Symbolic Reasoning, Verbal Reasoning, and Mathematical Reasoning sample items in the same full-screen layout students see - sample banner, timer look, and exit anytime.',
     path: getPreviewSampleAssessmentPath('symbolic_reasoning'),
     icon: <QuizIcon sx={{ fontSize: 44, color: '#10b981' }} />,
     accent: '#10b981',
