@@ -594,7 +594,7 @@ export default function AssessmentTakePage() {
     return null;
   }
 
-  if (!canStartOfficialAssessment(assessmentId, auth.currentUser?.email)) {
+  if (!canStartOfficialAssessment(assessmentId, auth.currentUser?.email, tier)) {
     return (
       <Box sx={{ minHeight: '100vh', bgcolor: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, p: 3 }}>
         <Alert severity="info" sx={{ maxWidth: 500, width: '100%' }}>

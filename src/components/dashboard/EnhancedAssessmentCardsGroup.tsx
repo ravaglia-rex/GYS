@@ -975,7 +975,7 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
   const viewerEmail = auth.currentUser?.email;
 
   const handleStart = (assessmentId: string, tierNumber: number) => {
-    if (!previewBundle && !canStartOfficialAssessment(assessmentId, viewerEmail)) {
+    if (!previewBundle && !canStartOfficialAssessment(assessmentId, viewerEmail, tierNumber)) {
       return;
     }
     if (previewBundle?.previewDisableStartNavigation) {

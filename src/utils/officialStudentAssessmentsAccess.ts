@@ -20,8 +20,16 @@ export const OFFICIAL_STUDENT_ASSESSMENT_BETA_EMAILS = new Set([
  * Keep in sync with backend `OFFICIAL_LIVE_ASSESSMENT_IDS`.
  */
 export const OFFICIAL_LIVE_ASSESSMENT_IDS = new Set<string>([
-  // Intentionally empty until CAPS-authorized public launch per exam.
+  'symbolic_reasoning',
 ]);
+
+/**
+ * Optional per-exam live tier allowlist. Missing key = every tier of that live exam is public.
+ * Keep in sync with backend `OFFICIAL_LIVE_ASSESSMENT_TIERS`.
+ */
+export const OFFICIAL_LIVE_ASSESSMENT_TIERS: Record<string, ReadonlySet<number>> = {
+  symbolic_reasoning: new Set([1, 2]),
+};
 
 /**
  * Exams beta testers may start before public live launch.
@@ -70,14 +78,27 @@ export function canAccessOfficialStudentAssessments(email: unknown): boolean {
   return isOfficialAssessmentBetaTester(email);
 }
 
+function isPubliclyLiveAssessmentTier(assessmentId: string, tierNumber?: number): boolean {
+  if (!OFFICIAL_LIVE_ASSESSMENT_IDS.has(assessmentId)) return false;
+  const liveTiers = OFFICIAL_LIVE_ASSESSMENT_TIERS[assessmentId];
+  if (!liveTiers) return true;
+  // Exam-level browse checks omit tier: any live tier unlocks the card/nav.
+  if (tierNumber == null) return true;
+  return liveTiers.has(tierNumber);
+}
+
 /**
- * True when this specific assessment may be started by this user.
- * Public: only live ids (or all if global full launch).
+ * True when this specific assessment (and optional tier) may be started by this user.
+ * Public: only live ids/tiers (or all if global full launch).
  * Beta: live ids + early-access allowlist (student-identical otherwise).
  */
-export function canStartOfficialAssessment(assessmentId: string, email: unknown): boolean {
+export function canStartOfficialAssessment(
+  assessmentId: string,
+  email: unknown,
+  tierNumber?: number
+): boolean {
   if (!assessmentId) return false;
-  if (OFFICIAL_LIVE_ASSESSMENT_IDS.has(assessmentId)) return true;
+  if (isPubliclyLiveAssessmentTier(assessmentId, tierNumber)) return true;
   // Full launch mode: global on + empty live list means every exam is open.
   if (STUDENT_OFFICIAL_ASSESSMENTS_ENABLED && OFFICIAL_LIVE_ASSESSMENT_IDS.size === 0) {
     return true;

@@ -133,6 +133,7 @@ export const CHECK_EMAIL_EXISTS='/checkEmailExists';
 
 // Temporary launch gate: official student exams stay start-paused until listed in
 // OFFICIAL_LIVE_ASSESSMENT_IDS (utils/officialStudentAssessmentsAccess.ts).
+// Optional OFFICIAL_LIVE_ASSESSMENT_TIERS limits which levels are public (e.g. Symbolic 1–2).
 // Browse UI remains visible with "coming soon" locks.
 // Beta (srishti2k1@gmail.com) may start only OFFICIAL_BETA_STARTABLE_ASSESSMENT_IDS
 // (currently symbolic_reasoning) so the dashboard feels like a real student.

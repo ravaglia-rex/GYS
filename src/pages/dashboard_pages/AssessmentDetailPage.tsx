@@ -77,10 +77,10 @@ const AssessmentDetailPage: React.FC = () => {
   const { assessmentId, tierNumber } = useParams<{ assessmentId: string; tierNumber: string }>();
   const navigate = useNavigate();
   const uid = auth.currentUser?.uid ?? '';
-  const officialExamStartable = Boolean(
-    assessmentId && canStartOfficialAssessment(assessmentId, auth.currentUser?.email)
-  );
   const tier = parseInt(tierNumber ?? '1', 10);
+  const officialExamStartable = Boolean(
+    assessmentId && canStartOfficialAssessment(assessmentId, auth.currentUser?.email, tier)
+  );
   const levelBased = assessmentId ? isLevelBasedAssessment(assessmentId) : true;
 
   const {
