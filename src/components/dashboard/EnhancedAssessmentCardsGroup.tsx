@@ -28,6 +28,7 @@ import {
   tierPercentToExamPoints,
   pickLatestOrBestAssessmentScore,
   isLevelBasedAssessment,
+  maxTiersForAssessment,
   buildAssessmentLevelScoreBreakdown,
 } from '../../utils/assessmentGating';
 import { countClearedTiersFromProgress } from '../../utils/tierProgression';
@@ -185,7 +186,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
   const currentTier = progress.proficiency_tier ?? 1; // 1-indexed for skill exams
   const scoreDisplay = pickLatestOrBestAssessmentScore(progress);
   const attemptsCount = progress.attempts_count;
-  const totalTiers = assessment.tiers.length;
+  const totalTiers = maxTiersForAssessment(assessment.id, assessment.tiers.length);
   const tiersDone =
     progress.tiers_cleared && Object.keys(progress.tiers_cleared).length > 0
       ? countClearedTiersFromProgress(progress, totalTiers)

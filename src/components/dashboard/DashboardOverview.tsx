@@ -555,6 +555,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         practice_correct_total: 28,
         practice_accuracy_pct: 70,
         practice_coins_earned_total: 62,
+        exam_coins_earned_total: 0,
         qod_last_answered_date: previewGamification.qod_answered_today ? istDateStringClient() : undefined,
       };
     }

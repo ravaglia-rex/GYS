@@ -50,6 +50,7 @@ export function readGamificationFromStudent(student: Record<string, unknown> | n
       practice_correct_total: 0,
       practice_accuracy_pct: 0,
       practice_coins_earned_total: 0,
+      exam_coins_earned_total: 0,
       redemptions: {},
     };
   }
@@ -113,6 +114,10 @@ export function readGamificationFromStudent(student: Record<string, unknown> | n
         ? Math.floor(g.practice_coins_earned_total)
         : 0,
     practice_last_awarded_week: typeof g.practice_last_awarded_week === 'string' ? g.practice_last_awarded_week : undefined,
+    exam_coins_earned_total:
+      typeof g.exam_coins_earned_total === 'number' && g.exam_coins_earned_total > 0
+        ? Math.floor(g.exam_coins_earned_total)
+        : 0,
     redemptions: (g.redemptions ?? {}) as GamificationState['redemptions'],
   };
 }

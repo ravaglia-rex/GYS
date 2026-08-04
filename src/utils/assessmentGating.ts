@@ -124,6 +124,17 @@ export function isLevelBasedAssessment(assessmentId: string): boolean {
   return !NON_LEVEL_ASSESSMENT_IDS.has(assessmentId);
 }
 
+/** Skill exams always have three difficulty levels (exams 4 and 7 are non-level). */
+export const LEVEL_BASED_EXAM_TIER_COUNT = 3;
+
+/** Max levels for progress/completion UI - never trust a short Firestore `tiers[]` for skill exams. */
+export function maxTiersForAssessment(assessmentId: string, configuredTierLength?: number): number {
+  if (!isLevelBasedAssessment(assessmentId)) {
+    return Math.max(0, configuredTierLength ?? 0);
+  }
+  return LEVEL_BASED_EXAM_TIER_COUNT;
+}
+
 export const ASSESSMENT_NAMES: Record<string, string> = {
   symbolic_reasoning: 'Symbolic Reasoning',
   verbal_reasoning: 'Verbal Reasoning',
@@ -200,7 +211,7 @@ export function computeGate(
   for (const prereq of prereqs) {
     const prereqProgress = progress[prereq];
     const prereqAss = byId.get(prereq);
-    const prereqMaxTiers = prereqAss?.tiers?.length ?? 1;
+    const prereqMaxTiers = maxTiersForAssessment(prereq, prereqAss?.tiers?.length);
     const passed = examSequencePrereqMet(
       assessmentId,
       prereq,
@@ -224,7 +235,7 @@ export function isAssessmentFullyComplete(
   if (!isLevelBasedAssessment(assessment.id)) {
     return progress.status === 'completed' || progress.attempts_count > 0;
   }
-  const totalTiers = assessment.tiers.length;
+  const totalTiers = maxTiersForAssessment(assessment.id, assessment.tiers.length);
   if (totalTiers <= 0) return false;
   if (progress.tiers_cleared && Object.keys(progress.tiers_cleared).length > 0) {
     return countClearedTiersFromProgress(progress, totalTiers) >= totalTiers;

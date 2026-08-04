@@ -319,7 +319,7 @@ const AssessmentDetailPage: React.FC = () => {
           <Button
             fullWidth
             variant="contained"
-            onClick={() => navigate('/payments#membership-upgrade')}
+            onClick={() => navigate('/profile?tab=billing#membership-upgrade')}
             sx={{
               py: 1.5,
               borderRadius: 2,

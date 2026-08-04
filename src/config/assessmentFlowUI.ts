@@ -128,7 +128,7 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
       { label: 'Language', value: 'English' },
     ],
     bodyDescription:
-      'Problems emphasize reasoning, structure, and quantitative insight. Visual grids and diagrams share the same layout as pattern-and-logic items; word problems appear in your chosen language.',
+      'Problems emphasize reasoning, structure, and quantitative insight. Visual grids and diagrams share the same layout as Symbolic Reasoning items; word problems appear in your chosen language.',
     measuresTitle: 'What This Measures',
     measuresBullets: [
       'Quantitative reasoning',

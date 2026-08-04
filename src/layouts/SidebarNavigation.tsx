@@ -20,8 +20,7 @@ import {
   Dashboard as DashboardIcon,
   School as SchoolIcon,
   Assessment as AssessmentIcon,
-  Payment as PaymentIcon,
-  Settings as SettingsIcon,
+  Person as PersonIcon,
   ExpandLess,
   ExpandMore,
   ChevronLeft as ChevronLeftIcon,
@@ -81,6 +80,7 @@ const STUDENT_NAV_TUTORIAL_ID: Partial<Record<string, string>> = {
   '/rewards': 'student-nav-rewards',
   '/reports': 'student-nav-reports',
   '/payments': 'student-nav-payments',
+  '/profile': 'student-nav-settings',
   '/settings': 'student-nav-settings',
 };
 
@@ -94,29 +94,14 @@ const navItems: NavItem[] = [
     icon: <DashboardIcon sx={{ color: '#8b5cf6' }} />,
   },
   {
-    title: 'Very Important',
+    title: 'How GYS Works',
     path: '/how-it-works',
     icon: <ErrorOutlineIcon sx={{ color: HOW_GYS_NAV_COLOR }} />,
-  },
-  {
-    title: 'School Leaderboard',
-    path: '/leaderboard',
-    icon: <EmojiEventsIcon sx={{ color: '#f59e0b' }} />,
-  },
-  {
-    title: 'Practice Mode',
-    path: '/practice-test',
-    icon: <QuizIcon sx={{ color: '#38bdf8' }} />,
   },
   {
     title: 'Question of the Day',
     path: '/question-of-the-day',
     icon: <LightbulbIcon sx={{ color: '#a855f7' }} />,
-  },
-  {
-    title: 'Rewards Shop',
-    path: '/rewards',
-    icon: <StorefrontIcon sx={{ color: '#eab308' }} />,
   },
   {
     title: 'Assessments',
@@ -129,14 +114,24 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    title: 'Billing & Payments',
-    path: '/payments',
-    icon: <PaymentIcon sx={{ color: '#22c55e' }} />,
+    title: 'Practice Mode',
+    path: '/practice-test',
+    icon: <QuizIcon sx={{ color: '#38bdf8' }} />,
   },
   {
-    title: 'Settings',
-    path: '/settings',
-    icon: <SettingsIcon sx={{ color: '#94a3b8' }} />,
+    title: 'School Leaderboard',
+    path: '/leaderboard',
+    icon: <EmojiEventsIcon sx={{ color: '#f59e0b' }} />,
+  },
+  {
+    title: 'Rewards Shop',
+    path: '/rewards',
+    icon: <StorefrontIcon sx={{ color: '#eab308' }} />,
+  },
+  {
+    title: 'Profile',
+    path: '/profile',
+    icon: <PersonIcon sx={{ color: '#94a3b8' }} />,
   },
 ];
 

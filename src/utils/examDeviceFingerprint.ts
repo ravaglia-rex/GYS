@@ -1,6 +1,6 @@
 /**
  * Lightweight device fingerprint for exam concurrent-session locking.
- * Not cryptographic — just enough to detect a different browser/device mid-attempt.
+ * Not cryptographic - just enough to detect a different browser/device mid-attempt.
  */
 export function getExamDeviceFingerprint(): string {
   try {

@@ -217,6 +217,7 @@ export const sendNotificationEmails = async (params: {
 
 export interface StudentReportListItem {
   reportId: string;
+  reportType?: string | null;
   milestone: number | null;
   generatedAt: string | null;
   pdfFilename: string | null;

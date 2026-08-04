@@ -22,7 +22,7 @@ const cards = [
   {
     title: 'Sample student dashboard',
     body:
-      'Open the same learner home and sidebar as signed-in students: Dashboard, Assessments, Reports, Billing, and Settings - powered by static demo data.',
+      'Open the same learner home and sidebar as signed-in students: Dashboard, Assessments, Reports, and Profile - powered by static demo data.',
     path: '/students/preview/dashboard',
     icon: <PersonIcon sx={{ fontSize: 44, color: '#8b5cf6' }} />,
     accent: '#8b5cf6',

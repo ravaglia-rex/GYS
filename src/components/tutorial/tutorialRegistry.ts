@@ -105,21 +105,21 @@ export const TUTORIAL_REGISTRY: Record<TutorialPageKey, TutorialStepDefinition[]
     {
       targetId: 'student-nav-reports',
       title: 'Reports',
-      body: 'Download milestone PDF reports generated as you complete more of the program.',
+      body: 'Milestone PDF reports unlock based on your package. National percentiles and PDFs refresh on a weekly Monday run.',
       placement: 'right',
     },
     {
       targetId: 'student-reports-list',
       title: 'Your report history',
-      body: 'Each row is a report you can open or download when a PDF is ready.',
+      body: 'Each row is a milestone PDF you can download once the weekly generation run has completed.',
       placement: 'top',
     },
   ],
   'student.payments': [
     {
-      targetId: 'student-nav-payments',
+      targetId: 'student-nav-settings',
       title: 'Billing & payments',
-      body: 'View membership charges, invoices, and payment history tied to your account.',
+      body: 'Open Profile, then Billing & Payment, to view membership charges, invoices, and payment history.',
       placement: 'right',
     },
     {
@@ -138,8 +138,8 @@ export const TUTORIAL_REGISTRY: Record<TutorialPageKey, TutorialStepDefinition[]
   'student.settings': [
     {
       targetId: 'student-nav-settings',
-      title: 'Settings',
-      body: 'Settings is where you manage your account details, profile information, password, and privacy options.',
+      title: 'Profile',
+      body: 'Profile is where you manage account details, billing, password, and privacy options.',
       placement: 'right',
     },
     {
@@ -150,8 +150,8 @@ export const TUTORIAL_REGISTRY: Record<TutorialPageKey, TutorialStepDefinition[]
     },
     {
       targetId: 'student-settings-tabs',
-      title: 'Profile and security',
-      body: 'Switch between profile settings and security/privacy settings depending on what you need to update.',
+      title: 'About, billing, and security',
+      body: 'Switch between About, Billing & Payment, and Security & Privacy depending on what you need to update.',
       placement: 'bottom',
     },
     {

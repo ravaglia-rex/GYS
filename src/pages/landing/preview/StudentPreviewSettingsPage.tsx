@@ -17,7 +17,8 @@ import {
   FormControlLabel,
   Divider,
 } from '@mui/material';
-import { User, Mail, Phone, School, Save, Edit, Shield, Key, Settings as SettingsIcon } from 'lucide-react';
+import { User, Mail, Phone, School, Save, Edit, Shield, Key, CreditCard } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   PREVIEW_STUDENT_PROFILE,
   PREVIEW_SETTINGS_FORM_INITIAL,
@@ -61,7 +62,12 @@ const textFieldSx = {
  * Settings UI for the sample dashboard: edits are local only; save actions explain that nothing is persisted.
  */
 const StudentPreviewSettingsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState(0);
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const tabFromQuery = searchParams.get('tab');
+  const initialTab =
+    tabFromQuery === 'billing' ? 1 : tabFromQuery === 'security' ? 2 : 0;
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<PreviewSettingsFormValues>(() => ({
     ...PREVIEW_SETTINGS_FORM_INITIAL,
@@ -114,7 +120,8 @@ const StudentPreviewSettingsPage: React.FC = () => {
   };
 
   const tabs = [
-    { label: 'Profile', icon: <User size={20} />, description: 'Personal information' },
+    { label: 'About', icon: <User size={20} />, description: 'Personal information' },
+    { label: 'Billing & Payment', icon: <CreditCard size={20} />, description: 'Membership and payments' },
     { label: 'Security & Privacy', icon: <Shield size={20} />, description: 'Password and privacy' },
   ];
 
@@ -139,7 +146,7 @@ const StudentPreviewSettingsPage: React.FC = () => {
               flexShrink: 0,
             }}
           >
-            <SettingsIcon size={32} />
+            <User size={32} />
           </Avatar>
           <Box sx={{ minWidth: 0 }}>
             <Typography
@@ -154,7 +161,7 @@ const StudentPreviewSettingsPage: React.FC = () => {
                 minWidth: 0,
               }}
             >
-              Settings
+              Profile
             </Typography>
             <Typography variant="h6" sx={{ color: 'rgba(255, 255, 255, 0.8)', fontWeight: 400 }}>
               Sample data - nothing here is stored
@@ -527,6 +534,32 @@ const StudentPreviewSettingsPage: React.FC = () => {
             </TabPanel>
 
             <TabPanel value={activeTab} index={1}>
+              <Card
+                sx={{
+                  background: 'rgba(30, 41, 59, 0.8)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  borderRadius: 3,
+                }}
+              >
+                <CardContent sx={{ p: 3 }}>
+                  <Typography variant="h5" sx={{ color: 'white', fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <CreditCard size={22} /> Billing & Payment
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)', mb: 2 }}>
+                    In the live portal, membership, payment history, and invoices live here. Open the sample billing page to explore the layout.
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    onClick={() => navigate('/students/preview/payments')}
+                    sx={{ bgcolor: '#8b5cf6', '&:hover': { bgcolor: '#7c3aed' } }}
+                  >
+                    View sample billing
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabPanel>
+
+            <TabPanel value={activeTab} index={2}>
               <Card
                 sx={{
                   background: 'rgba(30, 41, 59, 0.8)',

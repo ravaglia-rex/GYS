@@ -400,6 +400,10 @@ const PlatformAdminStudentDetailPage: React.FC = () => {
               label="Practice coins earned"
               value={String(student.practice_coins_earned_total ?? 0)}
             />
+            <DetailRow
+              label="Exam coins earned"
+              value={String(student.exam_coins_earned_total ?? 0)}
+            />
           </CardContent>
         </Card>
 

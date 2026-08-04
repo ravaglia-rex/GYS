@@ -40,6 +40,7 @@ export type GamificationState = {
   practice_accuracy_pct: number;
   practice_coins_earned_total: number;
   practice_last_awarded_week?: string;
+  exam_coins_earned_total: number;
   redemptions?: Record<string, RedemptionRecord>;
 };
 

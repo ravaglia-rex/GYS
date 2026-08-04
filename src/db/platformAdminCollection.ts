@@ -212,6 +212,7 @@ export type PlatformAdminStudentRow = {
   practice_correct_total?: number;
   practice_accuracy_pct?: number;
   practice_coins_earned_total?: number;
+  exam_coins_earned_total?: number;
   login_streak_current?: number;
   login_streak_longest?: number;
   qod_streak_current?: number;
@@ -486,7 +487,7 @@ export type PlatformAdminMarkSchoolPaidMethod =
   | 'paid_to_education_world'
   | 'other';
 
-/** Historical methods kept for display only — no longer selectable when marking paid. */
+/** Historical methods kept for display only - no longer selectable when marking paid. */
 const LEGACY_PLATFORM_ADMIN_PAYMENT_METHOD_LABELS: Record<string, string> = {
   cash: 'Cash',
   already_paid: 'Paid before platform signup',

@@ -122,7 +122,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ email, isSchoolAdmin }) => {
           variant: 'default',
           title: 'Signed in successfully!',
           description: schoolName
-            ? `Welcome back — ${schoolName}`
+            ? `Welcome back - ${schoolName}`
             : `Welcome back, ${email}`,
         });
         navigate('/dashboard');

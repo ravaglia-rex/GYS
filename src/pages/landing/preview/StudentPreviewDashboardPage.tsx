@@ -68,7 +68,7 @@ const PREVIEW_BACKEND_NOTIFICATION_EVENTS: DashboardNotificationEventSource[] = 
     id: 'preview-membership-expiring-30-2027-03-15',
     type: 'info',
     title: 'Membership Expires in 30 Days',
-    message: 'Your membership is set to expire on 15 Mar 2027. Renew from Billing & Payments to keep access uninterrupted.',
+    message: 'Your membership is set to expire on 15 Mar 2027. Renew from Profile → Billing & Payment to keep access uninterrupted.',
     created_at_iso: '2026-05-01T04:10:00.000Z',
     category: 'payment',
     color: DASHBOARD_NOTIFICATION_COLORS.membershipExpiringSoon,

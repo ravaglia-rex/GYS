@@ -41,6 +41,31 @@ function a11yProps(index: number) {
   };
 }
 
+const REPORT_TYPE_LABELS: Record<string, string> = {
+  discovery: 'Discovery Report',
+  reasoning_triad: 'Reasoning Triad Report',
+  reasoning_skills: 'Stream Ready Report',
+  guided_decision: 'Career Ready Report',
+};
+
+const MILESTONE_LABELS: Record<number, string> = {
+  1: 'Discovery Report',
+  3: 'Reasoning Triad Report',
+  5: 'Stream Ready Report',
+  7: 'Career Ready Report',
+};
+
+function reportDisplayName(r: StudentReportListItem): string {
+  if (r.reportType && REPORT_TYPE_LABELS[r.reportType]) {
+    return REPORT_TYPE_LABELS[r.reportType];
+  }
+  if (r.milestone != null && MILESTONE_LABELS[r.milestone]) {
+    return MILESTONE_LABELS[r.milestone];
+  }
+  if (r.milestone != null) return `Milestone ${r.milestone} Report`;
+  return r.reportId;
+}
+
 const ReportsPage: React.FC = () => {
   const theme = useTheme();
   const isPhone = useMediaQuery(theme.breakpoints.down('sm'));
@@ -227,18 +252,36 @@ const ReportsPage: React.FC = () => {
                 mb: 3,
               }}
             >
-              <Typography variant="h6" sx={{ color: 'white', fontWeight: 600, mb: 2 }}>
+              <Typography variant="h6" sx={{ color: 'white', fontWeight: 600, mb: 0.75 }}>
                 Your PDF reports
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.78)', mb: 2, lineHeight: 1.65 }}>
+              Understand how and when the reports are generated {' '}
+                <Button
+                  onClick={() => navigate('/how-it-works')}
+                  sx={{
+                    color: '#93c5fd',
+                    textTransform: 'none',
+                    fontWeight: 700,
+                    p: 0,
+                    minWidth: 0,
+                    verticalAlign: 'baseline',
+                    '&:hover': { background: 'transparent', textDecoration: 'underline' },
+                  }}
+                >
+                  here
+                </Button>
+                .
               </Typography>
               {loading ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
                   <CircularProgress sx={{ color: '#93c5fd' }} />
                 </Box>
               ) : reports.length === 0 ? (
-                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.78)', py: 2 }}>
-                  Your first report is generated after you complete any 3 assessments. Once it is ready, you
-                  can download it here. Tier scores for individual exams are always available under{' '}
-                  <strong style={{ color: '#93c5fd' }}>Completed &amp; Results</strong>.
+                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.78)', py: 2, lineHeight: 1.65 }}>
+                  No milestone PDF is ready yet. Finish the exams included in your package (at your grade level),
+                  then check back after the next Monday. 
+                 
                 </Typography>
               ) : (
                 <TableContainer
@@ -256,7 +299,7 @@ const ReportsPage: React.FC = () => {
                     <TableHead>
                       <TableRow>
                         <TableCell sx={{ color: 'rgba(255,255,255,0.65)', fontWeight: 700, fontSize: '0.72rem' }}>
-                          MILESTONE
+                          REPORT
                         </TableCell>
                         <TableCell sx={{ color: 'rgba(255,255,255,0.65)', fontWeight: 700, fontSize: '0.72rem' }}>
                           GENERATED
@@ -279,7 +322,7 @@ const ReportsPage: React.FC = () => {
                       {reports.map((r) => (
                         <TableRow key={r.reportId} hover>
                           <TableCell sx={{ color: 'white', fontWeight: 600 }}>
-                            {r.milestone != null ? `${r.milestone} assessments` : r.reportId}
+                            {reportDisplayName(r)}
                           </TableCell>
                           <TableCell sx={{ color: 'rgba(255,255,255,0.85)' }}>{formatDate(r.generatedAt)}</TableCell>
                           <TableCell align="right" sx={{ color: 'rgba(255,255,255,0.85)' }}>
@@ -327,10 +370,10 @@ const ReportsPage: React.FC = () => {
               <Typography variant="h6" sx={{ color: 'white', fontWeight: 600, mb: 2 }}>
                 Where to see scores today
               </Typography>
-              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.78)', mb: 2 }}>
-                Your tier scores and outcomes for assessments you have completed, including Symbolic Reasoning,
-                are on{' '}
-                <strong style={{ color: '#93c5fd' }}>Completed &amp; Results</strong> under Assessments.
+              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.78)', mb: 2, lineHeight: 1.65 }}>
+                Per-exam scores and outcomes are available as soon as you finish an assessment under{' '}
+                <strong style={{ color: '#93c5fd' }}>Completed &amp; Results</strong>. National percentile,
+                achievement badge, and the narrative PDF above are updated on Monday every week.
               </Typography>
               <Button variant="contained" onClick={() => navigate('/assessments/completed')} sx={{ mt: 1 }}>
                 Go to completed assessments

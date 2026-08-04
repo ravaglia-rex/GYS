@@ -579,7 +579,7 @@ export const HowItWorksContent: React.FC = () => {
             id="student-how-it-works-national-badge"
             icon={<MilitaryTechIcon />}
             title="How Do You Earn Your National Badge?"
-            subtitle="Complete all three Reasoning assessments at your Expected Level. Until then, your badge remains Explorer."
+            subtitle="Complete all three Reasoning assessments at your Expected Level (Reasoning Triad package or higher). Badges refresh weekly with national percentiles. Until then, your badge remains Explorer."
             sx={{ mb: 3 }}
           >
             <Box
@@ -906,13 +906,56 @@ export const HowItWorksContent: React.FC = () => {
           </Box>
 
           <SectionCard
+            id="student-how-it-works-pdf-reports"
+            icon={<QueryStatsIcon />}
+            title="PDF Milestone Reports"
+            subtitle="Your package unlocks the report. National percentiles and PDFs refresh together every Monday."
+            sx={{ mb: 3, mt: 3 }}
+          >
+            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.78)', lineHeight: 1.65, mb: 1.5, ...justifiedTextSx }}>
+              Individual exam scores appear under Completed &amp; Results as soon as you finish. Milestone PDF
+              reports are different: they are generated on a weekly basis after national percentiles are
+              recomputed for your grade. This is done on Monday every week.
+            </Typography>
+            <Typography sx={{ color: 'white', fontWeight: 900, fontSize: '0.95rem', mb: 1 }}>
+              What each package unlocks
+            </Typography>
+            <Box component="ul" sx={{ m: 0, pl: 2.5, mb: 1.5, color: 'rgba(255,255,255,0.78)' }}>
+                <Typography component="li" variant="body2" sx={{ mb: 0.75, lineHeight: 1.6 }}>
+                  <strong style={{ color: 'white' }}>{MEMBERSHIP_LEVEL_LABELS[1]}</strong>
+                  {' - '}Complete Symbolic Reasoning to unlock the Discovery Report
+                </Typography>
+                <Typography component="li" variant="body2" sx={{ mb: 0.75, lineHeight: 1.6 }}>
+                  <strong style={{ color: 'white' }}>{MEMBERSHIP_LEVEL_LABELS[2]}</strong>
+                  {' - '}Complete all three Reasoning exams at your grade level to unlock the Reasoning Triad Report
+                </Typography>
+                <Typography component="li" variant="body2" sx={{ mb: 0.75, lineHeight: 1.6 }}>
+                  <strong style={{ color: 'white' }}>{MEMBERSHIP_LEVEL_LABELS[3]}</strong>
+                  {' - '}Complete triad + Personality and Interest + AI Proficiency to unlock the Stream Ready Report
+                </Typography>
+                <Typography component="li" variant="body2" sx={{ mb: 0.75, lineHeight: 1.6 }}>
+                  <strong style={{ color: 'white' }}>{MEMBERSHIP_LEVEL_LABELS[4]}</strong>
+                  {' - '}Complete above + English Proficiency + Career Discovery to unlock the Career Ready Report
+                </Typography>
+              </Box>
+              
+            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.78)', lineHeight: 1.65, ...justifiedTextSx }}>
+              Why wait for Monday? National percentile needs a full grade-wide ranking. Generating PDFs in that same
+              weekly pass means the number in your report matches your real standing - not just your raw score percent.
+            </Typography>
+          </SectionCard>
+
+          <SectionCard
             id="student-how-it-works-percentiles"
             icon={<MilitaryTechIcon />}
             title="Understanding Percentiles"
-            subtitle="A percentile tells you where you stand compared to other students who took the same exam."
+            subtitle="A national percentile tells you where you stand compared to other students in your grade who completed the Reasoning Triad."
           >
             <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.78)', lineHeight: 1.65, mb: 1.5, ...justifiedTextSx }}>
               It is like your rank in a group. The higher your percentile, the better you performed compared to others.
+              For GYS, your national composite percentile is based on your Reasoning Triad results at your Expected Level,
+              compared with other students in your grade. That ranking refreshes weekly and feeds both your achievement
+              badge and your milestone PDF report.
             </Typography>
             <Typography sx={{ color: 'white', fontWeight: 900, fontSize: '0.95rem', mb: 1 }}>
               Example
@@ -933,8 +976,9 @@ export const HowItWorksContent: React.FC = () => {
               Achievement Tier Badges
             </Typography>
             <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.68)', lineHeight: 1.6, mb: 2, ...justifiedTextSx }}>
-              These badges come from percentile bands after the core reasoning results are ready for your class.
-              A badge is useful, but remember that the real win is understanding your strengths and improving step by step.
+              These badges come from national percentile bands after your Reasoning Triad results are ready at your
+              Expected Level and the weekly ranking has run. Until then, your badge stays Explorer. Discovery package
+              students do not receive a national performance tier.
             </Typography>
             <TableContainer component={Box} sx={{ borderRadius: 2, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
               <Table size="small">
@@ -976,7 +1020,7 @@ export const HowItWorksContent: React.FC = () => {
                 <MiniCard
                   icon={<AutoAwesomeIcon fontSize="small" />}
                   title="Stay confident as it gets harder"
-                  body="As you answer correctly, the exam will give you more difficult questions. Don't be worried if the questions become harder—it usually means you are doing well! Keep an eye on the timer, maintain a steady pace, and aim to attempt every question. The best strategy is to answer every question, manage your time wisely, and stay confident throughout the exam."
+                  body="As you answer correctly, the exam will give you more difficult questions. Don't be worried if the questions become harder-it usually means you are doing well! Keep an eye on the timer, maintain a steady pace, and aim to attempt every question. The best strategy is to answer every question, manage your time wisely, and stay confident throughout the exam."
                   color="#38bdf8"
                 />
               </Box>
