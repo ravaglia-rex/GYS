@@ -739,9 +739,19 @@ export default function PracticeTakePage() {
     );
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#fff', display: 'flex', flexDirection: 'column' }}>
+    <Box
+      sx={{
+        height: '100dvh',
+        maxHeight: '100dvh',
+        bgcolor: '#fff',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
+    >
       <Box
         sx={{
+          flexShrink: 0,
           bgcolor: headerBg,
           color: '#fff',
           px: { xs: 1.25, sm: 2 },
@@ -821,13 +831,24 @@ export default function PracticeTakePage() {
         variant="determinate"
         value={Math.min(100, progressPercent)}
         sx={{
+          flexShrink: 0,
           height: 4,
           bgcolor: 'rgba(0,0,0,0.08)',
           '& .MuiLinearProgress-bar': { bgcolor: progressColor },
         }}
       />
 
-      <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', py: { xs: 3, md: 5 }, px: { xs: 2, md: 4 } }}>
+      <Box
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          display: 'flex',
+          justifyContent: 'center',
+          py: { xs: 3, md: 5 },
+          px: { xs: 2, md: 4 },
+        }}
+      >
         <Box sx={{ width: '100%', maxWidth: 720 }}>
           {mathExam ? (
             <MathJaxContext version={3} config={EXAM_MATHJAX_CONFIG}>
@@ -847,6 +868,7 @@ export default function PracticeTakePage() {
 
       <Box
         sx={{
+          flexShrink: 0,
           borderTop: '1px solid #e2e8f0',
           px: { xs: 2, md: 4 },
           py: 2,

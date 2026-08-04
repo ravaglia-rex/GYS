@@ -73,8 +73,18 @@ const AssessmentResultPage: React.FC = () => {
   if (isAiLiteracy) {
     const grade = aiProficiencyLevel(displayScore);
     return (
-      <Box sx={{ minHeight: '100vh', bgcolor: '#f8fafc', py: 5, px: 2 }}>
-        <Box sx={{ maxWidth: 520, mx: 'auto' }}>
+      <Box
+        sx={{
+          minHeight: '100dvh',
+          bgcolor: '#f8fafc',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          py: 5,
+          px: 2,
+        }}
+      >
+        <Box sx={{ maxWidth: 520, width: '100%', mx: 'auto' }}>
           <Typography variant="h6" sx={{ textAlign: 'center', fontWeight: 800, color: '#334155', mb: 3 }}>
             Results
           </Typography>
@@ -112,8 +122,18 @@ const AssessmentResultPage: React.FC = () => {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#f8fafc', py: 4, px: 2, pb: 8 }}>
-      <Box sx={{ maxWidth: 520, mx: 'auto' }}>
+    <Box
+      sx={{
+        minHeight: '100dvh',
+        bgcolor: '#f8fafc',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        py: 4,
+        px: 2,
+      }}
+    >
+      <Box sx={{ maxWidth: 520, width: '100%', mx: 'auto' }}>
         <Typography variant="h6" sx={{ textAlign: 'center', fontWeight: 800, color: '#334155', mb: 2 }}>
           Results
         </Typography>

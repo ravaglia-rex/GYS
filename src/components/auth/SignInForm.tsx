@@ -51,13 +51,29 @@ function getFirebaseAuthErrorCode(error: unknown): string {
     : '';
 }
 
-function describeSignInError(error: unknown, isSchoolAdmin?: boolean): { title: string; description: string } {
+function describeSignInError(error: unknown): { title: string; description: string } {
   const code = getFirebaseAuthErrorCode(error);
-  if (!isSchoolAdmin && ['auth/invalid-credential', 'auth/invalid-login-credentials'].includes(code)) {
+  // Firebase returns these for wrong password and other bad credentials alike —
+  // never assume the account still needs first-time password setup.
+  if (
+    [
+      'auth/invalid-credential',
+      'auth/invalid-login-credentials',
+      'auth/wrong-password',
+      'auth/user-not-found',
+    ].includes(code)
+  ) {
     return {
-      title: 'Set up your password first',
+      title: 'Incorrect password',
       description:
-        'Before signing in, create your password using the setup link we sent to your email. If the link expired, use Forgot password to get a new one.',
+        'The password you entered is incorrect. Try again, or use Forgot password if you need a reset link.',
+    };
+  }
+
+  if (code === 'auth/too-many-requests') {
+    return {
+      title: 'Too many attempts',
+      description: 'Please wait a bit, then try again or use Forgot password.',
     };
   }
 
@@ -285,7 +301,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ email, isSchoolAdmin }) => {
         } catch (error: unknown) {
             console.error('Sign in error:', error);
             await revertPartialStudentSignIn();
-            const signInError = describeSignInError(error, isSchoolAdmin);
+            const signInError = describeSignInError(error);
             toast({
                 variant: 'destructive',
                 title: signInError.title,

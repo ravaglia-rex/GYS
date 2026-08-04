@@ -741,9 +741,19 @@ export default function AssessmentTakePage() {
   );
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#fff', display: 'flex', flexDirection: 'column' }}>
+    <Box
+      sx={{
+        height: '100dvh',
+        maxHeight: '100dvh',
+        bgcolor: '#fff',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
+    >
       <Box
         sx={{
+          flexShrink: 0,
           bgcolor: headerBg,
           color: '#fff',
           px: { xs: 1.5, sm: 2.5 },
@@ -788,6 +798,7 @@ export default function AssessmentTakePage() {
         variant="determinate"
         value={Math.min(100, progressPercent)}
         sx={{
+          flexShrink: 0,
           height: 4,
           bgcolor: 'rgba(0,0,0,0.08)',
           '& .MuiLinearProgress-bar': { bgcolor: progressColor },
@@ -795,13 +806,13 @@ export default function AssessmentTakePage() {
       />
 
       {showOfflineBar && (
-        <Alert severity="warning" sx={{ borderRadius: 0 }} onClose={() => setShowOfflineBar(false)}>
+        <Alert severity="warning" sx={{ flexShrink: 0, borderRadius: 0 }} onClose={() => setShowOfflineBar(false)}>
           You appear to be offline. If you leave or refresh, this exam attempt may end and cannot be resumed (timer resets). Repeated interruptions can lead to a temporary account suspension.
         </Alert>
       )}
 
       {secondsLeft === 0 && flow.useTimer && (
-        <Alert severity="warning" sx={{ borderRadius: 0 }}>
+        <Alert severity="warning" sx={{ flexShrink: 0, borderRadius: 0 }}>
           Time is up - submit your answer and finish remaining questions promptly.
         </Alert>
       )}
@@ -809,7 +820,7 @@ export default function AssessmentTakePage() {
       {leftFullscreen && (
         <Alert
           severity="error"
-          sx={{ borderRadius: 0 }}
+          sx={{ flexShrink: 0, borderRadius: 0 }}
           action={
             <Button color="inherit" size="small" onClick={tryEnterFullscreen}>
               Re-enter Fullscreen
@@ -821,12 +832,22 @@ export default function AssessmentTakePage() {
       )}
 
       {screenshotNudge && (
-        <Alert severity="warning" sx={{ borderRadius: 0 }} onClose={() => setScreenshotNudge(false)}>
+        <Alert severity="warning" sx={{ flexShrink: 0, borderRadius: 0 }} onClose={() => setScreenshotNudge(false)}>
           Screenshots and sharing items may violate assessment integrity. Please keep the exam to yourself.
         </Alert>
       )}
 
-      <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', py: { xs: 3, md: 5 }, px: { xs: 2, md: 4 } }}>
+      <Box
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          display: 'flex',
+          justifyContent: 'center',
+          py: { xs: 3, md: 5 },
+          px: { xs: 2, md: 4 },
+        }}
+      >
         <Box sx={{ width: '100%', maxWidth: 720 }}>
           {mathExam ? (
             <MathJaxContext version={3} config={EXAM_MATHJAX_CONFIG}>
@@ -845,15 +866,13 @@ export default function AssessmentTakePage() {
 
       <Box
         sx={{
+          flexShrink: 0,
           borderTop: '1px solid #e2e8f0',
           px: { xs: 2, md: 4 },
           py: 2,
           display: 'flex',
-          gap: 1.5,
-          justifyContent: 'flex-end',
+          justifyContent: 'center',
           bgcolor: '#f8fafc',
-          maxWidth: 900,
-          mx: 'auto',
           width: '100%',
         }}
       >
