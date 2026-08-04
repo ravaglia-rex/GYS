@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Box,
@@ -82,6 +82,11 @@ import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import { PlatformAdminPageHeader, PlatformAdminStatCard } from './platformAdminComponents';
 
 type AnalyticsTab = 'official' | 'practice' | 'qod' | 'activity';
+
+/** "Symbolic Reasoning" → "Symbolic"; leaves AI/English Proficiency unchanged. */
+function shortOfficialExamLabel(label: string): string {
+  return label.replace(/\s+Reasoning$/i, '').trim() || label;
+}
 
 const PlatformAdminAnalyticsPage: React.FC = () => {
   const [tab, setTab] = useState<AnalyticsTab>('official');
@@ -494,72 +499,75 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                     Completions by exam (last 30 days IST)
                   </Typography>
                   <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1.5 }}>
-                    Daily chart fills as new completions land after this deploy. Historical completions still appear in the tables below.
+                    Daily totals use IST calendar dates from completed attempts (backfillable). Test
+                    accounts excluded.
                   </Typography>
                   <Box sx={{ width: '100%', height: 280 }}>
                     <ResponsiveContainer>
-                      <BarChart data={officialDailyChartData}>
+                      <LineChart data={officialDailyChartData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                         <XAxis dataKey="date" interval={1} tick={{ fontSize: 11 }} />
                         <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
                         <Tooltip />
                         <Legend />
                         {officialDailyExamIds.map((examId, idx) => (
-                          <Bar
+                          <Line
                             key={examId}
+                            type="monotone"
                             dataKey={examId}
-                            name={
+                            name={shortOfficialExamLabel(
                               officialSummaries.find((e) => e.exam_id === examId)?.label ?? examId
-                            }
-                            stackId="a"
-                            fill={EXAM_SERIES_COLORS[idx % EXAM_SERIES_COLORS.length]}
+                            )}
+                            stroke={EXAM_SERIES_COLORS[idx % EXAM_SERIES_COLORS.length]}
+                            strokeWidth={2}
+                            dot={{ r: 3 }}
+                            activeDot={{ r: 5 }}
                           />
                         ))}
-                      </BarChart>
+                      </LineChart>
                     </ResponsiveContainer>
                   </Box>
                 </CardContent>
               </Card>
 
-              <Box
+              <Tabs
+                value={selectedOfficialExamId || false}
+                onChange={(_e, value: string) => setSelectedOfficialExamId(value)}
+                variant="scrollable"
+                scrollButtons="auto"
                 sx={{
-                  display: 'grid',
-                  gridTemplateColumns: { xs: '1fr', md: '220px 1fr' },
-                  gap: 2,
-                  mb: 2.5,
+                  mb: 1.5,
+                  minHeight: 40,
+                  '& .MuiTab-root': {
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    minHeight: 40,
+                    minWidth: 'auto',
+                    px: 1.75,
+                    color: `${ip.subtext} !important`,
+                  },
+                  '& .MuiTab-root.Mui-selected': {
+                    color: `${ip.navy} !important`,
+                    fontWeight: 800,
+                  },
+                  '& .MuiTabs-indicator': { bgcolor: ip.navy },
                 }}
               >
-                <Card sx={platformAdminCardSx}>
-                  <CardContent>
-                    <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 1.5 }}>Exams</Typography>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                      {officialSummaries.map((exam) => {
-                        const selected = exam.exam_id === selectedOfficialExamId;
-                        return (
-                          <Button
-                            key={exam.exam_id}
-                            onClick={() => setSelectedOfficialExamId(exam.exam_id)}
-                            sx={{
-                              justifyContent: 'flex-start',
-                              textTransform: 'none',
-                              fontWeight: selected ? 800 : 600,
-                              bgcolor: selected ? 'rgba(13,71,161,0.08)' : 'transparent',
-                              color: selected ? ip.navy : ip.subtext,
-                              border: selected ? '1px solid rgba(13,71,161,0.25)' : '1px solid transparent',
-                            }}
-                          >
-                            {exam.label}
-                          </Button>
-                        );
-                      })}
-                    </Box>
-                  </CardContent>
-                </Card>
+                {officialSummaries.map((exam) => (
+                  <Tab
+                    key={exam.exam_id}
+                    value={exam.exam_id}
+                    label={shortOfficialExamLabel(exam.label)}
+                  />
+                ))}
+              </Tabs>
 
-                <Card sx={platformAdminCardSx}>
-                  <CardContent>
+              <Card sx={{ ...platformAdminCardSx, mb: 2.5 }}>
+                <CardContent>
                     <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
-                      {selectedOfficialSummary?.label ?? 'Exam summary'}
+                      {selectedOfficialSummary
+                        ? shortOfficialExamLabel(selectedOfficialSummary.label)
+                        : 'Exam summary'}
                     </Typography>
                     {selectedOfficialSummary ? (
                       <Box
@@ -573,25 +581,25 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                       >
                         <Box>
                           <Typography variant="caption" sx={{ color: ip.subtext }}>Completions</Typography>
-                          <Typography sx={{ fontWeight: 800 }}>
+                          <Typography sx={{ fontWeight: 800, color: ip.heading }}>
                             {selectedOfficialSummary.completed_attempts.toLocaleString()}
                           </Typography>
                         </Box>
                         <Box>
                           <Typography variant="caption" sx={{ color: ip.subtext }}>Students</Typography>
-                          <Typography sx={{ fontWeight: 800 }}>
+                          <Typography sx={{ fontWeight: 800, color: ip.heading }}>
                             {selectedOfficialSummary.unique_students.toLocaleString()}
                           </Typography>
                         </Box>
                         <Box>
                           <Typography variant="caption" sx={{ color: ip.subtext }}>Avg score</Typography>
-                          <Typography sx={{ fontWeight: 800 }}>
+                          <Typography sx={{ fontWeight: 800, color: ip.heading }}>
                             {selectedOfficialSummary.avg_score_pct}% ({selectedOfficialSummary.avg_score_points}/1000)
                           </Typography>
                         </Box>
                         <Box>
                           <Typography variant="caption" sx={{ color: ip.subtext }}>Pass rate</Typography>
-                          <Typography sx={{ fontWeight: 800 }}>
+                          <Typography sx={{ fontWeight: 800, color: ip.heading }}>
                             {selectedOfficialSummary.pass_rate_pct}%
                           </Typography>
                         </Box>
@@ -681,8 +689,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                       </Table>
                     </TableContainer>
                   </CardContent>
-                </Card>
-              </Box>
+              </Card>
             </>
           )}
         </>
