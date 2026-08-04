@@ -9,6 +9,8 @@ import {
   PLATFORM_ADMIN_ANALYTICS_TOP_COINS,
   PLATFORM_ADMIN_ANALYTICS_TOP_QOD,
   PLATFORM_ADMIN_ANALYTICS_SCHOOL_ADMIN_ACTIVITY,
+  PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAMS,
+  PLATFORM_ADMIN_ANALYTICS_OFFICIAL_DAILY,
 } from '../constants/constants';
 import { isHiddenStaffSchoolAdminEmail } from '../constants/hiddenStaffSchoolAdmins';
 
@@ -306,6 +308,119 @@ export async function getPlatformAdminSchoolAdminActivity(
           (row: SchoolAdminActivityRow) => !isHiddenStaffSchoolAdminEmail(row.email)
         )
       : [],
+    generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
+  };
+}
+
+export type OfficialExamSummaryRow = {
+  exam_id: string;
+  label: string;
+  completed_attempts: number;
+  unique_students: number;
+  avg_score_pct: number;
+  avg_score_points: number;
+  passed_attempts: number;
+  pass_rate_pct: number;
+};
+
+export type OfficialExamLevelRow = {
+  level: number;
+  completed_attempts: number;
+  unique_students: number;
+  avg_score_pct: number;
+  avg_score_points: number;
+  passed_attempts: number;
+};
+
+export type OfficialExamRecentRow = {
+  attempt_id: string;
+  uid: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  school_id: string | null;
+  school_name: string | null;
+  proficiency_tier: number | null;
+  score_pct: number;
+  score_points: number;
+  passed: boolean;
+  completed_at: string | null;
+};
+
+export type OfficialDailyStatRow = {
+  date: string;
+  total_completed: number;
+  by_exam: Record<string, { completed: number; score_sum: number }>;
+};
+
+export async function getPlatformAdminOfficialExamSummaries(opts?: {
+  refresh?: boolean;
+}): Promise<{
+  exams: OfficialExamSummaryRow[];
+  generated_at: string;
+  indexes_building?: boolean;
+}> {
+  const headers = await authHeaders();
+  const res = await axios.get(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAMS}`,
+    { headers, params: { ...refreshParams(opts?.refresh) } }
+  );
+  return {
+    exams: Array.isArray(res.data.exams) ? res.data.exams : [],
+    generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
+    indexes_building: res.data.indexes_building === true,
+  };
+}
+
+export async function getPlatformAdminOfficialExamDetail(
+  examId: string,
+  opts?: { limit?: number; refresh?: boolean }
+): Promise<{
+  exam_id: string;
+  label: string;
+  summary: OfficialExamSummaryRow;
+  by_level: OfficialExamLevelRow[];
+  recent: OfficialExamRecentRow[];
+  generated_at: string;
+  indexes_building?: boolean;
+}> {
+  const headers = await authHeaders();
+  const res = await axios.get(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAMS}/${encodeURIComponent(examId)}`,
+    {
+      headers,
+      params: { limit: opts?.limit ?? 25, ...refreshParams(opts?.refresh) },
+    }
+  );
+  return {
+    exam_id: typeof res.data.exam_id === 'string' ? res.data.exam_id : examId,
+    label: typeof res.data.label === 'string' ? res.data.label : examId,
+    summary: res.data.summary,
+    by_level: Array.isArray(res.data.by_level) ? res.data.by_level : [],
+    recent: Array.isArray(res.data.recent) ? res.data.recent : [],
+    generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
+    indexes_building: res.data.indexes_building === true,
+  };
+}
+
+export async function getPlatformAdminOfficialDailyStats(
+  days = 30,
+  opts?: { refresh?: boolean }
+): Promise<{
+  days: OfficialDailyStatRow[];
+  today: OfficialDailyStatRow | null;
+  exam_ids: string[];
+  generated_at: string;
+}> {
+  const headers = await authHeaders();
+  const res = await axios.get(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_OFFICIAL_DAILY}`,
+    { headers, params: { days, ...refreshParams(opts?.refresh) } }
+  );
+  return {
+    days: Array.isArray(res.data.days) ? res.data.days : [],
+    today: res.data.today ?? null,
+    exam_ids: Array.isArray(res.data.exam_ids) ? res.data.exam_ids : [],
     generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
   };
 }

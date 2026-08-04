@@ -20,6 +20,7 @@ import {
   Settings as PipelineIcon,
   AdminPanelSettings as AdminsIcon,
   Insights as AnalyticsIcon,
+  ReportProblem as QuestionReportsIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
@@ -28,7 +29,10 @@ import authTokenHandler from '../functions/auth_token/auth_token_handler';
 import { useSelector } from 'react-redux';
 import { RootState } from '../state_data/reducer';
 import { institutionalPalette as ip } from '../theme/institutionalPalette';
-import { canAccessPlatformAdminAnalytics } from '../utils/platformAdminAnalyticsAccess';
+import {
+  canAccessPlatformAdminAnalytics,
+  canAccessPlatformAdminQuestionReports,
+} from '../utils/platformAdminAnalyticsAccess';
 
 const HEADER_NAVY = '#002147';
 const DRAWER_WIDTH = 260;
@@ -40,6 +44,12 @@ const ANALYTICS_NAV_ITEM = {
   title: 'Analytics',
   path: '/platform-admin/analytics',
   icon: <AnalyticsIcon sx={{ color: '#2563eb', fontSize: SIDEBAR_ICON_SIZE }} />,
+};
+
+const QUESTION_REPORTS_NAV_ITEM = {
+  title: 'Q Reports',
+  path: '/platform-admin/question-reports',
+  icon: <QuestionReportsIcon sx={{ color: '#c2410c', fontSize: SIDEBAR_ICON_SIZE }} />,
 };
 
 const BASE_NAV_ITEMS = [
@@ -73,14 +83,15 @@ const PlatformAdminLayout: React.FC<PlatformAdminLayoutProps> = ({ children }) =
   const platformAdminRole = useSelector((state: RootState) => state.auth.platformAdminRole);
 
   const navItems = useMemo(() => {
-    const base = canAccessPlatformAdminAnalytics(userEmail)
-      ? [
-          BASE_NAV_ITEMS[0],
-          BASE_NAV_ITEMS[1],
-          ANALYTICS_NAV_ITEM,
-          BASE_NAV_ITEMS[2],
-        ]
-      : BASE_NAV_ITEMS;
+    const mid: typeof BASE_NAV_ITEMS = [];
+    if (canAccessPlatformAdminAnalytics(userEmail)) mid.push(ANALYTICS_NAV_ITEM);
+    if (canAccessPlatformAdminQuestionReports(userEmail)) mid.push(QUESTION_REPORTS_NAV_ITEM);
+    const base = [
+      BASE_NAV_ITEMS[0],
+      BASE_NAV_ITEMS[1],
+      ...mid,
+      BASE_NAV_ITEMS[2],
+    ];
     return platformAdminRole === 'super' ? [...base, PIPELINE_NAV_ITEM, ADMINS_NAV_ITEM] : base;
   }, [platformAdminRole, userEmail]);
 

@@ -32,6 +32,7 @@ import {
   PLATFORM_ADMIN_ADMINS_UPDATE,
   PLATFORM_ADMIN_ADMINS_REMOVE,
   PLATFORM_ADMIN_ADMINS_INVITE,
+  PLATFORM_ADMIN_QUESTION_PROBLEM_REPORTS,
 } from '../constants/constants';
 
 function apiBase(): string {
@@ -1058,4 +1059,47 @@ export function paymentStatusChipColor(status: string): 'success' | 'warning' | 
   if (['pending', 'pending_contact', 'pending_webhook'].includes(s)) return 'warning';
   if (s === 'failed') return 'error';
   return 'default';
+}
+
+export type PlatformAdminQuestionProblemReport = {
+  id: string;
+  source: 'official' | 'practice';
+  exam_id: string;
+  exam_title: string;
+  tier_or_level: number | null;
+  item_id: string;
+  text: string;
+  reported_at: string | null;
+  reporter_uid: string;
+  reporter_name: string;
+  reporter_email: string;
+  school_id: string | null;
+  school_name: string | null;
+  attempt_id: string | null;
+};
+
+export async function listPlatformAdminQuestionProblemReports(options?: {
+  limit?: number;
+  source?: 'all' | 'official' | 'practice';
+}): Promise<{
+  reports: PlatformAdminQuestionProblemReport[];
+  official_count: number;
+  practice_count: number;
+}> {
+  const params = new URLSearchParams();
+  if (options?.limit != null) params.set('limit', String(options.limit));
+  if (options?.source && options.source !== 'all') params.set('source', options.source);
+  const qs = params.toString();
+  const res = await withAuthRetry((headers) =>
+    axios.get(
+      `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_QUESTION_PROBLEM_REPORTS}${qs ? `?${qs}` : ''}`,
+      { headers }
+    )
+  );
+  const data = res.data ?? {};
+  return {
+    reports: Array.isArray(data.reports) ? data.reports : [],
+    official_count: typeof data.official_count === 'number' ? data.official_count : 0,
+    practice_count: typeof data.practice_count === 'number' ? data.practice_count : 0,
+  };
 }

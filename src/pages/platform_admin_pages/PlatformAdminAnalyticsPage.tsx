@@ -49,6 +49,9 @@ import {
   getPlatformAdminSchoolAdminActivity,
   getPlatformAdminTopCoins,
   getPlatformAdminTopQod,
+  getPlatformAdminOfficialDailyStats,
+  getPlatformAdminOfficialExamDetail,
+  getPlatformAdminOfficialExamSummaries,
   type PracticeDailyByExamStatRow,
   type PracticeDailyStatRow,
   type PracticeExamSummaryRow,
@@ -58,6 +61,10 @@ import {
   type SchoolAdminActivityRow,
   type TopCoinsStudentRow,
   type TopQodStudentRow,
+  type OfficialDailyStatRow,
+  type OfficialExamLevelRow,
+  type OfficialExamRecentRow,
+  type OfficialExamSummaryRow,
 } from '../../db/platformAdminAnalytics';
 import { formatDate, formatDateTime } from '../../db/platformAdminCollection';
 import {
@@ -74,10 +81,22 @@ import {
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import { PlatformAdminPageHeader, PlatformAdminStatCard } from './platformAdminComponents';
 
-type AnalyticsTab = 'practice' | 'qod' | 'activity';
+type AnalyticsTab = 'official' | 'practice' | 'qod' | 'activity';
 
 const PlatformAdminAnalyticsPage: React.FC = () => {
-  const [tab, setTab] = useState<AnalyticsTab>('practice');
+  const [tab, setTab] = useState<AnalyticsTab>('official');
+
+  const [officialSummaries, setOfficialSummaries] = useState<OfficialExamSummaryRow[]>([]);
+  const [officialDaily, setOfficialDaily] = useState<OfficialDailyStatRow[]>([]);
+  const [officialDailyExamIds, setOfficialDailyExamIds] = useState<string[]>([]);
+  const [officialToday, setOfficialToday] = useState<OfficialDailyStatRow | null>(null);
+  const [selectedOfficialExamId, setSelectedOfficialExamId] = useState('');
+  const [officialByLevel, setOfficialByLevel] = useState<OfficialExamLevelRow[]>([]);
+  const [officialRecent, setOfficialRecent] = useState<OfficialExamRecentRow[]>([]);
+  const [officialGeneratedAt, setOfficialGeneratedAt] = useState('');
+  const [officialIndexesBuilding, setOfficialIndexesBuilding] = useState(false);
+  const [officialLoading, setOfficialLoading] = useState(false);
+  const [officialError, setOfficialError] = useState<string | null>(null);
 
   const [practiceSummaries, setPracticeSummaries] = useState<PracticeExamSummaryRow[]>([]);
   const [practiceDaily, setPracticeDaily] = useState<PracticeDailyStatRow[]>([]);
@@ -105,6 +124,49 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
   const [activityGeneratedAt, setActivityGeneratedAt] = useState('');
   const [activityLoading, setActivityLoading] = useState(false);
   const [activityError, setActivityError] = useState<string | null>(null);
+
+  const loadOfficial = useCallback(async (opts?: { refresh?: boolean }) => {
+    setOfficialLoading(true);
+    setOfficialError(null);
+    setOfficialIndexesBuilding(false);
+    try {
+      const [summaries, daily] = await Promise.all([
+        getPlatformAdminOfficialExamSummaries({ refresh: opts?.refresh }),
+        getPlatformAdminOfficialDailyStats(30, { refresh: opts?.refresh }),
+      ]);
+      setOfficialSummaries(summaries.exams);
+      setOfficialDaily(daily.days);
+      setOfficialDailyExamIds(daily.exam_ids);
+      setOfficialToday(daily.today);
+      setOfficialGeneratedAt(summaries.generated_at || daily.generated_at);
+      setOfficialIndexesBuilding(summaries.indexes_building === true);
+      const examId = selectedOfficialExamId || summaries.exams[0]?.exam_id || '';
+      if (!selectedOfficialExamId && examId) setSelectedOfficialExamId(examId);
+      if (examId) {
+        const detail = await getPlatformAdminOfficialExamDetail(examId, {
+          limit: 25,
+          refresh: opts?.refresh,
+        });
+        setOfficialByLevel(detail.by_level);
+        setOfficialRecent(detail.recent);
+        setOfficialGeneratedAt(detail.generated_at || summaries.generated_at || daily.generated_at);
+        if (detail.indexes_building) setOfficialIndexesBuilding(true);
+      }
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { error?: string } }; message?: string };
+      const msg = err?.response?.data?.error || err?.message || 'Failed to load official exam analytics';
+      const lower = msg.toLowerCase();
+      if (lower.includes('index') || lower.includes('failed_precondition')) {
+        setOfficialError(
+          'Firestore indexes for official exam analytics are still building. Refresh after they show Enabled.'
+        );
+      } else {
+        setOfficialError(msg);
+      }
+    } finally {
+      setOfficialLoading(false);
+    }
+  }, [selectedOfficialExamId]);
 
   const loadPractice = useCallback(async (opts?: { refresh?: boolean }) => {
     setPracticeLoading(true);
@@ -204,14 +266,16 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    if (tab === 'official') void loadOfficial();
     if (tab === 'practice') void loadPractice();
     if (tab === 'qod') void loadQod();
     if (tab === 'activity') void loadActivity();
-  }, [tab, loadPractice, loadQod, loadActivity]);
+  }, [tab, loadOfficial, loadPractice, loadQod, loadActivity]);
 
-  const anyLoading = practiceLoading || qodLoading || activityLoading;
+  const anyLoading = officialLoading || practiceLoading || qodLoading || activityLoading;
 
   const handleForceRefresh = () => {
+    if (tab === 'official') void loadOfficial({ refresh: true });
     if (tab === 'practice') void loadPractice({ refresh: true });
     if (tab === 'qod') void loadQod({ refresh: true });
     if (tab === 'activity') void loadActivity({ refresh: true });
@@ -221,6 +285,41 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     () => practiceSummaries.find((e) => e.exam_id === selectedExamId) ?? null,
     [practiceSummaries, selectedExamId]
   );
+
+  const selectedOfficialSummary = useMemo(
+    () => officialSummaries.find((e) => e.exam_id === selectedOfficialExamId) ?? null,
+    [officialSummaries, selectedOfficialExamId]
+  );
+
+  const officialDailyChartData = useMemo(
+    () =>
+      officialDaily.map((d) => {
+        const row: Record<string, string | number> = {
+          date: d.date.slice(5),
+          completed: d.total_completed,
+        };
+        for (const examId of officialDailyExamIds) {
+          row[examId] = d.by_exam[examId]?.completed ?? 0;
+        }
+        return row;
+      }),
+    [officialDaily, officialDailyExamIds]
+  );
+
+  const officialTotals = useMemo(() => {
+    const completed = officialSummaries.reduce((s, e) => s + e.completed_attempts, 0);
+    const students = officialSummaries.reduce((s, e) => s + e.unique_students, 0);
+    const weighted = officialSummaries.reduce(
+      (s, e) => s + e.avg_score_pct * e.completed_attempts,
+      0
+    );
+    return {
+      completed,
+      students,
+      avgScore: completed > 0 ? Math.round((10 * weighted) / completed) / 10 : 0,
+      today: officialToday?.total_completed ?? 0,
+    };
+  }, [officialSummaries, officialToday]);
 
   const gradeChartData = useMemo(
     () =>
@@ -303,7 +402,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     <Box sx={platformAdminPageContainerSx}>
       <PlatformAdminPageHeader
         title="Analytics"
-        subtitle="Platform usage for practice exams, Question of the Day, and admin activity. Data is Redis-cached and not realtime."
+        subtitle="Platform usage for official exams, practice, Question of the Day, and admin activity. Data is Redis-cached and not realtime."
         action={
           <Button
             variant="outlined"
@@ -335,10 +434,259 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
           '& .MuiTabs-indicator': { bgcolor: ip.navy },
         }}
       >
+        <Tab value="official" label="Official Exams" />
         <Tab value="practice" label="Practice Exams" />
         <Tab value="qod" label="Question of the Day" />
         <Tab value="activity" label="Activity" />
       </Tabs>
+
+      {tab === 'official' && (
+        <>
+          {officialError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {officialError}
+            </Alert>
+          )}
+          {officialIndexesBuilding && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              Some Firestore indexes may still be building. Numbers can look incomplete until they finish.
+            </Alert>
+          )}
+          {officialLoading && officialSummaries.length === 0 ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+              <CircularProgress sx={{ color: ip.navy }} />
+            </Box>
+          ) : (
+            <>
+              <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1.5 }}>
+                {staleHint(officialGeneratedAt)} · scores shown as % and points / 1000 · test accounts excluded
+              </Typography>
+              <Box sx={{ ...platformAdminStatsGridSx, mb: 2.5 }}>
+                <PlatformAdminStatCard
+                  title="Completions today"
+                  value={officialTotals.today.toLocaleString()}
+                  icon={<QuizIcon sx={{ color: '#0d47a1' }} />}
+                  accent="#0d47a1"
+                />
+                <PlatformAdminStatCard
+                  title="Total completions"
+                  value={officialTotals.completed.toLocaleString()}
+                  icon={<CorrectIcon sx={{ color: '#059669' }} />}
+                  accent="#059669"
+                />
+                <PlatformAdminStatCard
+                  title="Students (sum)"
+                  value={officialTotals.students.toLocaleString()}
+                  icon={<PeopleIcon sx={{ color: '#7c3aed' }} />}
+                  accent="#7c3aed"
+                />
+                <PlatformAdminStatCard
+                  title="Avg score"
+                  value={`${officialTotals.avgScore}%`}
+                  icon={<TimelineIcon sx={{ color: '#b45309' }} />}
+                  accent="#b45309"
+                />
+              </Box>
+
+              <Card sx={{ ...platformAdminCardSx, mb: 2.5 }}>
+                <CardContent>
+                  <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 2 }}>
+                    Completions by exam (last 30 days IST)
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1.5 }}>
+                    Daily chart fills as new completions land after this deploy. Historical completions still appear in the tables below.
+                  </Typography>
+                  <Box sx={{ width: '100%', height: 280 }}>
+                    <ResponsiveContainer>
+                      <BarChart data={officialDailyChartData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis dataKey="date" interval={1} tick={{ fontSize: 11 }} />
+                        <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                        <Tooltip />
+                        <Legend />
+                        {officialDailyExamIds.map((examId, idx) => (
+                          <Bar
+                            key={examId}
+                            dataKey={examId}
+                            name={
+                              officialSummaries.find((e) => e.exam_id === examId)?.label ?? examId
+                            }
+                            stackId="a"
+                            fill={EXAM_SERIES_COLORS[idx % EXAM_SERIES_COLORS.length]}
+                          />
+                        ))}
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </Box>
+                </CardContent>
+              </Card>
+
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr', md: '220px 1fr' },
+                  gap: 2,
+                  mb: 2.5,
+                }}
+              >
+                <Card sx={platformAdminCardSx}>
+                  <CardContent>
+                    <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 1.5 }}>Exams</Typography>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      {officialSummaries.map((exam) => {
+                        const selected = exam.exam_id === selectedOfficialExamId;
+                        return (
+                          <Button
+                            key={exam.exam_id}
+                            onClick={() => setSelectedOfficialExamId(exam.exam_id)}
+                            sx={{
+                              justifyContent: 'flex-start',
+                              textTransform: 'none',
+                              fontWeight: selected ? 800 : 600,
+                              bgcolor: selected ? 'rgba(13,71,161,0.08)' : 'transparent',
+                              color: selected ? ip.navy : ip.subtext,
+                              border: selected ? '1px solid rgba(13,71,161,0.25)' : '1px solid transparent',
+                            }}
+                          >
+                            {exam.label}
+                          </Button>
+                        );
+                      })}
+                    </Box>
+                  </CardContent>
+                </Card>
+
+                <Card sx={platformAdminCardSx}>
+                  <CardContent>
+                    <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
+                      {selectedOfficialSummary?.label ?? 'Exam summary'}
+                    </Typography>
+                    {selectedOfficialSummary ? (
+                      <Box
+                        sx={{
+                          display: 'grid',
+                          gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(4, 1fr)' },
+                          gap: 1.5,
+                          mt: 1.5,
+                          mb: 2,
+                        }}
+                      >
+                        <Box>
+                          <Typography variant="caption" sx={{ color: ip.subtext }}>Completions</Typography>
+                          <Typography sx={{ fontWeight: 800 }}>
+                            {selectedOfficialSummary.completed_attempts.toLocaleString()}
+                          </Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" sx={{ color: ip.subtext }}>Students</Typography>
+                          <Typography sx={{ fontWeight: 800 }}>
+                            {selectedOfficialSummary.unique_students.toLocaleString()}
+                          </Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" sx={{ color: ip.subtext }}>Avg score</Typography>
+                          <Typography sx={{ fontWeight: 800 }}>
+                            {selectedOfficialSummary.avg_score_pct}% ({selectedOfficialSummary.avg_score_points}/1000)
+                          </Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" sx={{ color: ip.subtext }}>Pass rate</Typography>
+                          <Typography sx={{ fontWeight: 800 }}>
+                            {selectedOfficialSummary.pass_rate_pct}%
+                          </Typography>
+                        </Box>
+                      </Box>
+                    ) : null}
+
+                    <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 1, mt: 1 }}>By level</Typography>
+                    <TableContainer component={Paper} elevation={0} sx={{ ...platformAdminTablePaperSx, mb: 2.5 }}>
+                      <Table size="small" sx={platformAdminTableSx}>
+                        <TableHead>
+                          <TableRow sx={platformAdminTableHeadRowSx}>
+                            <TableCell>Level</TableCell>
+                            <TableCell align="right">Completions</TableCell>
+                            <TableCell align="right">Students</TableCell>
+                            <TableCell align="right">Avg %</TableCell>
+                            <TableCell align="right">Avg /1000</TableCell>
+                            <TableCell align="right">Passed</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {officialByLevel.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={6} align="center" sx={{ py: 2, color: ip.subtext }}>
+                                No completed attempts yet.
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            officialByLevel.map((row) => (
+                              <TableRow key={row.level}>
+                                <TableCell sx={{ fontWeight: 700 }}>{row.level}</TableCell>
+                                <TableCell align="right">{row.completed_attempts}</TableCell>
+                                <TableCell align="right">{row.unique_students}</TableCell>
+                                <TableCell align="right">{row.avg_score_pct}%</TableCell>
+                                <TableCell align="right">{row.avg_score_points}</TableCell>
+                                <TableCell align="right">{row.passed_attempts}</TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+
+                    <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 1 }}>
+                      Recent completions
+                    </Typography>
+                    <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
+                      <Table size="small" sx={platformAdminTableSx}>
+                        <TableHead>
+                          <TableRow sx={platformAdminTableHeadRowSx}>
+                            <TableCell>When</TableCell>
+                            <TableCell>Student</TableCell>
+                            <TableCell>School</TableCell>
+                            <TableCell align="right">Level</TableCell>
+                            <TableCell align="right">Score</TableCell>
+                            <TableCell align="right">Passed</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {officialRecent.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={6} align="center" sx={{ py: 3, color: ip.subtext }}>
+                                No recent official completions.
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            officialRecent.map((row) => (
+                              <TableRow key={row.attempt_id}>
+                                <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                                  {formatDateTime(row.completed_at)}
+                                </TableCell>
+                                <TableCell sx={{ fontWeight: 600 }}>
+                                  {[row.first_name, row.last_name].filter(Boolean).join(' ') || row.email}
+                                  <Typography variant="caption" sx={{ display: 'block', color: ip.subtext }}>
+                                    {row.email}
+                                  </Typography>
+                                </TableCell>
+                                <TableCell>{row.school_name ?? '—'}</TableCell>
+                                <TableCell align="right">{row.proficiency_tier ?? '—'}</TableCell>
+                                <TableCell align="right">
+                                  {row.score_pct}% ({row.score_points})
+                                </TableCell>
+                                <TableCell align="right">{row.passed ? 'Yes' : 'No'}</TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </CardContent>
+                </Card>
+              </Box>
+            </>
+          )}
+        </>
+      )}
 
       {tab === 'practice' && (
         <>

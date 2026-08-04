@@ -20,7 +20,6 @@ export const OFFICIAL_STUDENT_ASSESSMENT_BETA_EMAILS = new Set([
  * Keep in sync with backend `OFFICIAL_LIVE_ASSESSMENT_IDS`.
  */
 export const OFFICIAL_LIVE_ASSESSMENT_IDS = new Set<string>([
-  'symbolic_reasoning',
 ]);
 
 /**
@@ -28,7 +27,6 @@ export const OFFICIAL_LIVE_ASSESSMENT_IDS = new Set<string>([
  * Keep in sync with backend `OFFICIAL_LIVE_ASSESSMENT_TIERS`.
  */
 export const OFFICIAL_LIVE_ASSESSMENT_TIERS: Record<string, ReadonlySet<number>> = {
-  symbolic_reasoning: new Set([1, 2]),
 };
 
 /**

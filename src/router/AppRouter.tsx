@@ -115,6 +115,9 @@ const PlatformAdminStudentDetailPage = React.lazy(() => import('../pages/platfor
 const PlatformAdminPipelinePage = React.lazy(() => import('../pages/platform_admin_pages/PlatformAdminPipelinePage'));
 const PlatformAdminAdminsPage = React.lazy(() => import('../pages/platform_admin_pages/PlatformAdminAdminsPage'));
 const PlatformAdminAnalyticsPage = React.lazy(() => import('../pages/platform_admin_pages/PlatformAdminAnalyticsPage'));
+const PlatformAdminQuestionReportsPage = React.lazy(
+  () => import('../pages/platform_admin_pages/PlatformAdminQuestionReportsPage')
+);
 
 const AppRouter: React.FC = () => {
   return (
@@ -903,6 +906,19 @@ const AppRouter: React.FC = () => {
               <Suspense fallback={<BigSpinner />}>
                 <PlatformAdminLayout>
                   <PlatformAdminAnalyticsPage />
+                </PlatformAdminLayout>
+              </Suspense>
+            </PlatformAdminAnalyticsRoute>
+          }
+          errorElement={<NotFoundPage />}
+        />
+        <Route
+          path="/platform-admin/question-reports"
+          element={
+            <PlatformAdminAnalyticsRoute>
+              <Suspense fallback={<BigSpinner />}>
+                <PlatformAdminLayout>
+                  <PlatformAdminQuestionReportsPage />
                 </PlatformAdminLayout>
               </Suspense>
             </PlatformAdminAnalyticsRoute>
