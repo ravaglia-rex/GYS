@@ -5,9 +5,9 @@
 export const REASONING_EXAM_SUBCATEGORIES: Record<string, readonly string[]> = {
   symbolic_reasoning: [
     'Pattern Recognition',
-    'Rule Application',
-    'Logic Puzzles',
-    'Flexible Thinking',
+    'Logical Deduction',
+    'Sequence Analysis',
+    'Abstract Problem-Solving',
   ],
   mathematical_reasoning: [
     'Number Sense',

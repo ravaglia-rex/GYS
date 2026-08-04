@@ -134,3 +134,33 @@ export function practiceCoinsNotEarnedMessage(reason: string | null | undefined)
   }
   return null;
 }
+
+/** Mirrors backend `GAMIFICATION_CONFIG.exam` + `computeExamCoins`. */
+export const EXAM_COINS_BASE = 60;
+export const EXAM_COINS_SCORE_BONUS_MAX = 90;
+export const EXAM_COINS_PROFILE_FLAT = 60;
+
+const EXAM_NON_SCORED_IDS = new Set(['comprehensive_personality', 'career_interest_inventory']);
+
+/** scoreFraction is 0–1 (attempt.score). Perfect scored exam → 150. */
+export function computeExamCoinsFromScore(assessmentId: string, scoreFraction: number): number {
+  if (EXAM_NON_SCORED_IDS.has(assessmentId)) return EXAM_COINS_PROFILE_FLAT;
+  const clamped = Math.max(0, Math.min(1, scoreFraction));
+  return EXAM_COINS_BASE + Math.round(clamped * EXAM_COINS_SCORE_BONUS_MAX);
+}
+
+/** Prefer stored coins_awarded; for legacy attempts without the field, derive from score. */
+export function displayExamCoinsAwarded(params: {
+  assessmentId: string;
+  coinsAwarded?: number | null;
+  scoreFraction?: number | null;
+  status?: string;
+}): number | null {
+  const stored = params.coinsAwarded;
+  if (typeof stored === 'number' && Number.isFinite(stored) && stored >= 0) {
+    return Math.floor(stored);
+  }
+  if (params.status !== 'completed') return null;
+  if (typeof params.scoreFraction !== 'number' || !Number.isFinite(params.scoreFraction)) return null;
+  return computeExamCoinsFromScore(params.assessmentId, params.scoreFraction);
+}

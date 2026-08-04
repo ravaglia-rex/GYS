@@ -21,6 +21,7 @@ import {
   tierPercentToExamPoints,
 } from '../../utils/assessmentGating';
 import { timestampToMillis } from '../../utils/examAttemptCooldown';
+import { displayExamCoinsAwarded } from '../../utils/gamification';
 
 interface AssessmentAttemptHistorySectionProps {
   uid?: string;
@@ -64,6 +65,17 @@ function formatAttemptScore(attempt: AttemptRecord): string {
     return attempt.status === 'in_progress' ? 'Pending' : '--';
   }
   return `${tierPercentToExamPoints(Math.round(attempt.score * 100))} / ${EXAM_MAX_SCORE_POINTS}`;
+}
+
+function formatAttemptCoins(attempt: AttemptRecord): string {
+  const coins = displayExamCoinsAwarded({
+    assessmentId: attempt.assessment_id,
+    coinsAwarded: attempt.coins_awarded,
+    scoreFraction: attempt.score,
+    status: attempt.status,
+  });
+  if (coins == null) return '--';
+  return coins.toLocaleString();
 }
 
 const AssessmentAttemptHistorySection: React.FC<AssessmentAttemptHistorySectionProps> = ({
@@ -163,6 +175,7 @@ const AssessmentAttemptHistorySection: React.FC<AssessmentAttemptHistorySectionP
                 <TableCell>Level</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Level progress</TableCell>
+                <TableCell align="right">Argus Coins</TableCell>
                 <TableCell align="right">Score</TableCell>
               </TableRow>
             </TableHead>
@@ -195,6 +208,9 @@ const AssessmentAttemptHistorySection: React.FC<AssessmentAttemptHistorySectionP
                           ? 'Still in progress'
                           : 'Complete'
                         : 'Still in progress'}
+                    </TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700, color: '#fcd34d' }}>
+                      {formatAttemptCoins(attempt)}
                     </TableCell>
                     <TableCell align="right" sx={{ fontWeight: 700, color: '#c4b5fd' }}>
                       {formatAttemptScore(attempt)}

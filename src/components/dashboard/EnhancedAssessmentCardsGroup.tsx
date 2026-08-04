@@ -6,6 +6,7 @@ import {
   PlayArrow as PlayArrowIcon,
   Refresh as RefreshIcon,
   TrendingUp as TrendingUpIcon,
+  AccessTime as AccessTimeIcon,
   Mic as MicIcon,
   LaptopMac as LaptopMacIcon,
 } from '@mui/icons-material';
@@ -31,7 +32,7 @@ import {
   maxTiersForAssessment,
   buildAssessmentLevelScoreBreakdown,
 } from '../../utils/assessmentGating';
-import { countClearedTiersFromProgress } from '../../utils/tierProgression';
+import { canAttemptTier, countClearedTiersFromProgress } from '../../utils/tierProgression';
 import { getReasoningExamSubcategories } from '../../data/reasoningExamSubcategories';
 import { auth } from '../../firebase/firebase';
 import { canStartOfficialAssessment } from '../../utils/officialStudentAssessmentsAccess';
@@ -196,25 +197,10 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
   /** Each cleared tier implies at least one successful attempt; show the larger of stored count vs that floor */
   const displayAttempts = Math.max(attemptsCount, tiersDone);
   const allTiersComplete = isAssessmentFullyComplete(assessment, progress);
-  const canStart = !isLocked && !allTiersComplete;
-  const cooldownNextEligibleMs = levelBased ? nextEligibleAtMsForLevel(progress, currentTier) : null;
-  const cooldownActive = canStart && cooldownNextEligibleMs != null;
   const showLevelProgress = !isLocked && levelBased;
   const progressTotal = totalTiers > 0 ? totalTiers : Math.max(currentTier, 1);
   const progressDone = totalTiers > 0 ? tiersDone : Math.max(currentTier - 1, 0);
   const progressPercent = progressTotal > 0 ? Math.min(100, (progressDone / progressTotal) * 100) : 0;
-
-  /** Tier of last graded attempt (when backend stores it). Used so “Start L3” vs “Retake L3” matches focus vs history. */
-  const latestAttemptLevelNum =
-    typeof progress.latest_attempt_level === 'number' && !Number.isNaN(progress.latest_attempt_level)
-      ? progress.latest_attempt_level
-      : null;
-  /** First time opening the current focus tier (last graded attempt was an earlier tier). */
-  const startCurrentTierFirstTime =
-    attemptsCount > 0 &&
-    latestAttemptLevelNum != null &&
-    latestAttemptLevelNum < currentTier &&
-    currentTier <= totalTiers;
 
   const reqLevel = gate.requiredMembershipLevel ?? 3;
   const requiredPackageLabel =
@@ -362,9 +348,10 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
               ))}
             </Box>
           </Box>
-        ) : (
-          <Box sx={{ flex: 1, minHeight: 0 }} />
-        )}
+        ) : null}
+
+        {/* Spacer pushes progress + CTAs to the bottom when cards stretch in a grid row */}
+        <Box sx={{ flex: '1 1 auto', minHeight: 8 }} />
 
         <Box
           sx={{
@@ -620,7 +607,169 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
             {lockLabel}
           </Typography>
         )}
-        {isLocked ? (
+        {officialStartPaused && !isLocked ? (
+          <Button
+            fullWidth
+            variant="outlined"
+            disabled
+            sx={{
+              borderColor: '#475569',
+              color: '#94a3b8',
+              borderRadius: 1.5,
+              fontSize: '0.875rem',
+              '&.Mui-disabled': {
+                borderColor: '#334155',
+                color: '#64748b',
+              },
+            }}
+          >
+            Official exams coming soon
+          </Button>
+        ) : levelBased ? (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+            {Array.from({ length: totalTiers }, (_, i) => i + 1).map((level) => {
+              const attemptable = !isLocked && canAttemptTier(progress, level, totalTiers);
+              const hasAttempt =
+                progress.tiers_cleared?.[String(level)] === true ||
+                progress.best_scores_by_level?.[String(level)] != null ||
+                progress.latest_attempt_level === level ||
+                progress.last_finished_at_by_level?.[String(level)] != null;
+              const cooldownMs = attemptable ? nextEligibleAtMsForLevel(progress, level) : null;
+              const onCooldown = cooldownMs != null;
+              const isPrimaryStart = attemptable && !hasAttempt && !onCooldown;
+              const isRetake = attemptable && hasAttempt && !onCooldown;
+
+              if (!attemptable) {
+                return (
+                  <Button
+                    key={level}
+                    fullWidth
+                    variant="outlined"
+                    disabled
+                    startIcon={<LockIcon />}
+                    sx={{
+                      borderColor: '#334155',
+                      color: '#64748b',
+                      borderRadius: 1.5,
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      '&.Mui-disabled': { borderColor: '#334155', color: '#64748b' },
+                    }}
+                  >
+                    Level {level} · Locked
+                  </Button>
+                );
+              }
+
+              if (onCooldown && cooldownMs != null) {
+                return (
+                  <Tooltip
+                    key={level}
+                    title={`Same level retakes open every 3 months. Available ${formatCooldownDate(cooldownMs)}.`}
+                  >
+                    <span>
+                      <Button
+                        fullWidth
+                        variant="outlined"
+                        disabled
+                        startIcon={<AccessTimeIcon />}
+                        sx={{
+                          borderColor: '#475569',
+                          color: '#94a3b8',
+                          borderRadius: 1.5,
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
+                          '&.Mui-disabled': { borderColor: '#334155', color: '#64748b' },
+                        }}
+                      >
+                        Retake Level {level} · {formatCooldownDate(cooldownMs)}
+                      </Button>
+                    </span>
+                  </Tooltip>
+                );
+              }
+
+              if (previewStartBlocked && previewNavPath) {
+                return previewSampleCtaHidden ? (
+                  <Button
+                    key={level}
+                    fullWidth
+                    variant="outlined"
+                    startIcon={<PlayArrowIcon />}
+                    disabled
+                    sx={{
+                      borderColor: '#475569',
+                      color: '#94a3b8',
+                      borderRadius: 1.5,
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      '&.Mui-disabled': { borderColor: '#334155', color: '#64748b' },
+                    }}
+                  >
+                    {isRetake ? `Retake Level ${level}` : `Start Level ${level}`}
+                  </Button>
+                ) : (
+                  <Button
+                    key={level}
+                    fullWidth
+                    variant="outlined"
+                    startIcon={<PlayArrowIcon />}
+                    onClick={() => goPreviewSample(previewNavPath)}
+                    sx={{
+                      borderColor: `${meta.color}80`,
+                      color: meta.color,
+                      borderRadius: 1.5,
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      '&:hover': { borderColor: meta.color, bgcolor: `${meta.color}12` },
+                    }}
+                  >
+                    Try sample · Level {level}
+                  </Button>
+                );
+              }
+
+              return (
+                <Button
+                  key={level}
+                  fullWidth
+                  variant={isPrimaryStart ? 'contained' : 'outlined'}
+                  startIcon={isRetake ? <RefreshIcon /> : <PlayArrowIcon />}
+                  aria-disabled={previewStartBlocked}
+                  onClick={() => {
+                    if (previewStartBlocked) return;
+                    onStart(assessment.id, level);
+                  }}
+                  sx={
+                    isPrimaryStart
+                      ? {
+                          background: meta.gradient,
+                          color: '#fff',
+                          fontWeight: 700,
+                          borderRadius: 1.5,
+                          fontSize: '0.85rem',
+                          ...(previewStartBlocked
+                            ? { cursor: 'default', '&:hover': { opacity: 1 } }
+                            : { '&:hover': { opacity: 0.88 } }),
+                        }
+                      : {
+                          borderColor: `${meta.color}80`,
+                          color: meta.color,
+                          fontWeight: 700,
+                          borderRadius: 1.5,
+                          fontSize: '0.8rem',
+                          ...(previewStartBlocked
+                            ? { cursor: 'default' }
+                            : { '&:hover': { borderColor: meta.color, bgcolor: `${meta.color}12` } }),
+                        }
+                  }
+                >
+                  {isRetake ? `Retake Level ${level}` : `Start Level ${level}`}
+                </Button>
+              );
+            })}
+          </Box>
+        ) : isLocked ? (
           <Button
             fullWidth
             variant="outlined"
@@ -668,101 +817,53 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
           ) : (
             <Button fullWidth variant="outlined" startIcon={<TrendingUpIcon />} disabled
               sx={{ borderColor: '#1e3a2f', color: '#10b981', borderRadius: 1.5, fontSize: '0.875rem' }}>
-              {levelBased ? 'All levels completed' : 'Assessment completed'}
+              Assessment completed
             </Button>
           )
-        ) : officialStartPaused ? (
-          <Button
-            fullWidth
-            variant="outlined"
-            disabled
-            sx={{
-              borderColor: '#475569',
-              color: '#94a3b8',
-              borderRadius: 1.5,
-              fontSize: '0.875rem',
-              '&.Mui-disabled': {
-                borderColor: '#334155',
-                color: '#64748b',
-              },
-            }}
-          >
-            Official exams coming soon
-          </Button>
-        ) : cooldownActive && cooldownNextEligibleMs != null ? (
-          <Box>
+        ) : previewStartBlocked && previewNavPath ? (
+          previewSampleCtaHidden ? (
             <Button
               fullWidth
               variant="outlined"
+              startIcon={<PlayArrowIcon />}
               disabled
-              startIcon={<RefreshIcon />}
               sx={{
                 borderColor: '#475569',
                 color: '#94a3b8',
                 borderRadius: 1.5,
                 fontSize: '0.875rem',
+                fontWeight: 700,
                 '&.Mui-disabled': {
                   borderColor: '#334155',
                   color: '#64748b',
                 },
               }}
             >
-              Available {formatCooldownDate(cooldownNextEligibleMs)}
+              {previewBlockedStartCtaLabel}
             </Button>
-            <Typography
-              variant="caption"
-              sx={{ display: 'block', color: '#94a3b8', fontSize: '0.72rem', mt: 0.75 }}
-            >
-              Same level retakes open every 3 months.
-            </Typography>
-          </Box>
-        ) : canStart ? (
-          previewStartBlocked && previewNavPath ? (
-            previewSampleCtaHidden ? (
-              <Button
-                fullWidth
-                variant="outlined"
-                startIcon={<PlayArrowIcon />}
-                disabled
-                sx={{
-                  borderColor: '#475569',
-                  color: '#94a3b8',
-                  borderRadius: 1.5,
-                  fontSize: '0.875rem',
-                  fontWeight: 700,
-                  '&.Mui-disabled': {
-                    borderColor: '#334155',
-                    color: '#64748b',
-                  },
-                }}
-              >
-                {previewBlockedStartCtaLabel}
-              </Button>
-            ) : (
-              <Button
-                fullWidth
-                variant="outlined"
-                startIcon={<PlayArrowIcon />}
-                onClick={() => goPreviewSample(previewNavPath)}
-                sx={{
-                  borderColor: `${meta.color}80`,
-                  color: meta.color,
-                  borderRadius: 1.5,
-                  fontSize: '0.875rem',
-                  fontWeight: 700,
-                  '&:hover': { borderColor: meta.color, bgcolor: `${meta.color}12` },
-                }}
-              >
-                Try sample assessment
-              </Button>
-            )
           ) : (
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<PlayArrowIcon />}
+              onClick={() => goPreviewSample(previewNavPath)}
+              sx={{
+                borderColor: `${meta.color}80`,
+                color: meta.color,
+                borderRadius: 1.5,
+                fontSize: '0.875rem',
+                fontWeight: 700,
+                '&:hover': { borderColor: meta.color, bgcolor: `${meta.color}12` },
+              }}
+            >
+              Try sample assessment
+            </Button>
+          )
+        ) : (
           <Button
             fullWidth
             variant="contained"
-            startIcon={
-              attemptsCount > 0 && !startCurrentTierFirstTime ? <RefreshIcon /> : <PlayArrowIcon />
-            }
+            startIcon={attemptsCount > 0 ? <RefreshIcon /> : <PlayArrowIcon />}
             aria-disabled={previewStartBlocked}
             onClick={() => {
               if (previewStartBlocked) return;
@@ -782,18 +883,11 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
                 : { '&:hover': { opacity: 0.88 } }),
             }}
           >
-            {!levelBased
-              ? attemptsCount === 0
-                ? `Start Assessment ${meta.assessmentNumber}`
-                : 'Retake Assessment'
-              : attemptsCount === 0
-                ? `Start Assessment ${meta.assessmentNumber}`
-                : startCurrentTierFirstTime
-                  ? `Start Level ${currentTier}`
-                  : `Retake Level ${currentTier}`}
+            {attemptsCount === 0
+              ? `Start Assessment ${meta.assessmentNumber}`
+              : 'Retake Assessment'}
           </Button>
-          )
-        ) : null}
+        )}
         </Box>
         </Box>
       </CardContent>
@@ -916,6 +1010,16 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
     return true;
   });
 
+  const hasAnyAttemptEvidence = gatedAssessments.some(({ progress }) => {
+    if ((progress.attempts_count ?? 0) > 0) return true;
+    if (progress.latest_attempt_level != null) return true;
+    if (progress.latest_attempt_score != null) return true;
+    if (progress.best_score != null) return true;
+    const cleared = progress.tiers_cleared;
+    if (cleared && Object.values(cleared).some(Boolean)) return true;
+    return false;
+  });
+
   if (loading) return <BigSpinner variant="inline" size={48} />;
 
   if (error) return (
@@ -931,16 +1035,20 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
       )}
 
       {filtered.length === 0 ? (
-        <Box sx={{ textAlign: 'center', py: 8 }}>
-          <Typography variant="h6" sx={{ color: '#64748b', mb: 1 }}>
-            {filterType === 'completed' ? 'No assessments taken yet' : 'No assessments available'}
-          </Typography>
-          <Typography variant="body2" sx={{ color: '#475569' }}>
-            {filterType === 'completed'
-              ? 'Complete your first assessment to see results here.'
-              : 'Complete the required sequence or upgrade your membership to unlock more.'}
-          </Typography>
-        </Box>
+        filterType === 'completed' && hasAnyAttemptEvidence ? null : (
+          <Box sx={{ textAlign: 'center', py: 8 }}>
+            <Typography variant="h6" sx={{ color: '#64748b', mb: 1 }}>
+              {filterType === 'completed'
+                ? 'No finished assessments yet'
+                : 'No assessments available'}
+            </Typography>
+            <Typography variant="body2" sx={{ color: '#475569' }}>
+              {filterType === 'completed'
+                ? 'Completed level attempts will appear under Detailed Results below once you finish your first exam level.'
+                : 'Complete the required sequence or upgrade your membership to unlock more.'}
+            </Typography>
+          </Box>
+        )
       ) : (
         <Box
           sx={{

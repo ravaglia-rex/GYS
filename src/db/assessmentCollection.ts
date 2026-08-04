@@ -70,6 +70,8 @@ export interface AttemptRecord {
   completed_at: any | null;
   failed_at?: any | null;
   abandoned_at?: any | null;
+  /** Argus Coins granted when this attempt was scored (official exams). */
+  coins_awarded?: number | null;
 }
 
 export interface InitializedExam {

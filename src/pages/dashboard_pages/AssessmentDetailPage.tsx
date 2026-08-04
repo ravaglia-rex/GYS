@@ -22,6 +22,7 @@ import BoltIcon from '@mui/icons-material/Bolt';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import HeadphonesIcon from '@mui/icons-material/Headphones';
 import MicIcon from '@mui/icons-material/Mic';
+import EventSeatIcon from '@mui/icons-material/EventSeat';
 import * as Sentry from '@sentry/react';
 import { auth } from '../../firebase/firebase';
 import { useAssessmentConfig, useStudent } from '../../query/hooks';
@@ -65,6 +66,8 @@ function BeforeBeginIcon({ k }: { k: BeforeBeginIconKey }) {
       return <HeadphonesIcon sx={sx} />;
     case 'mic':
       return <MicIcon sx={sx} />;
+    case 'seat':
+      return <EventSeatIcon sx={sx} />;
     default:
       return <AccessTimeIcon sx={sx} />;
   }
@@ -478,45 +481,17 @@ const AssessmentDetailPage: React.FC = () => {
           ))}
         </Box>
 
-        <Box
+        <Typography
           sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', md: '1.15fr 0.85fr' },
-            gap: { xs: 0, md: 3 },
-            alignItems: 'start',
-            mb: { xs: 2, md: 0 },
+            color: '#334155',
+            fontSize: { xs: '0.9rem', md: '1rem' },
+            lineHeight: 1.7,
+            mb: { xs: 2.5, md: 3 },
+            mt: { md: 3 },
           }}
         >
-          <Typography
-            sx={{
-              color: '#334155',
-              fontSize: { xs: '0.9rem', md: '1rem' },
-              lineHeight: 1.7,
-              mb: { xs: 2.5, md: 0 },
-            }}
-          >
-            {flow.bodyDescription}
-          </Typography>
-
-          <Box
-            sx={{
-              bgcolor: flow.theme === 'purple' ? '#f3e5f5' : '#ede7f6',
-              borderRadius: 2,
-              p: { xs: 2, md: 2.5 },
-              mb: { xs: 2, md: 0 },
-              height: 'fit-content',
-            }}
-          >
-            <Typography sx={{ fontWeight: 800, color: flow.theme === 'purple' ? '#4a148c' : '#4527a0', mb: 1, fontSize: { xs: '0.95rem', md: '1.05rem' } }}>
-              {flow.measuresTitle}
-            </Typography>
-            <Box component="ul" sx={{ m: 0, pl: 2.2, color: '#37474f', fontSize: { xs: '0.88rem', md: '0.92rem' }, lineHeight: 1.7 }}>
-              {flow.measuresBullets.map((b) => (
-                <li key={b}>{b}</li>
-              ))}
-            </Box>
-          </Box>
-        </Box>
+          {flow.bodyDescription}
+        </Typography>
 
         {flow.comprehensiveExtra && (
           <Box
@@ -576,7 +551,17 @@ const AssessmentDetailPage: React.FC = () => {
             {flow.beforeBegin.map((row) => (
               <Box key={row.text} sx={{ display: 'flex', gap: 1.25, alignItems: 'flex-start', mb: 1.25 }}>
                 <BeforeBeginIcon k={row.icon} />
-                <Typography sx={{ fontSize: { xs: '0.85rem', md: '0.9rem' }, color: '#78350f', lineHeight: 1.55, flex: 1 }}>{row.text}</Typography>
+                <Typography
+                  sx={{
+                    fontSize: { xs: '0.85rem', md: '0.9rem' },
+                    color: '#78350f',
+                    lineHeight: 1.55,
+                    flex: 1,
+                    fontWeight: row.emphasize ? 800 : 400,
+                  }}
+                >
+                  {row.text}
+                </Typography>
               </Box>
             ))}
           </Box>

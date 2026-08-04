@@ -134,6 +134,7 @@ export const CHECK_EMAIL_EXISTS='/checkEmailExists';
 // Temporary launch gate: official student exams stay start-paused until listed in
 // OFFICIAL_LIVE_ASSESSMENT_IDS (utils/officialStudentAssessmentsAccess.ts).
 // Browse UI remains visible with "coming soon" locks.
-// Beta override (srishti2k1@gmail.com) can start any exam for testing.
+// Beta (srishti2k1@gmail.com) may start only OFFICIAL_BETA_STARTABLE_ASSESSMENT_IDS
+// (currently symbolic_reasoning) so the dashboard feels like a real student.
 // Do not flip this or live ids without CAPS authorization.
 export const STUDENT_OFFICIAL_ASSESSMENTS_ENABLED = false;

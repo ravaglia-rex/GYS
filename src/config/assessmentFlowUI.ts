@@ -7,11 +7,13 @@ import { ASSESSMENT_NAMES, LEVEL_CLEAR_THRESHOLD_PERCENT } from '../utils/assess
 
 export type AssessmentThemeMode = 'blue' | 'purple';
 
-export type BeforeBeginIconKey = 'clock' | 'phone' | 'block' | 'bolt' | 'chart' | 'headphones' | 'mic';
+export type BeforeBeginIconKey = 'clock' | 'phone' | 'block' | 'bolt' | 'chart' | 'headphones' | 'mic' | 'seat';
 
 export interface BeforeBeginItem {
   icon: BeforeBeginIconKey;
   text: string;
+  /** Stronger visual weight for critical rules (e.g. forward-only answering). */
+  emphasize?: boolean;
 }
 
 export interface StatCell {
@@ -44,18 +46,31 @@ export interface AssessmentFlowDefinition {
   adaptiveForwardOnly: boolean;
 }
 
+const FORWARD_ONLY_BEFORE: BeforeBeginItem = {
+  icon: 'bolt',
+  text: 'Forward only: after you answer a question and continue, you cannot go back to change it.',
+  emphasize: true,
+};
+
+const ONE_SITTING_BEFORE: BeforeBeginItem = {
+  icon: 'seat',
+  text: 'Once started, you must complete this in one sitting. You cannot return to a question after you submit an answer.',
+};
+
 const symbolicReasoningBefore: BeforeBeginItem[] = [
+  FORWARD_ONLY_BEFORE,
   { icon: 'clock', text: 'You have a fixed time once you start - the timer cannot be paused.' },
   { icon: 'block', text: 'No calculators, notes, or outside help.' },
-  { icon: 'chart', text: 'Your score is compared to students worldwide.' },
-  { icon: 'phone', text: 'Find a quiet place with no distractions.' },
-  { icon: 'bolt', text: 'Questions get harder as you answer correctly (adaptive).' },
+  { icon: 'chart', text: 'National tier and percentile update weekly on Monday.' },
+  ONE_SITTING_BEFORE,
 ];
 
 const englishBefore: BeforeBeginItem[] = [
+  FORWARD_ONLY_BEFORE,
   { icon: 'headphones', text: 'Use headphones for listening sections when possible.' },
   { icon: 'mic', text: 'Speaking sections need microphone access - allow browser permissions.' },
   { icon: 'phone', text: 'We strongly recommend a laptop or desktop for audio quality.' },
+  ONE_SITTING_BEFORE,
   { icon: 'clock', text: 'Manage your time across reading, writing, listening, and speaking.' },
   { icon: 'block', text: 'No outside help during the exam.' },
 ];
@@ -75,14 +90,13 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
       'This exam measures how you identify patterns, sequences, and abstract relationships. No reading or language knowledge is required - only careful observation and reasoning.',
     measuresTitle: 'What This Measures',
     measuresBullets: [
-      'Pattern recognition & completion',
-      'Abstract sequence reasoning',
-      'Spatial relationship processing',
-      'Non-verbal problem solving',
+      'Pattern Recognition',
+      'Logical Deduction',
+      'Sequence Analysis',
+      'Abstract Problem-Solving',
     ],
     beforeBegin: symbolicReasoningBefore,
     theme: 'blue',
-    detailFooterFinePrint: 'Once started, you must complete this in one sitting.',
     defaultQuestionInteraction: 'visual_mcq',
     useTimer: true,
     adaptiveForwardOnly: true,
@@ -107,12 +121,13 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
       'Vocabulary in context',
     ],
     beforeBegin: [
+      FORWARD_ONLY_BEFORE,
       { icon: 'clock', text: 'The timer runs continuously - plan your pace.' },
       { icon: 'phone', text: 'Minimize distractions; you will need focused reading.' },
       { icon: 'block', text: 'No dictionaries, translators, or outside help.' },
+      ONE_SITTING_BEFORE,
     ],
     theme: 'blue',
-    detailFooterFinePrint: 'Once started, you must complete this in one sitting.',
     defaultQuestionInteraction: 'passage_mcq',
     useTimer: true,
     adaptiveForwardOnly: true,
@@ -138,7 +153,6 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
     ],
     beforeBegin: symbolicReasoningBefore.filter((b) => b.icon !== 'chart'),
     theme: 'blue',
-    detailFooterFinePrint: 'Once started, you must complete this in one sitting.',
     defaultQuestionInteraction: 'visual_mcq',
     useTimer: true,
     adaptiveForwardOnly: true,
@@ -192,9 +206,9 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
     beforeBegin: [
       { icon: 'phone', text: 'Use a laptop or desktop for the live AI task when possible.' },
       { icon: 'clock', text: 'Allow enough uninterrupted time to complete all sections.' },
+      ONE_SITTING_BEFORE,
     ],
     theme: 'blue',
-    detailFooterFinePrint: 'Once started, plan to complete in one sitting.',
     defaultQuestionInteraction: 'passage_mcq',
     useTimer: true,
     adaptiveForwardOnly: false,
@@ -297,26 +311,55 @@ export function getAssessmentFlowDefinition(assessmentId: string): AssessmentFlo
   return ASSESSMENT_FLOW_UI[assessmentId] ?? { ...DEFAULT_FLOW, examTitleShort: ASSESSMENT_NAMES[assessmentId] ?? 'Assessment' };
 }
 
+/** @deprecated Do not use for UI - invents a fake “percentile” from raw score. National percentiles come from the Monday pipeline. */
 export function estimatedPercentileFromScore(scorePercent: number): number {
   return Math.min(99, Math.max(5, Math.round(12 + scorePercent * 0.82)));
 }
 
+/** @deprecated Do not use for UI - invents Gold/Silver/Bronze from raw score. Real achievement tiers come from the Monday national ranking. */
 export function performanceTierFromScore(scorePercent: number): { label: string; tone: 'gold' | 'silver' | 'bronze' } {
   if (scorePercent >= LEVEL_CLEAR_THRESHOLD_PERCENT) return { label: 'Gold Tier', tone: 'gold' };
   if (scorePercent >= 55) return { label: 'Silver Tier', tone: 'silver' };
   return { label: 'Bronze Tier', tone: 'bronze' };
 }
 
-/** Short unlock line after a passed tier (gamification / 7C). */
+/**
+ * Labels for items newly available after finishing this attempt.
+ * Example after Symbolic L1 pass: Symbolic Reasoning Level 2, Verbal Reasoning Level 1.
+ */
+export function unlockedItemsAfterAttempt(params: {
+  assessmentId: string;
+  completedTier: number;
+  passed: boolean;
+  nextTier: number | null | undefined;
+}): string[] {
+  const { assessmentId, completedTier, passed, nextTier } = params;
+  const name = ASSESSMENT_NAMES[assessmentId] ?? assessmentId;
+  const items: string[] = [];
+
+  if (passed && nextTier != null) {
+    items.push(`${name} Level ${nextTier}`);
+  }
+
+  // Competitive sequence: finishing Symbolic L1 unlocks Verbal L1 (attempt also unlocks Verbal).
+  if (assessmentId === 'symbolic_reasoning' && completedTier === 1) {
+    items.push(`${ASSESSMENT_NAMES.verbal_reasoning} Level 1`);
+  }
+  if (assessmentId === 'verbal_reasoning' && completedTier === 1) {
+    items.push(`${ASSESSMENT_NAMES.mathematical_reasoning} Level 1`);
+  }
+
+  return items;
+}
+
+/** @deprecated Prefer {@link unlockedItemsAfterAttempt}. */
 export function unlockNoticeForAssessment(assessmentId: string, passed: boolean): string | null {
   if (!passed) return null;
-  switch (assessmentId) {
-    case 'symbolic_reasoning':
-      return 'Verbal Reasoning and Mathematical Reasoning are now available (within your membership).';
-    case 'verbal_reasoning':
-    case 'mathematical_reasoning':
-      return 'Continue the sequence - Personality and Interest (Exam 4) unlocks after the reasoning triad with Stream Ready; AI Proficiency follows; Pathways instruments need Career Ready.';
-    default:
-      return null;
-  }
+  const items = unlockedItemsAfterAttempt({
+    assessmentId,
+    completedTier: 1,
+    passed: true,
+    nextTier: 2,
+  });
+  return items.length > 0 ? items.join('; ') : null;
 }

@@ -1,7 +1,8 @@
 import { STUDENT_OFFICIAL_ASSESSMENTS_ENABLED } from '../constants/constants';
 
 /**
- * While official exams are globally paused, only these emails can start/mutate any exam.
+ * While official exams are globally paused, only these emails can start exams listed in
+ * `OFFICIAL_BETA_STARTABLE_ASSESSMENT_IDS` (or any publicly live exam).
  * Browse UI (nav, cards, list/detail/reports) stays visible for everyone with a
  * "Official exams coming soon" lock on start CTAs for exams that are not live.
  * Keep in sync with backend `OFFICIAL_STUDENT_ASSESSMENT_BETA_EMAILS`.
@@ -12,7 +13,7 @@ export const OFFICIAL_STUDENT_ASSESSMENT_BETA_EMAILS = new Set([
 
 /**
  * Official exams open for all students (membership / prerequisites still apply).
- * Empty = nothing live for the public. Beta emails bypass this and can start any exam.
+ * Empty = nothing live for the public.
  *
  * ONLY add assessment ids after explicit CAPS authorization from the product owner
  * (e.g. `MAKE SYMBOLIC_REASONING LIVE FOR EVERYONE`).
@@ -20,6 +21,15 @@ export const OFFICIAL_STUDENT_ASSESSMENT_BETA_EMAILS = new Set([
  */
 export const OFFICIAL_LIVE_ASSESSMENT_IDS = new Set<string>([
   // Intentionally empty until CAPS-authorized public launch per exam.
+]);
+
+/**
+ * Exams beta testers may start before public live launch.
+ * Same student feel otherwise (non-listed exams stay "coming soon").
+ * Keep in sync with backend `OFFICIAL_BETA_STARTABLE_ASSESSMENT_IDS`.
+ */
+export const OFFICIAL_BETA_STARTABLE_ASSESSMENT_IDS = new Set<string>([
+  'symbolic_reasoning',
 ]);
 
 export function normalizeOfficialAssessmentEmail(email: unknown): string {
@@ -62,14 +72,20 @@ export function canAccessOfficialStudentAssessments(email: unknown): boolean {
 
 /**
  * True when this specific assessment may be started by this user.
- * Beta testers can start any exam; everyone else only live (or all if global full launch).
+ * Public: only live ids (or all if global full launch).
+ * Beta: live ids + early-access allowlist (student-identical otherwise).
  */
 export function canStartOfficialAssessment(assessmentId: string, email: unknown): boolean {
   if (!assessmentId) return false;
-  if (isOfficialAssessmentBetaTester(email)) return true;
   if (OFFICIAL_LIVE_ASSESSMENT_IDS.has(assessmentId)) return true;
   // Full launch mode: global on + empty live list means every exam is open.
   if (STUDENT_OFFICIAL_ASSESSMENTS_ENABLED && OFFICIAL_LIVE_ASSESSMENT_IDS.size === 0) {
+    return true;
+  }
+  if (
+    isOfficialAssessmentBetaTester(email) &&
+    OFFICIAL_BETA_STARTABLE_ASSESSMENT_IDS.has(assessmentId)
+  ) {
     return true;
   }
   return false;

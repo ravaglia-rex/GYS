@@ -2,36 +2,28 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Box, Typography, Button, Chip } from '@mui/material';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
-import AnalyticsOutlinedIcon from '@mui/icons-material/AnalyticsOutlined';
 import {
   CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon,
-  Replay as ReplayIcon,
 } from '@mui/icons-material';
 import {
   getAssessmentFlowDefinition,
-  estimatedPercentileFromScore,
-  performanceTierFromScore,
-  unlockNoticeForAssessment,
+  unlockedItemsAfterAttempt,
 } from '../../config/assessmentFlowUI';
 import {
   EXAM_MAX_SCORE_POINTS,
   isLevelBasedAssessment,
-  LEVEL_CLEAR_THRESHOLD_LABEL,
   tierPercentToExamPoints,
 } from '../../utils/assessmentGating';
-import { addExamAttemptCooldown, formatCooldownDate } from '../../utils/examAttemptCooldown';
 
 interface ResultState {
   attemptId: string;
   assessmentId: string;
   tierNumber: number;
-  scorePercent: number;
-  correct: number;
-  total: number;
-  passed: boolean;
+  scorePercent?: number;
+  correct?: number;
+  total?: number;
+  passed?: boolean;
   nextTier?: number | null;
   completedAt?: string;
   coinsAwarded?: number;
@@ -56,20 +48,27 @@ const AssessmentResultPage: React.FC = () => {
     return null;
   }
 
-  const { assessmentId, tierNumber, scorePercent, correct, total, passed, nextTier, completedAt, coinsAwarded } = state;
+  const {
+    assessmentId,
+    tierNumber,
+    scorePercent = 0,
+    correct = 0,
+    total = 0,
+    passed = false,
+    nextTier = null,
+    coinsAwarded,
+  } = state;
   const isAiLiteracy = assessmentId === 'ai_literacy';
   const levelBased = isLevelBasedAssessment(assessmentId);
   const flow = getAssessmentFlowDefinition(assessmentId);
   const displayScore = Math.round(scorePercent);
   const scorePoints = tierPercentToExamPoints(displayScore);
-  const percentile = estimatedPercentileFromScore(scorePercent);
-  const perfTier = performanceTierFromScore(displayScore);
-  const unlock = unlockNoticeForAssessment(assessmentId, passed);
-  const primary = flow.theme === 'purple' ? '#7b1fa2' : '#0d47a1';
-  const completedMs = completedAt ? Date.parse(completedAt) : Date.now();
-  const retakeAvailableMs = addExamAttemptCooldown(Number.isNaN(completedMs) ? Date.now() : completedMs);
-
-  const detailState = { ...state };
+  const unlockItems = unlockedItemsAfterAttempt({
+    assessmentId,
+    completedTier: tierNumber,
+    passed,
+    nextTier,
+  });
 
   if (isAiLiteracy) {
     const grade = aiProficiencyLevel(displayScore);
@@ -96,50 +95,15 @@ const AssessmentResultPage: React.FC = () => {
               <Typography sx={{ color: '#64748b', fontSize: '0.85rem', mb: 2 }}>
                 out of {EXAM_MAX_SCORE_POINTS} • {correct} correct out of {total}
               </Typography>
-              <Box sx={{ textAlign: 'left', bgcolor: '#f1f5f9', borderRadius: 2, p: 2, mb: 2 }}>
-                <Typography sx={{ fontWeight: 700, color: grade.color, fontSize: '0.85rem', mb: 0.5 }}>{grade.label}</Typography>
-                <Typography sx={{ color: '#475569', fontSize: '0.8rem', lineHeight: 1.55 }}>{grade.description}</Typography>
-              </Box>
-              <Typography sx={{ color: '#64748b', fontSize: '0.85rem', lineHeight: 1.6, mb: 2, textAlign: 'left' }}>
-                {passed
-                  ? nextTier != null
-                    ? `You unlocked Level ${nextTier}. Continue from Assessments when you are ready.`
-                    : 'You have completed all levels for this assessment.'
-                  : 'This level is still in progress. Review the material and retake it when available.'}
-              </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
-                {passed && nextTier != null && (
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    endIcon={<ArrowForwardIcon />}
-                    onClick={() => navigate(`/assessments/${assessmentId}/tier/${nextTier}/detail`)}
-                    sx={{ bgcolor: '#06b6d4', fontWeight: 800, py: 1.3, textTransform: 'none' }}
-                  >
-                    Continue to Level {nextTier}
-                  </Button>
-                )}
-                {!passed && (
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    startIcon={<ReplayIcon />}
-                    disabled
-                    sx={{ bgcolor: '#06b6d4', fontWeight: 800, py: 1.3, textTransform: 'none' }}
-                  >
-                    Retake available {formatCooldownDate(retakeAvailableMs)}
-                  </Button>
-                )}
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<HomeOutlinedIcon />}
-                  onClick={() => navigate('/assessments/available')}
-                  sx={{ borderColor: '#cbd5e1', color: '#475569', py: 1.2, textTransform: 'none' }}
-                >
-                  Back to Assessments
-                </Button>
-              </Box>
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={<HomeOutlinedIcon />}
+                onClick={() => navigate('/assessments/completed')}
+                sx={{ borderColor: '#cbd5e1', color: '#475569', py: 1.2, textTransform: 'none' }}
+              >
+                View Completed &amp; Results
+              </Button>
             </Box>
           </Box>
         </Box>
@@ -154,14 +118,18 @@ const AssessmentResultPage: React.FC = () => {
           Results
         </Typography>
 
-        <Box sx={{ textAlign: 'center', mb: 2 }}>
+        <Box sx={{ textAlign: 'center', mb: 2.5 }}>
           <Typography sx={{ fontSize: '3rem', lineHeight: 1, mb: 1 }}>🎉</Typography>
-          <Typography variant="h5" sx={{ fontWeight: 900, color: '#0f172a', mb: 0.5 }}>
+          <Typography variant="h5" sx={{ fontWeight: 900, color: '#0f172a', mb: 0.75 }}>
             Assessment complete!
           </Typography>
-          <Typography sx={{ color: '#64748b', fontSize: '0.9rem', lineHeight: 1.55, px: 1 }}>
-            Your {flow.examTitleShort} run has been scored. Here is a quick snapshot
-            {completedAt ? ` (${new Date(completedAt).toLocaleDateString()})` : ''}.
+          <Typography sx={{ color: '#64748b', fontSize: '0.95rem', lineHeight: 1.55, px: 1 }}>
+            {levelBased
+              ? `${flow.examTitleShort} Level ${tierNumber} has now been scored.`
+              : `${flow.examTitleShort} has now been scored.`}
+          </Typography>
+          <Typography sx={{ color: '#94a3b8', fontSize: '0.85rem', lineHeight: 1.5, mt: 1.25, px: 1 }}>
+            Open Completed &amp; Results to see your score and attempt details.
           </Typography>
         </Box>
 
@@ -180,75 +148,12 @@ const AssessmentResultPage: React.FC = () => {
               You earned {coinsAwarded} Argus Coins!
             </Typography>
             <Typography sx={{ color: '#b45309', fontSize: '0.85rem', mt: 0.5 }}>
-              Visit the Rewards Shop to redeem gift cards and perks.
+              Open Completed &amp; Results anytime, or visit the Rewards Shop to redeem.
             </Typography>
           </Box>
         )}
 
-        {!levelBased ? (
-          <Box
-            sx={{
-              bgcolor: '#f3e5f5',
-              borderRadius: 2,
-              p: 2.5,
-              mb: 2,
-              border: '1px solid #ce93d8',
-              textAlign: 'center',
-            }}
-          >
-            <Typography sx={{ fontSize: '1.75rem', mb: 0.5 }}>✓</Typography>
-            <Typography sx={{ fontWeight: 900, color: '#4a148c', fontSize: '1.2rem' }}>
-              Profile assessment submitted
-            </Typography>
-            <Typography sx={{ color: '#6a1b9a', fontSize: '0.85rem', mt: 1 }}>
-              Your responses were saved for insight, counseling, and recommendations. This assessment does not use skill levels.
-            </Typography>
-          </Box>
-        ) : passed ? (
-          <Box
-            sx={{
-              bgcolor: '#e8f5e9',
-              borderRadius: 2,
-              p: 2.5,
-              mb: 2,
-              border: '1px solid #a5d6a7',
-              textAlign: 'center',
-            }}
-          >
-            <Typography sx={{ fontSize: '1.75rem', mb: 0.5 }}>🥇</Typography>
-            <Typography sx={{ fontWeight: 900, color: '#1b5e20', fontSize: '1.2rem' }}>{perfTier.label}</Typography>
-            <Typography sx={{ color: '#2e7d32', fontWeight: 700, fontSize: '0.95rem', mt: 0.5 }}>
-              {percentile}th percentile - indicative global ranking
-            </Typography>
-            <Typography sx={{ color: '#558b2f', fontSize: '0.8rem', mt: 1 }}>
-              Score {scorePoints} / {EXAM_MAX_SCORE_POINTS} • {correct} / {total} items
-            </Typography>
-          </Box>
-        ) : (
-          <Box sx={{ bgcolor: '#f1f5f9', borderRadius: 2, p: 2.5, mb: 2, border: '1px solid #cbd5e1', textAlign: 'center' }}>
-            <Typography sx={{ fontWeight: 800, color: '#0f172a', fontSize: '1.05rem', mb: 0.5 }}>Your score</Typography>
-            <Typography variant="h3" sx={{ fontWeight: 900, color: '#334155', fontSize: '2.5rem' }}>
-              {scorePoints} / {EXAM_MAX_SCORE_POINTS}
-            </Typography>
-            <Typography sx={{ color: '#64748b', fontSize: '0.85rem', mt: 0.5 }}>
-              {correct} / {total} items - this level can be retaken every 3 months.
-            </Typography>
-          </Box>
-        )}
-
-        {levelBased && !passed && (
-          <Box sx={{ bgcolor: '#ffebee', border: '1px solid #ffcdd2', borderRadius: 2, p: 2, mb: 2, textAlign: 'center' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 0.5 }}>
-              <CancelIcon sx={{ color: '#c62828' }} />
-              <Typography sx={{ fontWeight: 800, color: '#b71c1c' }}>Level still in progress</Typography>
-            </Box>
-            <Typography sx={{ color: '#616161', fontSize: '0.85rem' }}>
-              Score {LEVEL_CLEAR_THRESHOLD_LABEL} or higher to complete this level and unlock the next one.
-            </Typography>
-          </Box>
-        )}
-
-        {unlock && passed && (
+        {unlockItems.length > 0 && (
           <Box
             sx={{
               bgcolor: '#e3f2fd',
@@ -262,14 +167,21 @@ const AssessmentResultPage: React.FC = () => {
             }}
           >
             <LockOpenIcon sx={{ color: '#1565c0', mt: 0.2 }} />
-            <Box>
-              <Typography sx={{ fontWeight: 900, color: '#0d47a1', fontSize: '0.95rem', mb: 0.5 }}>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography sx={{ fontWeight: 900, color: '#0d47a1', fontSize: '0.95rem', mb: 0.75 }}>
                 New assessments unlocked!
               </Typography>
-              <Typography sx={{ color: '#37474f', fontSize: '0.85rem', lineHeight: 1.55 }}>{unlock}</Typography>
-              <Typography sx={{ color: '#78909c', fontSize: '0.72rem', mt: 1, lineHeight: 1.45 }}>
-                Higher membership levels unlock more exams: Reasoning Triad (1–3), then Stream Ready (4–5), then Career Ready for Pathways (6–7) and counseling.
-              </Typography>
+              <Box component="ul" sx={{ m: 0, pl: 2.25 }}>
+                {unlockItems.map((item) => (
+                  <Typography
+                    key={item}
+                    component="li"
+                    sx={{ color: '#37474f', fontSize: '0.88rem', lineHeight: 1.55, display: 'list-item' }}
+                  >
+                    {item}
+                  </Typography>
+                ))}
+              </Box>
             </Box>
           </Box>
         )}
@@ -278,53 +190,11 @@ const AssessmentResultPage: React.FC = () => {
           <Button
             fullWidth
             variant="contained"
-            endIcon={<AnalyticsOutlinedIcon />}
-            onClick={() => navigate(`/assessments/${assessmentId}/result/details`, { state: detailState })}
-            sx={{ bgcolor: primary, fontWeight: 800, py: 1.4, textTransform: 'none', borderRadius: 2 }}
+            onClick={() => navigate('/assessments/completed')}
+            sx={{ bgcolor: '#0d47a1', fontWeight: 800, py: 1.4, textTransform: 'none', borderRadius: 2 }}
           >
-            View detailed results
+            View Completed &amp; Results
           </Button>
-
-        {levelBased && passed && nextTier != null && (
-            <Button
-              fullWidth
-              variant="contained"
-              endIcon={<ArrowForwardIcon />}
-              onClick={() => navigate(`/assessments/${assessmentId}/tier/${nextTier}/detail`)}
-              sx={{
-                bgcolor: '#f1f5f9',
-                color: '#0f172a',
-                fontWeight: 800,
-                py: 1.4,
-                textTransform: 'none',
-                borderRadius: 2,
-                boxShadow: 'none',
-                '&:hover': { bgcolor: '#e2e8f0' },
-              }}
-            >
-              Next level - start
-            </Button>
-          )}
-
-          {levelBased && !passed && (
-            <Button
-              fullWidth
-              variant="contained"
-              startIcon={<ReplayIcon />}
-              disabled
-              sx={{
-                bgcolor: '#f1f5f9',
-                color: '#0f172a',
-                fontWeight: 800,
-                py: 1.4,
-                textTransform: 'none',
-                borderRadius: 2,
-                boxShadow: 'none',
-              }}
-            >
-              Retake available {formatCooldownDate(retakeAvailableMs)}
-            </Button>
-          )}
 
           <Button
             fullWidth

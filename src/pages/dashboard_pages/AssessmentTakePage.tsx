@@ -7,7 +7,6 @@ import {
   LinearProgress,
   CircularProgress,
   Alert,
-  Tooltip,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -183,7 +182,7 @@ const PreExamStep: React.FC<PreExamStepProps> = ({ assessmentId, tierNumber, onC
               Exam integrity
             </Typography>
             <Typography variant="body2" sx={{ fontSize: '0.82rem', lineHeight: 1.55 }}>
-              Copy, cut, and paste are disabled during the exam. Leaving this tab in the background for too long will end your attempt. Fullscreen is recommended; screenshots may violate assessment policy.
+              Do not cheat, get outside help, or share exam content. Stay in fullscreen, keep a stable internet connection, and do not leave or minimize this exam window. Your activity is monitored — leaving the exam environment or breaking these rules can terminate your attempt.
             </Typography>
           </Alert>
 
@@ -248,7 +247,6 @@ export default function AssessmentTakePage() {
   const assessmentConfig = configTypes.find((a) => a.id === assessmentId);
   const proctoringConfig = resolveProctoringConfig(assessmentConfig);
   const proctoringEnabled = isProctoringActive(proctoringConfig);
-  const adaptiveNoBack = flow.adaptiveForwardOnly || !!assessmentConfig?.is_adaptive;
   const mathExam = assessmentId === 'mathematical_reasoning';
   const endAttemptForIntegrityRef = useRef<
     ((message: string) => void | Promise<void>) | null
@@ -642,14 +640,17 @@ export default function AssessmentTakePage() {
     return (
       <Box sx={{ minHeight: '100vh', bgcolor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}>
         <Dialog open maxWidth="sm" fullWidth disableEscapeKeyDown>
-          <DialogTitle sx={{ fontWeight: 800 }}>Exam integrity</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 800 }}>Exam Rules</DialogTitle>
           <DialogContent>
-            <DialogContentText component="div" sx={{ color: 'text.primary', typography: 'body2', lineHeight: 1.65 }}>
-              <Typography component="p" sx={{ mb: 1.5 }}>
-                This exam uses standard integrity measures: copy, cut, and paste are disabled; context menus are limited; and staying away from this tab for too long will end your attempt.
+            <DialogContentText component="div" sx={{ color: 'text.primary', typography: 'body2', lineHeight: 1.65, textAlign: 'justify' }}>
+              <Typography component="p" sx={{ mb: 1.5, textAlign: 'justify' }}>
+                This is a secure assessment. Do not cheat, get help from others, use unauthorized materials, or share exam content in any form.
               </Typography>
-              <Typography component="p" sx={{ mb: 1.5 }}>
-                Fullscreen is recommended (your browser may ask for permission). Screenshots and sharing content may violate assessment rules.
+              <Typography component="p" sx={{ mb: 1.5, textAlign: 'justify' }}>
+                Your activity is monitored. Do not exit fullscreen, switch away from this window, open other apps or tabs, or leave the exam environment. Ensure you have a stable internet connection. Violating these rules can terminate your exam immediately and may invalidate your results.
+              </Typography>
+              <Typography component="p" sx={{ textAlign: 'justify' }}>
+                Your browser may ask for fullscreen permission, allow it before you begin.
               </Typography>
             </DialogContentText>
           </DialogContent>
@@ -849,31 +850,13 @@ export default function AssessmentTakePage() {
           py: 2,
           display: 'flex',
           gap: 1.5,
-          justifyContent: 'space-between',
+          justifyContent: 'flex-end',
           bgcolor: '#f8fafc',
           maxWidth: 900,
           mx: 'auto',
           width: '100%',
         }}
       >
-        <Tooltip title={adaptiveNoBack ? 'Previous is not available while the exam adapts to your answers.' : 'Not available in this build'}>
-          <span>
-            <Button
-              variant="contained"
-              startIcon={<ArrowBackIcon />}
-              disabled
-              sx={{
-                bgcolor: '#e2e8f0',
-                color: '#475569',
-                fontWeight: 700,
-                boxShadow: 'none',
-                '&.Mui-disabled': { bgcolor: '#e2e8f0', color: '#94a3b8' },
-              }}
-            >
-              Previous
-            </Button>
-          </span>
-        </Tooltip>
         <Button
           variant="contained"
           endIcon={isSubmitting ? <CircularProgress size={18} sx={{ color: '#fff' }} /> : <ArrowForwardIcon />}

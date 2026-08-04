@@ -5,24 +5,17 @@ import {
   Typography,
   Button,
   IconButton,
-  LinearProgress,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ShareIcon from '@mui/icons-material/Share';
-import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
+import { getAssessmentFlowDefinition } from '../../config/assessmentFlowUI';
+import { nextAssessmentNudge } from '../../config/assessmentResultDetail';
 import {
-  estimatedPercentileFromScore,
-  performanceTierFromScore,
-  getAssessmentFlowDefinition,
-} from '../../config/assessmentFlowUI';
-import {
-  buildSubscores,
-  strengthAndGrowth,
-  nextAssessmentNudge,
-} from '../../config/assessmentResultDetail';
-import { isLevelBasedAssessment, LEVEL_CLEAR_THRESHOLD_PERCENT } from '../../utils/assessmentGating';
+  EXAM_MAX_SCORE_POINTS,
+  isLevelBasedAssessment,
+  tierPercentToExamPoints,
+} from '../../utils/assessmentGating';
 
 interface ResultState {
   attemptId: string;
@@ -36,8 +29,6 @@ interface ResultState {
   completedAt?: string;
 }
 
-const barColor = (pct: number) => (pct >= LEVEL_CLEAR_THRESHOLD_PERCENT ? '#2e7d32' : pct >= 55 ? '#f9a825' : '#ef6c00');
-
 const AssessmentResultDetailPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -48,14 +39,11 @@ const AssessmentResultDetailPage: React.FC = () => {
     return null;
   }
 
-  const { assessmentId, scorePercent, passed, completedAt } = state;
+  const { assessmentId, tierNumber, scorePercent, correct, total, passed, completedAt } = state;
   const flow = getAssessmentFlowDefinition(assessmentId);
   const levelBased = isLevelBasedAssessment(assessmentId);
   const displayScore = Math.round(scorePercent);
-  const pct = estimatedPercentileFromScore(scorePercent);
-  const tierPerf = performanceTierFromScore(displayScore);
-  const rows = levelBased ? buildSubscores(assessmentId, scorePercent) : [];
-  const { strength, growth } = strengthAndGrowth(rows);
+  const scorePoints = tierPercentToExamPoints(displayScore);
   const nudge = passed ? nextAssessmentNudge(assessmentId) : null;
 
   const dateLabel = completedAt
@@ -67,7 +55,7 @@ const AssessmentResultDetailPage: React.FC = () => {
       if (navigator.share) {
         await navigator.share({
           title: `${flow.examTitleShort} results`,
-          text: `${tierPerf.label} - about ${pct}th percentile`,
+          text: `Score ${scorePoints} / ${EXAM_MAX_SCORE_POINTS} on ${flow.examTitleShort}`,
         });
       }
     } catch {
@@ -118,71 +106,42 @@ const AssessmentResultDetailPage: React.FC = () => {
             </Typography>
           </Box>
         ) : (
-        <Box
-          sx={{
-            bgcolor: '#e8f5e9',
-            borderRadius: 2,
-            p: 2.5,
-            mb: 2,
-            border: '1px solid #a5d6a7',
-          }}
-        >
-          <Typography sx={{ fontWeight: 800, color: '#1b5e20', fontSize: '1.15rem', mb: 0.5 }}>
-            🥇 {tierPerf.label}
-          </Typography>
-          <Typography sx={{ color: '#2e7d32', fontWeight: 600, fontSize: '0.9rem' }}>
-            {pct}th percentile - indicative global ranking
-          </Typography>
-          <Typography sx={{ color: '#558b2f', fontSize: '0.78rem', mt: 1 }}>
-            Completed {dateLabel}
-          </Typography>
-        </Box>
-        )}
-
-        {levelBased && (
-        <>
-        <Typography sx={{ fontWeight: 800, color: '#0f172a', mb: 1.5, fontSize: '0.95rem' }}>
-          Score breakdown
-        </Typography>
-        {rows.map((r) => (
-          <Box key={r.id} sx={{ mb: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-              <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155' }}>{r.label}</Typography>
-              <Typography sx={{ fontSize: '0.82rem', fontWeight: 700, color: barColor(r.percentile) }}>
-                {r.percentile}th percentile
-              </Typography>
-            </Box>
-            <LinearProgress
-              variant="determinate"
-              value={r.percentile}
+          <Box
+            sx={{
+              bgcolor: passed ? '#e8f5e9' : '#f1f5f9',
+              borderRadius: 2,
+              p: 2.5,
+              mb: 2,
+              border: passed ? '1px solid #a5d6a7' : '1px solid #cbd5e1',
+            }}
+          >
+            <Typography
               sx={{
-                height: 8,
-                borderRadius: 4,
-                bgcolor: '#e2e8f0',
-                '& .MuiLinearProgress-bar': { bgcolor: barColor(r.percentile), borderRadius: 4 },
+                fontWeight: 800,
+                color: passed ? '#1b5e20' : '#0f172a',
+                fontSize: '1.15rem',
+                mb: 0.5,
               }}
-            />
-          </Box>
-        ))}
-
-        <Box sx={{ bgcolor: '#e3f2fd', borderRadius: 2, p: 2, mb: 2, display: 'flex', gap: 1.5 }}>
-          <LightbulbOutlinedIcon sx={{ color: '#1565c0', mt: 0.2 }} />
-          <Box>
-            <Typography sx={{ fontWeight: 800, color: '#0d47a1', fontSize: '0.85rem' }}>Strength</Typography>
-            <Typography sx={{ fontSize: '0.82rem', color: '#37474f', lineHeight: 1.5 }}>{strength}</Typography>
-          </Box>
-        </Box>
-
-        <Box sx={{ bgcolor: '#e3f2fd', borderRadius: 2, p: 2, mb: 3, display: 'flex', gap: 1.5 }}>
-          <TrendingUpIcon sx={{ color: '#1565c0', mt: 0.2 }} />
-          <Box>
-            <Typography sx={{ fontWeight: 800, color: '#0d47a1', fontSize: '0.85rem' }}>Growth area</Typography>
-            <Typography sx={{ fontSize: '0.82rem', color: '#37474f', lineHeight: 1.5 }}>
-              {growth} - keep practicing; small gains compound quickly.
+            >
+              {passed ? `Level ${tierNumber} cleared` : `Level ${tierNumber} score`}
+            </Typography>
+            <Typography
+              sx={{
+                color: passed ? '#1b5e20' : '#334155',
+                fontWeight: 800,
+                fontSize: '1.5rem',
+              }}
+            >
+              {scorePoints} / {EXAM_MAX_SCORE_POINTS}
+            </Typography>
+            <Typography sx={{ color: '#64748b', fontSize: '0.85rem', mt: 0.75 }}>
+              {correct} / {total} items · Completed {dateLabel}
+            </Typography>
+            <Typography sx={{ color: '#64748b', fontSize: '0.78rem', mt: 1.5, lineHeight: 1.5 }}>
+              National performance tier and percentile refresh weekly on Monday. Until then, your
+              badge stays Explorer unless a prior Monday run already set one.
             </Typography>
           </Box>
-        </Box>
-        </>
         )}
 
         {nudge && (
@@ -208,7 +167,12 @@ const AssessmentResultDetailPage: React.FC = () => {
           </Box>
         )}
 
-        <Button fullWidth variant="contained" sx={{ bgcolor: '#0d47a1', fontWeight: 800, py: 1.25, mb: 1.5 }} onClick={() => navigate('/assessments/available')}>
+        <Button
+          fullWidth
+          variant="contained"
+          sx={{ bgcolor: '#0d47a1', fontWeight: 800, py: 1.25, mb: 1.5 }}
+          onClick={() => navigate('/assessments/available')}
+        >
           Back to dashboard
         </Button>
       </Box>
