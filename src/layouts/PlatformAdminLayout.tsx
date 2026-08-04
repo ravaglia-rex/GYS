@@ -21,6 +21,7 @@ import {
   AdminPanelSettings as AdminsIcon,
   Insights as AnalyticsIcon,
   ReportProblem as QuestionReportsIcon,
+  ScienceOutlined as TestResultsIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
@@ -50,6 +51,12 @@ const QUESTION_REPORTS_NAV_ITEM = {
   title: 'Q Reports',
   path: '/platform-admin/question-reports',
   icon: <QuestionReportsIcon sx={{ color: '#c2410c', fontSize: SIDEBAR_ICON_SIZE }} />,
+};
+
+const TEST_RESULTS_NAV_ITEM = {
+  title: 'Test Results',
+  path: '/platform-admin/test-results',
+  icon: <TestResultsIcon sx={{ color: '#0f766e', fontSize: SIDEBAR_ICON_SIZE }} />,
 };
 
 const BASE_NAV_ITEMS = [
@@ -86,6 +93,7 @@ const PlatformAdminLayout: React.FC<PlatformAdminLayoutProps> = ({ children }) =
     const mid: typeof BASE_NAV_ITEMS = [];
     if (canAccessPlatformAdminAnalytics(userEmail)) mid.push(ANALYTICS_NAV_ITEM);
     if (canAccessPlatformAdminQuestionReports(userEmail)) mid.push(QUESTION_REPORTS_NAV_ITEM);
+    if (canAccessPlatformAdminAnalytics(userEmail)) mid.push(TEST_RESULTS_NAV_ITEM);
     const base = [
       BASE_NAV_ITEMS[0],
       BASE_NAV_ITEMS[1],

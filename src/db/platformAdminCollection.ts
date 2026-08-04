@@ -33,6 +33,8 @@ import {
   PLATFORM_ADMIN_ADMINS_REMOVE,
   PLATFORM_ADMIN_ADMINS_INVITE,
   PLATFORM_ADMIN_QUESTION_PROBLEM_REPORTS,
+  PLATFORM_ADMIN_TEST_RESULTS_TRACKED_EMAILS,
+  PLATFORM_ADMIN_TEST_RESULTS_DAY_QUESTIONS,
 } from '../constants/constants';
 
 function apiBase(): string {
@@ -1101,5 +1103,86 @@ export async function listPlatformAdminQuestionProblemReports(options?: {
     reports: Array.isArray(data.reports) ? data.reports : [],
     official_count: typeof data.official_count === 'number' ? data.official_count : 0,
     practice_count: typeof data.practice_count === 'number' ? data.practice_count : 0,
+  };
+}
+
+export type TestDayQuestionRow = {
+  index: number;
+  item_id: string;
+  family: string | null;
+  subconstruct: string | null;
+  prompt: string;
+  stimulus?: unknown;
+  stimulus_type?: string | null;
+  options: Array<{ letter: string; text: string }>;
+  selected_index: number | null;
+  selected_letter: string;
+  correct_index: number | null;
+  correct_letter: string | null;
+  is_correct: boolean | null;
+  time_spent_sec: number | null;
+};
+
+export type TestDayAttemptBlock = {
+  attempt_id: string;
+  assessment_id: string;
+  proficiency_tier: number | null;
+  status: string;
+  completed_at: string | null;
+  score_pct: number | null;
+  score_points: number | null;
+  passed: boolean | null;
+  questions: TestDayQuestionRow[];
+};
+
+export type TestDayPracticeRow = {
+  exam_id: string;
+  level: string;
+  item_id: string;
+  correct: boolean | null;
+  occurred_at: string | null;
+};
+
+export type TestStudentDayQuestionsPayload = {
+  email: string;
+  uid: string;
+  student_name: string;
+  date_ist: string;
+  attempts: TestDayAttemptBlock[];
+  practice: TestDayPracticeRow[];
+  generated_at: string;
+};
+
+export async function listPlatformAdminTrackedTestEmails(): Promise<string[]> {
+  const res = await withAuthRetry((headers) =>
+    axios.get(`${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_TEST_RESULTS_TRACKED_EMAILS}`, {
+      headers,
+    })
+  );
+  return Array.isArray(res.data?.emails) ? res.data.emails : [];
+}
+
+export async function getPlatformAdminTestStudentDayQuestions(opts: {
+  email: string;
+  date?: string;
+}): Promise<TestStudentDayQuestionsPayload> {
+  const params = new URLSearchParams();
+  params.set('email', opts.email);
+  if (opts.date) params.set('date', opts.date);
+  const res = await withAuthRetry((headers) =>
+    axios.get(
+      `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_TEST_RESULTS_DAY_QUESTIONS}?${params.toString()}`,
+      { headers }
+    )
+  );
+  const data = res.data ?? {};
+  return {
+    email: typeof data.email === 'string' ? data.email : opts.email,
+    uid: typeof data.uid === 'string' ? data.uid : '',
+    student_name: typeof data.student_name === 'string' ? data.student_name : '',
+    date_ist: typeof data.date_ist === 'string' ? data.date_ist : opts.date || '',
+    attempts: Array.isArray(data.attempts) ? data.attempts : [],
+    practice: Array.isArray(data.practice) ? data.practice : [],
+    generated_at: typeof data.generated_at === 'string' ? data.generated_at : '',
   };
 }

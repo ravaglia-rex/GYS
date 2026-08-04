@@ -19,6 +19,7 @@ import {
   TableHead,
   TableRow,
   Tabs,
+  TextField,
   Typography,
 } from '@mui/material';
 import {
@@ -53,6 +54,7 @@ import {
   getPlatformAdminOfficialExamDetail,
   getPlatformAdminOfficialExamDrilldown,
   getPlatformAdminOfficialExamSummaries,
+  searchPlatformAdminOfficialExamCompletions,
   type PracticeDailyByExamStatRow,
   type PracticeDailyStatRow,
   type PracticeExamSummaryRow,
@@ -64,8 +66,10 @@ import {
   type TopQodStudentRow,
   type OfficialDailyStatRow,
   type OfficialExamDrilldown,
+  type OfficialExamGradeRow,
   type OfficialExamLevelRow,
   type OfficialExamRecentRow,
+  type OfficialExamSchoolRow,
   type OfficialExamSummaryRow,
 } from '../../db/platformAdminAnalytics';
 import { formatDate, formatDateTime } from '../../db/platformAdminCollection';
@@ -98,7 +102,16 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
   const [officialDailyExamIds, setOfficialDailyExamIds] = useState<string[]>([]);
   const [selectedOfficialExamId, setSelectedOfficialExamId] = useState('');
   const [officialByLevel, setOfficialByLevel] = useState<OfficialExamLevelRow[]>([]);
+  const [officialByGrade, setOfficialByGrade] = useState<OfficialExamGradeRow[]>([]);
+  const [officialBySchool, setOfficialBySchool] = useState<OfficialExamSchoolRow[]>([]);
   const [officialRecent, setOfficialRecent] = useState<OfficialExamRecentRow[]>([]);
+  const [officialRecentMatched, setOfficialRecentMatched] = useState(0);
+  const [officialRecentSearched, setOfficialRecentSearched] = useState(false);
+  const [completionQ, setCompletionQ] = useState('');
+  const [completionFrom, setCompletionFrom] = useState('');
+  const [completionTo, setCompletionTo] = useState('');
+  const [completionLevel, setCompletionLevel] = useState<'all' | number>('all');
+  const [completionLimit, setCompletionLimit] = useState(25);
   const [officialDrilldown, setOfficialDrilldown] = useState<OfficialExamDrilldown | null>(null);
   const [officialDrillLevel, setOfficialDrillLevel] = useState<'all' | number>('all');
   const [officialGeneratedAt, setOfficialGeneratedAt] = useState('');
@@ -106,6 +119,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
   const [officialLoading, setOfficialLoading] = useState(false);
   const [officialDetailLoading, setOfficialDetailLoading] = useState(false);
   const [officialDrillLoading, setOfficialDrillLoading] = useState(false);
+  const [officialCompletionsLoading, setOfficialCompletionsLoading] = useState(false);
   const [officialError, setOfficialError] = useState<string | null>(null);
   const officialDetailReqRef = useRef(0);
   const officialDrillReqRef = useRef(0);
@@ -173,15 +187,16 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     const req = ++officialDetailReqRef.current;
     setOfficialDetailLoading(true);
     setOfficialByLevel([]);
-    setOfficialRecent([]);
+    setOfficialByGrade([]);
+    setOfficialBySchool([]);
     try {
       const detail = await getPlatformAdminOfficialExamDetail(examId, {
-        limit: 25,
         refresh: opts?.refresh,
       });
       if (req !== officialDetailReqRef.current) return;
       setOfficialByLevel(detail.by_level);
-      setOfficialRecent(detail.recent);
+      setOfficialByGrade(detail.by_grade);
+      setOfficialBySchool(detail.by_school);
       setOfficialGeneratedAt((prev) => detail.generated_at || prev);
       if (detail.indexes_building) setOfficialIndexesBuilding(true);
     } catch (e: unknown) {
@@ -189,11 +204,41 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
       const err = e as { response?: { data?: { error?: string } }; message?: string };
       setOfficialError(err?.response?.data?.error || err?.message || 'Failed to load official exam detail');
       setOfficialByLevel([]);
-      setOfficialRecent([]);
+      setOfficialByGrade([]);
+      setOfficialBySchool([]);
     } finally {
       if (req === officialDetailReqRef.current) setOfficialDetailLoading(false);
     }
   }, []);
+
+  const searchOfficialCompletions = useCallback(
+    async (examId: string) => {
+      if (!examId) return;
+      setOfficialCompletionsLoading(true);
+      setOfficialError(null);
+      try {
+        const data = await searchPlatformAdminOfficialExamCompletions(examId, {
+          q: completionQ,
+          from: completionFrom || undefined,
+          to: completionTo || undefined,
+          level: completionLevel === 'all' ? null : completionLevel,
+          limit: completionLimit,
+        });
+        setOfficialRecent(data.results);
+        setOfficialRecentMatched(data.matched);
+        setOfficialRecentSearched(true);
+      } catch (e: unknown) {
+        const err = e as { response?: { data?: { error?: string } }; message?: string };
+        setOfficialError(err?.response?.data?.error || err?.message || 'Failed to search completions');
+        setOfficialRecent([]);
+        setOfficialRecentMatched(0);
+        setOfficialRecentSearched(true);
+      } finally {
+        setOfficialCompletionsLoading(false);
+      }
+    },
+    [completionQ, completionFrom, completionTo, completionLevel, completionLimit]
+  );
 
   const loadOfficialDrilldown = useCallback(
     async (examId: string, level: 'all' | number, opts?: { refresh?: boolean }) => {
@@ -339,6 +384,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     officialLoading ||
     officialDetailLoading ||
     officialDrillLoading ||
+    officialCompletionsLoading ||
     practiceLoading ||
     qodLoading ||
     activityLoading;
@@ -606,6 +652,14 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                 onChange={(_e, value: string) => {
                   setSelectedOfficialExamId(value);
                   setOfficialDrillLevel('all');
+                  setOfficialRecent([]);
+                  setOfficialRecentMatched(0);
+                  setOfficialRecentSearched(false);
+                  setCompletionQ('');
+                  setCompletionFrom('');
+                  setCompletionTo('');
+                  setCompletionLevel('all');
+                  setCompletionLimit(25);
                 }}
                 variant="scrollable"
                 scrollButtons="auto"
@@ -686,88 +740,43 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                       </Box>
                     ) : (
                       <>
-                    <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 1, mt: 1 }}>By level</Typography>
-                    <TableContainer component={Paper} elevation={0} sx={{ ...platformAdminTablePaperSx, mb: 2.5 }}>
-                      <Table size="small" sx={platformAdminTableSx}>
-                        <TableHead>
-                          <TableRow sx={platformAdminTableHeadRowSx}>
-                            <TableCell>Level</TableCell>
-                            <TableCell align="right">Completions</TableCell>
-                            <TableCell align="right">Students</TableCell>
-                            <TableCell align="right">Avg %</TableCell>
-                            <TableCell align="right">Avg /1000</TableCell>
-                            <TableCell align="right">Passed</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {officialByLevel.length === 0 ? (
-                            <TableRow>
-                              <TableCell colSpan={6} align="center" sx={{ py: 2, color: ip.subtext }}>
-                                No completed attempts yet.
-                              </TableCell>
-                            </TableRow>
-                          ) : (
-                            officialByLevel.map((row) => (
-                              <TableRow key={row.level}>
-                                <TableCell sx={{ fontWeight: 700 }}>{row.level}</TableCell>
-                                <TableCell align="right">{row.completed_attempts}</TableCell>
-                                <TableCell align="right">{row.unique_students}</TableCell>
-                                <TableCell align="right">{row.avg_score_pct}%</TableCell>
-                                <TableCell align="right">{row.avg_score_points}</TableCell>
-                                <TableCell align="right">{row.passed_attempts}</TableCell>
+                        <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 1, mt: 1 }}>
+                          By level
+                        </Typography>
+                        <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
+                          <Table size="small" sx={platformAdminTableSx}>
+                            <TableHead>
+                              <TableRow sx={platformAdminTableHeadRowSx}>
+                                <TableCell>Level</TableCell>
+                                <TableCell align="right">Completions</TableCell>
+                                <TableCell align="right">Students</TableCell>
+                                <TableCell align="right">Avg %</TableCell>
+                                <TableCell align="right">Avg /1000</TableCell>
+                                <TableCell align="right">Passed</TableCell>
                               </TableRow>
-                            ))
-                          )}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-
-                    <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 1 }}>
-                      Recent completions
-                    </Typography>
-                    <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
-                      <Table size="small" sx={platformAdminTableSx}>
-                        <TableHead>
-                          <TableRow sx={platformAdminTableHeadRowSx}>
-                            <TableCell>When</TableCell>
-                            <TableCell>Student</TableCell>
-                            <TableCell>School</TableCell>
-                            <TableCell align="right">Level</TableCell>
-                            <TableCell align="right">Score</TableCell>
-                            <TableCell align="right">Passed</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {officialRecent.length === 0 ? (
-                            <TableRow>
-                              <TableCell colSpan={6} align="center" sx={{ py: 3, color: ip.subtext }}>
-                                No recent official completions.
-                              </TableCell>
-                            </TableRow>
-                          ) : (
-                            officialRecent.map((row) => (
-                              <TableRow key={row.attempt_id}>
-                                <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                                  {formatDateTime(row.completed_at)}
-                                </TableCell>
-                                <TableCell sx={{ fontWeight: 600 }}>
-                                  {[row.first_name, row.last_name].filter(Boolean).join(' ') || row.email}
-                                  <Typography variant="caption" sx={{ display: 'block', color: ip.subtext }}>
-                                    {row.email}
-                                  </Typography>
-                                </TableCell>
-                                <TableCell>{row.school_name ?? '—'}</TableCell>
-                                <TableCell align="right">{row.proficiency_tier ?? '—'}</TableCell>
-                                <TableCell align="right">
-                                  {row.score_pct}% ({row.score_points})
-                                </TableCell>
-                                <TableCell align="right">{row.passed ? 'Yes' : 'No'}</TableCell>
-                              </TableRow>
-                            ))
-                          )}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
+                            </TableHead>
+                            <TableBody>
+                              {officialByLevel.length === 0 ? (
+                                <TableRow>
+                                  <TableCell colSpan={6} align="center" sx={{ py: 2, color: ip.subtext }}>
+                                    No completed attempts yet.
+                                  </TableCell>
+                                </TableRow>
+                              ) : (
+                                officialByLevel.map((row) => (
+                                  <TableRow key={row.level}>
+                                    <TableCell sx={{ fontWeight: 700 }}>{row.level}</TableCell>
+                                    <TableCell align="right">{row.completed_attempts}</TableCell>
+                                    <TableCell align="right">{row.unique_students}</TableCell>
+                                    <TableCell align="right">{row.avg_score_pct}%</TableCell>
+                                    <TableCell align="right">{row.avg_score_points}</TableCell>
+                                    <TableCell align="right">{row.passed_attempts}</TableCell>
+                                  </TableRow>
+                                ))
+                              )}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
                       </>
                     )}
                   </CardContent>
@@ -796,7 +805,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                           : ''}
                       </Typography>
                     </Box>
-                    <FormControl size="small" sx={{ minWidth: 140, ...platformAdminFilterSelectSx }}>
+                    <FormControl size="small" sx={platformAdminFilterSelectSx(140)}>
                       <InputLabel id="official-drill-level">Level</InputLabel>
                       <Select
                         labelId="official-drill-level"
@@ -963,6 +972,270 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                                   <TableCell align="right">{row.avg_served}</TableCell>
                                   <TableCell align="right">{row.accuracy_pct}%</TableCell>
                                   <TableCell align="right">{row.served_sum}</TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card sx={{ ...platformAdminCardSx, mb: 2.5 }}>
+                <CardContent>
+                  <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
+                    Grade & school breakdown
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 2 }}>
+                    From completed attempts (grade at attempt when available; otherwise student grade).
+                  </Typography>
+                  {officialDetailLoading ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                      <CircularProgress size={28} sx={{ color: ip.navy }} />
+                    </Box>
+                  ) : (
+                    <Box
+                      sx={{
+                        display: 'grid',
+                        gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+                        gap: 2,
+                      }}
+                    >
+                      <Box>
+                        <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 1 }}>By grade</Typography>
+                        <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
+                          <Table size="small" sx={platformAdminTableSx}>
+                            <TableHead>
+                              <TableRow sx={platformAdminTableHeadRowSx}>
+                                <TableCell>Grade</TableCell>
+                                <TableCell align="right">Completions</TableCell>
+                                <TableCell align="right">Students</TableCell>
+                                <TableCell align="right">Avg %</TableCell>
+                                <TableCell align="right">Pass %</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {officialByGrade.length === 0 ? (
+                                <TableRow>
+                                  <TableCell colSpan={5} align="center" sx={{ py: 2, color: ip.subtext }}>
+                                    No grade data yet.
+                                  </TableCell>
+                                </TableRow>
+                              ) : (
+                                officialByGrade.map((row) => (
+                                  <TableRow key={row.grade == null ? 'unknown' : row.grade}>
+                                    <TableCell sx={{ fontWeight: 700 }}>
+                                      {row.grade == null ? 'Unknown' : `G${row.grade}`}
+                                    </TableCell>
+                                    <TableCell align="right">{row.completed_attempts}</TableCell>
+                                    <TableCell align="right">{row.unique_students}</TableCell>
+                                    <TableCell align="right">{row.avg_score_pct}%</TableCell>
+                                    <TableCell align="right">{row.pass_rate_pct}%</TableCell>
+                                  </TableRow>
+                                ))
+                              )}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+                      </Box>
+                      <Box>
+                        <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 1 }}>By school</Typography>
+                        <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
+                          <Table size="small" sx={platformAdminTableSx}>
+                            <TableHead>
+                              <TableRow sx={platformAdminTableHeadRowSx}>
+                                <TableCell>School</TableCell>
+                                <TableCell align="right">Completions</TableCell>
+                                <TableCell align="right">Students</TableCell>
+                                <TableCell align="right">Avg %</TableCell>
+                                <TableCell align="right">Pass %</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {officialBySchool.length === 0 ? (
+                                <TableRow>
+                                  <TableCell colSpan={5} align="center" sx={{ py: 2, color: ip.subtext }}>
+                                    No school data yet.
+                                  </TableCell>
+                                </TableRow>
+                              ) : (
+                                officialBySchool.map((row) => (
+                                  <TableRow key={row.school_id ?? row.school_name}>
+                                    <TableCell sx={{ fontWeight: 600 }}>{row.school_name}</TableCell>
+                                    <TableCell align="right">{row.completed_attempts}</TableCell>
+                                    <TableCell align="right">{row.unique_students}</TableCell>
+                                    <TableCell align="right">{row.avg_score_pct}%</TableCell>
+                                    <TableCell align="right">{row.pass_rate_pct}%</TableCell>
+                                  </TableRow>
+                                ))
+                              )}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+                      </Box>
+                    </Box>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card sx={{ ...platformAdminCardSx, mb: 2.5 }}>
+                <CardContent>
+                  <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
+                    Search completions
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 2 }}>
+                    On-demand only — not loaded until you search. Filter by student, date range, level,
+                    and limit.
+                  </Typography>
+                  <Box
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: {
+                        xs: '1fr',
+                        sm: '1fr 1fr',
+                        md: '2fr 1fr 1fr 1fr 100px auto',
+                      },
+                      gap: 1.5,
+                      mb: 2,
+                      alignItems: 'center',
+                    }}
+                  >
+                    <TextField
+                      size="small"
+                      label="Student"
+                      placeholder="Name, email, or uid"
+                      value={completionQ}
+                      onChange={(e) => setCompletionQ(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && selectedOfficialExamId) {
+                          void searchOfficialCompletions(selectedOfficialExamId);
+                        }
+                      }}
+                    />
+                    <TextField
+                      size="small"
+                      label="From"
+                      type="date"
+                      value={completionFrom}
+                      onChange={(e) => setCompletionFrom(e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                    />
+                    <TextField
+                      size="small"
+                      label="To"
+                      type="date"
+                      value={completionTo}
+                      onChange={(e) => setCompletionTo(e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                    />
+                    <FormControl size="small" sx={platformAdminFilterSelectSx(120)}>
+                      <InputLabel id="completion-level">Level</InputLabel>
+                      <Select
+                        labelId="completion-level"
+                        label="Level"
+                        value={completionLevel}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setCompletionLevel(v === 'all' ? 'all' : Number(v));
+                        }}
+                        MenuProps={{ PaperProps: { sx: platformAdminSelectMenuPaperSx } }}
+                      >
+                        <MenuItem value="all">All levels</MenuItem>
+                        {(officialByLevel.length > 0
+                          ? officialByLevel.map((r) => r.level)
+                          : [1, 2, 3]
+                        ).map((level) => (
+                          <MenuItem key={level} value={level}>
+                            Level {level}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    <FormControl size="small" sx={platformAdminFilterSelectSx(100)}>
+                      <InputLabel id="completion-limit">Limit</InputLabel>
+                      <Select
+                        labelId="completion-limit"
+                        label="Limit"
+                        value={completionLimit}
+                        onChange={(e) => setCompletionLimit(Number(e.target.value))}
+                        MenuProps={{ PaperProps: { sx: platformAdminSelectMenuPaperSx } }}
+                      >
+                        {[10, 25, 50, 100].map((n) => (
+                          <MenuItem key={n} value={n}>
+                            {n}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    <Button
+                      variant="outlined"
+                      disabled={!selectedOfficialExamId || officialCompletionsLoading}
+                      onClick={() => {
+                        if (selectedOfficialExamId) void searchOfficialCompletions(selectedOfficialExamId);
+                      }}
+                      sx={platformAdminOutlinedButtonSx}
+                    >
+                      {officialCompletionsLoading ? 'Searching…' : 'Search'}
+                    </Button>
+                  </Box>
+
+                  {!officialRecentSearched ? (
+                    <Typography variant="body2" sx={{ color: ip.subtext, py: 2 }}>
+                      Set filters and click Search to load completions.
+                    </Typography>
+                  ) : officialCompletionsLoading ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                      <CircularProgress size={28} sx={{ color: ip.navy }} />
+                    </Box>
+                  ) : (
+                    <>
+                      <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1 }}>
+                        Showing {officialRecent.length.toLocaleString()} of{' '}
+                        {officialRecentMatched.toLocaleString()} matched
+                      </Typography>
+                      <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
+                        <Table size="small" sx={platformAdminTableSx}>
+                          <TableHead>
+                            <TableRow sx={platformAdminTableHeadRowSx}>
+                              <TableCell>When</TableCell>
+                              <TableCell>Student</TableCell>
+                              <TableCell>School</TableCell>
+                              <TableCell align="right">Level</TableCell>
+                              <TableCell align="right">Score</TableCell>
+                              <TableCell align="right">Passed</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {officialRecent.length === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={6} align="center" sx={{ py: 3, color: ip.subtext }}>
+                                  No completions matched these filters.
+                                </TableCell>
+                              </TableRow>
+                            ) : (
+                              officialRecent.map((row) => (
+                                <TableRow key={row.attempt_id}>
+                                  <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                                    {formatDateTime(row.completed_at)}
+                                  </TableCell>
+                                  <TableCell sx={{ fontWeight: 600 }}>
+                                    {[row.first_name, row.last_name].filter(Boolean).join(' ') ||
+                                      row.email}
+                                    <Typography
+                                      variant="caption"
+                                      sx={{ display: 'block', color: ip.subtext }}
+                                    >
+                                      {row.email}
+                                    </Typography>
+                                  </TableCell>
+                                  <TableCell>{row.school_name ?? '—'}</TableCell>
+                                  <TableCell align="right">{row.proficiency_tier ?? '—'}</TableCell>
+                                  <TableCell align="right">
+                                    {row.score_pct}% ({row.score_points})
+                                  </TableCell>
+                                  <TableCell align="right">{row.passed ? 'Yes' : 'No'}</TableCell>
                                 </TableRow>
                               ))
                             )}

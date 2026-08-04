@@ -46,6 +46,8 @@ export const PLATFORM_ADMIN_ANALYTICS_SCHOOL_ADMIN_ACTIVITY = '/analytics/school
 export const PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAMS = '/analytics/official-exams';
 export const PLATFORM_ADMIN_ANALYTICS_OFFICIAL_DAILY = '/analytics/official-daily';
 export const PLATFORM_ADMIN_QUESTION_PROBLEM_REPORTS = '/question-problem-reports';
+export const PLATFORM_ADMIN_TEST_RESULTS_TRACKED_EMAILS = '/test-results/tracked-emails';
+export const PLATFORM_ADMIN_TEST_RESULTS_DAY_QUESTIONS = '/test-results/day-questions';
 
 // Schools
 export const CREATE_EXPEDITED_SCHOOL='/createExpeditedSchool';
@@ -138,7 +140,7 @@ export const CHECK_EMAIL_EXISTS='/checkEmailExists';
 // OFFICIAL_LIVE_ASSESSMENT_IDS (utils/officialStudentAssessmentsAccess.ts).
 // Optional OFFICIAL_LIVE_ASSESSMENT_TIERS limits which levels are public (e.g. Symbolic 1–2).
 // Browse UI remains visible with "coming soon" locks.
-// Beta (srishti2k1@gmail.com) may start only OFFICIAL_BETA_STARTABLE_ASSESSMENT_IDS
+// Beta (srishti2k1@gmail.com, michael+student@argus.ai) may start only OFFICIAL_BETA_STARTABLE_ASSESSMENT_IDS
 // (currently symbolic_reasoning) so the dashboard feels like a real student.
 // Do not flip this or live ids without CAPS authorization.
 export const STUDENT_OFFICIAL_ASSESSMENTS_ENABLED = false;

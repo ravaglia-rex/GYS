@@ -9,6 +9,7 @@ import { STUDENT_OFFICIAL_ASSESSMENTS_ENABLED } from '../constants/constants';
  */
 export const OFFICIAL_STUDENT_ASSESSMENT_BETA_EMAILS = new Set([
   'srishti2k1@gmail.com',
+  'michael+student@argus.ai',
 ]);
 
 /**

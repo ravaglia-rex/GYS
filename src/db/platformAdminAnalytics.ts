@@ -332,6 +332,27 @@ export type OfficialExamLevelRow = {
   passed_attempts: number;
 };
 
+export type OfficialExamGradeRow = {
+  grade: number | null;
+  completed_attempts: number;
+  unique_students: number;
+  avg_score_pct: number;
+  avg_score_points: number;
+  passed_attempts: number;
+  pass_rate_pct: number;
+};
+
+export type OfficialExamSchoolRow = {
+  school_id: string | null;
+  school_name: string;
+  completed_attempts: number;
+  unique_students: number;
+  avg_score_pct: number;
+  avg_score_points: number;
+  passed_attempts: number;
+  pass_rate_pct: number;
+};
+
 export type OfficialExamRecentRow = {
   attempt_id: string;
   uid: string;
@@ -412,13 +433,14 @@ export async function getPlatformAdminOfficialExamSummaries(opts?: {
 
 export async function getPlatformAdminOfficialExamDetail(
   examId: string,
-  opts?: { limit?: number; refresh?: boolean }
+  opts?: { refresh?: boolean }
 ): Promise<{
   exam_id: string;
   label: string;
   summary: OfficialExamSummaryRow;
   by_level: OfficialExamLevelRow[];
-  recent: OfficialExamRecentRow[];
+  by_grade: OfficialExamGradeRow[];
+  by_school: OfficialExamSchoolRow[];
   generated_at: string;
   indexes_building?: boolean;
 }> {
@@ -427,7 +449,7 @@ export async function getPlatformAdminOfficialExamDetail(
     `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAMS}/${encodeURIComponent(examId)}`,
     {
       headers,
-      params: { limit: opts?.limit ?? 25, ...refreshParams(opts?.refresh) },
+      params: { ...refreshParams(opts?.refresh) },
     }
   );
   return {
@@ -435,9 +457,47 @@ export async function getPlatformAdminOfficialExamDetail(
     label: typeof res.data.label === 'string' ? res.data.label : examId,
     summary: res.data.summary,
     by_level: Array.isArray(res.data.by_level) ? res.data.by_level : [],
-    recent: Array.isArray(res.data.recent) ? res.data.recent : [],
+    by_grade: Array.isArray(res.data.by_grade) ? res.data.by_grade : [],
+    by_school: Array.isArray(res.data.by_school) ? res.data.by_school : [],
     generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
     indexes_building: res.data.indexes_building === true,
+  };
+}
+
+export async function searchPlatformAdminOfficialExamCompletions(
+  examId: string,
+  opts?: {
+    q?: string;
+    from?: string;
+    to?: string;
+    level?: number | null;
+    limit?: number;
+  }
+): Promise<{
+  exam_id: string;
+  results: OfficialExamRecentRow[];
+  matched: number;
+  limit: number;
+  generated_at: string;
+}> {
+  const headers = await authHeaders();
+  const params: Record<string, string | number> = {
+    limit: opts?.limit ?? 25,
+  };
+  if (opts?.q?.trim()) params.q = opts.q.trim();
+  if (opts?.from) params.from = opts.from;
+  if (opts?.to) params.to = opts.to;
+  if (typeof opts?.level === 'number' && opts.level > 0) params.level = opts.level;
+  const res = await axios.get(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAMS}/${encodeURIComponent(examId)}/completions`,
+    { headers, params }
+  );
+  return {
+    exam_id: typeof res.data.exam_id === 'string' ? res.data.exam_id : examId,
+    results: Array.isArray(res.data.results) ? res.data.results : [],
+    matched: Number(res.data.matched) || 0,
+    limit: Number(res.data.limit) || opts?.limit || 25,
+    generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
   };
 }
 
