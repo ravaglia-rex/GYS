@@ -51,6 +51,7 @@ import {
   getPlatformAdminTopQod,
   getPlatformAdminOfficialDailyStats,
   getPlatformAdminOfficialExamDetail,
+  getPlatformAdminOfficialExamDrilldown,
   getPlatformAdminOfficialExamSummaries,
   type PracticeDailyByExamStatRow,
   type PracticeDailyStatRow,
@@ -62,6 +63,7 @@ import {
   type TopCoinsStudentRow,
   type TopQodStudentRow,
   type OfficialDailyStatRow,
+  type OfficialExamDrilldown,
   type OfficialExamLevelRow,
   type OfficialExamRecentRow,
   type OfficialExamSummaryRow,
@@ -94,14 +96,19 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
   const [officialSummaries, setOfficialSummaries] = useState<OfficialExamSummaryRow[]>([]);
   const [officialDaily, setOfficialDaily] = useState<OfficialDailyStatRow[]>([]);
   const [officialDailyExamIds, setOfficialDailyExamIds] = useState<string[]>([]);
-  const [officialToday, setOfficialToday] = useState<OfficialDailyStatRow | null>(null);
   const [selectedOfficialExamId, setSelectedOfficialExamId] = useState('');
   const [officialByLevel, setOfficialByLevel] = useState<OfficialExamLevelRow[]>([]);
   const [officialRecent, setOfficialRecent] = useState<OfficialExamRecentRow[]>([]);
+  const [officialDrilldown, setOfficialDrilldown] = useState<OfficialExamDrilldown | null>(null);
+  const [officialDrillLevel, setOfficialDrillLevel] = useState<'all' | number>('all');
   const [officialGeneratedAt, setOfficialGeneratedAt] = useState('');
   const [officialIndexesBuilding, setOfficialIndexesBuilding] = useState(false);
   const [officialLoading, setOfficialLoading] = useState(false);
+  const [officialDetailLoading, setOfficialDetailLoading] = useState(false);
+  const [officialDrillLoading, setOfficialDrillLoading] = useState(false);
   const [officialError, setOfficialError] = useState<string | null>(null);
+  const officialDetailReqRef = useRef(0);
+  const officialDrillReqRef = useRef(0);
 
   const [practiceSummaries, setPracticeSummaries] = useState<PracticeExamSummaryRow[]>([]);
   const [practiceDaily, setPracticeDaily] = useState<PracticeDailyStatRow[]>([]);
@@ -130,7 +137,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
   const [activityLoading, setActivityLoading] = useState(false);
   const [activityError, setActivityError] = useState<string | null>(null);
 
-  const loadOfficial = useCallback(async (opts?: { refresh?: boolean }) => {
+  const loadOfficialOverview = useCallback(async (opts?: { refresh?: boolean }) => {
     setOfficialLoading(true);
     setOfficialError(null);
     setOfficialIndexesBuilding(false);
@@ -142,21 +149,9 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
       setOfficialSummaries(summaries.exams);
       setOfficialDaily(daily.days);
       setOfficialDailyExamIds(daily.exam_ids);
-      setOfficialToday(daily.today);
       setOfficialGeneratedAt(summaries.generated_at || daily.generated_at);
       setOfficialIndexesBuilding(summaries.indexes_building === true);
-      const examId = selectedOfficialExamId || summaries.exams[0]?.exam_id || '';
-      if (!selectedOfficialExamId && examId) setSelectedOfficialExamId(examId);
-      if (examId) {
-        const detail = await getPlatformAdminOfficialExamDetail(examId, {
-          limit: 25,
-          refresh: opts?.refresh,
-        });
-        setOfficialByLevel(detail.by_level);
-        setOfficialRecent(detail.recent);
-        setOfficialGeneratedAt(detail.generated_at || summaries.generated_at || daily.generated_at);
-        if (detail.indexes_building) setOfficialIndexesBuilding(true);
-      }
+      setSelectedOfficialExamId((prev) => prev || summaries.exams[0]?.exam_id || '');
     } catch (e: unknown) {
       const err = e as { response?: { data?: { error?: string } }; message?: string };
       const msg = err?.response?.data?.error || err?.message || 'Failed to load official exam analytics';
@@ -171,7 +166,60 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     } finally {
       setOfficialLoading(false);
     }
-  }, [selectedOfficialExamId]);
+  }, []);
+
+  const loadOfficialDetail = useCallback(async (examId: string, opts?: { refresh?: boolean }) => {
+    if (!examId) return;
+    const req = ++officialDetailReqRef.current;
+    setOfficialDetailLoading(true);
+    setOfficialByLevel([]);
+    setOfficialRecent([]);
+    try {
+      const detail = await getPlatformAdminOfficialExamDetail(examId, {
+        limit: 25,
+        refresh: opts?.refresh,
+      });
+      if (req !== officialDetailReqRef.current) return;
+      setOfficialByLevel(detail.by_level);
+      setOfficialRecent(detail.recent);
+      setOfficialGeneratedAt((prev) => detail.generated_at || prev);
+      if (detail.indexes_building) setOfficialIndexesBuilding(true);
+    } catch (e: unknown) {
+      if (req !== officialDetailReqRef.current) return;
+      const err = e as { response?: { data?: { error?: string } }; message?: string };
+      setOfficialError(err?.response?.data?.error || err?.message || 'Failed to load official exam detail');
+      setOfficialByLevel([]);
+      setOfficialRecent([]);
+    } finally {
+      if (req === officialDetailReqRef.current) setOfficialDetailLoading(false);
+    }
+  }, []);
+
+  const loadOfficialDrilldown = useCallback(
+    async (examId: string, level: 'all' | number, opts?: { refresh?: boolean }) => {
+      if (!examId) return;
+      const req = ++officialDrillReqRef.current;
+      setOfficialDrillLoading(true);
+      setOfficialDrilldown(null);
+      try {
+        const data = await getPlatformAdminOfficialExamDrilldown(examId, {
+          level: level === 'all' ? null : level,
+          refresh: opts?.refresh,
+        });
+        if (req !== officialDrillReqRef.current) return;
+        setOfficialDrilldown(data);
+        if (data.indexes_building) setOfficialIndexesBuilding(true);
+      } catch (e: unknown) {
+        if (req !== officialDrillReqRef.current) return;
+        const err = e as { response?: { data?: { error?: string } }; message?: string };
+        setOfficialError(err?.response?.data?.error || err?.message || 'Failed to load exam deep dive');
+        setOfficialDrilldown(null);
+      } finally {
+        if (req === officialDrillReqRef.current) setOfficialDrillLoading(false);
+      }
+    },
+    []
+  );
 
   const loadPractice = useCallback(async (opts?: { refresh?: boolean }) => {
     setPracticeLoading(true);
@@ -271,16 +319,38 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (tab === 'official') void loadOfficial();
+    if (tab === 'official') void loadOfficialOverview();
     if (tab === 'practice') void loadPractice();
     if (tab === 'qod') void loadQod();
     if (tab === 'activity') void loadActivity();
-  }, [tab, loadOfficial, loadPractice, loadQod, loadActivity]);
+  }, [tab, loadOfficialOverview, loadPractice, loadQod, loadActivity]);
 
-  const anyLoading = officialLoading || practiceLoading || qodLoading || activityLoading;
+  useEffect(() => {
+    if (tab !== 'official' || !selectedOfficialExamId) return;
+    void loadOfficialDetail(selectedOfficialExamId);
+  }, [tab, selectedOfficialExamId, loadOfficialDetail]);
+
+  useEffect(() => {
+    if (tab !== 'official' || !selectedOfficialExamId) return;
+    void loadOfficialDrilldown(selectedOfficialExamId, officialDrillLevel);
+  }, [tab, selectedOfficialExamId, officialDrillLevel, loadOfficialDrilldown]);
+
+  const anyLoading =
+    officialLoading ||
+    officialDetailLoading ||
+    officialDrillLoading ||
+    practiceLoading ||
+    qodLoading ||
+    activityLoading;
 
   const handleForceRefresh = () => {
-    if (tab === 'official') void loadOfficial({ refresh: true });
+    if (tab === 'official') {
+      void loadOfficialOverview({ refresh: true });
+      if (selectedOfficialExamId) {
+        void loadOfficialDetail(selectedOfficialExamId, { refresh: true });
+        void loadOfficialDrilldown(selectedOfficialExamId, officialDrillLevel, { refresh: true });
+      }
+    }
     if (tab === 'practice') void loadPractice({ refresh: true });
     if (tab === 'qod') void loadQod({ refresh: true });
     if (tab === 'activity') void loadActivity({ refresh: true });
@@ -314,6 +384,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
   const officialTotals = useMemo(() => {
     const completed = officialSummaries.reduce((s, e) => s + e.completed_attempts, 0);
     const students = officialSummaries.reduce((s, e) => s + e.unique_students, 0);
+    const passed = officialSummaries.reduce((s, e) => s + e.passed_attempts, 0);
     const weighted = officialSummaries.reduce(
       (s, e) => s + e.avg_score_pct * e.completed_attempts,
       0
@@ -322,9 +393,9 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
       completed,
       students,
       avgScore: completed > 0 ? Math.round((10 * weighted) / completed) / 10 : 0,
-      today: officialToday?.total_completed ?? 0,
+      passRate: completed > 0 ? Math.round((1000 * passed) / completed) / 10 : 0,
     };
-  }, [officialSummaries, officialToday]);
+  }, [officialSummaries]);
 
   const gradeChartData = useMemo(
     () =>
@@ -468,19 +539,13 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
               </Typography>
               <Box sx={{ ...platformAdminStatsGridSx, mb: 2.5 }}>
                 <PlatformAdminStatCard
-                  title="Completions today"
-                  value={officialTotals.today.toLocaleString()}
-                  icon={<QuizIcon sx={{ color: '#0d47a1' }} />}
-                  accent="#0d47a1"
-                />
-                <PlatformAdminStatCard
                   title="Total completions"
                   value={officialTotals.completed.toLocaleString()}
                   icon={<CorrectIcon sx={{ color: '#059669' }} />}
                   accent="#059669"
                 />
                 <PlatformAdminStatCard
-                  title="Students (sum)"
+                  title="Students"
                   value={officialTotals.students.toLocaleString()}
                   icon={<PeopleIcon sx={{ color: '#7c3aed' }} />}
                   accent="#7c3aed"
@@ -490,6 +555,12 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                   value={`${officialTotals.avgScore}%`}
                   icon={<TimelineIcon sx={{ color: '#b45309' }} />}
                   accent="#b45309"
+                />
+                <PlatformAdminStatCard
+                  title="Pass rate"
+                  value={`${officialTotals.passRate}%`}
+                  icon={<QuizIcon sx={{ color: '#0d47a1' }} />}
+                  accent="#0d47a1"
                 />
               </Box>
 
@@ -532,7 +603,10 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
 
               <Tabs
                 value={selectedOfficialExamId || false}
-                onChange={(_e, value: string) => setSelectedOfficialExamId(value)}
+                onChange={(_e, value: string) => {
+                  setSelectedOfficialExamId(value);
+                  setOfficialDrillLevel('all');
+                }}
                 variant="scrollable"
                 scrollButtons="auto"
                 sx={{
@@ -606,6 +680,12 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                       </Box>
                     ) : null}
 
+                    {officialDetailLoading ? (
+                      <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+                        <CircularProgress size={32} sx={{ color: ip.navy }} />
+                      </Box>
+                    ) : (
+                      <>
                     <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 1, mt: 1 }}>By level</Typography>
                     <TableContainer component={Paper} elevation={0} sx={{ ...platformAdminTablePaperSx, mb: 2.5 }}>
                       <Table size="small" sx={platformAdminTableSx}>
@@ -688,7 +768,210 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                         </TableBody>
                       </Table>
                     </TableContainer>
+                      </>
+                    )}
                   </CardContent>
+              </Card>
+
+              <Card sx={{ ...platformAdminCardSx, mb: 2.5 }}>
+                <CardContent>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 1.5,
+                      mb: 1.5,
+                    }}
+                  >
+                    <Box>
+                      <Typography sx={{ fontWeight: 700, color: ip.heading }}>
+                        Deep analysis
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: ip.subtext }}>
+                        Family/construct, subconstruct, and mechanic rollups from completed attempts
+                        {officialDrilldown
+                          ? ` · ${officialDrilldown.attempts_analyzed.toLocaleString()} analyzed`
+                          : ''}
+                      </Typography>
+                    </Box>
+                    <FormControl size="small" sx={{ minWidth: 140, ...platformAdminFilterSelectSx }}>
+                      <InputLabel id="official-drill-level">Level</InputLabel>
+                      <Select
+                        labelId="official-drill-level"
+                        label="Level"
+                        value={officialDrillLevel}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setOfficialDrillLevel(v === 'all' ? 'all' : Number(v));
+                        }}
+                        MenuProps={{ PaperProps: { sx: platformAdminSelectMenuPaperSx } }}
+                      >
+                        <MenuItem value="all">All levels</MenuItem>
+                        {(officialByLevel.length > 0
+                          ? officialByLevel.map((r) => r.level)
+                          : [1, 2, 3]
+                        ).map((level) => (
+                          <MenuItem key={level} value={level}>
+                            Level {level}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Box>
+
+                  {officialDrilldown?.notes?.map((note) => (
+                    <Alert key={note} severity="info" sx={{ mb: 1.5 }}>
+                      {note}
+                    </Alert>
+                  ))}
+
+                  {officialDrillLoading ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+                      <CircularProgress size={32} sx={{ color: ip.navy }} />
+                    </Box>
+                  ) : !officialDrilldown ? (
+                    <Typography variant="body2" sx={{ color: ip.subtext, py: 2 }}>
+                      No deep-dive data yet for this exam.
+                    </Typography>
+                  ) : (
+                    <>
+                      <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 1 }}>
+                        Score distribution (/1000)
+                      </Typography>
+                      <Box sx={{ width: '100%', height: 220, mb: 2.5 }}>
+                        <ResponsiveContainer>
+                          <BarChart data={officialDrilldown.score_distribution}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                            <XAxis dataKey="bucket" tick={{ fontSize: 11 }} />
+                            <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                            <Tooltip />
+                            <Bar dataKey="count" name="Completions" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </Box>
+
+                      <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
+                        By family / construct
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1 }}>
+                        Avg served = mean items of that family per completion. Symbolic only when
+                        construct_scores were stored.
+                      </Typography>
+                      <TableContainer component={Paper} elevation={0} sx={{ ...platformAdminTablePaperSx, mb: 2.5 }}>
+                        <Table size="small" sx={platformAdminTableSx}>
+                          <TableHead>
+                            <TableRow sx={platformAdminTableHeadRowSx}>
+                              <TableCell>Family</TableCell>
+                              <TableCell align="right">Attempts</TableCell>
+                              <TableCell align="right">Avg served</TableCell>
+                              <TableCell align="right">Accuracy</TableCell>
+                              <TableCell align="right">Avg construct /250</TableCell>
+                              <TableCell align="right">Floor met %</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {officialDrilldown.by_family.length === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={6} align="center" sx={{ py: 2, color: ip.subtext }}>
+                                  No family/construct maps on these completions.
+                                </TableCell>
+                              </TableRow>
+                            ) : (
+                              officialDrilldown.by_family.map((row) => (
+                                <TableRow key={row.key}>
+                                  <TableCell sx={{ fontWeight: 600 }}>{row.label}</TableCell>
+                                  <TableCell align="right">{row.attempts_with_data}</TableCell>
+                                  <TableCell align="right">{row.avg_served}</TableCell>
+                                  <TableCell align="right">{row.accuracy_pct}%</TableCell>
+                                  <TableCell align="right">
+                                    {row.avg_construct_score != null ? row.avg_construct_score : '—'}
+                                  </TableCell>
+                                  <TableCell align="right">
+                                    {row.floor_met_rate_pct != null ? `${row.floor_met_rate_pct}%` : '—'}
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+
+                      <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 1 }}>
+                        By subconstruct
+                      </Typography>
+                      <TableContainer component={Paper} elevation={0} sx={{ ...platformAdminTablePaperSx, mb: 2.5 }}>
+                        <Table size="small" sx={platformAdminTableSx}>
+                          <TableHead>
+                            <TableRow sx={platformAdminTableHeadRowSx}>
+                              <TableCell>Subconstruct</TableCell>
+                              <TableCell align="right">Attempts</TableCell>
+                              <TableCell align="right">Avg served</TableCell>
+                              <TableCell align="right">Accuracy</TableCell>
+                              <TableCell align="right">Total served</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {officialDrilldown.by_subconstruct.length === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={5} align="center" sx={{ py: 2, color: ip.subtext }}>
+                                  No subconstruct scores on these completions.
+                                </TableCell>
+                              </TableRow>
+                            ) : (
+                              officialDrilldown.by_subconstruct.map((row) => (
+                                <TableRow key={row.key}>
+                                  <TableCell sx={{ fontWeight: 600 }}>{row.label}</TableCell>
+                                  <TableCell align="right">{row.attempts_with_data}</TableCell>
+                                  <TableCell align="right">{row.avg_served}</TableCell>
+                                  <TableCell align="right">{row.accuracy_pct}%</TableCell>
+                                  <TableCell align="right">{row.served_sum}</TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+
+                      <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 1 }}>
+                        By mechanic
+                      </Typography>
+                      <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
+                        <Table size="small" sx={platformAdminTableSx}>
+                          <TableHead>
+                            <TableRow sx={platformAdminTableHeadRowSx}>
+                              <TableCell>Mechanic</TableCell>
+                              <TableCell align="right">Attempts</TableCell>
+                              <TableCell align="right">Avg served</TableCell>
+                              <TableCell align="right">Accuracy</TableCell>
+                              <TableCell align="right">Total served</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {officialDrilldown.by_mechanic.length === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={5} align="center" sx={{ py: 2, color: ip.subtext }}>
+                                  No mechanic feedback on these completions (Symbolic section-mode).
+                                </TableCell>
+                              </TableRow>
+                            ) : (
+                              officialDrilldown.by_mechanic.map((row) => (
+                                <TableRow key={row.key}>
+                                  <TableCell sx={{ fontWeight: 600 }}>{row.label}</TableCell>
+                                  <TableCell align="right">{row.attempts_with_data}</TableCell>
+                                  <TableCell align="right">{row.avg_served}</TableCell>
+                                  <TableCell align="right">{row.accuracy_pct}%</TableCell>
+                                  <TableCell align="right">{row.served_sum}</TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </>
+                  )}
+                </CardContent>
               </Card>
             </>
           )}

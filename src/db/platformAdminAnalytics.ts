@@ -347,6 +347,44 @@ export type OfficialExamRecentRow = {
   completed_at: string | null;
 };
 
+export type OfficialTagAggRow = {
+  key: string;
+  label: string;
+  attempts_with_data: number;
+  served_sum: number;
+  correct_sum: number;
+  avg_served: number;
+  avg_correct: number;
+  accuracy_pct: number;
+  avg_construct_score: number | null;
+  floor_met_rate_pct: number | null;
+};
+
+export type OfficialScoreBucketRow = {
+  bucket: string;
+  min_points: number;
+  max_points: number;
+  count: number;
+  pct: number;
+};
+
+export type OfficialExamDrilldown = {
+  exam_id: string;
+  label: string;
+  level_filter: number | null;
+  attempts_analyzed: number;
+  attempts_with_construct_scores: number;
+  attempts_with_subconstruct_scores: number;
+  attempts_with_mechanic_feedback: number;
+  by_family: OfficialTagAggRow[];
+  by_subconstruct: OfficialTagAggRow[];
+  by_mechanic: OfficialTagAggRow[];
+  score_distribution: OfficialScoreBucketRow[];
+  notes: string[];
+  generated_at: string;
+  indexes_building?: boolean;
+};
+
 export type OfficialDailyStatRow = {
   date: string;
   total_completed: number;
@@ -398,6 +436,35 @@ export async function getPlatformAdminOfficialExamDetail(
     summary: res.data.summary,
     by_level: Array.isArray(res.data.by_level) ? res.data.by_level : [],
     recent: Array.isArray(res.data.recent) ? res.data.recent : [],
+    generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
+    indexes_building: res.data.indexes_building === true,
+  };
+}
+
+export async function getPlatformAdminOfficialExamDrilldown(
+  examId: string,
+  opts?: { level?: number | null; refresh?: boolean }
+): Promise<OfficialExamDrilldown> {
+  const headers = await authHeaders();
+  const params: Record<string, string | number> = { ...refreshParams(opts?.refresh) };
+  if (typeof opts?.level === 'number' && opts.level > 0) params.level = opts.level;
+  const res = await axios.get(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAMS}/${encodeURIComponent(examId)}/drilldown`,
+    { headers, params }
+  );
+  return {
+    exam_id: typeof res.data.exam_id === 'string' ? res.data.exam_id : examId,
+    label: typeof res.data.label === 'string' ? res.data.label : examId,
+    level_filter: typeof res.data.level_filter === 'number' ? res.data.level_filter : null,
+    attempts_analyzed: Number(res.data.attempts_analyzed) || 0,
+    attempts_with_construct_scores: Number(res.data.attempts_with_construct_scores) || 0,
+    attempts_with_subconstruct_scores: Number(res.data.attempts_with_subconstruct_scores) || 0,
+    attempts_with_mechanic_feedback: Number(res.data.attempts_with_mechanic_feedback) || 0,
+    by_family: Array.isArray(res.data.by_family) ? res.data.by_family : [],
+    by_subconstruct: Array.isArray(res.data.by_subconstruct) ? res.data.by_subconstruct : [],
+    by_mechanic: Array.isArray(res.data.by_mechanic) ? res.data.by_mechanic : [],
+    score_distribution: Array.isArray(res.data.score_distribution) ? res.data.score_distribution : [],
+    notes: Array.isArray(res.data.notes) ? res.data.notes : [],
     generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
     indexes_building: res.data.indexes_building === true,
   };
