@@ -8,117 +8,118 @@ import PlatformAdminAnalyticsRoute from '../components/route_protection/Platform
 import NotFoundPage from '../pages/NotFoundPage';
 import BigSpinner from '../components/ui/BigSpinner';
 import StudentRegistrationFlowLayout from '../layouts/StudentRegistrationFlowLayout';
+import { lazyWithRetry as lazy } from '../utils/lazyWithRetry';
 
 /*
 LANDING AND PUBLIC PAGES
 */
-const LandingPage = React.lazy(() => import('../pages/landing/LandingPage'));
-const ForSchoolsPage = React.lazy(() => import('../pages/landing/ForSchoolsPage'));
-const SchoolRegistrationPage = React.lazy(
+const LandingPage = lazy(() => import('../pages/landing/LandingPage'));
+const ForSchoolsPage = lazy(() => import('../pages/landing/ForSchoolsPage'));
+const SchoolRegistrationPage = lazy(
   () => import('../pages/landing/SchoolRegistrationPage')
 );
-const SchoolLegalDocumentPage = React.lazy(
+const SchoolLegalDocumentPage = lazy(
   () => import('../pages/landing/SchoolLegalDocumentPage')
 );
-const SchoolPaymentPage = React.lazy(() => import('../pages/landing/SchoolPaymentPage'));
-const SignupChoicePage = React.lazy(() => import('../pages/landing/SignupChoicePage'));
-const StudentPathPage = React.lazy(() => import('../pages/landing/StudentPathPage'));
-const PublicAssessmentsPage = React.lazy(() => import('../pages/landing/PublicAssessmentsPage'));
+const SchoolPaymentPage = lazy(() => import('../pages/landing/SchoolPaymentPage'));
+const SignupChoicePage = lazy(() => import('../pages/landing/SignupChoicePage'));
+const StudentPathPage = lazy(() => import('../pages/landing/StudentPathPage'));
+const PublicAssessmentsPage = lazy(() => import('../pages/landing/PublicAssessmentsPage'));
 
-const SchoolPreviewLayout = React.lazy(() => import('../layouts/SchoolPreviewLayout'));
-const SchoolPreviewHubPage = React.lazy(() => import('../pages/landing/preview/SchoolPreviewHubPage'));
-const SchoolPreviewAssessmentPage = React.lazy(
+const SchoolPreviewLayout = lazy(() => import('../layouts/SchoolPreviewLayout'));
+const SchoolPreviewHubPage = lazy(() => import('../pages/landing/preview/SchoolPreviewHubPage'));
+const SchoolPreviewAssessmentPage = lazy(
   () => import('../pages/landing/preview/SchoolPreviewAssessmentPage')
 );
-const StudentPreviewLayout = React.lazy(() => import('../layouts/StudentPreviewLayout'));
-const StudentPreviewDashboardPage = React.lazy(
+const StudentPreviewLayout = lazy(() => import('../layouts/StudentPreviewLayout'));
+const StudentPreviewDashboardPage = lazy(
   () => import('../pages/landing/preview/StudentPreviewDashboardPage')
 );
-const StudentPreviewLeaderboardPage = React.lazy(
+const StudentPreviewLeaderboardPage = lazy(
   () => import('../pages/landing/preview/StudentPreviewLeaderboardPage')
 );
-const StudentPreviewHowItWorksPage = React.lazy(
+const StudentPreviewHowItWorksPage = lazy(
   () => import('../pages/landing/preview/StudentPreviewHowItWorksPage')
 );
-const StudentPreviewPracticePage = React.lazy(
+const StudentPreviewPracticePage = lazy(
   () => import('../pages/landing/preview/StudentPreviewPracticePage')
 );
-const StudentPreviewAssessmentsPage = React.lazy(
+const StudentPreviewAssessmentsPage = lazy(
   () => import('../pages/landing/preview/StudentPreviewAssessmentsPage')
 );
-const StudentPreviewBillingPage = React.lazy(
+const StudentPreviewBillingPage = lazy(
   () => import('../pages/landing/preview/StudentPreviewBillingPage')
 );
-const StudentPreviewSettingsPage = React.lazy(
+const StudentPreviewSettingsPage = lazy(
   () => import('../pages/landing/preview/StudentPreviewSettingsPage')
 );
 
 /*
 AUTHENTICATION PAGES: These are the pages that are used for the signup and login process
 */
-const LoginPage = React.lazy(() => import('../pages/authentication_pages/LoginPage'));
-const StudentRegistrationPage = React.lazy(() => import('../pages/authentication_pages/StudentRegistrationPage'));
-const StudentSchoolStepPage = React.lazy(() => import('../pages/authentication_pages/StudentSchoolStepPage'));
-const StudentMembershipStepPage = React.lazy(() => import('../pages/authentication_pages/StudentMembershipStepPage'));
-const StudentPaymentPage = React.lazy(() => import('../pages/authentication_pages/StudentPaymentPage'));
-const StudentWelcomePage = React.lazy(() => import('../pages/authentication_pages/StudentWelcomePage'));
-const AuthActionPage = React.lazy(() => import('../pages/authentication_pages/AuthActionPage'));
-const VerifyEmailErrorPage = React.lazy(() => import('../pages/authentication_pages/VerifyEmailErrorPage'));
-const ResetPasswordPage = React.lazy(() => import('../pages/authentication_pages/ResetPasswordPage'));
+const LoginPage = lazy(() => import('../pages/authentication_pages/LoginPage'));
+const StudentRegistrationPage = lazy(() => import('../pages/authentication_pages/StudentRegistrationPage'));
+const StudentSchoolStepPage = lazy(() => import('../pages/authentication_pages/StudentSchoolStepPage'));
+const StudentMembershipStepPage = lazy(() => import('../pages/authentication_pages/StudentMembershipStepPage'));
+const StudentPaymentPage = lazy(() => import('../pages/authentication_pages/StudentPaymentPage'));
+const StudentWelcomePage = lazy(() => import('../pages/authentication_pages/StudentWelcomePage'));
+const AuthActionPage = lazy(() => import('../pages/authentication_pages/AuthActionPage'));
+const VerifyEmailErrorPage = lazy(() => import('../pages/authentication_pages/VerifyEmailErrorPage'));
+const ResetPasswordPage = lazy(() => import('../pages/authentication_pages/ResetPasswordPage'));
 
 /*
 DASHBOARD PAGES: These are the pages that are used for the dashboard
 */
-const DashboardPage = React.lazy(() => import('../pages/dashboard_pages/DashboardPage'));
-const ProfilePage = React.lazy(() => import('../pages/dashboard_pages/ProfilePage'));
-const SettingsPage = React.lazy(() => import('../pages/dashboard_pages/SettingsPage'));
-const AssessmentsPage = React.lazy(() => import('../pages/dashboard_pages/AssessmentsPage'));
-const BillingPage = React.lazy(() => import('../pages/dashboard_pages/BillingPage'));
-const ReportsPage = React.lazy(() => import('../pages/dashboard_pages/ReportsPage'));
-const LeaderboardPage = React.lazy(() => import('../pages/dashboard_pages/LeaderboardPage'));
-const HowItWorksPage = React.lazy(() => import('../pages/dashboard_pages/HowItWorksPage'));
-const PracticeTestPage = React.lazy(() => import('../pages/dashboard_pages/PracticeTestPage'));
-const PracticeTakePage = React.lazy(() => import('../pages/dashboard_pages/PracticeTakePage'));
-const QuestionOfTheDayPage = React.lazy(() => import('../pages/dashboard_pages/QuestionOfTheDayPage'));
-const RewardsShopPage = React.lazy(() => import('../pages/dashboard_pages/RewardsShopPage'));
-const AssessmentTakePage = React.lazy(() => import('../pages/dashboard_pages/AssessmentTakePage'));
-const AssessmentResultPage = React.lazy(() => import('../pages/dashboard_pages/AssessmentResultPage'));
-const AssessmentDetailPage = React.lazy(() => import('../pages/dashboard_pages/AssessmentDetailPage'));
-const AssessmentResultDetailPage = React.lazy(() => import('../pages/dashboard_pages/AssessmentResultDetailPage'));
+const DashboardPage = lazy(() => import('../pages/dashboard_pages/DashboardPage'));
+const ProfilePage = lazy(() => import('../pages/dashboard_pages/ProfilePage'));
+const SettingsPage = lazy(() => import('../pages/dashboard_pages/SettingsPage'));
+const AssessmentsPage = lazy(() => import('../pages/dashboard_pages/AssessmentsPage'));
+const BillingPage = lazy(() => import('../pages/dashboard_pages/BillingPage'));
+const ReportsPage = lazy(() => import('../pages/dashboard_pages/ReportsPage'));
+const LeaderboardPage = lazy(() => import('../pages/dashboard_pages/LeaderboardPage'));
+const HowItWorksPage = lazy(() => import('../pages/dashboard_pages/HowItWorksPage'));
+const PracticeTestPage = lazy(() => import('../pages/dashboard_pages/PracticeTestPage'));
+const PracticeTakePage = lazy(() => import('../pages/dashboard_pages/PracticeTakePage'));
+const QuestionOfTheDayPage = lazy(() => import('../pages/dashboard_pages/QuestionOfTheDayPage'));
+const RewardsShopPage = lazy(() => import('../pages/dashboard_pages/RewardsShopPage'));
+const AssessmentTakePage = lazy(() => import('../pages/dashboard_pages/AssessmentTakePage'));
+const AssessmentResultPage = lazy(() => import('../pages/dashboard_pages/AssessmentResultPage'));
+const AssessmentDetailPage = lazy(() => import('../pages/dashboard_pages/AssessmentDetailPage'));
+const AssessmentResultDetailPage = lazy(() => import('../pages/dashboard_pages/AssessmentResultDetailPage'));
 
 /*
 SCHOOL ADMIN PAGES: These are the pages for school administrators
 */
-const SchoolAdminPageWrapper = React.lazy(() => import('../components/school_admin/SchoolAdminPageWrapper'));
-const SchoolAdminDashboardPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminDashboardPage'));
-const SchoolAdminStudentsPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminStudentsPage'));
-const SchoolAdminAnalyticsPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminAnalyticsPage'));
-const SchoolAdminSettingsPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminSettingsPage'));
-const SchoolAdminReportsPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminReportsPage'));
-const SchoolAdminAlertsPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminAlertsPage'));
-const SchoolAdminSubscriptionPage = React.lazy(() =>
+const SchoolAdminPageWrapper = lazy(() => import('../components/school_admin/SchoolAdminPageWrapper'));
+const SchoolAdminDashboardPage = lazy(() => import('../pages/school_admin_pages/SchoolAdminDashboardPage'));
+const SchoolAdminStudentsPage = lazy(() => import('../pages/school_admin_pages/SchoolAdminStudentsPage'));
+const SchoolAdminAnalyticsPage = lazy(() => import('../pages/school_admin_pages/SchoolAdminAnalyticsPage'));
+const SchoolAdminSettingsPage = lazy(() => import('../pages/school_admin_pages/SchoolAdminSettingsPage'));
+const SchoolAdminReportsPage = lazy(() => import('../pages/school_admin_pages/SchoolAdminReportsPage'));
+const SchoolAdminAlertsPage = lazy(() => import('../pages/school_admin_pages/SchoolAdminAlertsPage'));
+const SchoolAdminSubscriptionPage = lazy(() =>
   import('../pages/school_admin_pages/SchoolAdminSubscriptionPage').then((m) => ({
     default: m.SchoolAdminSubscriptionPage,
   }))
 );
-const SchoolAdminStudentDetailPage = React.lazy(() => import('../pages/school_admin_pages/SchoolAdminStudentDetailPage'));
+const SchoolAdminStudentDetailPage = lazy(() => import('../pages/school_admin_pages/SchoolAdminStudentDetailPage'));
 
 /*
 PLATFORM ADMIN PAGES: Internal ops dashboard for Argus team
 */
-const PlatformAdminLayout = React.lazy(() => import('../layouts/PlatformAdminLayout'));
-const PlatformAdminSchoolsPage = React.lazy(() => import('../pages/platform_admin_pages/PlatformAdminSchoolsPage'));
-const PlatformAdminSchoolDetailPage = React.lazy(() => import('../pages/platform_admin_pages/PlatformAdminSchoolDetailPage'));
-const PlatformAdminRewardsPage = React.lazy(() => import('../pages/platform_admin_pages/PlatformAdminRewardsPage'));
-const PlatformAdminStudentsPage = React.lazy(() => import('../pages/platform_admin_pages/PlatformAdminStudentsPage'));
-const PlatformAdminStudentDetailPage = React.lazy(() => import('../pages/platform_admin_pages/PlatformAdminStudentDetailPage'));
-const PlatformAdminPipelinePage = React.lazy(() => import('../pages/platform_admin_pages/PlatformAdminPipelinePage'));
-const PlatformAdminAdminsPage = React.lazy(() => import('../pages/platform_admin_pages/PlatformAdminAdminsPage'));
-const PlatformAdminAnalyticsPage = React.lazy(() => import('../pages/platform_admin_pages/PlatformAdminAnalyticsPage'));
-const PlatformAdminQuestionReportsPage = React.lazy(
+const PlatformAdminLayout = lazy(() => import('../layouts/PlatformAdminLayout'));
+const PlatformAdminSchoolsPage = lazy(() => import('../pages/platform_admin_pages/PlatformAdminSchoolsPage'));
+const PlatformAdminSchoolDetailPage = lazy(() => import('../pages/platform_admin_pages/PlatformAdminSchoolDetailPage'));
+const PlatformAdminRewardsPage = lazy(() => import('../pages/platform_admin_pages/PlatformAdminRewardsPage'));
+const PlatformAdminStudentsPage = lazy(() => import('../pages/platform_admin_pages/PlatformAdminStudentsPage'));
+const PlatformAdminStudentDetailPage = lazy(() => import('../pages/platform_admin_pages/PlatformAdminStudentDetailPage'));
+const PlatformAdminPipelinePage = lazy(() => import('../pages/platform_admin_pages/PlatformAdminPipelinePage'));
+const PlatformAdminAdminsPage = lazy(() => import('../pages/platform_admin_pages/PlatformAdminAdminsPage'));
+const PlatformAdminAnalyticsPage = lazy(() => import('../pages/platform_admin_pages/PlatformAdminAnalyticsPage'));
+const PlatformAdminQuestionReportsPage = lazy(
   () => import('../pages/platform_admin_pages/PlatformAdminQuestionReportsPage')
 );
-const PlatformAdminTestResultsPage = React.lazy(
+const PlatformAdminTestResultsPage = lazy(
   () => import('../pages/platform_admin_pages/PlatformAdminTestResultsPage')
 );
 

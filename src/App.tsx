@@ -10,6 +10,8 @@ import { queryClient } from './query/queryClient';
 import { Toaster } from './components/ui/toaster';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
+import BigSpinner from './components/ui/BigSpinner';
+import RouteErrorFallback from './components/ui/RouteErrorFallback';
 
 function App() {
   // Create dark theme for Material-UI
@@ -104,13 +106,20 @@ function App() {
 
   return (
     <Provider store={store}>
-      <PersistGate loading={null} persistor={persistor}>
+      <PersistGate loading={<BigSpinner />} persistor={persistor}>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider theme={darkTheme}>
             <CssBaseline />
-            <div className="App">
-              <AppRouter />
-            </div>
+            <Sentry.ErrorBoundary
+              fallback={({ resetError }) => <RouteErrorFallback resetError={resetError} />}
+              beforeCapture={(scope) => {
+                scope.setTag('location', 'AppRoot');
+              }}
+            >
+              <div className="App">
+                <AppRouter />
+              </div>
+            </Sentry.ErrorBoundary>
             <Toaster />
           </ThemeProvider>
         </QueryClientProvider>

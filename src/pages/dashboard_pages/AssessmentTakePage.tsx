@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useCallback, useMemo, useRef, Suspense, lazy } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef, Suspense } from 'react';
+import { lazyWithRetry as lazy } from '../../utils/lazyWithRetry';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,

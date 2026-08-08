@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -151,8 +151,7 @@ const AssessmentDetailPage: React.FC = () => {
   const goBack = () => navigate('/assessments/available');
 
   if (!assessmentId) {
-    navigate('/assessments', { replace: true });
-    return null;
+    return <Navigate to="/assessments" replace />;
   }
 
   if (loading) {

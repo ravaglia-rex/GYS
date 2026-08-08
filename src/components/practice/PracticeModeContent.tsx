@@ -222,12 +222,14 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
     };
   }, [selectedExamId, selectedExamHasPracticeBank]);
 
+  const fullPracticeUnlock = Boolean(assessmentGate?.fullUnlock);
+
   const maxUnlocked = useMemo((): PracticeLevel => {
-    if (!practiceUnlock) return 1;
+    if (!practiceUnlock) return fullPracticeUnlock ? 3 : 1;
     const officialTiers = practiceUnlock.officialTierCountByExam[selectedExamId] ?? 3;
     const prog = practiceUnlock.progressByExam[selectedExamId];
-    return maxUnlockedPracticeLevel(prog, officialTiers);
-  }, [practiceUnlock, selectedExamId]);
+    return maxUnlockedPracticeLevel(prog, officialTiers, { fullUnlock: fullPracticeUnlock });
+  }, [practiceUnlock, selectedExamId, fullPracticeUnlock]);
 
   useEffect(() => {
     setSelectedLevel((prev) => (prev <= maxUnlocked ? prev : maxUnlocked) as PracticeLevel);
@@ -421,8 +423,9 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
       <Box data-tutorial-id="student-practice-exam-picker">
         <PracticeSectionHeading step={1} title="Choose an exam" />
         <Typography variant="caption" sx={{ display: 'block', color: 'rgba(255,255,255,0.45)', mb: 1.75 }}>
-          Select one assessment below (same unlock rules as your official exams). The highlighted card is your current
-          choice.
+          {fullPracticeUnlock
+            ? 'All practice-eligible exams are unlocked for your school. The highlighted card is your current choice.'
+            : 'Select one assessment below (same unlock rules as your official exams). The highlighted card is your current choice.'}
         </Typography>
         <Box
           sx={{
@@ -625,7 +628,7 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
 
       <Box data-tutorial-id="student-practice-level-picker">
         <PracticeSectionHeading step={2} title="Difficulty level" />
-        {practiceUnlock && maxUnlocked < 3 && (
+        {practiceUnlock && !fullPracticeUnlock && maxUnlocked < 3 && (
           <Alert
             severity="info"
             sx={{

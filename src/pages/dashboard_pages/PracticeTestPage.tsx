@@ -9,6 +9,7 @@ import { StudentProfileError } from '../../db/studentCollection';
 import type { AssessmentType } from '../../db/assessmentCollection';
 import PracticeModeContent, { type PracticeUnlockContext } from '../../components/practice/PracticeModeContent';
 import { ASSESSMENT_ORDER, membershipLevelForAssessmentGate, type AssessmentProgress } from '../../utils/assessmentGating';
+import { hasFullPracticeUnlock } from '../../utils/practiceAssessmentsAccess';
 import BigSpinner from '../../components/ui/BigSpinner';
 import PageTutorial from '../../components/tutorial/PageTutorial';
 import { useAssessmentConfig, useStudent } from '../../query/hooks';
@@ -79,6 +80,7 @@ const PracticeTestPage: React.FC = () => {
     });
     const progress = (student?.assessment_progress ?? {}) as Record<string, AssessmentProgress>;
     const membershipLevel = membershipLevelForAssessmentGate(student ?? {});
+    const fullUnlock = hasFullPracticeUnlock(student?.school_id);
     return {
       progressByExam: progress,
       officialTierCountByExam,
@@ -87,6 +89,7 @@ const PracticeTestPage: React.FC = () => {
         grade,
         assessments: sorted,
         progress,
+        fullUnlock,
       },
     };
   }, [config, student, grade]);

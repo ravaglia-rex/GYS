@@ -15,9 +15,17 @@ export interface PracticeAssessmentGateInput {
   grade: number;
   assessments: AssessmentType[];
   progress: Record<string, AssessmentProgress>;
+  /**
+   * When true (e.g. Sri Sri Academy test roster), every practice-eligible exam is unlocked
+   * regardless of membership / official prerequisites. Official exam gates are unchanged.
+   */
+  fullUnlock?: boolean;
 }
 
 export function practiceExamGate(examId: string, gate: PracticeAssessmentGateInput): GateResult {
+  if (gate.fullUnlock) {
+    return { locked: false, reason: null };
+  }
   return computeGate(examId, gate.membershipLevel, gate.progress, gate.grade, gate.assessments);
 }
 
@@ -104,11 +112,14 @@ export function recommendedLevelLabel(level: PracticeLevel): string {
  * `proficiency_tier` is 1-based (which official level is in focus). If you have advanced to
  * official level 2, you may practice at levels 1 and 2. After all official tiers are complete
  * (proficiency_tier greater than the number of official tiers), all three practice levels unlock.
+ * Pass `fullUnlock: true` for test-school rosters that bypass official progress caps.
  */
 export function maxUnlockedPracticeLevel(
   progress: Partial<Pick<AssessmentProgress, 'proficiency_tier'>> | null | undefined,
-  totalOfficialTiers: number
+  totalOfficialTiers: number,
+  opts?: { fullUnlock?: boolean }
 ): PracticeLevel {
+  if (opts?.fullUnlock) return 3;
   const pt =
     typeof progress?.proficiency_tier === 'number' && !Number.isNaN(progress.proficiency_tier)
       ? progress.proficiency_tier
@@ -205,9 +216,12 @@ export function isValidPracticeHubSelection(
     progressByExam != null
       ? maxUnlockedPracticeLevel(
           progressByExam[selection.examId],
-          officialTierCountByExam?.[selection.examId] ?? 3
+          officialTierCountByExam?.[selection.examId] ?? 3,
+          { fullUnlock: gate?.fullUnlock }
         )
-      : 1;
+      : gate?.fullUnlock
+        ? 3
+        : 1;
   return selection.level >= 1 && selection.level <= maxLevel;
 }
 
@@ -222,9 +236,12 @@ export function defaultPracticeHubSelection(
     progressByExam != null
       ? maxUnlockedPracticeLevel(
           progressByExam[examId],
-          officialTierCountByExam?.[examId] ?? 3
+          officialTierCountByExam?.[examId] ?? 3,
+          { fullUnlock: gate?.fullUnlock }
         )
-      : 1;
+      : gate?.fullUnlock
+        ? 3
+        : 1;
   const level = Math.min(recommendedPracticeLevel(grade), max0) as PracticeLevel;
   return { examId, level };
 }
