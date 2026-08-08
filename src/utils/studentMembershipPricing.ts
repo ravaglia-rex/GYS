@@ -37,6 +37,29 @@ export function studentMembershipUpgradeAmountPaise(
   return Math.round(deltaBase * 100);
 }
 
+/**
+ * Tax-inclusive upgrade charge in paise (matches backend `studentMembershipUpgradeAmountPaise`).
+ * Prepaid credit is subtracted from this final amount at checkout.
+ */
+export function studentMembershipUpgradeChargePaise(
+  currentLevel: unknown,
+  targetLevel: 1 | 2 | 3 | 4,
+  prepaidCreditPaise = 0
+): number | null {
+  const current = normalizeStudentMembershipLevel(currentLevel);
+  if (current >= targetLevel) {
+    return null;
+  }
+  const fromBase = current >= 1 ? STUDENT_SIGNUP_BASE_INR[current as 1 | 2 | 3 | 4] : 0;
+  const deltaBase = STUDENT_SIGNUP_BASE_INR[targetLevel] - fromBase;
+  if (deltaBase <= 0) {
+    return null;
+  }
+  const listTaxInclusive = Math.round(deltaBase * 1.18 * 100);
+  const credit = Math.max(0, Math.round(Number(prepaidCreditPaise) || 0));
+  return Math.max(0, listTaxInclusive - credit);
+}
+
 export function formatInrFromPaise(paise: number): string {
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',

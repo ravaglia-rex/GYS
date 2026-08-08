@@ -41,6 +41,8 @@ export type GamificationState = {
   practice_coins_earned_total: number;
   practice_last_awarded_week?: string;
   exam_coins_earned_total: number;
+  login_streak_coins_earned_total: number;
+  qod_streak_coins_earned_total: number;
   redemptions?: Record<string, RedemptionRecord>;
 };
 

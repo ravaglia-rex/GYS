@@ -33,7 +33,13 @@ export async function getProctoringUploadUrl(params: {
   uid: string;
   attempt_id: string;
   event_id: string;
-}): Promise<{ upload_url: string; object_key: string }> {
+}): Promise<{
+  upload_url: string;
+  object_key: string;
+  method?: 'POST' | 'PUT';
+  fields?: Record<string, string> | null;
+  max_bytes?: number | null;
+}> {
   const authToken = await authTokenHandler.getAuthToken();
   const response = await axios.post(
     `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${ASSESSMENTS_APIS}${GET_PROCTORING_UPLOAD_URL}`,

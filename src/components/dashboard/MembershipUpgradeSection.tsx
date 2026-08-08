@@ -12,13 +12,15 @@ import { auth } from '../../firebase/firebase';
 import { StudentProfileError } from '../../db/studentCollection';
 import { useStudent } from '../../query/hooks';
 import {
+  applyStudentUpgradeWithCredit,
   createStudentUpgradeOrder,
   verifyStudentUpgradePayment,
 } from '../../db/studentMembershipUpgradePayment';
 import {
   MEMBERSHIP_LEVEL_LABEL,
+  formatInrFromPaise,
   normalizeStudentMembershipLevel,
-  studentMembershipUpgradeAmountPaise,
+  studentMembershipUpgradeChargePaise,
 } from '../../utils/studentMembershipPricing';
 import { useToast } from '../ui/use-toast';
 import { gysPaymentInvoiceNumberFromOrderId } from '../../utils/gysPaymentInvoiceNumber';
@@ -52,13 +54,6 @@ function razorpayPaymentFailedUserMessage(payload: unknown): string {
     }
   }
   return bits.filter((b, i) => bits.indexOf(b) === i).join(' - ');
-}
-
-function formatRsFromPaise(paise: number): string {
-  return `Rs ${new Intl.NumberFormat('en-IN', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(paise / 100)}`;
 }
 
 const TARGETS: Array<1 | 2 | 3 | 4> = [1, 2, 3, 4];
@@ -96,6 +91,7 @@ const MembershipUpgradeSection: React.FC = () => {
   const [uid, setUid] = useState<string | null>(auth.currentUser?.uid ?? null);
   const [loading, setLoading] = useState(true);
   const [membershipLevel, setMembershipLevel] = useState<number>(0);
+  const [prepaidCreditPaise, setPrepaidCreditPaise] = useState(0);
   const [busyTarget, setBusyTarget] = useState<1 | 2 | 3 | 4 | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -122,6 +118,10 @@ const MembershipUpgradeSection: React.FC = () => {
     }
     if (data) {
       setMembershipLevel(normalizeStudentMembershipLevel(data?.membership_level));
+      const creditRaw = (data as { prepaid_membership_credit_paise?: unknown })
+        ?.prepaid_membership_credit_paise;
+      const creditN = typeof creditRaw === 'number' ? creditRaw : Number(creditRaw);
+      setPrepaidCreditPaise(Number.isFinite(creditN) && creditN > 0 ? Math.round(creditN) : 0);
       setLoadError(null);
     }
     if (isError) {
@@ -151,6 +151,25 @@ const MembershipUpgradeSection: React.FC = () => {
     setBusyTarget(targetLevel);
     try {
       const order = await createStudentUpgradeOrder(targetLevel);
+
+      if (order.free_upgrade) {
+        const granted = await applyStudentUpgradeWithCredit(targetLevel);
+        setBusyTarget(null);
+        await refreshProfile();
+        const creditNote =
+          granted.credit_applied_paise > 0
+            ? ` Prepaid credit applied: ${formatInrFromPaise(granted.credit_applied_paise)}.`
+            : '';
+        toast({
+          title: 'Membership updated',
+          description: `You now have ${MEMBERSHIP_LEVEL_LABEL[targetLevel]}.${creditNote}`,
+        });
+        return;
+      }
+
+      if (!order.key_id || !order.order_id) {
+        throw new Error('Invalid payment order from server');
+      }
       assertRazorpayCheckoutKeyAllowed(order.key_id, 'student_membership_upgrade');
 
       const scriptOk = await loadScript('https://checkout.razorpay.com/v1/checkout.js');
@@ -329,7 +348,7 @@ const MembershipUpgradeSection: React.FC = () => {
 
   const atHighestTier =
     membershipLevel === 4 ||
-    TARGETS.every((t) => studentMembershipUpgradeAmountPaise(membershipLevel, t) === null);
+    TARGETS.every((t) => studentMembershipUpgradeChargePaise(membershipLevel, t, prepaidCreditPaise) === null);
 
   return (
     <Paper
@@ -348,10 +367,26 @@ const MembershipUpgradeSection: React.FC = () => {
       </Box>
       <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)', mb: 2 }}>
         Trial first, then three annual packages - Reasoning Triad, Stream Ready, and Career Ready. Your current
-        package is highlighted. Amounts shown are base list prices; any applicable taxes, duties, or compliance charges
-        are included unless separately stated. When upgrading you pay only the list-price difference (Trial Discovery
-        credits toward higher tiers the same way).
+        package is highlighted. Amounts shown include applicable charges. When upgrading you pay only the difference
+        to the higher package. Any prepaid credit on your account is applied to that final amount before checkout.
       </Typography>
+      {prepaidCreditPaise > 0 ? (
+        <Typography
+          variant="body2"
+          sx={{
+            color: '#c4b5fd',
+            mb: 2,
+            px: 1.5,
+            py: 1,
+            borderRadius: 1,
+            bgcolor: 'rgba(139, 92, 246, 0.12)',
+            border: '1px solid rgba(167, 139, 250, 0.35)',
+          }}
+        >
+          Prepaid credit available: {formatInrFromPaise(prepaidCreditPaise)}. It will be applied automatically
+          when you upgrade.
+        </Typography>
+      ) : null}
       {atHighestTier ? (
         <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.65)', mb: 2 }}>
           You already have the highest package. Exam fees and other billing are below.
@@ -365,10 +400,13 @@ const MembershipUpgradeSection: React.FC = () => {
         }}
       >
         {MEMBERSHIP_PACKAGE_CARDS.map((pkg) => {
-          const paise = studentMembershipUpgradeAmountPaise(membershipLevel, pkg.level);
+          const paise = studentMembershipUpgradeChargePaise(
+            membershipLevel,
+            pkg.level,
+            prepaidCreditPaise
+          );
           const isCurrent = membershipLevel === pkg.level;
           const isLowerTier = membershipLevel > pkg.level;
-          const upgradePriceLabel = paise !== null ? formatRsFromPaise(paise) : null;
           const checkoutBusy = busyTarget !== null;
 
           return (
@@ -475,8 +513,12 @@ const MembershipUpgradeSection: React.FC = () => {
                   }}
                 >
                   {busyTarget === pkg.level
-                    ? 'Opening checkout…'
-                    : `Upgrade ${upgradePriceLabel}`}
+                    ? paise === 0
+                      ? 'Applying credit…'
+                      : 'Opening checkout…'
+                    : paise === 0
+                      ? 'Upgrade with credit'
+                      : 'Upgrade'}
                 </Button>
               ) : (
                 <Button fullWidth variant="outlined" disabled sx={{ borderColor: '#64748b', color: '#94a3b8' }}>

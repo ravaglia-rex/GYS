@@ -132,6 +132,7 @@ export const CREATE_STUDENT_REGISTRATION_ORDER = '/createStudentRegistrationOrde
 export const VERIFY_STUDENT_REGISTRATION_PAYMENT = '/verifyStudentRegistrationPayment';
 export const CREATE_STUDENT_UPGRADE_ORDER = '/createStudentUpgradeOrder';
 export const VERIFY_STUDENT_UPGRADE_PAYMENT = '/verifyStudentUpgradePayment';
+export const APPLY_STUDENT_UPGRADE_WITH_CREDIT = '/applyStudentUpgradeWithCredit';
 
 // Email check
 export const CHECK_EMAIL_EXISTS='/checkEmailExists';

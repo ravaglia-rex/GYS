@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef, Suspense, lazy } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef, Suspense, lazy } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -589,6 +589,11 @@ export default function AssessmentTakePage() {
   const progressColor = '#ffc107';
   const primaryBtn = flow.theme === 'purple' ? '#7b1fa2' : '#0d47a1';
 
+  const officialQuestionReport = useMemo(
+    () => (uid && attemptId ? { kind: 'official' as const, uid, attemptId } : null),
+    [uid, attemptId]
+  );
+
   if (!assessmentId) {
     navigate('/assessments');
     return null;
@@ -733,9 +738,7 @@ export default function AssessmentTakePage() {
         onSelectOption={setSelectedOption}
         theme={flow.theme}
         renderMath={mathExam}
-        questionReport={
-          uid && attemptId && currentQuestion ? { kind: 'official', uid, attemptId } : null
-        }
+        questionReport={officialQuestionReport}
       />
     </Suspense>
   );

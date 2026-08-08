@@ -1832,7 +1832,7 @@ function interleaveBlankSlot(syms: unknown[], blank: BlankSlot): Array<{ kind: '
 }
 
 /** Pattern-logic and generic structured stimuli - readable layout instead of raw JSON. */
-const HumanFriendlyStimulus: React.FC<{
+const HumanFriendlyStimulusInner: React.FC<{
   q: ExamQuestion;
   border: string;
   renderMath?: boolean;
@@ -2333,6 +2333,8 @@ const HumanFriendlyStimulus: React.FC<{
     </Box>
   );
 };
+
+const HumanFriendlyStimulus = React.memo(HumanFriendlyStimulusInner);
 
 interface OptionPickerProps {
   options: string[];

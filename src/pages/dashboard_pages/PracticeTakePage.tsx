@@ -115,6 +115,16 @@ function buildPracticeQuestionPages(questions: ExamQuestion[], groupedByPassage:
 }
 
 /** MM:SS for question timer (hours omitted unless needed). */
+const QuestionStopwatch: React.FC<{ startedAt: number }> = React.memo(({ startedAt }) => {
+  const [elapsedMs, setElapsedMs] = useState(0);
+  useEffect(() => {
+    setElapsedMs(0);
+    const id = window.setInterval(() => setElapsedMs(Date.now() - startedAt), 200);
+    return () => clearInterval(id);
+  }, [startedAt]);
+  return <Typography component="span">{formatQuestionElapsed(elapsedMs)}</Typography>;
+});
+
 function formatQuestionElapsed(ms: number): string {
   const totalSec = Math.floor(ms / 1000);
   const h = Math.floor(totalSec / 3600);
@@ -190,7 +200,6 @@ export default function PracticeTakePage() {
   const [answerChecked, setAnswerChecked] = useState(false);
   const [revealingSolutions, setRevealingSolutions] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
-  const [questionElapsedMs, setQuestionElapsedMs] = useState(0);
   /** Outcomes for the current batch; synced to Firestore once when the session completes. */
   const pendingOutcomesRef = useRef<PracticeTakePendingOutcome[]>([]);
   const advancingQuestionRef = useRef(false);
@@ -258,12 +267,7 @@ export default function PracticeTakePage() {
     timeToFirstCheckMsRef.current = 0;
   }, [index]);
 
-  useEffect(() => {
-    setQuestionElapsedMs(0);
-    const t0 = Date.now();
-    const id = window.setInterval(() => setQuestionElapsedMs(Date.now() - t0), 200);
-    return () => clearInterval(id);
-  }, [index, questions.length]);
+  // Elapsed timer lives in QuestionStopwatch leaf so ticks don't re-render ExamQuestionBody.
 
   useEffect(() => {
     if (!supported || !practiceLevel || loading || questions.length === 0) return;
@@ -543,10 +547,32 @@ export default function PracticeTakePage() {
     goToPracticeHub();
   };
 
-  const questionReport =
-    authUid.trim().length > 0 && practiceLevel && supported
-      ? { kind: 'practice' as const, uid: authUid, examId, level: practiceLevel }
-      : null;
+  const questionReport = useMemo(
+    () =>
+      authUid.trim().length > 0 && practiceLevel && supported
+        ? { kind: 'practice' as const, uid: authUid, examId, level: practiceLevel }
+        : null,
+    [authUid, practiceLevel, supported, examId]
+  );
+
+  const inlineRenderCacheRef = useRef(new Map<string, ExamQuestion>());
+  const getQuestionForInlineRender = useCallback((question: ExamQuestion, itemId: string) => {
+    const cached = inlineRenderCacheRef.current.get(itemId);
+    // Reuse prior stripped object when the source question identity is unchanged.
+    if (cached && (cached as ExamQuestion & { __src?: ExamQuestion }).__src === question) {
+      return cached;
+    }
+    const stripped: ExamQuestion & { __src?: ExamQuestion } = {
+      ...question,
+      passage: undefined,
+      stimulus: undefined,
+      stimulus_type: undefined,
+      question_type: undefined,
+    };
+    stripped.__src = question;
+    inlineRenderCacheRef.current.set(itemId, stripped);
+    return stripped;
+  }, []);
 
   if (!supported || !practiceLevel) {
     return (
@@ -695,13 +721,7 @@ export default function PracticeTakePage() {
         ) : null}
         {currentQuestions.map((question, offset) => {
           const itemId = resolvePracticeItemId(question) ?? `${currentPage.passageId ?? 'passage'}_${offset}`;
-          const questionForInlineRender: ExamQuestion = {
-            ...question,
-            passage: undefined,
-            stimulus: undefined,
-            stimulus_type: undefined,
-            question_type: undefined,
-          };
+          const questionForInlineRender = getQuestionForInlineRender(question, itemId);
           return (
             <Box key={itemId} sx={{ pb: offset === currentQuestions.length - 1 ? 0 : 3, mb: offset === currentQuestions.length - 1 ? 0 : 3, borderBottom: offset === currentQuestions.length - 1 ? 'none' : '1px solid #e2e8f0' }}>
               <ExamQuestionBody
@@ -810,7 +830,7 @@ export default function PracticeTakePage() {
             <Typography component="span" sx={{ opacity: 0.82, fontWeight: 600, fontSize: '0.62rem', display: { xs: 'none', sm: 'inline' } }}>
               {groupedPassagePractice ? 'This passage' : 'This question'}
             </Typography>
-            <Typography component="span">{formatQuestionElapsed(questionElapsedMs)}</Typography>
+            <QuestionStopwatch startedAt={questionWallClockStartRef.current || Date.now()} />
           </Box>
           <Typography
             sx={{

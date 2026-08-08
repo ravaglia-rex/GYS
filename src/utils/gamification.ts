@@ -51,6 +51,8 @@ export function readGamificationFromStudent(student: Record<string, unknown> | n
       practice_accuracy_pct: 0,
       practice_coins_earned_total: 0,
       exam_coins_earned_total: 0,
+      login_streak_coins_earned_total: 0,
+      qod_streak_coins_earned_total: 0,
       redemptions: {},
     };
   }
@@ -117,6 +119,14 @@ export function readGamificationFromStudent(student: Record<string, unknown> | n
     exam_coins_earned_total:
       typeof g.exam_coins_earned_total === 'number' && g.exam_coins_earned_total > 0
         ? Math.floor(g.exam_coins_earned_total)
+        : 0,
+    login_streak_coins_earned_total:
+      typeof g.login_streak_coins_earned_total === 'number' && g.login_streak_coins_earned_total > 0
+        ? Math.floor(g.login_streak_coins_earned_total)
+        : 0,
+    qod_streak_coins_earned_total:
+      typeof g.qod_streak_coins_earned_total === 'number' && g.qod_streak_coins_earned_total > 0
+        ? Math.floor(g.qod_streak_coins_earned_total)
         : 0,
     redemptions: (g.redemptions ?? {}) as GamificationState['redemptions'],
   };

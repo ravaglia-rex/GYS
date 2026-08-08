@@ -530,6 +530,104 @@ export async function getPlatformAdminOfficialExamDrilldown(
   };
 }
 
+export type OfficialQuestionTagType = 'family' | 'mechanic' | 'subconstruct';
+
+export type OfficialQuestionOptionStat = {
+  index: number;
+  letter: string;
+  text: string;
+  pick_count: number;
+  pick_pct: number;
+  is_correct: boolean;
+};
+
+export type OfficialQuestionStatRow = {
+  item_id: string;
+  prompt: string;
+  prompt_preview: string;
+  stimulus: unknown;
+  stimulus_type: string | null;
+  options: OfficialQuestionOptionStat[];
+  correct_index: number | null;
+  family: string | null;
+  mechanic: string | null;
+  subconstruct: string | null;
+  times_seen: number;
+  times_correct: number;
+  times_incorrect: number;
+  times_ungraded: number;
+  accuracy_pct: number | null;
+  avg_time_ms: number | null;
+  avg_time_sec: number | null;
+};
+
+export type OfficialExamQuestionStats = {
+  exam_id: string;
+  label: string;
+  tag_type: OfficialQuestionTagType;
+  tag: string;
+  tag_label: string;
+  level_filter: number | null;
+  grade_filter: string | null;
+  source: 'item_bank_stats' | string;
+  attempts_analyzed: number;
+  questions: OfficialQuestionStatRow[];
+  generated_at: string;
+  indexes_building?: boolean;
+};
+
+export async function getPlatformAdminOfficialExamQuestionStats(
+  examId: string,
+  opts: {
+    tagType: OfficialQuestionTagType;
+    tag: string;
+    level?: number | null;
+    grade?: number | string | null;
+    refresh?: boolean;
+  }
+): Promise<OfficialExamQuestionStats> {
+  const headers = await authHeaders();
+  const params: Record<string, string | number> = {
+    ...refreshParams(opts.refresh),
+    tag_type: opts.tagType,
+    tag: opts.tag,
+  };
+  if (typeof opts.level === 'number' && opts.level > 0) params.level = opts.level;
+  if (opts.grade === 'unknown') params.grade = 'unknown';
+  else if (typeof opts.grade === 'number' && opts.grade > 0) params.grade = opts.grade;
+  const res = await axios.get(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAMS}/${encodeURIComponent(examId)}/questions`,
+    { headers, params }
+  );
+  return {
+    exam_id: typeof res.data.exam_id === 'string' ? res.data.exam_id : examId,
+    label: typeof res.data.label === 'string' ? res.data.label : examId,
+    tag_type:
+      res.data.tag_type === 'mechanic' || res.data.tag_type === 'subconstruct'
+        ? res.data.tag_type
+        : 'family',
+    tag: typeof res.data.tag === 'string' ? res.data.tag : opts.tag,
+    tag_label: typeof res.data.tag_label === 'string' ? res.data.tag_label : opts.tag,
+    level_filter: typeof res.data.level_filter === 'number' ? res.data.level_filter : null,
+    grade_filter: typeof res.data.grade_filter === 'string' ? res.data.grade_filter : null,
+    source: typeof res.data.source === 'string' ? res.data.source : 'item_bank_stats',
+    attempts_analyzed: Number(res.data.attempts_analyzed) || 0,
+    questions: Array.isArray(res.data.questions)
+      ? res.data.questions.map((q: OfficialQuestionStatRow) => ({
+          ...q,
+          prompt: typeof q.prompt === 'string' ? q.prompt : q.prompt_preview || '',
+          prompt_preview: typeof q.prompt_preview === 'string' ? q.prompt_preview : '',
+          stimulus: q.stimulus ?? null,
+          stimulus_type: typeof q.stimulus_type === 'string' ? q.stimulus_type : null,
+          options: Array.isArray(q.options) ? q.options : [],
+          correct_index: typeof q.correct_index === 'number' ? q.correct_index : null,
+        }))
+      : [],
+    generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
+    indexes_building: res.data.indexes_building === true,
+  };
+}
+
 export async function getPlatformAdminOfficialDailyStats(
   days = 30,
   opts?: { refresh?: boolean }

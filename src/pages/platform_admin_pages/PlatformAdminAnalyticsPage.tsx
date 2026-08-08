@@ -5,7 +5,9 @@ import {
   Button,
   Card,
   CardContent,
+  Chip,
   CircularProgress,
+  Collapse,
   FormControl,
   InputLabel,
   MenuItem,
@@ -23,12 +25,15 @@ import {
   Typography,
 } from '@mui/material';
 import {
+  ArrowBack as ArrowBackIcon,
   CheckCircleOutline as CorrectIcon,
   PeopleOutline as PeopleIcon,
   Quiz as QuizIcon,
   Refresh as RefreshIcon,
   Timeline as TimelineIcon,
 } from '@mui/icons-material';
+import { ExamQuestionStimulus } from '../../components/assessment/ExamQuestionBody';
+import type { ExamQuestion } from '../../db/assessmentCollection';
 import {
   Bar,
   BarChart,
@@ -53,6 +58,7 @@ import {
   getPlatformAdminOfficialDailyStats,
   getPlatformAdminOfficialExamDetail,
   getPlatformAdminOfficialExamDrilldown,
+  getPlatformAdminOfficialExamQuestionStats,
   getPlatformAdminOfficialExamSummaries,
   searchPlatformAdminOfficialExamCompletions,
   type PracticeDailyByExamStatRow,
@@ -66,11 +72,14 @@ import {
   type TopQodStudentRow,
   type OfficialDailyStatRow,
   type OfficialExamDrilldown,
+  type OfficialExamQuestionStats,
   type OfficialExamGradeRow,
   type OfficialExamLevelRow,
   type OfficialExamRecentRow,
   type OfficialExamSchoolRow,
   type OfficialExamSummaryRow,
+  type OfficialQuestionStatRow,
+  type OfficialQuestionTagType,
 } from '../../db/platformAdminAnalytics';
 import { formatDate, formatDateTime } from '../../db/platformAdminCollection';
 import {
@@ -94,6 +103,24 @@ function shortOfficialExamLabel(label: string): string {
   return label.replace(/\s+Reasoning$/i, '').trim() || label;
 }
 
+function toStimulusExamQuestion(q: OfficialQuestionStatRow): ExamQuestion {
+  return {
+    id: q.item_id,
+    prompt: q.prompt || q.prompt_preview || '',
+    options: (q.options || []).map((o) => o.text),
+    stimulus: q.stimulus,
+    stimulus_type: q.stimulus_type ?? undefined,
+  };
+}
+
+const selectedTagRowSx = {
+  cursor: 'pointer' as const,
+  bgcolor: 'rgba(16, 64, 139, 0.08)',
+  '& td:first-of-type': {
+    boxShadow: `inset 3px 0 0 ${ip.navy}`,
+  },
+};
+
 const PlatformAdminAnalyticsPage: React.FC = () => {
   const [tab, setTab] = useState<AnalyticsTab>('official');
 
@@ -114,6 +141,14 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
   const [completionLimit, setCompletionLimit] = useState(25);
   const [officialDrilldown, setOfficialDrilldown] = useState<OfficialExamDrilldown | null>(null);
   const [officialDrillLevel, setOfficialDrillLevel] = useState<'all' | number>('all');
+  const [officialQuestionStats, setOfficialQuestionStats] =
+    useState<OfficialExamQuestionStats | null>(null);
+  const [officialQuestionLoading, setOfficialQuestionLoading] = useState(false);
+  const [officialQuestionSelection, setOfficialQuestionSelection] = useState<{
+    tagType: OfficialQuestionTagType;
+    tag: string;
+    label: string;
+  } | null>(null);
   const [officialGeneratedAt, setOfficialGeneratedAt] = useState('');
   const [officialIndexesBuilding, setOfficialIndexesBuilding] = useState(false);
   const [officialLoading, setOfficialLoading] = useState(false);
@@ -123,6 +158,8 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
   const [officialError, setOfficialError] = useState<string | null>(null);
   const officialDetailReqRef = useRef(0);
   const officialDrillReqRef = useRef(0);
+  const officialQuestionReqRef = useRef(0);
+  const officialQuestionPanelRef = useRef<HTMLDivElement | null>(null);
 
   const [practiceSummaries, setPracticeSummaries] = useState<PracticeExamSummaryRow[]>([]);
   const [practiceDaily, setPracticeDaily] = useState<PracticeDailyStatRow[]>([]);
@@ -246,6 +283,8 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
       const req = ++officialDrillReqRef.current;
       setOfficialDrillLoading(true);
       setOfficialDrilldown(null);
+      setOfficialQuestionSelection(null);
+      setOfficialQuestionStats(null);
       try {
         const data = await getPlatformAdminOfficialExamDrilldown(examId, {
           level: level === 'all' ? null : level,
@@ -265,6 +304,266 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     },
     []
   );
+
+  const loadOfficialQuestionStats = useCallback(
+    async (
+      examId: string,
+      selection: { tagType: OfficialQuestionTagType; tag: string; label: string },
+      level: 'all' | number,
+      opts?: { refresh?: boolean }
+    ) => {
+      if (!examId) return;
+      const req = ++officialQuestionReqRef.current;
+      setOfficialQuestionSelection(selection);
+      setOfficialQuestionLoading(true);
+      setOfficialQuestionStats(null);
+      setOfficialError(null);
+      requestAnimationFrame(() => {
+        officialQuestionPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      try {
+        const data = await getPlatformAdminOfficialExamQuestionStats(examId, {
+          tagType: selection.tagType,
+          tag: selection.tag,
+          level: level === 'all' ? null : level,
+          refresh: opts?.refresh,
+        });
+        if (req !== officialQuestionReqRef.current) return;
+        setOfficialQuestionStats(data);
+        if (data.indexes_building) setOfficialIndexesBuilding(true);
+        requestAnimationFrame(() => {
+          officialQuestionPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      } catch (e: unknown) {
+        if (req !== officialQuestionReqRef.current) return;
+        const err = e as { response?: { data?: { error?: string } }; message?: string };
+        setOfficialError(
+          err?.response?.data?.error || err?.message || 'Failed to load question-level stats'
+        );
+        setOfficialQuestionStats(null);
+      } finally {
+        if (req === officialQuestionReqRef.current) setOfficialQuestionLoading(false);
+      }
+    },
+    []
+  );
+
+  const clearOfficialQuestionDrill = useCallback(() => {
+    officialQuestionReqRef.current += 1;
+    setOfficialQuestionSelection(null);
+    setOfficialQuestionStats(null);
+    setOfficialQuestionLoading(false);
+  }, []);
+
+  const renderOfficialQuestionDrillPanel = (forTagType: OfficialQuestionTagType) => {
+    if (!officialQuestionSelection || officialQuestionSelection.tagType !== forTagType) {
+      return null;
+    }
+    return (
+      <Collapse in appear timeout={280}>
+        <Box
+          ref={officialQuestionPanelRef}
+          sx={{
+            mb: 2.5,
+            mt: 0.5,
+            borderRadius: 2,
+            border: '1px solid #cbd5e1',
+            borderLeft: `4px solid ${ip.navy}`,
+            bgcolor: '#f8fafc',
+            overflow: 'hidden',
+          }}
+        >
+          <Box
+            sx={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 1,
+              px: 2,
+              py: 1.5,
+              bgcolor: 'rgba(16, 64, 139, 0.06)',
+              borderBottom: '1px solid #e2e8f0',
+            }}
+          >
+            <Box>
+              <Typography sx={{ fontWeight: 800, color: ip.heading, fontSize: 15 }}>
+                Questions · {officialQuestionSelection.label}
+              </Typography>
+              <Typography variant="caption" sx={{ color: ip.subtext }}>
+                Full items from the bank
+                {officialQuestionStats
+                  ? ` · ${officialQuestionStats.questions.length} served`
+                  : officialQuestionLoading
+                    ? ' · loading…'
+                    : ''}
+              </Typography>
+            </Box>
+            <Button
+              size="small"
+              startIcon={<ArrowBackIcon />}
+              onClick={clearOfficialQuestionDrill}
+              sx={platformAdminOutlinedButtonSx}
+            >
+              Back to rollups
+            </Button>
+          </Box>
+
+          <Box sx={{ px: 2, py: 2 }}>
+            {officialQuestionLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress size={28} sx={{ color: ip.navy }} />
+              </Box>
+            ) : !officialQuestionStats || officialQuestionStats.questions.length === 0 ? (
+              <Typography variant="body2" sx={{ color: ip.subtext, py: 1 }}>
+                No served items found for this tag yet.
+              </Typography>
+            ) : (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.25 }}>
+                {officialQuestionStats.questions.map((q, qi) => (
+                  <Box
+                    key={q.item_id}
+                    sx={{
+                      bgcolor: '#fff',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: 1.5,
+                      p: 2,
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: 1,
+                        alignItems: 'center',
+                        mb: 1,
+                      }}
+                    >
+                      <Typography sx={{ fontWeight: 800, color: ip.heading, fontSize: 15 }}>
+                        Q{qi + 1}
+                      </Typography>
+                      <Chip
+                        size="small"
+                        label={`${q.times_seen} saw · ${q.accuracy_pct ?? '—'}% · ${
+                          q.avg_time_sec != null ? `${q.avg_time_sec}s avg` : '—'
+                        }`}
+                        sx={{
+                          bgcolor: '#e2e8f0',
+                          color: ip.heading,
+                          fontWeight: 700,
+                          fontSize: 12,
+                        }}
+                      />
+                      {q.mechanic ? (
+                        <Chip
+                          size="small"
+                          label={q.mechanic}
+                          sx={{ bgcolor: '#fff', border: '1px solid #cbd5e1', fontWeight: 600 }}
+                        />
+                      ) : null}
+                    </Box>
+                    <Typography sx={{ color: '#475569', fontSize: 12, mb: 0.75 }}>
+                      {q.item_id}
+                      {q.family || q.subconstruct
+                        ? ` · ${[q.family, q.subconstruct].filter(Boolean).join(' · ')}`
+                        : ''}
+                    </Typography>
+                    <Typography
+                      sx={{ color: ip.heading, fontSize: 14, mb: 1, lineHeight: 1.45 }}
+                    >
+                      {q.prompt || q.prompt_preview || '(no prompt)'}
+                    </Typography>
+                    {q.stimulus != null ? (
+                      <Box sx={{ mb: 1.25, maxWidth: 560 }}>
+                        <ExamQuestionStimulus
+                          q={toStimulusExamQuestion(q)}
+                          border="#cbd5e1"
+                          variant="light"
+                        />
+                      </Box>
+                    ) : null}
+                    {q.options.length > 0 ? (
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                        {q.options.map((opt) => (
+                          <Box
+                            key={`${q.item_id}-${opt.letter}`}
+                            sx={{
+                              display: 'flex',
+                              gap: 1,
+                              alignItems: 'flex-start',
+                              px: 1.25,
+                              py: 0.85,
+                              borderRadius: 1,
+                              border: '1px solid',
+                              borderColor: opt.is_correct ? '#86efac' : '#e2e8f0',
+                              bgcolor: opt.is_correct ? '#f0fdf4' : '#f8fafc',
+                              position: 'relative',
+                              overflow: 'hidden',
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                position: 'absolute',
+                                inset: 0,
+                                width: `${Math.min(100, opt.pick_pct)}%`,
+                                bgcolor: opt.is_correct
+                                  ? 'rgba(22, 163, 74, 0.12)'
+                                  : 'rgba(16, 64, 139, 0.08)',
+                                pointerEvents: 'none',
+                              }}
+                            />
+                            <Typography
+                              sx={{
+                                fontWeight: 800,
+                                color: ip.heading,
+                                minWidth: 18,
+                                fontSize: 13,
+                                position: 'relative',
+                              }}
+                            >
+                              {opt.letter}.
+                            </Typography>
+                            <Typography
+                              sx={{
+                                color: ip.heading,
+                                fontSize: 18,
+                                lineHeight: 1.35,
+                                flex: 1,
+                                letterSpacing: '0.04em',
+                                position: 'relative',
+                              }}
+                            >
+                              {opt.text || '(empty / image option)'}
+                            </Typography>
+                            <Typography
+                              sx={{
+                                fontWeight: 700,
+                                fontSize: 12,
+                                color: opt.is_correct ? '#166534' : '#334155',
+                                whiteSpace: 'nowrap',
+                                position: 'relative',
+                              }}
+                            >
+                              {opt.pick_pct}%
+                              {opt.is_correct ? ' · correct' : ''}
+                            </Typography>
+                          </Box>
+                        ))}
+                      </Box>
+                    ) : (
+                      <Typography sx={{ color: '#64748b', fontSize: 13 }}>
+                        (No option text on this item — often image-only.)
+                      </Typography>
+                    )}
+                  </Box>
+                ))}
+              </Box>
+            )}
+          </Box>
+        </Box>
+      </Collapse>
+    );
+  };
 
   const loadPractice = useCallback(async (opts?: { refresh?: boolean }) => {
     setPracticeLoading(true);
@@ -865,10 +1164,18 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                         By family / construct
                       </Typography>
                       <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1 }}>
-                        Avg served = mean items of that family per completion. Symbolic only when
-                        construct_scores were stored.
+                        Click a family to see per-question saw / correct / avg time. Avg served = mean
+                        items of that family per completion. Symbolic only when construct_scores were
+                        stored.
                       </Typography>
-                      <TableContainer component={Paper} elevation={0} sx={{ ...platformAdminTablePaperSx, mb: 2.5 }}>
+                      <TableContainer
+                        component={Paper}
+                        elevation={0}
+                        sx={{
+                          ...platformAdminTablePaperSx,
+                          mb: officialQuestionSelection?.tagType === 'family' ? 1 : 2.5,
+                        }}
+                      >
                         <Table size="small" sx={platformAdminTableSx}>
                           <TableHead>
                             <TableRow sx={platformAdminTableHeadRowSx}>
@@ -888,29 +1195,78 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                                 </TableCell>
                               </TableRow>
                             ) : (
-                              officialDrilldown.by_family.map((row) => (
-                                <TableRow key={row.key}>
-                                  <TableCell sx={{ fontWeight: 600 }}>{row.label}</TableCell>
-                                  <TableCell align="right">{row.attempts_with_data}</TableCell>
-                                  <TableCell align="right">{row.avg_served}</TableCell>
-                                  <TableCell align="right">{row.accuracy_pct}%</TableCell>
-                                  <TableCell align="right">
-                                    {row.avg_construct_score != null ? row.avg_construct_score : '—'}
-                                  </TableCell>
-                                  <TableCell align="right">
-                                    {row.floor_met_rate_pct != null ? `${row.floor_met_rate_pct}%` : '—'}
-                                  </TableCell>
-                                </TableRow>
-                              ))
+                              officialDrilldown.by_family.map((row) => {
+                                const selected =
+                                  officialQuestionSelection?.tagType === 'family' &&
+                                  officialQuestionSelection.tag === row.key;
+                                return (
+                                  <TableRow
+                                    key={row.key}
+                                    hover
+                                    onClick={() => {
+                                      if (!selectedOfficialExamId) return;
+                                      if (selected) {
+                                        clearOfficialQuestionDrill();
+                                        return;
+                                      }
+                                      void loadOfficialQuestionStats(
+                                        selectedOfficialExamId,
+                                        {
+                                          tagType: 'family',
+                                          tag: row.key,
+                                          label: row.label,
+                                        },
+                                        officialDrillLevel
+                                      );
+                                    }}
+                                    sx={selected ? selectedTagRowSx : { cursor: 'pointer' }}
+                                  >
+                                    <TableCell
+                                      sx={{
+                                        fontWeight: 700,
+                                        color: ip.navy,
+                                        textDecoration: selected ? 'none' : 'underline',
+                                        textUnderlineOffset: 2,
+                                      }}
+                                    >
+                                      {row.label}
+                                      {selected ? ' · open' : ''}
+                                    </TableCell>
+                                    <TableCell align="right">{row.attempts_with_data}</TableCell>
+                                    <TableCell align="right">{row.avg_served}</TableCell>
+                                    <TableCell align="right">{row.accuracy_pct}%</TableCell>
+                                    <TableCell align="right">
+                                      {row.avg_construct_score != null ? row.avg_construct_score : '—'}
+                                    </TableCell>
+                                    <TableCell align="right">
+                                      {row.floor_met_rate_pct != null
+                                        ? `${row.floor_met_rate_pct}%`
+                                        : '—'}
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })
                             )}
                           </TableBody>
                         </Table>
                       </TableContainer>
+                      {renderOfficialQuestionDrillPanel('family')}
 
-                      <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 1 }}>
+                      <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
                         By subconstruct
                       </Typography>
-                      <TableContainer component={Paper} elevation={0} sx={{ ...platformAdminTablePaperSx, mb: 2.5 }}>
+                      <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1 }}>
+                        Report skill labels (not the same as mechanic). Symbolic section-mode stores
+                        these on the family row instead, so this table is often empty for Symbolic.
+                      </Typography>
+                      <TableContainer
+                        component={Paper}
+                        elevation={0}
+                        sx={{
+                          ...platformAdminTablePaperSx,
+                          mb: officialQuestionSelection?.tagType === 'subconstruct' ? 1 : 2.5,
+                        }}
+                      >
                         <Table size="small" sx={platformAdminTableSx}>
                           <TableHead>
                             <TableRow sx={platformAdminTableHeadRowSx}>
@@ -929,24 +1285,71 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                                 </TableCell>
                               </TableRow>
                             ) : (
-                              officialDrilldown.by_subconstruct.map((row) => (
-                                <TableRow key={row.key}>
-                                  <TableCell sx={{ fontWeight: 600 }}>{row.label}</TableCell>
-                                  <TableCell align="right">{row.attempts_with_data}</TableCell>
-                                  <TableCell align="right">{row.avg_served}</TableCell>
-                                  <TableCell align="right">{row.accuracy_pct}%</TableCell>
-                                  <TableCell align="right">{row.served_sum}</TableCell>
-                                </TableRow>
-                              ))
+                              officialDrilldown.by_subconstruct.map((row) => {
+                                const selected =
+                                  officialQuestionSelection?.tagType === 'subconstruct' &&
+                                  officialQuestionSelection.tag === row.key;
+                                return (
+                                  <TableRow
+                                    key={row.key}
+                                    hover
+                                    onClick={() => {
+                                      if (!selectedOfficialExamId) return;
+                                      if (selected) {
+                                        clearOfficialQuestionDrill();
+                                        return;
+                                      }
+                                      void loadOfficialQuestionStats(
+                                        selectedOfficialExamId,
+                                        {
+                                          tagType: 'subconstruct',
+                                          tag: row.key,
+                                          label: row.label,
+                                        },
+                                        officialDrillLevel
+                                      );
+                                    }}
+                                    sx={selected ? selectedTagRowSx : { cursor: 'pointer' }}
+                                  >
+                                    <TableCell
+                                      sx={{
+                                        fontWeight: 700,
+                                        color: ip.navy,
+                                        textDecoration: selected ? 'none' : 'underline',
+                                        textUnderlineOffset: 2,
+                                      }}
+                                    >
+                                      {row.label}
+                                      {selected ? ' · open' : ''}
+                                    </TableCell>
+                                    <TableCell align="right">{row.attempts_with_data}</TableCell>
+                                    <TableCell align="right">{row.avg_served}</TableCell>
+                                    <TableCell align="right">{row.accuracy_pct}%</TableCell>
+                                    <TableCell align="right">{row.served_sum}</TableCell>
+                                  </TableRow>
+                                );
+                              })
                             )}
                           </TableBody>
                         </Table>
                       </TableContainer>
+                      {renderOfficialQuestionDrillPanel('subconstruct')}
 
-                      <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 1 }}>
+                      <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
                         By mechanic
                       </Typography>
-                      <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
+                      <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1 }}>
+                        Finer item tags from the bank (e.g. Mapping Preserve). Click for per-question
+                        stats. Not the same as subconstruct.
+                      </Typography>
+                      <TableContainer
+                        component={Paper}
+                        elevation={0}
+                        sx={{
+                          ...platformAdminTablePaperSx,
+                          mb: officialQuestionSelection?.tagType === 'mechanic' ? 1 : 0,
+                        }}
+                      >
                         <Table size="small" sx={platformAdminTableSx}>
                           <TableHead>
                             <TableRow sx={platformAdminTableHeadRowSx}>
@@ -965,19 +1368,55 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                                 </TableCell>
                               </TableRow>
                             ) : (
-                              officialDrilldown.by_mechanic.map((row) => (
-                                <TableRow key={row.key}>
-                                  <TableCell sx={{ fontWeight: 600 }}>{row.label}</TableCell>
-                                  <TableCell align="right">{row.attempts_with_data}</TableCell>
-                                  <TableCell align="right">{row.avg_served}</TableCell>
-                                  <TableCell align="right">{row.accuracy_pct}%</TableCell>
-                                  <TableCell align="right">{row.served_sum}</TableCell>
-                                </TableRow>
-                              ))
+                              officialDrilldown.by_mechanic.map((row) => {
+                                const selected =
+                                  officialQuestionSelection?.tagType === 'mechanic' &&
+                                  officialQuestionSelection.tag === row.key;
+                                return (
+                                  <TableRow
+                                    key={row.key}
+                                    hover
+                                    onClick={() => {
+                                      if (!selectedOfficialExamId) return;
+                                      if (selected) {
+                                        clearOfficialQuestionDrill();
+                                        return;
+                                      }
+                                      void loadOfficialQuestionStats(
+                                        selectedOfficialExamId,
+                                        {
+                                          tagType: 'mechanic',
+                                          tag: row.key,
+                                          label: row.label,
+                                        },
+                                        officialDrillLevel
+                                      );
+                                    }}
+                                    sx={selected ? selectedTagRowSx : { cursor: 'pointer' }}
+                                  >
+                                    <TableCell
+                                      sx={{
+                                        fontWeight: 700,
+                                        color: ip.navy,
+                                        textDecoration: selected ? 'none' : 'underline',
+                                        textUnderlineOffset: 2,
+                                      }}
+                                    >
+                                      {row.label}
+                                      {selected ? ' · open' : ''}
+                                    </TableCell>
+                                    <TableCell align="right">{row.attempts_with_data}</TableCell>
+                                    <TableCell align="right">{row.avg_served}</TableCell>
+                                    <TableCell align="right">{row.accuracy_pct}%</TableCell>
+                                    <TableCell align="right">{row.served_sum}</TableCell>
+                                  </TableRow>
+                                );
+                              })
                             )}
                           </TableBody>
                         </Table>
                       </TableContainer>
+                      {renderOfficialQuestionDrillPanel('mechanic')}
                     </>
                   )}
                 </CardContent>

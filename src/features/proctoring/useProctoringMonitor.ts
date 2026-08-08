@@ -19,11 +19,34 @@ async function uploadSnapshot(
   blob: Blob
 ): Promise<string | null> {
   const signed = await getProctoringUploadUrl({ uid, attempt_id: attemptId, event_id: eventId });
-  await fetch(signed.upload_url, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'image/jpeg' },
-    body: blob,
-  });
+  if (typeof signed.max_bytes === 'number' && blob.size > signed.max_bytes) {
+    Sentry.captureMessage('proctoring snapshot exceeds max_bytes', {
+      extra: { attemptId, eventId, size: blob.size, max: signed.max_bytes },
+    });
+    return null;
+  }
+
+  let putRes: Response;
+  if (signed.method === 'POST' && signed.fields) {
+    const form = new FormData();
+    for (const [k, v] of Object.entries(signed.fields)) {
+      form.append(k, v);
+    }
+    form.append('file', blob, 'snapshot.jpg');
+    putRes = await fetch(signed.upload_url, { method: 'POST', body: form });
+  } else {
+    putRes = await fetch(signed.upload_url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'image/jpeg' },
+      body: blob,
+    });
+  }
+  if (!putRes.ok) {
+    Sentry.captureMessage('proctoring snapshot upload failed', {
+      extra: { attemptId, eventId, status: putRes.status },
+    });
+    return null;
+  }
   return signed.object_key;
 }
 
