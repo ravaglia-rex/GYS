@@ -7,7 +7,6 @@ import {
   CardContent,
   Chip,
   CircularProgress,
-  Collapse,
   FormControl,
   InputLabel,
   MenuItem,
@@ -24,14 +23,12 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import {
-  ArrowBack as ArrowBackIcon,
-  CheckCircleOutline as CorrectIcon,
-  PeopleOutline as PeopleIcon,
-  Quiz as QuizIcon,
-  Refresh as RefreshIcon,
-  Timeline as TimelineIcon,
-} from '@mui/icons-material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import CorrectIcon from '@mui/icons-material/CheckCircleOutline';
+import PeopleIcon from '@mui/icons-material/PeopleOutline';
+import QuizIcon from '@mui/icons-material/Quiz';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import TimelineIcon from '@mui/icons-material/Timeline';
 import { ExamQuestionStimulus } from '../../components/assessment/ExamQuestionBody';
 import type { ExamQuestion } from '../../db/assessmentCollection';
 import {
@@ -360,8 +357,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
       return null;
     }
     return (
-      <Collapse in appear timeout={280}>
-        <Box
+      <Box
           ref={officialQuestionPanelRef}
           sx={{
             mb: 2.5,
@@ -458,7 +454,13 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                         <Chip
                           size="small"
                           label={q.mechanic}
-                          sx={{ bgcolor: '#fff', border: '1px solid #cbd5e1', fontWeight: 600 }}
+                          sx={{
+                            bgcolor: '#fff',
+                            border: '1px solid #cbd5e1',
+                            fontWeight: 600,
+                            color: ip.heading,
+                            '& .MuiChip-label': { color: ip.heading },
+                          }}
                         />
                       ) : null}
                     </Box>
@@ -560,8 +562,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
               </Box>
             )}
           </Box>
-        </Box>
-      </Collapse>
+      </Box>
     );
   };
 

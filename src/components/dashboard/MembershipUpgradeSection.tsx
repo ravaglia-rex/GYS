@@ -18,8 +18,10 @@ import {
 } from '../../db/studentMembershipUpgradePayment';
 import {
   MEMBERSHIP_LEVEL_LABEL,
+  STUDENT_SIGNUP_BASE_INR,
   formatInrFromPaise,
   normalizeStudentMembershipLevel,
+  studentMembershipUpgradeAmountPaise,
   studentMembershipUpgradeChargePaise,
 } from '../../utils/studentMembershipPricing';
 import { useToast } from '../ui/use-toast';
@@ -365,10 +367,16 @@ const MembershipUpgradeSection: React.FC = () => {
           Membership Packages
         </Typography>
       </Box>
-      <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)', mb: 2 }}>
+      <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)', mb: 1 }}>
         Trial first, then three annual packages - Reasoning Triad, Stream Ready, and Career Ready. Your current
-        package is highlighted. Amounts shown include applicable charges. When upgrading you pay only the difference
-        to the higher package. Any prepaid credit on your account is applied to that final amount before checkout.
+        package is highlighted. Prices shown are package list prices; when upgrading you pay only the difference to
+        the higher package. Any prepaid credit on your account is applied to the final amount before checkout.
+      </Typography>
+      <Typography
+        variant="body2"
+        sx={{ color: '#e9d5ff', fontWeight: 600, mb: 2 }}
+      >
+        Tax is calculated on checkout.
       </Typography>
       {prepaidCreditPaise > 0 ? (
         <Typography
@@ -400,11 +408,14 @@ const MembershipUpgradeSection: React.FC = () => {
         }}
       >
         {MEMBERSHIP_PACKAGE_CARDS.map((pkg) => {
-          const paise = studentMembershipUpgradeChargePaise(
+          const chargePaise = studentMembershipUpgradeChargePaise(
             membershipLevel,
             pkg.level,
             prepaidCreditPaise
           );
+          const listUpgradePaise = studentMembershipUpgradeAmountPaise(membershipLevel, pkg.level);
+          const packagePriceLabel = formatInrFromPaise(STUDENT_SIGNUP_BASE_INR[pkg.level] * 100);
+          const packagePriceSuffix = pkg.level === 1 ? ' once' : '/yr';
           const isCurrent = membershipLevel === pkg.level;
           const isLowerTier = membershipLevel > pkg.level;
           const checkoutBusy = busyTarget !== null;
@@ -463,7 +474,24 @@ const MembershipUpgradeSection: React.FC = () => {
               >
                 {MEMBERSHIP_LEVEL_LABEL[pkg.level]}
               </Typography>
-              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)', mb: 2, minHeight: 44 }}>
+              <Typography
+                sx={{
+                  color: '#c4b5fd',
+                  fontWeight: 700,
+                  fontSize: '1.15rem',
+                  mt: 0.75,
+                  lineHeight: 1.2,
+                }}
+              >
+                {packagePriceLabel}
+                <Typography
+                  component="span"
+                  sx={{ color: 'rgba(255,255,255,0.55)', fontWeight: 500, fontSize: '0.8rem', ml: 0.5 }}
+                >
+                  {packagePriceSuffix}
+                </Typography>
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)', mt: 1, mb: 2, minHeight: 44 }}>
                 {pkg.blurb}
               </Typography>
               {isCurrent ? (
@@ -487,7 +515,7 @@ const MembershipUpgradeSection: React.FC = () => {
                     </Button>
                   </span>
                 </Tooltip>
-              ) : paise !== null ? (
+              ) : chargePaise !== null ? (
                 <Button
                   fullWidth
                   variant="contained"
@@ -513,12 +541,14 @@ const MembershipUpgradeSection: React.FC = () => {
                   }}
                 >
                   {busyTarget === pkg.level
-                    ? paise === 0
+                    ? chargePaise === 0
                       ? 'Applying credit…'
                       : 'Opening checkout…'
-                    : paise === 0
+                    : chargePaise === 0
                       ? 'Upgrade with credit'
-                      : 'Upgrade'}
+                      : listUpgradePaise != null
+                        ? `Upgrade for ${formatInrFromPaise(listUpgradePaise)}`
+                        : 'Upgrade'}
                 </Button>
               ) : (
                 <Button fullWidth variant="outlined" disabled sx={{ borderColor: '#64748b', color: '#94a3b8' }}>

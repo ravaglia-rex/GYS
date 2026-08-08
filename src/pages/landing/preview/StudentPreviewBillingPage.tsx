@@ -17,7 +17,12 @@ import {
   Alert,
 } from '@mui/material';
 import { CreditCard, TrendingUp } from 'lucide-react';
-import { MEMBERSHIP_LEVEL_LABEL } from '../../../utils/studentMembershipPricing';
+import {
+  MEMBERSHIP_LEVEL_LABEL,
+  STUDENT_SIGNUP_BASE_INR,
+  formatInrFromPaise,
+  studentMembershipUpgradeAmountPaise,
+} from '../../../utils/studentMembershipPricing';
 import { PREVIEW_MEMBERSHIP_LEVEL } from '../../../data/studentPreviewMock';
 
 interface TabPanelProps {
@@ -195,14 +200,20 @@ const StudentPreviewBillingPage: React.FC = () => {
             Membership Packages
           </Typography>
         </Box>
-        <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)', mb: 2 }}>
+        <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)', mb: 1 }}>
           Trial first, then three annual packages - Reasoning Triad, Stream Ready, and Career Ready. Your
-          current package is highlighted.
+          current package is highlighted. Prices shown are package list prices.
+        </Typography>
+        <Typography variant="body2" sx={{ color: '#e9d5ff', fontWeight: 600, mb: 2 }}>
+          Tax is calculated on checkout.
         </Typography>
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' }, gap: 2 }}>
           {MEMBERSHIP_PACKAGES.map((pkg) => {
             const isCurrent = pkg.level === currentPackageLevel;
-            const isGuidedDecision = pkg.level === 4;
+            const listUpgradePaise = studentMembershipUpgradeAmountPaise(currentPackageLevel, pkg.level);
+            const packagePriceLabel = formatInrFromPaise(STUDENT_SIGNUP_BASE_INR[pkg.level] * 100);
+            const packagePriceSuffix = pkg.level === 1 ? ' once' : '/yr';
+            const canUpgrade = listUpgradePaise != null && listUpgradePaise > 0;
             return (
               <Paper
                 key={pkg.level}
@@ -238,7 +249,24 @@ const StudentPreviewBillingPage: React.FC = () => {
               <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 700, mt: 0.75, lineHeight: 1.3, pr: isCurrent ? 5 : 0 }}>
                 {pkg.name}
               </Typography>
-              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)', mb: 2, minHeight: 44 }}>
+              <Typography
+                sx={{
+                  color: '#c4b5fd',
+                  fontWeight: 700,
+                  fontSize: '1.15rem',
+                  mt: 0.75,
+                  lineHeight: 1.2,
+                }}
+              >
+                {packagePriceLabel}
+                <Typography
+                  component="span"
+                  sx={{ color: 'rgba(255,255,255,0.55)', fontWeight: 500, fontSize: '0.8rem', ml: 0.5 }}
+                >
+                  {packagePriceSuffix}
+                </Typography>
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.65)', mt: 1, mb: 2, minHeight: 44 }}>
                 {pkg.blurb}
               </Typography>
               {isCurrent ? (
@@ -254,7 +282,7 @@ const StudentPreviewBillingPage: React.FC = () => {
                 >
                   Current plan
                 </Button>
-              ) : isGuidedDecision ? (
+              ) : canUpgrade ? (
                 <Button
                   fullWidth
                   variant="outlined"
@@ -265,10 +293,11 @@ const StudentPreviewBillingPage: React.FC = () => {
                     borderColor: '#8b5cf6',
                     color: '#f5f3ff',
                     fontWeight: 600,
+                    textTransform: 'none',
                     '&:hover': { borderColor: '#a78bfa', bgcolor: 'rgba(139, 92, 246, 0.2)' },
                   }}
                 >
-                  Upgrade
+                  Upgrade for {formatInrFromPaise(listUpgradePaise)}
                 </Button>
               ) : (
                 <Tooltip title="Lower packages - your preview profile has already moved past these.">
