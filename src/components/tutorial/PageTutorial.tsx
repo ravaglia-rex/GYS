@@ -50,8 +50,10 @@ function getScrollParent(el: HTMLElement): HTMLElement | null {
 }
 
 function scrollByOffset(scrollParent: HTMLElement | null, top: number): void {
+  // Nested scrollers (sidebar) use instant scroll so the spotlight measures the
+  // final box instead of a mid-animation rect under the profile card.
   if (scrollParent) {
-    scrollParent.scrollBy({ top, behavior: 'smooth' });
+    scrollParent.scrollBy({ top, behavior: 'auto' });
   } else {
     window.scrollBy({ top, behavior: 'smooth' });
   }
@@ -63,13 +65,24 @@ function scrollTutorialTargetIntoView(
 ): void {
   const scrollParent = getScrollParent(target);
   const topTooltipRoom = step.placement === 'top' ? 170 : 0;
-  const minTop = getFixedHeaderBottom() + FIXED_HEADER_GAP + topTooltipRoom;
   const phoneBottomRoom = isPhoneViewport() ? PHONE_TOOLTIP_RESERVED_HEIGHT : 0;
-  const maxBottom = getViewportHeight() - FIXED_HEADER_GAP - phoneBottomRoom;
+
+  // Viewport bounds (account for fixed app bars / phone tooltip room).
+  let minTop = getFixedHeaderBottom() + FIXED_HEADER_GAP + topTooltipRoom;
+  let maxBottom = getViewportHeight() - FIXED_HEADER_GAP - phoneBottomRoom;
+
+  // Nested scrollers (e.g. student sidebar nav) clip content under sticky siblings.
+  // Align to the scroll parent's visible box so we don't yank targets under the user card.
+  if (scrollParent) {
+    const parentRect = scrollParent.getBoundingClientRect();
+    minTop = Math.max(minTop, parentRect.top + 8);
+    maxBottom = Math.min(maxBottom, parentRect.bottom - 8);
+  }
+
   const rect = target.getBoundingClientRect();
   const availableHeight = Math.max(160, maxBottom - minTop);
 
-  if (step.scrollBlock === 'nearest' && rect.top >= minTop && rect.bottom <= maxBottom) {
+  if (rect.top >= minTop && rect.bottom <= maxBottom && step.scrollBlock !== 'center') {
     return;
   }
 
@@ -78,9 +91,9 @@ function scrollTutorialTargetIntoView(
     return;
   }
 
-  if (rect.top < minTop || step.scrollBlock !== 'nearest') {
+  if (rect.top < minTop) {
     scrollByOffset(scrollParent, rect.top - minTop);
-  } else if (rect.bottom > maxBottom && rect.height < maxBottom - minTop) {
+  } else if (rect.bottom > maxBottom) {
     scrollByOffset(scrollParent, rect.bottom - maxBottom);
   }
 }

@@ -5,7 +5,6 @@ import {
   Button,
   Card,
   CardContent,
-  Chip,
   CircularProgress,
   FormControl,
   InputLabel,
@@ -48,6 +47,7 @@ import {
   getPlatformAdminPracticeDailyStatsByExam,
   getPlatformAdminPracticeExamDetail,
   getPlatformAdminPracticeExamSummaries,
+  getPlatformAdminPracticeMonthlyStats,
   getPlatformAdminQodStats,
   getPlatformAdminSchoolAdminActivity,
   getPlatformAdminTopCoins,
@@ -63,6 +63,7 @@ import {
   type PracticeExamSummaryRow,
   type PracticeGradeBreakdownRow,
   type PracticeLeaderboardRow,
+  type PracticeMonthlyStatRow,
   type QodDailyStatRow,
   type SchoolAdminActivityRow,
   type TopCoinsStudentRow,
@@ -82,6 +83,7 @@ import { formatDate, formatDateTime } from '../../db/platformAdminCollection';
 import {
   platformAdminCardSx,
   platformAdminFilterSelectSx,
+  platformAdminFilterToolbarRowSx,
   platformAdminOutlinedButtonSx,
   platformAdminPageContainerSx,
   platformAdminSelectMenuPaperSx,
@@ -89,9 +91,16 @@ import {
   platformAdminTableHeadRowSx,
   platformAdminTablePaperSx,
   platformAdminTableSx,
+  platformAdminTextFieldSx,
 } from './platformAdminPageStyles';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
-import { PlatformAdminPageHeader, PlatformAdminStatCard } from './platformAdminComponents';
+import {
+  PlatformAdminAccuracyChip,
+  PlatformAdminAnalyticsSection,
+  PlatformAdminChip,
+  PlatformAdminPageHeader,
+  PlatformAdminStatCard,
+} from './platformAdminComponents';
 
 type AnalyticsTab = 'official' | 'practice' | 'qod' | 'activity';
 
@@ -112,11 +121,63 @@ function toStimulusExamQuestion(q: OfficialQuestionStatRow): ExamQuestion {
 
 const selectedTagRowSx = {
   cursor: 'pointer' as const,
-  bgcolor: 'rgba(16, 64, 139, 0.08)',
+  bgcolor: 'rgba(15, 118, 110, 0.08)',
   '& td:first-of-type': {
-    boxShadow: `inset 3px 0 0 ${ip.navy}`,
+    boxShadow: `inset 3px 0 0 #0f766e`,
   },
 };
+
+const analyticsTabRailSx = {
+  mb: 2.5,
+  minHeight: 44,
+  p: 0.5,
+  borderRadius: 2,
+  bgcolor: ip.cardMutedBg,
+  border: `1px solid ${ip.cardBorder}`,
+  '& .MuiTabs-flexContainer': { gap: 0.5 },
+  '& .MuiTab-root': {
+    textTransform: 'none',
+    fontWeight: 600,
+    minHeight: 36,
+    minWidth: 'auto',
+    px: 1.75,
+    borderRadius: 1.5,
+    color: `${ip.subtext} !important`,
+  },
+  '& .MuiTab-root.Mui-selected': {
+    color: `${ip.navy} !important`,
+    fontWeight: 800,
+    bgcolor: '#fff',
+    boxShadow: '0 1px 2px rgba(15, 23, 42, 0.08)',
+  },
+  '& .MuiTabs-indicator': { display: 'none' },
+} as const;
+
+const examPickerTabsSx = {
+  mb: 2,
+  minHeight: 40,
+  p: 0.5,
+  borderRadius: 2,
+  bgcolor: 'rgba(16, 64, 139, 0.05)',
+  border: `1px solid rgba(16, 64, 139, 0.12)`,
+  '& .MuiTabs-flexContainer': { gap: 0.5 },
+  '& .MuiTab-root': {
+    textTransform: 'none',
+    fontWeight: 600,
+    minHeight: 32,
+    minWidth: 'auto',
+    px: 1.5,
+    borderRadius: 1.25,
+    color: `${ip.subtext} !important`,
+  },
+  '& .MuiTab-root.Mui-selected': {
+    color: `${ip.navy} !important`,
+    fontWeight: 800,
+    bgcolor: '#fff',
+    boxShadow: '0 1px 2px rgba(15, 23, 42, 0.08)',
+  },
+  '& .MuiTabs-indicator': { display: 'none' },
+} as const;
 
 const PlatformAdminAnalyticsPage: React.FC = () => {
   const [tab, setTab] = useState<AnalyticsTab>('official');
@@ -163,6 +224,8 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
   const [practiceDailyByExam, setPracticeDailyByExam] = useState<PracticeDailyByExamStatRow[]>([]);
   const [practiceDailyExamIds, setPracticeDailyExamIds] = useState<string[]>([]);
   const [practiceDailyToday, setPracticeDailyToday] = useState<PracticeDailyStatRow | null>(null);
+  const [practiceMonthly, setPracticeMonthly] = useState<PracticeMonthlyStatRow[]>([]);
+  const [practiceMonthlyYear, setPracticeMonthlyYear] = useState(new Date().getFullYear());
   const [selectedExamId, setSelectedExamId] = useState<string>('');
   const [sortBy, setSortBy] = useState<'total_correct' | 'total_sessions'>('total_correct');
   const [byGrade, setByGrade] = useState<PracticeGradeBreakdownRow[]>([]);
@@ -170,7 +233,9 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
   const [practiceGeneratedAt, setPracticeGeneratedAt] = useState('');
   const [practiceIndexesBuilding, setPracticeIndexesBuilding] = useState(false);
   const [practiceLoading, setPracticeLoading] = useState(false);
+  const [practiceDetailLoading, setPracticeDetailLoading] = useState(false);
   const [practiceError, setPracticeError] = useState<string | null>(null);
+  const practiceDetailReqRef = useRef(0);
 
   const [qodDays, setQodDays] = useState<QodDailyStatRow[]>([]);
   const [qodToday, setQodToday] = useState<QodDailyStatRow | null>(null);
@@ -438,30 +503,19 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                       <Typography sx={{ fontWeight: 800, color: ip.heading, fontSize: 15 }}>
                         Q{qi + 1}
                       </Typography>
-                      <Chip
-                        size="small"
-                        label={`${q.times_seen} saw · ${q.accuracy_pct ?? '—'}% · ${
-                          q.avg_time_sec != null ? `${q.avg_time_sec}s avg` : '—'
-                        }`}
-                        sx={{
-                          bgcolor: '#e2e8f0',
-                          color: ip.heading,
-                          fontWeight: 700,
-                          fontSize: 12,
-                        }}
+                      <PlatformAdminChip
+                        label={`${q.times_seen} saw`}
+                        tone="neutral"
+                      />
+                      <PlatformAdminAccuracyChip pct={q.accuracy_pct} />
+                      <PlatformAdminChip
+                        label={
+                          q.avg_time_sec != null ? `${q.avg_time_sec}s avg` : '— time'
+                        }
+                        tone="info"
                       />
                       {q.mechanic ? (
-                        <Chip
-                          size="small"
-                          label={q.mechanic}
-                          sx={{
-                            bgcolor: '#fff',
-                            border: '1px solid #cbd5e1',
-                            fontWeight: 600,
-                            color: ip.heading,
-                            '& .MuiChip-label': { color: ip.heading },
-                          }}
-                        />
+                        <PlatformAdminChip label={q.mechanic} tone="info" />
                       ) : null}
                     </Box>
                     <Typography sx={{ color: '#475569', fontSize: 12, mb: 0.75 }}>
@@ -571,15 +625,19 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     setPracticeError(null);
     setPracticeIndexesBuilding(false);
     try {
-      const [daily, dailyByExam, summariesInitial] = await Promise.all([
+      const year = new Date().getFullYear();
+      const [daily, dailyByExam, monthly, summariesInitial] = await Promise.all([
         getPlatformAdminPracticeDailyStats(30, { refresh: opts?.refresh }),
         getPlatformAdminPracticeDailyStatsByExam(30, { refresh: opts?.refresh }),
+        getPlatformAdminPracticeMonthlyStats(year, { refresh: opts?.refresh }),
         getPlatformAdminPracticeExamSummaries({ refresh: opts?.refresh }),
       ]);
       setPracticeDaily(daily.days);
       setPracticeDailyToday(daily.today);
       setPracticeDailyByExam(dailyByExam.days);
       setPracticeDailyExamIds(dailyByExam.exam_ids);
+      setPracticeMonthly(monthly.months);
+      setPracticeMonthlyYear(monthly.year);
       let summaries = summariesInitial;
       // Stale cache from before session backfill: attempts exist but sessions are all 0.
       const staleSessions =
@@ -591,23 +649,9 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
         summaries = await getPlatformAdminPracticeExamSummaries({ refresh: true });
       }
       setPracticeSummaries(summaries.exams);
-      setPracticeGeneratedAt(daily.generated_at || summaries.generated_at);
+      setPracticeGeneratedAt(daily.generated_at || monthly.generated_at || summaries.generated_at);
       setPracticeIndexesBuilding(summaries.indexes_building === true);
-      const examId = selectedExamId || summaries.exams[0]?.exam_id || '';
-      if (!selectedExamId && examId) {
-        setSelectedExamId(examId);
-      }
-      if (examId) {
-        const detail = await getPlatformAdminPracticeExamDetail(examId, {
-          limit: 10,
-          sortBy,
-          refresh: opts?.refresh || staleSessions,
-        });
-        setByGrade(detail.by_grade);
-        setTopStudents(detail.top_students);
-        setPracticeGeneratedAt(detail.generated_at || daily.generated_at || summaries.generated_at);
-        if (detail.indexes_building) setPracticeIndexesBuilding(true);
-      }
+      setSelectedExamId((prev) => prev || summaries.exams[0]?.exam_id || '');
     } catch (e: unknown) {
       const err = e as { response?: { data?: { error?: string } }; message?: string };
       const msg = err?.response?.data?.error || err?.message || 'Failed to load practice analytics';
@@ -622,7 +666,43 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     } finally {
       setPracticeLoading(false);
     }
-  }, [selectedExamId, sortBy]);
+  }, []);
+
+  const loadPracticeDetail = useCallback(async (examId: string, opts?: { refresh?: boolean }) => {
+    if (!examId) return;
+    const req = ++practiceDetailReqRef.current;
+    setPracticeDetailLoading(true);
+    setByGrade([]);
+    setTopStudents([]);
+    try {
+      const detail = await getPlatformAdminPracticeExamDetail(examId, {
+        limit: 10,
+        sortBy,
+        refresh: opts?.refresh,
+      });
+      if (req !== practiceDetailReqRef.current) return;
+      setByGrade(detail.by_grade);
+      setTopStudents(detail.top_students);
+      setPracticeGeneratedAt((prev) => detail.generated_at || prev);
+      if (detail.indexes_building) setPracticeIndexesBuilding(true);
+    } catch (e: unknown) {
+      if (req !== practiceDetailReqRef.current) return;
+      const err = e as { response?: { data?: { error?: string } }; message?: string };
+      const msg = err?.response?.data?.error || err?.message || 'Failed to load practice exam detail';
+      const lower = msg.toLowerCase();
+      if (lower.includes('index') || lower.includes('failed_precondition')) {
+        setPracticeError(
+          'Firestore indexes for practice analytics are still building. Check the Firebase console Indexes tab - usually a few minutes. Refresh after they show Enabled.'
+        );
+      } else {
+        setPracticeError(msg);
+      }
+      setByGrade([]);
+      setTopStudents([]);
+    } finally {
+      if (req === practiceDetailReqRef.current) setPracticeDetailLoading(false);
+    }
+  }, [sortBy]);
 
   const loadQod = useCallback(async (opts?: { refresh?: boolean }) => {
     setQodLoading(true);
@@ -680,12 +760,18 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     void loadOfficialDrilldown(selectedOfficialExamId, officialDrillLevel);
   }, [tab, selectedOfficialExamId, officialDrillLevel, loadOfficialDrilldown]);
 
+  useEffect(() => {
+    if (tab !== 'practice' || !selectedExamId) return;
+    void loadPracticeDetail(selectedExamId);
+  }, [tab, selectedExamId, loadPracticeDetail]);
+
   const anyLoading =
     officialLoading ||
     officialDetailLoading ||
     officialDrillLoading ||
     officialCompletionsLoading ||
     practiceLoading ||
+    practiceDetailLoading ||
     qodLoading ||
     activityLoading;
 
@@ -695,9 +781,20 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
       if (selectedOfficialExamId) {
         void loadOfficialDetail(selectedOfficialExamId, { refresh: true });
         void loadOfficialDrilldown(selectedOfficialExamId, officialDrillLevel, { refresh: true });
+        if (officialQuestionSelection) {
+          void loadOfficialQuestionStats(
+            selectedOfficialExamId,
+            officialQuestionSelection,
+            officialDrillLevel,
+            { refresh: true }
+          );
+        }
       }
     }
-    if (tab === 'practice') void loadPractice({ refresh: true });
+    if (tab === 'practice') {
+      void loadPractice({ refresh: true });
+      if (selectedExamId) void loadPracticeDetail(selectedExamId, { refresh: true });
+    }
     if (tab === 'qod') void loadQod({ refresh: true });
     if (tab === 'activity') void loadActivity({ refresh: true });
   };
@@ -775,6 +872,17 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     [practiceDaily]
   );
 
+  const practiceMonthlyChartData = useMemo(
+    () =>
+      practiceMonthly.map((m) => ({
+        month: m.label,
+        sessions: m.total_sessions,
+        questions: m.total_questions,
+        correct: m.total_correct,
+      })),
+    [practiceMonthly]
+  );
+
   const examLabelById = useMemo(() => {
     const map = new Map<string, string>();
     for (const exam of practiceSummaries) map.set(exam.exam_id, exam.label);
@@ -821,7 +929,15 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     iso ? `Cached as of ${formatDateTime(iso)} · refreshes ~6 hours` : 'Cached · not realtime';
 
   return (
-    <Box sx={platformAdminPageContainerSx}>
+    <Box
+      sx={{
+        ...platformAdminPageContainerSx,
+        maxWidth: 1280,
+        bgcolor: '#F1F5F9',
+        borderRadius: { md: 3 },
+        border: { md: `1px solid ${ip.cardBorder}` },
+      }}
+    >
       <PlatformAdminPageHeader
         title="Analytics"
         subtitle="Platform usage for official exams, practice, Question of the Day, and admin activity. Data is Redis-cached and not realtime."
@@ -841,20 +957,9 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
       <Tabs
         value={tab}
         onChange={(_e, value: AnalyticsTab) => setTab(value)}
-        sx={{
-          mb: 2.5,
-          minHeight: 42,
-          '& .MuiTab-root': {
-            textTransform: 'none',
-            fontWeight: 600,
-            minHeight: 42,
-            color: `${ip.subtext} !important`,
-          },
-          '& .MuiTab-root.Mui-selected': {
-            color: `${ip.navy} !important`,
-          },
-          '& .MuiTabs-indicator': { bgcolor: ip.navy },
-        }}
+        variant="scrollable"
+        scrollButtons="auto"
+        sx={analyticsTabRailSx}
       >
         <Tab value="official" label="Official Exams" />
         <Tab value="practice" label="Practice Exams" />
@@ -883,69 +988,71 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
               <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1.5 }}>
                 {staleHint(officialGeneratedAt)} · scores shown as % and points / 1000 · test accounts excluded
               </Typography>
-              <Box sx={{ ...platformAdminStatsGridSx, mb: 2.5 }}>
-                <PlatformAdminStatCard
-                  title="Total completions"
-                  value={officialTotals.completed.toLocaleString()}
-                  icon={<CorrectIcon sx={{ color: '#059669' }} />}
-                  accent="#059669"
-                />
-                <PlatformAdminStatCard
-                  title="Students"
-                  value={officialTotals.students.toLocaleString()}
-                  icon={<PeopleIcon sx={{ color: '#7c3aed' }} />}
-                  accent="#7c3aed"
-                />
-                <PlatformAdminStatCard
-                  title="Avg score"
-                  value={`${officialTotals.avgScore}%`}
-                  icon={<TimelineIcon sx={{ color: '#b45309' }} />}
-                  accent="#b45309"
-                />
-                <PlatformAdminStatCard
-                  title="Pass rate"
-                  value={`${officialTotals.passRate}%`}
-                  icon={<QuizIcon sx={{ color: '#0d47a1' }} />}
-                  accent="#0d47a1"
-                />
-              </Box>
 
-              <Card sx={{ ...platformAdminCardSx, mb: 2.5 }}>
-                <CardContent>
-                  <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 2 }}>
-                    Completions by exam (last 30 days IST)
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1.5 }}>
-                    Daily totals use IST calendar dates from completed attempts (backfillable). Test
-                    accounts excluded.
-                  </Typography>
-                  <Box sx={{ width: '100%', height: 280 }}>
-                    <ResponsiveContainer>
-                      <LineChart data={officialDailyChartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                        <XAxis dataKey="date" interval={1} tick={{ fontSize: 11 }} />
-                        <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                        <Tooltip />
-                        <Legend />
-                        {officialDailyExamIds.map((examId, idx) => (
-                          <Line
-                            key={examId}
-                            type="monotone"
-                            dataKey={examId}
-                            name={shortOfficialExamLabel(
-                              officialSummaries.find((e) => e.exam_id === examId)?.label ?? examId
-                            )}
-                            stroke={EXAM_SERIES_COLORS[idx % EXAM_SERIES_COLORS.length]}
-                            strokeWidth={2}
-                            dot={{ r: 3 }}
-                            activeDot={{ r: 5 }}
-                          />
-                        ))}
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </Box>
-                </CardContent>
-              </Card>
+              <PlatformAdminAnalyticsSection
+                step={1}
+                title="Overview"
+                subtitle="Platform-wide official exam totals and daily completion trends (IST)."
+                accent="navy"
+              >
+                <Box sx={{ ...platformAdminStatsGridSx, mb: 2.5 }}>
+                  <PlatformAdminStatCard
+                    title="Total completions"
+                    value={officialTotals.completed.toLocaleString()}
+                    icon={<CorrectIcon sx={{ color: '#059669' }} />}
+                    accent="#059669"
+                  />
+                  <PlatformAdminStatCard
+                    title="Students"
+                    value={officialTotals.students.toLocaleString()}
+                    icon={<PeopleIcon sx={{ color: '#0f766e' }} />}
+                    accent="#0f766e"
+                  />
+                  <PlatformAdminStatCard
+                    title="Avg score"
+                    value={`${officialTotals.avgScore}%`}
+                    icon={<TimelineIcon sx={{ color: '#b45309' }} />}
+                    accent="#b45309"
+                  />
+                  <PlatformAdminStatCard
+                    title="Pass rate"
+                    value={`${officialTotals.passRate}%`}
+                    icon={<QuizIcon sx={{ color: '#0d47a1' }} />}
+                    accent="#0d47a1"
+                  />
+                </Box>
+                <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.75 }}>
+                  Completions by exam (last 30 days)
+                </Typography>
+                <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1.5 }}>
+                  Daily totals use IST calendar dates from completed attempts. Test accounts excluded.
+                </Typography>
+                <Box sx={{ width: '100%', height: 280 }}>
+                  <ResponsiveContainer>
+                    <LineChart data={officialDailyChartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <XAxis dataKey="date" interval={1} tick={{ fontSize: 11 }} />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                      <Tooltip />
+                      <Legend />
+                      {officialDailyExamIds.map((examId, idx) => (
+                        <Line
+                          key={examId}
+                          type="monotone"
+                          dataKey={examId}
+                          name={shortOfficialExamLabel(
+                            officialSummaries.find((e) => e.exam_id === examId)?.label ?? examId
+                          )}
+                          stroke={EXAM_SERIES_COLORS[idx % EXAM_SERIES_COLORS.length]}
+                          strokeWidth={2}
+                          dot={{ r: 3 }}
+                          activeDot={{ r: 5 }}
+                        />
+                      ))}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </Box>
+              </PlatformAdminAnalyticsSection>
 
               <Tabs
                 value={selectedOfficialExamId || false}
@@ -963,23 +1070,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                 }}
                 variant="scrollable"
                 scrollButtons="auto"
-                sx={{
-                  mb: 1.5,
-                  minHeight: 40,
-                  '& .MuiTab-root': {
-                    textTransform: 'none',
-                    fontWeight: 600,
-                    minHeight: 40,
-                    minWidth: 'auto',
-                    px: 1.75,
-                    color: `${ip.subtext} !important`,
-                  },
-                  '& .MuiTab-root.Mui-selected': {
-                    color: `${ip.navy} !important`,
-                    fontWeight: 800,
-                  },
-                  '& .MuiTabs-indicator': { bgcolor: ip.navy },
-                }}
+                sx={examPickerTabsSx}
               >
                 {officialSummaries.map((exam) => (
                   <Tab
@@ -990,146 +1081,152 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                 ))}
               </Tabs>
 
-              <Card sx={{ ...platformAdminCardSx, mb: 2.5 }}>
-                <CardContent>
-                    <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
-                      {selectedOfficialSummary
-                        ? shortOfficialExamLabel(selectedOfficialSummary.label)
-                        : 'Exam summary'}
-                    </Typography>
-                    {selectedOfficialSummary ? (
-                      <Box
-                        sx={{
-                          display: 'grid',
-                          gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(4, 1fr)' },
-                          gap: 1.5,
-                          mt: 1.5,
-                          mb: 2,
-                        }}
-                      >
-                        <Box>
-                          <Typography variant="caption" sx={{ color: ip.subtext }}>Completions</Typography>
-                          <Typography sx={{ fontWeight: 800, color: ip.heading }}>
-                            {selectedOfficialSummary.completed_attempts.toLocaleString()}
-                          </Typography>
-                        </Box>
-                        <Box>
-                          <Typography variant="caption" sx={{ color: ip.subtext }}>Students</Typography>
-                          <Typography sx={{ fontWeight: 800, color: ip.heading }}>
-                            {selectedOfficialSummary.unique_students.toLocaleString()}
-                          </Typography>
-                        </Box>
-                        <Box>
-                          <Typography variant="caption" sx={{ color: ip.subtext }}>Avg score</Typography>
-                          <Typography sx={{ fontWeight: 800, color: ip.heading }}>
-                            {selectedOfficialSummary.avg_score_pct}% ({selectedOfficialSummary.avg_score_points}/1000)
-                          </Typography>
-                        </Box>
-                        <Box>
-                          <Typography variant="caption" sx={{ color: ip.subtext }}>Pass rate</Typography>
-                          <Typography sx={{ fontWeight: 800, color: ip.heading }}>
-                            {selectedOfficialSummary.pass_rate_pct}%
-                          </Typography>
-                        </Box>
-                      </Box>
-                    ) : null}
-
-                    {officialDetailLoading ? (
-                      <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-                        <CircularProgress size={32} sx={{ color: ip.navy }} />
-                      </Box>
-                    ) : (
-                      <>
-                        <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 1, mt: 1 }}>
-                          By level
-                        </Typography>
-                        <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
-                          <Table size="small" sx={platformAdminTableSx}>
-                            <TableHead>
-                              <TableRow sx={platformAdminTableHeadRowSx}>
-                                <TableCell>Level</TableCell>
-                                <TableCell align="right">Completions</TableCell>
-                                <TableCell align="right">Students</TableCell>
-                                <TableCell align="right">Avg %</TableCell>
-                                <TableCell align="right">Avg /1000</TableCell>
-                                <TableCell align="right">Passed</TableCell>
-                              </TableRow>
-                            </TableHead>
-                            <TableBody>
-                              {officialByLevel.length === 0 ? (
-                                <TableRow>
-                                  <TableCell colSpan={6} align="center" sx={{ py: 2, color: ip.subtext }}>
-                                    No completed attempts yet.
-                                  </TableCell>
-                                </TableRow>
-                              ) : (
-                                officialByLevel.map((row) => (
-                                  <TableRow key={row.level}>
-                                    <TableCell sx={{ fontWeight: 700 }}>{row.level}</TableCell>
-                                    <TableCell align="right">{row.completed_attempts}</TableCell>
-                                    <TableCell align="right">{row.unique_students}</TableCell>
-                                    <TableCell align="right">{row.avg_score_pct}%</TableCell>
-                                    <TableCell align="right">{row.avg_score_points}</TableCell>
-                                    <TableCell align="right">{row.passed_attempts}</TableCell>
-                                  </TableRow>
-                                ))
-                              )}
-                            </TableBody>
-                          </Table>
-                        </TableContainer>
-                      </>
-                    )}
-                  </CardContent>
-              </Card>
-
-              <Card sx={{ ...platformAdminCardSx, mb: 2.5 }}>
-                <CardContent>
+              <PlatformAdminAnalyticsSection
+                step={2}
+                title={
+                  selectedOfficialSummary
+                    ? `${shortOfficialExamLabel(selectedOfficialSummary.label)} · snapshot`
+                    : 'Exam snapshot'
+                }
+                subtitle="Completions, students, score, and pass rate for the selected exam, then breakdown by level."
+                accent="slate"
+              >
+                {selectedOfficialSummary ? (
                   <Box
                     sx={{
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 1.5,
-                      mb: 1.5,
+                      display: 'grid',
+                      gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(4, 1fr)' },
+                      gap: 1.25,
+                      mb: 2.25,
                     }}
                   >
-                    <Box>
-                      <Typography sx={{ fontWeight: 700, color: ip.heading }}>
-                        Deep analysis
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: ip.subtext }}>
-                        Family/construct, subconstruct, and mechanic rollups from completed attempts
-                        {officialDrilldown
-                          ? ` · ${officialDrilldown.attempts_analyzed.toLocaleString()} analyzed`
-                          : ''}
-                      </Typography>
-                    </Box>
-                    <FormControl size="small" sx={platformAdminFilterSelectSx(140)}>
-                      <InputLabel id="official-drill-level">Level</InputLabel>
-                      <Select
-                        labelId="official-drill-level"
-                        label="Level"
-                        value={officialDrillLevel}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          setOfficialDrillLevel(v === 'all' ? 'all' : Number(v));
+                    {[
+                      {
+                        label: 'Completions',
+                        value: selectedOfficialSummary.completed_attempts.toLocaleString(),
+                      },
+                      {
+                        label: 'Students',
+                        value: selectedOfficialSummary.unique_students.toLocaleString(),
+                      },
+                      {
+                        label: 'Avg score',
+                        value: `${selectedOfficialSummary.avg_score_pct}% (${selectedOfficialSummary.avg_score_points}/1000)`,
+                      },
+                      {
+                        label: 'Pass rate',
+                        value: `${selectedOfficialSummary.pass_rate_pct}%`,
+                      },
+                    ].map((cell) => (
+                      <Box
+                        key={cell.label}
+                        sx={{
+                          bgcolor: ip.cardMutedBg,
+                          border: `1px solid ${ip.cardBorder}`,
+                          borderRadius: 1.5,
+                          px: 1.5,
+                          py: 1.25,
                         }}
-                        MenuProps={{ PaperProps: { sx: platformAdminSelectMenuPaperSx } }}
                       >
-                        <MenuItem value="all">All levels</MenuItem>
-                        {(officialByLevel.length > 0
-                          ? officialByLevel.map((r) => r.level)
-                          : [1, 2, 3]
-                        ).map((level) => (
-                          <MenuItem key={level} value={level}>
-                            Level {level}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
+                        <Typography variant="caption" sx={{ color: ip.subtext, fontWeight: 600 }}>
+                          {cell.label}
+                        </Typography>
+                        <Typography sx={{ fontWeight: 800, color: ip.heading, mt: 0.25 }}>
+                          {cell.value}
+                        </Typography>
+                      </Box>
+                    ))}
                   </Box>
+                ) : null}
 
+                {officialDetailLoading ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+                    <CircularProgress size={32} sx={{ color: ip.navy }} />
+                  </Box>
+                ) : (
+                  <>
+                    <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 1 }}>
+                      By level
+                    </Typography>
+                    <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
+                      <Table size="small" sx={platformAdminTableSx}>
+                        <TableHead>
+                          <TableRow sx={platformAdminTableHeadRowSx}>
+                            <TableCell>Level</TableCell>
+                            <TableCell align="right">Completions</TableCell>
+                            <TableCell align="right">Students</TableCell>
+                            <TableCell align="right">Avg %</TableCell>
+                            <TableCell align="right">Avg /1000</TableCell>
+                            <TableCell align="right">Passed</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {officialByLevel.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={6} align="center" sx={{ py: 2, color: ip.subtext }}>
+                                No completed attempts yet.
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            officialByLevel.map((row) => (
+                              <TableRow key={row.level}>
+                                <TableCell sx={{ fontWeight: 700 }}>{row.level}</TableCell>
+                                <TableCell align="right">{row.completed_attempts}</TableCell>
+                                <TableCell align="right">{row.unique_students}</TableCell>
+                                <TableCell align="right">
+                                  <PlatformAdminAccuracyChip pct={row.avg_score_pct} />
+                                </TableCell>
+                                <TableCell align="right">{row.avg_score_points}</TableCell>
+                                <TableCell align="right">{row.passed_attempts}</TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </>
+                )}
+              </PlatformAdminAnalyticsSection>
+
+              <PlatformAdminAnalyticsSection
+                step={3}
+                title="Constructs & items"
+                subtitle={
+                  <>
+                    Family/construct, subconstruct, and mechanic rollups from completed attempts
+                    {officialDrilldown
+                      ? ` · ${officialDrilldown.attempts_analyzed.toLocaleString()} analyzed`
+                      : ''}
+                    . Click a family row to open per-question stats.
+                  </>
+                }
+                accent="teal"
+                action={
+                  <FormControl size="small" sx={platformAdminFilterSelectSx(140)}>
+                    <InputLabel id="official-drill-level">Level</InputLabel>
+                    <Select
+                      labelId="official-drill-level"
+                      label="Level"
+                      value={officialDrillLevel}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setOfficialDrillLevel(v === 'all' ? 'all' : Number(v));
+                      }}
+                      MenuProps={{ PaperProps: { sx: platformAdminSelectMenuPaperSx } }}
+                    >
+                      <MenuItem value="all">All levels</MenuItem>
+                      {(officialByLevel.length > 0
+                        ? officialByLevel.map((r) => r.level)
+                        : [1, 2, 3]
+                      ).map((level) => (
+                        <MenuItem key={level} value={level}>
+                          Level {level}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                }
+              >
                   {officialDrilldown?.notes?.map((note) => (
                     <Alert key={note} severity="info" sx={{ mb: 1.5 }}>
                       {note}
@@ -1235,7 +1332,9 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                                     </TableCell>
                                     <TableCell align="right">{row.attempts_with_data}</TableCell>
                                     <TableCell align="right">{row.avg_served}</TableCell>
-                                    <TableCell align="right">{row.accuracy_pct}%</TableCell>
+                                    <TableCell align="right">
+                                      <PlatformAdminAccuracyChip pct={row.accuracy_pct} />
+                                    </TableCell>
                                     <TableCell align="right">
                                       {row.avg_construct_score != null ? row.avg_construct_score : '—'}
                                     </TableCell>
@@ -1253,7 +1352,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                       </TableContainer>
                       {renderOfficialQuestionDrillPanel('family')}
 
-                      <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
+                      <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5, mt: 0.5 }}>
                         By subconstruct
                       </Typography>
                       <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1 }}>
@@ -1325,7 +1424,9 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                                     </TableCell>
                                     <TableCell align="right">{row.attempts_with_data}</TableCell>
                                     <TableCell align="right">{row.avg_served}</TableCell>
-                                    <TableCell align="right">{row.accuracy_pct}%</TableCell>
+                                    <TableCell align="right">
+                                      <PlatformAdminAccuracyChip pct={row.accuracy_pct} />
+                                    </TableCell>
                                     <TableCell align="right">{row.served_sum}</TableCell>
                                   </TableRow>
                                 );
@@ -1336,7 +1437,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                       </TableContainer>
                       {renderOfficialQuestionDrillPanel('subconstruct')}
 
-                      <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
+                      <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5, mt: 0.5 }}>
                         By mechanic
                       </Typography>
                       <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1 }}>
@@ -1408,7 +1509,9 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                                     </TableCell>
                                     <TableCell align="right">{row.attempts_with_data}</TableCell>
                                     <TableCell align="right">{row.avg_served}</TableCell>
-                                    <TableCell align="right">{row.accuracy_pct}%</TableCell>
+                                    <TableCell align="right">
+                                      <PlatformAdminAccuracyChip pct={row.accuracy_pct} />
+                                    </TableCell>
                                     <TableCell align="right">{row.served_sum}</TableCell>
                                   </TableRow>
                                 );
@@ -1420,29 +1523,20 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                       {renderOfficialQuestionDrillPanel('mechanic')}
                     </>
                   )}
-                </CardContent>
-              </Card>
+              </PlatformAdminAnalyticsSection>
 
-              <Card sx={{ ...platformAdminCardSx, mb: 2.5 }}>
-                <CardContent>
-                  <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
-                    Grade & school breakdown
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 2 }}>
-                    From completed attempts (grade at attempt when available; otherwise student grade).
-                  </Typography>
+              <PlatformAdminAnalyticsSection
+                step={4}
+                title="Grade & school"
+                subtitle="From completed attempts (grade at attempt when available; otherwise student grade)."
+                accent="amber"
+              >
                   {officialDetailLoading ? (
                     <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
                       <CircularProgress size={28} sx={{ color: ip.navy }} />
                     </Box>
                   ) : (
-                    <Box
-                      sx={{
-                        display: 'grid',
-                        gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-                        gap: 2,
-                      }}
-                    >
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
                       <Box>
                         <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 1 }}>By grade</Typography>
                         <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
@@ -1471,8 +1565,12 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                                     </TableCell>
                                     <TableCell align="right">{row.completed_attempts}</TableCell>
                                     <TableCell align="right">{row.unique_students}</TableCell>
-                                    <TableCell align="right">{row.avg_score_pct}%</TableCell>
-                                    <TableCell align="right">{row.pass_rate_pct}%</TableCell>
+                                    <TableCell align="right">
+                                      <PlatformAdminAccuracyChip pct={row.avg_score_pct} />
+                                    </TableCell>
+                                    <TableCell align="right">
+                                      <PlatformAdminAccuracyChip pct={row.pass_rate_pct} />
+                                    </TableCell>
                                   </TableRow>
                                 ))
                               )}
@@ -1506,8 +1604,12 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                                     <TableCell sx={{ fontWeight: 600 }}>{row.school_name}</TableCell>
                                     <TableCell align="right">{row.completed_attempts}</TableCell>
                                     <TableCell align="right">{row.unique_students}</TableCell>
-                                    <TableCell align="right">{row.avg_score_pct}%</TableCell>
-                                    <TableCell align="right">{row.pass_rate_pct}%</TableCell>
+                                    <TableCell align="right">
+                                      <PlatformAdminAccuracyChip pct={row.avg_score_pct} />
+                                    </TableCell>
+                                    <TableCell align="right">
+                                      <PlatformAdminAccuracyChip pct={row.pass_rate_pct} />
+                                    </TableCell>
                                   </TableRow>
                                 ))
                               )}
@@ -1517,31 +1619,15 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                       </Box>
                     </Box>
                   )}
-                </CardContent>
-              </Card>
+              </PlatformAdminAnalyticsSection>
 
-              <Card sx={{ ...platformAdminCardSx, mb: 2.5 }}>
-                <CardContent>
-                  <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
-                    Search completions
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 2 }}>
-                    On-demand only — not loaded until you search. Filter by student, date range, level,
-                    and limit.
-                  </Typography>
-                  <Box
-                    sx={{
-                      display: 'grid',
-                      gridTemplateColumns: {
-                        xs: '1fr',
-                        sm: '1fr 1fr',
-                        md: '2fr 1fr 1fr 1fr 100px auto',
-                      },
-                      gap: 1.5,
-                      mb: 2,
-                      alignItems: 'center',
-                    }}
-                  >
+              <PlatformAdminAnalyticsSection
+                step={5}
+                title="Search completions"
+                subtitle="On-demand only — not loaded until you search. Filter by student, date range, level, and limit."
+                accent="violet"
+              >
+                  <Box sx={{ ...platformAdminFilterToolbarRowSx, mb: 2 }}>
                     <TextField
                       size="small"
                       label="Student"
@@ -1553,6 +1639,13 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                           void searchOfficialCompletions(selectedOfficialExamId);
                         }
                       }}
+                      sx={{
+                        ...platformAdminTextFieldSx,
+                        minWidth: { xs: '100%', sm: 220 },
+                        flex: '1 1 220px',
+                        '& .MuiInputLabel-root': { color: ip.subtext },
+                        '& .MuiInputLabel-root.Mui-focused': { color: ip.navy },
+                      }}
                     />
                     <TextField
                       size="small"
@@ -1561,6 +1654,17 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                       value={completionFrom}
                       onChange={(e) => setCompletionFrom(e.target.value)}
                       InputLabelProps={{ shrink: true }}
+                      sx={{
+                        ...platformAdminTextFieldSx,
+                        minWidth: 150,
+                        flex: '0 1 150px',
+                        '& .MuiInputLabel-root': { color: ip.subtext },
+                        '& .MuiInputLabel-root.Mui-focused': { color: ip.navy },
+                        '& .MuiInputBase-input': {
+                          color: `${ip.heading} !important`,
+                          WebkitTextFillColor: ip.heading,
+                        },
+                      }}
                     />
                     <TextField
                       size="small"
@@ -1569,9 +1673,22 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                       value={completionTo}
                       onChange={(e) => setCompletionTo(e.target.value)}
                       InputLabelProps={{ shrink: true }}
+                      sx={{
+                        ...platformAdminTextFieldSx,
+                        minWidth: 150,
+                        flex: '0 1 150px',
+                        '& .MuiInputLabel-root': { color: ip.subtext },
+                        '& .MuiInputLabel-root.Mui-focused': { color: ip.navy },
+                        '& .MuiInputBase-input': {
+                          color: `${ip.heading} !important`,
+                          WebkitTextFillColor: ip.heading,
+                        },
+                      }}
                     />
                     <FormControl size="small" sx={platformAdminFilterSelectSx(120)}>
-                      <InputLabel id="completion-level">Level</InputLabel>
+                      <InputLabel id="completion-level" sx={{ color: ip.subtext }}>
+                        Level
+                      </InputLabel>
                       <Select
                         labelId="completion-level"
                         label="Level"
@@ -1594,7 +1711,9 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                       </Select>
                     </FormControl>
                     <FormControl size="small" sx={platformAdminFilterSelectSx(100)}>
-                      <InputLabel id="completion-limit">Limit</InputLabel>
+                      <InputLabel id="completion-limit" sx={{ color: ip.subtext }}>
+                        Limit
+                      </InputLabel>
                       <Select
                         labelId="completion-limit"
                         label="Limit"
@@ -1673,9 +1792,30 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                                   <TableCell>{row.school_name ?? '—'}</TableCell>
                                   <TableCell align="right">{row.proficiency_tier ?? '—'}</TableCell>
                                   <TableCell align="right">
-                                    {row.score_pct}% ({row.score_points})
+                                    <Box
+                                      sx={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: 0.75,
+                                        justifyContent: 'flex-end',
+                                      }}
+                                    >
+                                      <PlatformAdminAccuracyChip pct={row.score_pct} />
+                                      <Typography
+                                        component="span"
+                                        variant="caption"
+                                        sx={{ color: ip.subtext, whiteSpace: 'nowrap' }}
+                                      >
+                                        ({row.score_points})
+                                      </Typography>
+                                    </Box>
                                   </TableCell>
-                                  <TableCell align="right">{row.passed ? 'Yes' : 'No'}</TableCell>
+                                  <TableCell align="right">
+                                    <PlatformAdminChip
+                                      label={row.passed ? 'Passed' : 'Not passed'}
+                                      tone={row.passed ? 'success' : 'neutral'}
+                                    />
+                                  </TableCell>
                                 </TableRow>
                               ))
                             )}
@@ -1684,8 +1824,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                       </TableContainer>
                     </>
                   )}
-                </CardContent>
-              </Card>
+              </PlatformAdminAnalyticsSection>
             </>
           )}
         </>
@@ -1729,206 +1868,241 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                 {staleHint(practiceGeneratedAt)}
               </Typography>
 
-              <Box sx={{ ...platformAdminStatsGridSx, mb: 2.5 }}>
-                <PlatformAdminStatCard
-                  title="Sessions today"
-                  value={(practiceDailyToday?.total_sessions ?? 0).toLocaleString()}
-                  icon={<QuizIcon sx={{ color: '#2563eb' }} />}
-                  accent="#2563eb"
-                />
-                <PlatformAdminStatCard
-                  title="Questions today"
-                  value={(practiceDailyToday?.total_questions ?? 0).toLocaleString()}
-                  icon={<CorrectIcon sx={{ color: '#059669' }} />}
-                  accent="#059669"
-                />
-                <PlatformAdminStatCard
-                  title="30-day sessions"
-                  value={practiceDailyTotals.sessions.toLocaleString()}
-                  icon={<PeopleIcon sx={{ color: '#7c3aed' }} />}
-                  accent="#7c3aed"
-                />
-                <PlatformAdminStatCard
-                  title="30-day accuracy"
-                  value={`${practiceDailyTotals.accuracy}%`}
-                  icon={<TimelineIcon sx={{ color: '#b45309' }} />}
-                  accent="#b45309"
-                />
-              </Box>
-
-              <Card sx={{ ...platformAdminCardSx, mb: 2.5 }}>
-                <CardContent>
-                  <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
-                    Practice volume · last 30 days (IST)
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 2 }}>
-                    Platform-wide daily counters (test/staff excluded). Historical days are
-                    reconstructed from practice attempt timestamps.
-                  </Typography>
-                  <Box sx={{ width: '100%', height: 280 }}>
-                    <ResponsiveContainer>
-                      <LineChart data={practiceDailyChartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                        <XAxis dataKey="date" interval={1} tick={{ fontSize: 11 }} />
-                        <YAxis tick={{ fontSize: 12 }} />
-                        <Tooltip />
-                        <Legend />
-                        <Line
-                          type="monotone"
-                          dataKey="sessions"
-                          name="Sessions"
-                          stroke="#2563eb"
-                          strokeWidth={2}
-                          dot={false}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="questions"
-                          name="Questions"
-                          stroke="#7c3aed"
-                          strokeWidth={2}
-                          dot={false}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="correct"
-                          name="Correct"
-                          stroke="#059669"
-                          strokeWidth={2}
-                          dot={false}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </Box>
-                </CardContent>
-              </Card>
-
-              <Card sx={{ ...platformAdminCardSx, mb: 2.5 }}>
-                <CardContent>
-                  <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
-                    Sessions by exam · last 30 days (IST)
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 2 }}>
-                    Same daily counters, split by exam type. Reconstructed from historical practice
-                    attempts, so days before an exam had any activity stay at zero.
-                  </Typography>
-                  <Box sx={{ width: '100%', height: 280 }}>
-                    <ResponsiveContainer>
-                      <LineChart data={practiceDailyByExamChartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                        <XAxis dataKey="date" interval={1} tick={{ fontSize: 11 }} />
-                        <YAxis tick={{ fontSize: 12 }} />
-                        <Tooltip />
-                        <Legend />
-                        {practiceDailyExamIds.map((examId, idx) => (
-                          <Line
-                            key={examId}
-                            type="monotone"
-                            dataKey={examId}
-                            name={examLabelById.get(examId) ?? examId}
-                            stroke={EXAM_SERIES_COLORS[idx % EXAM_SERIES_COLORS.length]}
-                            strokeWidth={2}
-                            dot={false}
-                          />
-                        ))}
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </Box>
-                </CardContent>
-              </Card>
-
-              <Box
-                sx={{
-                  ...platformAdminStatsGridSx,
-                  gridTemplateColumns: {
-                    xs: '1fr 1fr',
-                    sm: 'repeat(2, 1fr)',
-                    md: 'repeat(3, 1fr)',
-                    lg: `repeat(${Math.max(practiceSummaries.length, 1)}, 1fr)`,
-                  },
-                  mb: 2.5,
-                }}
+              <PlatformAdminAnalyticsSection
+                step={1}
+                title="Overview"
+                subtitle="Platform-wide daily counters (test/staff excluded). Historical days are reconstructed from practice attempt timestamps."
+                accent="navy"
               >
-                {practiceSummaries.map((exam) => (
-                  <Card
-                    key={exam.exam_id}
-                    sx={{
-                      ...platformAdminCardSx,
-                      cursor: 'pointer',
-                      outline: selectedExamId === exam.exam_id ? `2px solid ${ip.navy}` : 'none',
-                    }}
-                    onClick={() => setSelectedExamId(exam.exam_id)}
-                  >
-                    <CardContent sx={{ py: 2, '&:last-child': { pb: 2 } }}>
-                      <Typography sx={{ fontWeight: 700, color: ip.heading, fontSize: '0.92rem', mb: 1 }}>
-                        {exam.label}
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: ip.subtext }}>
-                        {exam.unique_students.toLocaleString()} students ·{' '}
-                        {(exam.total_sessions ?? 0).toLocaleString()} practice sessions
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: ip.heading, fontWeight: 600, mt: 0.5 }}>
-                        {exam.accuracy_pct}% accuracy · {exam.active_students_30d} active (30d)
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                ))}
-              </Box>
+                <Box sx={{ ...platformAdminStatsGridSx, mb: 2.5 }}>
+                  <PlatformAdminStatCard
+                    title="Sessions today"
+                    value={(practiceDailyToday?.total_sessions ?? 0).toLocaleString()}
+                    icon={<QuizIcon sx={{ color: '#2563eb' }} />}
+                    accent="#2563eb"
+                  />
+                  <PlatformAdminStatCard
+                    title="Questions today"
+                    value={(practiceDailyToday?.total_questions ?? 0).toLocaleString()}
+                    icon={<CorrectIcon sx={{ color: '#059669' }} />}
+                    accent="#059669"
+                  />
+                  <PlatformAdminStatCard
+                    title="30-day sessions"
+                    value={practiceDailyTotals.sessions.toLocaleString()}
+                    icon={<PeopleIcon sx={{ color: '#7c3aed' }} />}
+                    accent="#7c3aed"
+                  />
+                  <PlatformAdminStatCard
+                    title="30-day accuracy"
+                    value={`${practiceDailyTotals.accuracy}%`}
+                    icon={<TimelineIcon sx={{ color: '#b45309' }} />}
+                    accent="#b45309"
+                  />
+                </Box>
+                <Box sx={{ width: '100%', height: 280 }}>
+                  <ResponsiveContainer>
+                    <LineChart data={practiceDailyChartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <XAxis dataKey="date" interval={1} tick={{ fontSize: 11 }} />
+                      <YAxis tick={{ fontSize: 12 }} />
+                      <Tooltip />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="sessions"
+                        name="Sessions"
+                        stroke="#2563eb"
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="questions"
+                        name="Questions"
+                        stroke="#7c3aed"
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="correct"
+                        name="Correct"
+                        stroke="#059669"
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </Box>
+              </PlatformAdminAnalyticsSection>
 
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2.5, alignItems: 'center' }}>
-                <FormControl size="small" sx={{ minWidth: 220 }}>
-                  <InputLabel sx={{ color: ip.subtext }}>Practice exam</InputLabel>
-                  <Select
-                    label="Practice exam"
-                    value={selectedExamId}
-                    onChange={(e) => setSelectedExamId(String(e.target.value))}
-                    MenuProps={{ PaperProps: { sx: platformAdminSelectMenuPaperSx } }}
-                    sx={platformAdminFilterSelectSx(220)}
-                  >
-                    {practiceSummaries.map((exam) => (
-                      <MenuItem key={exam.exam_id} value={exam.exam_id}>
-                        {exam.label}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-                <FormControl size="small" sx={{ minWidth: 180 }}>
-                  <InputLabel sx={{ color: ip.subtext }}>Top students by</InputLabel>
-                  <Select
-                    label="Top students by"
-                    value={sortBy}
-                    onChange={(e) =>
-                      setSortBy(e.target.value === 'total_sessions' ? 'total_sessions' : 'total_correct')
-                    }
-                    MenuProps={{ PaperProps: { sx: platformAdminSelectMenuPaperSx } }}
-                    sx={platformAdminFilterSelectSx(180)}
-                  >
-                    <MenuItem value="total_correct">Correct answers</MenuItem>
-                    <MenuItem value="total_sessions">Practice sessions</MenuItem>
-                  </Select>
-                </FormControl>
-                {selectedSummary && (
-                  <Typography variant="body2" sx={{ color: ip.subtext }}>
-                    Overall accuracy {selectedSummary.accuracy_pct}% across{' '}
-                    {selectedSummary.unique_students.toLocaleString()} students
-                  </Typography>
+              <PlatformAdminAnalyticsSection
+                step={2}
+                title="Sessions by exam"
+                subtitle="Same daily counters, split by exam type. Days before an exam had activity stay at zero."
+                accent="teal"
+              >
+                <Box sx={{ width: '100%', height: 280 }}>
+                  <ResponsiveContainer>
+                    <LineChart data={practiceDailyByExamChartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <XAxis dataKey="date" interval={1} tick={{ fontSize: 11 }} />
+                      <YAxis tick={{ fontSize: 12 }} />
+                      <Tooltip />
+                      <Legend />
+                      {practiceDailyExamIds.map((examId, idx) => (
+                        <Line
+                          key={examId}
+                          type="monotone"
+                          dataKey={examId}
+                          name={examLabelById.get(examId) ?? examId}
+                          stroke={EXAM_SERIES_COLORS[idx % EXAM_SERIES_COLORS.length]}
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                      ))}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </Box>
+              </PlatformAdminAnalyticsSection>
+
+              <PlatformAdminAnalyticsSection
+                step={3}
+                title={`Month-wise · ${practiceMonthlyYear}`}
+                subtitle="Daily practice counters rolled up by calendar month (IST). Months with no backfilled/live counters show as zero."
+                accent="violet"
+              >
+                {practiceLoading && practiceMonthly.length === 0 ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+                    <CircularProgress size={28} sx={{ color: ip.navy }} />
+                  </Box>
+                ) : (
+                  <Box sx={{ width: '100%', height: 300 }}>
+                    <ResponsiveContainer>
+                      <BarChart data={practiceMonthlyChartData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                        <YAxis tick={{ fontSize: 12 }} />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="sessions" name="Sessions" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="questions" name="Questions" fill="#7c3aed" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="correct" name="Correct" fill="#059669" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </Box>
                 )}
-              </Box>
+              </PlatformAdminAnalyticsSection>
 
-              <Box
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
-                  gap: 2.5,
-                  mb: 2.5,
-                }}
+              <PlatformAdminAnalyticsSection
+                step={4}
+                title="Exam detail"
+                subtitle="Pick an exam to inspect grade breakdowns and top students."
+                accent="amber"
               >
-                <Card sx={platformAdminCardSx}>
-                  <CardContent>
+                <Box
+                  sx={{
+                    ...platformAdminStatsGridSx,
+                    gridTemplateColumns: {
+                      xs: '1fr 1fr',
+                      sm: 'repeat(2, 1fr)',
+                      md: 'repeat(3, 1fr)',
+                      lg: `repeat(${Math.max(practiceSummaries.length, 1)}, 1fr)`,
+                    },
+                    mb: 2.5,
+                  }}
+                >
+                  {practiceSummaries.map((exam) => (
+                    <Card
+                      key={exam.exam_id}
+                      sx={{
+                        ...platformAdminCardSx,
+                        cursor: 'pointer',
+                        outline: selectedExamId === exam.exam_id ? `2px solid ${ip.navy}` : 'none',
+                        bgcolor: selectedExamId === exam.exam_id ? 'rgba(16, 64, 139, 0.04)' : '#fff',
+                      }}
+                      onClick={() => setSelectedExamId(exam.exam_id)}
+                    >
+                      <CardContent sx={{ py: 2, '&:last-child': { pb: 2 } }}>
+                        <Typography sx={{ fontWeight: 700, color: ip.heading, fontSize: '0.92rem', mb: 1 }}>
+                          {exam.label}
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: ip.subtext }}>
+                          {exam.unique_students.toLocaleString()} students ·{' '}
+                          {(exam.total_sessions ?? 0).toLocaleString()} practice sessions
+                        </Typography>
+                        <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                          <PlatformAdminAccuracyChip pct={exam.accuracy_pct} />
+                          <Typography variant="caption" sx={{ color: ip.subtext }}>
+                            {exam.active_students_30d} active (30d)
+                          </Typography>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </Box>
+
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2.5, alignItems: 'center' }}>
+                  <FormControl size="small" sx={{ minWidth: 220 }}>
+                    <InputLabel sx={{ color: ip.subtext }}>Practice exam</InputLabel>
+                    <Select
+                      label="Practice exam"
+                      value={selectedExamId}
+                      onChange={(e) => setSelectedExamId(String(e.target.value))}
+                      MenuProps={{ PaperProps: { sx: platformAdminSelectMenuPaperSx } }}
+                      sx={platformAdminFilterSelectSx(220)}
+                    >
+                      {practiceSummaries.map((exam) => (
+                        <MenuItem key={exam.exam_id} value={exam.exam_id}>
+                          {exam.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                  <FormControl size="small" sx={{ minWidth: 180 }}>
+                    <InputLabel sx={{ color: ip.subtext }}>Top students by</InputLabel>
+                    <Select
+                      label="Top students by"
+                      value={sortBy}
+                      onChange={(e) =>
+                        setSortBy(e.target.value === 'total_sessions' ? 'total_sessions' : 'total_correct')
+                      }
+                      MenuProps={{ PaperProps: { sx: platformAdminSelectMenuPaperSx } }}
+                      sx={platformAdminFilterSelectSx(180)}
+                    >
+                      <MenuItem value="total_correct">Correct answers</MenuItem>
+                      <MenuItem value="total_sessions">Practice sessions</MenuItem>
+                    </Select>
+                  </FormControl>
+                  {selectedSummary && (
+                    <Typography variant="body2" sx={{ color: ip.subtext }}>
+                      Overall accuracy {selectedSummary.accuracy_pct}% across{' '}
+                      {selectedSummary.unique_students.toLocaleString()} students
+                    </Typography>
+                  )}
+                </Box>
+
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
+                    gap: 2.5,
+                    mb: 2.5,
+                  }}
+                >
+                  <Box
+                    sx={{
+                      border: `1px solid ${ip.cardBorder}`,
+                      borderRadius: 2,
+                      p: 2,
+                      bgcolor: '#f8fafc',
+                    }}
+                  >
                     <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 2 }}>
                       Accuracy by grade
                     </Typography>
-                    {practiceLoading ? (
+                    {practiceDetailLoading ? (
                       <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
                         <CircularProgress size={28} sx={{ color: ip.navy }} />
                       </Box>
@@ -1946,15 +2120,20 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                         </ResponsiveContainer>
                       </Box>
                     )}
-                  </CardContent>
-                </Card>
+                  </Box>
 
-                <Card sx={platformAdminCardSx}>
-                  <CardContent>
+                  <Box
+                    sx={{
+                      border: `1px solid ${ip.cardBorder}`,
+                      borderRadius: 2,
+                      p: 2,
+                      bgcolor: '#f8fafc',
+                    }}
+                  >
                     <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 2 }}>
                       Volume by grade
                     </Typography>
-                    {practiceLoading ? (
+                    {practiceDetailLoading ? (
                       <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
                         <CircularProgress size={28} sx={{ color: ip.navy }} />
                       </Box>
@@ -1973,55 +2152,59 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                         </ResponsiveContainer>
                       </Box>
                     )}
-                  </CardContent>
-                </Card>
-              </Box>
+                  </Box>
+                </Box>
 
-              <Card sx={platformAdminCardSx}>
-                <CardContent>
-                  <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 2 }}>
-                    Top students · {selectedSummary?.label ?? 'Practice exam'}
-                  </Typography>
-                  <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
-                    <Table size="medium" sx={platformAdminTableSx}>
-                      <TableHead>
-                        <TableRow sx={platformAdminTableHeadRowSx}>
-                          <TableCell>#</TableCell>
-                          <TableCell>Student</TableCell>
-                          <TableCell>School</TableCell>
-                          <TableCell>Grade</TableCell>
-                          <TableCell align="right">Correct</TableCell>
-                          <TableCell align="right">Practice sessions</TableCell>
-                          <TableCell align="right">Accuracy</TableCell>
+                <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 1.5 }}>
+                  Top students · {selectedSummary?.label ?? 'Practice exam'}
+                </Typography>
+                <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
+                  <Table size="medium" sx={platformAdminTableSx}>
+                    <TableHead>
+                      <TableRow sx={platformAdminTableHeadRowSx}>
+                        <TableCell>#</TableCell>
+                        <TableCell>Student</TableCell>
+                        <TableCell>School</TableCell>
+                        <TableCell>Grade</TableCell>
+                        <TableCell align="right">Correct</TableCell>
+                        <TableCell align="right">Practice sessions</TableCell>
+                        <TableCell align="right">Accuracy</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {practiceDetailLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                            <CircularProgress size={28} sx={{ color: ip.navy }} />
+                          </TableCell>
                         </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {topStudents.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={7} align="center" sx={{ py: 4, color: ip.subtext }}>
-                              No practice outcomes yet for this exam.
+                      ) : topStudents.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={7} align="center" sx={{ py: 4, color: ip.subtext }}>
+                            No practice outcomes yet for this exam.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        topStudents.map((row, idx) => (
+                          <TableRow key={row.uid}>
+                            <TableCell>{idx + 1}</TableCell>
+                            <TableCell sx={{ fontWeight: 600, color: ip.heading }}>
+                              {[row.first_name, row.last_name].filter(Boolean).join(' ') || row.email || row.uid}
+                            </TableCell>
+                            <TableCell>{row.school_name ?? '-'}</TableCell>
+                            <TableCell>{row.grade ?? '-'}</TableCell>
+                            <TableCell align="right">{row.total_correct.toLocaleString()}</TableCell>
+                            <TableCell align="right">{(row.total_sessions ?? 0).toLocaleString()}</TableCell>
+                            <TableCell align="right">
+                              <PlatformAdminAccuracyChip pct={row.accuracy_pct} />
                             </TableCell>
                           </TableRow>
-                        ) : (
-                          topStudents.map((row, idx) => (
-                            <TableRow key={row.uid}>
-                              <TableCell>{idx + 1}</TableCell>
-                              <TableCell sx={{ fontWeight: 600, color: ip.heading }}>
-                                {[row.first_name, row.last_name].filter(Boolean).join(' ') || row.email || row.uid}
-                              </TableCell>
-                              <TableCell>{row.school_name ?? '-'}</TableCell>
-                              <TableCell>{row.grade ?? '-'}</TableCell>
-                              <TableCell align="right">{row.total_correct.toLocaleString()}</TableCell>
-                              <TableCell align="right">{(row.total_sessions ?? 0).toLocaleString()}</TableCell>
-                              <TableCell align="right">{row.accuracy_pct}%</TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </CardContent>
-              </Card>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </PlatformAdminAnalyticsSection>
             </>
           )}
         </>
@@ -2044,102 +2227,100 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
             </Box>
           ) : (
             <>
-              <Box sx={{ ...platformAdminStatsGridSx, mb: 2.5 }}>
-                <PlatformAdminStatCard
-                  title="Answered today"
-                  value={(qodToday?.total_answered ?? 0).toLocaleString()}
-                  icon={<QuizIcon sx={{ color: '#2563eb' }} />}
-                  accent="#2563eb"
-                />
-                <PlatformAdminStatCard
-                  title="Correct today"
-                  value={(qodToday?.total_correct ?? 0).toLocaleString()}
-                  icon={<CorrectIcon sx={{ color: '#059669' }} />}
-                  accent="#059669"
-                />
-                <PlatformAdminStatCard
-                  title="30-day answers"
-                  value={qodTotals.answered.toLocaleString()}
-                  icon={<PeopleIcon sx={{ color: '#7c3aed' }} />}
-                  accent="#7c3aed"
-                />
-                <PlatformAdminStatCard
-                  title="30-day accuracy"
-                  value={`${qodTotals.accuracy}%`}
-                  icon={<TimelineIcon sx={{ color: '#b45309' }} />}
-                  accent="#b45309"
-                />
-              </Box>
+              <PlatformAdminAnalyticsSection
+                step={1}
+                title="Overview"
+                subtitle="Daily Question of the Day volume and accuracy (IST)."
+                accent="navy"
+              >
+                <Box sx={{ ...platformAdminStatsGridSx, mb: 2.5 }}>
+                  <PlatformAdminStatCard
+                    title="Answered today"
+                    value={(qodToday?.total_answered ?? 0).toLocaleString()}
+                    icon={<QuizIcon sx={{ color: '#2563eb' }} />}
+                    accent="#2563eb"
+                  />
+                  <PlatformAdminStatCard
+                    title="Correct today"
+                    value={(qodToday?.total_correct ?? 0).toLocaleString()}
+                    icon={<CorrectIcon sx={{ color: '#059669' }} />}
+                    accent="#059669"
+                  />
+                  <PlatformAdminStatCard
+                    title="30-day answers"
+                    value={qodTotals.answered.toLocaleString()}
+                    icon={<PeopleIcon sx={{ color: '#7c3aed' }} />}
+                    accent="#7c3aed"
+                  />
+                  <PlatformAdminStatCard
+                    title="30-day accuracy"
+                    value={`${qodTotals.accuracy}%`}
+                    icon={<TimelineIcon sx={{ color: '#b45309' }} />}
+                    accent="#b45309"
+                  />
+                </Box>
+                <Box sx={{ width: '100%', height: 320 }}>
+                  <ResponsiveContainer>
+                    <LineChart data={qodChartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <XAxis dataKey="date" interval={1} tick={{ fontSize: 11 }} />
+                      <YAxis tick={{ fontSize: 12 }} />
+                      <Tooltip />
+                      <Legend />
+                      <Line type="monotone" dataKey="answered" name="Answered" stroke="#2563eb" strokeWidth={2} dot={false} />
+                      <Line type="monotone" dataKey="correct" name="Correct" stroke="#059669" strokeWidth={2} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </Box>
+              </PlatformAdminAnalyticsSection>
 
-              <Card sx={platformAdminCardSx}>
-                <CardContent>
-                  <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 2 }}>
-                    Last 30 days (IST)
-                  </Typography>
-                  <Box sx={{ width: '100%', height: 320 }}>
-                    <ResponsiveContainer>
-                      <LineChart data={qodChartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                        <XAxis dataKey="date" interval={1} tick={{ fontSize: 11 }} />
-                        <YAxis tick={{ fontSize: 12 }} />
-                        <Tooltip />
-                        <Legend />
-                        <Line type="monotone" dataKey="answered" name="Answered" stroke="#2563eb" strokeWidth={2} dot={false} />
-                        <Line type="monotone" dataKey="correct" name="Correct" stroke="#059669" strokeWidth={2} dot={false} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </Box>
-                </CardContent>
-              </Card>
-
-              <Card sx={{ ...platformAdminCardSx, mt: 2.5 }}>
-                <CardContent>
-                  <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
-                    Top Question of the Day
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 2 }}>
-                    Lifetime attempts per student (tracked from when totals were introduced). Test/staff accounts excluded.
-                  </Typography>
-                  <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
-                    <Table size="small" sx={platformAdminTableSx}>
-                      <TableHead>
-                        <TableRow sx={platformAdminTableHeadRowSx}>
-                          <TableCell>#</TableCell>
-                          <TableCell>Student</TableCell>
-                          <TableCell>School</TableCell>
-                          <TableCell align="right">Attempted</TableCell>
-                          <TableCell align="right">Correct</TableCell>
-                          <TableCell align="right">Accuracy</TableCell>
+              <PlatformAdminAnalyticsSection
+                step={2}
+                title="Top students"
+                subtitle="Lifetime attempts per student (tracked from when totals were introduced). Test/staff accounts excluded."
+                accent="teal"
+              >
+                <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
+                  <Table size="small" sx={platformAdminTableSx}>
+                    <TableHead>
+                      <TableRow sx={platformAdminTableHeadRowSx}>
+                        <TableCell>#</TableCell>
+                        <TableCell>Student</TableCell>
+                        <TableCell>School</TableCell>
+                        <TableCell align="right">Attempted</TableCell>
+                        <TableCell align="right">Correct</TableCell>
+                        <TableCell align="right">Accuracy</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {topQod.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} align="center" sx={{ py: 3, color: ip.subtext }}>
+                            No QoD totals yet.
+                          </TableCell>
                         </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {topQod.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={6} align="center" sx={{ py: 3, color: ip.subtext }}>
-                              No QoD totals yet.
+                      ) : (
+                        topQod.map((row, idx) => (
+                          <TableRow key={row.uid}>
+                            <TableCell>{idx + 1}</TableCell>
+                            <TableCell sx={{ fontWeight: 600 }}>
+                              {[row.first_name, row.last_name].filter(Boolean).join(' ') || row.email}
+                            </TableCell>
+                            <TableCell>{row.school_name ?? '-'}</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 700 }}>
+                              {row.qod_attempted_total.toLocaleString()}
+                            </TableCell>
+                            <TableCell align="right">{row.qod_correct_total.toLocaleString()}</TableCell>
+                            <TableCell align="right">
+                              <PlatformAdminAccuracyChip pct={row.qod_accuracy_pct} />
                             </TableCell>
                           </TableRow>
-                        ) : (
-                          topQod.map((row, idx) => (
-                            <TableRow key={row.uid}>
-                              <TableCell>{idx + 1}</TableCell>
-                              <TableCell sx={{ fontWeight: 600 }}>
-                                {[row.first_name, row.last_name].filter(Boolean).join(' ') || row.email}
-                              </TableCell>
-                              <TableCell>{row.school_name ?? '-'}</TableCell>
-                              <TableCell align="right" sx={{ fontWeight: 700 }}>
-                                {row.qod_attempted_total.toLocaleString()}
-                              </TableCell>
-                              <TableCell align="right">{row.qod_correct_total.toLocaleString()}</TableCell>
-                              <TableCell align="right">{row.qod_accuracy_pct}%</TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </CardContent>
-              </Card>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </PlatformAdminAnalyticsSection>
             </>
           )}
         </>
@@ -2166,88 +2347,86 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                 display: 'grid',
                 gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
                 gap: 2.5,
+                alignItems: 'start',
               }}
             >
-              <Card sx={platformAdminCardSx}>
-                <CardContent>
-                  <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 2 }}>
-                    Top Argus Coins
-                  </Typography>
-                  <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
-                    <Table size="small" sx={platformAdminTableSx}>
-                      <TableHead>
-                        <TableRow sx={platformAdminTableHeadRowSx}>
-                          <TableCell>#</TableCell>
-                          <TableCell>Student</TableCell>
-                          <TableCell>School</TableCell>
-                          <TableCell align="right">Coins</TableCell>
+              <PlatformAdminAnalyticsSection
+                step={1}
+                title="Top Argus Coins"
+                subtitle="Highest coin balances across students."
+                accent="amber"
+              >
+                <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
+                  <Table size="small" sx={platformAdminTableSx}>
+                    <TableHead>
+                      <TableRow sx={platformAdminTableHeadRowSx}>
+                        <TableCell>#</TableCell>
+                        <TableCell>Student</TableCell>
+                        <TableCell>School</TableCell>
+                        <TableCell align="right">Coins</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {topCoins.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={4} align="center" sx={{ py: 3, color: ip.subtext }}>
+                            No coin balances yet.
+                          </TableCell>
                         </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {topCoins.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={4} align="center" sx={{ py: 3, color: ip.subtext }}>
-                              No coin balances yet.
+                      ) : (
+                        topCoins.map((row, idx) => (
+                          <TableRow key={row.uid}>
+                            <TableCell>{idx + 1}</TableCell>
+                            <TableCell sx={{ fontWeight: 600 }}>
+                              {[row.first_name, row.last_name].filter(Boolean).join(' ') || row.email}
+                            </TableCell>
+                            <TableCell>{row.school_name ?? '-'}</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 700 }}>
+                              {row.argus_coins.toLocaleString()}
                             </TableCell>
                           </TableRow>
-                        ) : (
-                          topCoins.map((row, idx) => (
-                            <TableRow key={row.uid}>
-                              <TableCell>{idx + 1}</TableCell>
-                              <TableCell sx={{ fontWeight: 600 }}>
-                                {[row.first_name, row.last_name].filter(Boolean).join(' ') || row.email}
-                              </TableCell>
-                              <TableCell>{row.school_name ?? '-'}</TableCell>
-                              <TableCell align="right" sx={{ fontWeight: 700 }}>
-                                {row.argus_coins.toLocaleString()}
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </CardContent>
-              </Card>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </PlatformAdminAnalyticsSection>
 
-              <Card sx={platformAdminCardSx}>
-                <CardContent>
-                  <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
-                    Recently signed-in school admins
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 2 }}>
-                    Firebase Auth last sign-in. Also shown on each school detail page.
-                  </Typography>
-                  <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
-                    <Table size="small" sx={platformAdminTableSx}>
-                      <TableHead>
-                        <TableRow sx={platformAdminTableHeadRowSx}>
-                          <TableCell>Email</TableCell>
-                          <TableCell>School</TableCell>
-                          <TableCell>Last sign-in</TableCell>
+              <PlatformAdminAnalyticsSection
+                step={2}
+                title="School admin sign-ins"
+                subtitle="Firebase Auth last sign-in. Also shown on each school detail page."
+                accent="slate"
+              >
+                <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
+                  <Table size="small" sx={platformAdminTableSx}>
+                    <TableHead>
+                      <TableRow sx={platformAdminTableHeadRowSx}>
+                        <TableCell>Email</TableCell>
+                        <TableCell>School</TableCell>
+                        <TableCell>Last sign-in</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {schoolAdmins.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={3} align="center" sx={{ py: 3, color: ip.subtext }}>
+                            No school admin sign-ins recorded yet.
+                          </TableCell>
                         </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {schoolAdmins.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={3} align="center" sx={{ py: 3, color: ip.subtext }}>
-                              No school admin sign-ins recorded yet.
-                            </TableCell>
+                      ) : (
+                        schoolAdmins.map((row) => (
+                          <TableRow key={row.email}>
+                            <TableCell sx={{ fontWeight: 600 }}>{row.email}</TableCell>
+                            <TableCell>{row.school_name ?? row.school_id ?? '-'}</TableCell>
+                            <TableCell>{formatDate(row.last_active_at)}</TableCell>
                           </TableRow>
-                        ) : (
-                          schoolAdmins.map((row) => (
-                            <TableRow key={row.email}>
-                              <TableCell sx={{ fontWeight: 600 }}>{row.email}</TableCell>
-                              <TableCell>{row.school_name ?? row.school_id ?? '-'}</TableCell>
-                              <TableCell>{formatDate(row.last_active_at)}</TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </CardContent>
-              </Card>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </PlatformAdminAnalyticsSection>
             </Box>
           )}
         </>

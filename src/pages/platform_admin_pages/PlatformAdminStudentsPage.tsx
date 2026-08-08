@@ -24,8 +24,6 @@ import {
   Checkbox,
   ListItemText,
   OutlinedInput,
-  FormControl,
-  InputLabel,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -816,7 +814,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
     <Box sx={platformAdminPageContainerSx}>
       <PlatformAdminPageHeader
         title="Students"
-        subtitle="Total = accounts with password set. Self-paid = individual signup. Upgrades = membership upgrade payers. Roster pending + Others cover incomplete setup."
+        subtitle="Total = accounts with password set. Self-paid = individual signup with no school. Upgrades = school-roster kids with individual / upgrade payment. Roster pending + Others cover incomplete setup."
         action={
           isSuperAdmin ? (
             <Button
@@ -893,7 +891,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
         <PlatformAdminStatCard
           title="Upgrades"
           value={stats?.students_membership_upgrade ?? '-'}
-          subtitle="Membership upgrade paid"
+          subtitle="School roster · individual payment"
           icon={<UpgradeIcon sx={{ fontSize: 22 }} />}
           accent="#7C3AED"
           selected={activeStatFilter === 'membership_upgrade'}
@@ -1027,6 +1025,17 @@ const PlatformAdminStudentsPage: React.FC = () => {
                 </MenuItem>
               ))}
             </Select>
+            <PlatformAdminFilterControl
+              id="students-sort-filter"
+              label="Sort by"
+              value={sortKey}
+              labels={STUDENT_SORT_LABELS}
+              minWidth={168}
+              onChange={(key) => {
+                setSortKey(key);
+                setSortDir(key === 'name' ? 'asc' : 'desc');
+              }}
+            />
           </Box>
 
           <Box
@@ -1051,8 +1060,8 @@ const PlatformAdminStudentsPage: React.FC = () => {
               }}
               sx={{
                 ...platformAdminSearchFieldSx,
-                flex: '1 1 220px',
-                minWidth: 200,
+                flex: '1 1 200px',
+                minWidth: 180,
               }}
             />
             <PlatformAdminFilterControl
@@ -1088,29 +1097,6 @@ const PlatformAdminStudentsPage: React.FC = () => {
               minWidth={148}
               onChange={setMembershipFilter}
             />
-            <FormControl size="small" sx={{ minWidth: 190 }}>
-              <InputLabel id="students-sort-label" sx={{ color: ip.subtext }}>
-                Sort by
-              </InputLabel>
-              <Select
-                labelId="students-sort-label"
-                label="Sort by"
-                value={sortKey}
-                onChange={(e) => {
-                  const key = e.target.value as StudentSortKey;
-                  setSortKey(key);
-                  setSortDir(key === 'name' ? 'asc' : 'desc');
-                }}
-                MenuProps={{ PaperProps: { sx: platformAdminSelectMenuPaperSx } }}
-                sx={platformAdminFilterSelectSx(190)}
-              >
-                {(Object.keys(STUDENT_SORT_LABELS) as StudentSortKey[]).map((key) => (
-                  <MenuItem key={key} value={key}>
-                    {STUDENT_SORT_LABELS[key]}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
             {(hasSecondaryFilters || schoolSelected) && (
               <Button
                 size="small"

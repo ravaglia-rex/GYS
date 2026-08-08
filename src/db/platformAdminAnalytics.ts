@@ -6,6 +6,7 @@ import {
   PLATFORM_ADMIN_ANALYTICS_QUESTION_OF_DAY,
   PLATFORM_ADMIN_ANALYTICS_PRACTICE_DAILY,
   PLATFORM_ADMIN_ANALYTICS_PRACTICE_DAILY_BY_EXAM,
+  PLATFORM_ADMIN_ANALYTICS_PRACTICE_MONTHLY,
   PLATFORM_ADMIN_ANALYTICS_TOP_COINS,
   PLATFORM_ADMIN_ANALYTICS_TOP_QOD,
   PLATFORM_ADMIN_ANALYTICS_SCHOOL_ADMIN_ACTIVITY,
@@ -88,6 +89,15 @@ export type PracticeDailyStatRow = {
 export type PracticeDailyByExamStatRow = {
   date: string;
   by_exam: Record<string, { sessions: number; questions: number; correct: number }>;
+};
+
+export type PracticeMonthlyStatRow = {
+  month: string;
+  label: string;
+  total_sessions: number;
+  total_questions: number;
+  total_correct: number;
+  accuracy_pct: number;
 };
 
 export type TopCoinsStudentRow = {
@@ -250,6 +260,26 @@ export async function getPlatformAdminPracticeDailyStatsByExam(
   return {
     days: Array.isArray(res.data.days) ? res.data.days : [],
     exam_ids: Array.isArray(res.data.exam_ids) ? res.data.exam_ids : [],
+    generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
+  };
+}
+
+export async function getPlatformAdminPracticeMonthlyStats(
+  year = new Date().getFullYear(),
+  opts?: { refresh?: boolean }
+): Promise<{
+  year: number;
+  months: PracticeMonthlyStatRow[];
+  generated_at: string;
+}> {
+  const headers = await authHeaders();
+  const res = await axios.get(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_PRACTICE_MONTHLY}`,
+    { headers, params: { year, ...refreshParams(opts?.refresh) } }
+  );
+  return {
+    year: typeof res.data.year === 'number' ? res.data.year : year,
+    months: Array.isArray(res.data.months) ? res.data.months : [],
     generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
   };
 }

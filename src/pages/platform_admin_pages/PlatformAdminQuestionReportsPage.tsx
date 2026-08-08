@@ -5,6 +5,10 @@ import {
   Button,
   Chip,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Paper,
   Table,
   TableBody,
@@ -20,20 +24,36 @@ import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import {
   formatDateTime,
+  getPlatformAdminQuestionProblemReportItem,
   listPlatformAdminQuestionProblemReports,
   type PlatformAdminQuestionProblemReport,
+  type PlatformAdminQuestionProblemReportItem,
 } from '../../db/platformAdminCollection';
 import {
+  platformAdminDialogPaperSx,
   platformAdminPageContainerSx,
   platformAdminPrimaryButtonSx,
   platformAdminTableHeadRowSx,
   platformAdminTablePaperSx,
   platformAdminTableSx,
+  platformAdminTextButtonSx,
 } from './platformAdminPageStyles';
 import { PlatformAdminPageHeader, PlatformAdminStatCard, PlatformAdminTableSection } from './platformAdminComponents';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
+import { ExamQuestionStimulus } from '../../components/assessment/ExamQuestionBody';
+import type { ExamQuestion } from '../../db/assessmentCollection';
 
 type SourceFilter = 'all' | 'official' | 'practice';
+
+function toStimulusExamQuestion(item: PlatformAdminQuestionProblemReportItem): ExamQuestion {
+  return {
+    id: item.item_id,
+    prompt: item.prompt || '',
+    options: (item.options || []).map((o) => o.text),
+    stimulus: item.stimulus,
+    stimulus_type: item.stimulus_type ?? undefined,
+  };
+}
 
 const PlatformAdminQuestionReportsPage: React.FC = () => {
   const [reports, setReports] = useState<PlatformAdminQuestionProblemReport[]>([]);
@@ -42,6 +62,11 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
   const [source, setSource] = useState<SourceFilter>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [selectedReport, setSelectedReport] = useState<PlatformAdminQuestionProblemReport | null>(null);
+  const [itemDetail, setItemDetail] = useState<PlatformAdminQuestionProblemReportItem | null>(null);
+  const [itemLoading, setItemLoading] = useState(false);
+  const [itemError, setItemError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -63,6 +88,34 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const openReport = useCallback(async (row: PlatformAdminQuestionProblemReport) => {
+    setSelectedReport(row);
+    setItemDetail(null);
+    setItemError(null);
+    setItemLoading(true);
+    try {
+      const item = await getPlatformAdminQuestionProblemReportItem({
+        source: row.source,
+        exam_id: row.exam_id,
+        tier_or_level: row.tier_or_level,
+        item_id: row.item_id,
+      });
+      setItemDetail(item);
+    } catch (e) {
+      console.error(e);
+      setItemError('Could not load this question. It may have been moved or deleted from the bank.');
+    } finally {
+      setItemLoading(false);
+    }
+  }, []);
+
+  const closeReport = useCallback(() => {
+    setSelectedReport(null);
+    setItemDetail(null);
+    setItemError(null);
+    setItemLoading(false);
+  }, []);
 
   const emptyMessage = useMemo(() => {
     if (source === 'official') return 'No official exam question reports yet.';
@@ -124,16 +177,27 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
           onChange={(_e, next: SourceFilter | null) => {
             if (next) setSource(next);
           }}
+          sx={{
+            bgcolor: '#fff',
+            '& .MuiToggleButton-root': {
+              textTransform: 'none',
+              px: 1.5,
+              color: ip.heading,
+              borderColor: '#cbd5e1',
+              fontWeight: 600,
+              '&.Mui-selected': {
+                bgcolor: 'rgba(16, 64, 139, 0.1)',
+                color: ip.navy,
+                borderColor: '#94a3b8',
+                '&:hover': { bgcolor: 'rgba(16, 64, 139, 0.16)' },
+              },
+              '&:hover': { bgcolor: '#f8fafc' },
+            },
+          }}
         >
-          <ToggleButton value="all" sx={{ textTransform: 'none', px: 1.5 }}>
-            All
-          </ToggleButton>
-          <ToggleButton value="official" sx={{ textTransform: 'none', px: 1.5 }}>
-            Official exams
-          </ToggleButton>
-          <ToggleButton value="practice" sx={{ textTransform: 'none', px: 1.5 }}>
-            Practice
-          </ToggleButton>
+          <ToggleButton value="all">All</ToggleButton>
+          <ToggleButton value="official">Official exams</ToggleButton>
+          <ToggleButton value="practice">Practice</ToggleButton>
         </ToggleButtonGroup>
       </Box>
 
@@ -142,11 +206,6 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
           {error}
         </Alert>
       )}
-
-      <Alert severity="info" sx={{ mb: 2 }}>
-        Reports filed before this inbox only live on the question item in Firestore. New reports include
-        student name, email, school, and time.
-      </Alert>
 
       <PlatformAdminTableSection countLabel={`${reports.length} report${reports.length === 1 ? '' : 's'}`}>
         {loading ? (
@@ -171,7 +230,12 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
               </TableHead>
               <TableBody>
                 {reports.map((row) => (
-                  <TableRow key={row.id} hover>
+                  <TableRow
+                    key={row.id}
+                    hover
+                    onClick={() => void openReport(row)}
+                    sx={{ cursor: 'pointer' }}
+                  >
                     <TableCell sx={{ whiteSpace: 'nowrap', verticalAlign: 'top' }}>
                       {formatDateTime(row.reported_at)}
                     </TableCell>
@@ -179,8 +243,16 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
                       <Chip
                         size="small"
                         label={row.source === 'official' ? 'Official' : 'Practice'}
-                        color={row.source === 'official' ? 'primary' : 'default'}
-                        sx={{ fontWeight: 700 }}
+                        sx={{
+                          fontWeight: 700,
+                          bgcolor: row.source === 'official' ? 'rgba(16, 64, 139, 0.1)' : '#f1f5f9',
+                          color: row.source === 'official' ? ip.navy : ip.heading,
+                          border: '1px solid',
+                          borderColor: row.source === 'official' ? '#93c5fd' : '#cbd5e1',
+                          '& .MuiChip-label': {
+                            color: row.source === 'official' ? ip.navy : ip.heading,
+                          },
+                        }}
                       />
                     </TableCell>
                     <TableCell sx={{ verticalAlign: 'top', minWidth: 140 }}>
@@ -192,7 +264,16 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
                         {row.tier_or_level ?? '—'}
                       </Typography>
                     </TableCell>
-                    <TableCell sx={{ verticalAlign: 'top', fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                    <TableCell
+                      sx={{
+                        verticalAlign: 'top',
+                        fontFamily: 'monospace',
+                        fontSize: '0.75rem',
+                        color: ip.navy,
+                        textDecoration: 'underline',
+                        textUnderlineOffset: 2,
+                      }}
+                    >
                       {row.item_id}
                     </TableCell>
                     <TableCell sx={{ verticalAlign: 'top', maxWidth: 360 }}>
@@ -216,11 +297,11 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
                       </Typography>
                     </TableCell>
                     <TableCell sx={{ verticalAlign: 'top', minWidth: 140 }}>
-                      <Typography sx={{ fontSize: '0.85rem' }}>
+                      <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: ip.heading }}>
                         {row.school_name || '—'}
                       </Typography>
                       {row.school_id ? (
-                        <Typography sx={{ fontSize: '0.7rem', color: '#94a3b8', fontFamily: 'monospace' }}>
+                        <Typography sx={{ fontSize: '0.7rem', color: '#64748b', fontFamily: 'monospace' }}>
                           {row.school_id}
                         </Typography>
                       ) : null}
@@ -232,6 +313,230 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
           </TableContainer>
         )}
       </PlatformAdminTableSection>
+
+      <Dialog
+        open={Boolean(selectedReport)}
+        onClose={closeReport}
+        fullWidth
+        maxWidth="md"
+        PaperProps={{ sx: { ...platformAdminDialogPaperSx, maxWidth: 760 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, color: ip.heading, px: 3, pt: 2.5, pb: 1 }}>
+          Reported question
+        </DialogTitle>
+        <DialogContent sx={{ px: 3, pt: 1, pb: 2 }}>
+          {selectedReport ? (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Box
+                sx={{
+                  p: 1.75,
+                  borderRadius: 1.5,
+                  border: `1px solid ${ip.cardBorder}`,
+                  bgcolor: '#f8fafc',
+                }}
+              >
+                <Typography sx={{ fontWeight: 800, color: ip.heading, fontSize: 14, mb: 0.75 }}>
+                  Student report
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: 14,
+                    color: '#334155',
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                    mb: 1.25,
+                  }}
+                >
+                  {selectedReport.text || '—'}
+                </Typography>
+                <Typography sx={{ fontSize: 12.5, color: '#64748b', lineHeight: 1.55 }}>
+                  {formatDateTime(selectedReport.reported_at)}
+                  {' · '}
+                  {selectedReport.reporter_name || 'Unknown'}
+                  {selectedReport.reporter_email ? ` (${selectedReport.reporter_email})` : ''}
+                  {selectedReport.school_name ? ` · ${selectedReport.school_name}` : ''}
+                  {' · '}
+                  {selectedReport.exam_title || selectedReport.exam_id}
+                  {` · ${selectedReport.source === 'official' ? 'Level' : 'Practice level'} ${
+                    selectedReport.tier_or_level ?? '—'
+                  }`}
+                </Typography>
+              </Box>
+
+              {itemLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}>
+                  <CircularProgress size={34} sx={{ color: ip.navy }} />
+                </Box>
+              ) : null}
+
+              {itemError ? <Alert severity="error">{itemError}</Alert> : null}
+
+              {itemDetail ? (
+                <Box>
+                  <Typography sx={{ fontWeight: 800, color: ip.heading, fontSize: 15, mb: 0.35 }}>
+                    Question
+                  </Typography>
+                  <Typography sx={{ color: '#475569', fontSize: 12, mb: 1, fontFamily: 'monospace' }}>
+                    {itemDetail.item_id}
+                    {itemDetail.family || itemDetail.subconstruct || itemDetail.mechanic_class_derived
+                      ? ` · ${[
+                          itemDetail.family,
+                          itemDetail.subconstruct,
+                          itemDetail.mechanic_class_derived,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}`
+                      : ''}
+                  </Typography>
+
+                  {itemDetail.instruction ? (
+                    <Typography sx={{ color: '#64748b', fontSize: 13, mb: 0.75, fontStyle: 'italic' }}>
+                      {itemDetail.instruction}
+                    </Typography>
+                  ) : null}
+
+                  {itemDetail.passage ? (
+                    <Typography
+                      sx={{
+                        color: ip.heading,
+                        fontSize: 14,
+                        mb: 1,
+                        lineHeight: 1.5,
+                        whiteSpace: 'pre-wrap',
+                        p: 1.25,
+                        borderRadius: 1,
+                        bgcolor: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                      }}
+                    >
+                      {itemDetail.passage}
+                    </Typography>
+                  ) : null}
+
+                  <Typography sx={{ color: ip.heading, fontSize: 15, mb: 1.25, lineHeight: 1.5 }}>
+                    {itemDetail.prompt}
+                  </Typography>
+
+                  {itemDetail.stimulus != null ? (
+                    <Box sx={{ mb: 1.5, maxWidth: 560 }}>
+                      <ExamQuestionStimulus
+                        q={toStimulusExamQuestion(itemDetail)}
+                        border="#cbd5e1"
+                        variant="light"
+                      />
+                    </Box>
+                  ) : null}
+
+                  {itemDetail.options.length > 0 ? (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mb: 1.5 }}>
+                      {itemDetail.options.map((opt, optIdx) => {
+                        const keyCorrect = itemDetail.correct_index === optIdx;
+                        return (
+                          <Box
+                            key={`${itemDetail.item_id}-${opt.letter}`}
+                            sx={{
+                              display: 'flex',
+                              gap: 1,
+                              alignItems: 'flex-start',
+                              px: 1.25,
+                              py: 0.85,
+                              borderRadius: 1,
+                              border: '1px solid',
+                              borderColor: keyCorrect ? '#86efac' : '#e2e8f0',
+                              bgcolor: keyCorrect ? '#f0fdf4' : '#f8fafc',
+                            }}
+                          >
+                            <Typography
+                              sx={{
+                                fontWeight: 800,
+                                color: ip.heading,
+                                minWidth: 18,
+                                fontSize: 13,
+                              }}
+                            >
+                              {opt.letter}.
+                            </Typography>
+                            <Typography
+                              sx={{
+                                color: ip.heading,
+                                fontSize: 16,
+                                lineHeight: 1.35,
+                                flex: 1,
+                              }}
+                            >
+                              {opt.text}
+                            </Typography>
+                            {keyCorrect ? (
+                              <Typography
+                                sx={{
+                                  fontWeight: 700,
+                                  fontSize: 12,
+                                  color: '#166534',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                correct
+                              </Typography>
+                            ) : null}
+                          </Box>
+                        );
+                      })}
+                    </Box>
+                  ) : null}
+
+                  {itemDetail.solution_steps.length > 0 ? (
+                    <Box sx={{ mb: 1.5 }}>
+                      <Typography sx={{ fontWeight: 700, color: ip.heading, fontSize: 13, mb: 0.5 }}>
+                        Solution steps
+                      </Typography>
+                      <Box component="ol" sx={{ m: 0, pl: 2.25, color: '#334155', fontSize: 13.5 }}>
+                        {itemDetail.solution_steps.map((step, idx) => (
+                          <li key={`${itemDetail.item_id}-step-${idx}`} style={{ marginBottom: 4 }}>
+                            {step}
+                          </li>
+                        ))}
+                      </Box>
+                    </Box>
+                  ) : null}
+
+                  {itemDetail.problem_report_texts.length > 0 ? (
+                    <Box>
+                      <Typography sx={{ fontWeight: 700, color: ip.heading, fontSize: 13, mb: 0.5 }}>
+                        All reports on this item ({itemDetail.problem_report_count})
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                        {itemDetail.problem_report_texts.map((text, idx) => (
+                          <Typography
+                            key={`${itemDetail.item_id}-rpt-${idx}`}
+                            sx={{
+                              fontSize: 13,
+                              color: '#475569',
+                              whiteSpace: 'pre-wrap',
+                              wordBreak: 'break-word',
+                              px: 1.25,
+                              py: 0.85,
+                              borderRadius: 1,
+                              bgcolor: '#fff7ed',
+                              border: '1px solid #fed7aa',
+                            }}
+                          >
+                            {text}
+                          </Typography>
+                        ))}
+                      </Box>
+                    </Box>
+                  ) : null}
+                </Box>
+              ) : null}
+            </Box>
+          ) : null}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={closeReport} sx={platformAdminTextButtonSx}>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

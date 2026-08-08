@@ -40,6 +40,7 @@ export const PLATFORM_ADMIN_ANALYTICS_PRACTICE_EXAMS = '/analytics/practice-exam
 export const PLATFORM_ADMIN_ANALYTICS_QUESTION_OF_DAY = '/analytics/question-of-day';
 export const PLATFORM_ADMIN_ANALYTICS_PRACTICE_DAILY = '/analytics/practice-daily';
 export const PLATFORM_ADMIN_ANALYTICS_PRACTICE_DAILY_BY_EXAM = '/analytics/practice-daily-by-exam';
+export const PLATFORM_ADMIN_ANALYTICS_PRACTICE_MONTHLY = '/analytics/practice-monthly';
 export const PLATFORM_ADMIN_ANALYTICS_TOP_COINS = '/analytics/top-coins';
 export const PLATFORM_ADMIN_ANALYTICS_TOP_QOD = '/analytics/top-qod';
 export const PLATFORM_ADMIN_ANALYTICS_SCHOOL_ADMIN_ACTIVITY = '/analytics/school-admin-activity';

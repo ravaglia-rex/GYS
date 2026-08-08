@@ -109,6 +109,142 @@ export function PlatformAdminPageHeader({
   );
 }
 
+export type AnalyticsSectionAccent = 'navy' | 'teal' | 'amber' | 'slate' | 'violet';
+
+const ANALYTICS_SECTION_ACCENTS: Record<
+  AnalyticsSectionAccent,
+  { bar: string; soft: string; stepBg: string; stepText: string }
+> = {
+  navy: {
+    bar: ip.navy,
+    soft: 'rgba(16, 64, 139, 0.04)',
+    stepBg: 'rgba(16, 64, 139, 0.1)',
+    stepText: ip.navy,
+  },
+  teal: {
+    bar: '#0f766e',
+    soft: 'rgba(15, 118, 110, 0.05)',
+    stepBg: 'rgba(15, 118, 110, 0.12)',
+    stepText: '#115e59',
+  },
+  amber: {
+    bar: '#b45309',
+    soft: 'rgba(180, 83, 9, 0.05)',
+    stepBg: 'rgba(180, 83, 9, 0.12)',
+    stepText: '#92400e',
+  },
+  slate: {
+    bar: '#475569',
+    soft: '#f8fafc',
+    stepBg: '#e2e8f0',
+    stepText: '#334155',
+  },
+  violet: {
+    bar: '#6d28d9',
+    soft: 'rgba(109, 40, 217, 0.05)',
+    stepBg: 'rgba(109, 40, 217, 0.1)',
+    stepText: '#5b21b6',
+  },
+};
+
+/** Numbered analytics block with accent rail for scanning dense dashboards. */
+export function PlatformAdminAnalyticsSection({
+  step,
+  title,
+  subtitle,
+  accent = 'navy',
+  action,
+  children,
+  dense = false,
+}: {
+  step?: string | number;
+  title: string;
+  subtitle?: ReactNode;
+  accent?: AnalyticsSectionAccent;
+  action?: ReactNode;
+  children: ReactNode;
+  dense?: boolean;
+}) {
+  const a = ANALYTICS_SECTION_ACCENTS[accent];
+  return (
+    <Box
+      sx={{
+        ...platformAdminCardSx,
+        mb: 2.5,
+        overflow: 'hidden',
+        borderLeft: `4px solid ${a.bar}`,
+        backgroundImage: `linear-gradient(180deg, ${a.soft} 0%, #fff 88px)`,
+      }}
+    >
+      <Box
+        sx={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: 1.5,
+          px: { xs: 2, sm: 2.5 },
+          pt: dense ? 1.75 : 2.25,
+          pb: dense ? 1.25 : 1.5,
+          borderBottom: `1px solid ${ip.cardBorder}`,
+        }}
+      >
+        <Box sx={{ minWidth: 0, display: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: subtitle ? 0.5 : 0 }}>
+            {step != null && step !== '' ? (
+              <Box
+                component="span"
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minWidth: 28,
+                  height: 28,
+                  px: 0.75,
+                  borderRadius: 999,
+                  bgcolor: a.stepBg,
+                  color: a.stepText,
+                  fontWeight: 800,
+                  fontSize: '0.78rem',
+                  letterSpacing: '0.02em',
+                  flexShrink: 0,
+                }}
+              >
+                {step}
+              </Box>
+            ) : null}
+            <Typography sx={{ fontWeight: 800, color: ip.heading, fontSize: '1.05rem', lineHeight: 1.25 }}>
+              {title}
+            </Typography>
+          </Box>
+          {subtitle ? (
+            <Typography variant="body2" sx={{ color: ip.subtext, lineHeight: 1.45, pl: step != null ? 5 : 0 }}>
+              {subtitle}
+            </Typography>
+          ) : null}
+        </Box>
+        {action ? <Box sx={{ flexShrink: 0 }}>{action}</Box> : null}
+      </Box>
+      <Box sx={{ px: { xs: 2, sm: 2.5 }, py: dense ? 1.75 : 2.25 }}>{children}</Box>
+    </Box>
+  );
+}
+
+export function accuracyChipTone(pct: number | null | undefined): AdminChipTone {
+  if (pct == null || !Number.isFinite(pct)) return 'neutral';
+  if (pct >= 85) return 'success';
+  if (pct >= 70) return 'info';
+  if (pct >= 50) return 'warning';
+  return 'error';
+}
+
+export function PlatformAdminAccuracyChip({ pct }: { pct: number | null | undefined }) {
+  if (pct == null || !Number.isFinite(pct)) {
+    return <PlatformAdminChip label="—" tone="neutral" />;
+  }
+  return <PlatformAdminChip label={`${pct}%`} tone={accuracyChipTone(pct)} />;
+}
+
 export function PlatformAdminStatCard({
   title,
   value,

@@ -1106,6 +1106,48 @@ export async function listPlatformAdminQuestionProblemReports(options?: {
   };
 }
 
+export type PlatformAdminQuestionProblemReportItem = {
+  source: 'official' | 'practice';
+  exam_id: string;
+  exam_title: string;
+  tier_or_level: string;
+  item_id: string;
+  prompt: string;
+  instruction: string | null;
+  passage: string | null;
+  stimulus?: unknown;
+  stimulus_type?: string | null;
+  options: Array<{ letter: string; text: string }>;
+  correct_index: number | null;
+  correct_letter: string | null;
+  solution_steps: string[];
+  family: string | null;
+  subconstruct: string | null;
+  mechanic_class_derived: string | null;
+  problem_report_count: number;
+  problem_report_texts: string[];
+};
+
+export async function getPlatformAdminQuestionProblemReportItem(opts: {
+  source: 'official' | 'practice';
+  exam_id: string;
+  tier_or_level: number | string | null;
+  item_id: string;
+}): Promise<PlatformAdminQuestionProblemReportItem> {
+  const params = new URLSearchParams();
+  params.set('source', opts.source);
+  params.set('exam_id', opts.exam_id);
+  params.set('tier_or_level', opts.tier_or_level == null ? '' : String(opts.tier_or_level));
+  params.set('item_id', opts.item_id);
+  const res = await withAuthRetry((headers) =>
+    axios.get(
+      `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_QUESTION_PROBLEM_REPORTS}/item?${params.toString()}`,
+      { headers }
+    )
+  );
+  return res.data?.item as PlatformAdminQuestionProblemReportItem;
+}
+
 export type TestDayQuestionRow = {
   index: number;
   item_id: string;

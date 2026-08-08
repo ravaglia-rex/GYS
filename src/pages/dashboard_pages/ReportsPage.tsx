@@ -295,24 +295,48 @@ const ReportsPage: React.FC = () => {
                     maxWidth: '100%',
                   }}
                 >
-                  <Table size="small" sx={{ minWidth: 520 }}>
+                  <Table size="small" sx={{ minWidth: 560, width: '100%', tableLayout: 'fixed' }}>
                     <TableHead>
                       <TableRow>
-                        <TableCell sx={{ color: 'rgba(255,255,255,0.65)', fontWeight: 700, fontSize: '0.72rem' }}>
+                        <TableCell
+                          sx={{
+                            color: 'rgba(255,255,255,0.65)',
+                            fontWeight: 700,
+                            fontSize: '0.72rem',
+                            width: '32%',
+                          }}
+                        >
                           REPORT
                         </TableCell>
-                        <TableCell sx={{ color: 'rgba(255,255,255,0.65)', fontWeight: 700, fontSize: '0.72rem' }}>
+                        <TableCell
+                          sx={{
+                            color: 'rgba(255,255,255,0.65)',
+                            fontWeight: 700,
+                            fontSize: '0.72rem',
+                            width: '22%',
+                          }}
+                        >
                           GENERATED
                         </TableCell>
                         <TableCell
-                          align="right"
-                          sx={{ color: 'rgba(255,255,255,0.65)', fontWeight: 700, fontSize: '0.72rem' }}
+                          align="center"
+                          sx={{
+                            color: 'rgba(255,255,255,0.65)',
+                            fontWeight: 700,
+                            fontSize: '0.72rem',
+                            width: '18%',
+                          }}
                         >
                           ASSESSMENTS
                         </TableCell>
                         <TableCell
                           align="right"
-                          sx={{ color: 'rgba(255,255,255,0.65)', fontWeight: 700, fontSize: '0.72rem', width: 160 }}
+                          sx={{
+                            color: 'rgba(255,255,255,0.65)',
+                            fontWeight: 700,
+                            fontSize: '0.72rem',
+                            width: '28%',
+                          }}
                         >
                           DOWNLOAD
                         </TableCell>
@@ -325,7 +349,7 @@ const ReportsPage: React.FC = () => {
                             {reportDisplayName(r)}
                           </TableCell>
                           <TableCell sx={{ color: 'rgba(255,255,255,0.85)' }}>{formatDate(r.generatedAt)}</TableCell>
-                          <TableCell align="right" sx={{ color: 'rgba(255,255,255,0.85)' }}>
+                          <TableCell align="center" sx={{ color: 'rgba(255,255,255,0.85)' }}>
                             {r.completedAssessmentCount ?? r.milestone ?? '-'}
                           </TableCell>
                           <TableCell align="right">
@@ -346,6 +370,7 @@ const ReportsPage: React.FC = () => {
                                 color: r.hasPdf ? '#93c5fd' : 'rgba(255,255,255,0.5)',
                                 textTransform: 'none',
                                 fontWeight: 600,
+                                whiteSpace: 'nowrap',
                               }}
                             >
                               Download PDF
