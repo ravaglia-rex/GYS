@@ -88,7 +88,7 @@ function humanizeFieldKey(key: string): string {
 
 /** Bank options sometimes keep authored "A. "/"B) " keys; UI badges are display-order A–D. */
 function stripEmbeddedOptionLetterPrefix(option: string): string {
-  return String(option ?? '').replace(/^[A-D][\.\)]\s+/i, '').trim();
+  return String(option ?? '').replace(/^[A-D][.)]\s+/i, '').trim();
 }
 
 function isBareOptionLetterCell(cell: string): boolean {
