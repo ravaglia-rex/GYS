@@ -2342,14 +2342,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
               <CircularProgress sx={{ color: ip.navy }} />
             </Box>
           ) : (
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
-                gap: 2.5,
-                alignItems: 'start',
-              }}
-            >
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
               <PlatformAdminAnalyticsSection
                 step={1}
                 title="Top Argus Coins"

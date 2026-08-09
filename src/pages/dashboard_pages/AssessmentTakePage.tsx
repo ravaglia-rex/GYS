@@ -343,6 +343,12 @@ export default function AssessmentTakePage() {
         undefined,
         getExamDeviceFingerprint()
       );
+      if (!result.question) {
+        setError(
+          'Could not load the first question for this attempt. Please go back and try again.'
+        );
+        return;
+      }
       setAttemptId(result.attempt_id);
       setCurrentQuestion(result.question);
       setCurrentIndex(result.current_index);
@@ -391,9 +397,11 @@ export default function AssessmentTakePage() {
   const mayStartExam = needsPreExamStep ? stage === 'taking' : integrityGateOk && stage === 'taking';
 
   useEffect(() => {
-    if (!mayStartExam || !uid || !assessmentId || attemptId || isInitializing) return;
+    // `error` must short-circuit: otherwise a failed initialize (e.g. cooldown 403) clears
+    // isInitializing and this effect immediately retries forever on "Preparing…".
+    if (!mayStartExam || !uid || !assessmentId || attemptId || isInitializing || error) return;
     void doInitialize();
-  }, [mayStartExam, uid, assessmentId, attemptId, isInitializing, doInitialize]);
+  }, [mayStartExam, uid, assessmentId, attemptId, isInitializing, error, doInitialize]);
 
   useEffect(() => {
     if (secondsLeft === null || stage !== 'taking') return;
@@ -549,6 +557,13 @@ export default function AssessmentTakePage() {
         return;
       }
 
+      if (!response.next_question) {
+        setError(
+          'Could not load the next question. Please go back and start again if this persists.'
+        );
+        return;
+      }
+
       setSelectedOption(null);
       setCurrentQuestion(response.next_question);
       setCurrentIndex(response.current_index ?? currentIndex + 1);
@@ -559,6 +574,12 @@ export default function AssessmentTakePage() {
         setError(err?.response?.data?.error ?? 'Exam time has expired. This attempt has ended.');
         examEndedRef.current = true;
         navigate(`/assessments/${assessmentId}/tier/${tier}/detail`, { replace: true });
+        return;
+      }
+      if (err?.code === 'ECONNABORTED' || /timeout/i.test(String(err?.message ?? ''))) {
+        setError(
+          'Submitting your answer timed out (often at a section boundary). Check your connection, then go back and try again — do not keep refreshing.'
+        );
         return;
       }
       setError('Failed to submit answer. Please check your connection and try again.');

@@ -86,6 +86,15 @@ function humanizeFieldKey(key: string): string {
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
+/** Bank options sometimes keep authored "A. "/"B) " keys; UI badges are display-order A–D. */
+function stripEmbeddedOptionLetterPrefix(option: string): string {
+  return String(option ?? '').replace(/^[A-D][\.\)]\s+/i, '').trim();
+}
+
+function isBareOptionLetterCell(cell: string): boolean {
+  return /^[A-D]\.?$/i.test(cell.trim());
+}
+
 function formatStimulusLeafValue(value: unknown): string {
   if (value === null || value === undefined) return '-';
   if (Array.isArray(value)) {
@@ -359,13 +368,18 @@ const STIMULUS_KEYS_HIDDEN_FROM_LEARNER = new Set([
   'evidence_spans',
   'expected_answer',
   'external_knowledge_required',
+  'groups',
   'incomplete_sentence',
   'items',
   'known_quantity',
+  'label',
+  'note',
+  'raw',
   'rationale',
   'solution',
   'solution_steps',
   'structured_solution',
+  'type',
   'uniqueness_check',
   'problem',
   'quantity_a',
@@ -1012,6 +1026,18 @@ function parseStimulusGridMatrix(obj: Record<string, unknown>): string[][] | nul
   const symbolishCell = (token: string): boolean =>
     token.length > 0 && !/[A-Za-z0-9\s,;:(){}[\]<>]/.test(token);
 
+  const normalizeGridToken = (token: string): string => {
+    const t = token.trim();
+    if (!t) return '';
+    if (t === '[?]' || t === '[??]' || t.toLowerCase() === '[blank]') return '?';
+    return t;
+  };
+
+  const isGridSymbolToken = (token: string): boolean => {
+    const t = normalizeGridToken(token);
+    return t === '?' || t === '??' || t === '…' || t === '...' || symbolishCell(t);
+  };
+
   function extractSymbolGridFromText(text: string): string[][] | null {
     const bracketRows: string[][] = [];
     const bracketRe = /\[([^\]]+)\]/g;
@@ -1019,14 +1045,33 @@ function parseStimulusGridMatrix(obj: Record<string, unknown>): string[][] | nul
     while ((bracketMatch = bracketRe.exec(text)) !== null) {
       const tokens = bracketMatch[1]
         .split(/[\s,]+/)
-        .map((token) => token.trim())
+        .map(normalizeGridToken)
         .filter(Boolean)
-        .filter((token) => token === '?' || symbolishCell(token));
+        .filter(isGridSymbolToken);
       if (tokens.length >= 2 && tokens.length <= 5) bracketRows.push(tokens);
     }
     if (bracketRows.length >= 2) {
       const width = bracketRows[0].length;
       if (width >= 2 && bracketRows.every((row) => row.length === width)) return bracketRows;
+    }
+
+    // Relational-order / matrix stems: "[?] ★ / ● ◆ – / – ▲ ●" (rows may be ragged)
+    if (text.includes('/')) {
+      const slashRows = text
+        .split('/')
+        .map((line) =>
+          line
+            .trim()
+            .split(/[\s,]+/)
+            .map(normalizeGridToken)
+            .filter(Boolean)
+            .filter(isGridSymbolToken)
+        )
+        .filter((row) => row.length > 0);
+      const maxWidth = slashRows.length ? Math.max(...slashRows.map((row) => row.length)) : 0;
+      if (slashRows.length >= 2 && maxWidth >= 2) {
+        return slashRows;
+      }
     }
 
     const rows = text
@@ -1035,9 +1080,9 @@ function parseStimulusGridMatrix(obj: Record<string, unknown>): string[][] | nul
         const tokens = line
           .replace(/[|]/g, ' ')
           .split(/[\s,]+/)
-          .map((token) => token.trim())
+          .map(normalizeGridToken)
           .filter(Boolean)
-          .filter((token) => token === '?' || symbolishCell(token));
+          .filter(isGridSymbolToken);
         return tokens.length >= 2 && tokens.length <= 5 ? tokens : [];
       })
       .filter((row) => row.length > 0);
@@ -1050,6 +1095,8 @@ function parseStimulusGridMatrix(obj: Record<string, unknown>): string[][] | nul
     if (candidate.length < 2 || width < 2) return null;
     if (candidate.length === 3 && width === 3) return candidate;
     if (candidate.length * width === 9) return candidate;
+    // Non-3×3 symbol grids (e.g. 3×2 relational-order clues) still render as a matrix.
+    if (candidate.every((row) => row.length === width)) return candidate;
     return null;
   }
 
@@ -1160,7 +1207,15 @@ function parseStimulusSequence(raw: unknown): string[] | null {
 
   const bracketMatches = Array.from(text.matchAll(/\[([^\]]+)\]/g));
   if (bracketMatches.length === 1) {
-    return parseStimulusSequence(bracketMatches[0][1].split(/[\s,]+/));
+    const full = bracketMatches[0][0];
+    const inner = bracketMatches[0][1].trim();
+    const remainder = text.replace(full, '').trim();
+    // Only treat "[★ ● ?]" as the sequence when the bracket IS the whole string.
+    // Stems like "[?] ★ / ● ◆ – / – ▲ ●" must not collapse to a lone "?" tile.
+    if (!remainder) {
+      return parseStimulusSequence(inner.split(/[\s,]+/));
+    }
+    return null;
   }
   if (bracketMatches.length > 1) return null;
 
@@ -1205,11 +1260,12 @@ function StimulusGridMatrixView(props: {
   if (clueLines) return <StimulusClueListView lines={clueLines} theme={theme} />;
   const cols = Math.max(1, ...matrix.map((r) => r.length));
   const symTileSx = stimulusSymbolTileSx(theme);
+  // Row-by-row (not a flat cell stream) so ragged slash-grids keep each clue on its own line.
   return (
     <Box
       sx={{
-        display: 'grid',
-        gridTemplateColumns: `repeat(${cols}, minmax(2.75rem, 1fr))`,
+        display: 'flex',
+        flexDirection: 'column',
         gap: 1.1,
         maxWidth: `min(100%, ${cols * 5.5}rem)`,
         mb: 2.25,
@@ -1218,40 +1274,57 @@ function StimulusGridMatrixView(props: {
       role="img"
       aria-label="Puzzle grid"
     >
-      {matrix.flatMap((row, ri) =>
-        row.map((cell, ci) => {
-          const display = String(cell ?? '').trim();
-          const isBlank = !display || display === '?' || display === '??' || display === '…';
-          const key = `g-${ri}-${ci}`;
-          const show = isBlank ? '?' : display;
-          return (
-            <Box
-              key={key}
-              sx={{
-                ...symTileSx,
-                minHeight: 50,
-                minWidth: 50,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                ...(isBlank
-                  ? { borderStyle: 'dashed', bgcolor: theme.blankBg, color: theme.blankColor, fontWeight: 800 }
-                  : {}),
-              }}
-            >
-              {renderMath && !isBlank ? (
-                <ExamMathText inline sx={{ fontSize: '1.35rem', fontWeight: 600 }}>
-                  {show}
-                </ExamMathText>
-              ) : (
-                <Typography sx={{ fontSize: '1.35rem', fontWeight: isBlank ? 800 : 600, lineHeight: 1 }}>
-                  {show}
-                </Typography>
-              )}
-            </Box>
-          );
-        })
-      )}
+      {matrix.map((row, ri) => (
+        <Box
+          key={`row-${ri}`}
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${Math.max(1, row.length)}, minmax(2.75rem, 1fr))`,
+            gap: 1.1,
+            justifyContent: 'start',
+          }}
+        >
+          {row.map((cell, ci) => {
+            const display = String(cell ?? '').trim();
+            const isBlank =
+              !display ||
+              display === '?' ||
+              display === '??' ||
+              display === '…' ||
+              display === '...' ||
+              display === '[?]' ||
+              display.toLowerCase() === '[blank]';
+            const key = `g-${ri}-${ci}`;
+            const show = isBlank ? '?' : display;
+            return (
+              <Box
+                key={key}
+                sx={{
+                  ...symTileSx,
+                  minHeight: 50,
+                  minWidth: 50,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  ...(isBlank
+                    ? { borderStyle: 'dashed', bgcolor: theme.blankBg, color: theme.blankColor, fontWeight: 800 }
+                    : {}),
+                }}
+              >
+                {renderMath && !isBlank ? (
+                  <ExamMathText inline sx={{ fontSize: '1.35rem', fontWeight: 600 }}>
+                    {show}
+                  </ExamMathText>
+                ) : (
+                  <Typography sx={{ fontSize: '1.35rem', fontWeight: isBlank ? 800 : 600, lineHeight: 1 }}>
+                    {show}
+                  </Typography>
+                )}
+              </Box>
+            );
+          })}
+        </Box>
+      ))}
     </Box>
   );
 }
@@ -1578,7 +1651,14 @@ type VisualChoiceMatrix = string[][];
 
 function normalizeVisualChoiceRows(rows: string[][]): VisualChoiceMatrix | null {
   const cleaned = rows
-    .map((row) => row.map((cell) => String(cell ?? '').trim()).filter(Boolean))
+    .map((row) => {
+      const cells = row.map((cell) => String(cell ?? '').trim()).filter(Boolean);
+      // Drop a leading "A." / "B" cell left over from authored option labels.
+      if (cells.length > 1 && isBareOptionLetterCell(cells[0])) {
+        return cells.slice(1);
+      }
+      return cells;
+    })
     .filter((row) => row.length > 0);
   return cleaned.length > 0 ? cleaned : null;
 }
@@ -1601,7 +1681,7 @@ function parseVisualChoice(raw: unknown): VisualChoiceMatrix | null {
     return null;
   }
 
-  const text = raw.trim();
+  const text = stripEmbeddedOptionLetterPrefix(raw.trim());
   if (!text) return null;
   if (text.startsWith('[')) {
     try {
@@ -1744,7 +1824,16 @@ type BlankSlot =
 
 function isSequencePlaceholder(s: string): boolean {
   const t = s.trim();
-  return !t || t === '?' || t === '??' || t === '…' || t === '...' || t.toLowerCase() === 'blank';
+  return (
+    !t ||
+    t === '?' ||
+    t === '??' ||
+    t === '…' ||
+    t === '...' ||
+    t === '[?]' ||
+    t.toLowerCase() === 'blank' ||
+    t.toLowerCase() === '[blank]'
+  );
 }
 
 function sequenceLooksNumeric(values: string[]): boolean {
@@ -1928,11 +2017,43 @@ const HumanFriendlyStimulusInner: React.FC<{
           </Box>
         );
       }
+      // Structured parse failed — show authored prose, never dump `raw` / `type` keys.
+      const rawFallback =
+        (typeof v2.raw === 'string' && v2.raw.trim()) ||
+        (typeof v2.text === 'string' && v2.text.trim()) ||
+        '';
+      if (rawFallback) {
+        return (
+          <Box sx={stimulusPanelSx(theme, { p: 2 })}>
+            <Typography sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.65, color: theme.text, fontSize: '0.95rem' }}>
+              {rawFallback}
+            </Typography>
+          </Box>
+        );
+      }
+      return null;
     }
 
     if (v2Type === 'partition_groups_v2') {
       // Options already show the four groups; no extra stimulus panel needed.
       return null;
+    }
+
+    if (v2Type === 'raw_text_v2' || v2Type === 'raw') {
+      const prose =
+        (typeof v2.text === 'string' && v2.text.trim()) ||
+        (typeof v2.raw === 'string' && v2.raw.trim()) ||
+        (typeof v2.setup === 'string' && v2.setup.trim()) ||
+        (typeof v2.passage === 'string' && v2.passage.trim()) ||
+        '';
+      if (!prose) return null;
+      return (
+        <Box sx={stimulusPanelSx(theme, { p: 2 })}>
+          <Typography sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.65, color: theme.text, fontSize: '0.95rem' }}>
+            {prose}
+          </Typography>
+        </Box>
+      );
     }
   }
 
@@ -2368,7 +2489,8 @@ function OptionPicker({
           onSelect(parseInt(e.target.value, 10));
         }}
       >
-        {options.map((option, idx) => {
+        {options.map((rawOption, idx) => {
+          const option = stripEmbeddedOptionLetterPrefix(rawOption);
           const fb = answerFeedback;
           let rowBorder = selectedOption === idx ? primaryColor : borderMuted;
           let rowBg = selectedOption === idx ? primarySoft : '#fff';
@@ -2864,8 +2986,11 @@ const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
   if (!question) return null;
 
   const mode = inferQuestionInteraction(assessmentId, question);
-  const opts = question.options ?? [];
-  const visualChoices = visualChoicesFromQuestion(question);
+  const opts = (question.options ?? []).map(stripEmbeddedOptionLetterPrefix);
+  const visualChoices = visualChoicesFromQuestion({
+    ...question,
+    options: opts,
+  });
 
   const reportItemId = resolvePracticeItemId(question);
   const problemReportBlock =

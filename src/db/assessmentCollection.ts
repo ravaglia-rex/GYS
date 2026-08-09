@@ -167,6 +167,9 @@ export const getStudentAssessments = async (uid: string): Promise<{ assessments:
   return response.data;
 };
 
+/** Section-boundary Next can assemble the next block; fail loudly instead of spinning forever. */
+const EXAM_MUTATION_TIMEOUT_MS = 45_000;
+
 export const initializeExam = async (
   uid: string,
   assessment_id: string,
@@ -184,7 +187,10 @@ export const initializeExam = async (
       language,
       ...(device_fingerprint ? { device_fingerprint } : {}),
     },
-    { headers: { Authorization: `Bearer ${authToken}` } }
+    {
+      headers: { Authorization: `Bearer ${authToken}` },
+      timeout: EXAM_MUTATION_TIMEOUT_MS,
+    }
   );
   return response.data;
 };
@@ -208,7 +214,10 @@ export const recordAnswer = async (
       time_spent_ms,
       ...(device_fingerprint ? { device_fingerprint } : {}),
     },
-    { headers: { Authorization: `Bearer ${authToken}` } }
+    {
+      headers: { Authorization: `Bearer ${authToken}` },
+      timeout: EXAM_MUTATION_TIMEOUT_MS,
+    }
   );
   return response.data;
 };
