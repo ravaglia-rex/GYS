@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="650" height="440" viewBox="0 0 650 440" role="img" aria-labelledby="title desc">
+  <title id="title">Route network from S to T</title>
+  <desc id="desc">An outer square joins S, A, D, and B. An inner square joins C, E, T, and F. Four additional lines join S to C, A to E, D to T, and B to F.</desc>
+  <style>
+    .edge { stroke: #333; stroke-width: 3; fill: none; }
+    .node { fill: #fff; stroke: #111; stroke-width: 3; }
+    .terminal { fill: #e9eef7; stroke: #111; stroke-width: 3; }
+    .label { font-family: Arial, Helvetica, sans-serif; font-size: 22px; font-weight: 700; text-anchor: middle; dominant-baseline: middle; fill: #111; }
+    .caption { font-family: Arial, Helvetica, sans-serif; font-size: 16px; fill: #333; text-anchor: middle; }
+  </style>
+  <rect width="650" height="440" fill="#fff"/>
+
+  <!-- Outer square: S-A-D-B -->
+  <path d="M90 70 L470 70 L470 350 L90 350 Z" class="edge"/>
+  <!-- Inner square: C-E-T-F -->
+  <path d="M200 150 L360 150 L360 270 L200 270 Z" class="edge"/>
+  <!-- Corresponding connectors -->
+  <line x1="90" y1="70" x2="200" y2="150" class="edge"/>
+  <line x1="470" y1="70" x2="360" y2="150" class="edge"/>
+  <line x1="470" y1="350" x2="360" y2="270" class="edge"/>
+  <line x1="90" y1="350" x2="200" y2="270" class="edge"/>
+
+  <!-- Nodes -->
+  <circle cx="90" cy="70" r="24" class="terminal"/><text x="90" y="70" class="label">S</text>
+  <circle cx="470" cy="70" r="24" class="node"/><text x="470" y="70" class="label">A</text>
+  <circle cx="90" cy="350" r="24" class="node"/><text x="90" y="350" class="label">B</text>
+  <circle cx="470" cy="350" r="24" class="node"/><text x="470" y="350" class="label">D</text>
+  <circle cx="200" cy="150" r="24" class="node"/><text x="200" y="150" class="label">C</text>
+  <circle cx="360" cy="150" r="24" class="node"/><text x="360" y="150" class="label">E</text>
+  <circle cx="200" cy="270" r="24" class="node"/><text x="200" y="270" class="label">F</text>
+  <circle cx="360" cy="270" r="24" class="terminal"/><text x="360" y="270" class="label">T</text>
+
+  <text x="90" y="112" class="caption">START</text>
+  <text x="360" y="318" class="caption">FINISH</text>
+</svg>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="410" viewBox="0 0 900 410" role="img" aria-labelledby="title desc">
+  <title id="title">Target organization chart before D is promoted</title>
+  <desc id="desc">Z leads managers D and W. D supervises G and B. W supervises X and J. D is marked for promotion. A dashed line links B and X.</desc>
+  <style>
+    .panel{fill:#f8fafc;stroke:#b7c4ce;stroke-width:2}.node{fill:#fff;stroke:#263b4a;stroke-width:2.2}.promoted{fill:#fff8e8;stroke:#9b5b00;stroke-width:3}.report{fill:none;stroke:#536a79;stroke-width:2.3;stroke-linejoin:round}.relation{fill:none;stroke:#7a3f75;stroke-width:3;stroke-dasharray:8 6}.person{font:700 20px "DejaVu Sans",sans-serif;fill:#173f63;text-anchor:middle;dominant-baseline:middle}.heading{font:700 20px sans-serif;fill:#31434f;text-anchor:middle}.promote{font:700 15px sans-serif;fill:#8b5000}.promote-line{fill:none;stroke:#9b5b00;stroke-width:2.2;marker-end:url(#arrow)}
+  </style>
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#9b5b00"/></marker></defs>
+  <rect width="900" height="410" fill="#fff"/><rect class="panel" x="75" y="15" width="750" height="370" rx="10"/>
+  <text class="heading" x="450" y="48">TARGET — BEFORE</text>
+  <path class="report" d="M450 126V151H285V174M450 151H615V174M285 216V244H205V267M285 244H365V267M615 216V244H535V267M615 244H695V267"/>
+  <rect class="node" x="405" y="84" width="90" height="42" rx="21"/><text class="person" x="450" y="106">Z □</text>
+  <rect class="promoted" x="240" y="174" width="90" height="42" rx="21"/><text class="person" x="285" y="196">D △</text>
+  <rect class="node" x="570" y="174" width="90" height="42" rx="21"/><text class="person" x="615" y="196">W ◆</text>
+  <rect class="node" x="160" y="267" width="90" height="42" rx="21"/><text class="person" x="205" y="289">G ○</text><rect class="node" x="320" y="267" width="90" height="42" rx="21"/><text class="person" x="365" y="289">B ○</text>
+  <rect class="node" x="490" y="267" width="90" height="42" rx="21"/><text class="person" x="535" y="289">X ○</text><rect class="node" x="650" y="267" width="90" height="42" rx="21"/><text class="person" x="695" y="289">J ○</text>
+  <path class="relation" d="M365 311Q450 355 535 311"/>
+  <text class="promote" x="145" y="176">PROMOTE: D</text><path class="promote-line" d="M224 180L246 190"/>
+</svg>

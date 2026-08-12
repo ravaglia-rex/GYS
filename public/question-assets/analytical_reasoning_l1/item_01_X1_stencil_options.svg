@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="940" height="590" viewBox="0 0 940 590" role="img" aria-labelledby="title desc">
+  <title id="title">Four possible three-by-three metal stencils</title>
+  <desc id="desc">Each option is a three-by-three metal stencil with exactly four square openings. Option A has openings at upper-left, upper-right, centre, and bottom-right. Option B has openings at upper-left, upper-right, bottom-left, and bottom-middle. Option C has openings at upper-left, upper-right, centre, and bottom-left. Option D has openings at upper-left, centre, bottom-left, and bottom-middle.</desc>
+  <style>
+    .label{font:700 28px system-ui,sans-serif;fill:#182230;text-anchor:end;dominant-baseline:central}
+    .plate{fill:#667085;stroke:#344054;stroke-width:4}
+    .line{stroke:#d0d5dd;stroke-width:2}
+    .hole{fill:#fff;stroke:#344054;stroke-width:2}
+    .legend{font:600 18px system-ui,sans-serif;fill:#475467}
+  </style>
+
+  <text x="300" y="30" class="legend">White square = opening</text>
+  <text x="565" y="30" class="legend">Grey square = solid metal</text>
+
+  <!-- A -->
+  <text x="90" y="175" class="label">A.</text>
+  <g transform="translate(110 65)">
+    <rect width="240" height="240" rx="8" class="plate"/>
+    <path d="M80,0 V240 M160,0 V240 M0,80 H240 M0,160 H240" class="line"/>
+    <rect x="2" y="2" width="76" height="76" class="hole"/>
+    <rect x="162" y="2" width="76" height="76" class="hole"/>
+    <rect x="82" y="82" width="76" height="76" class="hole"/>
+    <rect x="162" y="162" width="76" height="76" class="hole"/>
+  </g>
+
+  <!-- B -->
+  <text x="550" y="175" class="label">B.</text>
+  <g transform="translate(570 65)">
+    <rect width="240" height="240" rx="8" class="plate"/>
+    <path d="M80,0 V240 M160,0 V240 M0,80 H240 M0,160 H240" class="line"/>
+    <rect x="2" y="2" width="76" height="76" class="hole"/>
+    <rect x="162" y="2" width="76" height="76" class="hole"/>
+    <rect x="2" y="162" width="76" height="76" class="hole"/>
+    <rect x="82" y="162" width="76" height="76" class="hole"/>
+  </g>
+
+  <!-- C -->
+  <text x="90" y="425" class="label">C.</text>
+  <g transform="translate(110 315)">
+    <rect width="240" height="240" rx="8" class="plate"/>
+    <path d="M80,0 V240 M160,0 V240 M0,80 H240 M0,160 H240" class="line"/>
+    <rect x="2" y="2" width="76" height="76" class="hole"/>
+    <rect x="162" y="2" width="76" height="76" class="hole"/>
+    <rect x="82" y="82" width="76" height="76" class="hole"/>
+    <rect x="2" y="162" width="76" height="76" class="hole"/>
+  </g>
+
+  <!-- D -->
+  <text x="550" y="425" class="label">D.</text>
+  <g transform="translate(570 315)">
+    <rect width="240" height="240" rx="8" class="plate"/>
+    <path d="M80,0 V240 M160,0 V240 M0,80 H240 M0,160 H240" class="line"/>
+    <rect x="2" y="2" width="76" height="76" class="hole"/>
+    <rect x="82" y="82" width="76" height="76" class="hole"/>
+    <rect x="2" y="162" width="76" height="76" class="hole"/>
+    <rect x="82" y="162" width="76" height="76" class="hole"/>
+  </g>
+</svg>

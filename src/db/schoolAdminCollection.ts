@@ -110,6 +110,8 @@ export interface AssessmentConstructScore {
 /** Subconstruct row under `best_subconstruct_scores_by_level[level][name]`. */
 export interface AssessmentSubconstructScore {
   score_fraction?: number;
+  score_percent?: number;
+  /** @deprecated alias of score_percent; not a national rank. */
   percentile?: number;
 }
 
@@ -202,6 +204,7 @@ export interface SchoolSummaryResponse {
       level_1: number;
       level_2: number;
       level_3: number;
+      level_unknown?: number;
     };
   };
   analytics: Record<string, any>;

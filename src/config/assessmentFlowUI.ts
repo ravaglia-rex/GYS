@@ -87,13 +87,13 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
       { label: 'Language', value: 'English' },
     ],
     bodyDescription:
-      'This exam measures how you identify patterns, sequences, and abstract relationships. No reading or language knowledge is required - only careful observation and reasoning.',
+      'This exam measures how you induce structure, apply transformation rules, reason about constraints, and evaluate competing models. No prior subject knowledge is required - only careful observation and reasoning.',
     measuresTitle: 'What This Measures',
     measuresBullets: [
-      'Pattern Recognition',
-      'Logical Deduction',
-      'Sequence Analysis',
-      'Abstract Problem-Solving',
+      'Pattern & Structure Induction',
+      'Rule & Transformation Application',
+      'Relational & Constraint Deduction',
+      'Flexible Model Evaluation',
     ],
     beforeBegin: symbolicReasoningBefore,
     theme: 'blue',

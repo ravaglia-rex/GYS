@@ -81,7 +81,7 @@ function resolveIndividualAddOnPurchased(
 const STATUS_LABEL: Record<string, string> = {
   locked: 'Locked',
   available: 'Available',
-  tier_advanced: 'Advanced',
+  tier_advanced: 'Tier cleared',
   completed: 'Completed',
 };
 

@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="500" viewBox="0 0 920 500" role="img" aria-labelledby="title desc">
+  <title id="title">Eight rotatable puzzle pieces with symbol-coded tabs and sockets</title>
+  <desc id="desc">Puzzle pieces A through H. Every marked edge has a triangle, diamond, circle, or star symbol and either an outward tab or inward socket. A tab fits a socket only when their symbols match.</desc>
+  <style>
+    .tile { fill: #fff; stroke: #222; stroke-width: 3; }
+    .connector { fill: #dcecf8; }
+    .connector-line { fill: none; stroke: #174a78; stroke-width: 4; stroke-linecap: round; }
+    .tile-label { font: 700 24px sans-serif; fill: #222; text-anchor: middle; dominant-baseline: middle; }
+    .type { font: 700 21px "DejaVu Sans", sans-serif; fill: #174a78; text-anchor: middle; dominant-baseline: middle; }
+    .legend { font: 700 17px sans-serif; fill: #222; }
+    .legend-note { font: 16px sans-serif; fill: #333; }
+  </style>
+  <rect width="920" height="500" fill="#fff"/>
+
+  <defs>
+    <!-- Geometry is defined for a connector centered on a tile's top edge. -->
+    <g id="tab">
+      <path class="connector" d="M-14 0V-10Q0-26 14-10V0Z"/>
+      <path class="connector-line" d="M-14 0V-10Q0-26 14-10V0"/>
+    </g>
+    <g id="socket">
+      <path d="M-14 0Q0 26 14 0Z" fill="#fff"/>
+      <path class="connector-line" d="M-14 0Q0 26 14 0"/>
+    </g>
+  </defs>
+
+  <!-- Legend -->
+  <line x1="80" y1="44" x2="150" y2="44" stroke="#222" stroke-width="3"/>
+  <g transform="translate(115 44)"><use href="#tab"/></g>
+  <text class="legend" x="165" y="49">OUTWARD TAB</text>
+  <line x1="350" y1="44" x2="420" y2="44" stroke="#222" stroke-width="3"/>
+  <g transform="translate(385 44)"><use href="#socket"/></g>
+  <text class="legend" x="435" y="49">INWARD SOCKET</text>
+  <text class="legend-note" x="650" y="49">Fit: same symbol + tab/socket</text>
+
+  <!-- Tile A: blank, triangle tab, diamond tab, blank -->
+  <g transform="translate(55 100)">
+    <rect class="tile" width="120" height="120" rx="5"/>
+    <g transform="translate(120 60) rotate(90)"><use href="#tab"/></g>
+    <g transform="translate(60 120) rotate(180)"><use href="#tab"/></g>
+    <text class="type" x="94" y="60">△</text><text class="type" x="60" y="96">◇</text>
+    <text class="tile-label" x="60" y="60">A</text>
+  </g>
+
+  <!-- Tile B: triangle tab, star socket, blank, triangle socket -->
+  <g transform="translate(285 100)">
+    <rect class="tile" width="120" height="120" rx="5"/>
+    <g transform="translate(60 0)"><use href="#tab"/></g>
+    <g transform="translate(120 60) rotate(90)"><use href="#socket"/></g>
+    <g transform="translate(0 60) rotate(270)"><use href="#socket"/></g>
+    <text class="type" x="60" y="24">△</text><text class="type" x="96" y="60">★</text><text class="type" x="24" y="60">△</text>
+    <text class="tile-label" x="60" y="60">B</text>
+  </g>
+
+  <!-- Tile C: blank, triangle tab, circle tab, diamond socket -->
+  <g transform="translate(515 100)">
+    <rect class="tile" width="120" height="120" rx="5"/>
+    <g transform="translate(120 60) rotate(90)"><use href="#tab"/></g>
+    <g transform="translate(60 120) rotate(180)"><use href="#tab"/></g>
+    <g transform="translate(0 60) rotate(270)"><use href="#socket"/></g>
+    <text class="type" x="96" y="60">△</text><text class="type" x="60" y="96">○</text><text class="type" x="24" y="60">◇</text>
+    <text class="tile-label" x="60" y="60">C</text>
+  </g>
+
+  <!-- Tile D: diamond socket, triangle tab, blank, blank -->
+  <g transform="translate(745 100)">
+    <rect class="tile" width="120" height="120" rx="5"/>
+    <g transform="translate(60 0)"><use href="#socket"/></g>
+    <g transform="translate(120 60) rotate(90)"><use href="#tab"/></g>
+    <text class="type" x="60" y="24">◇</text><text class="type" x="96" y="60">△</text>
+    <text class="tile-label" x="60" y="60">D</text>
+  </g>
+
+  <!-- Tile E: diamond socket, blank, blank, triangle socket -->
+  <g transform="translate(55 330)">
+    <rect class="tile" width="120" height="120" rx="5"/>
+    <g transform="translate(60 0)"><use href="#socket"/></g>
+    <g transform="translate(0 60) rotate(270)"><use href="#socket"/></g>
+    <text class="type" x="60" y="24">◇</text><text class="type" x="24" y="60">△</text>
+    <text class="tile-label" x="60" y="60">E</text>
+  </g>
+
+  <!-- Tile F: blank, diamond tab, triangle socket, triangle socket -->
+  <g transform="translate(285 330)">
+    <rect class="tile" width="120" height="120" rx="5"/>
+    <g transform="translate(120 60) rotate(90)"><use href="#tab"/></g>
+    <g transform="translate(60 120) rotate(180)"><use href="#socket"/></g>
+    <g transform="translate(0 60) rotate(270)"><use href="#socket"/></g>
+    <text class="type" x="96" y="60">◇</text><text class="type" x="60" y="96">△</text><text class="type" x="24" y="60">△</text>
+    <text class="tile-label" x="60" y="60">F</text>
+  </g>
+
+  <!-- Tile G: circle socket, triangle tab, blank, star tab -->
+  <g transform="translate(515 330)">
+    <rect class="tile" width="120" height="120" rx="5"/>
+    <g transform="translate(60 0)"><use href="#socket"/></g>
+    <g transform="translate(120 60) rotate(90)"><use href="#tab"/></g>
+    <g transform="translate(0 60) rotate(270)"><use href="#tab"/></g>
+    <text class="type" x="60" y="24">○</text><text class="type" x="96" y="60">△</text><text class="type" x="24" y="60">★</text>
+    <text class="tile-label" x="60" y="60">G</text>
+  </g>
+
+  <!-- Tile H: blank, blank, diamond tab, triangle socket -->
+  <g transform="translate(745 330)">
+    <rect class="tile" width="120" height="120" rx="5"/>
+    <g transform="translate(60 120) rotate(180)"><use href="#tab"/></g>
+    <g transform="translate(0 60) rotate(270)"><use href="#socket"/></g>
+    <text class="type" x="60" y="96">◇</text><text class="type" x="24" y="60">△</text>
+    <text class="tile-label" x="60" y="60">H</text>
+  </g>
+</svg>

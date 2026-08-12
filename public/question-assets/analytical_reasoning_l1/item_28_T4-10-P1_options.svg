@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="590" viewBox="0 0 920 590" role="img" aria-labelledby="title desc">
+  <title id="title">Four answer options, each pairing a top view and an east view</title>
+  <desc id="desc">Option A: top is empty diamond over triangle square; east is diamond empty over circle square. Option B: top is triangle square over empty diamond; east is empty diamond over square circle. Option C: top is empty diamond over triangle square; east is empty diamond over triangle circle. Option D: top is empty diamond over triangle square; east is empty diamond over square circle.</desc>
+  <style>
+    .card { fill: #fff; stroke: #b4c0ca; stroke-width: 2; rx: 8; }
+    .grid { fill: #fff; stroke: #364957; stroke-width: 2.2; }
+    .divider { stroke: #364957; stroke-width: 2.2; }
+    .symbol { font: 700 25px "DejaVu Sans", sans-serif; fill: #173f63; text-anchor: middle; dominant-baseline: middle; }
+    .option { font: 700 25px sans-serif; fill: #174a78; }
+    .view { font: 700 15px sans-serif; fill: #333; text-anchor: middle; }
+    .axis { font: 13px sans-serif; fill: #536572; text-anchor: middle; }
+  </style>
+  <rect width="920" height="590" fill="#fff"/>
+
+  <!-- Option A -->
+  <g transform="translate(30 25)">
+    <rect class="card" width="410" height="250"/>
+    <text class="option" x="18" y="32">A</text>
+    <text class="view" x="128" y="42">TOP VIEW</text><text class="axis" x="128" y="61">N ↑</text><text class="axis" x="61" y="128">W ←</text>
+    <rect class="grid" x="76" y="70" width="104" height="104"/><path class="divider" d="M128 70V174M76 122H180"/>
+    <text class="symbol" x="102" y="96">·</text><text class="symbol" x="154" y="96">◆</text><text class="symbol" x="102" y="148">▲</text><text class="symbol" x="154" y="148">■</text>
+    <text class="view" x="305" y="42">EAST VIEW</text><text class="axis" x="305" y="61">UP ↑</text><text class="axis" x="305" y="196">S ←  observer  → N</text>
+    <rect class="grid" x="253" y="70" width="104" height="104"/><path class="divider" d="M305 70V174M253 122H357"/>
+    <text class="symbol" x="279" y="96">◆</text><text class="symbol" x="331" y="96">·</text><text class="symbol" x="279" y="148">●</text><text class="symbol" x="331" y="148">■</text>
+  </g>
+
+  <!-- Option B -->
+  <g transform="translate(480 25)">
+    <rect class="card" width="410" height="250"/>
+    <text class="option" x="18" y="32">B</text>
+    <text class="view" x="128" y="42">TOP VIEW</text><text class="axis" x="128" y="61">N ↑</text><text class="axis" x="61" y="128">W ←</text>
+    <rect class="grid" x="76" y="70" width="104" height="104"/><path class="divider" d="M128 70V174M76 122H180"/>
+    <text class="symbol" x="102" y="96">▲</text><text class="symbol" x="154" y="96">■</text><text class="symbol" x="102" y="148">·</text><text class="symbol" x="154" y="148">◆</text>
+    <text class="view" x="305" y="42">EAST VIEW</text><text class="axis" x="305" y="61">UP ↑</text><text class="axis" x="305" y="196">S ←  observer  → N</text>
+    <rect class="grid" x="253" y="70" width="104" height="104"/><path class="divider" d="M305 70V174M253 122H357"/>
+    <text class="symbol" x="279" y="96">·</text><text class="symbol" x="331" y="96">◆</text><text class="symbol" x="279" y="148">■</text><text class="symbol" x="331" y="148">●</text>
+  </g>
+
+  <!-- Option C -->
+  <g transform="translate(30 315)">
+    <rect class="card" width="410" height="250"/>
+    <text class="option" x="18" y="32">C</text>
+    <text class="view" x="128" y="42">TOP VIEW</text><text class="axis" x="128" y="61">N ↑</text><text class="axis" x="61" y="128">W ←</text>
+    <rect class="grid" x="76" y="70" width="104" height="104"/><path class="divider" d="M128 70V174M76 122H180"/>
+    <text class="symbol" x="102" y="96">·</text><text class="symbol" x="154" y="96">◆</text><text class="symbol" x="102" y="148">▲</text><text class="symbol" x="154" y="148">■</text>
+    <text class="view" x="305" y="42">EAST VIEW</text><text class="axis" x="305" y="61">UP ↑</text><text class="axis" x="305" y="196">S ←  observer  → N</text>
+    <rect class="grid" x="253" y="70" width="104" height="104"/><path class="divider" d="M305 70V174M253 122H357"/>
+    <text class="symbol" x="279" y="96">·</text><text class="symbol" x="331" y="96">◆</text><text class="symbol" x="279" y="148">▲</text><text class="symbol" x="331" y="148">●</text>
+  </g>
+
+  <!-- Option D -->
+  <g transform="translate(480 315)">
+    <rect class="card" width="410" height="250"/>
+    <text class="option" x="18" y="32">D</text>
+    <text class="view" x="128" y="42">TOP VIEW</text><text class="axis" x="128" y="61">N ↑</text><text class="axis" x="61" y="128">W ←</text>
+    <rect class="grid" x="76" y="70" width="104" height="104"/><path class="divider" d="M128 70V174M76 122H180"/>
+    <text class="symbol" x="102" y="96">·</text><text class="symbol" x="154" y="96">◆</text><text class="symbol" x="102" y="148">▲</text><text class="symbol" x="154" y="148">■</text>
+    <text class="view" x="305" y="42">EAST VIEW</text><text class="axis" x="305" y="61">UP ↑</text><text class="axis" x="305" y="196">S ←  observer  → N</text>
+    <rect class="grid" x="253" y="70" width="104" height="104"/><path class="divider" d="M305 70V174M253 122H357"/>
+    <text class="symbol" x="279" y="96">·</text><text class="symbol" x="331" y="96">◆</text><text class="symbol" x="279" y="148">■</text><text class="symbol" x="331" y="148">●</text>
+  </g>
+</svg>

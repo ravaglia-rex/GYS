@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="700" viewBox="0 0 1000 700" role="img" aria-labelledby="title desc">
+  <title id="title">Ten rows with separate triangle and square tracks</title>
+  <desc id="desc">Each row has a five-position triangle track and a separate five-position square track. Comparing the numbered positions across the two tracks shows when the markers share a position.</desc>
+  <style>
+    .cell { fill:#fff; stroke:#8193a0; stroke-width:1.7; }
+    .stripe { fill:#f5f8fa; }
+    .heading { font:700 16px sans-serif; fill:#31434f; text-anchor:middle; }
+    .position { font:13px sans-serif; fill:#536572; text-anchor:middle; }
+    .row { font:700 16px sans-serif; fill:#31434f; text-anchor:end; dominant-baseline:middle; }
+    .triangle { font:700 22px "DejaVu Sans",sans-serif; fill:#174a78; text-anchor:middle; dominant-baseline:middle; }
+    .square-solid { fill:#7a3f17; stroke:#7a3f17; stroke-width:2; }
+    .square-hollow { fill:#fff; stroke:#7a3f17; stroke-width:2; }
+  </style>
+  <rect width="1000" height="700" fill="#fff"/>
+  <text class="heading" x="350" y="32">TRIANGLE TRACK</text><text class="heading" x="730" y="32">SQUARE TRACK</text>
+  <text class="position" x="230" y="58">1</text><text class="position" x="290" y="58">2</text><text class="position" x="350" y="58">3</text><text class="position" x="410" y="58">4</text><text class="position" x="470" y="58">5</text>
+  <text class="position" x="610" y="58">1</text><text class="position" x="670" y="58">2</text><text class="position" x="730" y="58">3</text><text class="position" x="790" y="58">4</text><text class="position" x="850" y="58">5</text>
+
+  <defs>
+    <g id="tri-grid"><rect class="cell" x="200" y="0" width="60" height="48"/><rect class="cell" x="260" y="0" width="60" height="48"/><rect class="cell" x="320" y="0" width="60" height="48"/><rect class="cell" x="380" y="0" width="60" height="48"/><rect class="cell" x="440" y="0" width="60" height="48"/></g>
+    <g id="sq-grid"><rect class="cell" x="580" y="0" width="60" height="48"/><rect class="cell" x="640" y="0" width="60" height="48"/><rect class="cell" x="700" y="0" width="60" height="48"/><rect class="cell" x="760" y="0" width="60" height="48"/><rect class="cell" x="820" y="0" width="60" height="48"/></g>
+  </defs>
+
+  <!-- Alternating row bands and grids -->
+  <rect class="stripe" x="90" y="70" width="820" height="54"/><rect class="stripe" x="90" y="178" width="820" height="54"/><rect class="stripe" x="90" y="286" width="820" height="54"/><rect class="stripe" x="90" y="394" width="820" height="54"/><rect class="stripe" x="90" y="502" width="820" height="54"/>
+  <g transform="translate(0 73)"><use href="#tri-grid"/><use href="#sq-grid"/></g>
+  <g transform="translate(0 127)"><use href="#tri-grid"/><use href="#sq-grid"/></g>
+  <g transform="translate(0 181)"><use href="#tri-grid"/><use href="#sq-grid"/></g>
+  <g transform="translate(0 235)"><use href="#tri-grid"/><use href="#sq-grid"/></g>
+  <g transform="translate(0 289)"><use href="#tri-grid"/><use href="#sq-grid"/></g>
+  <g transform="translate(0 343)"><use href="#tri-grid"/><use href="#sq-grid"/></g>
+  <g transform="translate(0 397)"><use href="#tri-grid"/><use href="#sq-grid"/></g>
+  <g transform="translate(0 451)"><use href="#tri-grid"/><use href="#sq-grid"/></g>
+  <g transform="translate(0 505)"><use href="#tri-grid"/><use href="#sq-grid"/></g>
+  <g transform="translate(0 559)"><use href="#tri-grid"/><use href="#sq-grid"/></g>
+
+  <text class="row" x="175" y="97">ROW 1</text><text class="row" x="175" y="151">ROW 2</text><text class="row" x="175" y="205">ROW 3</text><text class="row" x="175" y="259">ROW 4</text><text class="row" x="175" y="313">ROW 5</text><text class="row" x="175" y="367">ROW 6</text><text class="row" x="175" y="421">ROW 7</text><text class="row" x="175" y="475">ROW 8</text><text class="row" x="175" y="529">ROW 9</text><text class="row" x="175" y="583">ROW 10</text>
+
+  <!-- Triangle positions by row: 1,2,3,4,5,1,2,3,4,5 -->
+  <text class="triangle" x="230" y="97">▲</text><text class="triangle" x="290" y="151">▲</text><text class="triangle" x="350" y="205">▲</text><text class="triangle" x="410" y="259">▲</text><text class="triangle" x="470" y="313">▲</text>
+  <text class="triangle" x="230" y="367">▲</text><text class="triangle" x="290" y="421">▲</text><text class="triangle" x="350" y="475">▲</text><text class="triangle" x="410" y="529">▲</text><text class="triangle" x="470" y="583">▲</text>
+
+  <!-- Square positions/fills by row: 3H,5S,2H,4S,3S,5H,2S,1S,3H,5S -->
+  <rect class="square-hollow" x="724" y="91" width="12" height="12"/><rect class="square-solid" x="844" y="145" width="12" height="12"/><rect class="square-hollow" x="664" y="199" width="12" height="12"/><rect class="square-solid" x="784" y="253" width="12" height="12"/><rect class="square-solid" x="724" y="307" width="12" height="12"/>
+  <rect class="square-hollow" x="844" y="361" width="12" height="12"/><rect class="square-solid" x="664" y="415" width="12" height="12"/><rect class="square-solid" x="604" y="469" width="12" height="12"/><rect class="square-hollow" x="724" y="523" width="12" height="12"/><rect class="square-solid" x="844" y="577" width="12" height="12"/>
+</svg>

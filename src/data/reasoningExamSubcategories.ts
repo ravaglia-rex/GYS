@@ -1,6 +1,7 @@
 /**
- * Display sub-strands for the three core reasoning assessments (GYS-style taxonomy).
- * Keys match assessment `id` from Firestore / assessment config.
+ * Display sub-strands for the three core reasoning assessments.
+ * Must match backend `SUBCONSTRUCTS_BY_EXAM` in subconstructConstants.ts — Score
+ * Distribution matches roster construct `subconstruct` labels exactly.
  */
 export const REASONING_EXAM_SUBCATEGORIES: Record<string, readonly string[]> = {
   symbolic_reasoning: [
@@ -9,17 +10,17 @@ export const REASONING_EXAM_SUBCATEGORIES: Record<string, readonly string[]> = {
     'Sequence Analysis',
     'Abstract Problem-Solving',
   ],
-  mathematical_reasoning: [
-    'Number Sense',
-    'Problem Solving',
-    'Mathematical Logic',
-    'Quantitative Thinking',
-  ],
   verbal_reasoning: [
-    'Understanding Meaning',
-    'Reading Between the Lines',
-    'Evidence and Arguments',
-    'Reasoning with Text',
+    'Reading Comprehension',
+    'Argument Analysis',
+    'Inference & Deduction',
+    'Vocabulary in Context',
+  ],
+  mathematical_reasoning: [
+    'Quantitative Logic',
+    'Non-Routine Problem Solving',
+    'Mathematical Patterns',
+    'Data Interpretation',
   ],
 };
 

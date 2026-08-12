@@ -202,6 +202,7 @@ export default function PracticeTakePage() {
   const [leaveOpen, setLeaveOpen] = useState(false);
   /** Outcomes for the current batch; synced to Firestore once when the session completes. */
   const pendingOutcomesRef = useRef<PracticeTakePendingOutcome[]>([]);
+  const sessionIdRef = useRef<string>('');
   const advancingQuestionRef = useRef(false);
   const sessionSubmitInFlightRef = useRef(false);
   const [sessionSubmitting, setSessionSubmitting] = useState(false);
@@ -228,6 +229,7 @@ export default function PracticeTakePage() {
       pendingOutcomesRef.current = dedupePracticePendingOutcomes(
         saved.pendingOutcomes.map((r) => ({ ...r }))
       );
+      sessionIdRef.current = saved.sessionId || crypto.randomUUID();
       setQuestions(saved.questions);
       setIndex(saved.index);
       setPoolCap(saved.totalInLevel);
@@ -240,6 +242,7 @@ export default function PracticeTakePage() {
       .then((res) => {
         if (cancelled) return;
         pendingOutcomesRef.current = [];
+        sessionIdRef.current = crypto.randomUUID();
         setQuestions(res.questions);
         setPoolCap(typeof res.total_in_level === 'number' ? res.total_in_level : undefined);
         setIndex(0);
@@ -276,6 +279,7 @@ export default function PracticeTakePage() {
       index,
       totalInLevel: poolCap,
       pendingOutcomes: pendingOutcomesRef.current.slice(),
+      sessionId: sessionIdRef.current || undefined,
     });
   }, [supported, practiceLevel, loading, questions, index, poolCap, storageScope, examId]);
 
@@ -353,6 +357,7 @@ export default function PracticeTakePage() {
           index: isLast ? index : index + 1,
           totalInLevel: poolCap,
           pendingOutcomes: pendingOutcomesRef.current.slice(),
+          sessionId: sessionIdRef.current || undefined,
         });
       };
 
@@ -392,7 +397,15 @@ export default function PracticeTakePage() {
       sessionSubmitInFlightRef.current = true;
       setSessionSubmitting(true);
       setSessionSubmitError(null);
-      recordPracticeSessionOutcomes({ examId, level: practiceLevel, results })
+      if (!sessionIdRef.current) {
+        sessionIdRef.current = crypto.randomUUID();
+      }
+      recordPracticeSessionOutcomes({
+        examId,
+        level: practiceLevel,
+        results,
+        sessionId: sessionIdRef.current,
+      })
         .then((resp) => {
           finishLocal(results.length, {
             coins_awarded: resp.coins_awarded,

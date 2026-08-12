@@ -8,6 +8,7 @@ import { resolvePracticeItemId } from '../practice/practiceModeConfig';
 import { ExamMathBlock, ExamMathText } from './ExamMathText';
 import { QuestionProblemReport, type QuestionReportFrame } from './QuestionProblemReport';
 import { inferQuestionInteraction } from './inferQuestionInteraction';
+import { AnalyticalReasoningQuestionBody } from './AnalyticalReasoningQuestionBody';
 
 export { inferQuestionInteraction } from './inferQuestionInteraction';
 
@@ -3078,6 +3079,27 @@ const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
   const borderMuted = '#e2e8f0';
 
   if (!question) return null;
+
+  const reportItemIdEarly = resolvePracticeItemId(question);
+  const problemReportBlockEarly =
+    questionReport && reportItemIdEarly ? (
+      <QuestionProblemReport frame={questionReport} itemId={reportItemIdEarly} accent={primary} />
+    ) : null;
+
+  if (question.format === 'markdown' || (typeof question.body_markdown === 'string' && question.body_markdown.trim())) {
+    return (
+      <AnalyticalReasoningQuestionBody
+        question={question}
+        questionNumber={questionNumber}
+        totalQuestions={totalQuestions}
+        selectedOption={selectedOption}
+        onSelectOption={onSelectOption}
+        theme={theme}
+        footer={problemReportBlockEarly}
+        selectionLocked={selectionLocked}
+      />
+    );
+  }
 
   const mode = inferQuestionInteraction(assessmentId, question);
   const opts = (question.options ?? []).map(stripEmbeddedOptionLetterPrefix);

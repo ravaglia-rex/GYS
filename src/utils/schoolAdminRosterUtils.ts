@@ -36,9 +36,25 @@ export function countAssessmentsFromProgress(progress: Record<string, Assessment
   if (!progress) return 0;
   let n = 0;
   for (const p of Object.values(progress)) {
-    if (p.status === 'tier_advanced' || p.status === 'completed' || (p.best_score != null && p.best_score > 0)) n += 1;
+    if (slotHasGradedAttempt(p)) n += 1;
   }
   return n;
+}
+
+/** Graded attempt or finished non-scored exam — not merely unlocked (`available`). */
+export function slotHasGradedAttempt(p: {
+  status?: string;
+  best_score?: number | null;
+  attempts_count?: number;
+  latest_attempt_score?: number | null;
+}): boolean {
+  const st = String(p.status ?? '').toLowerCase();
+  if (st === 'tier_advanced' || st === 'completed') return true;
+  const attempts = Number(p.attempts_count);
+  if (Number.isFinite(attempts) && attempts > 0) return true;
+  if (p.latest_attempt_score != null && Number.isFinite(Number(p.latest_attempt_score))) return true;
+  if (p.best_score != null && Number.isFinite(Number(p.best_score))) return true;
+  return false;
 }
 
 export function mergeRegistrationEmailLists(current: string[], additions: string[]): string[] {

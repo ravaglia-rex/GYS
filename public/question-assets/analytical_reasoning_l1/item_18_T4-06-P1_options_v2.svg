@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="500" viewBox="0 0 1000 500" role="img" aria-labelledby="title desc">
+  <title id="title">Four possible separate-track states for Row 11</title>
+  <desc id="desc">Every option places the triangle in Position 1 on its triangle track. A places a hollow square in Position 2. B places a hollow square in Position 4. C places a solid square in Position 5. D places a solid square in Position 4.</desc>
+  <style>
+    .card { fill:#f8fafc; stroke:#b7c4ce; stroke-width:2; }
+    .cell { fill:#fff; stroke:#8193a0; stroke-width:1.6; }
+    .option { font:700 24px sans-serif; fill:#174a78; }
+    .track { font:700 13px sans-serif; fill:#405461; }
+    .triangle { font:700 21px "DejaVu Sans",sans-serif; fill:#174a78; text-anchor:middle; dominant-baseline:middle; }
+    .square-solid { fill:#7a3f17; stroke:#7a3f17; stroke-width:2; }
+    .square-hollow { fill:#fff; stroke:#7a3f17; stroke-width:2; }
+    .position { font:12px sans-serif; fill:#536572; text-anchor:middle; }
+  </style>
+  <rect width="1000" height="500" fill="#fff"/>
+  <defs>
+    <g id="tracks">
+      <text class="track" x="48" y="76">TRIANGLE</text><text class="track" x="48" y="128">SQUARE</text>
+      <rect class="cell" x="120" y="48" width="52" height="42"/><rect class="cell" x="172" y="48" width="52" height="42"/><rect class="cell" x="224" y="48" width="52" height="42"/><rect class="cell" x="276" y="48" width="52" height="42"/><rect class="cell" x="328" y="48" width="52" height="42"/>
+      <rect class="cell" x="120" y="100" width="52" height="42"/><rect class="cell" x="172" y="100" width="52" height="42"/><rect class="cell" x="224" y="100" width="52" height="42"/><rect class="cell" x="276" y="100" width="52" height="42"/><rect class="cell" x="328" y="100" width="52" height="42"/>
+      <text class="position" x="146" y="162">1</text><text class="position" x="198" y="162">2</text><text class="position" x="250" y="162">3</text><text class="position" x="302" y="162">4</text><text class="position" x="354" y="162">5</text>
+    </g>
+  </defs>
+  <g transform="translate(25 20)"><rect class="card" width="460" height="215" rx="9"/><text class="option" x="18" y="34">A</text><use href="#tracks"/><text class="triangle" x="146" y="69">▲</text><rect class="square-hollow" x="192" y="115" width="12" height="12"/></g>
+  <g transform="translate(515 20)"><rect class="card" width="460" height="215" rx="9"/><text class="option" x="18" y="34">B</text><use href="#tracks"/><text class="triangle" x="146" y="69">▲</text><rect class="square-hollow" x="296" y="115" width="12" height="12"/></g>
+  <g transform="translate(25 265)"><rect class="card" width="460" height="215" rx="9"/><text class="option" x="18" y="34">C</text><use href="#tracks"/><text class="triangle" x="146" y="69">▲</text><rect class="square-solid" x="348" y="115" width="12" height="12"/></g>
+  <g transform="translate(515 265)"><rect class="card" width="460" height="215" rx="9"/><text class="option" x="18" y="34">D</text><use href="#tracks"/><text class="triangle" x="146" y="69">▲</text><rect class="square-solid" x="296" y="115" width="12" height="12"/></g>
+</svg>

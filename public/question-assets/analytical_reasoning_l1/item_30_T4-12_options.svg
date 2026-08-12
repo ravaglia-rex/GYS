@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="720" viewBox="0 0 1100 720" role="img" aria-labelledby="title desc">
+  <title id="title">Four possible organization charts after D is promoted</title>
+  <desc id="desc">All choices place D above managers Z and W. They differ only in how G, B, X, and J are assigned beneath Z and W.</desc>
+  <style>
+    .panel{fill:#f8fafc;stroke:#b7c4ce;stroke-width:2}.node{fill:#fff;stroke:#263b4a;stroke-width:2.2}.report{fill:none;stroke:#536a79;stroke-width:2.3;stroke-linejoin:round}.person{font:700 18px "DejaVu Sans",sans-serif;fill:#173f63;text-anchor:middle;dominant-baseline:middle}.choice{font:700 25px sans-serif;fill:#174a78}
+  </style>
+  <rect width="1100" height="720" fill="#fff"/>
+
+  <rect class="panel" x="25" y="20" width="510" height="320" rx="9"/><text class="choice" x="43" y="52">A</text>
+  <path class="report" d="M280 101V123H175V143M280 123H385V143M175 181V206H120V225M175 206H230V225M385 181V206H330V225M385 206H440V225"/>
+  <rect class="node" x="240" y="63" width="80" height="38" rx="19"/><text class="person" x="280" y="83">D △</text>
+  <rect class="node" x="135" y="143" width="80" height="38" rx="19"/><text class="person" x="175" y="163">Z □</text><rect class="node" x="345" y="143" width="80" height="38" rx="19"/><text class="person" x="385" y="163">W ◆</text>
+  <rect class="node" x="80" y="225" width="80" height="38" rx="19"/><text class="person" x="120" y="245">X ○</text><rect class="node" x="190" y="225" width="80" height="38" rx="19"/><text class="person" x="230" y="245">B ○</text>
+  <rect class="node" x="290" y="225" width="80" height="38" rx="19"/><text class="person" x="330" y="245">G ○</text><rect class="node" x="400" y="225" width="80" height="38" rx="19"/><text class="person" x="440" y="245">J ○</text>
+
+  <rect class="panel" x="565" y="20" width="510" height="320" rx="9"/><text class="choice" x="583" y="52">B</text>
+  <path class="report" d="M820 101V123H715V143M820 123H925V143M715 181V206H660V225M715 206H770V225M925 181V206H870V225M925 206H980V225"/>
+  <rect class="node" x="780" y="63" width="80" height="38" rx="19"/><text class="person" x="820" y="83">D △</text>
+  <rect class="node" x="675" y="143" width="80" height="38" rx="19"/><text class="person" x="715" y="163">Z □</text><rect class="node" x="885" y="143" width="80" height="38" rx="19"/><text class="person" x="925" y="163">W ◆</text>
+  <rect class="node" x="620" y="225" width="80" height="38" rx="19"/><text class="person" x="660" y="245">G ○</text><rect class="node" x="730" y="225" width="80" height="38" rx="19"/><text class="person" x="770" y="245">B ○</text>
+  <rect class="node" x="830" y="225" width="80" height="38" rx="19"/><text class="person" x="870" y="245">X ○</text><rect class="node" x="940" y="225" width="80" height="38" rx="19"/><text class="person" x="980" y="245">J ○</text>
+
+  <rect class="panel" x="25" y="370" width="510" height="320" rx="9"/><text class="choice" x="43" y="402">C</text>
+  <path class="report" d="M280 451V473H175V493M280 473H385V493M175 531V556H120V575M175 556H230V575M385 531V556H330V575M385 556H440V575"/>
+  <rect class="node" x="240" y="413" width="80" height="38" rx="19"/><text class="person" x="280" y="433">D △</text>
+  <rect class="node" x="135" y="493" width="80" height="38" rx="19"/><text class="person" x="175" y="513">Z □</text><rect class="node" x="345" y="493" width="80" height="38" rx="19"/><text class="person" x="385" y="513">W ◆</text>
+  <rect class="node" x="80" y="575" width="80" height="38" rx="19"/><text class="person" x="120" y="595">G ○</text><rect class="node" x="190" y="575" width="80" height="38" rx="19"/><text class="person" x="230" y="595">X ○</text>
+  <rect class="node" x="290" y="575" width="80" height="38" rx="19"/><text class="person" x="330" y="595">B ○</text><rect class="node" x="400" y="575" width="80" height="38" rx="19"/><text class="person" x="440" y="595">J ○</text>
+
+  <rect class="panel" x="565" y="370" width="510" height="320" rx="9"/><text class="choice" x="583" y="402">D</text>
+  <path class="report" d="M820 451V473H715V493M820 473H925V493M715 531V556H660V575M715 556H770V575M925 531V556H870V575M925 556H980V575"/>
+  <rect class="node" x="780" y="413" width="80" height="38" rx="19"/><text class="person" x="820" y="433">D △</text>
+  <rect class="node" x="675" y="493" width="80" height="38" rx="19"/><text class="person" x="715" y="513">Z □</text><rect class="node" x="885" y="493" width="80" height="38" rx="19"/><text class="person" x="925" y="513">W ◆</text>
+  <rect class="node" x="620" y="575" width="80" height="38" rx="19"/><text class="person" x="660" y="595">G ○</text><rect class="node" x="730" y="575" width="80" height="38" rx="19"/><text class="person" x="770" y="595">J ○</text>
+  <rect class="node" x="830" y="575" width="80" height="38" rx="19"/><text class="person" x="870" y="595">X ○</text><rect class="node" x="940" y="575" width="80" height="38" rx="19"/><text class="person" x="980" y="595">B ○</text>
+</svg>

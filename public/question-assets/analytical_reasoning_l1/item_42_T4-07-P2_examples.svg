@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="390" viewBox="0 0 1000 390" role="img" aria-labelledby="title desc">
+  <title id="title">Three complete symbol rows and their two-part codes</title>
+  <desc id="desc">Example 1 is circle, triangle, diamond, square, star, hexagon, plus and has code J4. Example 2 reverses the anchor order: square, diamond, circle, triangle, star, hexagon, plus and has code K7. Example 3 is triangle, diamond, star, hexagon, square, circle, plus and has code L9.</desc>
+  <style>
+    .cell { fill:#fff; stroke:#607786; stroke-width:2; }
+    .symbol { font:700 27px "DejaVu Sans",sans-serif; fill:#173f63; text-anchor:middle; dominant-baseline:middle; }
+    .row-label { font:700 17px sans-serif; fill:#31434f; text-anchor:end; dominant-baseline:middle; }
+    .code-card { fill:#e9f3fb; stroke:#174a78; stroke-width:2.5; }
+    .code { font:700 25px sans-serif; fill:#174a78; text-anchor:middle; dominant-baseline:middle; }
+    .arrow { fill:none; stroke:#536572; stroke-width:2.5; marker-end:url(#arrowhead); }
+  </style>
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#536572"/></marker>
+    <g id="row-grid"><rect class="cell" x="190" y="0" width="72" height="62"/><rect class="cell" x="262" y="0" width="72" height="62"/><rect class="cell" x="334" y="0" width="72" height="62"/><rect class="cell" x="406" y="0" width="72" height="62"/><rect class="cell" x="478" y="0" width="72" height="62"/><rect class="cell" x="550" y="0" width="72" height="62"/><rect class="cell" x="622" y="0" width="72" height="62"/></g>
+  </defs>
+  <rect width="1000" height="390" fill="#fff"/>
+
+  <g transform="translate(0 45)"><text class="row-label" x="165" y="31">EXAMPLE 1</text><use href="#row-grid"/>
+    <text class="symbol" x="226" y="32">●</text><text class="symbol" x="298" y="32">▲</text><text class="symbol" x="370" y="32">◆</text><text class="symbol" x="442" y="32">■</text><text class="symbol" x="514" y="32">★</text><text class="symbol" x="586" y="32">⬟</text><text class="symbol" x="658" y="32">✚</text>
+    <path class="arrow" d="M720 31H775"/><rect class="code-card" x="800" y="4" width="92" height="54" rx="9"/><text class="code" x="846" y="32">J4</text>
+  </g>
+  <g transform="translate(0 154)"><text class="row-label" x="165" y="31">EXAMPLE 2</text><use href="#row-grid"/>
+    <text class="symbol" x="226" y="32">■</text><text class="symbol" x="298" y="32">◆</text><text class="symbol" x="370" y="32">●</text><text class="symbol" x="442" y="32">▲</text><text class="symbol" x="514" y="32">★</text><text class="symbol" x="586" y="32">⬟</text><text class="symbol" x="658" y="32">✚</text>
+    <path class="arrow" d="M720 31H775"/><rect class="code-card" x="800" y="4" width="92" height="54" rx="9"/><text class="code" x="846" y="32">K7</text>
+  </g>
+  <g transform="translate(0 285)"><text class="row-label" x="165" y="31">EXAMPLE 3</text><use href="#row-grid"/>
+    <text class="symbol" x="226" y="32">▲</text><text class="symbol" x="298" y="32">◆</text><text class="symbol" x="370" y="32">★</text><text class="symbol" x="442" y="32">⬟</text><text class="symbol" x="514" y="32">■</text><text class="symbol" x="586" y="32">●</text><text class="symbol" x="658" y="32">✚</text>
+    <path class="arrow" d="M720 31H775"/><rect class="code-card" x="800" y="4" width="92" height="54" rx="9"/><text class="code" x="846" y="32">L9</text>
+  </g>
+</svg>

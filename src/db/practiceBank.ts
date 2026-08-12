@@ -162,6 +162,7 @@ export async function recordPracticeSessionOutcomes(params: {
   examId: string;
   level: 1 | 2 | 3;
   results: PracticeSessionResultRow[];
+  sessionId: string;
 }): Promise<RecordPracticeSessionOutcomesResponse> {
   const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS;
   if (!base) {
@@ -179,6 +180,7 @@ export async function recordPracticeSessionOutcomes(params: {
       exam_id: params.examId,
       level: String(params.level),
       results: params.results,
+      session_id: params.sessionId,
     },
     { headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' } }
   );

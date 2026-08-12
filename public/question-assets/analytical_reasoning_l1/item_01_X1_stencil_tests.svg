@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="940" height="500" viewBox="0 0 940 500" role="img" aria-labelledby="title desc">
+  <title id="title">Two test cards for a reversible three-by-three stencil</title>
+  <desc id="desc">The first card has stars in the upper-left and upper-right positions and a circle in the bottom-middle position. The second card has stars in the upper-right, centre, and bottom-right positions and a circle in the bottom-left position. Between the headings, a front-to-back illustration shows that turning the stencil over exchanges left and right while leaving top and bottom unchanged.</desc>
+  <style>
+    .heading{font:700 25px system-ui,sans-serif;fill:#182230;text-anchor:middle}
+    .sub{font:600 17px system-ui,sans-serif;fill:#475467;text-anchor:middle}
+    .card{fill:#f7f9fc;stroke:#344054;stroke-width:3}
+    .grid{stroke:#98a2b3;stroke-width:2}
+    .star{font:700 42px system-ui,sans-serif;fill:#b26a00;text-anchor:middle;dominant-baseline:central}
+    .circle{font:700 40px system-ui,sans-serif;fill:#235789;text-anchor:middle;dominant-baseline:central}
+    .demo{fill:#e4e7ec;stroke:#475467;stroke-width:2.5}
+    .demoText{font:700 18px system-ui,sans-serif;fill:#344054;text-anchor:middle;dominant-baseline:central}
+    .arrow{fill:none;stroke:#7f56d9;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+  </style>
+
+  <!-- flip demonstration -->
+  <g transform="translate(470 89)">
+    <rect x="-145" y="-45" width="86" height="86" rx="6" class="demo"/>
+    <path d="M-145,-45 l16,0 l0,11 l-16,0" fill="#fff" stroke="#475467" stroke-width="2"/>
+    <text x="-102" y="0" class="demoText">FRONT</text>
+
+    <path d="M-42,-8 C-13,-40 13,-40 42,-8" class="arrow"/>
+    <path d="M34,-19 L43,-7 L29,-5" class="arrow"/>
+    <path d="M42,8 C13,40 -13,40 -42,8" class="arrow"/>
+    <path d="M-34,19 L-43,7 L-29,5" class="arrow"/>
+
+    <rect x="59" y="-45" width="86" height="86" rx="6" class="demo"/>
+    <path d="M129,-45 l16,0 l0,11 l-16,0" fill="#fff" stroke="#475467" stroke-width="2"/>
+    <text x="102" y="0" class="demoText">BACK</text>
+    <text x="0" y="67" class="sub">left and right exchange; top and bottom stay</text>
+  </g>
+
+  <!-- Test 1 -->
+  <text x="260" y="205" class="heading">TEST 1</text>
+  <text x="260" y="232" class="sub">use the stencil as shown</text>
+  <g transform="translate(140 250)">
+    <rect width="240" height="210" rx="8" class="card"/>
+    <path d="M80,0 V210 M160,0 V210 M0,70 H240 M0,140 H240" class="grid"/>
+    <text x="40" y="35" class="star">★</text>
+    <text x="200" y="35" class="star">★</text>
+    <text x="120" y="175" class="circle">●</text>
+  </g>
+
+  <!-- Test 2 -->
+  <text x="680" y="205" class="heading">TEST 2</text>
+  <text x="680" y="232" class="sub">turn the stencil over left-to-right first</text>
+  <g transform="translate(560 250)">
+    <rect width="240" height="210" rx="8" class="card"/>
+    <path d="M80,0 V210 M160,0 V210 M0,70 H240 M0,140 H240" class="grid"/>
+    <text x="200" y="35" class="star">★</text>
+    <text x="120" y="105" class="star">★</text>
+    <text x="40" y="175" class="circle">●</text>
+    <text x="200" y="175" class="star">★</text>
+  </g>
+</svg>

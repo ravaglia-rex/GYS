@@ -405,6 +405,8 @@ interface PracticeTakePersistedV1 {
   index: number;
   totalInLevel?: number;
   pendingOutcomes?: PracticeTakePendingOutcome[];
+  /** Stable id for recordSessionOutcomes retries. */
+  sessionId?: string;
 }
 
 function parsePendingOutcomes(raw: unknown): PracticeTakePendingOutcome[] {
@@ -443,6 +445,7 @@ export function savePracticeTakeSession(
     index: number;
     totalInLevel?: number;
     pendingOutcomes?: PracticeTakePendingOutcome[];
+    sessionId?: string;
   }
 ): void {
   try {
@@ -456,6 +459,7 @@ export function savePracticeTakeSession(
       ...(payload.pendingOutcomes && payload.pendingOutcomes.length > 0
         ? { pendingOutcomes: payload.pendingOutcomes }
         : {}),
+      ...(payload.sessionId ? { sessionId: payload.sessionId } : {}),
     };
     localStorage.setItem(takeSessionStorageKey(scope, examId, level), JSON.stringify(data));
   } catch {
@@ -472,6 +476,7 @@ export function loadPracticeTakeSession(
   index: number;
   totalInLevel?: number;
   pendingOutcomes: PracticeTakePendingOutcome[];
+  sessionId?: string;
 } | null {
   try {
     const raw = localStorage.getItem(takeSessionStorageKey(scope, examId, level));
@@ -489,6 +494,10 @@ export function loadPracticeTakeSession(
       index: idx,
       totalInLevel: typeof parsed.totalInLevel === 'number' ? parsed.totalInLevel : undefined,
       pendingOutcomes: parsePendingOutcomes(parsed.pendingOutcomes),
+      sessionId:
+        typeof parsed.sessionId === 'string' && parsed.sessionId.trim()
+          ? parsed.sessionId.trim()
+          : undefined,
     };
   } catch {
     return null;

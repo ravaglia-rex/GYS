@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="230" viewBox="0 0 900 230" role="img" aria-labelledby="title desc">
+  <title id="title">Four numbered stone doors in a row</title>
+  <desc id="desc">Four identical closed stone doors are arranged from left to right and numbered 1, 2, 3, and 4.</desc>
+  <style>
+    .wall { fill: #eee9df; stroke: #b6aa97; stroke-width: 2; }
+    .door { fill: #737b82; stroke: #2f3941; stroke-width: 4; }
+    .arch { fill: #596269; }
+    .number { font: 700 30px system-ui, sans-serif; fill: #172033; text-anchor: middle; }
+    .mark { font: 700 38px system-ui, sans-serif; fill: #dfe7eb; text-anchor: middle; }
+  </style>
+  <rect x="15" y="15" width="870" height="195" rx="10" class="wall"/>
+  <g transform="translate(70,35)">
+    <path d="M0 155V50C0 20 25 0 60 0S120 20 120 50V155Z" class="door"/>
+    <circle cx="60" cy="76" r="24" class="arch"/><text x="60" y="90" class="mark">?</text><text x="60" y="198" class="number">1</text>
+  </g>
+  <g transform="translate(280,35)">
+    <path d="M0 155V50C0 20 25 0 60 0S120 20 120 50V155Z" class="door"/>
+    <circle cx="60" cy="76" r="24" class="arch"/><text x="60" y="90" class="mark">?</text><text x="60" y="198" class="number">2</text>
+  </g>
+  <g transform="translate(490,35)">
+    <path d="M0 155V50C0 20 25 0 60 0S120 20 120 50V155Z" class="door"/>
+    <circle cx="60" cy="76" r="24" class="arch"/><text x="60" y="90" class="mark">?</text><text x="60" y="198" class="number">3</text>
+  </g>
+  <g transform="translate(700,35)">
+    <path d="M0 155V50C0 20 25 0 60 0S120 20 120 50V155Z" class="door"/>
+    <circle cx="60" cy="76" r="24" class="arch"/><text x="60" y="90" class="mark">?</text><text x="60" y="198" class="number">4</text>
+  </g>
+</svg>

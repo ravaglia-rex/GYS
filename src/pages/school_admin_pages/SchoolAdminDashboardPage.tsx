@@ -52,7 +52,7 @@ import {
 import { SCHOOL_SCORED_ASSESSMENT_IDS } from '../../utils/assessmentGating';
 import { normalizeTierSlugForDashboard, parseInstitutionalTierSlug } from '../../utils/achievementTier';
 import { displaySubscriptionPlan } from '../../utils/displaySubscriptionPlan';
-import { normalizeRosterEmail, filterHiddenStaffStudentEmails, isVisibleSchoolRosterStudent } from '../../utils/schoolAdminRosterUtils';
+import { normalizeRosterEmail, filterHiddenStaffStudentEmails, isVisibleSchoolRosterStudent, countAssessmentsFromProgress } from '../../utils/schoolAdminRosterUtils';
 import { ProficiencyTier123Overview } from '../../components/school_admin/ProficiencyTier123Overview';
 import { NationalPerformanceTierOverview } from '../../components/school_admin/NationalPerformanceTierOverview';
 import {
@@ -118,17 +118,11 @@ function ordinal(n: number): string {
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
-/** Count completed assessment slots across all students at the school. */
+/** Count assessment slots with a graded attempt (not merely unlocked). */
 function countAssessmentsCompleted(students: StudentRow[]): number {
   let n = 0;
   for (const s of students) {
-    const progress = s.assessment_progress ?? {};
-    for (const p of Object.values(progress)) {
-      const pr = p as { status?: string; best_score?: number | null };
-      if (pr.status === 'tier_advanced' || (pr.best_score != null && pr.best_score > 0)) {
-        n += 1;
-      }
-    }
+    n += countAssessmentsFromProgress(s.assessment_progress);
   }
   return n;
 }
@@ -185,8 +179,6 @@ interface PerformanceMetrics {
   /** % of roster who started/completed at least one assessment. */
   attemptRate: number;
   avgPercentileChange: number;
-  goldPlusChange: number;
-  inBronzeChange: number;
   completionChange: number;
 }
 
@@ -263,11 +255,7 @@ function HeroRankTrend(props: {
     );
   }
 
-  return (
-    <Typography sx={{ mt, fontSize: mutedSz, color: 'rgba(255,255,255,0.65)', fontWeight: 500, textAlign: compact ? 'right' : 'center' }}>
-      No change vs. Q1
-    </Typography>
-  );
+  return null;
 }
 
 /** Full-width strip above sidebar + main (mockup). */
@@ -579,8 +567,6 @@ const SchoolAdminDashboardPage: React.FC = () => {
     rosterTotal: 0,
     attemptRate: 0,
     avgPercentileChange: 0,
-    goldPlusChange: 0,
-    inBronzeChange: 0,
     completionChange: 0,
   });
   const [proficiencyByExam, setProficiencyByExam] = useState<ExamProficiencySummary[]>([]);
@@ -622,8 +608,6 @@ const SchoolAdminDashboardPage: React.FC = () => {
         rosterTotal: tier123.total,
         attemptRate: computeAttemptRatePct(allStudents),
         avgPercentileChange: GREENFIELD_ANALYTICS_SNAPSHOT.perf_change_percentile,
-        goldPlusChange: 0,
-        inBronzeChange: 0,
         completionChange: GREENFIELD_ANALYTICS_SNAPSHOT.perf_change_completion,
       });
       setLatestQuarterly(
@@ -734,14 +718,16 @@ const SchoolAdminDashboardPage: React.FC = () => {
         setRankChangeQ1(rankDeltaParsed);
 
         setPerformance({
-          avgPercentile: analyticsData.avg_percentile ?? 0,
+          avgPercentile:
+            analyticsData.avg_percentile_source === 'national' ? analyticsData.avg_percentile ?? 0 : 0,
           atLevel3Count: tier123.tier3,
           clearedLevel1Count: tier123.tier2 + tier123.tier3,
           rosterTotal: tier123.total,
           attemptRate: computeAttemptRatePct(allStudents),
-          avgPercentileChange: analyticsData.perf_change_percentile ?? 0,
-          goldPlusChange: 0,
-          inBronzeChange: 0,
+          avgPercentileChange:
+            analyticsData.avg_percentile_source === 'national' ?
+              analyticsData.perf_change_percentile ?? 0 :
+              0,
           completionChange: analyticsData.perf_change_completion ?? 0,
         });
 
@@ -1130,7 +1116,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
             <StatCard
               label="Avg. Percentile"
               value={performance.avgPercentile > 0 ? ordinal(performance.avgPercentile) : '-'}
-              description="School-wide average percentile from analytics. Higher means stronger relative standing."
+              description="Mean national composite percentile among students who have a GYS triad standing. Discovery-only schools show a dash until Reasoning Triad norms exist."
               change={performance.avgPercentileChange !== 0 ? { value: performance.avgPercentileChange, label: 'pts from Q1' } : undefined}
               accent={ip.statBlue}
               icon={<MiniBarChartIcon sx={{ fontSize: '1.15rem', color: ip.statBlue }} />}
@@ -1139,7 +1125,6 @@ const SchoolAdminDashboardPage: React.FC = () => {
               label="At proficiency Level 3"
               value={formatCountOf(performance.atLevel3Count, performance.rosterTotal)}
               description="Students whose highest proficiency on any started/completed assessment is Level 3."
-              change={performance.goldPlusChange !== 0 ? { value: performance.goldPlusChange, label: 'pts from Q1' } : undefined}
               accent="#d97706"
               icon={<StarsIcon sx={{ fontSize: '1.15rem', color: '#f59e0b' }} />}
             />
@@ -1147,11 +1132,6 @@ const SchoolAdminDashboardPage: React.FC = () => {
               label="Cleared Level 1"
               value={formatCountOf(performance.clearedLevel1Count, performance.rosterTotal)}
               description="Students whose highest proficiency is Level 2 or 3 - they have moved past Level 1 on at least one assessment."
-              change={
-                performance.inBronzeChange !== 0
-                  ? { value: -performance.inBronzeChange, label: 'pts from Q1' }
-                  : undefined
-              }
               accent="#b45309"
               icon={<PriorityHighIcon sx={{ fontSize: '1.15rem', color: '#b45309' }} />}
             />

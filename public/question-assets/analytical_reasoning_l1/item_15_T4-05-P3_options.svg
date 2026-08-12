@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="500" viewBox="0 0 920 500" role="img" aria-labelledby="title desc">
+  <title id="title">Four proposed two-by-four puzzle-piece arrangements</title>
+  <desc id="desc">Option A is A G B D over H C F E. Option B is A F C E over D B G H. Option C is A F C H over D B G E. Option D is A G B H over D C F E.</desc>
+  <style>
+    .cell { fill: #fff; stroke: #333; stroke-width: 2.5; }
+    .fixed { fill: #e9f3fb; stroke: #174a78; stroke-width: 4; }
+    .letter { font: 700 26px sans-serif; fill: #222; text-anchor: middle; dominant-baseline: middle; }
+    .option { font: 700 25px sans-serif; fill: #174a78; }
+    .note { font: 15px sans-serif; fill: #333; }
+  </style>
+  <rect width="920" height="500" fill="#fff"/>
+  <text class="note" x="34" y="28">Puzzle piece A is fixed as shown. Rotate the other pieces as needed.</text>
+
+  <!-- A -->
+  <g transform="translate(40 70)"><text class="option" x="0" y="-12">A</text>
+    <rect class="fixed" x="0" y="0" width="72" height="72"/><rect class="cell" x="72" y="0" width="72" height="72"/><rect class="cell" x="144" y="0" width="72" height="72"/><rect class="cell" x="216" y="0" width="72" height="72"/>
+    <rect class="cell" x="0" y="72" width="72" height="72"/><rect class="cell" x="72" y="72" width="72" height="72"/><rect class="cell" x="144" y="72" width="72" height="72"/><rect class="cell" x="216" y="72" width="72" height="72"/>
+    <text class="letter" x="36" y="36">A</text><text class="letter" x="108" y="36">G</text><text class="letter" x="180" y="36">B</text><text class="letter" x="252" y="36">D</text>
+    <text class="letter" x="36" y="108">H</text><text class="letter" x="108" y="108">C</text><text class="letter" x="180" y="108">F</text><text class="letter" x="252" y="108">E</text>
+  </g>
+
+  <!-- B -->
+  <g transform="translate(520 70)"><text class="option" x="0" y="-12">B</text>
+    <rect class="fixed" x="0" y="0" width="72" height="72"/><rect class="cell" x="72" y="0" width="72" height="72"/><rect class="cell" x="144" y="0" width="72" height="72"/><rect class="cell" x="216" y="0" width="72" height="72"/>
+    <rect class="cell" x="0" y="72" width="72" height="72"/><rect class="cell" x="72" y="72" width="72" height="72"/><rect class="cell" x="144" y="72" width="72" height="72"/><rect class="cell" x="216" y="72" width="72" height="72"/>
+    <text class="letter" x="36" y="36">A</text><text class="letter" x="108" y="36">F</text><text class="letter" x="180" y="36">C</text><text class="letter" x="252" y="36">E</text>
+    <text class="letter" x="36" y="108">D</text><text class="letter" x="108" y="108">B</text><text class="letter" x="180" y="108">G</text><text class="letter" x="252" y="108">H</text>
+  </g>
+
+  <!-- C -->
+  <g transform="translate(40 300)"><text class="option" x="0" y="-12">C</text>
+    <rect class="fixed" x="0" y="0" width="72" height="72"/><rect class="cell" x="72" y="0" width="72" height="72"/><rect class="cell" x="144" y="0" width="72" height="72"/><rect class="cell" x="216" y="0" width="72" height="72"/>
+    <rect class="cell" x="0" y="72" width="72" height="72"/><rect class="cell" x="72" y="72" width="72" height="72"/><rect class="cell" x="144" y="72" width="72" height="72"/><rect class="cell" x="216" y="72" width="72" height="72"/>
+    <text class="letter" x="36" y="36">A</text><text class="letter" x="108" y="36">F</text><text class="letter" x="180" y="36">C</text><text class="letter" x="252" y="36">H</text>
+    <text class="letter" x="36" y="108">D</text><text class="letter" x="108" y="108">B</text><text class="letter" x="180" y="108">G</text><text class="letter" x="252" y="108">E</text>
+  </g>
+
+  <!-- D -->
+  <g transform="translate(520 300)"><text class="option" x="0" y="-12">D</text>
+    <rect class="fixed" x="0" y="0" width="72" height="72"/><rect class="cell" x="72" y="0" width="72" height="72"/><rect class="cell" x="144" y="0" width="72" height="72"/><rect class="cell" x="216" y="0" width="72" height="72"/>
+    <rect class="cell" x="0" y="72" width="72" height="72"/><rect class="cell" x="72" y="72" width="72" height="72"/><rect class="cell" x="144" y="72" width="72" height="72"/><rect class="cell" x="216" y="72" width="72" height="72"/>
+    <text class="letter" x="36" y="36">A</text><text class="letter" x="108" y="36">G</text><text class="letter" x="180" y="36">B</text><text class="letter" x="252" y="36">H</text>
+    <text class="letter" x="36" y="108">D</text><text class="letter" x="108" y="108">C</text><text class="letter" x="180" y="108">F</text><text class="letter" x="252" y="108">E</text>
+  </g>
+</svg>

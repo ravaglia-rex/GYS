@@ -897,7 +897,14 @@ function PlatformAdminSchoolDetailPage() {
                 </Typography>
                 <DetailRow label="Institutional tier" value={String(analytics.institutional_tier ?? ' - ')} />
                 <DetailRow label="Performance tier" value={String(analytics.institutional_performance_tier ?? ' - ')} />
-                <DetailRow label="Avg percentile" value={String(analytics.avg_percentile ?? ' - ')} />
+                <DetailRow
+                  label="Avg national percentile"
+                  value={
+                    analytics.avg_percentile_source === 'national' && analytics.avg_percentile != null
+                      ? String(analytics.avg_percentile)
+                      : ' - '
+                  }
+                />
                 <DetailRow label="Completion rate" value={String(analytics.completion_rate ?? ' - ')} />
                 <DetailRow label="Students assessed" value={String(analytics.students_assessed ?? ' - ')} />
                 <DetailRow label="Updated" value={formatDate(String(analytics.updated_at ?? ''))} />

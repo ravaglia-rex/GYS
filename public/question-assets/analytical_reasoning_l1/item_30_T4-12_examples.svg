@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="750" viewBox="0 0 1100 750" role="img" aria-labelledby="title desc">
+  <title id="title">Two before-and-after reorganization examples</title>
+  <desc id="desc">Example 1 promotes K from the left branch. V fills K's former manager position, and the dashed-linked reports M and P exchange supervisors. Example 2 promotes F from the right branch. C fills F's former position, and the dashed-linked reports N and L exchange supervisors.</desc>
+  <style>
+    .panel{fill:#f8fafc;stroke:#b7c4ce;stroke-width:2}.node{fill:#fff;stroke:#263b4a;stroke-width:2.2}.promoted{fill:#fff8e8;stroke:#9b5b00;stroke-width:3}.report{fill:none;stroke:#536a79;stroke-width:2.3;stroke-linejoin:round}.relation{fill:none;stroke:#7a3f75;stroke-width:3;stroke-dasharray:8 6}.person{font:700 18px "DejaVu Sans",sans-serif;fill:#173f63;text-anchor:middle;dominant-baseline:middle}.heading{font:700 18px sans-serif;fill:#31434f;text-anchor:middle}.example{font:700 21px sans-serif;fill:#174a78}.change{font:700 28px sans-serif;fill:#536572;text-anchor:middle}.promote{font:700 14px sans-serif;fill:#8b5000}.promote-line{fill:none;stroke:#9b5b00;stroke-width:2.2;marker-end:url(#arrow)}
+  </style>
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#9b5b00"/></marker></defs>
+  <rect width="1100" height="750" fill="#fff"/>
+
+  <text class="example" x="20" y="28">EXAMPLE 1</text>
+  <rect class="panel" x="20" y="42" width="500" height="320" rx="9"/><rect class="panel" x="580" y="42" width="500" height="320" rx="9"/>
+  <text class="heading" x="270" y="68">BEFORE</text><text class="heading" x="830" y="68">AFTER</text><text class="change" x="550" y="204">→</text>
+  <path class="report" d="M270 117V134H155V150M270 134H385V150M155 188V208H95V224M155 208H215V224M385 188V208H325V224M385 208H445V224"/>
+  <rect class="node" x="230" y="79" width="80" height="38" rx="19"/><text class="person" x="270" y="99">V □</text>
+  <rect class="promoted" x="115" y="150" width="80" height="38" rx="19"/><text class="person" x="155" y="170">K △</text>
+  <rect class="node" x="345" y="150" width="80" height="38" rx="19"/><text class="person" x="385" y="170">R ◆</text>
+  <rect class="node" x="55" y="224" width="80" height="38" rx="19"/><text class="person" x="95" y="244">M ○</text><rect class="node" x="175" y="224" width="80" height="38" rx="19"/><text class="person" x="215" y="244">T ○</text>
+  <rect class="node" x="285" y="224" width="80" height="38" rx="19"/><text class="person" x="325" y="244">P ○</text><rect class="node" x="405" y="224" width="80" height="38" rx="19"/><text class="person" x="445" y="244">H ○</text>
+  <path class="relation" d="M95 264Q210 310 325 264"/>
+  <text class="promote" x="33" y="154">PROMOTE: K</text><path class="promote-line" d="M104 158L119 166"/>
+
+  <path class="report" d="M830 117V136H710V153M830 136H950V153M710 191V212H650V228M710 212H770V228M950 191V212H890V228M950 212H1010V228"/>
+  <rect class="node" x="790" y="79" width="80" height="38" rx="19"/><text class="person" x="830" y="99">K △</text>
+  <rect class="node" x="670" y="153" width="80" height="38" rx="19"/><text class="person" x="710" y="173">V □</text><rect class="node" x="910" y="153" width="80" height="38" rx="19"/><text class="person" x="950" y="173">R ◆</text>
+  <rect class="node" x="610" y="228" width="80" height="38" rx="19"/><text class="person" x="650" y="248">P ○</text><rect class="node" x="730" y="228" width="80" height="38" rx="19"/><text class="person" x="770" y="248">T ○</text>
+  <rect class="node" x="850" y="228" width="80" height="38" rx="19"/><text class="person" x="890" y="248">M ○</text><rect class="node" x="970" y="228" width="80" height="38" rx="19"/><text class="person" x="1010" y="248">H ○</text>
+
+  <text class="example" x="20" y="405">EXAMPLE 2</text>
+  <rect class="panel" x="20" y="419" width="500" height="310" rx="9"/><rect class="panel" x="580" y="419" width="500" height="310" rx="9"/>
+  <text class="heading" x="270" y="445">BEFORE</text><text class="heading" x="830" y="445">AFTER</text><text class="change" x="550" y="579">→</text>
+  <path class="report" d="M270 494V511H155V527M270 511H385V527M155 565V583H95V599M155 583H215V599M385 565V583H325V599M385 583H445V599"/>
+  <rect class="node" x="230" y="456" width="80" height="38" rx="19"/><text class="person" x="270" y="476">C □</text>
+  <rect class="node" x="115" y="527" width="80" height="38" rx="19"/><text class="person" x="155" y="547">Y ◆</text>
+  <rect class="promoted" x="345" y="527" width="80" height="38" rx="19"/><text class="person" x="385" y="547">F △</text>
+  <rect class="node" x="55" y="599" width="80" height="38" rx="19"/><text class="person" x="95" y="619">S ○</text><rect class="node" x="175" y="599" width="80" height="38" rx="19"/><text class="person" x="215" y="619">N ○</text>
+  <rect class="node" x="285" y="599" width="80" height="38" rx="19"/><text class="person" x="325" y="619">Q ○</text><rect class="node" x="405" y="599" width="80" height="38" rx="19"/><text class="person" x="445" y="619">L ○</text>
+  <path class="relation" d="M215 639Q330 685 445 639"/>
+  <text class="promote" x="394" y="510">PROMOTE: F</text><path class="promote-line" d="M430 513L405 532"/>
+
+  <path class="report" d="M830 494V513H710V530M830 513H950V530M710 568V589H650V605M710 589H770V605M950 568V589H890V605M950 589H1010V605"/>
+  <rect class="node" x="790" y="456" width="80" height="38" rx="19"/><text class="person" x="830" y="476">F △</text>
+  <rect class="node" x="670" y="530" width="80" height="38" rx="19"/><text class="person" x="710" y="550">Y ◆</text><rect class="node" x="910" y="530" width="80" height="38" rx="19"/><text class="person" x="950" y="550">C □</text>
+  <rect class="node" x="610" y="605" width="80" height="38" rx="19"/><text class="person" x="650" y="625">S ○</text><rect class="node" x="730" y="605" width="80" height="38" rx="19"/><text class="person" x="770" y="625">L ○</text>
+  <rect class="node" x="850" y="605" width="80" height="38" rx="19"/><text class="person" x="890" y="625">Q ○</text><rect class="node" x="970" y="605" width="80" height="38" rx="19"/><text class="person" x="1010" y="625">N ○</text>
+</svg>

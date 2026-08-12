@@ -30,14 +30,19 @@ export const PROF_TIER_COLORS = {
 export function isActiveAssessmentProgress(p: Progress | undefined): p is Progress {
   if (!p || typeof p !== 'object') return false;
   const st = normalizedStatus(p);
-  if (st === 'tier_advanced') return true;
-  if (st === 'available') return true;
+  // Unlocked (`available`) is not an attempt — membership unlock must not inflate analytics.
+  if (st === 'tier_advanced' || st === 'completed') return true;
   const attempts = Number((p as { attempts_count?: unknown }).attempts_count);
   if (Number.isFinite(attempts) && attempts > 0) return true;
+  const latest = (p as { latest_attempt_score?: unknown }).latest_attempt_score;
+  if (latest != null) {
+    const n = typeof latest === 'number' ? latest : Number(latest);
+    if (Number.isFinite(n)) return true;
+  }
   const bs = (p as { best_score?: unknown }).best_score;
   if (bs != null) {
     const n = typeof bs === 'number' ? bs : Number(bs);
-    if (Number.isFinite(n) && n > 0) return true;
+    if (Number.isFinite(n)) return true;
   }
   return false;
 }
@@ -366,9 +371,11 @@ export function subStrandFractionsFromProgress(p: Progress | undefined): Record<
       const frac =
         typeof row.score_fraction === 'number' && Number.isFinite(row.score_fraction)
           ? row.score_fraction
-          : typeof row.percentile === 'number' && Number.isFinite(row.percentile)
-            ? row.percentile / 100
-            : null;
+          : typeof row.score_percent === 'number' && Number.isFinite(row.score_percent)
+            ? row.score_percent / 100
+            : typeof row.percentile === 'number' && Number.isFinite(row.percentile)
+              ? row.percentile / 100
+              : null;
       if (frac == null) continue;
       const label = name.trim();
       if (!label) continue;

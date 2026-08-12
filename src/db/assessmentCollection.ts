@@ -98,6 +98,11 @@ export interface ExamQuestion {
   id: string;
   prompt: string;
   options: string[];
+  /** Analytical Reasoning markdown items: body already contains stem, diagrams, and A–D labels. */
+  format?: string;
+  body_markdown?: string;
+  option_ids?: string[];
+  assets?: Array<{path?: string; alt?: string}>;
   /** Extra stem line from canonical `presentation.instruction`. */
   instruction?: string;
   /** Canonical pattern-logic payload for richer renderers (optional). */

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="520" viewBox="0 0 1000 520" role="img" aria-labelledby="title desc">
+  <title id="title">Three trays with one row that fits and one row that does not fit</title>
+  <desc id="desc">Tray A fits filled empty empty filled and does not fit empty filled empty filled. Tray B fits empty empty filled filled and does not fit four empty glasses. Tray C fits filled filled empty empty and does not fit filled empty filled empty.</desc>
+  <style>
+    .card { fill:#f8fafc; stroke:#b7c4ce; stroke-width:2; }
+    .tray { fill:#fff; stroke:#435765; stroke-width:2.5; }
+    .filled { fill:#173f63; stroke:#173f63; stroke-width:2.5; }
+    .empty { fill:#fff; stroke:#173f63; stroke-width:2.5; }
+    .tray-label { font:700 22px sans-serif; fill:#174a78; text-anchor:middle; dominant-baseline:middle; }
+    .heading { font:700 18px sans-serif; fill:#31434f; text-anchor:middle; }
+    .fits { fill:#eaf5ee; stroke:#3d7650; stroke-width:2; }
+    .not { fill:#fff3ea; stroke:#9a5a2d; stroke-width:2; }
+    .heading-fits { font:700 17px sans-serif; fill:#2f6541; text-anchor:middle; }
+    .heading-not { font:700 17px sans-serif; fill:#854722; text-anchor:middle; }
+    .legend { font:14px sans-serif; fill:#536572; }
+  </style>
+  <rect width="1000" height="520" fill="#fff"/>
+  <circle class="filled" cx="50" cy="26" r="10"/><text class="legend" x="67" y="31">filled glass</text><circle class="empty" cx="180" cy="26" r="10"/><text class="legend" x="197" y="31">empty glass</text>
+
+  <rect class="fits" x="175" y="52" width="340" height="48" rx="8"/><rect class="not" x="600" y="52" width="340" height="48" rx="8"/>
+  <text class="heading-fits" x="345" y="82">FITS</text><text class="heading-not" x="770" y="82">DOES NOT FIT</text>
+
+  <!-- Tray A -->
+  <rect class="card" x="25" y="120" width="950" height="110" rx="9"/><text class="tray-label" x="92" y="175">TRAY A</text>
+  <rect class="tray" x="185" y="142" width="320" height="68" rx="32"/><circle class="filled" cx="235" cy="176" r="20"/><circle class="empty" cx="309" cy="176" r="20"/><circle class="empty" cx="383" cy="176" r="20"/><circle class="filled" cx="457" cy="176" r="20"/>
+  <rect class="tray" x="610" y="142" width="320" height="68" rx="32"/><circle class="empty" cx="660" cy="176" r="20"/><circle class="filled" cx="734" cy="176" r="20"/><circle class="empty" cx="808" cy="176" r="20"/><circle class="filled" cx="882" cy="176" r="20"/>
+
+  <!-- Tray B -->
+  <rect class="card" x="25" y="250" width="950" height="110" rx="9"/><text class="tray-label" x="92" y="305">TRAY B</text>
+  <rect class="tray" x="185" y="272" width="320" height="68" rx="32"/><circle class="empty" cx="235" cy="306" r="20"/><circle class="empty" cx="309" cy="306" r="20"/><circle class="filled" cx="383" cy="306" r="20"/><circle class="filled" cx="457" cy="306" r="20"/>
+  <rect class="tray" x="610" y="272" width="320" height="68" rx="32"/><circle class="empty" cx="660" cy="306" r="20"/><circle class="empty" cx="734" cy="306" r="20"/><circle class="empty" cx="808" cy="306" r="20"/><circle class="empty" cx="882" cy="306" r="20"/>
+
+  <!-- Tray C -->
+  <rect class="card" x="25" y="380" width="950" height="110" rx="9"/><text class="tray-label" x="92" y="435">TRAY C</text>
+  <rect class="tray" x="185" y="402" width="320" height="68" rx="32"/><circle class="filled" cx="235" cy="436" r="20"/><circle class="filled" cx="309" cy="436" r="20"/><circle class="empty" cx="383" cy="436" r="20"/><circle class="empty" cx="457" cy="436" r="20"/>
+  <rect class="tray" x="610" y="402" width="320" height="68" rx="32"/><circle class="filled" cx="660" cy="436" r="20"/><circle class="empty" cx="734" cy="436" r="20"/><circle class="filled" cx="808" cy="436" r="20"/><circle class="empty" cx="882" cy="436" r="20"/>
+</svg>

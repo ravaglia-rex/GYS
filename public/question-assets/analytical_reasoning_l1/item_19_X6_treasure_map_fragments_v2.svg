@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="430" viewBox="0 0 1000 430" role="img" aria-labelledby="title desc">
+  <title id="title">Repaired base treasure map and three damaged map fragments</title>
+  <desc id="desc">A six by six base map contains Tower, Well, and four numbered chambers. Three separate fragments contain overlapping landmark pairs and a treasure X. Each fragment must be rotated and aligned using matching landmarks.</desc>
+  <style>
+    .heading { font: 700 18px system-ui, sans-serif; fill: #172033; }
+    .note { font: 14px system-ui, sans-serif; fill: #465166; }
+    .frame { fill: #f5e6c5; stroke: #5c4934; stroke-width: 2; }
+    .fragment { fill: #f5e6c5; stroke: #5c4934; stroke-width: 2.4; stroke-linejoin: round; }
+    .gridline { stroke: #607087; stroke-width: 1.3; fill: none; }
+    .landmark { fill: #ddecff; stroke: #376aa0; stroke-width: 1.5; }
+    .door { fill: #fff0d8; stroke: #a45c13; stroke-width: 1.7; }
+    .treasure { fill: #fff4a8; stroke: #9a7610; stroke-width: 1.7; }
+    .label { font: 700 20px system-ui, sans-serif; fill: #172033; text-anchor: middle; dominant-baseline: central; }
+    .small { font: 700 18px system-ui, sans-serif; fill: #172033; text-anchor: middle; dominant-baseline: central; }
+    .stain { fill: #936832; opacity: .07; }
+    .crease { stroke: #8b6a43; stroke-width: 1.4; stroke-dasharray: 5 5; opacity: .16; fill: none; }
+    .worn { stroke: #8a6337; stroke-width: 4; opacity: .14; fill: none; }
+  </style>
+
+  <text x="30" y="28" class="heading">BASE MAP</text>
+  <text x="380" y="28" class="heading">DAMAGED FRAGMENTS</text>
+  <text x="380" y="50" class="note">Each fragment may be turned by quarter-turns, but not flipped.</text>
+
+  <g transform="translate(30,55)">
+    <rect width="300" height="300" class="frame"/>
+    <ellipse cx="246" cy="38" rx="35" ry="22" class="stain"/>
+    <ellipse cx="44" cy="253" rx="27" ry="31" class="stain"/>
+    <path d="M14 116 C88 105 174 124 286 111" class="crease"/>
+    <path d="M50 0V300 M100 0V300 M150 0V300 M200 0V300 M250 0V300 M0 50H300 M0 100H300 M0 150H300 M0 200H300 M0 250H300" class="gridline"/>
+    <!-- Door 2 (1,1) -->
+    <rect x="55" y="55" width="40" height="40" rx="6" class="door"/><text x="75" y="75" class="label">2</text>
+    <!-- Well (2,2), Door 3 (4,2) -->
+    <rect x="105" y="105" width="40" height="40" rx="20" class="landmark"/><text x="125" y="125" class="label">W</text>
+    <rect x="205" y="105" width="40" height="40" rx="6" class="door"/><text x="225" y="125" class="label">3</text>
+    <!-- Tower (1,3), Door 4 (3,3) -->
+    <rect x="55" y="155" width="40" height="40" rx="20" class="landmark"/><text x="75" y="175" class="label">T</text>
+    <rect x="155" y="155" width="40" height="40" rx="6" class="door"/><text x="175" y="175" class="label">4</text>
+    <!-- Door 1 (2,4) -->
+    <rect x="105" y="205" width="40" height="40" rx="6" class="door"/><text x="125" y="225" class="label">1</text>
+  </g>
+
+  <!-- Fragment A printed 90 degrees left of its base orientation -->
+  <g transform="translate(380,85)">
+    <text x="75" y="-12" class="heading" text-anchor="middle">Fragment A</text>
+    <path d="M3 2 L47 1 L99 3 L148 1 L147 48 L150 96 L147 148 L101 147 L51 150 L2 147 L3 100 L1 49 Z" class="fragment"/>
+    <ellipse cx="123" cy="125" rx="20" ry="15" class="stain"/>
+    <ellipse cx="25" cy="28" rx="17" ry="22" class="stain"/>
+    <path d="M10 101 C50 91 99 108 141 96" class="crease"/>
+    <path d="M4 5 L45 3 M105 4 L145 5 M146 103 L145 143 M5 110 L5 143" class="worn"/>
+    <path d="M50 0V150 M100 0V150 M0 50H150 M0 100H150" class="gridline"/>
+    <rect x="105" y="5" width="40" height="40" rx="20" class="landmark"/><text x="125" y="25" class="small">R</text>
+    <rect x="5" y="55" width="40" height="40" rx="20" class="landmark"/><text x="25" y="75" class="small">W</text>
+    <rect x="55" y="55" width="40" height="40" rx="20" class="landmark"/><text x="75" y="75" class="small">B</text>
+    <rect x="55" y="105" width="40" height="40" rx="20" class="landmark"/><text x="75" y="125" class="small">T</text>
+  </g>
+
+  <!-- Fragment B printed 180 degrees from its base orientation -->
+  <g transform="translate(590,85)">
+    <text x="75" y="-12" class="heading" text-anchor="middle">Fragment B</text>
+    <path d="M2 3 L50 1 L101 2 L148 4 L147 52 L149 101 L146 149 L99 147 L49 150 L3 147 L1 99 L3 50 Z" class="fragment"/>
+    <ellipse cx="124" cy="24" rx="19" ry="17" class="stain"/>
+    <ellipse cx="29" cy="126" rx="22" ry="16" class="stain"/>
+    <path d="M9 46 C56 58 101 43 142 56" class="crease"/>
+    <path d="M5 5 L42 3 M108 5 L144 7 M145 106 L143 144 M5 106 L6 142" class="worn"/>
+    <path d="M50 0V150 M100 0V150 M0 50H150 M0 100H150" class="gridline"/>
+    <rect x="55" y="5" width="40" height="40" rx="20" class="landmark"/><text x="75" y="25" class="small">R</text>
+    <rect x="5" y="55" width="40" height="40" rx="20" class="landmark"/><text x="25" y="75" class="small">L</text>
+    <rect x="105" y="55" width="40" height="40" rx="20" class="landmark"/><text x="125" y="75" class="small">B</text>
+    <rect x="55" y="105" width="40" height="40" rx="20" class="landmark"/><text x="75" y="125" class="small">S</text>
+  </g>
+
+  <!-- Fragment C printed 90 degrees right of its base orientation -->
+  <g transform="translate(800,85)">
+    <text x="75" y="-12" class="heading" text-anchor="middle">Fragment C</text>
+    <path d="M2 3 L49 1 L98 3 L97 49 L99 97 L51 99 L3 97 L1 50 Z" class="fragment"/>
+    <ellipse cx="77" cy="76" rx="15" ry="17" class="stain"/>
+    <ellipse cx="20" cy="21" rx="14" ry="12" class="stain"/>
+    <path d="M8 57 C34 48 63 61 92 52" class="crease"/>
+    <path d="M5 5 L40 3 M59 3 L95 5 M95 63 L94 93 M5 61 L5 93" class="worn"/>
+    <path d="M50 0V100 M0 50H100" class="gridline"/>
+    <rect x="5" y="5" width="40" height="40" class="treasure"/><text x="25" y="25" class="small">X</text>
+    <rect x="55" y="5" width="40" height="40" rx="20" class="landmark"/><text x="75" y="25" class="small">S</text>
+    <rect x="5" y="55" width="40" height="40" rx="20" class="landmark"/><text x="25" y="75" class="small">L</text>
+  </g>
+
+  <g transform="translate(380,280)">
+    <text x="0" y="0" class="note">Landmarks: T Tower · W Well · B Bridge · R Tree · S Statue · L Lighthouse</text>
+    <text x="0" y="28" class="note">X marks the treasure. Numbered base-map squares are possible chambers.</text>
+  </g>
+</svg>

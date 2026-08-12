@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="310" viewBox="0 0 560 310" role="img" aria-labelledby="title desc">
+  <title id="title">Target communication network before relay H is removed</title><desc id="desc">Relay H is connected to P, Q, and R. Q is also connected to S, and R is also connected to T.</desc>
+  <style>.edge{stroke:#46566b;stroke-width:6}.node{fill:#dcecff;stroke:#336b9f;stroke-width:2}.relay{fill:#ffe3dd;stroke:#a94435;stroke-width:2.5}.lab{font:700 22px system-ui,sans-serif;fill:#172033;text-anchor:middle;dominant-baseline:central}</style>
+  <path d="M280 125L115 70 M280 125L280 245 M280 125L445 70 M280 245L115 245 M445 70L500 200" class="edge"/>
+  <g class="node"><circle cx="115" cy="70" r="27"/><circle cx="280" cy="245" r="27"/><circle cx="445" cy="70" r="27"/><circle cx="115" cy="245" r="27"/><circle cx="500" cy="200" r="27"/></g><circle cx="280" cy="125" r="29" class="relay"/><g class="lab"><text x="280" y="125">H×</text><text x="115" y="70">P</text><text x="280" y="245">Q</text><text x="445" y="70">R</text><text x="115" y="245">S</text><text x="500" y="200">T</text></g>
+</svg>
