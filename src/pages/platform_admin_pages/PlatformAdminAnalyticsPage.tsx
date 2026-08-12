@@ -226,6 +226,8 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
   const [practiceDailyToday, setPracticeDailyToday] = useState<PracticeDailyStatRow | null>(null);
   const [practiceMonthly, setPracticeMonthly] = useState<PracticeMonthlyStatRow[]>([]);
   const [practiceMonthlyYear, setPracticeMonthlyYear] = useState(new Date().getFullYear());
+  const [practiceMonthlyLoading, setPracticeMonthlyLoading] = useState(false);
+  const [practiceMonthlyError, setPracticeMonthlyError] = useState<string | null>(null);
   const [selectedExamId, setSelectedExamId] = useState<string>('');
   const [sortBy, setSortBy] = useState<'total_correct' | 'total_sessions'>('total_correct');
   const [byGrade, setByGrade] = useState<PracticeGradeBreakdownRow[]>([]);
@@ -620,24 +622,41 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     );
   };
 
+  const loadPracticeMonthly = useCallback(async (opts?: { refresh?: boolean }) => {
+    setPracticeMonthlyLoading(true);
+    setPracticeMonthlyError(null);
+    try {
+      const year = new Date().getFullYear();
+      const monthly = await getPlatformAdminPracticeMonthlyStats(year, { refresh: opts?.refresh });
+      setPracticeMonthly(monthly.months);
+      setPracticeMonthlyYear(monthly.year);
+      setPracticeGeneratedAt((prev) => monthly.generated_at || prev);
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { error?: string } }; message?: string };
+      setPracticeMonthlyError(
+        err?.response?.data?.error || err?.message || 'Failed to load month-wise practice stats'
+      );
+      setPracticeMonthly([]);
+    } finally {
+      setPracticeMonthlyLoading(false);
+    }
+  }, []);
+
   const loadPractice = useCallback(async (opts?: { refresh?: boolean }) => {
     setPracticeLoading(true);
     setPracticeError(null);
     setPracticeIndexesBuilding(false);
+    void loadPracticeMonthly(opts);
     try {
-      const year = new Date().getFullYear();
-      const [daily, dailyByExam, monthly, summariesInitial] = await Promise.all([
+      const [daily, dailyByExam, summariesInitial] = await Promise.all([
         getPlatformAdminPracticeDailyStats(30, { refresh: opts?.refresh }),
         getPlatformAdminPracticeDailyStatsByExam(30, { refresh: opts?.refresh }),
-        getPlatformAdminPracticeMonthlyStats(year, { refresh: opts?.refresh }),
         getPlatformAdminPracticeExamSummaries({ refresh: opts?.refresh }),
       ]);
       setPracticeDaily(daily.days);
       setPracticeDailyToday(daily.today);
       setPracticeDailyByExam(dailyByExam.days);
       setPracticeDailyExamIds(dailyByExam.exam_ids);
-      setPracticeMonthly(monthly.months);
-      setPracticeMonthlyYear(monthly.year);
       let summaries = summariesInitial;
       // Stale cache from before session backfill: attempts exist but sessions are all 0.
       const staleSessions =
@@ -649,7 +668,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
         summaries = await getPlatformAdminPracticeExamSummaries({ refresh: true });
       }
       setPracticeSummaries(summaries.exams);
-      setPracticeGeneratedAt(daily.generated_at || monthly.generated_at || summaries.generated_at);
+      setPracticeGeneratedAt(daily.generated_at || summaries.generated_at);
       setPracticeIndexesBuilding(summaries.indexes_building === true);
       setSelectedExamId((prev) => prev || summaries.exams[0]?.exam_id || '');
     } catch (e: unknown) {
@@ -666,7 +685,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     } finally {
       setPracticeLoading(false);
     }
-  }, []);
+  }, [loadPracticeMonthly]);
 
   const loadPracticeDetail = useCallback(async (examId: string, opts?: { refresh?: boolean }) => {
     if (!examId) return;
@@ -771,6 +790,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     officialDrillLoading ||
     officialCompletionsLoading ||
     practiceLoading ||
+    practiceMonthlyLoading ||
     practiceDetailLoading ||
     qodLoading ||
     activityLoading;
@@ -1900,7 +1920,10 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                     accent="#b45309"
                   />
                 </Box>
-                <Box sx={{ width: '100%', height: 280 }}>
+                <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 1.5 }}>
+                  Practice volume · last 30 days (IST)
+                </Typography>
+                <Box sx={{ width: '100%', height: 280, mb: 3 }}>
                   <ResponsiveContainer>
                     <LineChart data={practiceDailyChartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -1935,6 +1958,38 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                     </LineChart>
                   </ResponsiveContainer>
                 </Box>
+
+                <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
+                  Month-wise activity · {practiceMonthlyYear}
+                </Typography>
+                <Typography variant="body2" sx={{ color: ip.subtext, mb: 1.5 }}>
+                  Same daily counters rolled up by calendar month (IST).
+                </Typography>
+                {practiceMonthlyError && (
+                  <Alert severity="warning" sx={{ mb: 1.5 }}>
+                    {practiceMonthlyError}
+                  </Alert>
+                )}
+                {practiceMonthlyLoading && practiceMonthly.length === 0 ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+                    <CircularProgress size={28} sx={{ color: ip.navy }} />
+                  </Box>
+                ) : (
+                  <Box sx={{ width: '100%', height: 300 }}>
+                    <ResponsiveContainer>
+                      <BarChart data={practiceMonthlyChartData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                        <YAxis tick={{ fontSize: 12 }} />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="sessions" name="Sessions" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="questions" name="Questions" fill="#7c3aed" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="correct" name="Correct" fill="#059669" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </Box>
+                )}
               </PlatformAdminAnalyticsSection>
 
               <PlatformAdminAnalyticsSection
@@ -1969,34 +2024,6 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
 
               <PlatformAdminAnalyticsSection
                 step={3}
-                title={`Month-wise · ${practiceMonthlyYear}`}
-                subtitle="Daily practice counters rolled up by calendar month (IST). Months with no backfilled/live counters show as zero."
-                accent="violet"
-              >
-                {practiceLoading && practiceMonthly.length === 0 ? (
-                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-                    <CircularProgress size={28} sx={{ color: ip.navy }} />
-                  </Box>
-                ) : (
-                  <Box sx={{ width: '100%', height: 300 }}>
-                    <ResponsiveContainer>
-                      <BarChart data={practiceMonthlyChartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                        <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                        <YAxis tick={{ fontSize: 12 }} />
-                        <Tooltip />
-                        <Legend />
-                        <Bar dataKey="sessions" name="Sessions" fill="#2563eb" radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="questions" name="Questions" fill="#7c3aed" radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="correct" name="Correct" fill="#059669" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </Box>
-                )}
-              </PlatformAdminAnalyticsSection>
-
-              <PlatformAdminAnalyticsSection
-                step={4}
                 title="Exam detail"
                 subtitle="Pick an exam to inspect grade breakdowns and top students."
                 accent="amber"

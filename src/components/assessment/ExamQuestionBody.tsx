@@ -724,6 +724,115 @@ function isIoExamplePair(x: unknown): x is { input: unknown; output: unknown } {
   return 'input' in o && 'output' in o;
 }
 
+type ParsedExampleRule = { pairs: Array<{ input: string; output: string }>; newInput: string };
+
+/**
+ * Legacy rule-induction stems often look like:
+ *   △ → ◇
+ *       ■ → ▲
+ *     Target: ○ -> ?
+ * Import left `examples` empty and only stored `raw`, so parse here for the tile UI.
+ */
+function parseExampleRuleProse(raw: string): ParsedExampleRule | null {
+  const text = String(raw ?? '').trim();
+  if (!text) return null;
+
+  const pairs: Array<{ input: string; output: string }> = [];
+  let newInput = '';
+
+  const arrowRe = /^(.+?)\s*(?:->|→)\s*(.+)$/;
+  const pushPair = (left: string, right: string) => {
+    const input = left.trim();
+    const output = right.trim().replace(/\.$/, '');
+    if (!input || !output) return;
+    if (output === '?' || output === '??' || output === '…') return;
+    pairs.push({ input, output });
+  };
+
+  // Semicolon form: "■→◆; ○→△; ▲→● ;; new: ◆" or "Examples: a -> b; c -> d. New input: x"
+  const semiSplit = text.split(/\s*;;\s*new\s*:\s*/i);
+  const head = semiSplit[0].replace(/^Examples?:\s*/i, '').trim();
+  if (semiSplit[1]) {
+    newInput = semiSplit[1].trim().replace(/\.$/, '');
+  }
+  if (head.includes(';')) {
+    for (const part of head.split(';').map((s) => s.trim()).filter(Boolean)) {
+      const m = part.match(arrowRe);
+      if (m) pushPair(m[1], m[2]);
+    }
+  }
+
+  // Line form (incl. indented Target lines)
+  for (const line of text.split(/\n+/)) {
+    const t = line.trim();
+    if (!t) continue;
+    const target = t.match(/^Target\s*:\s*(.+)$/i);
+    if (target) {
+      const body = target[1].trim();
+      const m = body.match(arrowRe);
+      if (m) {
+        newInput = m[1].trim();
+      } else {
+        newInput = body.replace(/\s*(?:->|→)\s*\?\.?$/, '').trim();
+      }
+      continue;
+    }
+    const ni = t.match(/^New input\s*:\s*(.+)$/i);
+    if (ni) {
+      newInput = ni[1].trim().replace(/\.$/, '');
+      continue;
+    }
+    if (pairs.length === 0 || !head.includes(';')) {
+      const m = t.match(arrowRe);
+      if (m) pushPair(m[1], m[2]);
+    }
+  }
+
+  if (!newInput) {
+    const ni = text.match(/New input\s*:\s*(.+)$/im);
+    if (ni) newInput = ni[1].trim().replace(/\.$/, '');
+  }
+
+  if (pairs.length === 0 && !newInput) return null;
+  return { pairs, newInput };
+}
+
+function renderExampleRuleTiles(
+  pairs: Array<{ input: string; output: string }>,
+  newInput: string,
+  theme: StimulusVisualTheme,
+  capSx: Record<string, unknown>
+): React.ReactNode {
+  if (pairs.length === 0 && !newInput) return null;
+  const symTileSx = stimulusSymbolTileSx(theme);
+  return (
+    <Box sx={stimulusPanelSx(theme)}>
+      {pairs.map((row, i) => (
+        <Box key={i} sx={{ mb: 2 }}>
+          <Typography variant="caption" sx={capSx}>
+            Example {i + 1}
+          </Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25, alignItems: 'center' }}>
+            <Box sx={symTileSx}>{row.input}</Box>
+            <Typography sx={{ color: theme.caption, fontWeight: 700, fontSize: '1.1rem' }} aria-hidden>
+              →
+            </Typography>
+            <Box sx={symTileSx}>{row.output}</Box>
+          </Box>
+        </Box>
+      ))}
+      {newInput ? (
+        <Box sx={{ pt: pairs.length ? 2 : 0, borderTop: pairs.length ? `1px solid ${theme.border}` : 'none' }}>
+          <Typography variant="caption" sx={capSx}>
+            New input
+          </Typography>
+          <Box sx={symTileSx}>{newInput}</Box>
+        </Box>
+      ) : null}
+    </Box>
+  );
+}
+
 type ExamplesIoCtx = { pairs: Array<{ input: string; output: string }>; test: string };
 
 /** When non-null, {@link HumanFriendlyStimulus} renders the examples + “Test input” grey box. */
@@ -1986,51 +2095,24 @@ const HumanFriendlyStimulusInner: React.FC<{
 
     if (v2Type === 'example_rule_v2') {
       const examplesRaw = Array.isArray(v2.examples) ? v2.examples : [];
-      const pairs = examplesRaw.filter(isIoExamplePair);
-      const newInput = typeof v2.new_input === 'string' ? v2.new_input.trim() : '';
-      if (pairs.length > 0 || newInput) {
-        const symTileSx = stimulusSymbolTileSx(theme);
-        return (
-          <Box sx={stimulusPanelSx(theme)}>
-            {pairs.map((row, i) => (
-              <Box key={i} sx={{ mb: 2 }}>
-                <Typography variant="caption" sx={capSx}>
-                  Example {i + 1}
-                </Typography>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25, alignItems: 'center' }}>
-                  <Box sx={symTileSx}>{String(row.input)}</Box>
-                  <Typography sx={{ color: theme.caption, fontWeight: 700, fontSize: '1.1rem' }} aria-hidden>
-                    →
-                  </Typography>
-                  <Box sx={symTileSx}>{String(row.output)}</Box>
-                </Box>
-              </Box>
-            ))}
-            {newInput ? (
-              <Box sx={{ pt: pairs.length ? 2 : 0, borderTop: pairs.length ? `1px solid ${theme.border}` : 'none' }}>
-                <Typography variant="caption" sx={capSx}>
-                  New input
-                </Typography>
-                <Box sx={symTileSx}>{newInput}</Box>
-              </Box>
-            ) : null}
-          </Box>
-        );
+      let pairs = examplesRaw.filter(isIoExamplePair).map((row) => ({
+        input: String(row.input ?? '').trim(),
+        output: String(row.output ?? '').trim(),
+      })).filter((row) => row.input && row.output);
+      let newInput = typeof v2.new_input === 'string' ? v2.new_input.trim() : '';
+      if (pairs.length === 0 || !newInput) {
+        const rawFallback =
+          (typeof v2.raw === 'string' && v2.raw.trim()) ||
+          (typeof v2.text === 'string' && v2.text.trim()) ||
+          '';
+        const recovered = rawFallback ? parseExampleRuleProse(rawFallback) : null;
+        if (recovered) {
+          if (pairs.length === 0) pairs = recovered.pairs;
+          if (!newInput) newInput = recovered.newInput;
+        }
       }
-      // Structured parse failed — show authored prose, never dump `raw` / `type` keys.
-      const rawFallback =
-        (typeof v2.raw === 'string' && v2.raw.trim()) ||
-        (typeof v2.text === 'string' && v2.text.trim()) ||
-        '';
-      if (rawFallback) {
-        return (
-          <Box sx={stimulusPanelSx(theme, { p: 2 })}>
-            <Typography sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.65, color: theme.text, fontSize: '0.95rem' }}>
-              {rawFallback}
-            </Typography>
-          </Box>
-        );
-      }
+      const tiles = renderExampleRuleTiles(pairs, newInput, theme, capSx);
+      if (tiles) return tiles;
       return null;
     }
 
@@ -2068,6 +2150,11 @@ const HumanFriendlyStimulusInner: React.FC<{
         </Box>
       );
     }
+    const ruleFromProse = parseExampleRuleProse(text);
+    if (ruleFromProse && ruleFromProse.pairs.length > 0) {
+      const tiles = renderExampleRuleTiles(ruleFromProse.pairs, ruleFromProse.newInput, theme, capSx);
+      if (tiles) return tiles;
+    }
     const seq = parseStimulusSequence(text);
     if (seq) {
       const seqStrings = seq.map((x) => String(x));
@@ -2084,10 +2171,17 @@ const HumanFriendlyStimulusInner: React.FC<{
         </Box>
       );
     }
+    // Dedent so uneven bank indentation (e.g. "  ■ → ▲") does not show as a formatting bug.
+    const dedented = text
+      .split('\n')
+      .map((line) => line.trimEnd())
+      .map((line) => line.replace(/^\s+/, ''))
+      .join('\n')
+      .trim();
     return (
       <Box sx={stimulusPanelSx(theme, { p: 2 })}>
         <Typography sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.65, color: theme.text, fontSize: '0.95rem' }}>
-          {text}
+          {dedented}
         </Typography>
       </Box>
     );
