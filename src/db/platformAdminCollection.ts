@@ -600,6 +600,7 @@ export async function addPlatformAdminSchoolAdmin(
   already_admin: boolean;
   invited: boolean;
   already_configured: boolean;
+  notified: boolean;
   warning?: string;
 }> {
   const headers = await authHeaders();
@@ -613,6 +614,7 @@ export async function addPlatformAdminSchoolAdmin(
     already_admin: Boolean(res.data.already_admin),
     invited: Boolean(res.data.invited),
     already_configured: Boolean(res.data.already_configured),
+    notified: Boolean(res.data.notified),
     warning: typeof res.data.warning === 'string' ? res.data.warning : undefined,
   };
 }

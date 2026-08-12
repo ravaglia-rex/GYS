@@ -42,9 +42,13 @@ export function isActiveAssessmentProgress(p: Progress | undefined): p is Progre
   return false;
 }
 
-/** Per-assessment slot: which proficiency band (1, 2, or 3+) the student is in. */
+/**
+ * Per-assessment slot: current proficiency focus band (1 / 2 / 3).
+ * Uses `proficiency_tier` (next unlocked / focus level). Values above 3 (all levels
+ * cleared → maxTiers+1) count as Level 3. Do not map `tier_advanced` to Level 3 —
+ * that status only means a tier was cleared, often Level 1.
+ */
 export function slotProficiencyTierBand(p: Progress): 1 | 2 | 3 {
-  if (normalizedStatus(p) === 'tier_advanced') return 3;
   const t = numericProficiencyTier(p.proficiency_tier);
   if (t <= 1) return 1;
   if (t === 2) return 2;
@@ -271,4 +275,171 @@ export function allExamsWithAnyActivity(students: StudentRow[]): string[] {
 
 export function assessmentDisplayName(id: string): string {
   return ASSESSMENT_NAMES[id] ?? id.replace(/_/g, ' ');
+}
+
+export const SCORE_BAND_ORDER = [
+  '900-1000',
+  '800-899',
+  '700-799',
+  '600-699',
+  '500-599',
+  'Below 500',
+] as const;
+
+export type ScoreBandId = (typeof SCORE_BAND_ORDER)[number];
+
+export function scorePointsToBand(points: number): ScoreBandId {
+  if (points >= 900) return '900-1000';
+  if (points >= 800) return '800-899';
+  if (points >= 700) return '700-799';
+  if (points >= 600) return '600-699';
+  if (points >= 500) return '500-599';
+  return 'Below 500';
+}
+
+function emptyBandCounts(): Record<ScoreBandId, number> {
+  return {
+    '900-1000': 0,
+    '800-899': 0,
+    '700-799': 0,
+    '600-699': 0,
+    '500-599': 0,
+    'Below 500': 0,
+  };
+}
+
+function clamp01(n: number): number {
+  return Math.max(0, Math.min(1, n));
+}
+
+/** Prefer latest attempt level when it has sectional data; else highest level key with data. */
+function pickSectionalLevelKey(p: Progress): string | null {
+  const subByLevel = p.best_subconstruct_scores_by_level;
+  const constructByLevel = p.best_construct_scores_by_level;
+  const hasLevel = (key: string) => {
+    const sub = subByLevel?.[key];
+    const con = constructByLevel?.[key];
+    return (
+      (sub != null && typeof sub === 'object' && Object.keys(sub).length > 0) ||
+      (con != null && typeof con === 'object' && Object.keys(con).length > 0)
+    );
+  };
+
+  const latest = p.latest_attempt_level;
+  if (typeof latest === 'number' && Number.isFinite(latest) && latest > 0) {
+    const key = String(Math.floor(latest));
+    if (hasLevel(key)) return key;
+  }
+
+  const keys = new Set<string>();
+  if (subByLevel && typeof subByLevel === 'object') {
+    for (const k of Object.keys(subByLevel)) keys.add(k);
+  }
+  if (constructByLevel && typeof constructByLevel === 'object') {
+    for (const k of Object.keys(constructByLevel)) keys.add(k);
+  }
+  const numeric = Array.from(keys)
+    .map(k => Number(k))
+    .filter(n => Number.isFinite(n) && n > 0)
+    .sort((a, b) => b - a);
+  for (const n of numeric) {
+    const key = String(n);
+    if (hasLevel(key)) return key;
+  }
+  return null;
+}
+
+/**
+ * Sub-strand fractions (0–1) for one progress slot.
+ * Prefers `best_subconstruct_scores_by_level`; else maps construct rows via `subconstruct`.
+ */
+export function subStrandFractionsFromProgress(p: Progress | undefined): Record<string, number> {
+  if (!p) return {};
+  const levelKey = pickSectionalLevelKey(p);
+  if (!levelKey) return {};
+
+  const out: Record<string, number> = {};
+  const subMap = p.best_subconstruct_scores_by_level?.[levelKey];
+  if (subMap && typeof subMap === 'object') {
+    for (const [name, row] of Object.entries(subMap)) {
+      if (!row || typeof row !== 'object') continue;
+      const frac =
+        typeof row.score_fraction === 'number' && Number.isFinite(row.score_fraction)
+          ? row.score_fraction
+          : typeof row.percentile === 'number' && Number.isFinite(row.percentile)
+            ? row.percentile / 100
+            : null;
+      if (frac == null) continue;
+      const label = name.trim();
+      if (!label) continue;
+      out[label] = clamp01(frac);
+    }
+    if (Object.keys(out).length > 0) return out;
+  }
+
+  const constructs = p.best_construct_scores_by_level?.[levelKey];
+  if (!constructs || typeof constructs !== 'object') return {};
+  for (const row of Object.values(constructs)) {
+    if (!row || typeof row !== 'object') continue;
+    const name = typeof row.subconstruct === 'string' ? row.subconstruct.trim() : '';
+    const rate = typeof row.rate === 'number' && Number.isFinite(row.rate) ? row.rate : null;
+    if (!name || rate == null) continue;
+    out[name] = clamp01(rate);
+  }
+  return out;
+}
+
+export interface SubstrandScoreDistributionRow {
+  name: string;
+  n: number;
+  meanPoints: number | null;
+  bands: Record<ScoreBandId, number>;
+}
+
+export interface ExamScoreDistribution {
+  examId: string;
+  subcategories: SubstrandScoreDistributionRow[];
+  hasAnyScores: boolean;
+}
+
+/** Per reasoning exam: student counts in /1000 score bands for each named sub-strand. */
+export function summarizeScoreDistributionByExam(
+  students: StudentRow[],
+  examBlocks: ReadonlyArray<{ examId: string; subcategories: readonly string[] }>,
+  maxPoints = 1000
+): ExamScoreDistribution[] {
+  return examBlocks.map(({ examId, subcategories }) => {
+    const acc = new Map<string, { sum: number; n: number; bands: Record<ScoreBandId, number> }>();
+    for (const name of subcategories) {
+      acc.set(name, { sum: 0, n: 0, bands: emptyBandCounts() });
+    }
+
+    for (const s of students) {
+      const fractions = subStrandFractionsFromProgress(s.assessment_progress?.[examId]);
+      for (const name of subcategories) {
+        const frac = fractions[name];
+        if (typeof frac !== 'number') continue;
+        const points = Math.round(frac * maxPoints);
+        const row = acc.get(name)!;
+        row.sum += points;
+        row.n += 1;
+        row.bands[scorePointsToBand(points)] += 1;
+      }
+    }
+
+    const rows: SubstrandScoreDistributionRow[] = subcategories.map(name => {
+      const a = acc.get(name)!;
+      return {
+        name,
+        n: a.n,
+        meanPoints: a.n > 0 ? Math.round(a.sum / a.n) : null,
+        bands: a.bands,
+      };
+    });
+    return {
+      examId,
+      subcategories: rows,
+      hasAnyScores: rows.some(r => r.n > 0),
+    };
+  });
 }

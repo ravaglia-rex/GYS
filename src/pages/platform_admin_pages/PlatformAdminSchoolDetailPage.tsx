@@ -404,7 +404,9 @@ function PlatformAdminSchoolDetailPage() {
         );
       } else if (result.already_configured) {
         setSuccessMessage(
-          `Added ${result.email} as school admin. They already have a password - sign in with the same account to access this school (use Switch school if they admin more than one).`
+          result.notified
+            ? `Added ${result.email} as school admin and emailed them that they now have access to this school. They can sign in with their existing password (use Switch school if they admin more than one).`
+            : `Added ${result.email} as school admin. They already have a password - sign in with the same account to access this school (use Switch school if they admin more than one).`
         );
       } else {
         setSuccessMessage(

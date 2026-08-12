@@ -97,6 +97,22 @@ export interface SchoolEmailCheck {
   city?: string;
 }
 
+/** Construct row under `best_construct_scores_by_level[level][family]`. */
+export interface AssessmentConstructScore {
+  family?: string;
+  subconstruct?: string;
+  rate?: number;
+  construct_score?: number;
+  correct?: number;
+  total?: number;
+}
+
+/** Subconstruct row under `best_subconstruct_scores_by_level[level][name]`. */
+export interface AssessmentSubconstructScore {
+  score_fraction?: number;
+  percentile?: number;
+}
+
 export interface AssessmentProgress {
   proficiency_tier?: number;
   status: "locked" | "available" | "tier_advanced" | "completed";
@@ -105,6 +121,10 @@ export interface AssessmentProgress {
   tiers_cleared?: Record<string, boolean>;
   latest_attempt_level?: number | null;
   latest_attempt_score?: number | null;
+  /** Level → family → construct scores (symbolic section mode). */
+  best_construct_scores_by_level?: Record<string, Record<string, AssessmentConstructScore>>;
+  /** Level → subconstruct display name → estimated scores when present. */
+  best_subconstruct_scores_by_level?: Record<string, Record<string, AssessmentSubconstructScore>>;
 }
 
 export interface StudentRow {

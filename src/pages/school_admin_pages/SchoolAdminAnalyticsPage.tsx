@@ -44,8 +44,11 @@ import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import {
   allExamsWithAnyActivity,
   assessmentDisplayName,
+  SCORE_BAND_ORDER,
   summarizeExamGradeTier123,
   summarizeNationalPerformanceTiers,
+  summarizeScoreDistributionByExam,
+  type ScoreBandId,
 } from '../../utils/schoolAdminTierAnalytics';
 import {
   EXAM_MAX_SCORE_POINTS,
@@ -59,9 +62,7 @@ import { REASONING_EXAM_SUBCATEGORIES } from '../../data/reasoningExamSubcategor
 import PageTutorial from '../../components/tutorial/PageTutorial';
 import { SchoolAdminPageHeader, schoolAdminPageContainerSx } from './schoolAdminPageStyles';
 
-const SCORE_BAND_ORDER = ['900-1000', '800-899', '700-799', '600-699', '500-599', 'Below 500'] as const;
-
-const SCORE_BAND_COLORS: Record<(typeof SCORE_BAND_ORDER)[number], string> = {
+const SCORE_BAND_COLORS: Record<ScoreBandId, string> = {
   '900-1000': '#10b981',
   '800-899': '#3b82f6',
   '700-799': '#f59e0b',
@@ -70,8 +71,8 @@ const SCORE_BAND_COLORS: Record<(typeof SCORE_BAND_ORDER)[number], string> = {
   'Below 500': '#cbd5e1',
 };
 
-/** Sub-strand scaffold for Score Distribution until sectional scores ship. */
-const SCORE_DISTRIBUTION_SCAFFOLD = (
+/** Reasoning exams shown in Score Distribution (filled when roster has sectional scores). */
+const SCORE_DISTRIBUTION_EXAMS = (
   ['symbolic_reasoning', 'mathematical_reasoning', 'verbal_reasoning'] as const
 ).map(examId => ({
   examId,
@@ -193,6 +194,16 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
         : [],
     [tierAnalyticsStudents, examBreakdownId]
   );
+  const scoreDistribution = useMemo(
+    () =>
+      summarizeScoreDistributionByExam(
+        tierAnalyticsStudents,
+        SCORE_DISTRIBUTION_EXAMS,
+        EXAM_MAX_SCORE_POINTS
+      ),
+    [tierAnalyticsStudents]
+  );
+  const scoreDistributionHasAny = scoreDistribution.some(block => block.hasAnyScores);
 
   useEffect(() => {
     if (examIdsWithActivity.length === 0) {
@@ -542,7 +553,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
             </CardContent>
           </Card>
 
-          {/* Score Distribution - structure only until sectional scores exist */}
+          {/* Score Distribution - /1000 sub-strand bands from construct scores on the roster */}
           <Card
             sx={{
               bgcolor: '#ffffff',
@@ -556,15 +567,17 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                 Score Distribution
               </Typography>
               <Typography variant="body2" sx={{ color: '#94a3b8', mb: 2, lineHeight: 1.55 }}>
-                Sub-strand score bands will appear here once sectional scores are available. Empty tracks show where
-                each reasoning strand will fill in.
+                How students scored on each reasoning sub-strand (points out of {EXAM_MAX_SCORE_POINTS}). Empty tracks
+                mean that exam has no sectional scores yet for this school.
               </Typography>
 
               <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#1E293B', mb: 0.5 }}>
                 By reasoning sub-strand
               </Typography>
               <Typography variant="caption" sx={{ color: '#94a3b8', display: 'block', mb: 1.5 }}>
-                No sectional scores yet - bars stay empty until real student data arrives.
+                {scoreDistributionHasAny
+                  ? 'Bars show share of students in each score band for that sub-strand.'
+                  : 'No sectional scores on the roster yet — bars stay empty until students complete section-scored exams.'}
               </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25, alignItems: 'center', mb: 2 }}>
                 {SCORE_BAND_ORDER.map(r => (
@@ -576,7 +589,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                         borderRadius: 0.5,
                         bgcolor: SCORE_BAND_COLORS[r],
                         flexShrink: 0,
-                        opacity: 0.45,
+                        opacity: scoreDistributionHasAny ? 1 : 0.45,
                       }}
                     />
                     <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.7rem' }}>
@@ -586,13 +599,13 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                 ))}
               </Box>
 
-              {SCORE_DISTRIBUTION_SCAFFOLD.map(examBlock => (
+              {scoreDistribution.map(examBlock => (
                 <Box key={examBlock.examId} sx={{ mb: 3, '&:last-of-type': { mb: 0 } }}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1e3a8a', mb: 1.5 }}>
                     {assessmentDisplayName(examBlock.examId)}
                   </Typography>
-                  {examBlock.subcategories.map(name => (
-                    <Box key={name} sx={{ mb: 2 }}>
+                  {examBlock.subcategories.map(row => (
+                    <Box key={row.name} sx={{ mb: 2 }}>
                       <Box
                         sx={{
                           display: 'flex',
@@ -603,22 +616,56 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                         }}
                       >
                         <Typography variant="body2" sx={{ color: '#1E293B', fontWeight: 500 }}>
-                          {name}
+                          {row.name}
                         </Typography>
                         <Typography variant="caption" sx={{ color: '#94a3b8', flexShrink: 0 }}>
-                          Mean - / {EXAM_MAX_SCORE_POINTS}
+                          {row.meanPoints != null
+                            ? `Mean ${row.meanPoints} / ${EXAM_MAX_SCORE_POINTS}`
+                            : `Mean - / ${EXAM_MAX_SCORE_POINTS}`}
                         </Typography>
                       </Box>
-                      <Box
-                        sx={{
-                          width: '100%',
-                          height: 10,
-                          borderRadius: 5,
-                          bgcolor: '#e2e8f0',
-                          border: `1px dashed ${ip.cardBorder}`,
-                        }}
-                        title="Sectional scores not available yet"
-                      />
+                      {row.n > 0 ? (
+                        <Box
+                          sx={{
+                            width: '100%',
+                            height: 10,
+                            borderRadius: 5,
+                            overflow: 'hidden',
+                            display: 'flex',
+                            bgcolor: '#e2e8f0',
+                          }}
+                          title={`${row.n} student${row.n === 1 ? '' : 's'}`}
+                        >
+                          {SCORE_BAND_ORDER.map(band => {
+                            const count = row.bands[band];
+                            if (count <= 0) return null;
+                            const pct = (count / row.n) * 100;
+                            return (
+                              <Box
+                                key={band}
+                                sx={{
+                                  width: `${pct}%`,
+                                  height: '100%',
+                                  bgcolor: SCORE_BAND_COLORS[band],
+                                  minWidth: count > 0 ? 2 : 0,
+                                }}
+                                title={`${band}: ${count}`}
+                              />
+                            );
+                          })}
+                        </Box>
+                      ) : (
+                        <Box
+                          sx={{
+                            width: '100%',
+                            height: 10,
+                            borderRadius: 5,
+                            bgcolor: '#e2e8f0',
+                            border: `1px dashed ${ip.cardBorder}`,
+                          }}
+                          title="No sectional scores for this sub-strand yet"
+                        />
+                      )}
                     </Box>
                   ))}
                 </Box>

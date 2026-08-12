@@ -582,6 +582,13 @@ export default function AssessmentTakePage() {
         );
         return;
       }
+      if (err?.response?.data?.code === 'section_inventory_timeout' || err?.response?.status === 503) {
+        setError(
+          err?.response?.data?.error ??
+            'Could not load the next section. Wait a moment and try Next again — avoid refreshing.'
+        );
+        return;
+      }
       setError('Failed to submit answer. Please check your connection and try again.');
     } finally {
       setIsSubmitting(false);
