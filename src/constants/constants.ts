@@ -24,6 +24,7 @@ export const PLATFORM_ADMIN_VERIFY_AND_SEND_PASSWORD_SETUP = '/verifyAndSendPass
 export const PLATFORM_ADMIN_VERIFY_PASSWORD_SETUP = '/verifyPasswordSetup';
 export const PLATFORM_ADMIN_MARK_SCHOOL_PAID = '/mark-paid';
 export const PLATFORM_ADMIN_UPDATE_SCHOOL_BILLING = '/update-billing';
+export const PLATFORM_ADMIN_STUDENT_CAP_OVERRIDE = '/student-cap-override';
 export const PLATFORM_ADMIN_DELETE_SCHOOL = '/delete';
 export const PLATFORM_ADMIN_DELETE_STUDENT = '/delete';
 export const PLATFORM_ADMIN_BILLING_INVOICE_DOWNLOAD_URL = '/billing-invoice-download-url';

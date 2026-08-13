@@ -48,6 +48,7 @@ import {
   markPlatformAdminSchoolPaid,
   deletePlatformAdminSchool,
   updatePlatformAdminSchoolBilling,
+  updatePlatformAdminSchoolStudentCapOverride,
   invitePlatformAdminSchoolAdmin,
   addPlatformAdminSchoolAdmin,
   deletePlatformAdminSchoolContact,
@@ -87,7 +88,8 @@ import {
 } from './platformAdminComponents';
 import {
   formatPlanAmountInrInput,
-  INSTITUTIONAL_PLAN_STUDENT_CAP,
+  getSchoolStudentCap,
+  MAX_STUDENT_CAP_OVERRIDE,
   REGISTER_PLAN_IDS,
   resolveRegisterPlanIdFromFields,
   resolveSchoolPlanPriceInr,
@@ -220,6 +222,10 @@ function PlatformAdminSchoolDetailPage() {
   const [billingAmountInr, setBillingAmountInr] = useState('');
   const [billingNote, setBillingNote] = useState('');
   const [billingSubmitting, setBillingSubmitting] = useState(false);
+  const [studentCapOpen, setStudentCapOpen] = useState(false);
+  const [studentCapInput, setStudentCapInput] = useState('');
+  const [studentCapNote, setStudentCapNote] = useState('');
+  const [studentCapSubmitting, setStudentCapSubmitting] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirmName, setDeleteConfirmName] = useState('');
   const [deleteAdminAuth, setDeleteAdminAuth] = useState(true);
@@ -474,6 +480,55 @@ function PlatformAdminSchoolDetailPage() {
     setBillingOpen(true);
   };
 
+  const openStudentCapDialog = () => {
+    if (!school) return;
+    setStudentCapInput(
+      typeof school.student_cap_override === 'number' ? String(school.student_cap_override) : ''
+    );
+    setStudentCapNote('');
+    setStudentCapOpen(true);
+  };
+
+  const handleUpdateStudentCapOverride = async (clearOverride: boolean) => {
+    if (!schoolId || !school) return;
+
+    let nextOverride: number | null = null;
+    if (!clearOverride) {
+      const trimmed = studentCapInput.replace(/,/g, '').trim();
+      const parsed = Number(trimmed);
+      if (!trimmed || !Number.isFinite(parsed) || !Number.isInteger(parsed)) {
+        setError(`Enter a whole number between 0 and ${MAX_STUDENT_CAP_OVERRIDE}.`);
+        return;
+      }
+      if (parsed < 0 || parsed > MAX_STUDENT_CAP_OVERRIDE) {
+        setError(`Student cap must be between 0 and ${MAX_STUDENT_CAP_OVERRIDE}.`);
+        return;
+      }
+      nextOverride = parsed;
+    }
+
+    setStudentCapSubmitting(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      await updatePlatformAdminSchoolStudentCapOverride(schoolId, {
+        student_cap_override: nextOverride,
+        admin_note: studentCapNote.trim() || undefined,
+      });
+      setStudentCapOpen(false);
+      setSuccessMessage(
+        nextOverride === null
+          ? 'Student cap override cleared. Package default applies again.'
+          : `Student cap override set to ${nextOverride}.`
+      );
+      await load();
+    } catch (e: unknown) {
+      setError(apiErrorMessage(e, 'Failed to update student cap override.'));
+    } finally {
+      setStudentCapSubmitting(false);
+    }
+  };
+
   const handleUpdateBilling = async () => {
     if (!schoolId || !school) return;
 
@@ -676,9 +731,17 @@ function PlatformAdminSchoolDetailPage() {
     registeredPlanId && effectivePlanId && registeredPlanId !== effectivePlanId;
   const deleteNameMatches = school ? schoolNamesMatch(deleteConfirmName, school) : false;
   const studentCap =
-    effectivePlanId && effectivePlanId in INSTITUTIONAL_PLAN_STUDENT_CAP
-      ? INSTITUTIONAL_PLAN_STUDENT_CAP[effectivePlanId]
-      : null;
+    typeof school.student_cap === 'number' || school.student_cap === null
+      ? school.student_cap
+      : getSchoolStudentCap({
+          selected_plan_id: effectivePlanId || undefined,
+          student_cap_override: school.student_cap_override,
+        });
+  const planStudentCap =
+    typeof school.plan_student_cap === 'number' || school.plan_student_cap === null
+      ? school.plan_student_cap
+      : getSchoolStudentCap({ selected_plan_id: effectivePlanId || undefined });
+  const hasStudentCapOverride = typeof school.student_cap_override === 'number';
   const inviteListCount = Array.isArray(school.student_registration_emails)
     ? school.student_registration_emails.length
     : school.students_invited ?? 0;
@@ -929,16 +992,27 @@ function PlatformAdminSchoolDetailPage() {
                 Student roster
               </Typography>
               {isSuperAdmin && (
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<AddStudentsIcon />}
-                  onClick={openAddStudentsDialog}
-                  disabled={studentCap !== null && remainingRosterSlots === 0}
-                  sx={platformAdminOutlinedButtonSx}
-                >
-                  Add students
-                </Button>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<EditIcon />}
+                    onClick={openStudentCapDialog}
+                    sx={platformAdminOutlinedButtonSx}
+                  >
+                    Override student cap
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<AddStudentsIcon />}
+                    onClick={openAddStudentsDialog}
+                    disabled={studentCap !== null && remainingRosterSlots === 0}
+                    sx={platformAdminOutlinedButtonSx}
+                  >
+                    Add students
+                  </Button>
+                </Box>
               )}
             </Box>
             <Typography variant="body2" sx={{ color: ip.subtext, mb: 2, lineHeight: 1.55 }}>
@@ -950,17 +1024,25 @@ function PlatformAdminSchoolDetailPage() {
             <DetailRow label="Registered accounts" value={String(school.student_count)} />
             <DetailRow label="On invite list" value={String(inviteListCount)} />
             <DetailRow
-              label="Plan student cap"
+              label="Package student cap"
+              value={planStudentCap === null ? 'Unlimited' : String(planStudentCap)}
+            />
+            <DetailRow
+              label="Effective student cap"
               value={
                 studentCap === null
                   ? 'Unlimited'
-                  : `${studentCap} (${remainingRosterSlots ?? 0} slot${(remainingRosterSlots ?? 0) === 1 ? '' : 's'} remaining)`
+                  : `${studentCap}${
+                      hasStudentCapOverride ? ' (manual override)' : ''
+                    } (${remainingRosterSlots ?? 0} slot${
+                      (remainingRosterSlots ?? 0) === 1 ? '' : 's'
+                    } remaining)`
               }
             />
             {studentCap !== null && remainingRosterSlots === 0 && (
               <Alert severity="warning" sx={{ mt: 2 }}>
-                This school&apos;s plan is at its student cap. Upgrade the package or revoke unused
-                invitations before adding more students.
+                This school is at its student cap. Raise the override, upgrade the package, or revoke
+                unused invitations before adding more students.
               </Alert>
             )}
           </CardContent>
@@ -1718,6 +1800,111 @@ function PlatformAdminSchoolDetailPage() {
       </Dialog>
 
       <Dialog
+        open={studentCapOpen}
+        onClose={() => !studentCapSubmitting && setStudentCapOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        scroll="paper"
+        slotProps={{
+          backdrop: { sx: { bgcolor: 'rgba(15, 23, 42, 0.5)' } },
+        }}
+        PaperProps={{ sx: platformAdminDialogPaperSx }}
+      >
+        <DialogTitle
+          sx={{
+            fontWeight: 700,
+            color: ip.heading,
+            px: 3,
+            pt: 2.5,
+            pb: 2,
+            bgcolor: '#fff',
+          }}
+        >
+          Override student cap
+        </DialogTitle>
+        <DialogContent
+          dividers
+          sx={{
+            px: 3,
+            py: 2.5,
+            bgcolor: '#fff',
+            borderColor: ip.cardBorder,
+            overflowY: 'auto',
+          }}
+        >
+          <Typography sx={{ color: ip.subtext, mb: 2.5, lineHeight: 1.55, fontSize: '0.9rem' }}>
+            Package default is{' '}
+            <strong>{planStudentCap === null ? 'unlimited' : planStudentCap}</strong>
+            {hasStudentCapOverride
+              ? `; current manual override is ${school.student_cap_override}.`
+              : '. Set an exact number to allow for this school, or clear to go back to the package default.'}
+          </Typography>
+
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box>
+              <Typography sx={platformAdminDialogFieldLabelSx} component="label" htmlFor="student-cap-override">
+                Allowed students
+              </Typography>
+              <TextField
+                id="student-cap-override"
+                size="small"
+                fullWidth
+                type="number"
+                inputProps={{ min: 0, max: MAX_STUDENT_CAP_OVERRIDE, step: 1 }}
+                value={studentCapInput}
+                onChange={(e) => setStudentCapInput(e.target.value)}
+                placeholder={`0–${MAX_STUDENT_CAP_OVERRIDE}`}
+                disabled={studentCapSubmitting}
+                sx={platformAdminDialogTextFieldSx}
+              />
+            </Box>
+            <Box>
+              <Typography sx={platformAdminDialogFieldLabelSx} component="label" htmlFor="student-cap-note">
+                Note (optional)
+              </Typography>
+              <TextField
+                id="student-cap-note"
+                size="small"
+                fullWidth
+                multiline
+                minRows={2}
+                value={studentCapNote}
+                onChange={(e) => setStudentCapNote(e.target.value)}
+                disabled={studentCapSubmitting}
+                sx={platformAdminDialogTextFieldSx}
+              />
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2, bgcolor: '#fff', gap: 1, flexWrap: 'wrap' }}>
+          <Button
+            disabled={studentCapSubmitting || !hasStudentCapOverride}
+            onClick={() => handleUpdateStudentCapOverride(true)}
+            sx={platformAdminTextButtonSx}
+          >
+            Clear override
+          </Button>
+          <Box sx={{ flex: 1 }} />
+          <Button
+            disabled={studentCapSubmitting}
+            onClick={() => setStudentCapOpen(false)}
+            sx={platformAdminTextButtonSx}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            disabled={studentCapSubmitting}
+            onClick={() => handleUpdateStudentCapOverride(false)}
+            startIcon={studentCapSubmitting ? <CircularProgress size={16} color="inherit" /> : undefined}
+            sx={platformAdminPrimaryButtonSx}
+          >
+            {studentCapSubmitting ? 'Saving…' : 'Save override'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
         open={deleteOpen}
         onClose={() => !deleteSubmitting && setDeleteOpen(false)}
         maxWidth="sm"
@@ -1918,7 +2105,7 @@ function PlatformAdminSchoolDetailPage() {
           )}
           {studentCap !== null && (
             <Alert severity="info" sx={{ mb: 2 }}>
-              Current plan allows {studentCap} active students; {remainingRosterSlots ?? 0} slot
+              This school allows {studentCap} active students; {remainingRosterSlots ?? 0} slot
               {(remainingRosterSlots ?? 0) === 1 ? '' : 's'} remain.
             </Alert>
           )}

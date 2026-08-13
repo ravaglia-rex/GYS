@@ -20,6 +20,7 @@ import {
   PLATFORM_ADMIN_STUDENTS_STATS,
   PLATFORM_ADMIN_MARK_SCHOOL_PAID,
   PLATFORM_ADMIN_UPDATE_SCHOOL_BILLING,
+  PLATFORM_ADMIN_STUDENT_CAP_OVERRIDE,
   PLATFORM_ADMIN_DELETE_SCHOOL,
   PLATFORM_ADMIN_DELETE_STUDENT,
   PLATFORM_ADMIN_BILLING_INVOICE_DOWNLOAD_URL,
@@ -149,6 +150,12 @@ export type PlatformAdminSchoolDetail = PlatformAdminSchoolSummary & {
   wire_amount_paise: number | null;
   students_on_roster: number;
   students_setup_complete: number;
+  /** Manual platform-admin override; null means use package default. */
+  student_cap_override: number | null;
+  /** Package default cap (`null` = unlimited). */
+  plan_student_cap: number | null;
+  /** Effective cap after override (`null` = unlimited). */
+  student_cap: number | null;
 };
 
 export type PlatformAdminPaymentHistoryItem = {
@@ -558,6 +565,32 @@ export async function updatePlatformAdminSchoolBilling(
     body,
     { headers }
   );
+}
+
+export async function updatePlatformAdminSchoolStudentCapOverride(
+  schoolId: string,
+  body: {
+    /** Exact cap, or `null` to clear and revert to the package default. */
+    student_cap_override: number | null;
+    admin_note?: string;
+  }
+): Promise<{
+  student_cap_override: number | null;
+  plan_student_cap: number | null;
+  student_cap: number | null;
+}> {
+  const headers = await authHeaders();
+  const res = await axios.post(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_SCHOOLS}/${encodeURIComponent(schoolId)}${PLATFORM_ADMIN_STUDENT_CAP_OVERRIDE}`,
+    body,
+    { headers }
+  );
+  return {
+    student_cap_override:
+      typeof res.data?.student_cap_override === 'number' ? res.data.student_cap_override : null,
+    plan_student_cap: typeof res.data?.plan_student_cap === 'number' ? res.data.plan_student_cap : null,
+    student_cap: typeof res.data?.student_cap === 'number' ? res.data.student_cap : null,
+  };
 }
 
 export async function invitePlatformAdminSchoolAdmin(

@@ -154,6 +154,48 @@ export const INSTITUTIONAL_PLAN_STUDENT_CAP: Record<RegisterPlanId, number | nul
   premium: null,
 };
 
+/** Sanity ceiling for platform-admin per-school `student_cap_override` (matches invite-list max). */
+export const MAX_STUDENT_CAP_OVERRIDE = 5000;
+
+/**
+ * Manual platform-admin override stored on the school doc as `student_cap_override`.
+ * Returns a non-negative integer when set; `null` when unset / invalid (fall back to plan).
+ */
+export function parseStudentCapOverride(raw: unknown): number | null {
+  if (typeof raw === 'number' && Number.isFinite(raw)) {
+    const n = Math.floor(raw);
+    if (n < 0 || n > MAX_STUDENT_CAP_OVERRIDE) return null;
+    return n;
+  }
+  if (typeof raw === 'string' && raw.trim()) {
+    const n = Number(raw.trim());
+    if (!Number.isFinite(n)) return null;
+    const floored = Math.floor(n);
+    if (floored < 0 || floored > MAX_STUDENT_CAP_OVERRIDE) return null;
+    return floored;
+  }
+  return null;
+}
+
+export function getSchoolPlanStudentCap(planId: unknown): number | null {
+  const normalized = normalizeRegisterPlanId(planId);
+  if (!normalized) return null;
+  return INSTITUTIONAL_PLAN_STUDENT_CAP[normalized] ?? null;
+}
+
+/**
+ * Effective roster cap for a school: manual override wins when present, else package default.
+ * `null` = unlimited (e.g. premium with no override).
+ */
+export function getSchoolStudentCap(schoolData: {
+  selected_plan_id?: unknown;
+  student_cap_override?: unknown;
+}): number | null {
+  const override = parseStudentCapOverride(schoolData.student_cap_override);
+  if (override !== null) return override;
+  return getSchoolPlanStudentCap(schoolData.selected_plan_id);
+}
+
 /**
  * Max consumer membership tier included with each institutional school package.
  * Keep in sync with backend `INSTITUTIONAL_PLAN_ASSESSMENT_GATE_MIN_LEVEL`.

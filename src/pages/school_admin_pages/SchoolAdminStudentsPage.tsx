@@ -60,7 +60,7 @@ import {
 import { buildGreenfieldPreviewStudentRows } from '../../data/schoolPreviewMock';
 import { formatAchievementTierLabel, normalizeAchievementTierId } from '../../utils/achievementTier';
 import {
-  INSTITUTIONAL_PLAN_STUDENT_CAP,
+  getSchoolStudentCap,
   normalizeRegisterPlanId,
   type RegisterPlanId,
 } from '../../utils/schoolRegistrationPlans';
@@ -455,6 +455,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
   const [registrationError, setRegistrationError] = useState<string | null>(null);
   const [savingEmails, setSavingEmails] = useState(false);
   const [selectedPlanId, setSelectedPlanId] = useState<RegisterPlanId | null>(null);
+  const [studentCapOverride, setStudentCapOverride] = useState<number | null>(null);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -516,6 +517,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
       setRevokedRegistrationEmails([]);
       setHasNoStudentsInDb(false);
       setSelectedPlanId('premium');
+      setStudentCapOverride(null);
       setRows(registered);
       setLoading(false);
       return;
@@ -558,6 +560,9 @@ const SchoolAdminStudentsPage: React.FC = () => {
       ]);
       const dashboardStudents = dashboardStudentsRaw.filter(isVisibleSchoolRosterStudent);
       setSelectedPlanId(normalizeRegisterPlanId(summary.selected_plan_id));
+      setStudentCapOverride(
+        typeof summary.student_cap_override === 'number' ? summary.student_cap_override : null
+      );
       setHasNoStudentsInDb(dashboardStudents.length === 0 && reg.length === 0 && revoked.length === 0);
 
       const registered: RosterRegistered[] = dashboardStudents.map(dr => {
@@ -641,7 +646,10 @@ const SchoolAdminStudentsPage: React.FC = () => {
       }
       const newInvitationSet = new Set(newInvitations);
       const nextRevoked = revoked.filter(email => !newInvitationSet.has(email));
-      const cap = selectedPlanId ? INSTITUTIONAL_PLAN_STUDENT_CAP[selectedPlanId] : null;
+      const cap = getSchoolStudentCap({
+        selected_plan_id: selectedPlanId,
+        student_cap_override: studentCapOverride,
+      });
       if (cap !== null) {
         const registeredEmails = new Set(
           rows
@@ -656,7 +664,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
         const nextActiveRosterCount = registeredEmails.size + registeredWithoutEmailCount + nextInvitedCount;
         if (nextActiveRosterCount > cap) {
           setRegistrationError(
-            `Your ${selectedPlanId} plan supports up to ${cap} students. ` +
+            `Your school supports up to ${cap} students. ` +
               `You can add ${Math.max(0, cap - registeredCount - invitedCount)} more.`
           );
           return;
@@ -838,7 +846,10 @@ const SchoolAdminStudentsPage: React.FC = () => {
   const revokedCount = statusCounts.revoked;
   const listTotal = registrationEmails.length;
   const activeRosterCount = registeredCount + invitedCount;
-  const studentCap = selectedPlanId ? INSTITUTIONAL_PLAN_STUDENT_CAP[selectedPlanId] : null;
+  const studentCap = getSchoolStudentCap({
+    selected_plan_id: selectedPlanId,
+    student_cap_override: studentCapOverride,
+  });
   const capReached = studentCap !== null && activeRosterCount >= studentCap;
 
   const uniqueGrades = useMemo(
@@ -1038,7 +1049,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
 
       {capReached && studentCap !== null && (
         <Alert severity="warning" sx={{ mb: 2 }}>
-          Your current plan is at its {studentCap}-student cap. Upgrade your package or revoke unused invitations before
+          Your school is at its {studentCap}-student cap. Upgrade your package or revoke unused invitations before
           adding more students.
         </Alert>
       )}
@@ -1665,7 +1676,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
           </Typography>
           {studentCap !== null && (
             <Alert severity="info" sx={{ mb: 2 }}>
-              Your current plan allows {studentCap} active students; {Math.max(0, studentCap - activeRosterCount)}{' '}
+              Your school allows {studentCap} active students; {Math.max(0, studentCap - activeRosterCount)}{' '}
               slot{Math.max(0, studentCap - activeRosterCount) === 1 ? '' : 's'} remain.
             </Alert>
           )}

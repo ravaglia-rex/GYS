@@ -190,6 +190,7 @@ export interface SchoolSummaryResponse {
   schoolId: string;
   ui_preferences?: SchoolTutorialUiPreferences;
   selected_plan_id?: string | null;
+  student_cap_override?: number | null;
   subscription_plan?: string | null;
   /** Resolved server-side from the same school doc read for billing/plan data - see `schoolHeaderFieldsFromDoc`. */
   school_name?: string;
