@@ -36,7 +36,7 @@ const PA_SECTION_IDS_JOIN = PA_NAV.map((s) => s.id).join('|');
 const ASSESSMENTS = [
   {
     n: 1,
-    title: 'Symbolic Reasoning',
+    title: 'Analytical Reasoning',
     tag: 'Group A • Reasoning',
     desc: 'The entry point for every GYS student. Measures non-verbal pattern recognition, sequence completion, and abstract logical reasoning: the kind of thinking that underlies all higher-order problem solving.',
     highlights: ['Patterns', 'Abstract logic', 'Visual reasoning'],

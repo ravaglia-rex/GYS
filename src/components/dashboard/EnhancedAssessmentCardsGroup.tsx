@@ -54,7 +54,7 @@ const ASSESSMENT_META: Record<string, {
   needsMic?: boolean;
   needsLaptop?: boolean;
 }> = {
-  symbolic_reasoning: {
+  analytical_reasoning: {
     assessmentNumber: 1,
     color: '#8b5cf6',
     gradient: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',

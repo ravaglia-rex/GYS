@@ -68,7 +68,7 @@ const MEMBERSHIP_PACKAGE_CARDS: Array<{
 }> = [
   {
     level: 1,
-    blurb: 'One-time Trial entry - Symbolic Reasoning (Exam 1).',
+    blurb: 'One-time Trial entry - Analytical Reasoning (Exam 1).',
     note: 'Not annual',
   },
   {

@@ -75,7 +75,7 @@ const PLAN_COPY: Pick<SchoolPlanDisplay, 'id' | 'name' | 'tagline' | 'features' 
     name: 'Entry',
     tagline: 'Core benchmarking for one assessment',
     features: [
-      'Assessment 1 (Symbolic Reasoning)',
+      'Assessment 1 (Analytical Reasoning)',
       'Headline performance report',
       'Tier distribution analysis',
       'Path to next tier',

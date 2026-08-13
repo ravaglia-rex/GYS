@@ -444,7 +444,7 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
           const meta = PRACTICE_EXAM_CARD_STYLE[id];
           const selected = selectedExamId === id;
           const gateResult = assessmentGate ? practiceExamGate(id, assessmentGate) : null;
-          /** No gate payload (e.g. profile error): only Exam 1 - Symbolic Reasoning - is practiceable. */
+          /** No gate payload (e.g. profile error): only Exam 1 - Analytical Reasoning - is practiceable. */
           const lockedByProgram = assessmentGate
             ? Boolean(gateResult?.locked)
             : id !== PRACTICE_ELIGIBLE_EXAM_IDS[0];
@@ -453,7 +453,7 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
             lockedByProgram && assessmentGate && gateResult
               ? practiceExamLockedTooltip(gateResult)
               : lockedByProgram && !assessmentGate
-                ? 'Assessment unlocks could not be loaded - you can still practice Symbolic Reasoning (Exam 1). Open Practice Mode again after your profile loads for the full list.'
+                ? 'Assessment unlocks could not be loaded - you can still practice Analytical Reasoning (Exam 1). Open Practice Mode again after your profile loads for the full list.'
                 : '';
           const showTooltip = Boolean(lockTooltipText);
 

@@ -60,7 +60,7 @@ export const PREVIEW_DASHBOARD_STATS = {
 };
 
 export const PREVIEW_ASSESSMENT_TYPES: AssessmentType[] = [
-  { id: 'symbolic_reasoning', name: 'Symbolic Reasoning', tiers: mkTiers(3) },
+  { id: 'analytical_reasoning', name: 'Analytical Reasoning', tiers: mkTiers(3) },
   { id: 'verbal_reasoning', name: 'Verbal Reasoning', tiers: mkTiers(3) },
   { id: 'mathematical_reasoning', name: 'Mathematical Reasoning', tiers: mkTiers(3) },
   { id: 'comprehensive_personality', name: 'Personality and Interest', tiers: [] },
@@ -74,7 +74,7 @@ export const PREVIEW_ASSESSMENT_TYPES: AssessmentType[] = [
  * English and Career Discovery stay locked until Career Ready.
  */
 export const PREVIEW_ASSESSMENT_PROGRESS: Record<string, AssessmentProgress> = {
-  symbolic_reasoning: {
+  analytical_reasoning: {
     proficiency_tier: 4,
     status: 'tier_advanced',
     best_score: 0.82,
@@ -198,8 +198,8 @@ export const PREVIEW_ASSESSMENT_ATTEMPTS: AttemptRecord[] = [
     completed_at: '2026-03-06T09:15:00.000Z',
   },
   {
-    attempt_id: 'preview-symbolic-l3-pass',
-    assessment_id: 'symbolic_reasoning',
+    attempt_id: 'preview-analytical-l3-pass',
+    assessment_id: 'analytical_reasoning',
     proficiency_tier: 3,
     status: 'completed',
     score: 0.82,
@@ -208,8 +208,8 @@ export const PREVIEW_ASSESSMENT_ATTEMPTS: AttemptRecord[] = [
     completed_at: '2026-02-27T09:15:00.000Z',
   },
   {
-    attempt_id: 'preview-symbolic-l2-pass',
-    assessment_id: 'symbolic_reasoning',
+    attempt_id: 'preview-analytical-l2-pass',
+    assessment_id: 'analytical_reasoning',
     proficiency_tier: 2,
     status: 'completed',
     score: 0.81,
@@ -218,8 +218,8 @@ export const PREVIEW_ASSESSMENT_ATTEMPTS: AttemptRecord[] = [
     completed_at: '2026-02-21T09:15:00.000Z',
   },
   {
-    attempt_id: 'preview-symbolic-l1-pass',
-    assessment_id: 'symbolic_reasoning',
+    attempt_id: 'preview-analytical-l1-pass',
+    assessment_id: 'analytical_reasoning',
     proficiency_tier: 1,
     status: 'completed',
     score: 0.84,

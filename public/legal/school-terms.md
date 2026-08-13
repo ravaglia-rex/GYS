@@ -17,7 +17,7 @@ A student does not enter the school’s commercial agreement and is not asked to
 
 GYS provides online assessments, practice activities, benchmarking, reporting, and guidance for students, families, and schools. Available modules may include:
 
-- Symbolic, Verbal, and Mathematical Reasoning;
+- Analytical, Verbal, and Mathematical Reasoning;
 - personality and interest signals;
 - AI proficiency;
 - English proficiency;

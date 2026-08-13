@@ -74,7 +74,7 @@ const MEMBERSHIP_PACKAGES: PackageRow[] = [
   {
     level: 1,
     name: PREVIEW_TRIAL_DISCOVERY_NAME,
-    blurb: 'One-time Trial entry - Symbolic Reasoning (Exam 1).',
+    blurb: 'One-time Trial entry - Analytical Reasoning (Exam 1).',
     note: 'Not annual',
   },
   {

@@ -84,13 +84,13 @@ const SCHOOL_PACKAGE_COMPARISON: SchoolComparisonSection[] = [
         ],
       },
       {
-        label: 'Assessment 1 (Symbolic Reasoning)',
-        desc: 'Symbolic Reasoning baseline for your cohort',
+        label: 'Assessment 1 (Analytical Reasoning)',
+        desc: 'Analytical Reasoning baseline for your cohort',
         inPlan: [true, true, true],
       },
       {
         label: 'Assessments 1–3 (full reasoning triad)',
-        desc: 'Symbolic Reasoning, Verbal Reasoning, and Mathematical Reasoning',
+        desc: 'Analytical Reasoning, Verbal Reasoning, and Mathematical Reasoning',
         inPlan: [false, true, true],
       },
       {
@@ -159,7 +159,7 @@ const SCHOOL_PACKAGE_COMPARISON: SchoolComparisonSection[] = [
 
 const SCHOOL_PACKAGE_MOBILE_LABELS: Record<string, string> = {
   'Participating students (annual license)': 'Students',
-  'Assessment 1 (Symbolic Reasoning)': 'Assessment 1',
+  'Assessment 1 (Analytical Reasoning)': 'Assessment 1',
   'Assessments 1–3 (full reasoning triad)': 'Assessments 1-3',
   'Assessments 4–5 (Personality & AI proficiency)': 'Assessments 4-5',
   'Headline performance & tier distribution': 'Performance tiers',

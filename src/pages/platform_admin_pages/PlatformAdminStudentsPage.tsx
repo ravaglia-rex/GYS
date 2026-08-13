@@ -186,7 +186,7 @@ const STUDENT_COL = {
   school: { width: '15%', minWidth: 120 },
   grade: { width: '5%', minWidth: 52 },
   membership: { width: '8%', minWidth: 80 },
-  coins: { width: '6%', minWidth: 64 },
+  coins: { width: '9%', minWidth: 88 },
   qod: { width: '9%', minWidth: 88 },
   status: { width: '16%', minWidth: 140 },
   actions: { width: '11%', minWidth: 104 },
@@ -206,7 +206,7 @@ type StudentSortDir = 'asc' | 'desc';
 const STUDENT_SORT_LABELS: Record<StudentSortKey, string> = {
   joined: 'Joined (newest)',
   name: 'Name',
-  coins: 'Coins',
+  coins: 'Coins (balance)',
   qod: 'QoD attempted',
   login_streak: 'Login streak (longest)',
   qod_streak: 'QoD streak (longest)',
@@ -1192,7 +1192,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
                         direction={sortKey === 'coins' ? sortDir : 'desc'}
                         onClick={() => toggleSort('coins')}
                       >
-                        Coins
+                        Balance / Life
                       </TableSortLabel>
                     </TableCell>
                     <TableCell sx={studentColSx('qod')} align="right">
@@ -1247,7 +1247,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
                       direction={sortKey === 'coins' ? sortDir : 'desc'}
                       onClick={() => toggleSort('coins')}
                     >
-                      Coins
+                      Balance / Life
                     </TableSortLabel>
                   </TableCell>
                   <TableCell sx={studentColSx('qod')} align="right">
@@ -1363,7 +1363,17 @@ const PlatformAdminStudentsPage: React.FC = () => {
                     align="right"
                     sx={studentColSx('coins', { color: ip.heading, fontWeight: 700, whiteSpace: 'nowrap' })}
                   >
-                    {typeof student.argus_coins === 'number' ? student.argus_coins.toLocaleString() : '0'}
+                    {(typeof student.argus_coins === 'number' ? student.argus_coins : 0).toLocaleString()}
+                    <Typography
+                      component="span"
+                      sx={{ color: ip.subtext, fontWeight: 500, fontSize: '0.75rem', ml: 0.5 }}
+                    >
+                      /{' '}
+                      {(typeof student.coins_lifetime_earned === 'number'
+                        ? student.coins_lifetime_earned
+                        : 0
+                      ).toLocaleString()}
+                    </Typography>
                   </TableCell>
                   <TableCell
                     align="right"

@@ -426,6 +426,11 @@ export default function SidebarNavigation({ collapsed, onCollapse, onClose }: Si
               </Typography>
               <Typography variant="caption" sx={{ display: 'block', color: '#fde68a', fontWeight: 700, mt: 0.5 }}>
                 {gamification.argus_coins.toLocaleString()} coins · {gamification.login_streak.current}d streak
+                {gamification.streak_freezes_available > 0
+                  ? ` · ${gamification.streak_freezes_available} freeze${
+                      gamification.streak_freezes_available === 1 ? '' : 's'
+                    }`
+                  : ''}
               </Typography>
             </Box>
           </Box>

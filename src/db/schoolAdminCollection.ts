@@ -123,7 +123,7 @@ export interface AssessmentProgress {
   tiers_cleared?: Record<string, boolean>;
   latest_attempt_level?: number | null;
   latest_attempt_score?: number | null;
-  /** Level → family → construct scores (symbolic section mode). */
+  /** Level → family → construct scores (legacy section mode). */
   best_construct_scores_by_level?: Record<string, Record<string, AssessmentConstructScore>>;
   /** Level → subconstruct display name → estimated scores when present. */
   best_subconstruct_scores_by_level?: Record<string, Record<string, AssessmentSubconstructScore>>;

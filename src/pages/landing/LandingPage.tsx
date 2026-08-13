@@ -316,7 +316,7 @@ const LandingPage: React.FC = () => {
             The seven assessments are grouped into three tracks: Reasoning, Profile, and Pathways.
           </p>
           <p>
-          <span className="font-semibold text-slate-800">Reasoning</span> includes Symbolic Reasoning, Verbal Reasoning, and Mathematical Reasoning, benchmarking the core thinking skills students need for advanced academic work.
+          <span className="font-semibold text-slate-800">Reasoning</span> includes Analytical Reasoning, Verbal Reasoning, and Mathematical Reasoning, benchmarking the core thinking skills students need for advanced academic work.
           </p>
           <p>
             <span className="font-semibold text-slate-800">Profile</span> captures personality and interest signals plus AI proficiency, supporting early stream recommendations from Membership 2 (Stream Ready).

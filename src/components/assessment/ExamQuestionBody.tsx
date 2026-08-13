@@ -9,6 +9,7 @@ import { ExamMathBlock, ExamMathText } from './ExamMathText';
 import { QuestionProblemReport, type QuestionReportFrame } from './QuestionProblemReport';
 import { inferQuestionInteraction } from './inferQuestionInteraction';
 import { AnalyticalReasoningQuestionBody } from './AnalyticalReasoningQuestionBody';
+import { cleanLearnerFacingExamMarkup } from './cleanLearnerFacingExamMarkup';
 
 export { inferQuestionInteraction } from './inferQuestionInteraction';
 
@@ -38,7 +39,7 @@ function plainSetupTextBeforePrompt(q: ExamQuestion): string | null {
     if (setupNorm === promptNorm || promptNorm.includes(setupNorm)) return null;
   }
 
-  return text;
+  return text ? cleanLearnerFacingExamMarkup(text) : null;
 }
 
 const QuestionPromptBlock: React.FC<{
@@ -322,7 +323,7 @@ function examPromptWithoutRedundantRuleBlock(q: ExamQuestion): string {
     raw = stripDuplicateComparisonQuantitiesFromPrompt(raw, comparisonQuantities);
   }
   const out = raw.length > 0 ? raw : (q.prompt ?? '').trim();
-  return formatDualPatternPromptLinebreaks(out);
+  return cleanLearnerFacingExamMarkup(formatDualPatternPromptLinebreaks(out));
 }
 
 /**
@@ -2055,7 +2056,7 @@ const HumanFriendlyStimulusInner: React.FC<{
 
   if (stimulus == null) return null;
 
-  // ─── Symbolic section inventory v2 stimulus types ─────────────────────────
+  // ─── Analytical section inventory v2 stimulus types ─────────────────────────
   if (typeof stimulus === 'object' && !Array.isArray(stimulus)) {
     const v2 = stimulus as Record<string, unknown>;
     const v2Type = typeof v2.type === 'string' ? v2.type : stimulusType;
@@ -2861,6 +2862,7 @@ const ListeningMcqInner: React.FC<{
   footer?: React.ReactNode;
   selectionLocked?: boolean;
   answerFeedback?: { correctIndex: number; selectedIndex: number } | null;
+  hideQuestionTotal?: boolean;
 }> = ({
   question,
   questionNumber,
@@ -2874,6 +2876,7 @@ const ListeningMcqInner: React.FC<{
   footer,
   selectionLocked = false,
   answerFeedback = null,
+  hideQuestionTotal = false,
 }) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -2895,7 +2898,7 @@ const ListeningMcqInner: React.FC<{
         variant="caption"
         sx={{ color: '#64748b', fontWeight: 700, letterSpacing: 1, display: 'block', mb: 1.5, textTransform: 'uppercase', fontSize: '0.68rem' }}
       >
-        Question {questionNumber} of {totalQuestions}
+        {hideQuestionTotal ? `Question ${questionNumber}` : `Question ${questionNumber} of ${totalQuestions}`}
       </Typography>
       <QuestionPromptBlock
         question={question}
@@ -2944,6 +2947,7 @@ const SpokenResponseInner: React.FC<{
   footer?: React.ReactNode;
   selectionLocked?: boolean;
   answerFeedback?: { correctIndex: number; selectedIndex: number } | null;
+  hideQuestionTotal?: boolean;
 }> = ({
   question,
   questionNumber,
@@ -2957,6 +2961,7 @@ const SpokenResponseInner: React.FC<{
   footer,
   selectionLocked = false,
   answerFeedback = null,
+  hideQuestionTotal = false,
 }) => {
   const [rec, setRec] = useState<MediaRecorder | null>(null);
   const chunks = useRef<Blob[]>([]);
@@ -2998,7 +3003,7 @@ const SpokenResponseInner: React.FC<{
   return (
     <Box sx={{ width: '100%' }}>
       <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 700, letterSpacing: 1, display: 'block', mb: 1.5, textTransform: 'uppercase', fontSize: '0.68rem' }}>
-        Question {questionNumber} of {totalQuestions}
+        {hideQuestionTotal ? `Question ${questionNumber}` : `Question ${questionNumber} of ${totalQuestions}`}
       </Typography>
       <QuestionPromptBlock
         question={question}
@@ -3059,6 +3064,8 @@ interface ExamQuestionBodyProps {
   selectionLocked?: boolean;
   /** Practice immediate feedback: highlight correct vs selected incorrect option. */
   answerFeedback?: { correctIndex: number; selectedIndex: number } | null;
+  /** Adaptive exams: omit "of N" because length can change mid-attempt. */
+  hideQuestionTotal?: boolean;
 }
 
 const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
@@ -3073,10 +3080,14 @@ const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
   questionReport = null,
   selectionLocked = false,
   answerFeedback = null,
+  hideQuestionTotal = false,
 }) => {
   const primary = theme === 'purple' ? '#7b1fa2' : '#0d47a1';
   const primarySoft = theme === 'purple' ? 'rgba(123,31,162,0.08)' : 'rgba(13,71,161,0.06)';
   const borderMuted = '#e2e8f0';
+  const questionCaption = hideQuestionTotal
+    ? `Question ${questionNumber}`
+    : `Question ${questionNumber} of ${totalQuestions}`;
 
   if (!question) return null;
 
@@ -3097,6 +3108,7 @@ const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
         theme={theme}
         footer={problemReportBlockEarly}
         selectionLocked={selectionLocked}
+        hideQuestionTotal={hideQuestionTotal}
       />
     );
   }
@@ -3122,7 +3134,7 @@ const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
           variant="caption"
           sx={{ color: '#64748b', fontWeight: 700, letterSpacing: 1, display: 'block', mb: 1.5, textTransform: 'uppercase', fontSize: '0.68rem' }}
         >
-          Question {questionNumber} of {totalQuestions}
+          {questionCaption}
         </Typography>
         <QuestionPromptBlock
           question={question}
@@ -3186,6 +3198,7 @@ const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
         footer={problemReportBlock}
         selectionLocked={selectionLocked}
         answerFeedback={answerFeedback}
+        hideQuestionTotal={hideQuestionTotal}
       />
     );
   }
@@ -3205,6 +3218,7 @@ const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
         footer={problemReportBlock}
         selectionLocked={selectionLocked}
         answerFeedback={answerFeedback}
+        hideQuestionTotal={hideQuestionTotal}
       />
     );
   }
@@ -3213,7 +3227,7 @@ const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
     return (
       <Box sx={{ width: '100%' }}>
         <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 700, letterSpacing: 1, display: 'block', mb: 1.5, textTransform: 'uppercase', fontSize: '0.68rem' }}>
-          Question {questionNumber} of {totalQuestions}
+          {questionCaption}
         </Typography>
         <Box sx={{ borderLeft: `4px solid ${primary}`, bgcolor: primarySoft, borderRadius: 2, p: 2, mb: 2.5 }}>
           {renderMath ? (
@@ -3253,7 +3267,7 @@ const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
   return (
     <Box sx={{ width: '100%' }}>
       <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 700, letterSpacing: 1, display: 'block', mb: 1.5, textTransform: 'uppercase', fontSize: '0.68rem' }}>
-        Question {questionNumber} of {totalQuestions}
+        {questionCaption}
       </Typography>
       <QuestionPromptBlock
         question={question}

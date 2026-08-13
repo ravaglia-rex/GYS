@@ -44,7 +44,7 @@ export const NON_PRACTICE_EXAM_IDS = ASSESSMENT_ORDER.filter((id) =>
 
 /** Reasoning triad: full-page interactive practice (practice_bank API + PracticeTakePage). */
 export const INTERACTIVE_PRACTICE_EXAM_IDS = [
-  'symbolic_reasoning',
+  'analytical_reasoning',
   'verbal_reasoning',
   'mathematical_reasoning',
 ] as const;
@@ -80,7 +80,7 @@ export type PracticeLevel = 1 | 2 | 3;
 
 /** Placeholder pool sizes until the backend exposes counts (varied for realism). */
 export const PRACTICE_POOL_BY_EXAM_LEVEL: Record<string, Record<PracticeLevel, number>> = {
-  symbolic_reasoning: { 1: 185, 2: 165, 3: 150 },
+  analytical_reasoning: { 1: 185, 2: 165, 3: 150 },
   verbal_reasoning: { 1: 210, 2: 195, 3: 175 },
   mathematical_reasoning: { 1: 198, 2: 182, 3: 168 },
   english_proficiency: { 1: 220, 2: 205, 3: 190 },
@@ -551,7 +551,7 @@ export const PRACTICE_EXAM_CARD_STYLE: Record<
   string,
   { examNumber: number; gradient: string; accent: string }
 > = {
-  symbolic_reasoning: {
+  analytical_reasoning: {
     examNumber: 1,
     gradient: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
     accent: '#8b5cf6',

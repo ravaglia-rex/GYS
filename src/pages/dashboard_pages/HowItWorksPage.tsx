@@ -159,20 +159,20 @@ const MiniCard: React.FC<MiniCardProps> = ({ icon, title, body, color }) => (
 const membershipRows = [
   {
     level: 1,
-    exams: ['Symbolic Reasoning'],
+    exams: ['Analytical Reasoning'],
   },
   {
     level: 2,
-    exams: ['Symbolic Reasoning', 'Verbal Reasoning', 'Mathematical Reasoning'],
+    exams: ['Analytical Reasoning', 'Verbal Reasoning', 'Mathematical Reasoning'],
   },
   {
     level: 3,
-    exams: ['Symbolic Reasoning', 'Verbal Reasoning', 'Mathematical Reasoning', 'Personality and Interest', 'AI Proficiency'],
+    exams: ['Analytical Reasoning', 'Verbal Reasoning', 'Mathematical Reasoning', 'Personality and Interest', 'AI Proficiency'],
   },
   {
     level: 4,
     exams: [
-      'Symbolic Reasoning',
+      'Analytical Reasoning',
       'Verbal Reasoning',
       'Mathematical Reasoning',
       'Personality and Interest',
@@ -206,7 +206,7 @@ const achievementTierBadges = [
 const examOrder = ASSESSMENT_ORDER.map((id) => ASSESSMENT_NAMES[id]);
 
 const assessmentJourneyCards = [
-  { id: 'symbolic_reasoning' },
+  { id: 'analytical_reasoning' },
   { id: 'verbal_reasoning' },
   { id: 'mathematical_reasoning' },
   { id: 'comprehensive_personality' },
@@ -596,7 +596,7 @@ export const HowItWorksContent: React.FC = () => {
                 lineHeight: 1.4,
               }}
             >
-              <Box component="span">🧩 {ASSESSMENT_NAMES.symbolic_reasoning}</Box>
+              <Box component="span">🧩 {ASSESSMENT_NAMES.analytical_reasoning}</Box>
               <Box component="span" aria-hidden>
                 ➜
               </Box>
@@ -923,7 +923,7 @@ export const HowItWorksContent: React.FC = () => {
             <Box component="ul" sx={{ m: 0, pl: 2.5, mb: 1.5, color: 'rgba(255,255,255,0.78)' }}>
                 <Typography component="li" variant="body2" sx={{ mb: 0.75, lineHeight: 1.6 }}>
                   <strong style={{ color: 'white' }}>{MEMBERSHIP_LEVEL_LABELS[1]}</strong>
-                  {' - '}Complete Symbolic Reasoning to unlock the Discovery Report
+                  {' - '}Complete Analytical Reasoning to unlock the Discovery Report
                 </Typography>
                 <Typography component="li" variant="body2" sx={{ mb: 0.75, lineHeight: 1.6 }}>
                   <strong style={{ color: 'white' }}>{MEMBERSHIP_LEVEL_LABELS[2]}</strong>

@@ -28,6 +28,7 @@ import PeopleIcon from '@mui/icons-material/PeopleOutline';
 import QuizIcon from '@mui/icons-material/Quiz';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import TimelineIcon from '@mui/icons-material/Timeline';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ExamQuestionStimulus } from '../../components/assessment/ExamQuestionBody';
 import type { ExamQuestion } from '../../db/assessmentCollection';
 import {
@@ -58,6 +59,7 @@ import {
   getPlatformAdminOfficialExamQuestionStats,
   getPlatformAdminOfficialExamSummaries,
   searchPlatformAdminOfficialExamCompletions,
+  getPlatformAdminOfficialExamAttemptDetail,
   type PracticeDailyByExamStatRow,
   type PracticeDailyStatRow,
   type PracticeExamSummaryRow,
@@ -76,8 +78,10 @@ import {
   type OfficialExamRecentRow,
   type OfficialExamSchoolRow,
   type OfficialExamSummaryRow,
+  type OfficialExamAttemptDetail,
   type OfficialQuestionStatRow,
   type OfficialQuestionTagType,
+  type OfficialTagAggRow,
 } from '../../db/platformAdminAnalytics';
 import { formatDate, formatDateTime } from '../../db/platformAdminCollection';
 import {
@@ -102,9 +106,45 @@ import {
   PlatformAdminStatCard,
 } from './platformAdminComponents';
 
-type AnalyticsTab = 'official' | 'practice' | 'qod' | 'activity';
+type AnalyticsSection = 'official' | 'practice' | 'qod' | 'activity' | 'coins';
 
-/** "Symbolic Reasoning" → "Symbolic"; leaves AI/English Proficiency unchanged. */
+type OfficialView = 'overview' | 'exam-snapshots' | 'constructs' | 'grade-school' | 'completions';
+type PracticeView = 'overview' | 'by-exam' | 'exam-detail';
+type QodView = 'overview' | 'top-students';
+
+const ANALYTICS_SECTIONS: AnalyticsSection[] = ['official', 'practice', 'qod', 'activity', 'coins'];
+
+const ANALYTICS_SECTION_META: Record<
+  AnalyticsSection,
+  { title: string; subtitle: string }
+> = {
+  official: {
+    title: 'Official Exams',
+    subtitle: 'Completions, scores, strands, and search across live official exams.',
+  },
+  practice: {
+    title: 'Practice Exams',
+    subtitle: 'Daily volume, exam splits, grade breakdowns, and top practice students.',
+  },
+  qod: {
+    title: 'Question of the Day',
+    subtitle: 'Daily QoD volume, accuracy, and top students.',
+  },
+  activity: {
+    title: 'Overall Activity',
+    subtitle: 'School admin login and platform activity signals.',
+  },
+  coins: {
+    title: 'Coins',
+    subtitle: 'Highest Argus Coin balances and lifetime earnings.',
+  },
+};
+
+function isAnalyticsSection(value: string | undefined): value is AnalyticsSection {
+  return Boolean(value && ANALYTICS_SECTIONS.includes(value as AnalyticsSection));
+}
+
+/** "Analytical Reasoning" → "Analytical"; leaves AI/English Proficiency unchanged. */
 function shortOfficialExamLabel(label: string): string {
   return label.replace(/\s+Reasoning$/i, '').trim() || label;
 }
@@ -180,7 +220,13 @@ const examPickerTabsSx = {
 } as const;
 
 const PlatformAdminAnalyticsPage: React.FC = () => {
-  const [tab, setTab] = useState<AnalyticsTab>('official');
+  const navigate = useNavigate();
+  const { section: sectionParam } = useParams<{ section?: string }>();
+  const section: AnalyticsSection = isAnalyticsSection(sectionParam) ? sectionParam : 'official';
+
+  const [officialView, setOfficialView] = useState<OfficialView>('overview');
+  const [practiceView, setPracticeView] = useState<PracticeView>('overview');
+  const [qodView, setQodView] = useState<QodView>('overview');
 
   const [officialSummaries, setOfficialSummaries] = useState<OfficialExamSummaryRow[]>([]);
   const [officialDaily, setOfficialDaily] = useState<OfficialDailyStatRow[]>([]);
@@ -207,6 +253,11 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     tag: string;
     label: string;
   } | null>(null);
+  const [officialAttemptDetail, setOfficialAttemptDetail] =
+    useState<OfficialExamAttemptDetail | null>(null);
+  const [officialAttemptDetailLoading, setOfficialAttemptDetailLoading] = useState(false);
+  const [officialAttemptDetailKey, setOfficialAttemptDetailKey] = useState<string | null>(null);
+  const officialAttemptDetailReqRef = useRef(0);
   const [officialGeneratedAt, setOfficialGeneratedAt] = useState('');
   const [officialIndexesBuilding, setOfficialIndexesBuilding] = useState(false);
   const [officialLoading, setOfficialLoading] = useState(false);
@@ -247,6 +298,10 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
   const [qodError, setQodError] = useState<string | null>(null);
 
   const [topCoins, setTopCoins] = useState<TopCoinsStudentRow[]>([]);
+  const [coinsGeneratedAt, setCoinsGeneratedAt] = useState('');
+  const [coinsLoading, setCoinsLoading] = useState(false);
+  const [coinsError, setCoinsError] = useState<string | null>(null);
+
   const [schoolAdmins, setSchoolAdmins] = useState<SchoolAdminActivityRow[]>([]);
   const [activityGeneratedAt, setActivityGeneratedAt] = useState('');
   const [activityLoading, setActivityLoading] = useState(false);
@@ -328,6 +383,8 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
         setOfficialRecent(data.results);
         setOfficialRecentMatched(data.matched);
         setOfficialRecentSearched(true);
+        setOfficialAttemptDetail(null);
+        setOfficialAttemptDetailKey(null);
       } catch (e: unknown) {
         const err = e as { response?: { data?: { error?: string } }; message?: string };
         setOfficialError(err?.response?.data?.error || err?.message || 'Failed to search completions');
@@ -418,6 +475,131 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     setOfficialQuestionStats(null);
     setOfficialQuestionLoading(false);
   }, []);
+
+  const loadOfficialAttemptDetail = useCallback(
+    async (examId: string, row: OfficialExamRecentRow) => {
+      const key = `${row.uid}::${row.attempt_id}`;
+      if (officialAttemptDetailKey === key) {
+        setOfficialAttemptDetail(null);
+        setOfficialAttemptDetailKey(null);
+        return;
+      }
+      const req = ++officialAttemptDetailReqRef.current;
+      setOfficialAttemptDetailKey(key);
+      setOfficialAttemptDetailLoading(true);
+      setOfficialAttemptDetail(null);
+      setOfficialError(null);
+      try {
+        const data = await getPlatformAdminOfficialExamAttemptDetail(examId, {
+          uid: row.uid,
+          attemptId: row.attempt_id,
+        });
+        if (req !== officialAttemptDetailReqRef.current) return;
+        setOfficialAttemptDetail(data);
+      } catch (e: unknown) {
+        if (req !== officialAttemptDetailReqRef.current) return;
+        const err = e as { response?: { data?: { error?: string } }; message?: string };
+        setOfficialError(err?.response?.data?.error || err?.message || 'Failed to load attempt detail');
+        setOfficialAttemptDetail(null);
+        setOfficialAttemptDetailKey(null);
+      } finally {
+        if (req === officialAttemptDetailReqRef.current) setOfficialAttemptDetailLoading(false);
+      }
+    },
+    [officialAttemptDetailKey]
+  );
+
+  const renderOfficialTagTable = (
+    tagType: OfficialQuestionTagType,
+    title: string,
+    caption: string,
+    rows: OfficialTagAggRow[],
+    emptyLabel: string
+  ) => {
+    return (
+      <>
+        <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5, mt: 0.5 }}>
+          {title}
+        </Typography>
+        <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1 }}>
+          {caption}
+        </Typography>
+        <TableContainer
+          component={Paper}
+          elevation={0}
+          sx={{
+            ...platformAdminTablePaperSx,
+            mb: officialQuestionSelection?.tagType === tagType ? 1 : 2.5,
+          }}
+        >
+          <Table size="small" sx={platformAdminTableSx}>
+            <TableHead>
+              <TableRow sx={platformAdminTableHeadRowSx}>
+                <TableCell>Tag</TableCell>
+                <TableCell align="right">Attempts</TableCell>
+                <TableCell align="right">Avg served</TableCell>
+                <TableCell align="right">Accuracy</TableCell>
+                <TableCell align="right">Total served</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {rows.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} align="center" sx={{ py: 2, color: ip.subtext }}>
+                    {emptyLabel}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                rows.map((row) => {
+                  const selected =
+                    officialQuestionSelection?.tagType === tagType &&
+                    officialQuestionSelection.tag === row.key;
+                  return (
+                    <TableRow
+                      key={`${tagType}-${row.key}`}
+                      hover
+                      onClick={() => {
+                        if (!selectedOfficialExamId) return;
+                        if (selected) {
+                          clearOfficialQuestionDrill();
+                          return;
+                        }
+                        void loadOfficialQuestionStats(
+                          selectedOfficialExamId,
+                          { tagType, tag: row.key, label: row.label },
+                          officialDrillLevel
+                        );
+                      }}
+                      sx={selected ? selectedTagRowSx : { cursor: 'pointer' }}
+                    >
+                      <TableCell
+                        sx={{
+                          fontWeight: 700,
+                          color: ip.navy,
+                          textDecoration: selected ? 'none' : 'underline',
+                          textUnderlineOffset: 2,
+                        }}
+                      >
+                        {row.label}
+                        {selected ? ' · open' : ''}
+                      </TableCell>
+                      <TableCell align="right">{row.attempts_with_data}</TableCell>
+                      <TableCell align="right">{row.avg_served}</TableCell>
+                      <TableCell align="right">
+                        <PlatformAdminAccuracyChip pct={row.accuracy_pct} />
+                      </TableCell>
+                      <TableCell align="right">{row.served_sum}</TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        {renderOfficialQuestionDrillPanel(tagType)}
+      </>
+    );
+  };
 
   const renderOfficialQuestionDrillPanel = (forTagType: OfficialQuestionTagType) => {
     if (!officialQuestionSelection || officialQuestionSelection.tagType !== forTagType) {
@@ -516,22 +698,29 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                         }
                         tone="info"
                       />
-                      {q.mechanic ? (
-                        <PlatformAdminChip label={q.mechanic} tone="info" />
-                      ) : null}
                     </Box>
                     <Typography sx={{ color: '#475569', fontSize: 12, mb: 0.75 }}>
                       {q.item_id}
-                      {q.family || q.subconstruct
-                        ? ` · ${[q.family, q.subconstruct].filter(Boolean).join(' · ')}`
+                      {[q.strand, q.instruction_family, q.band].filter(Boolean).length
+                        ? ` · ${[q.strand, q.instruction_family, q.band]
+                            .filter(Boolean)
+                            .join(' · ')}`
                         : ''}
                     </Typography>
                     <Typography
-                      sx={{ color: ip.heading, fontSize: 14, mb: 1, lineHeight: 1.45 }}
+                      sx={{
+                        color: ip.heading,
+                        fontSize: 14,
+                        mb: 1,
+                        lineHeight: 1.45,
+                        whiteSpace: 'pre-wrap',
+                        maxHeight: 220,
+                        overflow: 'auto',
+                      }}
                     >
                       {q.prompt || q.prompt_preview || '(no prompt)'}
                     </Typography>
-                    {q.stimulus != null ? (
+                    {q.stimulus != null && q.stimulus_type !== 'markdown' ? (
                       <Box sx={{ mb: 1.25, maxWidth: 560 }}>
                         <ExamQuestionStimulus
                           q={toStimulusExamQuestion(q)}
@@ -743,17 +932,28 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     }
   }, []);
 
+  const loadCoins = useCallback(async (opts?: { refresh?: boolean }) => {
+    setCoinsLoading(true);
+    setCoinsError(null);
+    try {
+      const coins = await getPlatformAdminTopCoins(10, { refresh: opts?.refresh });
+      setTopCoins(coins.students);
+      setCoinsGeneratedAt(coins.generated_at);
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { error?: string } }; message?: string };
+      setCoinsError(err?.response?.data?.error || err?.message || 'Failed to load coins analytics');
+    } finally {
+      setCoinsLoading(false);
+    }
+  }, []);
+
   const loadActivity = useCallback(async (opts?: { refresh?: boolean }) => {
     setActivityLoading(true);
     setActivityError(null);
     try {
-      const [coins, admins] = await Promise.all([
-        getPlatformAdminTopCoins(10, { refresh: opts?.refresh }),
-        getPlatformAdminSchoolAdminActivity(20, { refresh: opts?.refresh }),
-      ]);
-      setTopCoins(coins.students);
+      const admins = await getPlatformAdminSchoolAdminActivity(20, { refresh: opts?.refresh });
       setSchoolAdmins(admins.admins);
-      setActivityGeneratedAt(coins.generated_at || admins.generated_at);
+      setActivityGeneratedAt(admins.generated_at);
     } catch (e: unknown) {
       const err = e as { response?: { data?: { error?: string } }; message?: string };
       setActivityError(err?.response?.data?.error || err?.message || 'Failed to load activity analytics');
@@ -763,26 +963,33 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (tab === 'official') void loadOfficialOverview();
-    if (tab === 'practice') void loadPractice();
-    if (tab === 'qod') void loadQod();
-    if (tab === 'activity') void loadActivity();
-  }, [tab, loadOfficialOverview, loadPractice, loadQod, loadActivity]);
+    if (!isAnalyticsSection(sectionParam)) {
+      navigate('/platform-admin/analytics/official', { replace: true });
+    }
+  }, [sectionParam, navigate]);
 
   useEffect(() => {
-    if (tab !== 'official' || !selectedOfficialExamId) return;
+    if (section === 'official') void loadOfficialOverview();
+    if (section === 'practice') void loadPractice();
+    if (section === 'qod') void loadQod();
+    if (section === 'activity') void loadActivity();
+    if (section === 'coins') void loadCoins();
+  }, [section, loadOfficialOverview, loadPractice, loadQod, loadActivity, loadCoins]);
+
+  useEffect(() => {
+    if (section !== 'official' || !selectedOfficialExamId) return;
     void loadOfficialDetail(selectedOfficialExamId);
-  }, [tab, selectedOfficialExamId, loadOfficialDetail]);
+  }, [section, selectedOfficialExamId, loadOfficialDetail]);
 
   useEffect(() => {
-    if (tab !== 'official' || !selectedOfficialExamId) return;
+    if (section !== 'official' || !selectedOfficialExamId) return;
     void loadOfficialDrilldown(selectedOfficialExamId, officialDrillLevel);
-  }, [tab, selectedOfficialExamId, officialDrillLevel, loadOfficialDrilldown]);
+  }, [section, selectedOfficialExamId, officialDrillLevel, loadOfficialDrilldown]);
 
   useEffect(() => {
-    if (tab !== 'practice' || !selectedExamId) return;
+    if (section !== 'practice' || !selectedExamId) return;
     void loadPracticeDetail(selectedExamId);
-  }, [tab, selectedExamId, loadPracticeDetail]);
+  }, [section, selectedExamId, loadPracticeDetail]);
 
   const anyLoading =
     officialLoading ||
@@ -793,10 +1000,11 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     practiceMonthlyLoading ||
     practiceDetailLoading ||
     qodLoading ||
-    activityLoading;
+    activityLoading ||
+    coinsLoading;
 
   const handleForceRefresh = () => {
-    if (tab === 'official') {
+    if (section === 'official') {
       void loadOfficialOverview({ refresh: true });
       if (selectedOfficialExamId) {
         void loadOfficialDetail(selectedOfficialExamId, { refresh: true });
@@ -811,12 +1019,13 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
         }
       }
     }
-    if (tab === 'practice') {
+    if (section === 'practice') {
       void loadPractice({ refresh: true });
       if (selectedExamId) void loadPracticeDetail(selectedExamId, { refresh: true });
     }
-    if (tab === 'qod') void loadQod({ refresh: true });
-    if (tab === 'activity') void loadActivity({ refresh: true });
+    if (section === 'qod') void loadQod({ refresh: true });
+    if (section === 'activity') void loadActivity({ refresh: true });
+    if (section === 'coins') void loadCoins({ refresh: true });
   };
 
   const selectedSummary = useMemo(
@@ -959,8 +1168,8 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
       }}
     >
       <PlatformAdminPageHeader
-        title="Analytics"
-        subtitle="Platform usage for official exams, practice, Question of the Day, and admin activity. Data is Redis-cached and not realtime."
+        title={ANALYTICS_SECTION_META[section].title}
+        subtitle={`${ANALYTICS_SECTION_META[section].subtitle} Data is Redis-cached and not realtime.`}
         action={
           <Button
             variant="outlined"
@@ -974,20 +1183,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
         }
       />
 
-      <Tabs
-        value={tab}
-        onChange={(_e, value: AnalyticsTab) => setTab(value)}
-        variant="scrollable"
-        scrollButtons="auto"
-        sx={analyticsTabRailSx}
-      >
-        <Tab value="official" label="Official Exams" />
-        <Tab value="practice" label="Practice Exams" />
-        <Tab value="qod" label="Question of the Day" />
-        <Tab value="activity" label="Activity" />
-      </Tabs>
-
-      {tab === 'official' && (
+      {section === 'official' && (
         <>
           {officialError && (
             <Alert severity="error" sx={{ mb: 2 }}>
@@ -1009,8 +1205,22 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                 {staleHint(officialGeneratedAt)} · scores shown as % and points / 1000 · test accounts excluded
               </Typography>
 
+              <Tabs
+                value={officialView}
+                onChange={(_e, value: OfficialView) => setOfficialView(value)}
+                variant="scrollable"
+                scrollButtons="auto"
+                sx={analyticsTabRailSx}
+              >
+                <Tab value="overview" label="Overview" />
+                <Tab value="exam-snapshots" label="Exam snapshots" />
+                <Tab value="constructs" label="Strands & items" />
+                <Tab value="grade-school" label="Grade & school" />
+                <Tab value="completions" label="Search completions" />
+              </Tabs>
+
+              {officialView === 'overview' && (
               <PlatformAdminAnalyticsSection
-                step={1}
                 title="Overview"
                 subtitle="Platform-wide official exam totals and daily completion trends (IST)."
                 accent="navy"
@@ -1073,7 +1283,9 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                   </ResponsiveContainer>
                 </Box>
               </PlatformAdminAnalyticsSection>
+              )}
 
+              {officialView !== 'overview' && (
               <Tabs
                 value={selectedOfficialExamId || false}
                 onChange={(_e, value: string) => {
@@ -1100,9 +1312,10 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                   />
                 ))}
               </Tabs>
+              )}
 
+              {officialView === 'exam-snapshots' && (
               <PlatformAdminAnalyticsSection
-                step={2}
                 title={
                   selectedOfficialSummary
                     ? `${shortOfficialExamLabel(selectedOfficialSummary.label)} · snapshot`
@@ -1207,17 +1420,18 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                   </>
                 )}
               </PlatformAdminAnalyticsSection>
+              )}
 
+              {officialView === 'constructs' && (
               <PlatformAdminAnalyticsSection
-                step={3}
-                title="Constructs & items"
+                title="Strands & items"
                 subtitle={
                   <>
-                    Family/construct, subconstruct, and mechanic rollups from completed attempts
+                    Strand, instruction family, and band rollups from completed attempts
                     {officialDrilldown
                       ? ` · ${officialDrilldown.attempts_analyzed.toLocaleString()} analyzed`
                       : ''}
-                    . Click a family row to open per-question stats.
+                    . Click any row for per-question stats from the live bank.
                   </>
                 }
                 accent="teal"
@@ -1278,275 +1492,34 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                         </ResponsiveContainer>
                       </Box>
 
-                      <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
-                        By family / construct
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1 }}>
-                        Click a family to see per-question saw / correct / avg time. Avg served = mean
-                        items of that family per completion. Symbolic only when construct_scores were
-                        stored.
-                      </Typography>
-                      <TableContainer
-                        component={Paper}
-                        elevation={0}
-                        sx={{
-                          ...platformAdminTablePaperSx,
-                          mb: officialQuestionSelection?.tagType === 'family' ? 1 : 2.5,
-                        }}
-                      >
-                        <Table size="small" sx={platformAdminTableSx}>
-                          <TableHead>
-                            <TableRow sx={platformAdminTableHeadRowSx}>
-                              <TableCell>Family</TableCell>
-                              <TableCell align="right">Attempts</TableCell>
-                              <TableCell align="right">Avg served</TableCell>
-                              <TableCell align="right">Accuracy</TableCell>
-                              <TableCell align="right">Avg construct /250</TableCell>
-                              <TableCell align="right">Floor met %</TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {officialDrilldown.by_family.length === 0 ? (
-                              <TableRow>
-                                <TableCell colSpan={6} align="center" sx={{ py: 2, color: ip.subtext }}>
-                                  No family/construct maps on these completions.
-                                </TableCell>
-                              </TableRow>
-                            ) : (
-                              officialDrilldown.by_family.map((row) => {
-                                const selected =
-                                  officialQuestionSelection?.tagType === 'family' &&
-                                  officialQuestionSelection.tag === row.key;
-                                return (
-                                  <TableRow
-                                    key={row.key}
-                                    hover
-                                    onClick={() => {
-                                      if (!selectedOfficialExamId) return;
-                                      if (selected) {
-                                        clearOfficialQuestionDrill();
-                                        return;
-                                      }
-                                      void loadOfficialQuestionStats(
-                                        selectedOfficialExamId,
-                                        {
-                                          tagType: 'family',
-                                          tag: row.key,
-                                          label: row.label,
-                                        },
-                                        officialDrillLevel
-                                      );
-                                    }}
-                                    sx={selected ? selectedTagRowSx : { cursor: 'pointer' }}
-                                  >
-                                    <TableCell
-                                      sx={{
-                                        fontWeight: 700,
-                                        color: ip.navy,
-                                        textDecoration: selected ? 'none' : 'underline',
-                                        textUnderlineOffset: 2,
-                                      }}
-                                    >
-                                      {row.label}
-                                      {selected ? ' · open' : ''}
-                                    </TableCell>
-                                    <TableCell align="right">{row.attempts_with_data}</TableCell>
-                                    <TableCell align="right">{row.avg_served}</TableCell>
-                                    <TableCell align="right">
-                                      <PlatformAdminAccuracyChip pct={row.accuracy_pct} />
-                                    </TableCell>
-                                    <TableCell align="right">
-                                      {row.avg_construct_score != null ? row.avg_construct_score : '—'}
-                                    </TableCell>
-                                    <TableCell align="right">
-                                      {row.floor_met_rate_pct != null
-                                        ? `${row.floor_met_rate_pct}%`
-                                        : '—'}
-                                    </TableCell>
-                                  </TableRow>
-                                );
-                              })
-                            )}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
-                      {renderOfficialQuestionDrillPanel('family')}
-
-                      <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5, mt: 0.5 }}>
-                        By subconstruct
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1 }}>
-                        Report skill labels (not the same as mechanic). Symbolic section-mode stores
-                        these on the family row instead, so this table is often empty for Symbolic.
-                      </Typography>
-                      <TableContainer
-                        component={Paper}
-                        elevation={0}
-                        sx={{
-                          ...platformAdminTablePaperSx,
-                          mb: officialQuestionSelection?.tagType === 'subconstruct' ? 1 : 2.5,
-                        }}
-                      >
-                        <Table size="small" sx={platformAdminTableSx}>
-                          <TableHead>
-                            <TableRow sx={platformAdminTableHeadRowSx}>
-                              <TableCell>Subconstruct</TableCell>
-                              <TableCell align="right">Attempts</TableCell>
-                              <TableCell align="right">Avg served</TableCell>
-                              <TableCell align="right">Accuracy</TableCell>
-                              <TableCell align="right">Total served</TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {officialDrilldown.by_subconstruct.length === 0 ? (
-                              <TableRow>
-                                <TableCell colSpan={5} align="center" sx={{ py: 2, color: ip.subtext }}>
-                                  No subconstruct scores on these completions.
-                                </TableCell>
-                              </TableRow>
-                            ) : (
-                              officialDrilldown.by_subconstruct.map((row) => {
-                                const selected =
-                                  officialQuestionSelection?.tagType === 'subconstruct' &&
-                                  officialQuestionSelection.tag === row.key;
-                                return (
-                                  <TableRow
-                                    key={row.key}
-                                    hover
-                                    onClick={() => {
-                                      if (!selectedOfficialExamId) return;
-                                      if (selected) {
-                                        clearOfficialQuestionDrill();
-                                        return;
-                                      }
-                                      void loadOfficialQuestionStats(
-                                        selectedOfficialExamId,
-                                        {
-                                          tagType: 'subconstruct',
-                                          tag: row.key,
-                                          label: row.label,
-                                        },
-                                        officialDrillLevel
-                                      );
-                                    }}
-                                    sx={selected ? selectedTagRowSx : { cursor: 'pointer' }}
-                                  >
-                                    <TableCell
-                                      sx={{
-                                        fontWeight: 700,
-                                        color: ip.navy,
-                                        textDecoration: selected ? 'none' : 'underline',
-                                        textUnderlineOffset: 2,
-                                      }}
-                                    >
-                                      {row.label}
-                                      {selected ? ' · open' : ''}
-                                    </TableCell>
-                                    <TableCell align="right">{row.attempts_with_data}</TableCell>
-                                    <TableCell align="right">{row.avg_served}</TableCell>
-                                    <TableCell align="right">
-                                      <PlatformAdminAccuracyChip pct={row.accuracy_pct} />
-                                    </TableCell>
-                                    <TableCell align="right">{row.served_sum}</TableCell>
-                                  </TableRow>
-                                );
-                              })
-                            )}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
-                      {renderOfficialQuestionDrillPanel('subconstruct')}
-
-                      <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5, mt: 0.5 }}>
-                        By mechanic
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1 }}>
-                        Finer item tags from the bank (e.g. Mapping Preserve). Click for per-question
-                        stats. Not the same as subconstruct.
-                      </Typography>
-                      <TableContainer
-                        component={Paper}
-                        elevation={0}
-                        sx={{
-                          ...platformAdminTablePaperSx,
-                          mb: officialQuestionSelection?.tagType === 'mechanic' ? 1 : 0,
-                        }}
-                      >
-                        <Table size="small" sx={platformAdminTableSx}>
-                          <TableHead>
-                            <TableRow sx={platformAdminTableHeadRowSx}>
-                              <TableCell>Mechanic</TableCell>
-                              <TableCell align="right">Attempts</TableCell>
-                              <TableCell align="right">Avg served</TableCell>
-                              <TableCell align="right">Accuracy</TableCell>
-                              <TableCell align="right">Total served</TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {officialDrilldown.by_mechanic.length === 0 ? (
-                              <TableRow>
-                                <TableCell colSpan={5} align="center" sx={{ py: 2, color: ip.subtext }}>
-                                  No mechanic feedback on these completions (Symbolic section-mode).
-                                </TableCell>
-                              </TableRow>
-                            ) : (
-                              officialDrilldown.by_mechanic.map((row) => {
-                                const selected =
-                                  officialQuestionSelection?.tagType === 'mechanic' &&
-                                  officialQuestionSelection.tag === row.key;
-                                return (
-                                  <TableRow
-                                    key={row.key}
-                                    hover
-                                    onClick={() => {
-                                      if (!selectedOfficialExamId) return;
-                                      if (selected) {
-                                        clearOfficialQuestionDrill();
-                                        return;
-                                      }
-                                      void loadOfficialQuestionStats(
-                                        selectedOfficialExamId,
-                                        {
-                                          tagType: 'mechanic',
-                                          tag: row.key,
-                                          label: row.label,
-                                        },
-                                        officialDrillLevel
-                                      );
-                                    }}
-                                    sx={selected ? selectedTagRowSx : { cursor: 'pointer' }}
-                                  >
-                                    <TableCell
-                                      sx={{
-                                        fontWeight: 700,
-                                        color: ip.navy,
-                                        textDecoration: selected ? 'none' : 'underline',
-                                        textUnderlineOffset: 2,
-                                      }}
-                                    >
-                                      {row.label}
-                                      {selected ? ' · open' : ''}
-                                    </TableCell>
-                                    <TableCell align="right">{row.attempts_with_data}</TableCell>
-                                    <TableCell align="right">{row.avg_served}</TableCell>
-                                    <TableCell align="right">
-                                      <PlatformAdminAccuracyChip pct={row.accuracy_pct} />
-                                    </TableCell>
-                                    <TableCell align="right">{row.served_sum}</TableCell>
-                                  </TableRow>
-                                );
-                              })
-                            )}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
-                      {renderOfficialQuestionDrillPanel('mechanic')}
+                      {renderOfficialTagTable(
+                        'strand',
+                        'By strand',
+                        'Click a strand for per-question saw / correct / avg time from the live bank.',
+                        officialDrilldown.by_strand || [],
+                        'No strand statuses on these completions yet.'
+                      )}
+                      {renderOfficialTagTable(
+                        'instruction_family',
+                        'By instruction family (IF-01…IF-10)',
+                        'Click a family for per-question stats. Needs new AR completions after this analytics deploy.',
+                        officialDrilldown.by_instruction_family || [],
+                        'No instruction-family tallies yet.'
+                      )}
+                      {renderOfficialTagTable(
+                        'band',
+                        'By band (Entry / Core / Stretch)',
+                        'Click a band for per-question stats (L1-E / L1-C / L1-S).',
+                        officialDrilldown.by_band || [],
+                        'No band tallies on these completions yet.'
+                      )}
                     </>
                   )}
               </PlatformAdminAnalyticsSection>
+              )}
 
+              {officialView === 'grade-school' && (
               <PlatformAdminAnalyticsSection
-                step={4}
                 title="Grade & school"
                 subtitle="From completed attempts (grade at attempt when available; otherwise student grade)."
                 accent="amber"
@@ -1640,11 +1613,12 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                     </Box>
                   )}
               </PlatformAdminAnalyticsSection>
+              )}
 
+              {officialView === 'completions' && (
               <PlatformAdminAnalyticsSection
-                step={5}
                 title="Search completions"
-                subtitle="On-demand only — not loaded until you search. Filter by student, date range, level, and limit."
+                subtitle="On-demand only — not loaded until you search. Click a row for per-question strand / family / band / answer detail."
                 accent="violet"
               >
                   <Box sx={{ ...platformAdminFilterToolbarRowSx, mb: 2 }}>
@@ -1794,10 +1768,22 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                                 </TableCell>
                               </TableRow>
                             ) : (
-                              officialRecent.map((row) => (
-                                <TableRow key={row.attempt_id}>
+                              officialRecent.map((row) => {
+                                const key = `${row.uid}::${row.attempt_id}`;
+                                const selected = officialAttemptDetailKey === key;
+                                return (
+                                  <TableRow
+                                    key={row.attempt_id}
+                                    hover
+                                    onClick={() => {
+                                      if (!selectedOfficialExamId) return;
+                                      void loadOfficialAttemptDetail(selectedOfficialExamId, row);
+                                    }}
+                                    sx={selected ? selectedTagRowSx : { cursor: 'pointer' }}
+                                  >
                                   <TableCell sx={{ whiteSpace: 'nowrap' }}>
                                     {formatDateTime(row.completed_at)}
+                                    {selected ? ' · open' : ''}
                                   </TableCell>
                                   <TableCell sx={{ fontWeight: 600 }}>
                                     {[row.first_name, row.last_name].filter(Boolean).join(' ') ||
@@ -1837,20 +1823,156 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                                     />
                                   </TableCell>
                                 </TableRow>
-                              ))
+                                );
+                              })
                             )}
                           </TableBody>
                         </Table>
                       </TableContainer>
+                      {officialAttemptDetailLoading ? (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+                          <CircularProgress size={28} sx={{ color: ip.navy }} />
+                        </Box>
+                      ) : officialAttemptDetail ? (
+                        <Box
+                          sx={{
+                            mt: 2,
+                            borderRadius: 2,
+                            border: '1px solid #cbd5e1',
+                            borderLeft: `4px solid ${ip.navy}`,
+                            bgcolor: '#f8fafc',
+                            overflow: 'hidden',
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              px: 2,
+                              py: 1.5,
+                              bgcolor: 'rgba(16, 64, 139, 0.06)',
+                              borderBottom: '1px solid #e2e8f0',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              gap: 1,
+                              flexWrap: 'wrap',
+                            }}
+                          >
+                            <Box>
+                              <Typography sx={{ fontWeight: 800, color: ip.heading, fontSize: 15 }}>
+                                Attempt detail · {officialAttemptDetail.questions.length} questions
+                              </Typography>
+                              <Typography variant="caption" sx={{ color: ip.subtext }}>
+                                {officialAttemptDetail.scoring_mode || 'scoring unknown'}
+                                {officialAttemptDetail.score_pct != null
+                                  ? ` · ${officialAttemptDetail.score_pct}%`
+                                  : ''}
+                              </Typography>
+                            </Box>
+                            <Button
+                              size="small"
+                              startIcon={<ArrowBackIcon />}
+                              onClick={() => {
+                                setOfficialAttemptDetail(null);
+                                setOfficialAttemptDetailKey(null);
+                              }}
+                              sx={platformAdminOutlinedButtonSx}
+                            >
+                              Close
+                            </Button>
+                          </Box>
+                          <Box sx={{ px: 2, py: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                            {officialAttemptDetail.questions.map((q) => (
+                              <Box
+                                key={`${officialAttemptDetail.attempt_id}-${q.index}-${q.item_id}`}
+                                sx={{
+                                  bgcolor: '#fff',
+                                  border: '1px solid #e2e8f0',
+                                  borderRadius: 1.5,
+                                  p: 1.75,
+                                }}
+                              >
+                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 0.75 }}>
+                                  <Typography sx={{ fontWeight: 800, color: ip.heading }}>
+                                    Q{q.index}
+                                  </Typography>
+                                  <PlatformAdminChip
+                                    label={
+                                      q.is_correct == null
+                                        ? 'ungraded'
+                                        : q.is_correct
+                                          ? 'correct'
+                                          : 'incorrect'
+                                    }
+                                    tone={
+                                      q.is_correct == null
+                                        ? 'neutral'
+                                        : q.is_correct
+                                          ? 'success'
+                                          : 'error'
+                                    }
+                                  />
+                                  <PlatformAdminChip
+                                    label={`picked ${q.selected_letter}`}
+                                    tone="neutral"
+                                  />
+                                  <PlatformAdminChip
+                                    label={`key ${q.correct_letter ?? '—'}`}
+                                    tone="info"
+                                  />
+                                  {q.time_spent_sec != null ? (
+                                    <PlatformAdminChip
+                                      label={`${q.time_spent_sec}s`}
+                                      tone="info"
+                                    />
+                                  ) : null}
+                                  {q.strand_label || q.strand ? (
+                                    <PlatformAdminChip
+                                      label={q.strand_label || q.strand || ''}
+                                      tone="info"
+                                    />
+                                  ) : null}
+                                  {q.instruction_family ? (
+                                    <PlatformAdminChip
+                                      label={
+                                        q.instruction_family_label
+                                          ? `${q.instruction_family} · ${q.instruction_family_label}`
+                                          : q.instruction_family
+                                      }
+                                      tone="neutral"
+                                    />
+                                  ) : null}
+                                  {q.band ? (
+                                    <PlatformAdminChip label={q.band} tone="warning" />
+                                  ) : null}
+                                </Box>
+                                <Typography sx={{ color: '#475569', fontSize: 12, mb: 0.5 }}>
+                                  {q.item_id}
+                                </Typography>
+                                <Typography
+                                  sx={{
+                                    color: ip.heading,
+                                    fontSize: 13,
+                                    whiteSpace: 'pre-wrap',
+                                    maxHeight: 160,
+                                    overflow: 'auto',
+                                  }}
+                                >
+                                  {q.prompt_preview || q.prompt || '(no prompt — bank item missing)'}
+                                </Typography>
+                              </Box>
+                            ))}
+                          </Box>
+                        </Box>
+                      ) : null}
                     </>
                   )}
               </PlatformAdminAnalyticsSection>
+              )}
             </>
           )}
         </>
       )}
 
-      {tab === 'practice' && (
+      {section === 'practice' && (
         <>
           {practiceError && (
             <Alert severity="error" sx={{ mb: 2 }}>
@@ -1888,8 +2010,20 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                 {staleHint(practiceGeneratedAt)}
               </Typography>
 
+              <Tabs
+                value={practiceView}
+                onChange={(_e, value: PracticeView) => setPracticeView(value)}
+                variant="scrollable"
+                scrollButtons="auto"
+                sx={analyticsTabRailSx}
+              >
+                <Tab value="overview" label="Overview" />
+                <Tab value="by-exam" label="Sessions by exam" />
+                <Tab value="exam-detail" label="Exam detail" />
+              </Tabs>
+
+              {practiceView === 'overview' && (
               <PlatformAdminAnalyticsSection
-                step={1}
                 title="Overview"
                 subtitle="Platform-wide daily counters (test/staff excluded). Historical days are reconstructed from practice attempt timestamps."
                 accent="navy"
@@ -1991,9 +2125,10 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                   </Box>
                 )}
               </PlatformAdminAnalyticsSection>
+              )}
 
+              {practiceView === 'by-exam' && (
               <PlatformAdminAnalyticsSection
-                step={2}
                 title="Sessions by exam"
                 subtitle="Same daily counters, split by exam type. Days before an exam had activity stay at zero."
                 accent="teal"
@@ -2021,9 +2156,10 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                   </ResponsiveContainer>
                 </Box>
               </PlatformAdminAnalyticsSection>
+              )}
 
+              {practiceView === 'exam-detail' && (
               <PlatformAdminAnalyticsSection
-                step={3}
                 title="Exam detail"
                 subtitle="Pick an exam to inspect grade breakdowns and top students."
                 accent="amber"
@@ -2232,12 +2368,13 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                   </Table>
                 </TableContainer>
               </PlatformAdminAnalyticsSection>
+              )}
             </>
           )}
         </>
       )}
 
-      {tab === 'qod' && (
+      {section === 'qod' && (
         <>
           {qodError && (
             <Alert severity="error" sx={{ mb: 2 }}>
@@ -2254,8 +2391,19 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
             </Box>
           ) : (
             <>
+              <Tabs
+                value={qodView}
+                onChange={(_e, value: QodView) => setQodView(value)}
+                variant="scrollable"
+                scrollButtons="auto"
+                sx={analyticsTabRailSx}
+              >
+                <Tab value="overview" label="Overview" />
+                <Tab value="top-students" label="Top students" />
+              </Tabs>
+
+              {qodView === 'overview' && (
               <PlatformAdminAnalyticsSection
-                step={1}
                 title="Overview"
                 subtitle="Daily Question of the Day volume and accuracy (IST)."
                 accent="navy"
@@ -2300,9 +2448,10 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                   </ResponsiveContainer>
                 </Box>
               </PlatformAdminAnalyticsSection>
+              )}
 
+              {qodView === 'top-students' && (
               <PlatformAdminAnalyticsSection
-                step={2}
                 title="Top students"
                 subtitle="Lifetime attempts per student (tracked from when totals were introduced). Test/staff accounts excluded."
                 accent="teal"
@@ -2348,12 +2497,13 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                   </Table>
                 </TableContainer>
               </PlatformAdminAnalyticsSection>
+              )}
             </>
           )}
         </>
       )}
 
-      {tab === 'activity' && (
+      {section === 'activity' && (
         <>
           {activityError && (
             <Alert severity="error" sx={{ mb: 2 }}>
@@ -2364,90 +2514,109 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
             {staleHint(activityGeneratedAt)}
           </Typography>
 
-          {activityLoading && topCoins.length === 0 && schoolAdmins.length === 0 ? (
+          {activityLoading && schoolAdmins.length === 0 ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
               <CircularProgress sx={{ color: ip.navy }} />
             </Box>
           ) : (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-              <PlatformAdminAnalyticsSection
-                step={1}
-                title="Top Argus Coins"
-                subtitle="Highest coin balances across students."
-                accent="amber"
-              >
-                <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
-                  <Table size="small" sx={platformAdminTableSx}>
-                    <TableHead>
-                      <TableRow sx={platformAdminTableHeadRowSx}>
-                        <TableCell>#</TableCell>
-                        <TableCell>Student</TableCell>
-                        <TableCell>School</TableCell>
-                        <TableCell align="right">Coins</TableCell>
+            <PlatformAdminAnalyticsSection
+              title="School admin sign-ins"
+              subtitle="Firebase Auth last sign-in. Also shown on each school detail page."
+              accent="slate"
+            >
+              <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
+                <Table size="small" sx={platformAdminTableSx}>
+                  <TableHead>
+                    <TableRow sx={platformAdminTableHeadRowSx}>
+                      <TableCell>Email</TableCell>
+                      <TableCell>School</TableCell>
+                      <TableCell>Last sign-in</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {schoolAdmins.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={3} align="center" sx={{ py: 3, color: ip.subtext }}>
+                          No school admin sign-ins recorded yet.
+                        </TableCell>
                       </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {topCoins.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={4} align="center" sx={{ py: 3, color: ip.subtext }}>
-                            No coin balances yet.
-                          </TableCell>
+                    ) : (
+                      schoolAdmins.map((row) => (
+                        <TableRow key={row.email}>
+                          <TableCell sx={{ fontWeight: 600 }}>{row.email}</TableCell>
+                          <TableCell>{row.school_name ?? row.school_id ?? '-'}</TableCell>
+                          <TableCell>{formatDate(row.last_active_at)}</TableCell>
                         </TableRow>
-                      ) : (
-                        topCoins.map((row, idx) => (
-                          <TableRow key={row.uid}>
-                            <TableCell>{idx + 1}</TableCell>
-                            <TableCell sx={{ fontWeight: 600 }}>
-                              {[row.first_name, row.last_name].filter(Boolean).join(' ') || row.email}
-                            </TableCell>
-                            <TableCell>{row.school_name ?? '-'}</TableCell>
-                            <TableCell align="right" sx={{ fontWeight: 700 }}>
-                              {row.argus_coins.toLocaleString()}
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </PlatformAdminAnalyticsSection>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </PlatformAdminAnalyticsSection>
+          )}
+        </>
+      )}
 
-              <PlatformAdminAnalyticsSection
-                step={2}
-                title="School admin sign-ins"
-                subtitle="Firebase Auth last sign-in. Also shown on each school detail page."
-                accent="slate"
-              >
-                <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
-                  <Table size="small" sx={platformAdminTableSx}>
-                    <TableHead>
-                      <TableRow sx={platformAdminTableHeadRowSx}>
-                        <TableCell>Email</TableCell>
-                        <TableCell>School</TableCell>
-                        <TableCell>Last sign-in</TableCell>
+      {section === 'coins' && (
+        <>
+          {coinsError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {coinsError}
+            </Alert>
+          )}
+          <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1.5 }}>
+            {staleHint(coinsGeneratedAt)}
+          </Typography>
+
+          {coinsLoading && topCoins.length === 0 ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+              <CircularProgress sx={{ color: ip.navy }} />
+            </Box>
+          ) : (
+            <PlatformAdminAnalyticsSection
+              title="Top Argus Coins"
+              subtitle="Highest coin balances across students (balance vs lifetime earned)."
+              accent="amber"
+            >
+              <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
+                <Table size="small" sx={platformAdminTableSx}>
+                  <TableHead>
+                    <TableRow sx={platformAdminTableHeadRowSx}>
+                      <TableCell>#</TableCell>
+                      <TableCell>Student</TableCell>
+                      <TableCell>School</TableCell>
+                      <TableCell align="right">Balance</TableCell>
+                      <TableCell align="right">Lifetime</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {topCoins.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} align="center" sx={{ py: 3, color: ip.subtext }}>
+                          No coin balances yet.
+                        </TableCell>
                       </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {schoolAdmins.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={3} align="center" sx={{ py: 3, color: ip.subtext }}>
-                            No school admin sign-ins recorded yet.
+                    ) : (
+                      topCoins.map((row, idx) => (
+                        <TableRow key={row.uid}>
+                          <TableCell>{idx + 1}</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>
+                            {[row.first_name, row.last_name].filter(Boolean).join(' ') || row.email}
+                          </TableCell>
+                          <TableCell>{row.school_name ?? '-'}</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 700 }}>
+                            {row.argus_coins.toLocaleString()}
+                          </TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 600, color: ip.subtext }}>
+                            {(row.coins_lifetime_earned ?? 0).toLocaleString()}
                           </TableCell>
                         </TableRow>
-                      ) : (
-                        schoolAdmins.map((row) => (
-                          <TableRow key={row.email}>
-                            <TableCell sx={{ fontWeight: 600 }}>{row.email}</TableCell>
-                            <TableCell>{row.school_name ?? row.school_id ?? '-'}</TableCell>
-                            <TableCell>{formatDate(row.last_active_at)}</TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </PlatformAdminAnalyticsSection>
-            </Box>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </PlatformAdminAnalyticsSection>
           )}
         </>
       )}

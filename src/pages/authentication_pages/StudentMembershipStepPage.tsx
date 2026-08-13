@@ -134,7 +134,7 @@ const StudentMembershipStepPage: React.FC = () => {
       background: 'bg-white',
       accent: 'bg-emerald-500',
       features: [
-        { text: 'First look at GYS - Exam 1 (Symbolic Reasoning) only', included: true },
+        { text: 'First look at GYS - Exam 1 (Analytical Reasoning) only', included: true },
         { text: 'Per-exam score report + category breakdowns', included: true },
         { text: 'Dashboard shows locked previews of features in higher packages', included: true },
         { text: 'No national performance tier or school leaderboard', included: false },
@@ -552,7 +552,7 @@ const StudentMembershipStepPage: React.FC = () => {
                   </thead>
                   <tbody>
                     {[
-                      ['Reasoning Exam 1 (Symbolic Reasoning)', '✓', '✓', '✓', '✓'],
+                      ['Reasoning Exam 1 (Analytical Reasoning)', '✓', '✓', '✓', '✓'],
                       ['Reasoning Exams 2–3 (Verbal & Mathematical)', ' - ', '✓', '✓', '✓'],
                       ['Profile Exams 4–5 (Personality & AI)', ' - ', ' - ', '✓', '✓'],
                       ['Pathways group, English & Career Discovery (Exams 6–7)', ' - ', ' - ', ' - ', '✓'],

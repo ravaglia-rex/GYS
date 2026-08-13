@@ -1,7 +1,7 @@
 import { EXAM_MAX_SCORE_POINTS } from './assessmentGating';
 
 export const LEADERBOARD_DEFAULT_EXPANDED_EXAM_IDS: ReadonlySet<string> = new Set([
-  'symbolic_reasoning',
+  'analytical_reasoning',
 ]);
 
 export const LEADERBOARD_GRADES = [6, 7, 8, 9, 10, 11, 12] as const;

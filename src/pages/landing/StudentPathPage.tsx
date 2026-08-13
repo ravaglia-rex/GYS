@@ -39,8 +39,8 @@ const STUDENT_ASSESSMENTS = [
   {
     exam: 1,
     group: 'reasoning' as const,
-    label: 'Symbolic Reasoning',
-    shortName: 'Symbolic',
+    label: 'Analytical Reasoning',
+    shortName: 'Analytical',
     desc: 'Patterns, rules, and structured logic',
     icon: '🔢',
     inL1: true,
@@ -538,14 +538,14 @@ const StudentPathPage: React.FC = () => {
                 name: 'Discovery',
                 subLabel: 'Exam 1 only · One-time entry',
                 price: '₹299',
-                blurb: 'A low-cost way to try GYS through the Symbolic Reasoning assessment.',
+                blurb: 'A low-cost way to try GYS through the Analytical Reasoning assessment.',
                 bg: 'bg-[#e5f3ff]',
               },
               {
                 name: 'Reasoning Triad',
                 subLabel: 'Exams 1–3 · Annual membership',
                 price: '₹899/year',
-                blurb: 'Includes the full Reasoning track: Symbolic Reasoning, Verbal Reasoning, and Mathematical Reasoning.',
+                blurb: 'Includes the full Reasoning track: Analytical Reasoning, Verbal Reasoning, and Mathematical Reasoning.',
                 bg: 'bg-[#fff7e0]',
               },
               {

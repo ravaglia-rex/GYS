@@ -4,7 +4,7 @@
  * Distribution matches roster construct `subconstruct` labels exactly.
  */
 export const REASONING_EXAM_SUBCATEGORIES: Record<string, readonly string[]> = {
-  symbolic_reasoning: [
+  analytical_reasoning: [
     'Pattern Recognition',
     'Logical Deduction',
     'Sequence Analysis',

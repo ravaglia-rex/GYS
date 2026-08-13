@@ -109,6 +109,7 @@ export type TopCoinsStudentRow = {
   school_name: string | null;
   grade: number | null;
   argus_coins: number;
+  coins_lifetime_earned: number;
 };
 
 export type TopQodStudentRow = {
@@ -425,9 +426,15 @@ export type OfficialExamDrilldown = {
   level_filter: number | null;
   attempts_analyzed: number;
   attempts_with_construct_scores: number;
+  attempts_with_strand_statuses: number;
+  attempts_with_instruction_family_scores: number;
+  attempts_with_band_scores: number;
   attempts_with_subconstruct_scores: number;
   attempts_with_mechanic_feedback: number;
   by_family: OfficialTagAggRow[];
+  by_strand: OfficialTagAggRow[];
+  by_instruction_family: OfficialTagAggRow[];
+  by_band: OfficialTagAggRow[];
   by_subconstruct: OfficialTagAggRow[];
   by_mechanic: OfficialTagAggRow[];
   score_distribution: OfficialScoreBucketRow[];
@@ -548,9 +555,18 @@ export async function getPlatformAdminOfficialExamDrilldown(
     level_filter: typeof res.data.level_filter === 'number' ? res.data.level_filter : null,
     attempts_analyzed: Number(res.data.attempts_analyzed) || 0,
     attempts_with_construct_scores: Number(res.data.attempts_with_construct_scores) || 0,
+    attempts_with_strand_statuses: Number(res.data.attempts_with_strand_statuses) || 0,
+    attempts_with_instruction_family_scores:
+      Number(res.data.attempts_with_instruction_family_scores) || 0,
+    attempts_with_band_scores: Number(res.data.attempts_with_band_scores) || 0,
     attempts_with_subconstruct_scores: Number(res.data.attempts_with_subconstruct_scores) || 0,
     attempts_with_mechanic_feedback: Number(res.data.attempts_with_mechanic_feedback) || 0,
     by_family: Array.isArray(res.data.by_family) ? res.data.by_family : [],
+    by_strand: Array.isArray(res.data.by_strand) ? res.data.by_strand : [],
+    by_instruction_family: Array.isArray(res.data.by_instruction_family)
+      ? res.data.by_instruction_family
+      : [],
+    by_band: Array.isArray(res.data.by_band) ? res.data.by_band : [],
     by_subconstruct: Array.isArray(res.data.by_subconstruct) ? res.data.by_subconstruct : [],
     by_mechanic: Array.isArray(res.data.by_mechanic) ? res.data.by_mechanic : [],
     score_distribution: Array.isArray(res.data.score_distribution) ? res.data.score_distribution : [],
@@ -560,7 +576,13 @@ export async function getPlatformAdminOfficialExamDrilldown(
   };
 }
 
-export type OfficialQuestionTagType = 'family' | 'mechanic' | 'subconstruct';
+export type OfficialQuestionTagType =
+  | 'family'
+  | 'mechanic'
+  | 'subconstruct'
+  | 'strand'
+  | 'instruction_family'
+  | 'band';
 
 export type OfficialQuestionOptionStat = {
   index: number;
@@ -582,6 +604,9 @@ export type OfficialQuestionStatRow = {
   family: string | null;
   mechanic: string | null;
   subconstruct: string | null;
+  strand?: string | null;
+  instruction_family?: string | null;
+  band?: string | null;
   times_seen: number;
   times_correct: number;
   times_incorrect: number;
@@ -633,7 +658,11 @@ export async function getPlatformAdminOfficialExamQuestionStats(
     exam_id: typeof res.data.exam_id === 'string' ? res.data.exam_id : examId,
     label: typeof res.data.label === 'string' ? res.data.label : examId,
     tag_type:
-      res.data.tag_type === 'mechanic' || res.data.tag_type === 'subconstruct'
+      res.data.tag_type === 'mechanic' ||
+      res.data.tag_type === 'subconstruct' ||
+      res.data.tag_type === 'strand' ||
+      res.data.tag_type === 'instruction_family' ||
+      res.data.tag_type === 'band'
         ? res.data.tag_type
         : 'family',
     tag: typeof res.data.tag === 'string' ? res.data.tag : opts.tag,
@@ -655,6 +684,72 @@ export async function getPlatformAdminOfficialExamQuestionStats(
       : [],
     generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
     indexes_building: res.data.indexes_building === true,
+  };
+}
+
+export type OfficialAttemptQuestionRow = {
+  index: number;
+  item_id: string;
+  strand: string | null;
+  strand_label: string | null;
+  instruction_family: string | null;
+  instruction_family_label: string | null;
+  band: string | null;
+  prompt: string;
+  prompt_preview: string;
+  stimulus: unknown;
+  stimulus_type: string | null;
+  options: Array<{ letter: string; text: string }>;
+  selected_index: number | null;
+  selected_letter: string;
+  correct_index: number | null;
+  correct_letter: string | null;
+  is_correct: boolean | null;
+  time_spent_sec: number | null;
+};
+
+export type OfficialExamAttemptDetail = {
+  exam_id: string;
+  uid: string;
+  attempt_id: string;
+  proficiency_tier: number | null;
+  score_pct: number | null;
+  score_points: number | null;
+  passed: boolean | null;
+  completed_at: string | null;
+  scoring_mode: string | null;
+  strand_statuses: unknown;
+  instruction_family_scores: unknown;
+  band_scores: unknown;
+  questions: OfficialAttemptQuestionRow[];
+  generated_at: string;
+};
+
+export async function getPlatformAdminOfficialExamAttemptDetail(
+  examId: string,
+  opts: { uid: string; attemptId: string }
+): Promise<OfficialExamAttemptDetail> {
+  const headers = await authHeaders();
+  const res = await axios.get(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAMS}/${encodeURIComponent(examId)}/completions/${encodeURIComponent(opts.attemptId)}`,
+    { headers, params: { uid: opts.uid } }
+  );
+  return {
+    exam_id: typeof res.data.exam_id === 'string' ? res.data.exam_id : examId,
+    uid: typeof res.data.uid === 'string' ? res.data.uid : opts.uid,
+    attempt_id: typeof res.data.attempt_id === 'string' ? res.data.attempt_id : opts.attemptId,
+    proficiency_tier:
+      typeof res.data.proficiency_tier === 'number' ? res.data.proficiency_tier : null,
+    score_pct: typeof res.data.score_pct === 'number' ? res.data.score_pct : null,
+    score_points: typeof res.data.score_points === 'number' ? res.data.score_points : null,
+    passed: typeof res.data.passed === 'boolean' ? res.data.passed : null,
+    completed_at: typeof res.data.completed_at === 'string' ? res.data.completed_at : null,
+    scoring_mode: typeof res.data.scoring_mode === 'string' ? res.data.scoring_mode : null,
+    strand_statuses: res.data.strand_statuses ?? null,
+    instruction_family_scores: res.data.instruction_family_scores ?? null,
+    band_scores: res.data.band_scores ?? null,
+    questions: Array.isArray(res.data.questions) ? res.data.questions : [],
+    generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
   };
 }
 

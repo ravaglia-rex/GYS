@@ -8,7 +8,7 @@ import type { AssessmentProgress, StudentRow } from '../db/schoolAdminCollection
 export const GREENFIELD_SCHOOL_FIRESTORE_ID = 'greenfield_international_bangalore';
 
 const CANONICAL_ASSESSMENT_IDS = [
-  'symbolic_reasoning',
+  'analytical_reasoning',
   'verbal_reasoning',
   'mathematical_reasoning',
   'comprehensive_personality',
@@ -52,7 +52,7 @@ function round2(x: number): number {
   return Math.round(x * 100) / 100;
 }
 
-function symbolicReasoningProgressFromPerfTier(perfTier: string, studentIndex: number): AssessmentProgress {
+function analyticalReasoningProgressFromPerfTier(perfTier: string, studentIndex: number): AssessmentProgress {
   const t = String(perfTier).toLowerCase();
   /** Top nationwide tiers use the same proficiency profile as Gold for mock progress. */
   if (t === 'platinum' || t === 'diamond' || t === 'gold') {
@@ -169,14 +169,14 @@ function mathProgressFromPerfTier(perfTier: string, studentIndex: number): Asses
 }
 
 function buildProgress(
-  symbolicReasoningPerfTier: string,
+  analyticalReasoningPerfTier: string,
   verbalPerfTier: string,
   mathPerfTier: string,
   triadLevel: number,
   studentIndex: number
 ): Record<string, AssessmentProgress> {
   const p = baseAssessmentProgress();
-  p.symbolic_reasoning = symbolicReasoningProgressFromPerfTier(symbolicReasoningPerfTier, studentIndex);
+  p.analytical_reasoning = analyticalReasoningProgressFromPerfTier(analyticalReasoningPerfTier, studentIndex);
   if (triadLevel >= 2) {
     p.verbal_reasoning = verbalProgressFromPerfTier(verbalPerfTier, studentIndex);
   }
@@ -219,14 +219,14 @@ function buildSortedSeedNamePairs(count: number): { first_name: string; last_nam
 export const GREENFIELD_TIER1_PATCH_GRADE6_COUNT = 40;
 export const GREENFIELD_TIER1_PATCH_GRADE7_COUNT = 10;
 
-/** Forces overall Level 1 (min band): symbolic-reasoning slot at proficiency band 1; other active slots unchanged. */
-function forceOverallTier1SymbolicReasoning(
+/** Forces overall Level 1 (min band): analytical-reasoning slot at proficiency band 1; other active slots unchanged. */
+function forceOverallTier1AnalyticalReasoning(
   progress: Record<string, AssessmentProgress>
 ): Record<string, AssessmentProgress> {
   const next = JSON.parse(JSON.stringify(progress)) as Record<string, AssessmentProgress>;
-  const sym = next.symbolic_reasoning ?? ({} as AssessmentProgress);
+  const sym = next.analytical_reasoning ?? ({} as AssessmentProgress);
   const prevScore = typeof sym.best_score === 'number' ? sym.best_score : null;
-  next.symbolic_reasoning = {
+  next.analytical_reasoning = {
     ...sym,
     proficiency_tier: 1,
     status: 'available',
@@ -250,7 +250,7 @@ function applyTier1PatchSubset(students: StudentRow[]): void {
   for (const s of students) {
     if (!targets.has(s.uid)) continue;
     if (s.uid === SKIP_TIER1_FOR_EXPLORER_PREVIEW_UID) continue;
-    s.assessment_progress = forceOverallTier1SymbolicReasoning(s.assessment_progress);
+    s.assessment_progress = forceOverallTier1AnalyticalReasoning(s.assessment_progress);
     s.achievement_tier = 'bronze';
     s.membership_level = 2;
   }
@@ -259,7 +259,7 @@ function applyTier1PatchSubset(students: StudentRow[]): void {
 /** 142 students - same composition as Greenfield GYS Q4 seed (fixed ordering). */
 export function buildGreenfieldPreviewStudentRows(): StudentRow[] {
   const grades = [...Array(50).fill(6), ...Array(52).fill(7), ...Array(40).fill(8)] as number[];
-  const symbolicReasoningPerfTiers = [
+  const analyticalReasoningPerfTiers = [
     ...Array(20).fill('explorer'),
     ...Array(38).fill('bronze'),
     ...Array(48).fill('silver'),
@@ -285,7 +285,7 @@ export function buildGreenfieldPreviewStudentRows(): StudentRow[] {
 
   for (let i = 0; i < 142; i++) {
     const triadLevel = i < 44 ? 1 : i < 57 ? 2 : 3;
-    const achievementTier = symbolicReasoningPerfTiers[i]!;
+    const achievementTier = analyticalReasoningPerfTiers[i]!;
     const grade = grades[i]!;
     const verbalIx = i - 44;
     const mathIx = i - 57;

@@ -72,8 +72,8 @@ export const GREENFIELD_QUARTERLY_REPORTS: QuarterlyReportListItem[] = [
   },
 ];
 
-/** Symbolic Reasoning sample items for the school preview (frontend only). */
-export const PREVIEW_PATTERN_LOGIC_SAMPLE_QUESTIONS = PREVIEW_SAMPLE_QUESTIONS_BY_EXAM.symbolic_reasoning;
+/** Analytical Reasoning sample items for the school preview (frontend only). */
+export const PREVIEW_PATTERN_LOGIC_SAMPLE_QUESTIONS = PREVIEW_SAMPLE_QUESTIONS_BY_EXAM.analytical_reasoning;
 
 /** Static preview notifications for `/for-schools/preview/alerts`. */
 export const GREENFIELD_PREVIEW_NOTIFICATIONS = [

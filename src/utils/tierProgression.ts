@@ -14,7 +14,7 @@ export type AssessmentProgressShape = {
 
 /** Programme competitive exams; must match backend COMPETITIVE_EXAM_IDS. */
 const COMPETITIVE_EXAM_ID_SET = new Set<string>([
-  'symbolic_reasoning',
+  'analytical_reasoning',
   'verbal_reasoning',
   'mathematical_reasoning',
   'ai_literacy',

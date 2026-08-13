@@ -11,7 +11,7 @@ import {
 export const PROGRAM_EXAM_COUNT = 7;
 
 export const ASSESSMENT_ORDER = [
-  'symbolic_reasoning',
+  'analytical_reasoning',
   'verbal_reasoning',
   'mathematical_reasoning',
   'comprehensive_personality',
@@ -56,10 +56,10 @@ export interface GateResult {
  */
 export const MEMBERSHIP_ALLOWED: Record<number, string[]> = {
   0: [],
-  1: ['symbolic_reasoning'],
-  2: ['symbolic_reasoning', 'verbal_reasoning', 'mathematical_reasoning'],
+  1: ['analytical_reasoning'],
+  2: ['analytical_reasoning', 'verbal_reasoning', 'mathematical_reasoning'],
   3: [
-    'symbolic_reasoning',
+    'analytical_reasoning',
     'verbal_reasoning',
     'mathematical_reasoning',
     'comprehensive_personality',
@@ -88,7 +88,7 @@ export const NON_COMPETITIVE_CHART_ASSESSMENT_IDS: ReadonlySet<string> = new Set
  * English and Career Discovery are individual (level 4) add-ons - not school score charts.
  */
 export const SCHOOL_SCORED_ASSESSMENT_IDS = [
-  'symbolic_reasoning',
+  'analytical_reasoning',
   'verbal_reasoning',
   'mathematical_reasoning',
   'ai_literacy',
@@ -136,7 +136,7 @@ export function maxTiersForAssessment(assessmentId: string, configuredTierLength
 }
 
 export const ASSESSMENT_NAMES: Record<string, string> = {
-  symbolic_reasoning: 'Symbolic Reasoning',
+  analytical_reasoning: 'Analytical Reasoning',
   verbal_reasoning: 'Verbal Reasoning',
   mathematical_reasoning: 'Mathematical Reasoning',
   comprehensive_personality: 'Personality and Interest',
@@ -152,8 +152,8 @@ export function assessmentDisplayName(assessmentId: string, fallbackName?: strin
 
 /** Sequence gate: prerequisites must be satisfied (membership gate is checked first). */
 export const COMPLETION_PREREQUISITES: Record<string, string[]> = {
-  symbolic_reasoning: [],
-  verbal_reasoning: ['symbolic_reasoning'],
+  analytical_reasoning: [],
+  verbal_reasoning: ['analytical_reasoning'],
   mathematical_reasoning: ['verbal_reasoning'],
   comprehensive_personality: ['verbal_reasoning', 'mathematical_reasoning'],
   ai_literacy: ['comprehensive_personality'],

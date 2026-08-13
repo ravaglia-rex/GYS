@@ -372,7 +372,7 @@ const AppRouter: React.FC = () => {
           {/* Full-screen sample exam (no admin sidebar), mirrors student take UI */}
           <Route
             path="assessment"
-            element={<Navigate to="/for-schools/preview/assessment/symbolic_reasoning" replace />}
+            element={<Navigate to="/for-schools/preview/assessment/analytical_reasoning" replace />}
           />
           <Route
             path="assessment/:examId"
@@ -382,7 +382,7 @@ const AppRouter: React.FC = () => {
               </Suspense>
             }
           />
-          <Route path="exam" element={<Navigate to="/for-schools/preview/assessment/symbolic_reasoning" replace />} />
+          <Route path="exam" element={<Navigate to="/for-schools/preview/assessment/analytical_reasoning" replace />} />
           <Route
             element={
               <Suspense fallback={<BigSpinner/>}>
@@ -905,6 +905,10 @@ const AppRouter: React.FC = () => {
         />
         <Route
           path="/platform-admin/analytics"
+          element={<Navigate to="/platform-admin/analytics/official" replace />}
+        />
+        <Route
+          path="/platform-admin/analytics/:section"
           element={
             <PlatformAdminAnalyticsRoute>
               <Suspense fallback={<BigSpinner />}>

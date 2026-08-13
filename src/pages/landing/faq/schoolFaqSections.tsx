@@ -20,7 +20,7 @@ export const schoolFaqSections: { heading: string; items: LandingFaqItem[] }[] =
           <p>
             Global Young Scholar (GYS) is a sequential assessment and guidance program for students in Classes 6–12. It helps identify students who show exceptional promise for higher education while giving schools a clearer view of student performance - individually, by class, and in aggregate - against national and international benchmarks.
 
-The GYS suite includes seven assessments across three tracks: Reasoning, Profile, and Pathways. These assess Symbolic Reasoning, Verbal Reasoning, Mathematical Reasoning, Personality and Interest, AI Proficiency, English Proficiency, and Career Discovery.
+The GYS suite includes seven assessments across three tracks: Reasoning, Profile, and Pathways. These assess Analytical Reasoning, Verbal Reasoning, Mathematical Reasoning, Personality and Interest, AI Proficiency, English Proficiency, and Career Discovery.
 
 Students earn GYS Performance Tiers that signal academic readiness, growth, and potential, while schools receive reporting that can support academic planning, student guidance, and EducationWorld ranking participation.
           </p>
@@ -148,7 +148,7 @@ This approach allows schools to understand academic readiness and skill developm
             <ul>
               <li>
                 <strong>Entry</strong> - {SCHOOL_INSTITUTIONAL_PRICE_LANDING.entry} (
-                {INSTITUTIONAL_PLAN_STUDENT_LIMIT.entry}). Includes Assessment 1 (Symbolic Reasoning) for
+                {INSTITUTIONAL_PLAN_STUDENT_LIMIT.entry}). Includes Assessment 1 (Analytical Reasoning) for
                 rostered students, basic institutional reporting, and quarterly performance updates.
               </li>
               <li>

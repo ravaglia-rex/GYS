@@ -57,7 +57,7 @@ const ONE_SITTING_BEFORE: BeforeBeginItem = {
   text: 'Once started, you must complete this in one sitting. You cannot return to a question after you submit an answer.',
 };
 
-const symbolicReasoningBefore: BeforeBeginItem[] = [
+const analyticalReasoningBefore: BeforeBeginItem[] = [
   FORWARD_ONLY_BEFORE,
   { icon: 'clock', text: 'You have a fixed time once you start - the timer cannot be paused.' },
   { icon: 'block', text: 'No calculators, notes, or outside help.' },
@@ -76,18 +76,18 @@ const englishBefore: BeforeBeginItem[] = [
 ];
 
 export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
-  symbolic_reasoning: {
+  analytical_reasoning: {
     examOrdinal: 1,
-    examTitleShort: 'Symbolic Reasoning',
+    examTitleShort: 'Analytical Reasoning',
     heroSubtitle: 'Your first assessment',
     statGrid: [
       { label: 'Duration', value: '30 min' },
-      { label: 'Format', value: 'Multiple choice' },
+      { label: 'Questions', value: '32–40' },
       { label: 'Difficulty', value: 'Adaptive' },
       { label: 'Language', value: 'English' },
     ],
     bodyDescription:
-      'This exam measures how you induce structure, apply transformation rules, reason about constraints, and evaluate competing models. No prior subject knowledge is required - only careful observation and reasoning.',
+      'This exam measures how you induce structure, apply transformation rules, reason about constraints, and evaluate competing models. No prior subject knowledge is required - only careful observation and reasoning. Most students answer 32 questions; some receive a short extension up to 40.',
     measuresTitle: 'What This Measures',
     measuresBullets: [
       'Pattern & Structure Induction',
@@ -95,7 +95,7 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
       'Relational & Constraint Deduction',
       'Flexible Model Evaluation',
     ],
-    beforeBegin: symbolicReasoningBefore,
+    beforeBegin: analyticalReasoningBefore,
     theme: 'blue',
     defaultQuestionInteraction: 'visual_mcq',
     useTimer: true,
@@ -143,7 +143,7 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
       { label: 'Language', value: 'English' },
     ],
     bodyDescription:
-      'Problems emphasize reasoning, structure, and quantitative insight. Visual grids and diagrams share the same layout as Symbolic Reasoning items; word problems appear in your chosen language.',
+      'Problems emphasize reasoning, structure, and quantitative insight. Visual grids and diagrams share the same layout as Analytical Reasoning items; word problems appear in your chosen language.',
     measuresTitle: 'What This Measures',
     measuresBullets: [
       'Quantitative reasoning',
@@ -151,7 +151,7 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
       'Problem decomposition',
       'Visual-mathematical patterns',
     ],
-    beforeBegin: symbolicReasoningBefore.filter((b) => b.icon !== 'chart'),
+    beforeBegin: analyticalReasoningBefore.filter((b) => b.icon !== 'chart'),
     theme: 'blue',
     defaultQuestionInteraction: 'visual_mcq',
     useTimer: true,
@@ -325,7 +325,7 @@ export function performanceTierFromScore(scorePercent: number): { label: string;
 
 /**
  * Labels for items newly available after finishing this attempt.
- * Example after Symbolic L1 pass: Symbolic Reasoning Level 2, Verbal Reasoning Level 1.
+ * Example after Analytical L1 pass: Analytical Reasoning Level 2, Verbal Reasoning Level 1.
  */
 export function unlockedItemsAfterAttempt(params: {
   assessmentId: string;
@@ -341,8 +341,8 @@ export function unlockedItemsAfterAttempt(params: {
     items.push(`${name} Level ${nextTier}`);
   }
 
-  // Competitive sequence: finishing Symbolic L1 unlocks Verbal L1 (attempt also unlocks Verbal).
-  if (assessmentId === 'symbolic_reasoning' && completedTier === 1) {
+  // Competitive sequence: finishing Analytical L1 unlocks Verbal L1 (attempt also unlocks Verbal).
+  if (assessmentId === 'analytical_reasoning' && completedTier === 1) {
     items.push(`${ASSESSMENT_NAMES.verbal_reasoning} Level 1`);
   }
   if (assessmentId === 'verbal_reasoning' && completedTier === 1) {

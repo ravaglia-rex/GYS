@@ -66,6 +66,14 @@ function formatRedemptionDate(val: RedemptionRecord['requested_at']): string {
   return '-';
 }
 
+function redemptionCodeLabel(r: RedemptionRecord): string {
+  if (r.voucher_code) return r.voucher_code;
+  if (r.status !== 'fulfilled') return '-';
+  // Digital streak freeze is applied on-account — no voucher email.
+  if (r.item_id === 'streak_freeze_1d') return 'On account';
+  return 'Check email';
+}
+
 const RewardsShopPage: React.FC = () => {
   const { data, isLoading, error, refetch } = useRewards();
   const invalidateStudent = useInvalidateStudentQueries();
@@ -76,6 +84,7 @@ const RewardsShopPage: React.FC = () => {
 
   const catalog = data?.catalog ?? [];
   const balance = data?.argus_coins ?? 0;
+  const freezesReady = data?.streak_freezes_available ?? 0;
   const redemptions = Object.entries(data?.redemptions ?? {}).sort(([, a], [, b]) => {
     const ta = typeof a.requested_at === 'object' && a.requested_at && 'seconds' in a.requested_at
       ? (a.requested_at.seconds ?? 0) : 0;
@@ -149,29 +158,64 @@ const RewardsShopPage: React.FC = () => {
             </Box>
             <Box
               sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                px: 2,
-                py: 1.25,
-                borderRadius: 999,
-                bgcolor: 'rgba(234, 179, 8, 0.12)',
-                border: '1px solid rgba(234, 179, 8, 0.45)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: { xs: 'flex-start', sm: 'flex-end' },
+                gap: 1,
                 flexShrink: 0,
                 ml: { xs: '80px', sm: 0 },
               }}
             >
-              <Typography
-                component="span"
+              <Box
                 sx={{
-                  color: '#fde68a',
-                  fontWeight: 800,
-                  fontSize: '1rem',
-                  letterSpacing: '0.01em',
-                  whiteSpace: 'nowrap',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  px: 2,
+                  py: 1.25,
+                  borderRadius: 999,
+                  bgcolor: 'rgba(234, 179, 8, 0.12)',
+                  border: '1px solid rgba(234, 179, 8, 0.45)',
                 }}
               >
-                {balance.toLocaleString()} Argus Coins available
-              </Typography>
+                <Typography
+                  component="span"
+                  sx={{
+                    color: '#fde68a',
+                    fontWeight: 800,
+                    fontSize: '1rem',
+                    letterSpacing: '0.01em',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {balance.toLocaleString()} Argus Coins available
+                </Typography>
+              </Box>
+              {freezesReady > 0 && (
+                <Box
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    px: 2,
+                    py: 1,
+                    borderRadius: 999,
+                    bgcolor: 'rgba(56, 189, 248, 0.12)',
+                    border: '1px solid rgba(56, 189, 248, 0.4)',
+                  }}
+                >
+                  <Typography
+                    component="span"
+                    sx={{
+                      color: '#7dd3fc',
+                      fontWeight: 800,
+                      fontSize: '0.9rem',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {freezesReady} Streak Freeze{freezesReady === 1 ? '' : 's'} ready — auto-saves
+                    if you miss a day
+                  </Typography>
+                </Box>
+              )}
             </Box>
           </Box>
         </Box>
@@ -286,7 +330,7 @@ const RewardsShopPage: React.FC = () => {
                     />
                   </TableCell>
                   <TableCell>{formatRedemptionDate(r.requested_at)}</TableCell>
-                  <TableCell>{r.voucher_code ?? (r.status === 'fulfilled' ? 'Check email' : '-')}</TableCell>
+                  <TableCell>{redemptionCodeLabel(r)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -302,7 +346,10 @@ const RewardsShopPage: React.FC = () => {
           {selectedItem && (
             <Typography>
               Spend <strong>{selectedItem.coins_cost.toLocaleString()}</strong> Argus Coins for{' '}
-              <strong>{selectedItem.name}</strong>? Your request will be reviewed and fulfilled by email.
+              <strong>{selectedItem.name}</strong>
+              {selectedItem.id === 'streak_freeze_1d'
+                ? '? It will be added to your account right away (or restore today’s streak if you just missed a day).'
+                : '? Your request will be reviewed and fulfilled by email.'}
             </Typography>
           )}
         </DialogContent>

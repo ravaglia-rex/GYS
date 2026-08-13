@@ -60,11 +60,11 @@ export const studentFaqSections: { heading: string; items: LandingFaqItem[] }[] 
             <p>GYS offers one entry-level option and three annual memberships:</p>
             <ul className="mt-3 list-disc pl-5 space-y-2">
               <li>
-                <strong>Discovery</strong> - ₹299 one-time. Includes Exam 1: Symbolic Reasoning. This is a limited
+                <strong>Discovery</strong> - ₹299 one-time. Includes Exam 1: Analytical Reasoning. This is a limited
                 entry option and does not include the full Reasoning Triad or a national performance tier.
               </li>
               <li>
-                <strong>Reasoning Triad</strong> - ₹899/year. Includes Exams 1–3: Symbolic Reasoning, Verbal Reasoning, and Mathematical
+                <strong>Reasoning Triad</strong> - ₹899/year. Includes Exams 1–3: Analytical Reasoning, Verbal Reasoning, and Mathematical
                 Reasoning. Students who complete the triad may earn a national GYS Performance Tier.
               </li>
               <li>
@@ -115,7 +115,7 @@ export const studentFaqSections: { heading: string; items: LandingFaqItem[] }[] 
         question: 'How long do the exams take?',
         answer: (
           <p>
-            Symbolic Reasoning Levels 1 and 2 have a 30-minute time limit. Symbolic Level 3, Verbal Reasoning, and Mathematical Reasoning each have a 40-minute time limit. Other timed assessments
+            Analytical Reasoning Levels 1 and 2 have a 30-minute time limit. Analytical Level 3, Verbal Reasoning, and Mathematical Reasoning each have a 40-minute time limit. Other timed assessments
             vary. The Personality assessment is
             untimed and typically takes about 30–45 minutes. Students do not need to complete all assessments in one
             sitting. They can complete the assessments included in their membership at their own pace over days or

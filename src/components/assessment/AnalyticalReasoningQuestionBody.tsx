@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Box, FormControl, FormControlLabel, Radio, RadioGroup, Typography } from '@mui/material';
 import type { ExamQuestion } from '../../db/assessmentCollection';
+import { cleanLearnerFacingExamMarkup } from './cleanLearnerFacingExamMarkup';
 
 interface AnalyticalReasoningQuestionBodyProps {
   question: ExamQuestion;
@@ -13,13 +14,15 @@ interface AnalyticalReasoningQuestionBodyProps {
   theme: 'blue' | 'purple';
   footer?: React.ReactNode;
   selectionLocked?: boolean;
+  /** When true (adaptive exams), omit "of N" because length can change mid-attempt. */
+  hideQuestionTotal?: boolean;
 }
 
 const OPTION_LETTERS = ['A', 'B', 'C', 'D'] as const;
 
 /**
  * Markdown + SVG renderer for Analytical Reasoning items.
- * Option labels A–D are baked into body_markdown, so the control below is a
+ * Option figures are baked into body_markdown; the control below is a
  * letter picker only — never shuffle these options.
  */
 export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuestionBodyProps> = ({
@@ -31,6 +34,7 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
   theme,
   footer,
   selectionLocked = false,
+  hideQuestionTotal = false,
 }) => {
   const primary = theme === 'purple' ? '#7b1fa2' : '#0d47a1';
   const primarySoft = theme === 'purple' ? 'rgba(123,31,162,0.08)' : 'rgba(13,71,161,0.06)';
@@ -41,7 +45,7 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
       : question.options && question.options.length >= 2
         ? question.options
         : [...OPTION_LETTERS];
-  const markdown = question.body_markdown ?? question.prompt ?? '';
+  const markdown = cleanLearnerFacingExamMarkup(question.body_markdown ?? question.prompt ?? '');
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -57,7 +61,7 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
           fontSize: '0.68rem',
         }}
       >
-        Question {questionNumber} of {totalQuestions}
+        {hideQuestionTotal ? `Question ${questionNumber}` : `Question ${questionNumber} of ${totalQuestions}`}
       </Typography>
       <Box
         sx={{
@@ -79,6 +83,12 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
             borderRadius: 1,
             border: `1px solid ${borderMuted}`,
             bgcolor: '#fff',
+          },
+          '& svg': {
+            display: 'block',
+            maxWidth: '100%',
+            height: 'auto',
+            my: 1.5,
           },
         }}
       >
@@ -108,6 +118,7 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
             const letterBg = selected ? primary : '#f1f5f9';
             const letterBorder = selected ? primary : borderMuted;
             const letterFg = selected ? '#fff' : '#64748b';
+            const letter = String.fromCharCode(65 + idx);
             return (
               <FormControlLabel
                 key={`${label}-${idx}`}
@@ -117,6 +128,7 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
                   if (selectionLocked) return;
                   onSelectOption(idx);
                 }}
+                aria-label={`Option ${letter}`}
                 label={
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
                     <Box
@@ -133,7 +145,7 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
                       }}
                     >
                       <Typography sx={{ fontSize: '0.75rem', fontWeight: 800, color: letterFg }}>
-                        {String(label).replace(/^[A-D][.)]\s+/i, '').trim() || String.fromCharCode(65 + idx)}
+                        {letter}
                       </Typography>
                     </Box>
                     <Typography
@@ -144,7 +156,7 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
                         lineHeight: 1.45,
                       }}
                     >
-                      Option {String.fromCharCode(65 + idx)}
+                      Option {letter}
                     </Typography>
                   </Box>
                 }

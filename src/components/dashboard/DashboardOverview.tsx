@@ -1015,6 +1015,24 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           >
             QoD streak: {gamification.qod_streak.current}d
           </Box>
+          {gamification.streak_freezes_available > 0 && (
+            <Box
+              component="span"
+              sx={{
+                px: 1.25,
+                py: 0.5,
+                borderRadius: 999,
+                bgcolor: 'rgba(56,189,248,0.12)',
+                border: '1px solid rgba(56,189,248,0.35)',
+                color: '#7dd3fc',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+              }}
+            >
+              {gamification.streak_freezes_available} Streak Freeze
+              {gamification.streak_freezes_available === 1 ? '' : 's'} ready
+            </Box>
+          )}
         </Box>
 
         <Typography

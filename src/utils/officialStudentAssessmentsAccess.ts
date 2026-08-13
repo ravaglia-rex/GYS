@@ -11,6 +11,8 @@ export const OFFICIAL_STUDENT_ASSESSMENT_BETA_EMAILS = new Set([
   'srishti2k1@gmail.com',
   'michael+student@argus.ai',
   'masonfewel@gmail.com',
+  'divyam.ew+1@gmail.com',
+  'vv@accessmca.com',
 ]);
 
 /**
@@ -18,7 +20,7 @@ export const OFFICIAL_STUDENT_ASSESSMENT_BETA_EMAILS = new Set([
  * Empty = nothing live for the public.
  *
  * ONLY add assessment ids after explicit CAPS authorization from the product owner
- * (e.g. `MAKE SYMBOLIC_REASONING LIVE FOR EVERYONE`).
+ * (e.g. `MAKE ANALYTICAL_REASONING LIVE FOR EVERYONE`).
  * Keep in sync with backend `OFFICIAL_LIVE_ASSESSMENT_IDS`.
  */
 export const OFFICIAL_LIVE_ASSESSMENT_IDS = new Set<string>([
@@ -37,7 +39,7 @@ export const OFFICIAL_LIVE_ASSESSMENT_TIERS: Record<string, ReadonlySet<number>>
  * Keep in sync with backend `OFFICIAL_BETA_STARTABLE_ASSESSMENT_IDS`.
  */
 export const OFFICIAL_BETA_STARTABLE_ASSESSMENT_IDS = new Set<string>([
-  'symbolic_reasoning',
+  'analytical_reasoning',
 ]);
 
 export function normalizeOfficialAssessmentEmail(email: unknown): string {

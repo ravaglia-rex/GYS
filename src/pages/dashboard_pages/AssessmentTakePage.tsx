@@ -44,6 +44,7 @@ import {
 } from '../../utils/officialStudentAssessmentsAccess';
 import { getExamDeviceFingerprint } from '../../utils/examDeviceFingerprint';
 import { isLevelBasedAssessment } from '../../utils/assessmentGating';
+import { assessmentIdsEqual, ANALYTICAL_REASONING_ASSESSMENT_ID } from '../../utils/assessmentIdCompat';
 import {
   isProctoringActive,
   resolveProctoringConfig,
@@ -249,6 +250,10 @@ export default function AssessmentTakePage() {
   const proctoringConfig = resolveProctoringConfig(assessmentConfig);
   const proctoringEnabled = isProctoringActive(proctoringConfig);
   const mathExam = assessmentId === 'mathematical_reasoning';
+  // Analytical Reasoning can finish at 32 or extend to 40 — don't show a fixed total mid-exam.
+  const hideQuestionTotal = Boolean(
+    assessmentId && assessmentIdsEqual(assessmentId, ANALYTICAL_REASONING_ASSESSMENT_ID)
+  );
   const endAttemptForIntegrityRef = useRef<
     ((message: string) => void | Promise<void>) | null
   >(null);
@@ -768,6 +773,7 @@ export default function AssessmentTakePage() {
         theme={flow.theme}
         renderMath={mathExam}
         questionReport={officialQuestionReport}
+        hideQuestionTotal={hideQuestionTotal}
       />
     </Suspense>
   );
@@ -822,7 +828,7 @@ export default function AssessmentTakePage() {
           )}
         </Box>
         <Typography sx={{ fontWeight: 700, textAlign: 'right', fontSize: '0.85rem', fontVariantNumeric: 'tabular-nums' }}>
-          {questionNumber} / {totalQuestions}
+          {hideQuestionTotal ? `Question ${questionNumber}` : `${questionNumber} / ${totalQuestions}`}
         </Typography>
       </Box>
 

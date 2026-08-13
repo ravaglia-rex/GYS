@@ -29,7 +29,7 @@ import { ASSESSMENT_NAMES } from '../../utils/assessmentGating';
 import { ExamQuestionStimulus } from '../../components/assessment/ExamQuestionBody';
 
 const EXAM_LABELS: Record<string, string> = {
-  symbolic_reasoning: ASSESSMENT_NAMES.symbolic_reasoning,
+  analytical_reasoning: ASSESSMENT_NAMES.analytical_reasoning,
   verbal_reasoning: ASSESSMENT_NAMES.verbal_reasoning,
   mathematical_reasoning: ASSESSMENT_NAMES.mathematical_reasoning,
   ai_literacy: ASSESSMENT_NAMES.ai_literacy,

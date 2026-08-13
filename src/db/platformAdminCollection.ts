@@ -214,6 +214,8 @@ export type PlatformAdminStudentRow = {
   approval_status: string | null;
   achievement_tier: string | null;
   argus_coins: number;
+  /** Lifetime earned (does not decrease on spend). */
+  coins_lifetime_earned?: number;
   qod_attempted_total?: number;
   qod_correct_total?: number;
   qod_accuracy_pct?: number;

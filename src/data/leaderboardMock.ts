@@ -8,9 +8,9 @@ const LEADERBOARD_EXCLUDED_IDS = new Set<string>([
 
 const LEADERBOARD_ASSESSMENT_ORDER = ASSESSMENT_ORDER.filter((id) => !LEADERBOARD_EXCLUDED_IDS.has(id));
 
-/** Exam accordion expanded when the student first opens the leaderboard (Symbolic Reasoning). */
+/** Exam accordion expanded when the student first opens the leaderboard (Analytical Reasoning). */
 export const LEADERBOARD_DEFAULT_EXPANDED_EXAM_IDS: ReadonlySet<string> = new Set([
-  'symbolic_reasoning',
+  'analytical_reasoning',
 ]);
 
 export const LEADERBOARD_GRADES = [6, 7, 8, 9, 10, 11, 12] as const;
@@ -76,7 +76,7 @@ export interface ExamLeaderboardSection {
 }
 
 const EXAM_NAMES: Record<string, string> = {
-  symbolic_reasoning: 'Symbolic Reasoning',
+  analytical_reasoning: 'Analytical Reasoning',
   verbal_reasoning: 'Verbal Reasoning',
   mathematical_reasoning: 'Mathematical Reasoning',
   english_proficiency: 'English Proficiency',
@@ -129,7 +129,7 @@ function mulberry32(seed: number) {
 
 /** Small mean shift per exam so boards do not look copy-pasted (still plausible tier-normalized scores before ×10). */
 const EXAM_SCORE_BIAS: Record<string, number> = {
-  symbolic_reasoning: 0.5,
+  analytical_reasoning: 0.5,
   verbal_reasoning: -0.8,
   mathematical_reasoning: 1.2,
   english_proficiency: -0.4,

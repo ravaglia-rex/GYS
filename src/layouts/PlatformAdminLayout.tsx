@@ -9,6 +9,7 @@ import {
   Button,
   Avatar,
   Divider,
+  Collapse,
   useTheme,
 } from '@mui/material';
 import {
@@ -22,13 +23,20 @@ import {
   Insights as AnalyticsIcon,
   ReportProblem as QuestionReportsIcon,
   ScienceOutlined as TestResultsIcon,
+  ExpandLess,
+  ExpandMore,
+  FactCheckOutlined as OfficialExamsIcon,
+  FitnessCenterOutlined as PracticeExamsIcon,
+  TodayOutlined as QodIcon,
+  TimelineOutlined as ActivityIcon,
+  MonetizationOnOutlined as CoinsIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase/firebase';
 import authTokenHandler from '../functions/auth_token/auth_token_handler';
 import { useSelector } from 'react-redux';
-import { RootState } from '../state_data/reducer';
+import type { RootState } from '../state_data/reducer';
 import { institutionalPalette as ip } from '../theme/institutionalPalette';
 import {
   canAccessPlatformAdminAnalytics,
@@ -40,38 +48,73 @@ const DRAWER_WIDTH = 260;
 const APP_BAR_HEIGHT = 64;
 const PAGE_BG = '#f1f5f9';
 const SIDEBAR_ICON_SIZE = 22;
+const CHILD_ICON_SIZE = 18;
 
-const ANALYTICS_NAV_ITEM = {
+type NavItem = {
+  title: string;
+  path: string;
+  icon: React.ReactNode;
+  children?: NavItem[];
+};
+
+const ANALYTICS_NAV_ITEM: NavItem = {
   title: 'Analytics',
   path: '/platform-admin/analytics',
   icon: <AnalyticsIcon sx={{ color: '#2563eb', fontSize: SIDEBAR_ICON_SIZE }} />,
+  children: [
+    {
+      title: 'Official Exams',
+      path: '/platform-admin/analytics/official',
+      icon: <OfficialExamsIcon sx={{ color: '#2563eb', fontSize: CHILD_ICON_SIZE }} />,
+    },
+    {
+      title: 'Practice Exams',
+      path: '/platform-admin/analytics/practice',
+      icon: <PracticeExamsIcon sx={{ color: '#2563eb', fontSize: CHILD_ICON_SIZE }} />,
+    },
+    {
+      title: 'Question of the Day',
+      path: '/platform-admin/analytics/qod',
+      icon: <QodIcon sx={{ color: '#2563eb', fontSize: CHILD_ICON_SIZE }} />,
+    },
+    {
+      title: 'Overall Activity',
+      path: '/platform-admin/analytics/activity',
+      icon: <ActivityIcon sx={{ color: '#2563eb', fontSize: CHILD_ICON_SIZE }} />,
+    },
+    {
+      title: 'Coins',
+      path: '/platform-admin/analytics/coins',
+      icon: <CoinsIcon sx={{ color: '#2563eb', fontSize: CHILD_ICON_SIZE }} />,
+    },
+  ],
 };
 
-const QUESTION_REPORTS_NAV_ITEM = {
+const QUESTION_REPORTS_NAV_ITEM: NavItem = {
   title: 'Q Reports',
   path: '/platform-admin/question-reports',
   icon: <QuestionReportsIcon sx={{ color: '#c2410c', fontSize: SIDEBAR_ICON_SIZE }} />,
 };
 
-const TEST_RESULTS_NAV_ITEM = {
+const TEST_RESULTS_NAV_ITEM: NavItem = {
   title: 'Test Results',
   path: '/platform-admin/test-results',
   icon: <TestResultsIcon sx={{ color: '#0f766e', fontSize: SIDEBAR_ICON_SIZE }} />,
 };
 
-const BASE_NAV_ITEMS = [
+const BASE_NAV_ITEMS: NavItem[] = [
   { title: 'Schools', path: '/platform-admin/schools', icon: <SchoolIcon sx={{ color: '#059669', fontSize: SIDEBAR_ICON_SIZE }} /> },
   { title: 'Students', path: '/platform-admin/students', icon: <PeopleIcon sx={{ color: '#64748b', fontSize: SIDEBAR_ICON_SIZE }} /> },
   { title: 'Rewards', path: '/platform-admin/rewards', icon: <RewardsIcon sx={{ color: '#b45309', fontSize: SIDEBAR_ICON_SIZE }} /> },
 ];
 
-const PIPELINE_NAV_ITEM = {
+const PIPELINE_NAV_ITEM: NavItem = {
   title: 'Pipelines',
   path: '/platform-admin/pipelines',
   icon: <PipelineIcon sx={{ color: '#7c3aed', fontSize: SIDEBAR_ICON_SIZE }} />,
 };
 
-const ADMINS_NAV_ITEM = {
+const ADMINS_NAV_ITEM: NavItem = {
   title: 'Admin Mgmt',
   path: '/platform-admin/admins',
   icon: <AdminsIcon sx={{ color: '#0f766e', fontSize: SIDEBAR_ICON_SIZE }} />,
@@ -81,16 +124,18 @@ interface PlatformAdminLayoutProps {
   children: React.ReactNode;
 }
 
-const PlatformAdminLayout: React.FC<PlatformAdminLayoutProps> = ({ children }) => {
+/** Function declaration (not const) so Fast Refresh / lazy() never hit TDZ on default export. */
+export default function PlatformAdminLayout({ children }: PlatformAdminLayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({});
   const userEmail = useSelector((state: RootState) => state.auth.user?.email) ?? auth.currentUser?.email ?? '';
   const platformAdminRole = useSelector((state: RootState) => state.auth.platformAdminRole);
 
   const navItems = useMemo(() => {
-    const mid: typeof BASE_NAV_ITEMS = [];
+    const mid: NavItem[] = [];
     if (canAccessPlatformAdminAnalytics(userEmail)) mid.push(ANALYTICS_NAV_ITEM);
     if (canAccessPlatformAdminQuestionReports(userEmail)) mid.push(QUESTION_REPORTS_NAV_ITEM);
     if (canAccessPlatformAdminAnalytics(userEmail)) mid.push(TEST_RESULTS_NAV_ITEM);
@@ -121,28 +166,48 @@ const PlatformAdminLayout: React.FC<PlatformAdminLayoutProps> = ({ children }) =
     navigate('/login');
   };
 
-  const isNavActive = (path: string) =>
+  const isPathActive = (path: string) =>
     location.pathname === path || location.pathname.startsWith(`${path}/`);
+
+  const hasActiveChild = (item: NavItem): boolean =>
+    item.children?.some((child) => isPathActive(child.path) || hasActiveChild(child)) ?? false;
 
   const go = (path: string) => {
     navigate(path);
     setMobileOpen(false);
   };
 
-  const renderSidebarNav = () =>
-    navItems.map((item) => {
-      const active = isNavActive(item.path);
-      return (
+  const toggleSubmenu = (title: string) => {
+    setOpenSubmenus((prev) => ({ ...prev, [title]: !(prev[title] ?? false) }));
+  };
+
+  const renderNavItem = (item: NavItem, level = 0) => {
+    const childActive = hasActiveChild(item);
+    const active = level === 0 ? isPathActive(item.path) || childActive : location.pathname === item.path;
+    const hasChildren = Boolean(item.children?.length);
+    const submenuOpen = openSubmenus[item.title] ?? childActive;
+
+    return (
+      <Box key={item.path}>
         <Box
-          key={item.path}
-          onClick={() => go(item.path)}
+          onClick={() => {
+            if (hasChildren) {
+              toggleSubmenu(item.title);
+              if (!childActive && item.children?.[0]) {
+                go(item.children[0].path);
+              }
+            } else {
+              go(item.path);
+            }
+          }}
           sx={{
             display: 'flex',
             alignItems: 'center',
             gap: 1.5,
             px: 2,
-            py: 1.25,
+            py: level === 0 ? 1.25 : 1,
             mx: 1,
+            ml: level === 0 ? 1 : 2.5,
             borderRadius: 1.5,
             cursor: 'pointer',
             bgcolor: active ? ip.sidebarActiveBg : 'transparent',
@@ -154,12 +219,38 @@ const PlatformAdminLayout: React.FC<PlatformAdminLayoutProps> = ({ children }) =
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, flexShrink: 0 }}>
             {item.icon}
           </Box>
-          <Typography sx={{ fontWeight: active ? 600 : 500, fontSize: '0.9rem', color: active ? ip.sidebarActiveText : '#334155' }}>
+          <Typography
+            sx={{
+              flex: 1,
+              fontWeight: active ? 600 : 500,
+              fontSize: level === 0 ? '0.9rem' : '0.84rem',
+              color: active ? ip.sidebarActiveText : '#334155',
+            }}
+          >
             {item.title}
           </Typography>
+          {hasChildren && (
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleSubmenu(item.title);
+              }}
+              sx={{ color: active ? ip.sidebarActiveText : '#64748b', p: 0.25 }}
+            >
+              {submenuOpen ? <ExpandLess fontSize="small" /> : <ExpandMore fontSize="small" />}
+            </IconButton>
+          )}
         </Box>
-      );
-    });
+
+        {hasChildren && (
+          <Collapse in={submenuOpen} timeout="auto" unmountOnExit>
+            <Box sx={{ py: 0.25 }}>{item.children!.map((child) => renderNavItem(child, level + 1))}</Box>
+          </Collapse>
+        )}
+      </Box>
+    );
+  };
 
   const sidebarBody = (
     <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, height: '100%', py: 1, overflow: 'hidden' }}>
@@ -176,7 +267,7 @@ const PlatformAdminLayout: React.FC<PlatformAdminLayoutProps> = ({ children }) =
           </Box>
         </Box>
       </Box>
-      <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', py: 2 }}>{renderSidebarNav()}</Box>
+      <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', py: 2 }}>{navItems.map((item) => renderNavItem(item))}</Box>
       <Divider sx={{ borderColor: ip.sidebarBorder, flexShrink: 0 }} />
       <Box sx={{ p: 2, flexShrink: 0 }}>
         <Button
@@ -319,6 +410,4 @@ const PlatformAdminLayout: React.FC<PlatformAdminLayoutProps> = ({ children }) =
       </Box>
     </Box>
   );
-};
-
-export default PlatformAdminLayout;
+}

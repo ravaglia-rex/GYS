@@ -11,7 +11,7 @@ export function buildSubscores(assessmentId: string, scorePercent: number): Subs
   const p = Math.round(scorePercent);
   const clamp = (n: number) => Math.min(99, Math.max(5, Math.round(n)));
 
-  if (assessmentId === 'symbolic_reasoning') {
+  if (assessmentId === 'analytical_reasoning') {
     return [
       { id: 'pat', label: 'Pattern Recognition', percentile: clamp(p + 7) },
       { id: 'seq', label: 'Sequence Completion', percentile: clamp(p - 4) },
@@ -46,7 +46,7 @@ export function strengthAndGrowth(rows: SubscoreRow[]): { strength: string; grow
 
 export function nextAssessmentNudge(assessmentId: string): { title: string; subtitle: string; path: string } | null {
   const map: Record<string, { title: string; subtitle: string; path: string }> = {
-    symbolic_reasoning: {
+    analytical_reasoning: {
       title: 'Next: Verbal Reasoning',
       subtitle: 'Continue with reading and argument skills.',
       path: '/assessments/verbal_reasoning/tier/1/detail',
