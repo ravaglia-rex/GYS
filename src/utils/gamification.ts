@@ -53,6 +53,8 @@ export function readGamificationFromStudent(student: Record<string, unknown> | n
       exam_coins_earned_total: 0,
       login_streak_coins_earned_total: 0,
       qod_streak_coins_earned_total: 0,
+      streak_freezes_available: 0,
+      streak_break_pending: null,
       redemptions: {},
     };
   }
@@ -128,6 +130,22 @@ export function readGamificationFromStudent(student: Record<string, unknown> | n
       typeof g.qod_streak_coins_earned_total === 'number' && g.qod_streak_coins_earned_total > 0
         ? Math.floor(g.qod_streak_coins_earned_total)
         : 0,
+    streak_freezes_available:
+      typeof g.streak_freezes_available === 'number' && g.streak_freezes_available > 0
+        ? Math.floor(g.streak_freezes_available)
+        : 0,
+    streak_break_pending: (() => {
+      const rawPending = g.streak_break_pending;
+      if (!rawPending || typeof rawPending !== 'object' || Array.isArray(rawPending)) return null;
+      const p = rawPending as Record<string, unknown>;
+      const previous =
+        typeof p.previous_streak === 'number' && Number.isFinite(p.previous_streak)
+          ? Math.max(0, Math.floor(p.previous_streak))
+          : null;
+      const brokeOn = typeof p.broke_on === 'string' && p.broke_on.trim() ? p.broke_on.trim() : null;
+      if (previous == null || !brokeOn) return null;
+      return { previous_streak: previous, broke_on: brokeOn };
+    })(),
     redemptions: (g.redemptions ?? {}) as GamificationState['redemptions'],
   };
 }

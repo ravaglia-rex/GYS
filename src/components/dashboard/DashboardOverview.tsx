@@ -556,7 +556,12 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         practice_accuracy_pct: 70,
         practice_coins_earned_total: 62,
         exam_coins_earned_total: 0,
+        login_streak_coins_earned_total: 0,
+        qod_streak_coins_earned_total: 0,
+        streak_freezes_available: 0,
+        streak_break_pending: null,
         qod_last_answered_date: previewGamification.qod_answered_today ? istDateStringClient() : undefined,
+        redemptions: {},
       };
     }
     return readGamificationFromStudent(userData as Record<string, unknown> | undefined);

@@ -43,6 +43,8 @@ export type GamificationState = {
   exam_coins_earned_total: number;
   login_streak_coins_earned_total: number;
   qod_streak_coins_earned_total: number;
+  streak_freezes_available: number;
+  streak_break_pending?: { previous_streak: number; broke_on: string } | null;
   redemptions?: Record<string, RedemptionRecord>;
 };
 
@@ -107,6 +109,8 @@ export type RewardsResponse = {
   catalog: RewardCatalogItem[];
   argus_coins: number;
   coins_lifetime_earned: number;
+  streak_freezes_available?: number;
+  streak_break_pending?: { previous_streak: number; broke_on: string } | null;
   redemptions: Record<string, RedemptionRecord>;
 };
 
@@ -217,6 +221,8 @@ export async function recordDailyLogin(): Promise<{
   login_streak: GamificationStreak;
   milestone_coins: number;
   argus_coins: number;
+  streak_break?: { previous_streak: number; broke_on: string } | null;
+  streak_auto_saved?: boolean;
 }> {
   const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS;
   const headers = await authHeaders();
@@ -241,6 +247,9 @@ export async function redeemReward(itemId: string): Promise<{
   status: string;
   argus_coins: number;
   redemptions: Record<string, RedemptionRecord>;
+  streak_restored?: boolean;
+  login_streak?: GamificationStreak;
+  streak_freezes_available?: number;
 }> {
   const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS;
   const headers = await authHeaders();

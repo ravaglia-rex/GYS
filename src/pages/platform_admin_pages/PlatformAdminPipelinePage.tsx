@@ -67,8 +67,8 @@ const PlatformAdminPipelinePage: React.FC = () => {
       <Card sx={platformAdminCardSx}>
         <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
           <Typography variant="body2" sx={{ color: ip.subtext, mb: 2.5, maxWidth: 720 }}>
-            These jobs normally run automatically on the 1st of each month (IST). Trigger manually only when
-            you need fresh tiers, reports, or school analytics outside that schedule.
+            Student tiers refresh weekly (Monday IST). School analytics refresh on the 1st of each month (IST). Use
+            these controls only when you need an off-schedule refresh.
           </Typography>
 
           {pipelineMessage && (
@@ -140,47 +140,74 @@ const PlatformAdminPipelinePage: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Dialog open={Boolean(confirmPipeline)} onClose={() => setConfirmPipeline(null)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700, color: ip.heading }}>
+      <Dialog
+        open={Boolean(confirmPipeline)}
+        onClose={() => setConfirmPipeline(null)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            bgcolor: '#ffffff',
+            color: ip.heading,
+            backgroundImage: 'none',
+          },
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, color: `${ip.heading} !important` }}>
           Confirm pipeline run
         </DialogTitle>
-        <DialogContent dividers>
+        <DialogContent dividers sx={{ borderColor: ip.cardBorder, color: ip.heading }}>
           {confirmPipeline && (
             <>
-              <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
+              <Typography sx={{ fontWeight: 700, color: `${ip.heading} !important`, mb: 0.5 }}>
                 {confirmPipeline.title}
               </Typography>
-              <Typography sx={{ color: ip.subtext, mb: 2, lineHeight: 1.55 }}>
+              <Typography sx={{ color: `${ip.subtext} !important`, mb: 2, lineHeight: 1.55 }}>
                 {confirmPipeline.summary}
               </Typography>
-              <Typography sx={{ fontWeight: 600, color: ip.heading, mb: 1, fontSize: '0.9rem' }}>
+              <Typography sx={{ fontWeight: 600, color: `${ip.heading} !important`, mb: 1, fontSize: '0.9rem' }}>
                 This will:
               </Typography>
               <List dense disablePadding>
                 {confirmPipeline.steps.map((step) => (
-                  <ListItem key={step} disableGutters sx={{ py: 0.35 }}>
-                    <ListItemIcon sx={{ minWidth: 28, color: ip.statBlue }}>
+                  <ListItem key={step} disableGutters sx={{ py: 0.35, alignItems: 'flex-start' }}>
+                    <ListItemIcon sx={{ minWidth: 28, mt: 0.2, color: ip.statBlue }}>
                       <CheckIcon sx={{ fontSize: 16 }} />
                     </ListItemIcon>
-                    <ListItemText primary={step} primaryTypographyProps={{ fontSize: '0.88rem', color: ip.heading }} />
+                    <ListItemText
+                      primary={step}
+                      primaryTypographyProps={{
+                        fontSize: '0.88rem',
+                        color: `${ip.heading} !important`,
+                        lineHeight: 1.45,
+                      }}
+                    />
                   </ListItem>
                 ))}
               </List>
               {confirmPipeline.warning && (
                 <>
-                  <Divider sx={{ my: 1.5 }} />
-                  <Alert severity="warning" sx={{ bgcolor: ip.pendingBg, color: '#92400e' }}>
+                  <Divider sx={{ my: 1.5, borderColor: ip.cardBorder }} />
+                  <Alert
+                    severity="warning"
+                    sx={{
+                      bgcolor: ip.pendingBg,
+                      color: '#92400e',
+                      '& .MuiAlert-icon': { color: '#a16207' },
+                    }}
+                  >
                     {confirmPipeline.warning}
                   </Alert>
                 </>
               )}
-              <Typography sx={{ color: ip.subtext, fontSize: '0.85rem', mt: 2 }}>
-                Estimated duration: {confirmPipeline.duration}. You can leave this page - the job continues on the server.
+              <Typography sx={{ color: `${ip.subtext} !important`, fontSize: '0.85rem', mt: 2 }}>
+                Estimated duration: {confirmPipeline.duration}. You can leave this page - the job continues on the
+                server.
               </Typography>
             </>
           )}
         </DialogContent>
-        <DialogActions sx={{ px: 3, py: 2 }}>
+        <DialogActions sx={{ px: 3, py: 2, bgcolor: '#ffffff' }}>
           <Button onClick={() => setConfirmPipeline(null)} sx={{ textTransform: 'none', color: ip.subtext }}>
             Cancel
           </Button>

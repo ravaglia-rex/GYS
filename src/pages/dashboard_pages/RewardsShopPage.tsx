@@ -91,8 +91,16 @@ const RewardsShopPage: React.FC = () => {
     setRedeeming(true);
     setRedeemError('');
     try {
-      await redeemReward(confirmItemId);
-      setRedeemSuccess('Redemption request submitted! We will email your voucher once approved.');
+      const response = await redeemReward(confirmItemId);
+      if (response.streak_restored) {
+        setRedeemSuccess('Your streak has been restored!');
+      } else if (confirmItemId === 'streak_freeze_1d') {
+        setRedeemSuccess(
+          'Streak Freeze added to your account. It will auto-apply next time you miss a day.'
+        );
+      } else {
+        setRedeemSuccess('Redemption request submitted! We will email your voucher once approved.');
+      }
       setConfirmItemId(null);
       const uid = auth.currentUser?.uid;
       if (uid) invalidateStudent(uid);
