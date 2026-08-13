@@ -1,4 +1,5 @@
 import { STUDENT_OFFICIAL_ASSESSMENTS_ENABLED } from '../constants/constants';
+import { canonicalAssessmentId } from './assessmentIdCompat';
 
 /**
  * While official exams are globally paused, only these emails can start exams listed in
@@ -81,8 +82,9 @@ export function canAccessOfficialStudentAssessments(email: unknown): boolean {
 }
 
 function isPubliclyLiveAssessmentTier(assessmentId: string, tierNumber?: number): boolean {
-  if (!OFFICIAL_LIVE_ASSESSMENT_IDS.has(assessmentId)) return false;
-  const liveTiers = OFFICIAL_LIVE_ASSESSMENT_TIERS[assessmentId];
+  const id = canonicalAssessmentId(assessmentId);
+  if (!OFFICIAL_LIVE_ASSESSMENT_IDS.has(id)) return false;
+  const liveTiers = OFFICIAL_LIVE_ASSESSMENT_TIERS[id];
   if (!liveTiers) return true;
   // Exam-level browse checks omit tier: any live tier unlocks the card/nav.
   if (tierNumber == null) return true;
@@ -100,14 +102,15 @@ export function canStartOfficialAssessment(
   tierNumber?: number
 ): boolean {
   if (!assessmentId) return false;
-  if (isPubliclyLiveAssessmentTier(assessmentId, tierNumber)) return true;
+  const id = canonicalAssessmentId(assessmentId);
+  if (isPubliclyLiveAssessmentTier(id, tierNumber)) return true;
   // Full launch mode: global on + empty live list means every exam is open.
   if (STUDENT_OFFICIAL_ASSESSMENTS_ENABLED && OFFICIAL_LIVE_ASSESSMENT_IDS.size === 0) {
     return true;
   }
   if (
     isOfficialAssessmentBetaTester(email) &&
-    OFFICIAL_BETA_STARTABLE_ASSESSMENT_IDS.has(assessmentId)
+    OFFICIAL_BETA_STARTABLE_ASSESSMENT_IDS.has(id)
   ) {
     return true;
   }

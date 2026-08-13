@@ -435,10 +435,98 @@ export type OfficialExamDrilldown = {
   by_strand: OfficialTagAggRow[];
   by_instruction_family: OfficialTagAggRow[];
   by_band: OfficialTagAggRow[];
+  by_representation_mode: OfficialTagAggRow[];
+  by_exposure_group: OfficialTagAggRow[];
   by_subconstruct: OfficialTagAggRow[];
   by_mechanic: OfficialTagAggRow[];
+  strand_status_summary: OfficialStrandStatusRow[];
+  l1_to_l2_progression: OfficialProgressionSummary;
+  set_route: OfficialSetRouteSummary;
+  strand_by_grade: OfficialCrossSplitRow[];
+  strand_by_school: OfficialCrossSplitRow[];
   score_distribution: OfficialScoreBucketRow[];
   notes: string[];
+  generated_at: string;
+  indexes_building?: boolean;
+};
+
+export type OfficialStrandStatusRow = {
+  key: string;
+  label: string;
+  attempts: number;
+  secure: number;
+  developing: number;
+  emerging: number;
+  evidence_sufficient: number;
+  evidence_unresolved: number;
+  secure_pct: number;
+  evidence_sufficient_pct: number;
+};
+
+export type OfficialProgressionSummary = {
+  attempts_with_data: number;
+  recommended: number;
+  not_recommended: number;
+  recommended_pct: number;
+  reason_counts: Array<{ key: string; count: number }>;
+};
+
+export type OfficialSetRouteSummary = {
+  attempts_with_ar_shape: number;
+  finished_at_32: number;
+  finished_at_40: number;
+  extension_triggered: number;
+  extension_trigger_pct: number;
+  reason_counts: Array<{ key: string; count: number }>;
+};
+
+export type OfficialCrossSplitRow = {
+  split_key: string;
+  split_label: string;
+  tag_key: string;
+  tag_label: string;
+  attempts_with_data: number;
+  served_sum: number;
+  correct_sum: number;
+  accuracy_pct: number;
+};
+
+export type OfficialItemExposureStudent = {
+  uid: string;
+  attempt_id: string;
+  is_correct: boolean | null;
+  time_spent_ms: number | null;
+  grade: number | null;
+  school_id: string | null;
+  completed_at_ms: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  school_name: string | null;
+};
+
+export type OfficialExamItemExposures = {
+  exam_id: string;
+  item_id: string;
+  level_filter: number | null;
+  students: OfficialItemExposureStudent[];
+  generated_at: string;
+};
+
+export type OfficialExamAbandons = {
+  exam_id: string;
+  level_filter: number | null;
+  attempts_analyzed: number;
+  unique_students: number;
+  by_reason: Array<{ key: string; count: number; pct: number }>;
+  recent: Array<{
+    attempt_id: string;
+    uid: string;
+    proficiency_tier: number | null;
+    abandon_reason: string | null;
+    failed_at: string | null;
+    questions_answered: number;
+  }>;
   generated_at: string;
   indexes_building?: boolean;
 };
@@ -567,10 +655,79 @@ export async function getPlatformAdminOfficialExamDrilldown(
       ? res.data.by_instruction_family
       : [],
     by_band: Array.isArray(res.data.by_band) ? res.data.by_band : [],
+    by_representation_mode: Array.isArray(res.data.by_representation_mode)
+      ? res.data.by_representation_mode
+      : [],
+    by_exposure_group: Array.isArray(res.data.by_exposure_group)
+      ? res.data.by_exposure_group
+      : [],
     by_subconstruct: Array.isArray(res.data.by_subconstruct) ? res.data.by_subconstruct : [],
     by_mechanic: Array.isArray(res.data.by_mechanic) ? res.data.by_mechanic : [],
+    strand_status_summary: Array.isArray(res.data.strand_status_summary)
+      ? res.data.strand_status_summary
+      : [],
+    l1_to_l2_progression: res.data.l1_to_l2_progression ?? {
+      attempts_with_data: 0,
+      recommended: 0,
+      not_recommended: 0,
+      recommended_pct: 0,
+      reason_counts: [],
+    },
+    set_route: res.data.set_route ?? {
+      attempts_with_ar_shape: 0,
+      finished_at_32: 0,
+      finished_at_40: 0,
+      extension_triggered: 0,
+      extension_trigger_pct: 0,
+      reason_counts: [],
+    },
+    strand_by_grade: Array.isArray(res.data.strand_by_grade) ? res.data.strand_by_grade : [],
+    strand_by_school: Array.isArray(res.data.strand_by_school) ? res.data.strand_by_school : [],
     score_distribution: Array.isArray(res.data.score_distribution) ? res.data.score_distribution : [],
     notes: Array.isArray(res.data.notes) ? res.data.notes : [],
+    generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
+    indexes_building: res.data.indexes_building === true,
+  };
+}
+
+export async function getPlatformAdminOfficialExamItemExposures(
+  examId: string,
+  opts: { itemId: string; level?: number | null; refresh?: boolean }
+): Promise<OfficialExamItemExposures> {
+  const headers = await authHeaders();
+  const params: Record<string, string | number> = { ...refreshParams(opts.refresh) };
+  if (typeof opts.level === 'number' && opts.level > 0) params.level = opts.level;
+  const res = await axios.get(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAMS}/${encodeURIComponent(examId)}/item-exposures/${encodeURIComponent(opts.itemId)}`,
+    { headers, params }
+  );
+  return {
+    exam_id: typeof res.data.exam_id === 'string' ? res.data.exam_id : examId,
+    item_id: typeof res.data.item_id === 'string' ? res.data.item_id : opts.itemId,
+    level_filter: typeof res.data.level_filter === 'number' ? res.data.level_filter : null,
+    students: Array.isArray(res.data.students) ? res.data.students : [],
+    generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
+  };
+}
+
+export async function getPlatformAdminOfficialExamAbandons(
+  examId: string,
+  opts?: { level?: number | null; refresh?: boolean }
+): Promise<OfficialExamAbandons> {
+  const headers = await authHeaders();
+  const params: Record<string, string | number> = { ...refreshParams(opts?.refresh) };
+  if (typeof opts?.level === 'number' && opts.level > 0) params.level = opts.level;
+  const res = await axios.get(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAMS}/${encodeURIComponent(examId)}/abandons`,
+    { headers, params }
+  );
+  return {
+    exam_id: typeof res.data.exam_id === 'string' ? res.data.exam_id : examId,
+    level_filter: typeof res.data.level_filter === 'number' ? res.data.level_filter : null,
+    attempts_analyzed: Number(res.data.attempts_analyzed) || 0,
+    unique_students: Number(res.data.unique_students) || 0,
+    by_reason: Array.isArray(res.data.by_reason) ? res.data.by_reason : [],
+    recent: Array.isArray(res.data.recent) ? res.data.recent : [],
     generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
     indexes_building: res.data.indexes_building === true,
   };

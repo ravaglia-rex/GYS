@@ -57,6 +57,8 @@ import {
   getPlatformAdminOfficialExamDetail,
   getPlatformAdminOfficialExamDrilldown,
   getPlatformAdminOfficialExamQuestionStats,
+  getPlatformAdminOfficialExamItemExposures,
+  getPlatformAdminOfficialExamAbandons,
   getPlatformAdminOfficialExamSummaries,
   searchPlatformAdminOfficialExamCompletions,
   getPlatformAdminOfficialExamAttemptDetail,
@@ -73,6 +75,8 @@ import {
   type OfficialDailyStatRow,
   type OfficialExamDrilldown,
   type OfficialExamQuestionStats,
+  type OfficialExamItemExposures,
+  type OfficialExamAbandons,
   type OfficialExamGradeRow,
   type OfficialExamLevelRow,
   type OfficialExamRecentRow,
@@ -108,7 +112,7 @@ import {
 
 type AnalyticsSection = 'official' | 'practice' | 'qod' | 'activity' | 'coins';
 
-type OfficialView = 'overview' | 'exam-snapshots' | 'constructs' | 'grade-school' | 'completions';
+type OfficialView = 'overview' | 'exam-snapshots' | 'constructs' | 'grade-school' | 'completions' | 'abandons';
 type PracticeView = 'overview' | 'by-exam' | 'exam-detail';
 type QodView = 'overview' | 'top-students';
 
@@ -269,6 +273,14 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
   const officialDrillReqRef = useRef(0);
   const officialQuestionReqRef = useRef(0);
   const officialQuestionPanelRef = useRef<HTMLDivElement | null>(null);
+  const [itemExposures, setItemExposures] = useState<OfficialExamItemExposures | null>(null);
+  const [itemExposuresLoading, setItemExposuresLoading] = useState(false);
+  const [itemExposuresItemId, setItemExposuresItemId] = useState<string | null>(null);
+  const itemExposuresReqRef = useRef(0);
+  const [officialAbandons, setOfficialAbandons] = useState<OfficialExamAbandons | null>(null);
+  const [officialAbandonsLoading, setOfficialAbandonsLoading] = useState(false);
+  const [officialAbandonLevel, setOfficialAbandonLevel] = useState<'all' | number>('all');
+  const officialAbandonsReqRef = useRef(0);
 
   const [practiceSummaries, setPracticeSummaries] = useState<PracticeExamSummaryRow[]>([]);
   const [practiceDaily, setPracticeDaily] = useState<PracticeDailyStatRow[]>([]);
@@ -406,6 +418,8 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
       setOfficialDrilldown(null);
       setOfficialQuestionSelection(null);
       setOfficialQuestionStats(null);
+      setItemExposures(null);
+      setItemExposuresItemId(null);
       try {
         const data = await getPlatformAdminOfficialExamDrilldown(examId, {
           level: level === 'all' ? null : level,
@@ -469,11 +483,70 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     []
   );
 
+  const loadOfficialItemExposures = useCallback(
+    async (examId: string, itemId: string, level: 'all' | number, opts?: { refresh?: boolean }) => {
+      if (!examId || !itemId) return;
+      const req = ++itemExposuresReqRef.current;
+      setItemExposuresItemId(itemId);
+      setItemExposuresLoading(true);
+      setItemExposures(null);
+      try {
+        const data = await getPlatformAdminOfficialExamItemExposures(examId, {
+          itemId,
+          level: level === 'all' ? null : level,
+          refresh: opts?.refresh,
+        });
+        if (req !== itemExposuresReqRef.current) return;
+        setItemExposures(data);
+      } catch (e: unknown) {
+        if (req !== itemExposuresReqRef.current) return;
+        const err = e as { response?: { data?: { error?: string } }; message?: string };
+        setOfficialError(
+          err?.response?.data?.error || err?.message || 'Failed to load who saw this item'
+        );
+        setItemExposures(null);
+      } finally {
+        if (req === itemExposuresReqRef.current) setItemExposuresLoading(false);
+      }
+    },
+    []
+  );
+
+  const loadOfficialAbandons = useCallback(
+    async (examId: string, level: 'all' | number, opts?: { refresh?: boolean }) => {
+      if (!examId) return;
+      const req = ++officialAbandonsReqRef.current;
+      setOfficialAbandonsLoading(true);
+      setOfficialAbandons(null);
+      try {
+        const data = await getPlatformAdminOfficialExamAbandons(examId, {
+          level: level === 'all' ? null : level,
+          refresh: opts?.refresh,
+        });
+        if (req !== officialAbandonsReqRef.current) return;
+        setOfficialAbandons(data);
+        if (data.indexes_building) setOfficialIndexesBuilding(true);
+      } catch (e: unknown) {
+        if (req !== officialAbandonsReqRef.current) return;
+        const err = e as { response?: { data?: { error?: string } }; message?: string };
+        setOfficialError(err?.response?.data?.error || err?.message || 'Failed to load abandon stats');
+        setOfficialAbandons(null);
+      } finally {
+        if (req === officialAbandonsReqRef.current) setOfficialAbandonsLoading(false);
+      }
+    },
+    []
+  );
+
   const clearOfficialQuestionDrill = useCallback(() => {
     officialQuestionReqRef.current += 1;
+    itemExposuresReqRef.current += 1;
     setOfficialQuestionSelection(null);
     setOfficialQuestionStats(null);
     setOfficialQuestionLoading(false);
+    setItemExposures(null);
+    setItemExposuresItemId(null);
+    setItemExposuresLoading(false);
   }, []);
 
   const loadOfficialAttemptDetail = useCallback(
@@ -802,6 +875,75 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                         (No option text on this item — often image-only.)
                       </Typography>
                     )}
+                    <Box sx={{ mt: 1.25, display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => {
+                          if (!selectedOfficialExamId) return;
+                          if (itemExposuresItemId === q.item_id) {
+                            setItemExposures(null);
+                            setItemExposuresItemId(null);
+                            return;
+                          }
+                          void loadOfficialItemExposures(
+                            selectedOfficialExamId,
+                            q.item_id,
+                            officialDrillLevel
+                          );
+                        }}
+                        sx={platformAdminOutlinedButtonSx}
+                      >
+                        {itemExposuresItemId === q.item_id ? 'Hide students' : 'Who saw this'}
+                      </Button>
+                    </Box>
+                    {itemExposuresItemId === q.item_id ? (
+                      <Box sx={{ mt: 1.25, border: '1px solid #e2e8f0', borderRadius: 1.5, p: 1.25, bgcolor: '#f8fafc' }}>
+                        {itemExposuresLoading ? (
+                          <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                            <CircularProgress size={22} sx={{ color: ip.navy }} />
+                          </Box>
+                        ) : !itemExposures || itemExposures.students.length === 0 ? (
+                          <Typography variant="body2" sx={{ color: ip.subtext }}>
+                            No recent student exposures cached for this item (up to 40 most recent).
+                          </Typography>
+                        ) : (
+                          <TableContainer>
+                            <Table size="small" sx={platformAdminTableSx}>
+                              <TableHead>
+                                <TableRow sx={platformAdminTableHeadRowSx}>
+                                  <TableCell>Student</TableCell>
+                                  <TableCell>School</TableCell>
+                                  <TableCell align="right">Grade</TableCell>
+                                  <TableCell align="right">Result</TableCell>
+                                  <TableCell align="right">Time</TableCell>
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {itemExposures.students.map((s) => {
+                                  const name = `${s.first_name} ${s.last_name}`.trim() || s.email || s.uid;
+                                  return (
+                                    <TableRow key={`${s.uid}-${s.attempt_id}`}>
+                                      <TableCell sx={{ fontWeight: 600 }}>{name}</TableCell>
+                                      <TableCell>{s.school_name || '—'}</TableCell>
+                                      <TableCell align="right">{s.grade ?? '—'}</TableCell>
+                                      <TableCell align="right">
+                                        {s.is_correct == null ? '—' : s.is_correct ? 'Correct' : 'Incorrect'}
+                                      </TableCell>
+                                      <TableCell align="right">
+                                        {s.time_spent_ms != null
+                                          ? `${Math.round(s.time_spent_ms / 1000)}s`
+                                          : '—'}
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                })}
+                              </TableBody>
+                            </Table>
+                          </TableContainer>
+                        )}
+                      </Box>
+                    ) : null}
                   </Box>
                 ))}
               </Box>
@@ -987,6 +1129,11 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
   }, [section, selectedOfficialExamId, officialDrillLevel, loadOfficialDrilldown]);
 
   useEffect(() => {
+    if (section !== 'official' || officialView !== 'abandons' || !selectedOfficialExamId) return;
+    void loadOfficialAbandons(selectedOfficialExamId, officialAbandonLevel);
+  }, [section, officialView, selectedOfficialExamId, officialAbandonLevel, loadOfficialAbandons]);
+
+  useEffect(() => {
     if (section !== 'practice' || !selectedExamId) return;
     void loadPracticeDetail(selectedExamId);
   }, [section, selectedExamId, loadPracticeDetail]);
@@ -996,6 +1143,8 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     officialDetailLoading ||
     officialDrillLoading ||
     officialCompletionsLoading ||
+    officialAbandonsLoading ||
+    itemExposuresLoading ||
     practiceLoading ||
     practiceMonthlyLoading ||
     practiceDetailLoading ||
@@ -1009,6 +1158,17 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
       if (selectedOfficialExamId) {
         void loadOfficialDetail(selectedOfficialExamId, { refresh: true });
         void loadOfficialDrilldown(selectedOfficialExamId, officialDrillLevel, { refresh: true });
+        if (officialView === 'abandons') {
+          void loadOfficialAbandons(selectedOfficialExamId, officialAbandonLevel, { refresh: true });
+        }
+        if (itemExposuresItemId) {
+          void loadOfficialItemExposures(
+            selectedOfficialExamId,
+            itemExposuresItemId,
+            officialDrillLevel,
+            { refresh: true }
+          );
+        }
         if (officialQuestionSelection) {
           void loadOfficialQuestionStats(
             selectedOfficialExamId,
@@ -1217,6 +1377,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                 <Tab value="constructs" label="Strands & items" />
                 <Tab value="grade-school" label="Grade & school" />
                 <Tab value="completions" label="Search completions" />
+                <Tab value="abandons" label="Abandons" />
               </Tabs>
 
               {officialView === 'overview' && (
@@ -1513,6 +1674,267 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                         officialDrilldown.by_band || [],
                         'No band tallies on these completions yet.'
                       )}
+
+                      <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5, mt: 1 }}>
+                        Strand performance & evidence
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1 }}>
+                        secure / developing / emerging + evidence sufficient vs unresolved (from strand_statuses).
+                      </Typography>
+                      <TableContainer component={Paper} elevation={0} sx={{ ...platformAdminTablePaperSx, mb: 2.5 }}>
+                        <Table size="small" sx={platformAdminTableSx}>
+                          <TableHead>
+                            <TableRow sx={platformAdminTableHeadRowSx}>
+                              <TableCell>Strand</TableCell>
+                              <TableCell align="right">Attempts</TableCell>
+                              <TableCell align="right">Secure</TableCell>
+                              <TableCell align="right">Developing</TableCell>
+                              <TableCell align="right">Emerging</TableCell>
+                              <TableCell align="right">Evidence OK %</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {(officialDrilldown.strand_status_summary || []).length === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={6} align="center" sx={{ py: 2, color: ip.subtext }}>
+                                  No strand status rows yet.
+                                </TableCell>
+                              </TableRow>
+                            ) : (
+                              officialDrilldown.strand_status_summary.map((row) => (
+                                <TableRow key={row.key}>
+                                  <TableCell sx={{ fontWeight: 700 }}>{row.label}</TableCell>
+                                  <TableCell align="right">{row.attempts}</TableCell>
+                                  <TableCell align="right">{row.secure}</TableCell>
+                                  <TableCell align="right">{row.developing}</TableCell>
+                                  <TableCell align="right">{row.emerging}</TableCell>
+                                  <TableCell align="right">
+                                    <PlatformAdminAccuracyChip pct={row.evidence_sufficient_pct} />
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+
+                      <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
+                        L1 → L2 progression
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1 }}>
+                        {officialDrilldown.l1_to_l2_progression?.attempts_with_data
+                          ? `${officialDrilldown.l1_to_l2_progression.recommended} recommended of ${officialDrilldown.l1_to_l2_progression.attempts_with_data} (${officialDrilldown.l1_to_l2_progression.recommended_pct}%)`
+                          : 'No progression fields on these completions yet.'}
+                      </Typography>
+                      {(officialDrilldown.l1_to_l2_progression?.reason_counts || []).length > 0 && (
+                        <TableContainer component={Paper} elevation={0} sx={{ ...platformAdminTablePaperSx, mb: 2.5 }}>
+                          <Table size="small" sx={platformAdminTableSx}>
+                            <TableHead>
+                              <TableRow sx={platformAdminTableHeadRowSx}>
+                                <TableCell>Reason</TableCell>
+                                <TableCell align="right">Count</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {officialDrilldown.l1_to_l2_progression.reason_counts.map((r) => (
+                                <TableRow key={r.key}>
+                                  <TableCell>{r.key}</TableCell>
+                                  <TableCell align="right">{r.count}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+                      )}
+
+                      <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5, mt: 1 }}>
+                        Set route (32 vs 40)
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1 }}>
+                        {officialDrilldown.set_route?.attempts_with_ar_shape
+                          ? `AR sits · ${officialDrilldown.set_route.finished_at_32} finished at 32 · ${officialDrilldown.set_route.finished_at_40} at 40 · extension ${officialDrilldown.set_route.extension_triggered} (${officialDrilldown.set_route.extension_trigger_pct}%)`
+                          : 'No AR-shaped attempts in this filter yet.'}
+                      </Typography>
+                      {(officialDrilldown.set_route?.reason_counts || []).length > 0 && (
+                        <TableContainer component={Paper} elevation={0} sx={{ ...platformAdminTablePaperSx, mb: 2.5 }}>
+                          <Table size="small" sx={platformAdminTableSx}>
+                            <TableHead>
+                              <TableRow sx={platformAdminTableHeadRowSx}>
+                                <TableCell>Extension reason</TableCell>
+                                <TableCell align="right">Count</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {officialDrilldown.set_route.reason_counts.map((r) => (
+                                <TableRow key={r.key}>
+                                  <TableCell>{r.key}</TableCell>
+                                  <TableCell align="right">{r.count}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+                      )}
+
+                      <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5, mt: 1 }}>
+                        Representation mode
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1 }}>
+                        From denormalized answer tags on new AR sits.
+                      </Typography>
+                      <TableContainer component={Paper} elevation={0} sx={{ ...platformAdminTablePaperSx, mb: 2.5 }}>
+                        <Table size="small" sx={platformAdminTableSx}>
+                          <TableHead>
+                            <TableRow sx={platformAdminTableHeadRowSx}>
+                              <TableCell>Mode</TableCell>
+                              <TableCell align="right">Attempts</TableCell>
+                              <TableCell align="right">Accuracy</TableCell>
+                              <TableCell align="right">Served</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {(officialDrilldown.by_representation_mode || []).length === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={4} align="center" sx={{ py: 2, color: ip.subtext }}>
+                                  No representation-mode tags yet.
+                                </TableCell>
+                              </TableRow>
+                            ) : (
+                              officialDrilldown.by_representation_mode.map((row) => (
+                                <TableRow key={row.key}>
+                                  <TableCell sx={{ fontWeight: 700 }}>{row.label}</TableCell>
+                                  <TableCell align="right">{row.attempts_with_data}</TableCell>
+                                  <TableCell align="right">
+                                    <PlatformAdminAccuracyChip pct={row.accuracy_pct} />
+                                  </TableCell>
+                                  <TableCell align="right">{row.served_sum}</TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+
+                      <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
+                        Exposure group (top)
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1 }}>
+                        Compact rollup — top 15 by served (same one-pass cache).
+                      </Typography>
+                      <TableContainer component={Paper} elevation={0} sx={{ ...platformAdminTablePaperSx, mb: 2.5 }}>
+                        <Table size="small" sx={platformAdminTableSx}>
+                          <TableHead>
+                            <TableRow sx={platformAdminTableHeadRowSx}>
+                              <TableCell>Group</TableCell>
+                              <TableCell align="right">Attempts</TableCell>
+                              <TableCell align="right">Accuracy</TableCell>
+                              <TableCell align="right">Served</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {(officialDrilldown.by_exposure_group || []).slice(0, 15).length === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={4} align="center" sx={{ py: 2, color: ip.subtext }}>
+                                  No exposure-group tags yet.
+                                </TableCell>
+                              </TableRow>
+                            ) : (
+                              officialDrilldown.by_exposure_group.slice(0, 15).map((row) => (
+                                <TableRow key={row.key}>
+                                  <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>{row.label}</TableCell>
+                                  <TableCell align="right">{row.attempts_with_data}</TableCell>
+                                  <TableCell align="right">
+                                    <PlatformAdminAccuracyChip pct={row.accuracy_pct} />
+                                  </TableCell>
+                                  <TableCell align="right">{row.served_sum}</TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+
+                      <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
+                        Strand × grade
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1 }}>
+                        Accuracy by grade at attempt × strand (same completion scan).
+                      </Typography>
+                      <TableContainer component={Paper} elevation={0} sx={{ ...platformAdminTablePaperSx, mb: 2.5 }}>
+                        <Table size="small" sx={platformAdminTableSx}>
+                          <TableHead>
+                            <TableRow sx={platformAdminTableHeadRowSx}>
+                              <TableCell>Grade</TableCell>
+                              <TableCell>Strand</TableCell>
+                              <TableCell align="right">Attempts</TableCell>
+                              <TableCell align="right">Accuracy</TableCell>
+                              <TableCell align="right">Served</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {(officialDrilldown.strand_by_grade || []).length === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={5} align="center" sx={{ py: 2, color: ip.subtext }}>
+                                  No grade × strand rows yet.
+                                </TableCell>
+                              </TableRow>
+                            ) : (
+                              officialDrilldown.strand_by_grade.map((row) => (
+                                <TableRow key={`${row.split_key}-${row.tag_key}`}>
+                                  <TableCell sx={{ fontWeight: 700 }}>{row.split_label}</TableCell>
+                                  <TableCell>{row.tag_label}</TableCell>
+                                  <TableCell align="right">{row.attempts_with_data}</TableCell>
+                                  <TableCell align="right">
+                                    <PlatformAdminAccuracyChip pct={row.accuracy_pct} />
+                                  </TableCell>
+                                  <TableCell align="right">{row.served_sum}</TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+
+                      <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
+                        Strand × school
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1 }}>
+                        Top school × strand accuracy (names hydrated once per scan).
+                      </Typography>
+                      <TableContainer component={Paper} elevation={0} sx={{ ...platformAdminTablePaperSx, mb: 2.5 }}>
+                        <Table size="small" sx={platformAdminTableSx}>
+                          <TableHead>
+                            <TableRow sx={platformAdminTableHeadRowSx}>
+                              <TableCell>School</TableCell>
+                              <TableCell>Strand</TableCell>
+                              <TableCell align="right">Attempts</TableCell>
+                              <TableCell align="right">Accuracy</TableCell>
+                              <TableCell align="right">Served</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {(officialDrilldown.strand_by_school || []).slice(0, 40).length === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={5} align="center" sx={{ py: 2, color: ip.subtext }}>
+                                  No school × strand rows yet.
+                                </TableCell>
+                              </TableRow>
+                            ) : (
+                              officialDrilldown.strand_by_school.slice(0, 40).map((row) => (
+                                <TableRow key={`${row.split_key}-${row.tag_key}`}>
+                                  <TableCell sx={{ fontWeight: 600 }}>{row.split_label}</TableCell>
+                                  <TableCell>{row.tag_label}</TableCell>
+                                  <TableCell align="right">{row.attempts_with_data}</TableCell>
+                                  <TableCell align="right">
+                                    <PlatformAdminAccuracyChip pct={row.accuracy_pct} />
+                                  </TableCell>
+                                  <TableCell align="right">{row.served_sum}</TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
                     </>
                   )}
               </PlatformAdminAnalyticsSection>
@@ -1967,6 +2389,132 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                   )}
               </PlatformAdminAnalyticsSection>
               )}
+
+              {officialView === 'abandons' && (
+              <PlatformAdminAnalyticsSection
+                title="Abandons / failed sits"
+                subtitle="Single cached scan of status=failed attempts (reload/leave). Not loaded until you open this tab."
+                accent="amber"
+                action={
+                  <FormControl size="small" sx={platformAdminFilterSelectSx(140)}>
+                    <InputLabel>Level</InputLabel>
+                    <Select
+                      label="Level"
+                      value={officialAbandonLevel}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setOfficialAbandonLevel(v === 'all' ? 'all' : Number(v));
+                      }}
+                      MenuProps={{ PaperProps: { sx: platformAdminSelectMenuPaperSx } }}
+                    >
+                      <MenuItem value="all">All levels</MenuItem>
+                      {(officialByLevel.length > 0
+                        ? officialByLevel.map((r) => r.level)
+                        : [1, 2, 3]
+                      ).map((level) => (
+                        <MenuItem key={level} value={level}>
+                          Level {level}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                }
+              >
+                {officialAbandonsLoading ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+                    <CircularProgress size={32} sx={{ color: ip.navy }} />
+                  </Box>
+                ) : !officialAbandons ? (
+                  <Typography variant="body2" sx={{ color: ip.subtext, py: 2 }}>
+                    No abandon data yet for this exam.
+                  </Typography>
+                ) : (
+                  <>
+                    <Box sx={{ ...platformAdminStatsGridSx, mb: 2 }}>
+                      <PlatformAdminStatCard
+                        title="Failed sits"
+                        value={officialAbandons.attempts_analyzed.toLocaleString()}
+                        icon={<QuizIcon sx={{ color: '#b45309' }} />}
+                        accent="#b45309"
+                      />
+                      <PlatformAdminStatCard
+                        title="Unique students"
+                        value={officialAbandons.unique_students.toLocaleString()}
+                        icon={<PeopleIcon sx={{ color: '#0f766e' }} />}
+                        accent="#0f766e"
+                      />
+                    </Box>
+                    <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 1 }}>By reason</Typography>
+                    <TableContainer component={Paper} elevation={0} sx={{ ...platformAdminTablePaperSx, mb: 2.5 }}>
+                      <Table size="small" sx={platformAdminTableSx}>
+                        <TableHead>
+                          <TableRow sx={platformAdminTableHeadRowSx}>
+                            <TableCell>Reason</TableCell>
+                            <TableCell align="right">Count</TableCell>
+                            <TableCell align="right">Share</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {officialAbandons.by_reason.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={3} align="center" sx={{ py: 2, color: ip.subtext }}>
+                                No failed attempts in this filter.
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            officialAbandons.by_reason.map((r) => (
+                              <TableRow key={r.key}>
+                                <TableCell sx={{ fontWeight: 700 }}>{r.key}</TableCell>
+                                <TableCell align="right">{r.count}</TableCell>
+                                <TableCell align="right">{r.pct}%</TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                    <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 1 }}>Recent (25)</Typography>
+                    <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
+                      <Table size="small" sx={platformAdminTableSx}>
+                        <TableHead>
+                          <TableRow sx={platformAdminTableHeadRowSx}>
+                            <TableCell>Attempt</TableCell>
+                            <TableCell>UID</TableCell>
+                            <TableCell align="right">Level</TableCell>
+                            <TableCell>Reason</TableCell>
+                            <TableCell align="right">Answered</TableCell>
+                            <TableCell align="right">When</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {officialAbandons.recent.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={6} align="center" sx={{ py: 2, color: ip.subtext }}>
+                                No recent abandons.
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            officialAbandons.recent.map((r) => (
+                              <TableRow key={r.attempt_id}>
+                                <TableCell sx={{ fontFamily: 'monospace', fontSize: 12 }}>{r.attempt_id}</TableCell>
+                                <TableCell sx={{ fontFamily: 'monospace', fontSize: 12 }}>{r.uid}</TableCell>
+                                <TableCell align="right">{r.proficiency_tier ?? '—'}</TableCell>
+                                <TableCell>{r.abandon_reason || '—'}</TableCell>
+                                <TableCell align="right">{r.questions_answered}</TableCell>
+                                <TableCell align="right">
+                                  {r.failed_at ? formatDateTime(r.failed_at) : '—'}
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </>
+                )}
+              </PlatformAdminAnalyticsSection>
+              )}
+
             </>
           )}
         </>

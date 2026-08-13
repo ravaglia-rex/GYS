@@ -37,6 +37,7 @@ import { getReasoningExamSubcategories } from '../../data/reasoningExamSubcatego
 import { auth } from '../../firebase/firebase';
 import { canStartOfficialAssessment } from '../../utils/officialStudentAssessmentsAccess';
 import { formatCooldownDate, nextEligibleAtMsForLevel } from '../../utils/examAttemptCooldown';
+import { canonicalAssessmentId, canonicalizeProgressMap } from '../../utils/assessmentIdCompat';
 import {
   getPreviewSampleAssessmentPath,
   isPreviewSampleExamId,
@@ -941,17 +942,22 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
   const assessmentTypes = useMemo(() => {
     if (previewBundle) return previewBundle.assessments;
     if (!configFromBackend) return [];
-    return [...configFromBackend].sort((a, b) => {
-      const ia = ASSESSMENT_ORDER.indexOf(a.id as (typeof ASSESSMENT_ORDER)[number]);
-      const ib = ASSESSMENT_ORDER.indexOf(b.id as (typeof ASSESSMENT_ORDER)[number]);
-      return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
-    });
+    return [...configFromBackend]
+      .map((a) => ({
+        ...a,
+        id: canonicalAssessmentId(a.id),
+      }))
+      .sort((a, b) => {
+        const ia = ASSESSMENT_ORDER.indexOf(a.id as (typeof ASSESSMENT_ORDER)[number]);
+        const ib = ASSESSMENT_ORDER.indexOf(b.id as (typeof ASSESSMENT_ORDER)[number]);
+        return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+      });
   }, [previewBundle, configFromBackend]);
 
-  const progressMap = useMemo(
-    () => (previewBundle ? previewBundle.progress : studentData?.assessment_progress ?? {}),
-    [previewBundle, studentData]
-  );
+  const progressMap = useMemo(() => {
+    const raw = previewBundle ? previewBundle.progress : studentData?.assessment_progress ?? {};
+    return canonicalizeProgressMap(raw as Record<string, unknown>) as Record<string, AssessmentProgress>;
+  }, [previewBundle, studentData]);
 
   const membershipLevel = useMemo(
     () =>

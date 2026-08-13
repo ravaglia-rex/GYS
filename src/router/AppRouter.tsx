@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { BrowserRouter as Router, Route, Routes, Outlet, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Outlet, Navigate, useParams } from 'react-router-dom';
 import Protected from '../components/route_protection/Protected';
 import SchoolAdminRoute from '../components/route_protection/SchoolAdminRoute';
 import PlatformAdminRoute from '../components/route_protection/PlatformAdminRoute';
@@ -9,6 +9,22 @@ import NotFoundPage from '../pages/NotFoundPage';
 import BigSpinner from '../components/ui/BigSpinner';
 import StudentRegistrationFlowLayout from '../layouts/StudentRegistrationFlowLayout';
 import { lazyWithRetry as lazy } from '../utils/lazyWithRetry';
+import {
+  ANALYTICAL_REASONING_ASSESSMENT_ID,
+  LEGACY_ANALYTICAL_REASONING_ASSESSMENT_ID,
+} from '../utils/assessmentIdCompat';
+
+/** Old Exam 1 bookmarks used the legacy assessment id in the path. */
+function LegacyAnalyticalExamRedirect({ rest }: { rest: 'detail' | 'take' }) {
+  const { tierNumber } = useParams<{ tierNumber: string }>();
+  const tier = tierNumber && /^\d+$/.test(tierNumber) ? tierNumber : '1';
+  return (
+    <Navigate
+      to={`/assessments/${ANALYTICAL_REASONING_ASSESSMENT_ID}/tier/${tier}/${rest}`}
+      replace
+    />
+  );
+}
 
 /*
 LANDING AND PUBLIC PAGES
@@ -624,6 +640,32 @@ const AppRouter: React.FC = () => {
         <Route path="/exams" element={<Navigate to="/assessments/available" replace />} />
         <Route path="/exams/available" element={<Navigate to="/assessments/available" replace />} />
         <Route path="/exams/completed" element={<Navigate to="/assessments/completed" replace />} />
+
+        {/* Legacy Exam 1 id redirects → analytical_reasoning */}
+        <Route
+          path={`/assessments/${LEGACY_ANALYTICAL_REASONING_ASSESSMENT_ID}/tier/:tierNumber/detail`}
+          element={<LegacyAnalyticalExamRedirect rest="detail" />}
+        />
+        <Route
+          path={`/assessments/${LEGACY_ANALYTICAL_REASONING_ASSESSMENT_ID}/tier/:tierNumber/take`}
+          element={<LegacyAnalyticalExamRedirect rest="take" />}
+        />
+        <Route
+          path={`/assessments/${LEGACY_ANALYTICAL_REASONING_ASSESSMENT_ID}/result`}
+          element={<Navigate to={`/assessments/${ANALYTICAL_REASONING_ASSESSMENT_ID}/result`} replace />}
+        />
+        <Route
+          path={`/assessments/${LEGACY_ANALYTICAL_REASONING_ASSESSMENT_ID}/result/details`}
+          element={
+            <Navigate to={`/assessments/${ANALYTICAL_REASONING_ASSESSMENT_ID}/result/details`} replace />
+          }
+        />
+        <Route
+          path={`/for-schools/preview/assessment/${LEGACY_ANALYTICAL_REASONING_ASSESSMENT_ID}`}
+          element={
+            <Navigate to={`/for-schools/preview/assessment/${ANALYTICAL_REASONING_ASSESSMENT_ID}`} replace />
+          }
+        />
         
         {/* Assessment Routes */}
         <Route

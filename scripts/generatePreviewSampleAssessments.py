@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / 'argus-frontend/src/data/previewSampleAssessments.ts'
 
 files = {
-    'symbolic_reasoning': ROOT / 'argus-backend/pattern_logic.numbers',
+    'analytical_reasoning': ROOT / 'argus-backend/pattern_logic.numbers',
     'verbal_reasoning': ROOT / 'argus-backend/critical_reading.numbers',
     'mathematical_reasoning': ROOT / 'argus-backend/mathematical_reasoning.numbers',
 }
@@ -116,17 +116,17 @@ lines.append('')
 lines.append('export type PreviewSampleLevel = (typeof PREVIEW_SAMPLE_LEVELS)[number];')
 lines.append('')
 lines.append('export const PREVIEW_SAMPLE_EXAM_IDS = [')
-lines.append("  'symbolic_reasoning',")
+lines.append("  'analytical_reasoning',")
 lines.append("  'verbal_reasoning',")
 lines.append("  'mathematical_reasoning',")
 lines.append('] as const;')
 lines.append('')
 lines.append('export type PreviewSampleExamId = (typeof PREVIEW_SAMPLE_EXAM_IDS)[number];')
 lines.append('')
-lines.append("export const DEFAULT_PREVIEW_SAMPLE_EXAM_ID: PreviewSampleExamId = 'symbolic_reasoning';")
+lines.append("export const DEFAULT_PREVIEW_SAMPLE_EXAM_ID: PreviewSampleExamId = 'analytical_reasoning';")
 lines.append('')
 lines.append('export const PREVIEW_SAMPLE_QUESTIONS_BY_EXAM: Record<PreviewSampleExamId, PreviewSampleQuestion[]> = {')
-for exam_id in ['symbolic_reasoning', 'verbal_reasoning', 'mathematical_reasoning']:
+for exam_id in ['analytical_reasoning', 'verbal_reasoning', 'mathematical_reasoning']:
     lines.append(f'  {exam_id}: [')
     for item in all_data[exam_id]:
         line = f"    {{ id: {ts_string(item['id'])}, prompt: {ts_string(item['prompt'])}, options: [{', '.join(ts_string(o) for o in item['options'])}], correctIndex: {item['correctIndex']}, level: {item['level']}"

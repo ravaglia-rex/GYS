@@ -3,6 +3,7 @@ import {
   countClearedTiersFromProgress,
   examSequencePrereqMet,
 } from './tierProgression';
+import { canonicalAssessmentId, LEGACY_ANALYTICAL_REASONING_ASSESSMENT_ID } from './assessmentIdCompat';
 
 /**
  * Canonical assessment order for sorting and gating (wired assessment ids from Firestore).
@@ -147,7 +148,8 @@ export const ASSESSMENT_NAMES: Record<string, string> = {
 
 /** Prefer canonical titles over legacy Firestore assessment_types.name values. */
 export function assessmentDisplayName(assessmentId: string, fallbackName?: string | null): string {
-  return ASSESSMENT_NAMES[assessmentId] ?? (fallbackName?.trim() || assessmentId);
+  const id = canonicalAssessmentId(assessmentId);
+  return ASSESSMENT_NAMES[id] ?? (fallbackName?.trim() || assessmentId);
 }
 
 /** Sequence gate: prerequisites must be satisfied (membership gate is checked first). */
@@ -196,24 +198,30 @@ export function computeGate(
   grade: number,
   assessments: AssessmentType[]
 ): GateResult {
+  const id = canonicalAssessmentId(assessmentId);
   const level = normalizeMembershipLevel(membershipLevel);
   const allowedByMembership = MEMBERSHIP_ALLOWED[level] ?? [];
-  if (!allowedByMembership.includes(assessmentId)) {
+  if (!allowedByMembership.includes(id)) {
     return {
       locked: true,
       reason: 'membership',
-      requiredMembershipLevel: minMembershipLevelForAssessment(assessmentId),
+      requiredMembershipLevel: minMembershipLevelForAssessment(id),
     };
   }
 
-  const byId = new Map(assessments.map((a) => [a.id, a]));
-  const prereqs = COMPLETION_PREREQUISITES[assessmentId] ?? [];
+  const byId = new Map(assessments.map((a) => [canonicalAssessmentId(a.id), a]));
+  const prereqs = COMPLETION_PREREQUISITES[id] ?? [];
   for (const prereq of prereqs) {
-    const prereqProgress = progress[prereq];
+    const prereqProgress =
+      progress[prereq] ??
+      progress[canonicalAssessmentId(prereq)] ??
+      (prereq === 'analytical_reasoning'
+        ? progress[LEGACY_ANALYTICAL_REASONING_ASSESSMENT_ID]
+        : undefined);
     const prereqAss = byId.get(prereq);
     const prereqMaxTiers = maxTiersForAssessment(prereq, prereqAss?.tiers?.length);
     const passed = examSequencePrereqMet(
-      assessmentId,
+      id,
       prereq,
       prereqProgress,
       prereqMaxTiers,
