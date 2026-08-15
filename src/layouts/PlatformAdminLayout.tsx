@@ -22,7 +22,6 @@ import {
   AdminPanelSettings as AdminsIcon,
   Insights as AnalyticsIcon,
   ReportProblem as QuestionReportsIcon,
-  ScienceOutlined as TestResultsIcon,
   ExpandLess,
   ExpandMore,
   FactCheckOutlined as OfficialExamsIcon,
@@ -96,12 +95,6 @@ const QUESTION_REPORTS_NAV_ITEM: NavItem = {
   icon: <QuestionReportsIcon sx={{ color: '#c2410c', fontSize: SIDEBAR_ICON_SIZE }} />,
 };
 
-const TEST_RESULTS_NAV_ITEM: NavItem = {
-  title: 'Test Results',
-  path: '/platform-admin/test-results',
-  icon: <TestResultsIcon sx={{ color: '#0f766e', fontSize: SIDEBAR_ICON_SIZE }} />,
-};
-
 const BASE_NAV_ITEMS: NavItem[] = [
   { title: 'Schools', path: '/platform-admin/schools', icon: <SchoolIcon sx={{ color: '#059669', fontSize: SIDEBAR_ICON_SIZE }} /> },
   { title: 'Students', path: '/platform-admin/students', icon: <PeopleIcon sx={{ color: '#64748b', fontSize: SIDEBAR_ICON_SIZE }} /> },
@@ -138,7 +131,6 @@ export default function PlatformAdminLayout({ children }: PlatformAdminLayoutPro
     const mid: NavItem[] = [];
     if (canAccessPlatformAdminAnalytics(userEmail)) mid.push(ANALYTICS_NAV_ITEM);
     if (canAccessPlatformAdminQuestionReports(userEmail)) mid.push(QUESTION_REPORTS_NAV_ITEM);
-    if (canAccessPlatformAdminAnalytics(userEmail)) mid.push(TEST_RESULTS_NAV_ITEM);
     const base = [
       BASE_NAV_ITEMS[0],
       BASE_NAV_ITEMS[1],

@@ -5,8 +5,8 @@
 
 export const ANALYTICAL_REASONING_ASSESSMENT_ID = 'analytical_reasoning';
 
-/** Legacy id still present in bookmarks and historical payloads. */
-export const LEGACY_ANALYTICAL_REASONING_ASSESSMENT_ID = ['symb', 'olic_reasoning'].join('');
+/** Legacy id still present in bookmarks, Firestore banks, and historical payloads. */
+export const LEGACY_ANALYTICAL_REASONING_ASSESSMENT_ID = 'symbolic_reasoning';
 
 const LEGACY_TO_CANONICAL: Record<string, string> = {
   [LEGACY_ANALYTICAL_REASONING_ASSESSMENT_ID]: ANALYTICAL_REASONING_ASSESSMENT_ID,
@@ -57,6 +57,22 @@ export function canonicalizeProgressMap(
       ...modernObj,
     };
     delete out[LEGACY_ANALYTICAL_REASONING_ASSESSMENT_ID];
+  }
+  return out;
+}
+
+/**
+ * Rewrite assessment config rows so UI always keys off canonical ids.
+ * Dedupes if both legacy and modern Exam 1 entries are present.
+ */
+export function canonicalizeAssessmentList<T extends { id: string }>(assessments: T[]): T[] {
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const a of assessments) {
+    const id = canonicalAssessmentId(a.id);
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push(id === a.id ? a : { ...a, id });
   }
   return out;
 }

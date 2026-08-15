@@ -4,6 +4,7 @@
  */
 
 import { ASSESSMENT_NAMES, LEVEL_CLEAR_THRESHOLD_PERCENT } from '../utils/assessmentGating';
+import { canonicalAssessmentId } from '../utils/assessmentIdCompat';
 
 export type AssessmentThemeMode = 'blue' | 'purple';
 
@@ -308,7 +309,8 @@ const DEFAULT_FLOW: AssessmentFlowDefinition = {
 };
 
 export function getAssessmentFlowDefinition(assessmentId: string): AssessmentFlowDefinition {
-  return ASSESSMENT_FLOW_UI[assessmentId] ?? { ...DEFAULT_FLOW, examTitleShort: ASSESSMENT_NAMES[assessmentId] ?? 'Assessment' };
+  const id = canonicalAssessmentId(assessmentId);
+  return ASSESSMENT_FLOW_UI[id] ?? { ...DEFAULT_FLOW, examTitleShort: ASSESSMENT_NAMES[id] ?? 'Assessment' };
 }
 
 /** @deprecated Do not use for UI - invents a fake “percentile” from raw score. National percentiles come from the Monday pipeline. */
@@ -334,7 +336,8 @@ export function unlockedItemsAfterAttempt(params: {
   nextTier: number | null | undefined;
 }): string[] {
   const { assessmentId, completedTier, passed, nextTier } = params;
-  const name = ASSESSMENT_NAMES[assessmentId] ?? assessmentId;
+  const id = canonicalAssessmentId(assessmentId);
+  const name = ASSESSMENT_NAMES[id] ?? id;
   const items: string[] = [];
 
   if (passed && nextTier != null) {
@@ -342,10 +345,10 @@ export function unlockedItemsAfterAttempt(params: {
   }
 
   // Competitive sequence: finishing Analytical L1 unlocks Verbal L1 (attempt also unlocks Verbal).
-  if (assessmentId === 'analytical_reasoning' && completedTier === 1) {
+  if (id === 'analytical_reasoning' && completedTier === 1) {
     items.push(`${ASSESSMENT_NAMES.verbal_reasoning} Level 1`);
   }
-  if (assessmentId === 'verbal_reasoning' && completedTier === 1) {
+  if (id === 'verbal_reasoning' && completedTier === 1) {
     items.push(`${ASSESSMENT_NAMES.mathematical_reasoning} Level 1`);
   }
 

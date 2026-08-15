@@ -14,7 +14,6 @@ import {
 import { type AssessmentType, type AttemptRecord } from '../../db/assessmentCollection';
 import { useAssessmentConfig, useStudentAssessments } from '../../query/hooks';
 import {
-  ASSESSMENT_NAMES,
   assessmentDisplayName,
   EXAM_MAX_SCORE_POINTS,
   isLevelBasedAssessment,
@@ -22,6 +21,7 @@ import {
 } from '../../utils/assessmentGating';
 import { timestampToMillis } from '../../utils/examAttemptCooldown';
 import { displayExamCoinsAwarded } from '../../utils/gamification';
+import { canonicalAssessmentId } from '../../utils/assessmentIdCompat';
 
 interface AssessmentAttemptHistorySectionProps {
   uid?: string;
@@ -104,7 +104,8 @@ const AssessmentAttemptHistorySection: React.FC<AssessmentAttemptHistorySectionP
   const assessmentNameById = useMemo(() => {
     const map = new Map<string, string>();
     assessments.forEach((assessment) => {
-      map.set(assessment.id, assessmentDisplayName(assessment.id, assessment.name));
+      const id = canonicalAssessmentId(assessment.id);
+      map.set(id, assessmentDisplayName(id, assessment.name));
     });
     return map;
   }, [assessments]);
@@ -192,7 +193,8 @@ const AssessmentAttemptHistorySection: React.FC<AssessmentAttemptHistorySectionP
                   <TableRow key={rowKey} sx={{ '& td': { borderColor: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.88)' } }}>
                     <TableCell>{formatAttemptDate(attempt)}</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>
-                      {assessmentNameById.get(attempt.assessment_id) ?? ASSESSMENT_NAMES[attempt.assessment_id] ?? attempt.assessment_id}
+                      {assessmentNameById.get(canonicalAssessmentId(attempt.assessment_id)) ??
+                        assessmentDisplayName(attempt.assessment_id)}
                     </TableCell>
                     <TableCell>{level}</TableCell>
                     <TableCell>

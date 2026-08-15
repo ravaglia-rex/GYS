@@ -33,6 +33,12 @@ import {
 import { PlatformAdminPageHeader } from './platformAdminComponents';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import { ExamQuestionStimulus } from '../../components/assessment/ExamQuestionBody';
+import {
+  ExamMarkdown,
+  ExamRichPrompt,
+  looksLikeExamMarkdown,
+  shouldRenderStructuredStimulus,
+} from '../../components/assessment/ExamMarkdown';
 import type { ExamQuestion } from '../../db/assessmentCollection';
 
 function toExamQuestionForStimulus(q: TestDayQuestionRow): ExamQuestion {
@@ -278,11 +284,15 @@ const PlatformAdminTestResultsPage: React.FC = () => {
                             ? ` · ${[q.family, q.subconstruct].filter(Boolean).join(' · ')}`
                             : ''}
                         </Typography>
-                        <Typography sx={{ color: ip.heading, fontSize: 14, mb: 1, lineHeight: 1.45 }}>
-                          {q.prompt}
-                        </Typography>
-                        {q.stimulus != null ? (
-                          <Box sx={{ mb: 1.25, maxWidth: 560 }}>
+                        <Box sx={{ mb: 1.25 }}>
+                          <ExamRichPrompt
+                            prompt={q.prompt || ''}
+                            stimulus={q.stimulus}
+                            stimulusType={q.stimulus_type}
+                          />
+                        </Box>
+                        {shouldRenderStructuredStimulus(q.stimulus, q.stimulus_type) ? (
+                          <Box sx={{ mb: 1.25 }}>
                             <ExamQuestionStimulus
                               q={toExamQuestionForStimulus(q)}
                               border="#cbd5e1"
@@ -332,17 +342,23 @@ const PlatformAdminTestResultsPage: React.FC = () => {
                                   >
                                     {opt.letter}.
                                   </Typography>
-                                  <Typography
-                                    sx={{
-                                      color: ip.heading,
-                                      fontSize: 18,
-                                      lineHeight: 1.35,
-                                      flex: 1,
-                                      letterSpacing: '0.04em',
-                                    }}
-                                  >
-                                    {opt.text}
-                                  </Typography>
+                                  {looksLikeExamMarkdown(opt.text) ? (
+                                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                                      <ExamMarkdown compact>{opt.text}</ExamMarkdown>
+                                    </Box>
+                                  ) : (
+                                    <Typography
+                                      sx={{
+                                        color: ip.heading,
+                                        fontSize: 18,
+                                        lineHeight: 1.35,
+                                        flex: 1,
+                                        letterSpacing: '0.04em',
+                                      }}
+                                    >
+                                      {opt.text}
+                                    </Typography>
+                                  )}
                                   {picked && (
                                     <Typography
                                       sx={{

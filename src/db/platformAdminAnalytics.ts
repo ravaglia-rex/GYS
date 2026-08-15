@@ -289,7 +289,8 @@ export async function getPlatformAdminTopCoins(
   limit = 10,
   opts?: { refresh?: boolean }
 ): Promise<{
-  students: TopCoinsStudentRow[];
+  by_balance: TopCoinsStudentRow[];
+  by_lifetime: TopCoinsStudentRow[];
   generated_at: string;
 }> {
   const headers = await authHeaders();
@@ -297,8 +298,15 @@ export async function getPlatformAdminTopCoins(
     `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_TOP_COINS}`,
     { headers, params: { limit, ...refreshParams(opts?.refresh) } }
   );
+  const byBalance = Array.isArray(res.data.by_balance)
+    ? res.data.by_balance
+    : Array.isArray(res.data.students)
+      ? res.data.students
+      : [];
+  const byLifetime = Array.isArray(res.data.by_lifetime) ? res.data.by_lifetime : [];
   return {
-    students: Array.isArray(res.data.students) ? res.data.students : [],
+    by_balance: byBalance,
+    by_lifetime: byLifetime,
     generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
   };
 }

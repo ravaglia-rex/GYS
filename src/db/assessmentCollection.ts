@@ -11,6 +11,7 @@ import {
   REPORT_QUESTION_PROBLEM,
 } from '../constants/constants';
 import authTokenHandler from '../functions/auth_token/auth_token_handler';
+import { canonicalizeAssessmentList } from '../utils/assessmentIdCompat';
 
 export interface AssessmentTier {
   id: string;
@@ -157,7 +158,8 @@ export const getAssessmentConfig = async (): Promise<AssessmentType[]> => {
       'Assessment config response was not a list. Ensure Firestore app_config/assessment_types exists and the API is deployed.'
     );
   }
-  return data;
+  // Stale Redis / Firestore may still return legacy Exam 1 id; UI keys are analytical_reasoning.
+  return canonicalizeAssessmentList(data as AssessmentType[]);
 };
 
 // ─── Auth-required ────────────────────────────────────────────────────────────

@@ -46,6 +46,7 @@ import {
   canStartOfficialAssessment,
 } from '../../utils/officialStudentAssessmentsAccess';
 import { formatCooldownDate, nextEligibleAtMsForLevel } from '../../utils/examAttemptCooldown';
+import { assessmentIdsEqual, canonicalAssessmentId, canonicalizeProgressMap, readAssessmentProgress } from '../../utils/assessmentIdCompat';
 
 const EXAM_TOTAL = 7;
 
@@ -74,7 +75,8 @@ function BeforeBeginIcon({ k }: { k: BeforeBeginIconKey }) {
 }
 
 const AssessmentDetailPage: React.FC = () => {
-  const { assessmentId, tierNumber } = useParams<{ assessmentId: string; tierNumber: string }>();
+  const { assessmentId: assessmentIdParam, tierNumber } = useParams<{ assessmentId: string; tierNumber: string }>();
+  const assessmentId = assessmentIdParam ? canonicalAssessmentId(assessmentIdParam) : undefined;
   const navigate = useNavigate();
   const uid = auth.currentUser?.uid ?? '';
   const tier = parseInt(tierNumber ?? '1', 10);
@@ -101,7 +103,7 @@ const AssessmentDetailPage: React.FC = () => {
     studentIsError || configIsError ? 'Could not load assessment details.' : null;
 
   const membershipLevel = membershipLevelForAssessmentGate(student);
-  const progressMap = (student?.assessment_progress ?? {}) as Record<
+  const progressMap = canonicalizeProgressMap(student?.assessment_progress ?? {}) as Record<
     string,
     typeof defaultAssessmentProgress
   >;
@@ -116,7 +118,8 @@ const AssessmentDetailPage: React.FC = () => {
   }, [studentIsError, configIsError, studentErrorObj, configErrorObj]);
 
   const assessment = useMemo(
-    () => assessmentTypes.find((a) => a.id === assessmentId),
+    () =>
+      assessmentTypes.find((a) => assessmentId != null && assessmentIdsEqual(a.id, assessmentId)),
     [assessmentTypes, assessmentId]
   );
   const tierConfig = useMemo(
@@ -129,7 +132,12 @@ const AssessmentDetailPage: React.FC = () => {
     ? computeGate(assessmentId, membershipLevel, progressMap as any, studentGrade, assessmentTypes)
     : { locked: true, reason: 'membership' as const, requiredMembershipLevel: 3 };
 
-  const progressForAssessment = assessmentId ? progressMap[assessmentId] ?? defaultAssessmentProgress : defaultAssessmentProgress;
+  const progressForAssessment = assessmentId
+    ? {
+        ...defaultAssessmentProgress,
+        ...(readAssessmentProgress(progressMap, assessmentId) as Partial<typeof defaultAssessmentProgress>),
+      }
+    : defaultAssessmentProgress;
   const maxTierCount = levelBased ? assessment?.tiers?.length ?? 1 : 0;
   const tierAttemptAllowed =
     !!assessment && (!levelBased || canAttemptTier(progressForAssessment, tier, maxTierCount));

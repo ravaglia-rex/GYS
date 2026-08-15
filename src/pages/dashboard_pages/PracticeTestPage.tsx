@@ -9,6 +9,7 @@ import { StudentProfileError } from '../../db/studentCollection';
 import type { AssessmentType } from '../../db/assessmentCollection';
 import PracticeModeContent, { type PracticeUnlockContext } from '../../components/practice/PracticeModeContent';
 import { ASSESSMENT_ORDER, membershipLevelForAssessmentGate, type AssessmentProgress } from '../../utils/assessmentGating';
+import { canonicalAssessmentId, canonicalizeProgressMap } from '../../utils/assessmentIdCompat';
 import { hasFullPracticeUnlock } from '../../utils/practiceAssessmentsAccess';
 import BigSpinner from '../../components/ui/BigSpinner';
 import PageTutorial from '../../components/tutorial/PageTutorial';
@@ -71,14 +72,20 @@ const PracticeTestPage: React.FC = () => {
     if (!config || config.length === 0) return undefined;
     const officialTierCountByExam: Record<string, number> = {};
     for (const a of config) {
-      officialTierCountByExam[a.id] = a.tiers?.length ?? 0;
+      officialTierCountByExam[canonicalAssessmentId(a.id)] = a.tiers?.length ?? 0;
     }
     const sorted: AssessmentType[] = [...config].sort((a, b) => {
-      const ia = ASSESSMENT_ORDER.indexOf(a.id as (typeof ASSESSMENT_ORDER)[number]);
-      const ib = ASSESSMENT_ORDER.indexOf(b.id as (typeof ASSESSMENT_ORDER)[number]);
+      const ia = ASSESSMENT_ORDER.indexOf(
+        canonicalAssessmentId(a.id) as (typeof ASSESSMENT_ORDER)[number]
+      );
+      const ib = ASSESSMENT_ORDER.indexOf(
+        canonicalAssessmentId(b.id) as (typeof ASSESSMENT_ORDER)[number]
+      );
       return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
     });
-    const progress = (student?.assessment_progress ?? {}) as Record<string, AssessmentProgress>;
+    const progress = canonicalizeProgressMap(
+      (student?.assessment_progress ?? {}) as Record<string, unknown>
+    ) as Record<string, AssessmentProgress>;
     const membershipLevel = membershipLevelForAssessmentGate(student ?? {});
     const fullUnlock = hasFullPracticeUnlock(student?.school_id);
     return {

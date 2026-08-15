@@ -24,6 +24,7 @@ import {
   canAccessOfficialStudentAssessments,
   canStartOfficialAssessment,
 } from '../../utils/officialStudentAssessmentsAccess';
+import { canonicalAssessmentId, readAssessmentProgress } from '../../utils/assessmentIdCompat';
 import type {
   CompletedAssessmentNotificationSource,
   DashboardNotificationEventSource,
@@ -92,8 +93,12 @@ const Dashboard: React.FC = () => {
       typeof student?.grade === 'number' && !Number.isNaN(student.grade) ? student.grade : 8;
 
     const sorted = [...configFromBackend].sort((a, b) => {
-      const ia = ASSESSMENT_ORDER.indexOf(a.id as (typeof ASSESSMENT_ORDER)[number]);
-      const ib = ASSESSMENT_ORDER.indexOf(b.id as (typeof ASSESSMENT_ORDER)[number]);
+      const ia = ASSESSMENT_ORDER.indexOf(
+        canonicalAssessmentId(a.id) as (typeof ASSESSMENT_ORDER)[number]
+      );
+      const ib = ASSESSMENT_ORDER.indexOf(
+        canonicalAssessmentId(b.id) as (typeof ASSESSMENT_ORDER)[number]
+      );
       return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
     });
 
@@ -103,7 +108,10 @@ const Dashboard: React.FC = () => {
     const unlockedForNotifications: UnlockedAssessmentNotificationSource[] = [];
 
     for (const a of sorted) {
-      const p = progress[a.id] ?? defaultAssessmentProgress;
+      const p = {
+        ...defaultAssessmentProgress,
+        ...(readAssessmentProgress(progress, a.id) as Partial<AssessmentProgress>),
+      };
       const gate = computeGate(a.id, membershipLevel, progress, studentGrade, sorted);
       const done = isAssessmentFullyComplete(a, p);
       if (done) {

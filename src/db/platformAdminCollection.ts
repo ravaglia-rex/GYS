@@ -1115,19 +1115,26 @@ export type PlatformAdminQuestionProblemReport = {
   school_id: string | null;
   school_name: string | null;
   attempt_id: string | null;
+  archived: boolean;
+  archived_at: string | null;
+  archived_by: string;
 };
 
 export async function listPlatformAdminQuestionProblemReports(options?: {
   limit?: number;
   source?: 'all' | 'official' | 'practice';
+  status?: 'open' | 'archived' | 'all';
 }): Promise<{
   reports: PlatformAdminQuestionProblemReport[];
   official_count: number;
   practice_count: number;
+  open_count: number;
+  archived_count: number;
 }> {
   const params = new URLSearchParams();
   if (options?.limit != null) params.set('limit', String(options.limit));
   if (options?.source && options.source !== 'all') params.set('source', options.source);
+  if (options?.status) params.set('status', options.status);
   const qs = params.toString();
   const res = await withAuthRetry((headers) =>
     axios.get(
@@ -1140,7 +1147,23 @@ export async function listPlatformAdminQuestionProblemReports(options?: {
     reports: Array.isArray(data.reports) ? data.reports : [],
     official_count: typeof data.official_count === 'number' ? data.official_count : 0,
     practice_count: typeof data.practice_count === 'number' ? data.practice_count : 0,
+    open_count: typeof data.open_count === 'number' ? data.open_count : 0,
+    archived_count: typeof data.archived_count === 'number' ? data.archived_count : 0,
   };
+}
+
+export async function setPlatformAdminQuestionProblemReportArchived(opts: {
+  reportId: string;
+  archived: boolean;
+}): Promise<PlatformAdminQuestionProblemReport> {
+  const res = await withAuthRetry((headers) =>
+    axios.post(
+      `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_QUESTION_PROBLEM_REPORTS}/${encodeURIComponent(opts.reportId)}/archive`,
+      { archived: opts.archived },
+      { headers }
+    )
+  );
+  return res.data?.report as PlatformAdminQuestionProblemReport;
 }
 
 export type PlatformAdminQuestionProblemReportItem = {

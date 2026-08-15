@@ -3,7 +3,11 @@ import {
   countClearedTiersFromProgress,
   examSequencePrereqMet,
 } from './tierProgression';
-import { canonicalAssessmentId, LEGACY_ANALYTICAL_REASONING_ASSESSMENT_ID } from './assessmentIdCompat';
+import {
+  canonicalAssessmentId,
+  LEGACY_ANALYTICAL_REASONING_ASSESSMENT_ID,
+  ANALYTICAL_REASONING_ASSESSMENT_ID,
+} from './assessmentIdCompat';
 
 /**
  * Canonical assessment order for sorting and gating (wired assessment ids from Firestore).
@@ -122,7 +126,7 @@ export const NON_LEVEL_ASSESSMENT_IDS: ReadonlySet<string> = new Set([
 ]);
 
 export function isLevelBasedAssessment(assessmentId: string): boolean {
-  return !NON_LEVEL_ASSESSMENT_IDS.has(assessmentId);
+  return !NON_LEVEL_ASSESSMENT_IDS.has(canonicalAssessmentId(assessmentId));
 }
 
 /** Skill exams always have three difficulty levels (exams 4 and 7 are non-level). */
@@ -378,15 +382,20 @@ export function buildDashboardExamChartRows(
   studentGrade: number
 ): AssessmentChartRow[] {
   const sorted = [...assessments].sort((a, b) => {
-    const ia = ASSESSMENT_ORDER.indexOf(a.id as AssessmentId);
-    const ib = ASSESSMENT_ORDER.indexOf(b.id as AssessmentId);
+    const ia = ASSESSMENT_ORDER.indexOf(canonicalAssessmentId(a.id) as AssessmentId);
+    const ib = ASSESSMENT_ORDER.indexOf(canonicalAssessmentId(b.id) as AssessmentId);
     return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
   });
 
   return DASHBOARD_CHART_EXAM_IDS.map((id) => {
-    const a = sorted.find((x) => x.id === id);
+    const a = sorted.find((x) => canonicalAssessmentId(x.id) === id);
     const subject = chartExamDisplayName(id);
-    const p = progress[id] ?? defaultAssessmentProgress;
+    const p =
+      progress[id] ??
+      (id === ANALYTICAL_REASONING_ASSESSMENT_ID
+        ? progress[LEGACY_ANALYTICAL_REASONING_ASSESSMENT_ID]
+        : undefined) ??
+      defaultAssessmentProgress;
     const gate = a ? computeGate(id, membershipLevel, progress, studentGrade, sorted) : { locked: true as const };
     const picked = pickLatestOrBestAssessmentScore(p);
     const showBar = !!a && !gate.locked && picked != null;

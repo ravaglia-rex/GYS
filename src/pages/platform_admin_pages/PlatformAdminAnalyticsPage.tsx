@@ -8,6 +8,7 @@ import {
   CircularProgress,
   FormControl,
   InputLabel,
+  LinearProgress,
   MenuItem,
   Paper,
   Select,
@@ -30,6 +31,12 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ExamQuestionStimulus } from '../../components/assessment/ExamQuestionBody';
+import {
+  ExamMarkdown,
+  ExamRichPrompt,
+  looksLikeExamMarkdown,
+  shouldRenderStructuredStimulus,
+} from '../../components/assessment/ExamMarkdown';
 import type { ExamQuestion } from '../../db/assessmentCollection';
 import {
   Bar,
@@ -57,7 +64,6 @@ import {
   getPlatformAdminOfficialExamDetail,
   getPlatformAdminOfficialExamDrilldown,
   getPlatformAdminOfficialExamQuestionStats,
-  getPlatformAdminOfficialExamItemExposures,
   getPlatformAdminOfficialExamAbandons,
   getPlatformAdminOfficialExamSummaries,
   searchPlatformAdminOfficialExamCompletions,
@@ -75,7 +81,6 @@ import {
   type OfficialDailyStatRow,
   type OfficialExamDrilldown,
   type OfficialExamQuestionStats,
-  type OfficialExamItemExposures,
   type OfficialExamAbandons,
   type OfficialExamGradeRow,
   type OfficialExamLevelRow,
@@ -83,7 +88,6 @@ import {
   type OfficialExamSchoolRow,
   type OfficialExamSummaryRow,
   type OfficialExamAttemptDetail,
-  type OfficialQuestionStatRow,
   type OfficialQuestionTagType,
   type OfficialTagAggRow,
 } from '../../db/platformAdminAnalytics';
@@ -153,7 +157,14 @@ function shortOfficialExamLabel(label: string): string {
   return label.replace(/\s+Reasoning$/i, '').trim() || label;
 }
 
-function toStimulusExamQuestion(q: OfficialQuestionStatRow): ExamQuestion {
+function toStimulusExamQuestion(q: {
+  item_id: string;
+  prompt?: string;
+  prompt_preview?: string;
+  options?: Array<{ text: string }>;
+  stimulus?: unknown;
+  stimulus_type?: string | null;
+}): ExamQuestion {
   return {
     id: q.item_id,
     prompt: q.prompt || q.prompt_preview || '',
@@ -161,6 +172,63 @@ function toStimulusExamQuestion(q: OfficialQuestionStatRow): ExamQuestion {
     stimulus: q.stimulus,
     stimulus_type: q.stimulus_type ?? undefined,
   };
+}
+
+function AdminExamQuestionStem({
+  q,
+  emptyLabel,
+  maxHeight,
+}: {
+  q: {
+    item_id: string;
+    prompt?: string;
+    prompt_preview?: string;
+    options?: Array<{ text: string }>;
+    stimulus?: unknown;
+    stimulus_type?: string | null;
+  };
+  emptyLabel: string;
+  maxHeight?: number;
+}) {
+  return (
+    <>
+      <Box
+        sx={{
+          mb: 1.25,
+          ...(maxHeight ? { maxHeight, overflow: 'auto', pr: 0.5 } : {}),
+        }}
+      >
+        <ExamRichPrompt
+          prompt={q.prompt || q.prompt_preview || ''}
+          stimulus={q.stimulus}
+          stimulusType={q.stimulus_type}
+          emptyLabel={emptyLabel}
+        />
+      </Box>
+      {shouldRenderStructuredStimulus(q.stimulus, q.stimulus_type) ? (
+        <Box sx={{ mb: 1.25 }}>
+          <ExamQuestionStimulus
+            q={toStimulusExamQuestion(q)}
+            border="#cbd5e1"
+            variant="light"
+          />
+        </Box>
+      ) : null}
+    </>
+  );
+}
+
+function AdminExamOptionText({ text }: { text: string }) {
+  if (looksLikeExamMarkdown(text)) {
+    return (
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <ExamMarkdown compact>{text}</ExamMarkdown>
+      </Box>
+    );
+  }
+  return (
+    <Typography sx={{ fontSize: 13, color: ip.heading, flex: 1 }}>{text}</Typography>
+  );
 }
 
 const selectedTagRowSx = {
@@ -262,6 +330,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
   const [officialAttemptDetailLoading, setOfficialAttemptDetailLoading] = useState(false);
   const [officialAttemptDetailKey, setOfficialAttemptDetailKey] = useState<string | null>(null);
   const officialAttemptDetailReqRef = useRef(0);
+  const officialAttemptDetailPanelRef = useRef<HTMLDivElement | null>(null);
   const [officialGeneratedAt, setOfficialGeneratedAt] = useState('');
   const [officialIndexesBuilding, setOfficialIndexesBuilding] = useState(false);
   const [officialLoading, setOfficialLoading] = useState(false);
@@ -270,13 +339,10 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
   const [officialCompletionsLoading, setOfficialCompletionsLoading] = useState(false);
   const [officialError, setOfficialError] = useState<string | null>(null);
   const officialDetailReqRef = useRef(0);
+  const officialCompletionsReqRef = useRef(0);
   const officialDrillReqRef = useRef(0);
   const officialQuestionReqRef = useRef(0);
   const officialQuestionPanelRef = useRef<HTMLDivElement | null>(null);
-  const [itemExposures, setItemExposures] = useState<OfficialExamItemExposures | null>(null);
-  const [itemExposuresLoading, setItemExposuresLoading] = useState(false);
-  const [itemExposuresItemId, setItemExposuresItemId] = useState<string | null>(null);
-  const itemExposuresReqRef = useRef(0);
   const [officialAbandons, setOfficialAbandons] = useState<OfficialExamAbandons | null>(null);
   const [officialAbandonsLoading, setOfficialAbandonsLoading] = useState(false);
   const [officialAbandonLevel, setOfficialAbandonLevel] = useState<'all' | number>('all');
@@ -309,7 +375,8 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
   const [qodLoading, setQodLoading] = useState(false);
   const [qodError, setQodError] = useState<string | null>(null);
 
-  const [topCoins, setTopCoins] = useState<TopCoinsStudentRow[]>([]);
+  const [topCoinsByBalance, setTopCoinsByBalance] = useState<TopCoinsStudentRow[]>([]);
+  const [topCoinsByLifetime, setTopCoinsByLifetime] = useState<TopCoinsStudentRow[]>([]);
   const [coinsGeneratedAt, setCoinsGeneratedAt] = useState('');
   const [coinsLoading, setCoinsLoading] = useState(false);
   const [coinsError, setCoinsError] = useState<string | null>(null);
@@ -382,6 +449,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
   const searchOfficialCompletions = useCallback(
     async (examId: string) => {
       if (!examId) return;
+      const req = ++officialCompletionsReqRef.current;
       setOfficialCompletionsLoading(true);
       setOfficialError(null);
       try {
@@ -392,23 +460,27 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
           level: completionLevel === 'all' ? null : completionLevel,
           limit: completionLimit,
         });
+        if (req !== officialCompletionsReqRef.current) return;
         setOfficialRecent(data.results);
         setOfficialRecentMatched(data.matched);
         setOfficialRecentSearched(true);
         setOfficialAttemptDetail(null);
         setOfficialAttemptDetailKey(null);
       } catch (e: unknown) {
+        if (req !== officialCompletionsReqRef.current) return;
         const err = e as { response?: { data?: { error?: string } }; message?: string };
         setOfficialError(err?.response?.data?.error || err?.message || 'Failed to search completions');
         setOfficialRecent([]);
         setOfficialRecentMatched(0);
         setOfficialRecentSearched(true);
       } finally {
-        setOfficialCompletionsLoading(false);
+        if (req === officialCompletionsReqRef.current) setOfficialCompletionsLoading(false);
       }
     },
     [completionQ, completionFrom, completionTo, completionLevel, completionLimit]
   );
+  const searchOfficialCompletionsRef = useRef(searchOfficialCompletions);
+  searchOfficialCompletionsRef.current = searchOfficialCompletions;
 
   const loadOfficialDrilldown = useCallback(
     async (examId: string, level: 'all' | number, opts?: { refresh?: boolean }) => {
@@ -418,8 +490,6 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
       setOfficialDrilldown(null);
       setOfficialQuestionSelection(null);
       setOfficialQuestionStats(null);
-      setItemExposures(null);
-      setItemExposuresItemId(null);
       try {
         const data = await getPlatformAdminOfficialExamDrilldown(examId, {
           level: level === 'all' ? null : level,
@@ -483,35 +553,6 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     []
   );
 
-  const loadOfficialItemExposures = useCallback(
-    async (examId: string, itemId: string, level: 'all' | number, opts?: { refresh?: boolean }) => {
-      if (!examId || !itemId) return;
-      const req = ++itemExposuresReqRef.current;
-      setItemExposuresItemId(itemId);
-      setItemExposuresLoading(true);
-      setItemExposures(null);
-      try {
-        const data = await getPlatformAdminOfficialExamItemExposures(examId, {
-          itemId,
-          level: level === 'all' ? null : level,
-          refresh: opts?.refresh,
-        });
-        if (req !== itemExposuresReqRef.current) return;
-        setItemExposures(data);
-      } catch (e: unknown) {
-        if (req !== itemExposuresReqRef.current) return;
-        const err = e as { response?: { data?: { error?: string } }; message?: string };
-        setOfficialError(
-          err?.response?.data?.error || err?.message || 'Failed to load who saw this item'
-        );
-        setItemExposures(null);
-      } finally {
-        if (req === itemExposuresReqRef.current) setItemExposuresLoading(false);
-      }
-    },
-    []
-  );
-
   const loadOfficialAbandons = useCallback(
     async (examId: string, level: 'all' | number, opts?: { refresh?: boolean }) => {
       if (!examId) return;
@@ -540,13 +581,9 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
 
   const clearOfficialQuestionDrill = useCallback(() => {
     officialQuestionReqRef.current += 1;
-    itemExposuresReqRef.current += 1;
     setOfficialQuestionSelection(null);
     setOfficialQuestionStats(null);
     setOfficialQuestionLoading(false);
-    setItemExposures(null);
-    setItemExposuresItemId(null);
-    setItemExposuresLoading(false);
   }, []);
 
   const loadOfficialAttemptDetail = useCallback(
@@ -581,6 +618,11 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     },
     [officialAttemptDetailKey]
   );
+
+  useEffect(() => {
+    if (!officialAttemptDetailKey) return;
+    officialAttemptDetailPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [officialAttemptDetailKey, officialAttemptDetailLoading, officialAttemptDetail]);
 
   const renderOfficialTagTable = (
     tagType: OfficialQuestionTagType,
@@ -780,28 +822,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                             .join(' · ')}`
                         : ''}
                     </Typography>
-                    <Typography
-                      sx={{
-                        color: ip.heading,
-                        fontSize: 14,
-                        mb: 1,
-                        lineHeight: 1.45,
-                        whiteSpace: 'pre-wrap',
-                        maxHeight: 220,
-                        overflow: 'auto',
-                      }}
-                    >
-                      {q.prompt || q.prompt_preview || '(no prompt)'}
-                    </Typography>
-                    {q.stimulus != null && q.stimulus_type !== 'markdown' ? (
-                      <Box sx={{ mb: 1.25, maxWidth: 560 }}>
-                        <ExamQuestionStimulus
-                          q={toStimulusExamQuestion(q)}
-                          border="#cbd5e1"
-                          variant="light"
-                        />
-                      </Box>
-                    ) : null}
+                    <AdminExamQuestionStem q={q} emptyLabel="(no prompt)" maxHeight={420} />
                     {q.options.length > 0 ? (
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
                         {q.options.map((opt) => (
@@ -843,18 +864,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                             >
                               {opt.letter}.
                             </Typography>
-                            <Typography
-                              sx={{
-                                color: ip.heading,
-                                fontSize: 18,
-                                lineHeight: 1.35,
-                                flex: 1,
-                                letterSpacing: '0.04em',
-                                position: 'relative',
-                              }}
-                            >
-                              {opt.text || '(empty / image option)'}
-                            </Typography>
+                            <AdminExamOptionText text={opt.text || '(empty / image option)'} />
                             <Typography
                               sx={{
                                 fontWeight: 700,
@@ -875,75 +885,6 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                         (No option text on this item — often image-only.)
                       </Typography>
                     )}
-                    <Box sx={{ mt: 1.25, display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={() => {
-                          if (!selectedOfficialExamId) return;
-                          if (itemExposuresItemId === q.item_id) {
-                            setItemExposures(null);
-                            setItemExposuresItemId(null);
-                            return;
-                          }
-                          void loadOfficialItemExposures(
-                            selectedOfficialExamId,
-                            q.item_id,
-                            officialDrillLevel
-                          );
-                        }}
-                        sx={platformAdminOutlinedButtonSx}
-                      >
-                        {itemExposuresItemId === q.item_id ? 'Hide students' : 'Who saw this'}
-                      </Button>
-                    </Box>
-                    {itemExposuresItemId === q.item_id ? (
-                      <Box sx={{ mt: 1.25, border: '1px solid #e2e8f0', borderRadius: 1.5, p: 1.25, bgcolor: '#f8fafc' }}>
-                        {itemExposuresLoading ? (
-                          <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-                            <CircularProgress size={22} sx={{ color: ip.navy }} />
-                          </Box>
-                        ) : !itemExposures || itemExposures.students.length === 0 ? (
-                          <Typography variant="body2" sx={{ color: ip.subtext }}>
-                            No recent student exposures cached for this item (up to 40 most recent).
-                          </Typography>
-                        ) : (
-                          <TableContainer>
-                            <Table size="small" sx={platformAdminTableSx}>
-                              <TableHead>
-                                <TableRow sx={platformAdminTableHeadRowSx}>
-                                  <TableCell>Student</TableCell>
-                                  <TableCell>School</TableCell>
-                                  <TableCell align="right">Grade</TableCell>
-                                  <TableCell align="right">Result</TableCell>
-                                  <TableCell align="right">Time</TableCell>
-                                </TableRow>
-                              </TableHead>
-                              <TableBody>
-                                {itemExposures.students.map((s) => {
-                                  const name = `${s.first_name} ${s.last_name}`.trim() || s.email || s.uid;
-                                  return (
-                                    <TableRow key={`${s.uid}-${s.attempt_id}`}>
-                                      <TableCell sx={{ fontWeight: 600 }}>{name}</TableCell>
-                                      <TableCell>{s.school_name || '—'}</TableCell>
-                                      <TableCell align="right">{s.grade ?? '—'}</TableCell>
-                                      <TableCell align="right">
-                                        {s.is_correct == null ? '—' : s.is_correct ? 'Correct' : 'Incorrect'}
-                                      </TableCell>
-                                      <TableCell align="right">
-                                        {s.time_spent_ms != null
-                                          ? `${Math.round(s.time_spent_ms / 1000)}s`
-                                          : '—'}
-                                      </TableCell>
-                                    </TableRow>
-                                  );
-                                })}
-                              </TableBody>
-                            </Table>
-                          </TableContainer>
-                        )}
-                      </Box>
-                    ) : null}
                   </Box>
                 ))}
               </Box>
@@ -1079,7 +1020,8 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     setCoinsError(null);
     try {
       const coins = await getPlatformAdminTopCoins(10, { refresh: opts?.refresh });
-      setTopCoins(coins.students);
+      setTopCoinsByBalance(coins.by_balance);
+      setTopCoinsByLifetime(coins.by_lifetime);
       setCoinsGeneratedAt(coins.generated_at);
     } catch (e: unknown) {
       const err = e as { response?: { data?: { error?: string } }; message?: string };
@@ -1134,6 +1076,11 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
   }, [section, officialView, selectedOfficialExamId, officialAbandonLevel, loadOfficialAbandons]);
 
   useEffect(() => {
+    if (section !== 'official' || officialView !== 'completions' || !selectedOfficialExamId) return;
+    void searchOfficialCompletionsRef.current(selectedOfficialExamId);
+  }, [section, officialView, selectedOfficialExamId]);
+
+  useEffect(() => {
     if (section !== 'practice' || !selectedExamId) return;
     void loadPracticeDetail(selectedExamId);
   }, [section, selectedExamId, loadPracticeDetail]);
@@ -1144,7 +1091,8 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     officialDrillLoading ||
     officialCompletionsLoading ||
     officialAbandonsLoading ||
-    itemExposuresLoading ||
+    officialAttemptDetailLoading ||
+    officialQuestionLoading ||
     practiceLoading ||
     practiceMonthlyLoading ||
     practiceDetailLoading ||
@@ -1160,14 +1108,6 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
         void loadOfficialDrilldown(selectedOfficialExamId, officialDrillLevel, { refresh: true });
         if (officialView === 'abandons') {
           void loadOfficialAbandons(selectedOfficialExamId, officialAbandonLevel, { refresh: true });
-        }
-        if (itemExposuresItemId) {
-          void loadOfficialItemExposures(
-            selectedOfficialExamId,
-            itemExposuresItemId,
-            officialDrillLevel,
-            { refresh: true }
-          );
         }
         if (officialQuestionSelection) {
           void loadOfficialQuestionStats(
@@ -1228,6 +1168,13 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
       passRate: completed > 0 ? Math.round((1000 * passed) / completed) / 10 : 0,
     };
   }, [officialSummaries]);
+
+  const openOfficialTab = (view: OfficialView) => {
+    const top = [...officialSummaries].sort((a, b) => b.completed_attempts - a.completed_attempts)[0];
+    const examId = top?.exam_id || selectedOfficialExamId;
+    if (examId) setSelectedOfficialExamId(examId);
+    setOfficialView(view);
+  };
 
   const gradeChartData = useMemo(
     () =>
@@ -1343,6 +1290,18 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
         }
       />
 
+      {anyLoading ? (
+        <LinearProgress
+          sx={{
+            mb: 2,
+            height: 3,
+            borderRadius: 1,
+            bgcolor: 'rgba(16, 64, 139, 0.08)',
+            '& .MuiLinearProgress-bar': { bgcolor: ip.navy },
+          }}
+        />
+      ) : null}
+
       {section === 'official' && (
         <>
           {officialError && (
@@ -1362,7 +1321,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
           ) : (
             <>
               <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1.5 }}>
-                {staleHint(officialGeneratedAt)} · scores shown as % and points / 1000 · test accounts excluded
+                {staleHint(officialGeneratedAt)} · scores shown as % and points / 1000
               </Typography>
 
               <Tabs
@@ -1383,7 +1342,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
               {officialView === 'overview' && (
               <PlatformAdminAnalyticsSection
                 title="Overview"
-                subtitle="Platform-wide official exam totals and daily completion trends (IST)."
+                subtitle="Platform-wide official exam totals and daily completion trends (IST). Click a card to open the matching tab."
                 accent="navy"
               >
                 <Box sx={{ ...platformAdminStatsGridSx, mb: 2.5 }}>
@@ -1392,24 +1351,28 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                     value={officialTotals.completed.toLocaleString()}
                     icon={<CorrectIcon sx={{ color: '#059669' }} />}
                     accent="#059669"
+                    onClick={() => openOfficialTab('completions')}
                   />
                   <PlatformAdminStatCard
                     title="Students"
                     value={officialTotals.students.toLocaleString()}
                     icon={<PeopleIcon sx={{ color: '#0f766e' }} />}
                     accent="#0f766e"
+                    onClick={() => openOfficialTab('grade-school')}
                   />
                   <PlatformAdminStatCard
                     title="Avg score"
                     value={`${officialTotals.avgScore}%`}
                     icon={<TimelineIcon sx={{ color: '#b45309' }} />}
                     accent="#b45309"
+                    onClick={() => openOfficialTab('exam-snapshots')}
                   />
                   <PlatformAdminStatCard
                     title="Pass rate"
                     value={`${officialTotals.passRate}%`}
                     icon={<QuizIcon sx={{ color: '#0d47a1' }} />}
                     accent="#0d47a1"
+                    onClick={() => openOfficialTab('exam-snapshots')}
                   />
                 </Box>
                 <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.75 }}>
@@ -2040,7 +2003,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
               {officialView === 'completions' && (
               <PlatformAdminAnalyticsSection
                 title="Search completions"
-                subtitle="On-demand only — not loaded until you search. Click a row for per-question strand / family / band / answer detail."
+                subtitle="Loads when you open this tab. Use filters and Search to refine. Click a student to open their full exam paper (questions, choices, and answers) for that level."
                 accent="violet"
               >
                   <Box sx={{ ...platformAdminFilterToolbarRowSx, mb: 2 }}>
@@ -2150,20 +2113,38 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                       onClick={() => {
                         if (selectedOfficialExamId) void searchOfficialCompletions(selectedOfficialExamId);
                       }}
+                      startIcon={
+                        officialCompletionsLoading ? (
+                          <CircularProgress size={16} color="inherit" />
+                        ) : undefined
+                      }
                       sx={platformAdminOutlinedButtonSx}
                     >
                       {officialCompletionsLoading ? 'Searching…' : 'Search'}
                     </Button>
                   </Box>
 
-                  {!officialRecentSearched ? (
-                    <Typography variant="body2" sx={{ color: ip.subtext, py: 2 }}>
-                      Set filters and click Search to load completions.
-                    </Typography>
-                  ) : officialCompletionsLoading ? (
-                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                  {officialCompletionsLoading ||
+                  (Boolean(selectedOfficialExamId) && !officialRecentSearched) ? (
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 1.25,
+                        py: 6,
+                      }}
+                    >
                       <CircularProgress size={28} sx={{ color: ip.navy }} />
+                      <Typography variant="body2" sx={{ color: ip.subtext }}>
+                        Loading completions…
+                      </Typography>
                     </Box>
+                  ) : !officialRecentSearched ? (
+                    <Typography variant="body2" sx={{ color: ip.subtext, py: 2 }}>
+                      Select an exam, then click Search to load completions.
+                    </Typography>
                   ) : (
                     <>
                       <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1 }}>
@@ -2193,9 +2174,10 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                               officialRecent.map((row) => {
                                 const key = `${row.uid}::${row.attempt_id}`;
                                 const selected = officialAttemptDetailKey === key;
+                                const sameStudentSits = officialRecent.filter((r) => r.uid === row.uid);
                                 return (
+                                  <React.Fragment key={row.attempt_id}>
                                   <TableRow
-                                    key={row.attempt_id}
                                     hover
                                     onClick={() => {
                                       if (!selectedOfficialExamId) return;
@@ -2208,8 +2190,18 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                                     {selected ? ' · open' : ''}
                                   </TableCell>
                                   <TableCell sx={{ fontWeight: 600 }}>
-                                    {[row.first_name, row.last_name].filter(Boolean).join(' ') ||
-                                      row.email}
+                                    <Typography
+                                      component="span"
+                                      sx={{
+                                        color: ip.navy,
+                                        fontWeight: 700,
+                                        textDecoration: 'underline',
+                                        textUnderlineOffset: '3px',
+                                      }}
+                                    >
+                                      {[row.first_name, row.last_name].filter(Boolean).join(' ') ||
+                                        row.email}
+                                    </Typography>
                                     <Typography
                                       variant="caption"
                                       sx={{ display: 'block', color: ip.subtext }}
@@ -2245,146 +2237,227 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                                     />
                                   </TableCell>
                                 </TableRow>
+                                {selected ? (
+                                  <TableRow>
+                                    <TableCell
+                                      colSpan={6}
+                                      sx={{ p: 0, bgcolor: '#f8fafc', verticalAlign: 'top' }}
+                                    >
+                                      <Box ref={officialAttemptDetailPanelRef} sx={{ p: 2 }}>
+                                        {sameStudentSits.length > 1 ? (
+                                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1.5 }}>
+                                            {sameStudentSits.map((sit) => {
+                                              const sitKey = `${sit.uid}::${sit.attempt_id}`;
+                                              const sitOpen = officialAttemptDetailKey === sitKey;
+                                              return (
+                                                <Button
+                                                  key={sit.attempt_id}
+                                                  size="small"
+                                                  variant={sitOpen ? 'contained' : 'outlined'}
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (!selectedOfficialExamId) return;
+                                                    void loadOfficialAttemptDetail(selectedOfficialExamId, sit);
+                                                  }}
+                                                  sx={{
+                                                    ...platformAdminOutlinedButtonSx,
+                                                    textTransform: 'none',
+                                                    ...(sitOpen
+                                                      ? {
+                                                          bgcolor: ip.navy,
+                                                          color: '#fff',
+                                                          '&:hover': { bgcolor: ip.navy },
+                                                        }
+                                                      : {}),
+                                                  }}
+                                                >
+                                                  Level {sit.proficiency_tier ?? '—'}
+                                                  {sit.score_pct != null ? ` · ${sit.score_pct}%` : ''}
+                                                </Button>
+                                              );
+                                            })}
+                                          </Box>
+                                        ) : null}
+                                        {officialAttemptDetailLoading ? (
+                                          <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+                                            <CircularProgress size={28} sx={{ color: ip.navy }} />
+                                          </Box>
+                                        ) : officialAttemptDetail ? (
+                                          <Box>
+                                            <Box
+                                              sx={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                gap: 1,
+                                                flexWrap: 'wrap',
+                                                mb: 1.5,
+                                              }}
+                                            >
+                                              <Box>
+                                                <Typography sx={{ fontWeight: 800, color: ip.heading, fontSize: 15 }}>
+                                                  Level {officialAttemptDetail.proficiency_tier ?? '—'} exam ·{' '}
+                                                  {officialAttemptDetail.questions.length} questions
+                                                </Typography>
+                                                <Typography variant="caption" sx={{ color: ip.subtext }}>
+                                                  {officialAttemptDetail.scoring_mode || 'scoring unknown'}
+                                                  {officialAttemptDetail.score_pct != null
+                                                    ? ` · ${officialAttemptDetail.score_pct}% (${officialAttemptDetail.score_points}/1000)`
+                                                    : ''}
+                                                </Typography>
+                                              </Box>
+                                              <Button
+                                                size="small"
+                                                startIcon={<ArrowBackIcon />}
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setOfficialAttemptDetail(null);
+                                                  setOfficialAttemptDetailKey(null);
+                                                }}
+                                                sx={platformAdminOutlinedButtonSx}
+                                              >
+                                                Close
+                                              </Button>
+                                            </Box>
+                                            {officialAttemptDetail.questions.length === 0 ? (
+                                              <Typography variant="body2" sx={{ color: ip.subtext }}>
+                                                This attempt has no stored question queue, so the paper cannot be reconstructed.
+                                              </Typography>
+                                            ) : (
+                                              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                                                {officialAttemptDetail.questions.map((q) => (
+                                                  <Box
+                                                    key={`${officialAttemptDetail.attempt_id}-${q.index}-${q.item_id}`}
+                                                    sx={{
+                                                      bgcolor: '#fff',
+                                                      border: '1px solid #e2e8f0',
+                                                      borderRadius: 1.5,
+                                                      p: 1.75,
+                                                    }}
+                                                  >
+                                                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 0.75 }}>
+                                                      <Typography sx={{ fontWeight: 800, color: ip.heading }}>
+                                                        Q{q.index}
+                                                      </Typography>
+                                                      <PlatformAdminChip
+                                                        label={
+                                                          q.is_correct == null
+                                                            ? 'ungraded'
+                                                            : q.is_correct
+                                                              ? 'correct'
+                                                              : 'incorrect'
+                                                        }
+                                                        tone={
+                                                          q.is_correct == null
+                                                            ? 'neutral'
+                                                            : q.is_correct
+                                                              ? 'success'
+                                                              : 'error'
+                                                        }
+                                                      />
+                                                      {q.time_spent_sec != null ? (
+                                                        <PlatformAdminChip
+                                                          label={`${q.time_spent_sec}s`}
+                                                          tone="info"
+                                                        />
+                                                      ) : null}
+                                                      {q.strand_label || q.strand ? (
+                                                        <PlatformAdminChip
+                                                          label={q.strand_label || q.strand || ''}
+                                                          tone="info"
+                                                        />
+                                                      ) : null}
+                                                      {q.instruction_family ? (
+                                                        <PlatformAdminChip
+                                                          label={
+                                                            q.instruction_family_label
+                                                              ? `${q.instruction_family} · ${q.instruction_family_label}`
+                                                              : q.instruction_family
+                                                          }
+                                                          tone="neutral"
+                                                        />
+                                                      ) : null}
+                                                      {q.band ? (
+                                                        <PlatformAdminChip label={q.band} tone="warning" />
+                                                      ) : null}
+                                                    </Box>
+                                                    <Typography sx={{ color: '#475569', fontSize: 12, mb: 0.5 }}>
+                                                      {q.item_id}
+                                                    </Typography>
+                                                    <AdminExamQuestionStem
+                                                      q={q}
+                                                      emptyLabel="(no prompt — bank item missing)"
+                                                    />
+                                                    {q.options.length > 0 ? (
+                                                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                                                        {q.options.map((opt, optIdx) => {
+                                                          const picked = q.selected_index === optIdx;
+                                                          const keyCorrect = q.correct_index === optIdx;
+                                                          return (
+                                                            <Box
+                                                              key={`${q.item_id}-${opt.letter}`}
+                                                              sx={{
+                                                                display: 'flex',
+                                                                gap: 1,
+                                                                alignItems: 'flex-start',
+                                                                px: 1.25,
+                                                                py: 0.85,
+                                                                borderRadius: 1,
+                                                                border: '1px solid',
+                                                                borderColor: keyCorrect
+                                                                  ? '#86efac'
+                                                                  : picked
+                                                                    ? '#fca5a5'
+                                                                    : '#e2e8f0',
+                                                                bgcolor: keyCorrect
+                                                                  ? '#f0fdf4'
+                                                                  : picked
+                                                                    ? '#fef2f2'
+                                                                    : '#fff',
+                                                              }}
+                                                            >
+                                                              <Typography sx={{ fontWeight: 800, minWidth: 18 }}>
+                                                                {opt.letter}
+                                                              </Typography>
+                                                              <AdminExamOptionText text={opt.text} />
+                                                              <Typography variant="caption" sx={{ color: ip.subtext }}>
+                                                                {keyCorrect && picked
+                                                                  ? 'correct · picked'
+                                                                  : keyCorrect
+                                                                    ? 'correct'
+                                                                    : picked
+                                                                      ? 'picked'
+                                                                      : ''}
+                                                              </Typography>
+                                                            </Box>
+                                                          );
+                                                        })}
+                                                      </Box>
+                                                    ) : (
+                                                      <Typography variant="caption" sx={{ color: ip.subtext }}>
+                                                        Picked {q.selected_letter} · key {q.correct_letter ?? '—'}
+                                                      </Typography>
+                                                    )}
+                                                  </Box>
+                                                ))}
+                                              </Box>
+                                            )}
+                                          </Box>
+                                        ) : (
+                                          <Typography variant="body2" sx={{ color: ip.subtext }}>
+                                            Could not load this exam paper. Try Refresh data, then click the student again.
+                                          </Typography>
+                                        )}
+                                      </Box>
+                                    </TableCell>
+                                  </TableRow>
+                                ) : null}
+                                  </React.Fragment>
                                 );
                               })
                             )}
                           </TableBody>
                         </Table>
                       </TableContainer>
-                      {officialAttemptDetailLoading ? (
-                        <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-                          <CircularProgress size={28} sx={{ color: ip.navy }} />
-                        </Box>
-                      ) : officialAttemptDetail ? (
-                        <Box
-                          sx={{
-                            mt: 2,
-                            borderRadius: 2,
-                            border: '1px solid #cbd5e1',
-                            borderLeft: `4px solid ${ip.navy}`,
-                            bgcolor: '#f8fafc',
-                            overflow: 'hidden',
-                          }}
-                        >
-                          <Box
-                            sx={{
-                              px: 2,
-                              py: 1.5,
-                              bgcolor: 'rgba(16, 64, 139, 0.06)',
-                              borderBottom: '1px solid #e2e8f0',
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              gap: 1,
-                              flexWrap: 'wrap',
-                            }}
-                          >
-                            <Box>
-                              <Typography sx={{ fontWeight: 800, color: ip.heading, fontSize: 15 }}>
-                                Attempt detail · {officialAttemptDetail.questions.length} questions
-                              </Typography>
-                              <Typography variant="caption" sx={{ color: ip.subtext }}>
-                                {officialAttemptDetail.scoring_mode || 'scoring unknown'}
-                                {officialAttemptDetail.score_pct != null
-                                  ? ` · ${officialAttemptDetail.score_pct}%`
-                                  : ''}
-                              </Typography>
-                            </Box>
-                            <Button
-                              size="small"
-                              startIcon={<ArrowBackIcon />}
-                              onClick={() => {
-                                setOfficialAttemptDetail(null);
-                                setOfficialAttemptDetailKey(null);
-                              }}
-                              sx={platformAdminOutlinedButtonSx}
-                            >
-                              Close
-                            </Button>
-                          </Box>
-                          <Box sx={{ px: 2, py: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                            {officialAttemptDetail.questions.map((q) => (
-                              <Box
-                                key={`${officialAttemptDetail.attempt_id}-${q.index}-${q.item_id}`}
-                                sx={{
-                                  bgcolor: '#fff',
-                                  border: '1px solid #e2e8f0',
-                                  borderRadius: 1.5,
-                                  p: 1.75,
-                                }}
-                              >
-                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 0.75 }}>
-                                  <Typography sx={{ fontWeight: 800, color: ip.heading }}>
-                                    Q{q.index}
-                                  </Typography>
-                                  <PlatformAdminChip
-                                    label={
-                                      q.is_correct == null
-                                        ? 'ungraded'
-                                        : q.is_correct
-                                          ? 'correct'
-                                          : 'incorrect'
-                                    }
-                                    tone={
-                                      q.is_correct == null
-                                        ? 'neutral'
-                                        : q.is_correct
-                                          ? 'success'
-                                          : 'error'
-                                    }
-                                  />
-                                  <PlatformAdminChip
-                                    label={`picked ${q.selected_letter}`}
-                                    tone="neutral"
-                                  />
-                                  <PlatformAdminChip
-                                    label={`key ${q.correct_letter ?? '—'}`}
-                                    tone="info"
-                                  />
-                                  {q.time_spent_sec != null ? (
-                                    <PlatformAdminChip
-                                      label={`${q.time_spent_sec}s`}
-                                      tone="info"
-                                    />
-                                  ) : null}
-                                  {q.strand_label || q.strand ? (
-                                    <PlatformAdminChip
-                                      label={q.strand_label || q.strand || ''}
-                                      tone="info"
-                                    />
-                                  ) : null}
-                                  {q.instruction_family ? (
-                                    <PlatformAdminChip
-                                      label={
-                                        q.instruction_family_label
-                                          ? `${q.instruction_family} · ${q.instruction_family_label}`
-                                          : q.instruction_family
-                                      }
-                                      tone="neutral"
-                                    />
-                                  ) : null}
-                                  {q.band ? (
-                                    <PlatformAdminChip label={q.band} tone="warning" />
-                                  ) : null}
-                                </Box>
-                                <Typography sx={{ color: '#475569', fontSize: 12, mb: 0.5 }}>
-                                  {q.item_id}
-                                </Typography>
-                                <Typography
-                                  sx={{
-                                    color: ip.heading,
-                                    fontSize: 13,
-                                    whiteSpace: 'pre-wrap',
-                                    maxHeight: 160,
-                                    overflow: 'auto',
-                                  }}
-                                >
-                                  {q.prompt_preview || q.prompt || '(no prompt — bank item missing)'}
-                                </Typography>
-                              </Box>
-                            ))}
-                          </Box>
-                        </Box>
-                      ) : null}
                     </>
                   )}
               </PlatformAdminAnalyticsSection>
@@ -2582,24 +2655,28 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                     value={(practiceDailyToday?.total_sessions ?? 0).toLocaleString()}
                     icon={<QuizIcon sx={{ color: '#2563eb' }} />}
                     accent="#2563eb"
+                    onClick={() => setPracticeView('by-exam')}
                   />
                   <PlatformAdminStatCard
                     title="Questions today"
                     value={(practiceDailyToday?.total_questions ?? 0).toLocaleString()}
                     icon={<CorrectIcon sx={{ color: '#059669' }} />}
                     accent="#059669"
+                    onClick={() => setPracticeView('by-exam')}
                   />
                   <PlatformAdminStatCard
                     title="30-day sessions"
                     value={practiceDailyTotals.sessions.toLocaleString()}
                     icon={<PeopleIcon sx={{ color: '#7c3aed' }} />}
                     accent="#7c3aed"
+                    onClick={() => setPracticeView('by-exam')}
                   />
                   <PlatformAdminStatCard
                     title="30-day accuracy"
                     value={`${practiceDailyTotals.accuracy}%`}
                     icon={<TimelineIcon sx={{ color: '#b45309' }} />}
                     accent="#b45309"
+                    onClick={() => setPracticeView('exam-detail')}
                   />
                 </Box>
                 <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 1.5 }}>
@@ -2962,27 +3039,29 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                     value={(qodToday?.total_answered ?? 0).toLocaleString()}
                     icon={<QuizIcon sx={{ color: '#2563eb' }} />}
                     accent="#2563eb"
+                    onClick={() => setQodView('top-students')}
                   />
                   <PlatformAdminStatCard
                     title="Correct today"
                     value={(qodToday?.total_correct ?? 0).toLocaleString()}
                     icon={<CorrectIcon sx={{ color: '#059669' }} />}
                     accent="#059669"
+                    onClick={() => setQodView('top-students')}
                   />
                   <PlatformAdminStatCard
                     title="30-day answers"
                     value={qodTotals.answered.toLocaleString()}
                     icon={<PeopleIcon sx={{ color: '#7c3aed' }} />}
                     accent="#7c3aed"
+                    onClick={() => setQodView('top-students')}
                   />
                   <PlatformAdminStatCard
                     title="30-day accuracy"
                     value={`${qodTotals.accuracy}%`}
                     icon={<TimelineIcon sx={{ color: '#b45309' }} />}
                     accent="#b45309"
+                    onClick={() => setQodView('top-students')}
                   />
-                </Box>
-                <Box sx={{ width: '100%', height: 320 }}>
                   <ResponsiveContainer>
                     <LineChart data={qodChartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -3116,55 +3195,102 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
             {staleHint(coinsGeneratedAt)}
           </Typography>
 
-          {coinsLoading && topCoins.length === 0 ? (
+          {coinsLoading && topCoinsByBalance.length === 0 && topCoinsByLifetime.length === 0 ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
               <CircularProgress sx={{ color: ip.navy }} />
             </Box>
           ) : (
-            <PlatformAdminAnalyticsSection
-              title="Top Argus Coins"
-              subtitle="Highest coin balances across students (balance vs lifetime earned)."
-              accent="amber"
-            >
-              <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
-                <Table size="small" sx={platformAdminTableSx}>
-                  <TableHead>
-                    <TableRow sx={platformAdminTableHeadRowSx}>
-                      <TableCell>#</TableCell>
-                      <TableCell>Student</TableCell>
-                      <TableCell>School</TableCell>
-                      <TableCell align="right">Balance</TableCell>
-                      <TableCell align="right">Lifetime</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {topCoins.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={5} align="center" sx={{ py: 3, color: ip.subtext }}>
-                          No coin balances yet.
-                        </TableCell>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+              <PlatformAdminAnalyticsSection
+                title="Top 10 by balance"
+                subtitle="Students with the highest current Argus Coin balance."
+                accent="amber"
+              >
+                <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
+                  <Table size="small" sx={platformAdminTableSx}>
+                    <TableHead>
+                      <TableRow sx={platformAdminTableHeadRowSx}>
+                        <TableCell>#</TableCell>
+                        <TableCell>Student</TableCell>
+                        <TableCell>School</TableCell>
+                        <TableCell align="right">Balance</TableCell>
+                        <TableCell align="right">Lifetime</TableCell>
                       </TableRow>
-                    ) : (
-                      topCoins.map((row, idx) => (
-                        <TableRow key={row.uid}>
-                          <TableCell>{idx + 1}</TableCell>
-                          <TableCell sx={{ fontWeight: 600 }}>
-                            {[row.first_name, row.last_name].filter(Boolean).join(' ') || row.email}
-                          </TableCell>
-                          <TableCell>{row.school_name ?? '-'}</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 700 }}>
-                            {row.argus_coins.toLocaleString()}
-                          </TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 600, color: ip.subtext }}>
-                            {(row.coins_lifetime_earned ?? 0).toLocaleString()}
+                    </TableHead>
+                    <TableBody>
+                      {topCoinsByBalance.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} align="center" sx={{ py: 3, color: ip.subtext }}>
+                            No coin balances yet.
                           </TableCell>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </PlatformAdminAnalyticsSection>
+                      ) : (
+                        topCoinsByBalance.map((row, idx) => (
+                          <TableRow key={`balance-${row.uid}`}>
+                            <TableCell>{idx + 1}</TableCell>
+                            <TableCell sx={{ fontWeight: 600 }}>
+                              {[row.first_name, row.last_name].filter(Boolean).join(' ') || row.email}
+                            </TableCell>
+                            <TableCell>{row.school_name ?? '-'}</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 700 }}>
+                              {row.argus_coins.toLocaleString()}
+                            </TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 600, color: ip.subtext }}>
+                              {(row.coins_lifetime_earned ?? 0).toLocaleString()}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </PlatformAdminAnalyticsSection>
+
+              <PlatformAdminAnalyticsSection
+                title="Top 10 by lifetime"
+                subtitle="Students with the highest lifetime Argus Coins earned."
+                accent="amber"
+              >
+                <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
+                  <Table size="small" sx={platformAdminTableSx}>
+                    <TableHead>
+                      <TableRow sx={platformAdminTableHeadRowSx}>
+                        <TableCell>#</TableCell>
+                        <TableCell>Student</TableCell>
+                        <TableCell>School</TableCell>
+                        <TableCell align="right">Lifetime</TableCell>
+                        <TableCell align="right">Balance</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {topCoinsByLifetime.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} align="center" sx={{ py: 3, color: ip.subtext }}>
+                            No lifetime earnings yet.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        topCoinsByLifetime.map((row, idx) => (
+                          <TableRow key={`lifetime-${row.uid}`}>
+                            <TableCell>{idx + 1}</TableCell>
+                            <TableCell sx={{ fontWeight: 600 }}>
+                              {[row.first_name, row.last_name].filter(Boolean).join(' ') || row.email}
+                            </TableCell>
+                            <TableCell>{row.school_name ?? '-'}</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 700 }}>
+                              {(row.coins_lifetime_earned ?? 0).toLocaleString()}
+                            </TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 600, color: ip.subtext }}>
+                              {row.argus_coins.toLocaleString()}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </PlatformAdminAnalyticsSection>
+            </Box>
           )}
         </>
       )}

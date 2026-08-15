@@ -9,6 +9,7 @@ import { ExamMathBlock, ExamMathText } from './ExamMathText';
 import { QuestionProblemReport, type QuestionReportFrame } from './QuestionProblemReport';
 import { inferQuestionInteraction } from './inferQuestionInteraction';
 import { AnalyticalReasoningQuestionBody } from './AnalyticalReasoningQuestionBody';
+import { ExamMarkdown, markdownFromStimulus } from './ExamMarkdown';
 import { cleanLearnerFacingExamMarkup } from './cleanLearnerFacingExamMarkup';
 
 export { inferQuestionInteraction } from './inferQuestionInteraction';
@@ -2055,6 +2056,15 @@ const HumanFriendlyStimulusInner: React.FC<{
   const stimulusType = q.stimulus_type;
 
   if (stimulus == null) return null;
+
+  const markdownBody = markdownFromStimulus(stimulus, stimulusType);
+  if (markdownBody) {
+    return (
+      <Box sx={stimulusPanelSx(theme)}>
+        <ExamMarkdown>{markdownBody}</ExamMarkdown>
+      </Box>
+    );
+  }
 
   // ─── Analytical section inventory v2 stimulus types ─────────────────────────
   if (typeof stimulus === 'object' && !Array.isArray(stimulus)) {

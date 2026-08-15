@@ -44,7 +44,7 @@ import {
 } from '../../utils/officialStudentAssessmentsAccess';
 import { getExamDeviceFingerprint } from '../../utils/examDeviceFingerprint';
 import { isLevelBasedAssessment } from '../../utils/assessmentGating';
-import { assessmentIdsEqual, ANALYTICAL_REASONING_ASSESSMENT_ID } from '../../utils/assessmentIdCompat';
+import { assessmentIdsEqual, ANALYTICAL_REASONING_ASSESSMENT_ID, canonicalAssessmentId } from '../../utils/assessmentIdCompat';
 import {
   isProctoringActive,
   resolveProctoringConfig,
@@ -215,7 +215,8 @@ const PreExamStep: React.FC<PreExamStepProps> = ({ assessmentId, tierNumber, onC
 };
 
 export default function AssessmentTakePage() {
-  const { assessmentId, tierNumber } = useParams<{ assessmentId: string; tierNumber: string }>();
+  const { assessmentId: assessmentIdParam, tierNumber } = useParams<{ assessmentId: string; tierNumber: string }>();
+  const assessmentId = assessmentIdParam ? canonicalAssessmentId(assessmentIdParam) : undefined;
   const navigate = useNavigate();
   const uid = auth.currentUser?.uid ?? '';
 
@@ -246,7 +247,9 @@ export default function AssessmentTakePage() {
   const examEndedRef = useRef(false);
 
   const flow = assessmentId ? getAssessmentFlowDefinition(assessmentId) : getAssessmentFlowDefinition('');
-  const assessmentConfig = configTypes.find((a) => a.id === assessmentId);
+  const assessmentConfig = configTypes.find(
+    (a) => assessmentId != null && assessmentIdsEqual(a.id, assessmentId)
+  );
   const proctoringConfig = resolveProctoringConfig(assessmentConfig);
   const proctoringEnabled = isProctoringActive(proctoringConfig);
   const mathExam = assessmentId === 'mathematical_reasoning';

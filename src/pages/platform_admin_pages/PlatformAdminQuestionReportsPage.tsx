@@ -9,6 +9,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  IconButton,
   Paper,
   Table,
   TableBody,
@@ -18,18 +19,23 @@ import {
   TableRow,
   ToggleButton,
   ToggleButtonGroup,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined';
+import UnarchiveOutlinedIcon from '@mui/icons-material/UnarchiveOutlined';
 import {
   formatDateTime,
   getPlatformAdminQuestionProblemReportItem,
   listPlatformAdminQuestionProblemReports,
+  setPlatformAdminQuestionProblemReportArchived,
   type PlatformAdminQuestionProblemReport,
   type PlatformAdminQuestionProblemReportItem,
 } from '../../db/platformAdminCollection';
 import {
+  platformAdminDangerTextButtonSx,
   platformAdminDialogPaperSx,
   platformAdminPageContainerSx,
   platformAdminPrimaryButtonSx,
@@ -41,6 +47,12 @@ import {
 import { PlatformAdminPageHeader, PlatformAdminStatCard, PlatformAdminTableSection } from './platformAdminComponents';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import { ExamQuestionStimulus } from '../../components/assessment/ExamQuestionBody';
+import {
+  ExamMarkdown,
+  ExamRichPrompt,
+  looksLikeExamMarkdown,
+  shouldRenderStructuredStimulus,
+} from '../../components/assessment/ExamMarkdown';
 import type { ExamQuestion } from '../../db/assessmentCollection';
 
 type SourceFilter = 'all' | 'official' | 'practice';
@@ -413,12 +425,16 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
                     </Typography>
                   ) : null}
 
-                  <Typography sx={{ color: ip.heading, fontSize: 15, mb: 1.25, lineHeight: 1.5 }}>
-                    {itemDetail.prompt}
-                  </Typography>
+                  <Box sx={{ mb: 1.25 }}>
+                    <ExamRichPrompt
+                      prompt={itemDetail.prompt || ''}
+                      stimulus={itemDetail.stimulus}
+                      stimulusType={itemDetail.stimulus_type}
+                    />
+                  </Box>
 
-                  {itemDetail.stimulus != null ? (
-                    <Box sx={{ mb: 1.5, maxWidth: 560 }}>
+                  {shouldRenderStructuredStimulus(itemDetail.stimulus, itemDetail.stimulus_type) ? (
+                    <Box sx={{ mb: 1.5 }}>
                       <ExamQuestionStimulus
                         q={toStimulusExamQuestion(itemDetail)}
                         border="#cbd5e1"
@@ -456,16 +472,22 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
                             >
                               {opt.letter}.
                             </Typography>
-                            <Typography
-                              sx={{
-                                color: ip.heading,
-                                fontSize: 16,
-                                lineHeight: 1.35,
-                                flex: 1,
-                              }}
-                            >
-                              {opt.text}
-                            </Typography>
+                            {looksLikeExamMarkdown(opt.text) ? (
+                              <Box sx={{ flex: 1, minWidth: 0 }}>
+                                <ExamMarkdown compact>{opt.text}</ExamMarkdown>
+                              </Box>
+                            ) : (
+                              <Typography
+                                sx={{
+                                  color: ip.heading,
+                                  fontSize: 16,
+                                  lineHeight: 1.35,
+                                  flex: 1,
+                                }}
+                              >
+                                {opt.text}
+                              </Typography>
+                            )}
                             {keyCorrect ? (
                               <Typography
                                 sx={{

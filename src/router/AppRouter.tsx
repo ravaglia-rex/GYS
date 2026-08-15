@@ -135,9 +135,6 @@ const PlatformAdminAnalyticsPage = lazy(() => import('../pages/platform_admin_pa
 const PlatformAdminQuestionReportsPage = lazy(
   () => import('../pages/platform_admin_pages/PlatformAdminQuestionReportsPage')
 );
-const PlatformAdminTestResultsPage = lazy(
-  () => import('../pages/platform_admin_pages/PlatformAdminTestResultsPage')
-);
 
 const AppRouter: React.FC = () => {
   return (
@@ -969,19 +966,6 @@ const AppRouter: React.FC = () => {
               <Suspense fallback={<BigSpinner />}>
                 <PlatformAdminLayout>
                   <PlatformAdminQuestionReportsPage />
-                </PlatformAdminLayout>
-              </Suspense>
-            </PlatformAdminAnalyticsRoute>
-          }
-          errorElement={<NotFoundPage />}
-        />
-        <Route
-          path="/platform-admin/test-results"
-          element={
-            <PlatformAdminAnalyticsRoute>
-              <Suspense fallback={<BigSpinner />}>
-                <PlatformAdminLayout>
-                  <PlatformAdminTestResultsPage />
                 </PlatformAdminLayout>
               </Suspense>
             </PlatformAdminAnalyticsRoute>

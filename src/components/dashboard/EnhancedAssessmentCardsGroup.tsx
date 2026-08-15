@@ -178,17 +178,18 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
   const goPreviewSample = (path: string) =>
     navigate(path, previewSampleExitTo ? { state: { sampleAssessmentExitTo: previewSampleExitTo } } : undefined);
   const previewNavPath = previewSamplePath ?? previewFallbackPath;
-  const meta = ASSESSMENT_META[assessment.id] ?? {
+  const assessmentId = canonicalAssessmentId(assessment.id);
+  const meta = ASSESSMENT_META[assessmentId] ?? {
     assessmentNumber: 0, color: '#6b7280', gradient: 'linear-gradient(135deg, #6b7280, #374151)',
     icon: '📋', description: '', languages: [], needsMic: false, needsLaptop: false,
   };
 
   const isLocked = gate.locked;
-  const levelBased = isLevelBasedAssessment(assessment.id);
+  const levelBased = isLevelBasedAssessment(assessmentId);
   const currentTier = progress.proficiency_tier ?? 1; // 1-indexed for skill exams
   const scoreDisplay = pickLatestOrBestAssessmentScore(progress);
   const attemptsCount = progress.attempts_count;
-  const totalTiers = maxTiersForAssessment(assessment.id, assessment.tiers.length);
+  const totalTiers = maxTiersForAssessment(assessmentId, assessment.tiers.length);
   const tiersDone =
     progress.tiers_cleared && Object.keys(progress.tiers_cleared).length > 0
       ? countClearedTiersFromProgress(progress, totalTiers)
@@ -197,7 +198,10 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
         : 0;
   /** Each cleared tier implies at least one successful attempt; show the larger of stored count vs that floor */
   const displayAttempts = Math.max(attemptsCount, tiersDone);
-  const allTiersComplete = isAssessmentFullyComplete(assessment, progress);
+  const allTiersComplete = isAssessmentFullyComplete(
+    { ...assessment, id: assessmentId },
+    progress
+  );
   const showLevelProgress = !isLocked && levelBased;
   const progressTotal = totalTiers > 0 ? totalTiers : Math.max(currentTier, 1);
   const progressDone = totalTiers > 0 ? tiersDone : Math.max(currentTier - 1, 0);
@@ -213,10 +217,10 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
     : '';
 
   const isCareerReadyExclusive =
-    assessment.id === 'english_proficiency' || assessment.id === 'career_interest_inventory';
+    assessmentId === 'english_proficiency' || assessmentId === 'career_interest_inventory';
   const membershipLocked = gate.reason === 'membership';
   const isPurpleTier = isCareerReadyExclusive && membershipLocked;
-  const reasoningSubcategories = getReasoningExamSubcategories(assessment.id);
+  const reasoningSubcategories = getReasoningExamSubcategories(assessmentId);
 
   /** Fixed slots so device chips, tier bar, and stats line up across cards in the same grid row */
   const STATS_ROW_SLOT_MIN = 48;
@@ -282,7 +286,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
                 </Typography>
               </Box>
               <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 700, lineHeight: 1.2, fontSize: '1.05rem' }}>
-                {assessmentDisplayName(assessment.id, assessment.name)}
+                {assessmentDisplayName(assessmentId, assessment.name)}
               </Typography>
             </Box>
           </Box>
@@ -739,7 +743,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
                   aria-disabled={previewStartBlocked}
                   onClick={() => {
                     if (previewStartBlocked) return;
-                    onStart(assessment.id, level);
+                    onStart(assessmentId, level);
                   }}
                   sx={
                     isPrimaryStart
@@ -868,7 +872,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
             aria-disabled={previewStartBlocked}
             onClick={() => {
               if (previewStartBlocked) return;
-              onStart(assessment.id, currentTier);
+              onStart(assessmentId, currentTier);
             }}
             sx={{
               background: meta.gradient,

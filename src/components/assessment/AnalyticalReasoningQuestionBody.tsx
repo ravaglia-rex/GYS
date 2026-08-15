@@ -1,9 +1,7 @@
 import React from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { Box, FormControl, FormControlLabel, Radio, RadioGroup, Typography } from '@mui/material';
 import type { ExamQuestion } from '../../db/assessmentCollection';
-import { cleanLearnerFacingExamMarkup } from './cleanLearnerFacingExamMarkup';
+import { ExamMarkdown } from './ExamMarkdown';
 
 interface AnalyticalReasoningQuestionBodyProps {
   question: ExamQuestion;
@@ -45,7 +43,7 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
       : question.options && question.options.length >= 2
         ? question.options
         : [...OPTION_LETTERS];
-  const markdown = cleanLearnerFacingExamMarkup(question.body_markdown ?? question.prompt ?? '');
+  const markdown = question.body_markdown ?? question.prompt ?? '';
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -63,45 +61,8 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
       >
         {hideQuestionTotal ? `Question ${questionNumber}` : `Question ${questionNumber} of ${totalQuestions}`}
       </Typography>
-      <Box
-        sx={{
-          color: '#334155',
-          fontSize: { xs: '0.95rem', sm: '1rem' },
-          lineHeight: 1.65,
-          mb: 2.5,
-          '& p': { mb: 1.5, mt: 0 },
-          '& p:last-child': { mb: 0 },
-          '& h1, & h2, & h3, & h4': { fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', mb: 1, mt: 2 },
-          '& ul, & ol': { pl: 2.5, mb: 1.5 },
-          '& li': { mb: 0.5 },
-          '& code': { fontSize: '0.88em', bgcolor: '#f1f5f9', px: 0.5, borderRadius: 0.5 },
-          '& img': {
-            display: 'block',
-            maxWidth: '100%',
-            height: 'auto',
-            my: 1.5,
-            borderRadius: 1,
-            border: `1px solid ${borderMuted}`,
-            bgcolor: '#fff',
-          },
-          '& svg': {
-            display: 'block',
-            maxWidth: '100%',
-            height: 'auto',
-            my: 1.5,
-          },
-        }}
-      >
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          components={{
-            img: ({ src, alt }: { src?: string; alt?: string }) => (
-              <img src={src} alt={alt ?? ''} />
-            ),
-          }}
-        >
-          {markdown}
-        </ReactMarkdown>
+      <Box sx={{ mb: 2.5 }}>
+        <ExamMarkdown>{markdown}</ExamMarkdown>
       </Box>
       <FormControl component="fieldset" fullWidth>
         <RadioGroup

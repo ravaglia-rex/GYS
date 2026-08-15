@@ -24,10 +24,10 @@ import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import { countAssessmentsFromProgress } from '../../utils/schoolAdminRosterUtils';
 import { buildGreenfieldPreviewStudentRows } from '../../data/schoolPreviewMock';
 import {
-  ASSESSMENT_NAMES,
   ASSESSMENT_ORDER,
   EXAM_MAX_SCORE_POINTS,
   MEMBERSHIP_ALLOWED,
+  assessmentDisplayName,
   isLevelBasedAssessment,
   isSchoolCompletionOnlyAssessment,
   normalizeMembershipLevel,
@@ -100,7 +100,7 @@ function formatBestScore(raw: number | null | undefined): string {
 }
 
 function assessmentLabel(id: string): string {
-  return ASSESSMENT_NAMES[id] ?? id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  return assessmentDisplayName(id);
 }
 
 function statusChipSx(status: string): Record<string, unknown> {
