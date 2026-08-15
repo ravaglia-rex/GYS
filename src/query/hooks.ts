@@ -81,13 +81,21 @@ export function useInvalidateStudentQueries() {
   };
 }
 
+/** QoD / coin-only mutations should not refetch assessments or payments. */
+export function useInvalidateStudentProfile() {
+  const qc = useQueryClient();
+  return (uid: string) => {
+    void qc.invalidateQueries({ queryKey: queryKeys.student(uid) });
+  };
+}
+
 export function useQod(enabled = true) {
   return useQuery({
     queryKey: queryKeys.qod(),
     queryFn: fetchQod,
     enabled,
-    staleTime: 30_000,
-    refetchOnMount: 'always',
+    staleTime: 60_000,
+    refetchOnMount: false,
   });
 }
 
@@ -133,10 +141,14 @@ export function useSchoolAdminRoster(schoolId: string | undefined, enabled = tru
  * Daily-cached Argus Coins top-10 boards (overall + school). Source data refreshes once/day
  * server-side, so a long staleTime avoids repeat network calls within a session day.
  */
-export function useCoinsLeaderboard(uid: string | undefined, enabled = true) {
+export function useCoinsLeaderboard(
+  uid: string | undefined,
+  enabled = true,
+  schoolId?: string | null
+) {
   return useQuery({
     queryKey: queryKeys.coinsLeaderboard(uid ?? ''),
-    queryFn: getStudentCoinsLeaderboard,
+    queryFn: () => getStudentCoinsLeaderboard(schoolId),
     enabled: Boolean(uid) && enabled,
     staleTime: COINS_LEADERBOARD_STALE_MS,
   });

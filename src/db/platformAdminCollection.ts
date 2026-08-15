@@ -1166,6 +1166,16 @@ export async function setPlatformAdminQuestionProblemReportArchived(opts: {
   return res.data?.report as PlatformAdminQuestionProblemReport;
 }
 
+export async function deletePlatformAdminQuestionProblemReport(reportId: string): Promise<void> {
+  await withAuthRetry((headers) =>
+    axios.post(
+      `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_QUESTION_PROBLEM_REPORTS}/${encodeURIComponent(reportId)}/delete`,
+      {},
+      { headers }
+    )
+  );
+}
+
 export type PlatformAdminQuestionProblemReportItem = {
   source: 'official' | 'practice';
   exam_id: string;

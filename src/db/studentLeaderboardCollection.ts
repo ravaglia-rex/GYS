@@ -47,15 +47,22 @@ export interface StudentCoinsLeaderboardResponse {
   viewerUid: string;
 }
 
-export const getStudentCoinsLeaderboard = async (): Promise<StudentCoinsLeaderboardResponse> => {
+export const getStudentCoinsLeaderboard = async (
+  schoolId?: string | null
+): Promise<StudentCoinsLeaderboardResponse> => {
   const authToken = await authTokenHandler.getAuthToken();
   if (!authToken) {
     throw new Error('You are not signed in. Please sign in again.');
   }
 
+  const params =
+    typeof schoolId === 'string' && schoolId.trim() && schoolId !== 'not-listed' ?
+      { school_id: schoolId.trim() } :
+      undefined;
+
   const response = await axios.get(
     `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${STUDENTS_APIS}${FETCH_STUDENT_COINS_LEADERBOARD}`,
-    { headers: { Authorization: `Bearer ${authToken}` } }
+    { headers: { Authorization: `Bearer ${authToken}` }, params }
   );
   return response.data;
 };

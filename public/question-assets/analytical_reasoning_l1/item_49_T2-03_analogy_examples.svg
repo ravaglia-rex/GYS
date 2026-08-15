@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="590" viewBox="0 0 980 590" role="img" aria-labelledby="title desc">
+  <title id="title">Two completed transformation examples and one target</title>
+  <desc id="desc">Example 1 begins with a hollow triangle upper right and solid triangle lower right; its output has the hollow triangle lower left and solid triangle lower right. Example 2 begins and ends with hollow triangles upper right and lower left. The target has a solid triangle upper left, hollow square upper right, hollow circle lower left, and solid diamond lower right. Its output is missing. Light gray x marks every empty position.</desc>
+  <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#174a78"/></marker></defs>
+  <style>
+    .section { fill:#fff; stroke:#263746; stroke-width:2.5; }
+    .grid { stroke:#aeb9c2; stroke-width:1.5; }
+    .solid { fill:#172b3a; stroke:#172b3a; stroke-width:2.2; }
+    .hollow { fill:#fff; stroke:#172b3a; stroke-width:2.6; }
+    .empty { font:400 25px sans-serif; fill:#aab3bb; text-anchor:middle; dominant-baseline:middle; }
+    .label { font:700 21px sans-serif; fill:#174a78; }
+    .head { font:700 17px sans-serif; fill:#536775; text-anchor:middle; }
+    .flow { stroke:#174a78; stroke-width:3; marker-end:url(#arrow); }
+    .missing { font:700 34px sans-serif; fill:#174a78; text-anchor:middle; dominant-baseline:middle; }
+  </style>
+  <rect width="980" height="590" fill="#fff"/>
+  <text class="head" x="355" y="28">INPUT</text><text class="head" x="695" y="28">OUTPUT</text>
+
+  <text class="label" x="40" y="128">EXAMPLE 1</text>
+  <g transform="translate(295 50)">
+    <rect class="section" width="120" height="120" rx="6"/><path class="grid" d="M60 0V120M0 60H120"/>
+    <text class="empty" x="30" y="31">×</text><polygon class="hollow" points="90,18 78,42 102,42"/>
+    <text class="empty" x="30" y="91">×</text><polygon class="solid" points="90,78 78,102 102,102"/>
+  </g>
+  <line class="flow" x1="455" y1="110" x2="595" y2="110"/>
+  <g transform="translate(635 50)">
+    <rect class="section" width="120" height="120" rx="6"/><path class="grid" d="M60 0V120M0 60H120"/>
+    <text class="empty" x="30" y="31">×</text><text class="empty" x="90" y="31">×</text>
+    <polygon class="hollow" points="30,78 18,102 42,102"/><polygon class="solid" points="90,78 78,102 102,102"/>
+  </g>
+
+  <text class="label" x="40" y="308">EXAMPLE 2</text>
+  <g transform="translate(295 230)">
+    <rect class="section" width="120" height="120" rx="6"/><path class="grid" d="M60 0V120M0 60H120"/>
+    <text class="empty" x="30" y="31">×</text><polygon class="hollow" points="90,18 78,42 102,42"/>
+    <polygon class="hollow" points="30,78 18,102 42,102"/><text class="empty" x="90" y="91">×</text>
+  </g>
+  <line class="flow" x1="455" y1="290" x2="595" y2="290"/>
+  <g transform="translate(635 230)">
+    <rect class="section" width="120" height="120" rx="6"/><path class="grid" d="M60 0V120M0 60H120"/>
+    <text class="empty" x="30" y="31">×</text><polygon class="hollow" points="90,18 78,42 102,42"/>
+    <polygon class="hollow" points="30,78 18,102 42,102"/><text class="empty" x="90" y="91">×</text>
+  </g>
+
+  <text class="label" x="40" y="488">TARGET</text>
+  <g transform="translate(295 410)">
+    <rect class="section" width="120" height="120" rx="6"/><path class="grid" d="M60 0V120M0 60H120"/>
+    <polygon class="solid" points="30,18 18,42 42,42"/><rect class="hollow" x="80" y="21" width="20" height="20"/>
+    <circle class="hollow" cx="30" cy="91" r="11"/><polygon class="solid" points="90,77 104,91 90,105 76,91"/>
+  </g>
+  <line class="flow" x1="455" y1="470" x2="595" y2="470"/>
+  <g transform="translate(635 410)"><rect class="section" width="120" height="120" rx="6"/><text class="missing" x="60" y="61">?</text></g>
+</svg>

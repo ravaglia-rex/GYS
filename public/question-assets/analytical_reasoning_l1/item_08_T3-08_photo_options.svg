@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="250" viewBox="0 0 900 250" role="img" aria-labelledby="title desc">
+  <title id="title">Four possible final photographs</title>
+  <desc id="desc">Each option is a bordered three-by-three grid with blank empty squares. Option A has triangle and star across the top row, and an east-pointing arrow and solid circle at center and right of the bottom row. Option B has triangle upper right, east-pointing arrow middle left, star middle right, and solid circle lower left. Option C has triangle upper right, downward arrow middle left, star middle right, and solid circle lower right. Option D has triangle upper right, downward arrow middle left, star middle right, and solid circle lower left.</desc>
+  <style>
+    .board { fill:#fff; stroke:#263746; stroke-width:2.7; }
+    .grid { stroke:#aeb9c2; stroke-width:1.6; }
+    .label { font:700 22px sans-serif; fill:#174a78; text-anchor:middle; }
+    .shape { font:700 30px "DejaVu Sans",sans-serif; fill:#172b3a; text-anchor:middle; dominant-baseline:middle; }
+    .arrow { font:700 34px sans-serif; fill:#174a78; text-anchor:middle; dominant-baseline:middle; }
+  </style>
+  <rect width="900" height="250" fill="#fff"/>
+
+  <g transform="translate(35 55)">
+    <text class="label" x="75" y="-18">A</text><rect class="board" width="150" height="150" rx="5"/><path class="grid" d="M50 0V150M100 0V150M0 50H150M0 100H150"/>
+    <text class="shape" x="25" y="26">▲</text><text class="shape" x="75" y="26">★</text>
+    <text class="arrow" x="75" y="126">→</text><text class="shape" x="125" y="126">●</text>
+  </g>
+  <g transform="translate(260 55)">
+    <text class="label" x="75" y="-18">B</text><rect class="board" width="150" height="150" rx="5"/><path class="grid" d="M50 0V150M100 0V150M0 50H150M0 100H150"/>
+    <text class="shape" x="125" y="26">▲</text><text class="arrow" x="25" y="76">→</text><text class="shape" x="125" y="76">★</text><text class="shape" x="25" y="126">●</text>
+  </g>
+  <g transform="translate(485 55)">
+    <text class="label" x="75" y="-18">C</text><rect class="board" width="150" height="150" rx="5"/><path class="grid" d="M50 0V150M100 0V150M0 50H150M0 100H150"/>
+    <text class="shape" x="125" y="26">▲</text><text class="arrow" x="25" y="76">↓</text><text class="shape" x="125" y="76">★</text><text class="shape" x="125" y="126">●</text>
+  </g>
+  <g transform="translate(710 55)">
+    <text class="label" x="75" y="-18">D</text><rect class="board" width="150" height="150" rx="5"/><path class="grid" d="M50 0V150M100 0V150M0 50H150M0 100H150"/>
+    <text class="shape" x="125" y="26">▲</text><text class="arrow" x="25" y="76">↓</text><text class="shape" x="125" y="76">★</text><text class="shape" x="25" y="126">●</text>
+  </g>
+</svg>

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="250" viewBox="0 0 980 250" role="img" aria-labelledby="title desc">
+  <title id="title">Four possible replacements for the hidden section</title>
+  <desc id="desc">Four bordered two-by-two answer sections labelled A through D. A is filled upper-left, upper-right, and lower-left. B has all four positions filled. C is filled upper-left, upper-right, and lower-right. D is filled only lower-left.</desc>
+  <defs>
+    <g id="filled"><circle cx="0" cy="0" r="18" fill="#1c3144"/></g>
+    <g id="unfilled"><circle cx="0" cy="0" r="18" fill="#fff" stroke="#1c3144" stroke-width="3"/></g>
+  </defs>
+  <style>
+    .option { font:700 24px Arial,sans-serif; fill:#174a78; text-anchor:middle; }
+    .section { fill:#fff; stroke:#263746; stroke-width:3; }
+    .line { stroke:#a9b6c2; stroke-width:2; }
+  </style>
+  <rect width="980" height="250" fill="#fff"/>
+  <!-- A -->
+  <text x="125" y="32" class="option">A</text><rect x="50" y="50" width="150" height="150" rx="8" class="section"/><path d="M125 50V200M50 125H200" class="line"/><use href="#filled" x="87.5" y="87.5"/><use href="#filled" x="162.5" y="87.5"/><use href="#filled" x="87.5" y="162.5"/><use href="#unfilled" x="162.5" y="162.5"/>
+  <!-- B -->
+  <text x="365" y="32" class="option">B</text><rect x="290" y="50" width="150" height="150" rx="8" class="section"/><path d="M365 50V200M290 125H440" class="line"/><use href="#filled" x="327.5" y="87.5"/><use href="#filled" x="402.5" y="87.5"/><use href="#filled" x="327.5" y="162.5"/><use href="#filled" x="402.5" y="162.5"/>
+  <!-- C -->
+  <text x="605" y="32" class="option">C</text><rect x="530" y="50" width="150" height="150" rx="8" class="section"/><path d="M605 50V200M530 125H680" class="line"/><use href="#filled" x="567.5" y="87.5"/><use href="#filled" x="642.5" y="87.5"/><use href="#unfilled" x="567.5" y="162.5"/><use href="#filled" x="642.5" y="162.5"/>
+  <!-- D -->
+  <text x="845" y="32" class="option">D</text><rect x="770" y="50" width="150" height="150" rx="8" class="section"/><path d="M845 50V200M770 125H920" class="line"/><use href="#unfilled" x="807.5" y="87.5"/><use href="#unfilled" x="882.5" y="87.5"/><use href="#filled" x="807.5" y="162.5"/><use href="#unfilled" x="882.5" y="162.5"/>
+</svg>

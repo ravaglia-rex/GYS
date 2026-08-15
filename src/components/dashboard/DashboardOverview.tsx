@@ -571,8 +571,17 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     typeof userData?.school_id === 'string' && userData.school_id && userData.school_id !== 'not-listed'
       ? userData.school_id
       : undefined;
-  const { data: schoolNameFromQuery } = useSchoolDetails(schoolId, useLiveProfile);
-  const { data: payments = [] } = usePayments(uid, useLiveProfile);
+  const signupSchoolName =
+    typeof userData?.signup_school_name === 'string' && userData.signup_school_name.trim()
+      ? userData.signup_school_name.trim()
+      : '';
+  const membershipAlreadyOnStudent =
+    typeof userData?.membership_level === 'number' && userData.membership_level >= 1;
+  const { data: schoolNameFromQuery } = useSchoolDetails(
+    schoolId,
+    useLiveProfile && !signupSchoolName
+  );
+  const { data: payments = [] } = usePayments(uid, useLiveProfile && !membershipAlreadyOnStudent);
   const [notificationScrollbar, setNotificationScrollbar] = useState({
     visible: false,
     top: 0,
@@ -1121,7 +1130,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         preview={Boolean(previewProfile)}
       />
 
-      {!previewProfile && <CoinsLeaderboardWidget uid={uid} />}
+      {!previewProfile && <CoinsLeaderboardWidget uid={uid} schoolId={schoolId} />}
 
       {/* Performance Overview and Notifications - Side by side */}
       <Box sx={{ 

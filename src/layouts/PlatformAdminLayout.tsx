@@ -29,6 +29,7 @@ import {
   TodayOutlined as QodIcon,
   TimelineOutlined as ActivityIcon,
   MonetizationOnOutlined as CoinsIcon,
+  Inventory2Outlined as ItemBankIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
@@ -65,6 +66,11 @@ const ANALYTICS_NAV_ITEM: NavItem = {
       title: 'Official Exams',
       path: '/platform-admin/analytics/official',
       icon: <OfficialExamsIcon sx={{ color: '#2563eb', fontSize: CHILD_ICON_SIZE }} />,
+    },
+    {
+      title: 'Item Bank',
+      path: '/platform-admin/analytics/item-bank',
+      icon: <ItemBankIcon sx={{ color: '#2563eb', fontSize: CHILD_ICON_SIZE }} />,
     },
     {
       title: 'Practice Exams',

@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="430" viewBox="0 0 1080 430" role="img" aria-labelledby="title desc">
+  <title id="title">Tower heights seen from the south and from the east</title>
+  <desc id="desc">The south view shows heights three, one, and two from the observer's left to right, corresponding to west, center, and east. The east view shows heights two, three, and one from the observer's left to right, corresponding to south, center, and north.</desc>
+  <style>
+    .heading { font:700 22px Arial,sans-serif; fill:#174a78; letter-spacing:.4px; }
+    .sub { font:700 14px Arial,sans-serif; fill:#536474; letter-spacing:.3px; }
+    .ground { stroke:#263746; stroke-width:3; }
+    .tower { fill:#dbe8f3; stroke:#263746; stroke-width:2.5; }
+    .story { stroke:#8396a7; stroke-width:1.5; }
+    .height { font:700 18px Arial,sans-serif; fill:#174a78; text-anchor:middle; }
+    .axis { font:700 14px Arial,sans-serif; fill:#536474; text-anchor:middle; letter-spacing:.25px; }
+    .divider { stroke:#d5dde5; stroke-width:2; }
+  </style>
+  <rect width="1080" height="430" fill="#fff"/>
+  <line x1="540" y1="38" x2="540" y2="390" class="divider"/>
+
+  <!-- South view -->
+  <text x="270" y="40" class="heading" text-anchor="middle">SEEN FROM THE SOUTH</text>
+  <text x="270" y="68" class="sub" text-anchor="middle">OBSERVER'S LEFT → RIGHT</text>
+  <line x1="90" y1="330" x2="450" y2="330" class="ground"/>
+  <rect x="122" y="174" width="76" height="156" rx="5" class="tower"/>
+  <line x1="122" y1="226" x2="198" y2="226" class="story"/>
+  <line x1="122" y1="278" x2="198" y2="278" class="story"/>
+  <text x="160" y="157" class="height">3 STORIES</text>
+  <rect x="232" y="278" width="76" height="52" rx="5" class="tower"/>
+  <text x="270" y="261" class="height">1 STORY</text>
+  <rect x="342" y="226" width="76" height="104" rx="5" class="tower"/>
+  <line x1="342" y1="278" x2="418" y2="278" class="story"/>
+  <text x="380" y="209" class="height">2 STORIES</text>
+  <text x="160" y="362" class="axis">WEST</text>
+  <text x="270" y="362" class="axis">CENTER</text>
+  <text x="380" y="362" class="axis">EAST</text>
+
+  <!-- East view -->
+  <text x="810" y="40" class="heading" text-anchor="middle">SEEN FROM THE EAST</text>
+  <text x="810" y="68" class="sub" text-anchor="middle">OBSERVER'S LEFT → RIGHT</text>
+  <line x1="630" y1="330" x2="990" y2="330" class="ground"/>
+  <rect x="662" y="226" width="76" height="104" rx="5" class="tower"/>
+  <line x1="662" y1="278" x2="738" y2="278" class="story"/>
+  <text x="700" y="209" class="height">2 STORIES</text>
+  <rect x="772" y="174" width="76" height="156" rx="5" class="tower"/>
+  <line x1="772" y1="226" x2="848" y2="226" class="story"/>
+  <line x1="772" y1="278" x2="848" y2="278" class="story"/>
+  <text x="810" y="157" class="height">3 STORIES</text>
+  <rect x="882" y="278" width="76" height="52" rx="5" class="tower"/>
+  <text x="920" y="261" class="height">1 STORY</text>
+  <text x="700" y="362" class="axis">SOUTH</text>
+  <text x="810" y="362" class="axis">CENTER</text>
+  <text x="920" y="362" class="axis">NORTH</text>
+</svg>

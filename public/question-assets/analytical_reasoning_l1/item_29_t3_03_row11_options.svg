@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="160" viewBox="0 0 1080 160" role="img" aria-labelledby="title desc">
+  <title id="title">Four possible arrangements for Row 11</title>
+  <desc id="desc">Four answer choices labelled A through D. A is circle, diamond, triangle, square. B is diamond, circle, square, triangle. C is triangle, diamond, circle, square. D is square, triangle, diamond, circle.</desc>
+  <style>
+    .option { font:700 24px Arial,sans-serif; fill:#174a78; text-anchor:middle; }
+    .row { fill:#fff; stroke:#263746; stroke-width:2.5; }
+    .line { stroke:#a9b6c2; stroke-width:1.8; }
+    .symbol { font:700 31px "Arial Unicode MS","Noto Sans Symbols 2",Arial,sans-serif; fill:#1c3144; text-anchor:middle; dominant-baseline:middle; }
+  </style>
+  <rect width="1080" height="250" fill="#fff"/>
+
+  <text x="135" y="40" class="option">A</text><rect x="25" y="62" width="220" height="62" rx="6" class="row"/><path d="M80 62V124M135 62V124M190 62V124" class="line"/><text x="52.5" y="93" class="symbol">●</text><text x="107.5" y="93" class="symbol">◆</text><text x="162.5" y="93" class="symbol">▲</text><text x="217.5" y="93" class="symbol">■</text>
+  <text x="405" y="40" class="option">B</text><rect x="295" y="62" width="220" height="62" rx="6" class="row"/><path d="M350 62V124M405 62V124M460 62V124" class="line"/><text x="322.5" y="93" class="symbol">◆</text><text x="377.5" y="93" class="symbol">●</text><text x="432.5" y="93" class="symbol">■</text><text x="487.5" y="93" class="symbol">▲</text>
+  <text x="675" y="40" class="option">C</text><rect x="565" y="62" width="220" height="62" rx="6" class="row"/><path d="M620 62V124M675 62V124M730 62V124" class="line"/><text x="592.5" y="93" class="symbol">▲</text><text x="647.5" y="93" class="symbol">◆</text><text x="702.5" y="93" class="symbol">●</text><text x="757.5" y="93" class="symbol">■</text>
+  <text x="945" y="40" class="option">D</text><rect x="835" y="62" width="220" height="62" rx="6" class="row"/><path d="M890 62V124M945 62V124M1000 62V124" class="line"/><text x="862.5" y="93" class="symbol">■</text><text x="917.5" y="93" class="symbol">▲</text><text x="972.5" y="93" class="symbol">◆</text><text x="1027.5" y="93" class="symbol">●</text>
+</svg>

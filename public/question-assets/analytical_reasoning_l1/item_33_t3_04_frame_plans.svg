@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="520" viewBox="0 0 1100 520" role="img" aria-labelledby="title desc">
+  <title id="title">Upper- and lower-level plans with an observer on the east side looking west</title>
+  <desc id="desc">Two bordered two-by-two plans are shown from above. In the upper plan, the north-west position contains a star, the north-east position is blank, the south-west position contains a triangle, and the south-east position contains a square. In the lower plan, the north-west position contains a circle, the north-east position contains a pentagon, the south-west position is blank, and the south-east position contains a diamond. An observer stands east of the frame and looks west.</desc>
+  <defs>
+    <marker id="west-arrow" markerWidth="9" markerHeight="9" refX="1" refY="4.5" orient="auto">
+      <path d="M9 0L0 4.5L9 9Z" fill="#174a78"/>
+    </marker>
+  </defs>
+  <style>
+    .title { font:700 22px Arial,sans-serif; fill:#174a78; letter-spacing:.5px; }
+    .level { font:700 20px Arial,sans-serif; fill:#263746; }
+    .axis { font:700 15px Arial,sans-serif; fill:#536474; letter-spacing:.4px; }
+    .grid { fill:#fff; stroke:#263746; stroke-width:3; }
+    .line { stroke:#a9b6c2; stroke-width:2; }
+    .symbol { font:700 48px "Arial Unicode MS","Noto Sans Symbols 2",Arial,sans-serif; fill:#1c3144; text-anchor:middle; dominant-baseline:middle; }
+    .observer { fill:#eaf1f7; stroke:#174a78; stroke-width:3; }
+    .observerLine { fill:none; stroke:#174a78; stroke-width:4; stroke-linecap:round; }
+    .look { stroke:#174a78; stroke-width:4; marker-end:url(#west-arrow); }
+    .note { font:700 18px Arial,sans-serif; fill:#174a78; text-anchor:middle; }
+    .direction { font:700 14px Arial,sans-serif; fill:#174a78; text-anchor:middle; letter-spacing:.3px; }
+  </style>
+  <rect width="1100" height="520" fill="#fff"/>
+  <text x="550" y="35" class="title" text-anchor="middle">PLANS SEEN FROM ABOVE</text>
+
+  <!-- Upper plan -->
+  <text x="300" y="78" class="level" text-anchor="middle">UPPER LEVEL</text>
+  <text x="245" y="108" class="axis" text-anchor="middle">WEST</text>
+  <text x="355" y="108" class="axis" text-anchor="middle">EAST</text>
+  <text x="174" y="177" class="axis" text-anchor="end">NORTH</text>
+  <text x="174" y="287" class="axis" text-anchor="end">SOUTH</text>
+  <rect x="190" y="120" width="220" height="220" rx="8" class="grid"/>
+  <line x1="300" y1="120" x2="300" y2="340" class="line"/>
+  <line x1="190" y1="230" x2="410" y2="230" class="line"/>
+  <text x="245" y="177" class="symbol">★</text>
+  <text x="245" y="287" class="symbol">▲</text>
+  <text x="355" y="287" class="symbol">■</text>
+
+  <!-- Lower plan -->
+  <text x="650" y="78" class="level" text-anchor="middle">LOWER LEVEL</text>
+  <text x="595" y="108" class="axis" text-anchor="middle">WEST</text>
+  <text x="705" y="108" class="axis" text-anchor="middle">EAST</text>
+  <text x="524" y="177" class="axis" text-anchor="end">NORTH</text>
+  <text x="524" y="287" class="axis" text-anchor="end">SOUTH</text>
+  <rect x="540" y="120" width="220" height="220" rx="8" class="grid"/>
+  <line x1="650" y1="120" x2="650" y2="340" class="line"/>
+  <line x1="540" y1="230" x2="760" y2="230" class="line"/>
+  <circle cx="595" cy="175" r="22" fill="#1c3144"/>
+  <polygon points="705,151 728,168 719,195 691,195 682,168" fill="#1c3144"/>
+  <polygon points="705,263 729,287 705,311 681,287" fill="#1c3144"/>
+
+  <!-- Observer -->
+  <circle cx="950" cy="170" r="19" class="observer"/>
+  <path d="M921 230 C924 198 935 190 950 190 C965 190 976 198 979 230" class="observerLine"/>
+  <line x1="912" y1="180" x2="852" y2="180" class="look"/>
+  <text x="882" y="151" class="direction">LOOKING WEST</text>
+  <text x="950" y="265" class="note">EAST-SIDE OBSERVER</text>
+  <text x="550" y="475" class="axis" text-anchor="middle">Blank squares contain no block.</text>
+</svg>

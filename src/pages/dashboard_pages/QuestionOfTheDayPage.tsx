@@ -19,7 +19,7 @@ import * as Sentry from '@sentry/react';
 import { useQueryClient } from '@tanstack/react-query';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import { LoadingSpinner } from '../../components/ui/spinner';
-import { useQod, useInvalidateStudentQueries } from '../../query/hooks';
+import { useQod, useInvalidateStudentProfile } from '../../query/hooks';
 import { submitQodAnswer, type QodResponse } from '../../db/gamificationCollection';
 import { queryKeys } from '../../query/queryKeys';
 import { studentPageSubtitleSx, studentPageTitleSx } from '../../styles/studentTypography';
@@ -64,8 +64,8 @@ function splitPassageParagraphs(text: string): string[] {
 
 const QuestionOfTheDayPage: React.FC = () => {
   const queryClient = useQueryClient();
-  const { data, isLoading, error, refetch } = useQod();
-  const invalidateStudent = useInvalidateStudentQueries();
+  const { data, isLoading, error } = useQod();
+  const invalidateStudentProfile = useInvalidateStudentProfile();
   const [selected, setSelected] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{
@@ -123,12 +123,7 @@ const QuestionOfTheDayPage: React.FC = () => {
       });
 
       const uid = auth.currentUser?.uid;
-      if (uid) invalidateStudent(uid);
-      try {
-        await refetch();
-      } catch (refetchErr) {
-        Sentry.captureException(refetchErr);
-      }
+      if (uid) invalidateStudentProfile(uid);
     } catch (e) {
       Sentry.captureException(e);
       const message =

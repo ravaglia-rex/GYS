@@ -69,7 +69,7 @@ function formatRedemptionDate(val: RedemptionRecord['requested_at']): string {
 function redemptionCodeLabel(r: RedemptionRecord): string {
   if (r.voucher_code) return r.voucher_code;
   if (r.status !== 'fulfilled') return '-';
-  // Digital streak freeze is applied on-account — no voucher email.
+  // Digital streak freeze is applied on-account - no voucher email.
   if (r.item_id === 'streak_freeze_1d') return 'On account';
   return 'Check email';
 }
@@ -211,7 +211,7 @@ const RewardsShopPage: React.FC = () => {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    {freezesReady} Streak Freeze{freezesReady === 1 ? '' : 's'} ready — auto-saves
+                    {freezesReady} Streak Freeze{freezesReady === 1 ? '' : 's'} ready - auto-saves
                     if you miss a day
                   </Typography>
                 </Box>

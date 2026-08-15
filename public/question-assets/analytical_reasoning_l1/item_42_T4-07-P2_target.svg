@@ -6,7 +6,7 @@
     .cell { fill:#fff; stroke:#607786; stroke-width:2.2; }
     .hidden { fill:#fff8e8; stroke:#9b5b00; stroke-width:2.5; stroke-dasharray:5 4; }
     .symbol { font:700 30px "DejaVu Sans",sans-serif; fill:#173f63; text-anchor:middle; dominant-baseline:middle; }
-    .dot { font:700 30px sans-serif; fill:#7a4700; text-anchor:middle; dominant-baseline:middle; }
+    .hidden-label { font:700 24px sans-serif; fill:#7a4700; text-anchor:middle; dominant-baseline:middle; }
     .piece-label { font:700 16px sans-serif; fill:#31434f; text-anchor:middle; }
     .clue-card { fill:#eef5fa; stroke:#52748e; stroke-width:2; }
     .clue { font:700 18px sans-serif; fill:#263746; text-anchor:middle; dominant-baseline:middle; }
@@ -15,9 +15,9 @@
   <rect width="1000" height="380" fill="#fff"/>
   <text class="heading" x="30" y="30">REPRODUCED PIECES</text>
 
-  <g transform="translate(30 50)"><rect class="piece-card" width="290" height="150" rx="9"/><text class="piece-label" x="145" y="30">PIECE 1</text><rect class="cell" x="43" y="52" width="68" height="68"/><rect class="hidden" x="111" y="52" width="68" height="68"/><rect class="cell" x="179" y="52" width="68" height="68"/><text class="symbol" x="77" y="87">●</text><text class="dot" x="145" y="87">·</text><text class="symbol" x="213" y="87">✚</text></g>
-  <g transform="translate(355 50)"><rect class="piece-card" width="290" height="150" rx="9"/><text class="piece-label" x="145" y="30">PIECE 2</text><rect class="cell" x="43" y="52" width="68" height="68"/><rect class="hidden" x="111" y="52" width="68" height="68"/><rect class="cell" x="179" y="52" width="68" height="68"/><text class="symbol" x="77" y="87">■</text><text class="dot" x="145" y="87">·</text><text class="symbol" x="213" y="87">⬟</text></g>
-  <g transform="translate(680 50)"><rect class="piece-card" width="290" height="150" rx="9"/><text class="piece-label" x="145" y="30">PIECE 3</text><rect class="cell" x="43" y="52" width="68" height="68"/><rect class="hidden" x="111" y="52" width="68" height="68"/><rect class="cell" x="179" y="52" width="68" height="68"/><text class="symbol" x="77" y="87">▲</text><text class="dot" x="145" y="87">·</text><text class="symbol" x="213" y="87">◆</text></g>
+  <g transform="translate(30 50)"><rect class="piece-card" width="290" height="150" rx="9"/><text class="piece-label" x="145" y="30">PIECE 1</text><rect class="cell" x="43" y="52" width="68" height="68"/><rect class="hidden" x="111" y="52" width="68" height="68"/><rect class="cell" x="179" y="52" width="68" height="68"/><text class="symbol" x="77" y="87">●</text><text class="hidden-label" x="145" y="87">H</text><text class="symbol" x="213" y="87">✚</text></g>
+  <g transform="translate(355 50)"><rect class="piece-card" width="290" height="150" rx="9"/><text class="piece-label" x="145" y="30">PIECE 2</text><rect class="cell" x="43" y="52" width="68" height="68"/><rect class="hidden" x="111" y="52" width="68" height="68"/><rect class="cell" x="179" y="52" width="68" height="68"/><text class="symbol" x="77" y="87">■</text><text class="hidden-label" x="145" y="87">H</text><text class="symbol" x="213" y="87">⬟</text></g>
+  <g transform="translate(680 50)"><rect class="piece-card" width="290" height="150" rx="9"/><text class="piece-label" x="145" y="30">PIECE 3</text><rect class="cell" x="43" y="52" width="68" height="68"/><rect class="hidden" x="111" y="52" width="68" height="68"/><rect class="cell" x="179" y="52" width="68" height="68"/><text class="symbol" x="77" y="87">▲</text><text class="hidden-label" x="145" y="87">H</text><text class="symbol" x="213" y="87">◆</text></g>
 
   <text class="heading" x="30" y="242">ADDITIONAL CLUES</text>
   <rect class="clue-card" x="30" y="262" width="450" height="82" rx="9"/><text class="clue" x="255" y="304">⬟ is somewhere before ▲.</text>

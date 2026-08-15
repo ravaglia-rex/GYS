@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="720" viewBox="0 0 760 720" role="img" aria-labelledby="title desc">
+  <title id="title">Ten rows of four cards</title>
+  <desc id="desc">Ten numbered rows show four shape cards each. Row 1 is triangle, square, circle, diamond. Row 2 is square, circle, diamond, triangle. Row 3 is triangle, diamond, circle, square. Row 4 is diamond, circle, square, triangle. Row 5 is circle, square, triangle, diamond. Row 6 is diamond, triangle, square, circle. Row 7 repeats Row 1. Row 8 repeats Row 2. Row 9 is circle, diamond, triangle, square. Row 10 is square, triangle, diamond, circle.</desc>
+  <style>
+    .heading { font:700 22px Arial,sans-serif; fill:#174a78; letter-spacing:.4px; }
+    .rowlabel { font:700 17px Arial,sans-serif; fill:#536474; text-anchor:end; dominant-baseline:middle; }
+    .row { fill:#fff; stroke:#263746; stroke-width:2.5; }
+    .line { stroke:#a9b6c2; stroke-width:1.8; }
+    .symbol { font:700 35px "Arial Unicode MS","Noto Sans Symbols 2",Arial,sans-serif; fill:#1c3144; text-anchor:middle; dominant-baseline:middle; }
+  </style>
+  <rect width="760" height="720" fill="#fff"/>
+  <text x="380" y="34" class="heading" text-anchor="middle">ROWS 1–10</text>
+
+  <!-- Row 1 -->
+  <text x="190" y="86" class="rowlabel">ROW 1</text><rect x="210" y="58" width="340" height="56" rx="6" class="row"/><path d="M295 58V114M380 58V114M465 58V114" class="line"/><text x="252.5" y="86" class="symbol">▲</text><text x="337.5" y="86" class="symbol">■</text><text x="422.5" y="86" class="symbol">●</text><text x="507.5" y="86" class="symbol">◆</text>
+  <!-- Row 2 -->
+  <text x="190" y="151" class="rowlabel">ROW 2</text><rect x="210" y="123" width="340" height="56" rx="6" class="row"/><path d="M295 123V179M380 123V179M465 123V179" class="line"/><text x="252.5" y="151" class="symbol">■</text><text x="337.5" y="151" class="symbol">●</text><text x="422.5" y="151" class="symbol">◆</text><text x="507.5" y="151" class="symbol">▲</text>
+  <!-- Row 3 -->
+  <text x="190" y="216" class="rowlabel">ROW 3</text><rect x="210" y="188" width="340" height="56" rx="6" class="row"/><path d="M295 188V244M380 188V244M465 188V244" class="line"/><text x="252.5" y="216" class="symbol">▲</text><text x="337.5" y="216" class="symbol">◆</text><text x="422.5" y="216" class="symbol">●</text><text x="507.5" y="216" class="symbol">■</text>
+  <!-- Row 4 -->
+  <text x="190" y="281" class="rowlabel">ROW 4</text><rect x="210" y="253" width="340" height="56" rx="6" class="row"/><path d="M295 253V309M380 253V309M465 253V309" class="line"/><text x="252.5" y="281" class="symbol">◆</text><text x="337.5" y="281" class="symbol">●</text><text x="422.5" y="281" class="symbol">■</text><text x="507.5" y="281" class="symbol">▲</text>
+  <!-- Row 5 -->
+  <text x="190" y="346" class="rowlabel">ROW 5</text><rect x="210" y="318" width="340" height="56" rx="6" class="row"/><path d="M295 318V374M380 318V374M465 318V374" class="line"/><text x="252.5" y="346" class="symbol">●</text><text x="337.5" y="346" class="symbol">■</text><text x="422.5" y="346" class="symbol">▲</text><text x="507.5" y="346" class="symbol">◆</text>
+  <!-- Row 6 -->
+  <text x="190" y="411" class="rowlabel">ROW 6</text><rect x="210" y="383" width="340" height="56" rx="6" class="row"/><path d="M295 383V439M380 383V439M465 383V439" class="line"/><text x="252.5" y="411" class="symbol">◆</text><text x="337.5" y="411" class="symbol">▲</text><text x="422.5" y="411" class="symbol">■</text><text x="507.5" y="411" class="symbol">●</text>
+  <!-- Row 7 -->
+  <text x="190" y="476" class="rowlabel">ROW 7</text><rect x="210" y="448" width="340" height="56" rx="6" class="row"/><path d="M295 448V504M380 448V504M465 448V504" class="line"/><text x="252.5" y="476" class="symbol">▲</text><text x="337.5" y="476" class="symbol">■</text><text x="422.5" y="476" class="symbol">●</text><text x="507.5" y="476" class="symbol">◆</text>
+  <!-- Row 8 -->
+  <text x="190" y="541" class="rowlabel">ROW 8</text><rect x="210" y="513" width="340" height="56" rx="6" class="row"/><path d="M295 513V569M380 513V569M465 513V569" class="line"/><text x="252.5" y="541" class="symbol">■</text><text x="337.5" y="541" class="symbol">●</text><text x="422.5" y="541" class="symbol">◆</text><text x="507.5" y="541" class="symbol">▲</text>
+  <!-- Row 9 -->
+  <text x="190" y="606" class="rowlabel">ROW 9</text><rect x="210" y="578" width="340" height="56" rx="6" class="row"/><path d="M295 578V634M380 578V634M465 578V634" class="line"/><text x="252.5" y="606" class="symbol">●</text><text x="337.5" y="606" class="symbol">◆</text><text x="422.5" y="606" class="symbol">▲</text><text x="507.5" y="606" class="symbol">■</text>
+  <!-- Row 10 -->
+  <text x="190" y="671" class="rowlabel">ROW 10</text><rect x="210" y="643" width="340" height="56" rx="6" class="row"/><path d="M295 643V699M380 643V699M465 643V699" class="line"/><text x="252.5" y="671" class="symbol">■</text><text x="337.5" y="671" class="symbol">▲</text><text x="422.5" y="671" class="symbol">◆</text><text x="507.5" y="671" class="symbol">●</text>
+</svg>

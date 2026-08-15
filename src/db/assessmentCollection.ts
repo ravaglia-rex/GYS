@@ -85,6 +85,15 @@ export interface InitializedExam {
   resumed?: boolean;
   proctoring?: ProctoringConfig;
   proctoring_enabled?: boolean;
+  /** Timed sit already ended; scores may be present after auto-finalize. */
+  time_expired?: boolean;
+  score_percent?: number;
+  score_points?: number;
+  correct?: number;
+  total?: number;
+  passed?: boolean;
+  next_tier?: number | null;
+  coins_awarded?: number;
 }
 
 /** Firestore / API may set question_type on items; otherwise UI infers from assessment + fields */
@@ -140,6 +149,7 @@ export interface CompleteExamResponse {
   passed: boolean;
   next_tier: number | null;
   coins_awarded?: number;
+  already_completed?: boolean;
 }
 
 // ─── Public (no auth) ────────────────────────────────────────────────────────

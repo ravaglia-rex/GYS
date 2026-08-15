@@ -1,19 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="900" height="610" viewBox="0 0 900 610" role="img" aria-labelledby="title desc">
-  <title id="title">Four options supplying the three missing dot panels</title>
-  <desc id="desc">Options A through D. Each option contains three two-by-two dot panels labelled question 1, question 2, and question 3.</desc>
+  <title id="title">Four options supplying the three hidden sections</title>
+  <desc id="desc">Options A through D. Each option contains three two-by-two sections labelled H1, H2, and H3. Every position is shown as a filled or unfilled circle.</desc>
   <style>
-    .panel { fill: #fff; stroke: #222; stroke-width: 2.5; }
+    .section { fill: #fff; stroke: #222; stroke-width: 2.5; }
     .cell-line { stroke: #bbb; stroke-width: 1.5; }
-    .dot { fill: #111; }
+    .filled { fill: #111; stroke: #111; stroke-width: 2; }
+    .unfilled { fill: #fff; stroke: #111; stroke-width: 2; }
     .head { font: 700 18px sans-serif; fill: #222; text-anchor: middle; }
     .option { font: 700 24px sans-serif; fill: #174a78; text-anchor: middle; dominant-baseline: middle; }
     .rowline { stroke: #ddd; stroke-width: 1.5; }
   </style>
   <rect width="900" height="610" fill="#fff"/>
 
-  <text class="head" x="300" y="34">1?</text>
-  <text class="head" x="500" y="34">2?</text>
-  <text class="head" x="700" y="34">3?</text>
+  <text class="head" x="300" y="34">H1</text>
+  <text class="head" x="500" y="34">H2</text>
+  <text class="head" x="700" y="34">H3</text>
 
   <line class="rowline" x1="90" y1="165" x2="790" y2="165"/>
   <line class="rowline" x1="90" y1="305" x2="790" y2="305"/>
@@ -21,25 +22,25 @@
 
   <!-- Option A: 10, 12, 3 -->
   <text class="option" x="110" y="100">A</text>
-  <g transform="translate(250 50)"><rect class="panel" width="100" height="100" rx="5"/><path class="cell-line" d="M50 0V100M0 50H100"/><circle class="dot" cx="75" cy="25" r="9"/><circle class="dot" cx="75" cy="75" r="9"/></g>
-  <g transform="translate(450 50)"><rect class="panel" width="100" height="100" rx="5"/><path class="cell-line" d="M50 0V100M0 50H100"/><circle class="dot" cx="25" cy="75" r="9"/><circle class="dot" cx="75" cy="75" r="9"/></g>
-  <g transform="translate(650 50)"><rect class="panel" width="100" height="100" rx="5"/><path class="cell-line" d="M50 0V100M0 50H100"/><circle class="dot" cx="25" cy="25" r="9"/><circle class="dot" cx="75" cy="25" r="9"/></g>
+  <g transform="translate(250 50)"><rect class="section" width="100" height="100" rx="5"/><path class="cell-line" d="M50 0V100M0 50H100"/><circle class="unfilled" cx="25" cy="25" r="9"/><circle class="filled" cx="75" cy="25" r="9"/><circle class="unfilled" cx="25" cy="75" r="9"/><circle class="filled" cx="75" cy="75" r="9"/></g>
+  <g transform="translate(450 50)"><rect class="section" width="100" height="100" rx="5"/><path class="cell-line" d="M50 0V100M0 50H100"/><circle class="unfilled" cx="25" cy="25" r="9"/><circle class="unfilled" cx="75" cy="25" r="9"/><circle class="filled" cx="25" cy="75" r="9"/><circle class="filled" cx="75" cy="75" r="9"/></g>
+  <g transform="translate(650 50)"><rect class="section" width="100" height="100" rx="5"/><path class="cell-line" d="M50 0V100M0 50H100"/><circle class="filled" cx="25" cy="25" r="9"/><circle class="filled" cx="75" cy="25" r="9"/><circle class="unfilled" cx="25" cy="75" r="9"/><circle class="unfilled" cx="75" cy="75" r="9"/></g>
 
   <!-- Option B: 0, 12, 9 -->
   <text class="option" x="110" y="240">B</text>
-  <g transform="translate(250 190)"><rect class="panel" width="100" height="100" rx="5"/><path class="cell-line" d="M50 0V100M0 50H100"/></g>
-  <g transform="translate(450 190)"><rect class="panel" width="100" height="100" rx="5"/><path class="cell-line" d="M50 0V100M0 50H100"/><circle class="dot" cx="25" cy="75" r="9"/><circle class="dot" cx="75" cy="75" r="9"/></g>
-  <g transform="translate(650 190)"><rect class="panel" width="100" height="100" rx="5"/><path class="cell-line" d="M50 0V100M0 50H100"/><circle class="dot" cx="25" cy="25" r="9"/><circle class="dot" cx="75" cy="75" r="9"/></g>
+  <g transform="translate(250 190)"><rect class="section" width="100" height="100" rx="5"/><path class="cell-line" d="M50 0V100M0 50H100"/><circle class="unfilled" cx="25" cy="25" r="9"/><circle class="unfilled" cx="75" cy="25" r="9"/><circle class="unfilled" cx="25" cy="75" r="9"/><circle class="unfilled" cx="75" cy="75" r="9"/></g>
+  <g transform="translate(450 190)"><rect class="section" width="100" height="100" rx="5"/><path class="cell-line" d="M50 0V100M0 50H100"/><circle class="unfilled" cx="25" cy="25" r="9"/><circle class="unfilled" cx="75" cy="25" r="9"/><circle class="filled" cx="25" cy="75" r="9"/><circle class="filled" cx="75" cy="75" r="9"/></g>
+  <g transform="translate(650 190)"><rect class="section" width="100" height="100" rx="5"/><path class="cell-line" d="M50 0V100M0 50H100"/><circle class="filled" cx="25" cy="25" r="9"/><circle class="unfilled" cx="75" cy="25" r="9"/><circle class="unfilled" cx="25" cy="75" r="9"/><circle class="filled" cx="75" cy="75" r="9"/></g>
 
   <!-- Option C: 8, 12, 1 -->
   <text class="option" x="110" y="380">C</text>
-  <g transform="translate(250 330)"><rect class="panel" width="100" height="100" rx="5"/><path class="cell-line" d="M50 0V100M0 50H100"/><circle class="dot" cx="75" cy="75" r="9"/></g>
-  <g transform="translate(450 330)"><rect class="panel" width="100" height="100" rx="5"/><path class="cell-line" d="M50 0V100M0 50H100"/><circle class="dot" cx="25" cy="75" r="9"/><circle class="dot" cx="75" cy="75" r="9"/></g>
-  <g transform="translate(650 330)"><rect class="panel" width="100" height="100" rx="5"/><path class="cell-line" d="M50 0V100M0 50H100"/><circle class="dot" cx="25" cy="25" r="9"/></g>
+  <g transform="translate(250 330)"><rect class="section" width="100" height="100" rx="5"/><path class="cell-line" d="M50 0V100M0 50H100"/><circle class="unfilled" cx="25" cy="25" r="9"/><circle class="unfilled" cx="75" cy="25" r="9"/><circle class="unfilled" cx="25" cy="75" r="9"/><circle class="filled" cx="75" cy="75" r="9"/></g>
+  <g transform="translate(450 330)"><rect class="section" width="100" height="100" rx="5"/><path class="cell-line" d="M50 0V100M0 50H100"/><circle class="unfilled" cx="25" cy="25" r="9"/><circle class="unfilled" cx="75" cy="25" r="9"/><circle class="filled" cx="25" cy="75" r="9"/><circle class="filled" cx="75" cy="75" r="9"/></g>
+  <g transform="translate(650 330)"><rect class="section" width="100" height="100" rx="5"/><path class="cell-line" d="M50 0V100M0 50H100"/><circle class="filled" cx="25" cy="25" r="9"/><circle class="unfilled" cx="75" cy="25" r="9"/><circle class="unfilled" cx="25" cy="75" r="9"/><circle class="unfilled" cx="75" cy="75" r="9"/></g>
 
   <!-- Option D: 10, 14, 3 -->
   <text class="option" x="110" y="520">D</text>
-  <g transform="translate(250 470)"><rect class="panel" width="100" height="100" rx="5"/><path class="cell-line" d="M50 0V100M0 50H100"/><circle class="dot" cx="75" cy="25" r="9"/><circle class="dot" cx="75" cy="75" r="9"/></g>
-  <g transform="translate(450 470)"><rect class="panel" width="100" height="100" rx="5"/><path class="cell-line" d="M50 0V100M0 50H100"/><circle class="dot" cx="75" cy="25" r="9"/><circle class="dot" cx="25" cy="75" r="9"/><circle class="dot" cx="75" cy="75" r="9"/></g>
-  <g transform="translate(650 470)"><rect class="panel" width="100" height="100" rx="5"/><path class="cell-line" d="M50 0V100M0 50H100"/><circle class="dot" cx="25" cy="25" r="9"/><circle class="dot" cx="75" cy="25" r="9"/></g>
+  <g transform="translate(250 470)"><rect class="section" width="100" height="100" rx="5"/><path class="cell-line" d="M50 0V100M0 50H100"/><circle class="unfilled" cx="25" cy="25" r="9"/><circle class="filled" cx="75" cy="25" r="9"/><circle class="unfilled" cx="25" cy="75" r="9"/><circle class="filled" cx="75" cy="75" r="9"/></g>
+  <g transform="translate(450 470)"><rect class="section" width="100" height="100" rx="5"/><path class="cell-line" d="M50 0V100M0 50H100"/><circle class="unfilled" cx="25" cy="25" r="9"/><circle class="filled" cx="75" cy="25" r="9"/><circle class="filled" cx="25" cy="75" r="9"/><circle class="filled" cx="75" cy="75" r="9"/></g>
+  <g transform="translate(650 470)"><rect class="section" width="100" height="100" rx="5"/><path class="cell-line" d="M50 0V100M0 50H100"/><circle class="filled" cx="25" cy="25" r="9"/><circle class="filled" cx="75" cy="25" r="9"/><circle class="unfilled" cx="25" cy="75" r="9"/><circle class="unfilled" cx="75" cy="75" r="9"/></g>
 </svg>

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="220" viewBox="0 0 860 220" role="img" aria-labelledby="title desc">
+  <title id="title">Four possible transformed target sections</title>
+  <desc id="desc">Option A has solid diamond and hollow square on top, hollow circle and solid triangle below. Option B has solid circle and hollow triangle on top, hollow diamond and solid square below. Option C has solid square and hollow triangle on top, hollow diamond and solid circle below. Option D has solid triangle and hollow circle on top, hollow square and solid diamond below.</desc>
+  <style>
+    .section { fill:#fff; stroke:#263746; stroke-width:2.5; }
+    .grid { stroke:#aeb9c2; stroke-width:1.5; }
+    .solid { fill:#172b3a; stroke:#172b3a; stroke-width:2.2; }
+    .hollow { fill:#fff; stroke:#172b3a; stroke-width:2.6; }
+    .label { font:700 22px sans-serif; fill:#174a78; text-anchor:middle; }
+  </style>
+  <rect width="860" height="220" fill="#fff"/>
+  <g transform="translate(45 55)">
+    <text class="label" x="60" y="-18">A</text><rect class="section" width="120" height="120" rx="6"/><path class="grid" d="M60 0V120M0 60H120"/>
+    <polygon class="solid" points="30,17 44,31 30,45 16,31"/><rect class="hollow" x="80" y="21" width="20" height="20"/>
+    <circle class="hollow" cx="30" cy="91" r="11"/><polygon class="solid" points="90,78 78,102 102,102"/>
+  </g>
+  <g transform="translate(255 55)">
+    <text class="label" x="60" y="-18">B</text><rect class="section" width="120" height="120" rx="6"/><path class="grid" d="M60 0V120M0 60H120"/>
+    <circle class="solid" cx="30" cy="31" r="11"/><polygon class="hollow" points="90,18 78,42 102,42"/>
+    <polygon class="hollow" points="30,77 44,91 30,105 16,91"/><rect class="solid" x="80" y="81" width="20" height="20"/>
+  </g>
+  <g transform="translate(465 55)">
+    <text class="label" x="60" y="-18">C</text><rect class="section" width="120" height="120" rx="6"/><path class="grid" d="M60 0V120M0 60H120"/>
+    <rect class="solid" x="20" y="21" width="20" height="20"/><polygon class="hollow" points="90,18 78,42 102,42"/>
+    <polygon class="hollow" points="30,77 44,91 30,105 16,91"/><circle class="solid" cx="90" cy="91" r="11"/>
+  </g>
+  <g transform="translate(675 55)">
+    <text class="label" x="60" y="-18">D</text><rect class="section" width="120" height="120" rx="6"/><path class="grid" d="M60 0V120M0 60H120"/>
+    <polygon class="solid" points="30,18 18,42 42,42"/><circle class="hollow" cx="90" cy="31" r="11"/>
+    <rect class="hollow" x="20" y="81" width="20" height="20"/><polygon class="solid" points="90,77 104,91 90,105 76,91"/>
+  </g>
+</svg>

@@ -240,7 +240,7 @@ export function accuracyChipTone(pct: number | null | undefined): AdminChipTone 
 
 export function PlatformAdminAccuracyChip({ pct }: { pct: number | null | undefined }) {
   if (pct == null || !Number.isFinite(pct)) {
-    return <PlatformAdminChip label="—" tone="neutral" />;
+    return <PlatformAdminChip label="-" tone="neutral" />;
   }
   return <PlatformAdminChip label={`${pct}%`} tone={accuracyChipTone(pct)} />;
 }

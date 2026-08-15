@@ -41,7 +41,7 @@ export function countAssessmentsFromProgress(progress: Record<string, Assessment
   return n;
 }
 
-/** Graded attempt or finished non-scored exam — not merely unlocked (`available`). */
+/** Graded attempt or finished non-scored exam - not merely unlocked (`available`). */
 export function slotHasGradedAttempt(p: {
   status?: string;
   best_score?: number | null;

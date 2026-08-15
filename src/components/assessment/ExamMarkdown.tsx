@@ -56,6 +56,9 @@ export function markdownFromStimulus(stimulus: unknown, stimulusType?: string | 
   return '';
 }
 
+const figureMaxWidth = (compact?: boolean) =>
+  compact ? 'min(100%, 280px)' : 'min(100%, 640px)';
+
 const MarkdownImage: React.FC<{ src?: string; alt?: string; compact?: boolean }> = ({
   src,
   alt,
@@ -71,6 +74,8 @@ const MarkdownImage: React.FC<{ src?: string; alt?: string; compact?: boolean }>
         border: `1px solid ${borderMuted}`,
         bgcolor: '#fff',
         overflow: 'hidden',
+        width: 'fit-content',
+        maxWidth: '100%',
         minHeight: status === 'loading' ? 72 : undefined,
       }}
     >
@@ -100,7 +105,8 @@ const MarkdownImage: React.FC<{ src?: string; alt?: string; compact?: boolean }>
           onError={() => setStatus('error')}
           sx={{
             display: 'block',
-            maxWidth: '100%',
+            maxWidth: figureMaxWidth(compact),
+            width: 'auto',
             height: 'auto',
             visibility: status === 'ready' ? 'visible' : 'hidden',
           }}
@@ -185,7 +191,8 @@ export const ExamMarkdown: React.FC<{
         },
         '& svg': {
           display: 'block',
-          maxWidth: '100%',
+          maxWidth: figureMaxWidth(compact),
+          width: 'auto',
           height: 'auto',
           my: 1.5,
         },

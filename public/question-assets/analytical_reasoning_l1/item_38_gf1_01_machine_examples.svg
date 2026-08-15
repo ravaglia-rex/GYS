@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="790" viewBox="0 0 1100 790" role="img" aria-labelledby="title desc">
+  <title id="title">Examples for Machines R and T followed by a new input</title>
+  <desc id="desc">Machine R has two examples. Hollow triangle, hollow square, solid triangle becomes hollow triangle, hollow triangle, hollow square. Hollow diamond, hollow circle, solid circle becomes hollow circle, hollow diamond, hollow circle. Machine T has two examples. Hollow triangle, solid triangle, hollow square becomes hollow square, hollow triangle, hollow triangle. Hollow diamond, hollow circle, solid circle becomes solid circle, solid circle, hollow diamond. The new input is solid square, hollow diamond, solid triangle and must pass through R followed by T.</desc>
+  <defs><marker id="flow-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#174a78"/></marker></defs>
+  <style>
+    .machine { font:700 24px Arial,sans-serif; fill:#174a78; letter-spacing:.5px; }
+    .example { font:700 15px Arial,sans-serif; fill:#536474; text-anchor:end; dominant-baseline:middle; }
+    .caption { font:700 13px Arial,sans-serif; fill:#536474; text-anchor:middle; letter-spacing:.3px; }
+    .position { font:700 13px Arial,sans-serif; fill:#536474; text-anchor:middle; }
+    .state { fill:#fff; stroke:#263746; stroke-width:2.7; }
+    .line { stroke:#a9b6c2; stroke-width:1.8; }
+    .symbol { font:700 44px "Arial Unicode MS","Noto Sans Symbols 2",Arial,sans-serif; fill:#1c3144; text-anchor:middle; dominant-baseline:middle; }
+    .flow { stroke:#174a78; stroke-width:3.5; marker-end:url(#flow-arrow); }
+    .node { fill:#eaf1f7; stroke:#174a78; stroke-width:2.7; }
+    .nodeText { font:700 23px Arial,sans-serif; fill:#174a78; text-anchor:middle; dominant-baseline:middle; }
+    .question { font:700 38px Arial,sans-serif; fill:#174a78; text-anchor:middle; dominant-baseline:middle; }
+    .divider { stroke:#d5dde5; stroke-width:2; }
+  </style>
+  <rect width="1100" height="790" fill="#fff"/>
+
+  <!-- Machine R -->
+  <text x="550" y="35" class="machine" text-anchor="middle">MACHINE R</text>
+  <text x="300" y="63" class="caption">INPUT POSITIONS</text><text x="800" y="63" class="caption">OUTPUT POSITIONS</text>
+  <text x="220" y="83" class="position">1</text><text x="300" y="83" class="position">2</text><text x="380" y="83" class="position">3</text>
+  <text x="720" y="83" class="position">1</text><text x="800" y="83" class="position">2</text><text x="880" y="83" class="position">3</text>
+  <text x="155" y="126" class="example">EXAMPLE 1</text><rect x="180" y="94" width="240" height="64" rx="7" class="state"/><path d="M260 94V158M340 94V158" class="line"/><text x="220" y="126" class="symbol">△</text><text x="300" y="126" class="symbol">□</text><text x="380" y="126" class="symbol">▲</text><line x1="475" y1="126" x2="625" y2="126" class="flow"/><rect x="680" y="94" width="240" height="64" rx="7" class="state"/><path d="M760 94V158M840 94V158" class="line"/><text x="720" y="126" class="symbol">△</text><text x="800" y="126" class="symbol">△</text><text x="880" y="126" class="symbol">□</text>
+  <text x="155" y="208" class="example">EXAMPLE 2</text><rect x="180" y="176" width="240" height="64" rx="7" class="state"/><path d="M260 176V240M340 176V240" class="line"/><text x="220" y="208" class="symbol">◇</text><text x="300" y="208" class="symbol">○</text><text x="380" y="208" class="symbol">●</text><line x1="475" y1="208" x2="625" y2="208" class="flow"/><rect x="680" y="176" width="240" height="64" rx="7" class="state"/><path d="M760 176V240M840 176V240" class="line"/><text x="720" y="208" class="symbol">○</text><text x="800" y="208" class="symbol">◇</text><text x="880" y="208" class="symbol">○</text>
+
+  <line x1="90" y1="280" x2="1010" y2="280" class="divider"/>
+
+  <!-- Machine T -->
+  <text x="550" y="325" class="machine" text-anchor="middle">MACHINE T</text>
+  <text x="300" y="353" class="caption">INPUT POSITIONS</text><text x="800" y="353" class="caption">OUTPUT POSITIONS</text>
+  <text x="220" y="373" class="position">1</text><text x="300" y="373" class="position">2</text><text x="380" y="373" class="position">3</text>
+  <text x="720" y="373" class="position">1</text><text x="800" y="373" class="position">2</text><text x="880" y="373" class="position">3</text>
+  <text x="155" y="416" class="example">EXAMPLE 1</text><rect x="180" y="384" width="240" height="64" rx="7" class="state"/><path d="M260 384V448M340 384V448" class="line"/><text x="220" y="416" class="symbol">△</text><text x="300" y="416" class="symbol">▲</text><text x="380" y="416" class="symbol">□</text><line x1="475" y1="416" x2="625" y2="416" class="flow"/><rect x="680" y="384" width="240" height="64" rx="7" class="state"/><path d="M760 384V448M840 384V448" class="line"/><text x="720" y="416" class="symbol">□</text><text x="800" y="416" class="symbol">△</text><text x="880" y="416" class="symbol">△</text>
+  <text x="155" y="498" class="example">EXAMPLE 2</text><rect x="180" y="466" width="240" height="64" rx="7" class="state"/><path d="M260 466V530M340 466V530" class="line"/><text x="220" y="498" class="symbol">◇</text><text x="300" y="498" class="symbol">○</text><text x="380" y="498" class="symbol">●</text><line x1="475" y1="498" x2="625" y2="498" class="flow"/><rect x="680" y="466" width="240" height="64" rx="7" class="state"/><path d="M760 466V530M840 466V530" class="line"/><text x="720" y="498" class="symbol">●</text><text x="800" y="498" class="symbol">●</text><text x="880" y="498" class="symbol">◇</text>
+
+  <line x1="90" y1="570" x2="1010" y2="570" class="divider"/>
+
+  <!-- New input flow -->
+  <text x="550" y="615" class="machine" text-anchor="middle">NEW INPUT: APPLY R, THEN T</text>
+  <text x="220" y="650" class="position">1</text><text x="300" y="650" class="position">2</text><text x="380" y="650" class="position">3</text>
+  <rect x="180" y="662" width="240" height="64" rx="7" class="state"/><path d="M260 662V726M340 662V726" class="line"/><text x="220" y="694" class="symbol">■</text><text x="300" y="694" class="symbol">◇</text><text x="380" y="694" class="symbol">▲</text>
+  <line x1="445" y1="694" x2="485" y2="694" class="flow"/><circle cx="525" cy="694" r="30" class="node"/><text x="525" y="694" class="nodeText">R</text>
+  <line x1="555" y1="694" x2="595" y2="694" class="flow"/><circle cx="635" cy="694" r="30" class="node"/><text x="635" y="694" class="nodeText">T</text>
+  <line x1="665" y1="694" x2="715" y2="694" class="flow"/><rect x="755" y="662" width="240" height="64" rx="7" class="state"/><text x="875" y="694" class="question">?</text>
+</svg>

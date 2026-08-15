@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="170" viewBox="0 0 1000 170" role="img" aria-labelledby="title desc">
+  <title id="title">Four possible outputs after applying R followed by T</title>
+  <desc id="desc">Four answer choices labelled A through D. A is hollow diamond, solid square, hollow triangle. B is hollow diamond, hollow square, solid triangle. C is hollow square, solid triangle, solid diamond. D is hollow diamond, hollow square, hollow triangle.</desc>
+  <style>
+    .option { font:700 24px Arial,sans-serif; fill:#174a78; text-anchor:middle; }
+    .state { fill:#fff; stroke:#263746; stroke-width:2.5; }
+    .line { stroke:#a9b6c2; stroke-width:1.8; }
+    .symbol { font:700 40px "Arial Unicode MS","Noto Sans Symbols 2",Arial,sans-serif; fill:#1c3144; text-anchor:middle; dominant-baseline:middle; }
+  </style>
+  <rect width="1000" height="170" fill="#fff"/>
+  <text x="125" y="32" class="option">A</text><rect x="40" y="52" width="170" height="64" rx="7" class="state"/><path d="M96.67 52V116M153.33 52V116" class="line"/><text x="68.33" y="84" class="symbol">◇</text><text x="125" y="84" class="symbol">■</text><text x="181.67" y="84" class="symbol">△</text>
+  <text x="375" y="32" class="option">B</text><rect x="290" y="52" width="170" height="64" rx="7" class="state"/><path d="M346.67 52V116M403.33 52V116" class="line"/><text x="318.33" y="84" class="symbol">◇</text><text x="375" y="84" class="symbol">□</text><text x="431.67" y="84" class="symbol">▲</text>
+  <text x="625" y="32" class="option">C</text><rect x="540" y="52" width="170" height="64" rx="7" class="state"/><path d="M596.67 52V116M653.33 52V116" class="line"/><text x="568.33" y="84" class="symbol">□</text><text x="625" y="84" class="symbol">▲</text><text x="681.67" y="84" class="symbol">◆</text>
+  <text x="875" y="32" class="option">D</text><rect x="790" y="52" width="170" height="64" rx="7" class="state"/><path d="M846.67 52V116M903.33 52V116" class="line"/><text x="818.33" y="84" class="symbol">◇</text><text x="875" y="84" class="symbol">□</text><text x="931.67" y="84" class="symbol">△</text>
+</svg>

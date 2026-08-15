@@ -19,6 +19,7 @@ import type { CoinsLeaderboardEntry } from '../../db/studentLeaderboardCollectio
 
 export interface CoinsLeaderboardWidgetProps {
   uid?: string;
+  schoolId?: string | null;
   /** Static preview data - skips the live API. */
   previewData?: {
     global: CoinsLeaderboardEntry[];
@@ -165,8 +166,12 @@ const MiniBoard: React.FC<{
   </Card>
 );
 
-const CoinsLeaderboardWidget: React.FC<CoinsLeaderboardWidgetProps> = ({ uid, previewData }) => {
-  const live = useCoinsLeaderboard(uid, Boolean(uid) && !previewData);
+const CoinsLeaderboardWidget: React.FC<CoinsLeaderboardWidgetProps> = ({
+  uid,
+  schoolId,
+  previewData,
+}) => {
+  const live = useCoinsLeaderboard(uid, Boolean(uid) && !previewData, schoolId);
   const data = previewData
     ? {
         global: previewData.global,

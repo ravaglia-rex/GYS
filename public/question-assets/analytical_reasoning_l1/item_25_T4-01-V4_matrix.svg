@@ -1,10 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="900" height="560" viewBox="0 0 900 560" role="img" aria-labelledby="title desc">
-  <title id="title">Three by three matrix of two by two dot panels</title>
-  <desc id="desc">Columns are labelled row input 1, row input 2, and row output. Rows are labelled column input 1, column input 2, and column output. The center, middle-right, and bottom-middle panels are missing.</desc>
+  <title id="title">Three by three matrix of two by two filled and unfilled sections</title>
+  <desc id="desc">Columns A and B are row inputs and column C is the row output. Rows X and Y are column inputs and row Z is the column output. The sections H1, H2, and H3 are hidden.</desc>
   <style>
-    .panel { fill: #fff; stroke: #222; stroke-width: 2.5; }
+    .section { fill: #fff; stroke: #222; stroke-width: 2.5; }
     .cell-line { stroke: #bbb; stroke-width: 1.5; }
-    .dot { fill: #111; }
+    .filled { fill: #111; stroke: #111; stroke-width: 2; }
+    .unfilled { fill: #fff; stroke: #111; stroke-width: 2; }
     .head { font: 700 17px sans-serif; fill: #222; text-anchor: middle; }
     .rowhead { font: 700 17px sans-serif; fill: #222; }
     .output { fill: #174a78; }
@@ -14,54 +15,54 @@
 
   <rect width="900" height="560" fill="#fff"/>
 
-  <text class="head" x="300" y="34">ROW INPUT 1</text>
-  <text class="head" x="500" y="34">ROW INPUT 2</text>
-  <text class="head output" x="700" y="34">ROW OUTPUT</text>
+  <text class="head" x="300" y="34">A - INPUT</text>
+  <text class="head" x="500" y="34">B - INPUT</text>
+  <text class="head output" x="700" y="34">C - OUTPUT</text>
 
-  <text class="rowhead" x="20" y="145">COLUMN INPUT 1</text>
-  <text class="rowhead" x="20" y="305">COLUMN INPUT 2</text>
-  <text class="rowhead output" x="20" y="465">COLUMN OUTPUT</text>
+  <text class="rowhead" x="20" y="145">X - INPUT</text>
+  <text class="rowhead" x="20" y="305">Y - INPUT</text>
+  <text class="rowhead output" x="20" y="465">Z - OUTPUT</text>
 
   <line class="divider" x1="620" y1="55" x2="620" y2="535"/>
   <line class="divider" x1="225" y1="380" x2="775" y2="380"/>
 
-  <!-- Panel helper: each cell is 120 by 120 with a two-by-two guide. -->
+  <!-- Each section is 120 by 120 with a two-by-two guide. -->
   <g transform="translate(240 70)">
-    <rect class="panel" width="120" height="120" rx="5"/><path class="cell-line" d="M60 0V120M0 60H120"/>
-    <circle class="dot" cx="90" cy="30" r="10"/><circle class="dot" cx="30" cy="90" r="10"/><circle class="dot" cx="90" cy="90" r="10"/>
+    <rect class="section" width="120" height="120" rx="5"/><path class="cell-line" d="M60 0V120M0 60H120"/>
+    <circle class="unfilled" cx="30" cy="30" r="10"/><circle class="filled" cx="90" cy="30" r="10"/><circle class="filled" cx="30" cy="90" r="10"/><circle class="filled" cx="90" cy="90" r="10"/>
   </g>
   <g transform="translate(440 70)">
-    <rect class="panel" width="120" height="120" rx="5"/><path class="cell-line" d="M60 0V120M0 60H120"/>
-    <circle class="dot" cx="30" cy="30" r="10"/><circle class="dot" cx="90" cy="90" r="10"/>
+    <rect class="section" width="120" height="120" rx="5"/><path class="cell-line" d="M60 0V120M0 60H120"/>
+    <circle class="filled" cx="30" cy="30" r="10"/><circle class="unfilled" cx="90" cy="30" r="10"/><circle class="unfilled" cx="30" cy="90" r="10"/><circle class="filled" cx="90" cy="90" r="10"/>
   </g>
   <g transform="translate(640 70)">
-    <rect class="panel" width="120" height="120" rx="5"/><path class="cell-line" d="M60 0V120M0 60H120"/>
-    <circle class="dot" cx="30" cy="30" r="10"/><circle class="dot" cx="90" cy="30" r="10"/><circle class="dot" cx="30" cy="90" r="10"/><circle class="dot" cx="90" cy="90" r="10"/>
+    <rect class="section" width="120" height="120" rx="5"/><path class="cell-line" d="M60 0V120M0 60H120"/>
+    <circle class="filled" cx="30" cy="30" r="10"/><circle class="filled" cx="90" cy="30" r="10"/><circle class="filled" cx="30" cy="90" r="10"/><circle class="filled" cx="90" cy="90" r="10"/>
   </g>
 
   <g transform="translate(240 230)">
-    <rect class="panel" width="120" height="120" rx="5"/><path class="cell-line" d="M60 0V120M0 60H120"/>
-    <circle class="dot" cx="30" cy="90" r="10"/><circle class="dot" cx="90" cy="90" r="10"/>
+    <rect class="section" width="120" height="120" rx="5"/><path class="cell-line" d="M60 0V120M0 60H120"/>
+    <circle class="unfilled" cx="30" cy="30" r="10"/><circle class="unfilled" cx="90" cy="30" r="10"/><circle class="filled" cx="30" cy="90" r="10"/><circle class="filled" cx="90" cy="90" r="10"/>
   </g>
   <g transform="translate(440 230)">
-    <rect class="panel" width="120" height="120" rx="5"/><path class="cell-line" d="M60 0V120M0 60H120"/>
-    <text class="missing" x="60" y="60">1?</text>
+    <rect class="section" width="120" height="120" rx="5"/>
+    <text class="missing" x="60" y="60">H1</text>
   </g>
   <g transform="translate(640 230)">
-    <rect class="panel" width="120" height="120" rx="5"/><path class="cell-line" d="M60 0V120M0 60H120"/>
-    <text class="missing" x="60" y="60">2?</text>
+    <rect class="section" width="120" height="120" rx="5"/>
+    <text class="missing" x="60" y="60">H2</text>
   </g>
 
   <g transform="translate(240 410)">
-    <rect class="panel" width="120" height="120" rx="5"/><path class="cell-line" d="M60 0V120M0 60H120"/>
-    <circle class="dot" cx="90" cy="30" r="10"/>
+    <rect class="section" width="120" height="120" rx="5"/><path class="cell-line" d="M60 0V120M0 60H120"/>
+    <circle class="unfilled" cx="30" cy="30" r="10"/><circle class="filled" cx="90" cy="30" r="10"/><circle class="unfilled" cx="30" cy="90" r="10"/><circle class="unfilled" cx="90" cy="90" r="10"/>
   </g>
   <g transform="translate(440 410)">
-    <rect class="panel" width="120" height="120" rx="5"/><path class="cell-line" d="M60 0V120M0 60H120"/>
-    <text class="missing" x="60" y="60">3?</text>
+    <rect class="section" width="120" height="120" rx="5"/>
+    <text class="missing" x="60" y="60">H3</text>
   </g>
   <g transform="translate(640 410)">
-    <rect class="panel" width="120" height="120" rx="5"/><path class="cell-line" d="M60 0V120M0 60H120"/>
-    <circle class="dot" cx="30" cy="30" r="10"/><circle class="dot" cx="90" cy="30" r="10"/>
+    <rect class="section" width="120" height="120" rx="5"/><path class="cell-line" d="M60 0V120M0 60H120"/>
+    <circle class="filled" cx="30" cy="30" r="10"/><circle class="filled" cx="90" cy="30" r="10"/><circle class="unfilled" cx="30" cy="90" r="10"/><circle class="unfilled" cx="90" cy="90" r="10"/>
   </g>
 </svg>

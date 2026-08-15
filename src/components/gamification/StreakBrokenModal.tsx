@@ -148,7 +148,7 @@ const StreakBrokenModal: React.FC<StreakBrokenModalProps> = ({
       </DialogTitle>
       <DialogContent sx={{ textAlign: 'center', pt: 1 }}>
         <Typography sx={{ color: 'rgba(255,255,255,0.9)', mb: 1.5, lineHeight: 1.55 }}>
-          You missed a day — your{' '}
+          You missed a day - your{' '}
           <Box component="span" sx={{ color: '#fdba74', fontWeight: 800 }}>
             {days}-day
           </Box>{' '}

@@ -852,6 +852,107 @@ export async function getPlatformAdminOfficialExamQuestionStats(
   };
 }
 
+export type OfficialItemBankFilterKey =
+  | 'strand'
+  | 'instruction_family'
+  | 'band'
+  | 'family'
+  | 'subconstruct'
+  | 'mechanic';
+
+export type OfficialItemBankFilters = Partial<Record<OfficialItemBankFilterKey, string>>;
+
+export type OfficialItemBankFacet = {
+  key: string;
+  label: string;
+  count: number;
+};
+
+export type OfficialItemBankFacets = Record<OfficialItemBankFilterKey, OfficialItemBankFacet[]>;
+
+export type OfficialExamItemBank = {
+  exam_id: string;
+  label: string;
+  level: number;
+  filters: OfficialItemBankFilters;
+  facets: OfficialItemBankFacets;
+  source: 'item_bank_stats' | string;
+  total_items: number;
+  served_items: number;
+  questions: OfficialQuestionStatRow[];
+  generated_at: string;
+};
+
+function parseItemBankFacets(raw: unknown): OfficialItemBankFacets {
+  const src = raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
+  const parse = (key: OfficialItemBankFilterKey): OfficialItemBankFacet[] =>
+    Array.isArray(src[key])
+      ? (src[key] as OfficialItemBankFacet[])
+          .map((row) => ({
+            key: typeof row.key === 'string' ? row.key : '',
+            label: typeof row.label === 'string' ? row.label : String(row.key ?? ''),
+            count: Number(row.count) || 0,
+          }))
+          .filter((row) => row.key)
+      : [];
+  return {
+    strand: parse('strand'),
+    instruction_family: parse('instruction_family'),
+    band: parse('band'),
+    family: parse('family'),
+    subconstruct: parse('subconstruct'),
+    mechanic: parse('mechanic'),
+  };
+}
+
+export async function getPlatformAdminOfficialExamItemBank(
+  examId: string,
+  opts: {
+    level: number;
+    filters?: OfficialItemBankFilters;
+    refresh?: boolean;
+  }
+): Promise<OfficialExamItemBank> {
+  const headers = await authHeaders();
+  const params: Record<string, string | number> = {
+    ...refreshParams(opts.refresh),
+    level: opts.level,
+  };
+  const filters = opts.filters || {};
+  (Object.keys(filters) as OfficialItemBankFilterKey[]).forEach((key) => {
+    const value = filters[key];
+    if (value) params[key] = value;
+  });
+  const res = await axios.get(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAMS}/${encodeURIComponent(examId)}/item-bank`,
+    { headers, params }
+  );
+  const questions: OfficialQuestionStatRow[] = Array.isArray(res.data.questions)
+    ? res.data.questions.map((q: OfficialQuestionStatRow) => ({
+        ...q,
+        prompt: typeof q.prompt === 'string' ? q.prompt : q.prompt_preview || '',
+        prompt_preview: typeof q.prompt_preview === 'string' ? q.prompt_preview : '',
+        stimulus: q.stimulus ?? null,
+        stimulus_type: typeof q.stimulus_type === 'string' ? q.stimulus_type : null,
+        options: Array.isArray(q.options) ? q.options : [],
+        correct_index: typeof q.correct_index === 'number' ? q.correct_index : null,
+      }))
+    : [];
+  return {
+    exam_id: typeof res.data.exam_id === 'string' ? res.data.exam_id : examId,
+    label: typeof res.data.label === 'string' ? res.data.label : examId,
+    level: typeof res.data.level === 'number' ? res.data.level : opts.level,
+    filters:
+      res.data.filters && typeof res.data.filters === 'object' ? res.data.filters : filters,
+    facets: parseItemBankFacets(res.data.facets),
+    source: typeof res.data.source === 'string' ? res.data.source : 'item_bank_stats',
+    total_items: Number(res.data.total_items) || questions.length,
+    served_items: Number(res.data.served_items) || questions.filter((q) => q.times_seen > 0).length,
+    questions,
+    generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
+  };
+}
+
 export type OfficialAttemptQuestionRow = {
   index: number;
   item_id: string;

@@ -21,7 +21,7 @@ const OPTION_LETTERS = ['A', 'B', 'C', 'D'] as const;
 /**
  * Markdown + SVG renderer for Analytical Reasoning items.
  * Option figures are baked into body_markdown; the control below is a
- * letter picker only — never shuffle these options.
+ * letter picker only - never shuffle these options.
  */
 export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuestionBodyProps> = ({
   question,

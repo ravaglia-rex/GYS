@@ -33,7 +33,7 @@ export const PIPELINE_DEFINITIONS: PipelineDefinition[] = [
     subtitle: 'Institutional analytics + quarterly PDFs',
     duration: 'Typically 3–15 minutes',
     summary:
-      'Recomputes school-wide analytics from each school’s roster. Same job as the monthly 1st-of-month IST schedule. In August this is analytics only — no PDFs.',
+      'Recomputes school-wide analytics from each school’s roster. Same job as the monthly 1st-of-month IST schedule. In August this is analytics only - no PDFs.',
     steps: [
       'Loads rostered students per school and recomputes assessed count, completion rate, and avg national percentile (only from stored national_composite_percentile).',
       'Updates schools/{id}/analytics/current (including avg_percentile_source) and institutional tier on the school doc.',

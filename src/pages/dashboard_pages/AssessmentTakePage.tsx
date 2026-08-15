@@ -32,6 +32,7 @@ import {
   abandonExam,
   abandonExamOnTabUnload,
   ExamQuestion,
+  CompleteExamResponse,
 } from '../../db/assessmentCollection';
 import { useAssessmentConfig, useInvalidateStudentQueries } from '../../query/hooks';
 import { MathJaxContext } from 'better-react-mathjax';
@@ -184,7 +185,7 @@ const PreExamStep: React.FC<PreExamStepProps> = ({ assessmentId, tierNumber, onC
               Exam integrity
             </Typography>
             <Typography variant="body2" sx={{ fontSize: '0.82rem', lineHeight: 1.55 }}>
-              Do not cheat, get outside help, or share exam content. Stay in fullscreen, keep a stable internet connection, and do not leave or minimize this exam window. Your activity is monitored — leaving the exam environment or breaking these rules can terminate your attempt.
+              Do not cheat, get outside help, or share exam content. Stay in fullscreen, keep a stable internet connection, and do not leave or minimize this exam window. Your activity is monitored - leaving the exam environment or breaking these rules can terminate your attempt.
             </Typography>
           </Alert>
 
@@ -245,6 +246,11 @@ export default function AssessmentTakePage() {
   const questionStartTimeRef = useRef<number>(Date.now());
   /** True after submit, confirmed leave, integrity abandon, or tab-unload beacon - skips duplicate fail-on-unload. */
   const examEndedRef = useRef(false);
+  const finishingForTimeRef = useRef(false);
+  const selectedOptionRef = useRef<number | null>(null);
+  const currentQuestionRef = useRef<ExamQuestion | null>(null);
+  selectedOptionRef.current = selectedOption;
+  currentQuestionRef.current = currentQuestion;
 
   const flow = assessmentId ? getAssessmentFlowDefinition(assessmentId) : getAssessmentFlowDefinition('');
   const assessmentConfig = configTypes.find(
@@ -253,7 +259,7 @@ export default function AssessmentTakePage() {
   const proctoringConfig = resolveProctoringConfig(assessmentConfig);
   const proctoringEnabled = isProctoringActive(proctoringConfig);
   const mathExam = assessmentId === 'mathematical_reasoning';
-  // Analytical Reasoning can finish at 32 or extend to 40 — don't show a fixed total mid-exam.
+  // Analytical Reasoning can finish at 32 or extend to 40 - don't show a fixed total mid-exam.
   const hideQuestionTotal = Boolean(
     assessmentId && assessmentIdsEqual(assessmentId, ANALYTICAL_REASONING_ASSESSMENT_ID)
   );
@@ -291,6 +297,64 @@ export default function AssessmentTakePage() {
   );
 
   endAttemptForIntegrityRef.current = endAttemptForIntegrity;
+
+  const goToExamResults = useCallback(
+    (aid: string, result: CompleteExamResponse) => {
+      invalidateStudentQueries(uid);
+      examEndedRef.current = true;
+      finishingForTimeRef.current = true;
+      setStage('complete');
+      navigate(`/assessments/${assessmentId}/result`, {
+        state: {
+          attemptId: aid,
+          assessmentId,
+          tierNumber: tier,
+          scorePercent: result.score_points != null ? result.score_points / 10 : result.score_percent,
+          correct: result.correct,
+          total: result.total,
+          passed: result.passed,
+          nextTier: result.next_tier,
+          completedAt: new Date().toISOString(),
+          coinsAwarded: result.coins_awarded ?? 0,
+        },
+        replace: true,
+      });
+    },
+    [uid, assessmentId, tier, navigate, invalidateStudentQueries]
+  );
+
+  const completeTimedExam = useCallback(async (aid: string) => {
+    if (finishingForTimeRef.current) return;
+    finishingForTimeRef.current = true;
+    examEndedRef.current = true;
+    setIsSubmitting(true);
+    try {
+      const q = currentQuestionRef.current;
+      const opt = selectedOptionRef.current;
+      if (q && opt !== null) {
+        try {
+          await recordAnswer(
+            uid,
+            aid,
+            q.id,
+            opt,
+            Date.now() - questionStartTimeRef.current,
+            getExamDeviceFingerprint()
+          );
+        } catch {
+          // Clock may already be past expiry; still score what is stored.
+        }
+      }
+      const result = await completeExam(uid, aid);
+      goToExamResults(aid, result);
+    } catch (err) {
+      Sentry.captureException(err);
+      finishingForTimeRef.current = false;
+      setError('Time is up. We could not save your score - please go back and open this exam again to see your results.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [uid, goToExamResults]);
 
   const { reportEvent: reportProctoringEvent } = useProctoringMonitor({
     uid,
@@ -351,6 +415,27 @@ export default function AssessmentTakePage() {
         undefined,
         getExamDeviceFingerprint()
       );
+      if (result.time_expired) {
+        examEndedRef.current = true;
+        finishingForTimeRef.current = true;
+        const aid = result.attempt_id;
+        if (typeof result.score_percent === 'number') {
+          goToExamResults(aid, {
+            attempt_id: aid,
+            score_percent: result.score_percent,
+            score_points: result.score_points,
+            correct: result.correct ?? 0,
+            total: result.total ?? 0,
+            passed: result.passed ?? false,
+            next_tier: result.next_tier ?? null,
+            coins_awarded: result.coins_awarded ?? 0,
+          });
+          return;
+        }
+        const scored = await completeExam(uid, aid);
+        goToExamResults(aid, scored);
+        return;
+      }
       if (!result.question) {
         setError(
           'Could not load the first question for this attempt. Please go back and try again.'
@@ -400,7 +485,7 @@ export default function AssessmentTakePage() {
     } finally {
       setIsInitializing(false);
     }
-  }, [uid, assessmentId, tier]);
+  }, [uid, assessmentId, tier, goToExamResults]);
 
   const mayStartExam = needsPreExamStep ? stage === 'taking' : integrityGateOk && stage === 'taking';
 
@@ -419,6 +504,11 @@ export default function AssessmentTakePage() {
     }, 1000);
     return () => clearInterval(id);
   }, [secondsLeft, stage]);
+
+  useEffect(() => {
+    if (stage !== 'taking' || !flow.useTimer || secondsLeft !== 0 || !attemptId || isSubmitting) return;
+    void completeTimedExam(attemptId);
+  }, [secondsLeft, stage, attemptId, flow.useTimer, completeTimedExam, isSubmitting]);
 
   // Trap browser Back: without an extra same-URL history entry, one Back leaves /take, this page
   // unmounts, and popstate never shows our dialog. Push a sentinel so the first Back stays on /take.
@@ -544,24 +634,7 @@ export default function AssessmentTakePage() {
 
       if (response.done) {
         const result = await completeExam(uid, attemptId);
-        invalidateStudentQueries(uid);
-        examEndedRef.current = true;
-        setStage('complete');
-        navigate(`/assessments/${assessmentId}/result`, {
-          state: {
-            attemptId,
-            assessmentId,
-            tierNumber: tier,
-            scorePercent: result.score_points != null ? result.score_points / 10 : result.score_percent,
-            correct: result.correct,
-            total: result.total,
-            passed: result.passed,
-            nextTier: result.next_tier,
-            completedAt: new Date().toISOString(),
-            coinsAwarded: result.coins_awarded ?? 0,
-          },
-          replace: true,
-        });
+        goToExamResults(attemptId, result);
         return;
       }
 
@@ -579,21 +652,21 @@ export default function AssessmentTakePage() {
     } catch (err: any) {
       Sentry.captureException(err);
       if (err?.response?.data?.code === 'exam_expired') {
-        setError(err?.response?.data?.error ?? 'Exam time has expired. This attempt has ended.');
-        examEndedRef.current = true;
-        navigate(`/assessments/${assessmentId}/tier/${tier}/detail`, { replace: true });
+        if (attemptId) {
+          void completeTimedExam(attemptId);
+        }
         return;
       }
       if (err?.code === 'ECONNABORTED' || /timeout/i.test(String(err?.message ?? ''))) {
         setError(
-          'Submitting your answer timed out (often at a section boundary). Check your connection, then go back and try again — do not keep refreshing.'
+          'Submitting your answer timed out (often at a section boundary). Check your connection, then go back and try again - do not keep refreshing.'
         );
         return;
       }
       if (err?.response?.data?.code === 'section_inventory_timeout' || err?.response?.status === 503) {
         setError(
           err?.response?.data?.error ??
-            'Could not load the next section. Wait a moment and try Next again — avoid refreshing.'
+            'Could not load the next section. Wait a moment and try Next again - avoid refreshing.'
         );
         return;
       }
@@ -601,7 +674,7 @@ export default function AssessmentTakePage() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [selectedOption, attemptId, currentQuestion, uid, assessmentId, tier, currentIndex, navigate, invalidateStudentQueries]);
+  }, [selectedOption, attemptId, currentQuestion, uid, currentIndex, completeTimedExam, goToExamResults]);
 
   useEffect(() => {
     if (stage !== 'taking') return;
@@ -853,8 +926,8 @@ export default function AssessmentTakePage() {
       )}
 
       {secondsLeft === 0 && flow.useTimer && (
-        <Alert severity="warning" sx={{ flexShrink: 0, borderRadius: 0 }}>
-          Time is up - submit your answer and finish remaining questions promptly.
+        <Alert severity="info" sx={{ flexShrink: 0, borderRadius: 0 }}>
+          Time is up. Scoring the questions you answered…
         </Alert>
       )}
 

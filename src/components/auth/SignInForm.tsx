@@ -53,7 +53,7 @@ function getFirebaseAuthErrorCode(error: unknown): string {
 
 function describeSignInError(error: unknown): { title: string; description: string } {
   const code = getFirebaseAuthErrorCode(error);
-  // Firebase returns these for wrong password and other bad credentials alike —
+  // Firebase returns these for wrong password and other bad credentials alike -
   // never assume the account still needs first-time password setup.
   if (
     [

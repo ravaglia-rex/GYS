@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="790" viewBox="0 0 1120 790" role="img" aria-labelledby="title desc">
+  <title id="title">Four possible top-down plans of the three towers</title>
+  <desc id="desc">Four options labelled A through D show numbered tower footprints in bordered three-by-three grids. North is at the top, south at the bottom, west at the left, and east at the right. Blank squares contain no tower.</desc>
+  <style>
+    .title { font:700 21px Arial,sans-serif; fill:#174a78; letter-spacing:.4px; }
+    .option { font:700 27px Arial,sans-serif; fill:#174a78; }
+    .axis { font:700 13px Arial,sans-serif; fill:#536474; letter-spacing:.3px; }
+    .grid { fill:#fff; stroke:#263746; stroke-width:3; }
+    .line { stroke:#a9b6c2; stroke-width:2; }
+    .footprint { fill:#174a78; stroke:#123a5d; stroke-width:2; }
+    .number { font:700 25px Arial,sans-serif; fill:#fff; text-anchor:middle; dominant-baseline:middle; }
+  </style>
+  <rect width="1120" height="790" fill="#fff"/>
+  <text x="560" y="30" class="title" text-anchor="middle">POSSIBLE PLANS SEEN FROM ABOVE</text>
+
+  <!-- Helper layout: each grid is 270 by 270, cells 90 -->
+  <!-- A -->
+  <text x="55" y="92" class="option">A</text>
+  <text x="180" y="65" class="axis" text-anchor="middle">WEST</text>
+  <text x="360" y="65" class="axis" text-anchor="middle">EAST</text>
+  <text x="112" y="127" class="axis" text-anchor="end">NORTH</text>
+  <text x="112" y="307" class="axis" text-anchor="end">SOUTH</text>
+  <rect x="125" y="80" width="270" height="270" rx="8" class="grid"/>
+  <line x1="215" y1="80" x2="215" y2="350" class="line"/><line x1="305" y1="80" x2="305" y2="350" class="line"/>
+  <line x1="125" y1="170" x2="395" y2="170" class="line"/><line x1="125" y1="260" x2="395" y2="260" class="line"/>
+  <rect x="238" y="103" width="44" height="44" rx="7" class="footprint"/><text x="260" y="126" class="number">1</text>
+  <rect x="148" y="193" width="44" height="44" rx="7" class="footprint"/><text x="170" y="216" class="number">3</text>
+  <rect x="328" y="283" width="44" height="44" rx="7" class="footprint"/><text x="350" y="306" class="number">2</text>
+
+  <!-- B -->
+  <text x="615" y="92" class="option">B</text>
+  <text x="740" y="65" class="axis" text-anchor="middle">WEST</text>
+  <text x="920" y="65" class="axis" text-anchor="middle">EAST</text>
+  <text x="672" y="127" class="axis" text-anchor="end">NORTH</text>
+  <text x="672" y="307" class="axis" text-anchor="end">SOUTH</text>
+  <rect x="685" y="80" width="270" height="270" rx="8" class="grid"/>
+  <line x1="775" y1="80" x2="775" y2="350" class="line"/><line x1="865" y1="80" x2="865" y2="350" class="line"/>
+  <line x1="685" y1="170" x2="955" y2="170" class="line"/><line x1="685" y1="260" x2="955" y2="260" class="line"/>
+  <rect x="888" y="103" width="44" height="44" rx="7" class="footprint"/><text x="910" y="126" class="number">2</text>
+  <rect x="708" y="193" width="44" height="44" rx="7" class="footprint"/><text x="730" y="216" class="number">3</text>
+  <rect x="798" y="283" width="44" height="44" rx="7" class="footprint"/><text x="820" y="306" class="number">1</text>
+
+  <!-- C -->
+  <text x="55" y="472" class="option">C</text>
+  <text x="180" y="445" class="axis" text-anchor="middle">WEST</text>
+  <text x="360" y="445" class="axis" text-anchor="middle">EAST</text>
+  <text x="112" y="507" class="axis" text-anchor="end">NORTH</text>
+  <text x="112" y="687" class="axis" text-anchor="end">SOUTH</text>
+  <rect x="125" y="460" width="270" height="270" rx="8" class="grid"/>
+  <line x1="215" y1="460" x2="215" y2="730" class="line"/><line x1="305" y1="460" x2="305" y2="730" class="line"/>
+  <line x1="125" y1="550" x2="395" y2="550" class="line"/><line x1="125" y1="640" x2="395" y2="640" class="line"/>
+  <rect x="148" y="483" width="44" height="44" rx="7" class="footprint"/><text x="170" y="506" class="number">3</text>
+  <rect x="238" y="573" width="44" height="44" rx="7" class="footprint"/><text x="260" y="596" class="number">1</text>
+  <rect x="328" y="663" width="44" height="44" rx="7" class="footprint"/><text x="350" y="686" class="number">2</text>
+
+  <!-- D -->
+  <text x="615" y="472" class="option">D</text>
+  <text x="740" y="445" class="axis" text-anchor="middle">WEST</text>
+  <text x="920" y="445" class="axis" text-anchor="middle">EAST</text>
+  <text x="672" y="507" class="axis" text-anchor="end">NORTH</text>
+  <text x="672" y="687" class="axis" text-anchor="end">SOUTH</text>
+  <rect x="685" y="460" width="270" height="270" rx="8" class="grid"/>
+  <line x1="775" y1="460" x2="775" y2="730" class="line"/><line x1="865" y1="460" x2="865" y2="730" class="line"/>
+  <line x1="685" y1="550" x2="955" y2="550" class="line"/><line x1="685" y1="640" x2="955" y2="640" class="line"/>
+  <rect x="708" y="483" width="44" height="44" rx="7" class="footprint"/><text x="730" y="506" class="number">1</text>
+  <rect x="798" y="573" width="44" height="44" rx="7" class="footprint"/><text x="820" y="596" class="number">3</text>
+  <rect x="888" y="663" width="44" height="44" rx="7" class="footprint"/><text x="910" y="686" class="number">2</text>
+</svg>

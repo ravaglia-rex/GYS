@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="620" viewBox="0 0 1040 620" role="img" aria-labelledby="title desc">
+  <title id="title">Four possible views from the east-side observer</title>
+  <desc id="desc">Four answer choices labelled A through D. Each is a bordered two-by-two view whose columns are the observer's left and right and whose rows are the upper and lower levels. Option A shows star and square above pentagon and diamond. Option B shows triangle and star above diamond and circle. Option C shows square and star above pentagon and diamond. Option D shows square and star above diamond and pentagon.</desc>
+  <style>
+    .title { font:700 20px Arial,sans-serif; fill:#174a78; letter-spacing:.4px; }
+    .option { font:700 26px Arial,sans-serif; fill:#174a78; }
+    .axis { font:700 13px Arial,sans-serif; fill:#536474; letter-spacing:.3px; }
+    .grid { fill:#fff; stroke:#263746; stroke-width:3; }
+    .line { stroke:#a9b6c2; stroke-width:2; }
+    .symbol { font:700 45px "Arial Unicode MS","Noto Sans Symbols 2",Arial,sans-serif; fill:#1c3144; text-anchor:middle; dominant-baseline:middle; }
+  </style>
+  <rect width="1040" height="620" fill="#fff"/>
+  <text x="520" y="28" class="title" text-anchor="middle">EACH OPTION SHOWS THE OBSERVER'S VIEW</text>
+
+  <!-- A -->
+  <text x="58" y="95" class="option">A</text>
+  <text x="205" y="65" class="axis" text-anchor="middle">OBSERVER'S LEFT</text>
+  <text x="365" y="65" class="axis" text-anchor="middle">OBSERVER'S RIGHT</text>
+  <text x="110" y="140" class="axis" text-anchor="end">UPPER</text>
+  <text x="110" y="250" class="axis" text-anchor="end">LOWER</text>
+  <rect x="125" y="80" width="320" height="220" rx="8" class="grid"/>
+  <line x1="285" y1="80" x2="285" y2="300" class="line"/>
+  <line x1="125" y1="190" x2="445" y2="190" class="line"/>
+  <text x="205" y="135" class="symbol">★</text>
+  <text x="365" y="135" class="symbol">■</text>
+  <polygon points="205,218 228,235 219,262 191,262 182,235" fill="#1c3144"/>
+  <polygon points="365,216 389,240 365,264 341,240" fill="#1c3144"/>
+
+  <!-- B -->
+  <text x="568" y="95" class="option">B</text>
+  <text x="715" y="65" class="axis" text-anchor="middle">OBSERVER'S LEFT</text>
+  <text x="875" y="65" class="axis" text-anchor="middle">OBSERVER'S RIGHT</text>
+  <text x="620" y="140" class="axis" text-anchor="end">UPPER</text>
+  <text x="620" y="250" class="axis" text-anchor="end">LOWER</text>
+  <rect x="635" y="80" width="320" height="220" rx="8" class="grid"/>
+  <line x1="795" y1="80" x2="795" y2="300" class="line"/>
+  <line x1="635" y1="190" x2="955" y2="190" class="line"/>
+  <text x="715" y="135" class="symbol">▲</text>
+  <text x="875" y="135" class="symbol">★</text>
+  <polygon points="715,216 739,240 715,264 691,240" fill="#1c3144"/>
+  <circle cx="875" cy="240" r="22" fill="#1c3144"/>
+
+  <!-- C -->
+  <text x="58" y="405" class="option">C</text>
+  <text x="205" y="375" class="axis" text-anchor="middle">OBSERVER'S LEFT</text>
+  <text x="365" y="375" class="axis" text-anchor="middle">OBSERVER'S RIGHT</text>
+  <text x="110" y="450" class="axis" text-anchor="end">UPPER</text>
+  <text x="110" y="560" class="axis" text-anchor="end">LOWER</text>
+  <rect x="125" y="390" width="320" height="220" rx="8" class="grid"/>
+  <line x1="285" y1="390" x2="285" y2="610" class="line"/>
+  <line x1="125" y1="500" x2="445" y2="500" class="line"/>
+  <text x="205" y="445" class="symbol">■</text>
+  <text x="365" y="445" class="symbol">★</text>
+  <polygon points="205,528 228,545 219,572 191,572 182,545" fill="#1c3144"/>
+  <polygon points="365,526 389,550 365,574 341,550" fill="#1c3144"/>
+
+  <!-- D -->
+  <text x="568" y="405" class="option">D</text>
+  <text x="715" y="375" class="axis" text-anchor="middle">OBSERVER'S LEFT</text>
+  <text x="875" y="375" class="axis" text-anchor="middle">OBSERVER'S RIGHT</text>
+  <text x="620" y="450" class="axis" text-anchor="end">UPPER</text>
+  <text x="620" y="560" class="axis" text-anchor="end">LOWER</text>
+  <rect x="635" y="390" width="320" height="220" rx="8" class="grid"/>
+  <line x1="795" y1="390" x2="795" y2="610" class="line"/>
+  <line x1="635" y1="500" x2="955" y2="500" class="line"/>
+  <text x="715" y="445" class="symbol">■</text>
+  <text x="875" y="445" class="symbol">★</text>
+  <polygon points="715,526 739,550 715,574 691,550" fill="#1c3144"/>
+  <polygon points="875,528 898,545 889,572 861,572 852,545" fill="#1c3144"/>
+</svg>

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="220" viewBox="0 0 860 220" role="img" aria-labelledby="title desc">
+  <title id="title">Four possible sixth sections</title>
+  <desc id="desc">Option A has hollow circle upper right and solid square lower left. Option B has solid circle upper left and hollow square lower right. Option C has solid circle upper right and hollow square lower left. Option D has solid square upper right and hollow circle lower left. Light gray x marks every empty position.</desc>
+  <style>
+    .section { fill:#fff; stroke:#263746; stroke-width:2.5; }
+    .grid { stroke:#aeb9c2; stroke-width:1.5; }
+    .label { font:700 22px sans-serif; fill:#174a78; text-anchor:middle; }
+    .solid { fill:#172b3a; stroke:#172b3a; stroke-width:2.2; }
+    .hollow { fill:#fff; stroke:#172b3a; stroke-width:2.6; }
+    .empty { font:400 25px sans-serif; fill:#aab3bb; text-anchor:middle; dominant-baseline:middle; }
+  </style>
+  <rect width="860" height="220" fill="#fff"/>
+
+  <g transform="translate(45 55)">
+    <text class="label" x="60" y="-18">A</text>
+    <rect class="section" width="120" height="120" rx="6"/><path class="grid" d="M60 0V120M0 60H120"/>
+    <text class="empty" x="30" y="31">×</text><circle class="hollow" cx="90" cy="31" r="11"/>
+    <rect class="solid" x="20" y="81" width="20" height="20"/><text class="empty" x="90" y="91">×</text>
+  </g>
+  <g transform="translate(255 55)">
+    <text class="label" x="60" y="-18">B</text>
+    <rect class="section" width="120" height="120" rx="6"/><path class="grid" d="M60 0V120M0 60H120"/>
+    <circle class="solid" cx="30" cy="31" r="11"/><text class="empty" x="90" y="31">×</text>
+    <text class="empty" x="30" y="91">×</text><rect class="hollow" x="80" y="81" width="20" height="20"/>
+  </g>
+  <g transform="translate(465 55)">
+    <text class="label" x="60" y="-18">C</text>
+    <rect class="section" width="120" height="120" rx="6"/><path class="grid" d="M60 0V120M0 60H120"/>
+    <text class="empty" x="30" y="31">×</text><circle class="solid" cx="90" cy="31" r="11"/>
+    <rect class="hollow" x="20" y="81" width="20" height="20"/><text class="empty" x="90" y="91">×</text>
+  </g>
+  <g transform="translate(675 55)">
+    <text class="label" x="60" y="-18">D</text>
+    <rect class="section" width="120" height="120" rx="6"/><path class="grid" d="M60 0V120M0 60H120"/>
+    <text class="empty" x="30" y="31">×</text><rect class="solid" x="80" y="21" width="20" height="20"/>
+    <circle class="hollow" cx="30" cy="91" r="11"/><text class="empty" x="90" y="91">×</text>
+  </g>
+</svg>

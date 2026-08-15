@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="940" height="280" viewBox="0 0 940 280" role="img" aria-labelledby="title desc">
+  <title id="title">Four possible transformed target cards</title>
+  <desc id="desc">Each option is a bordered three-by-three card with blank empty squares. Option A has hollow circle upper-left, diamond upper-right, star center, and downward arrow lower-left. Option B has left arrow upper-left, hollow circle upper-right, star center, and diamond lower-right. Option C has diamond upper-left, hollow circle upper-right, star center, and east arrow lower-right. Option D has diamond upper-left, hollow circle upper-right, star center, and downward arrow lower-right.</desc>
+  <style>
+    .card { fill:#fff; stroke:#263746; stroke-width:2.6; }
+    .grid { stroke:#aeb9c2; stroke-width:1.5; }
+    .label { font:700 22px sans-serif; fill:#174a78; text-anchor:middle; }
+    .shape { font:700 31px "DejaVu Sans",sans-serif; fill:#172b3a; text-anchor:middle; dominant-baseline:middle; }
+    .hollow { fill:#fff; stroke:#172b3a; stroke-width:2.5; }
+    .solid { fill:#172b3a; stroke:#172b3a; stroke-width:2.1; }
+    .direction { font:700 35px sans-serif; fill:#174a78; text-anchor:middle; dominant-baseline:middle; }
+  </style>
+  <rect width="940" height="280" fill="#fff"/>
+
+  <g transform="translate(25 55)">
+    <text class="label" x="90" y="-18">A</text><rect class="card" width="180" height="180" rx="6"/><path class="grid" d="M60 0V180M120 0V180M0 60H180M0 120H180"/>
+    <circle class="hollow" cx="30" cy="30" r="12"/><polygon class="solid" points="150,14 166,30 150,46 134,30"/>
+    <text class="shape" x="90" y="91">★</text><text class="direction" x="30" y="151">↓</text>
+  </g>
+  <g transform="translate(260 55)">
+    <text class="label" x="90" y="-18">B</text><rect class="card" width="180" height="180" rx="6"/><path class="grid" d="M60 0V180M120 0V180M0 60H180M0 120H180"/>
+    <text class="direction" x="30" y="31">←</text><circle class="hollow" cx="150" cy="30" r="12"/>
+    <text class="shape" x="90" y="91">★</text><polygon class="solid" points="150,134 166,150 150,166 134,150"/>
+  </g>
+  <g transform="translate(495 55)">
+    <text class="label" x="90" y="-18">C</text><rect class="card" width="180" height="180" rx="6"/><path class="grid" d="M60 0V180M120 0V180M0 60H180M0 120H180"/>
+    <polygon class="solid" points="30,14 46,30 30,46 14,30"/><circle class="hollow" cx="150" cy="30" r="12"/>
+    <text class="shape" x="90" y="91">★</text><text class="direction" x="150" y="151">→</text>
+  </g>
+  <g transform="translate(730 55)">
+    <text class="label" x="90" y="-18">D</text><rect class="card" width="180" height="180" rx="6"/><path class="grid" d="M60 0V180M120 0V180M0 60H180M0 120H180"/>
+    <polygon class="solid" points="30,14 46,30 30,46 14,30"/><circle class="hollow" cx="150" cy="30" r="12"/>
+    <text class="shape" x="90" y="91">★</text><text class="direction" x="150" y="151">↓</text>
+  </g>
+</svg>

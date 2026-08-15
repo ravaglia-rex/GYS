@@ -577,7 +577,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
               <Typography variant="caption" sx={{ color: '#94a3b8', display: 'block', mb: 1.5 }}>
                 {scoreDistributionHasAny
                   ? 'Bars show share of students in each score band for that sub-strand.'
-                  : 'No sectional scores on the roster yet — bars stay empty until students complete section-scored exams.'}
+                  : 'No sectional scores on the roster yet - bars stay empty until students complete section-scored exams.'}
               </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25, alignItems: 'center', mb: 2 }}>
                 {SCORE_BAND_ORDER.map(r => (

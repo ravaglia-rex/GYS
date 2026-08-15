@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="680" viewBox="0 0 820 680" role="img" aria-labelledby="title desc">
+  <title id="title">Three-by-three matrix of bordered two-by-two sections</title>
+  <desc id="desc">Columns are labelled A, B, and C, and rows are labelled 1, 2, and 3. Every visible section contains four positions. Row 1 A is filled upper-left and upper-right; 1 B is filled upper-left and lower-left; 1 C is filled upper-left and lower-right. Row 2 A is filled upper-left, lower-left, and lower-right; 2 B is filled upper-right and lower-left; 2 C is filled upper-right, lower-left, and lower-right. Row 3 A matches 2 A; 3 B is filled upper-right and lower-right; 3 C is hidden.</desc>
+  <defs>
+    <g id="filled"><circle cx="0" cy="0" r="20" fill="#1c3144"/></g>
+    <g id="unfilled"><circle cx="0" cy="0" r="20" fill="#fff" stroke="#1c3144" stroke-width="3"/></g>
+  </defs>
+  <style>
+    .heading { font:700 22px Arial,sans-serif; fill:#174a78; letter-spacing:.4px; }
+    .axis { font:700 22px Arial,sans-serif; fill:#536474; text-anchor:middle; dominant-baseline:middle; }
+    .section { fill:#fff; stroke:#263746; stroke-width:3; }
+    .line { stroke:#a9b6c2; stroke-width:2; }
+    .hidden { font:700 20px Arial,sans-serif; fill:#174a78; text-anchor:middle; dominant-baseline:middle; letter-spacing:.5px; }
+  </style>
+  <rect width="820" height="680" fill="#fff"/>
+  <text x="410" y="32" class="heading" text-anchor="middle">MATRIX OF 2×2 SECTIONS</text>
+  <text x="270" y="70" class="axis">A</text><text x="454" y="70" class="axis">B</text><text x="638" y="70" class="axis">C</text>
+  <text x="150" y="175" class="axis">1</text><text x="150" y="359" class="axis">2</text><text x="150" y="543" class="axis">3</text>
+
+  <!-- 1A -->
+  <rect x="190" y="95" width="160" height="160" rx="8" class="section"/><path d="M270 95V255M190 175H350" class="line"/>
+  <use href="#filled" x="230" y="135"/><use href="#filled" x="310" y="135"/><use href="#unfilled" x="230" y="215"/><use href="#unfilled" x="310" y="215"/>
+  <!-- 1B -->
+  <rect x="374" y="95" width="160" height="160" rx="8" class="section"/><path d="M454 95V255M374 175H534" class="line"/>
+  <use href="#filled" x="414" y="135"/><use href="#unfilled" x="494" y="135"/><use href="#filled" x="414" y="215"/><use href="#unfilled" x="494" y="215"/>
+  <!-- 1C -->
+  <rect x="558" y="95" width="160" height="160" rx="8" class="section"/><path d="M638 95V255M558 175H718" class="line"/>
+  <use href="#filled" x="598" y="135"/><use href="#unfilled" x="678" y="135"/><use href="#unfilled" x="598" y="215"/><use href="#filled" x="678" y="215"/>
+
+  <!-- 2A -->
+  <rect x="190" y="279" width="160" height="160" rx="8" class="section"/><path d="M270 279V439M190 359H350" class="line"/>
+  <use href="#filled" x="230" y="319"/><use href="#unfilled" x="310" y="319"/><use href="#filled" x="230" y="399"/><use href="#filled" x="310" y="399"/>
+  <!-- 2B -->
+  <rect x="374" y="279" width="160" height="160" rx="8" class="section"/><path d="M454 279V439M374 359H534" class="line"/>
+  <use href="#unfilled" x="414" y="319"/><use href="#filled" x="494" y="319"/><use href="#filled" x="414" y="399"/><use href="#unfilled" x="494" y="399"/>
+  <!-- 2C -->
+  <rect x="558" y="279" width="160" height="160" rx="8" class="section"/><path d="M638 279V439M558 359H718" class="line"/>
+  <use href="#unfilled" x="598" y="319"/><use href="#filled" x="678" y="319"/><use href="#filled" x="598" y="399"/><use href="#filled" x="678" y="399"/>
+
+  <!-- 3A -->
+  <rect x="190" y="463" width="160" height="160" rx="8" class="section"/><path d="M270 463V623M190 543H350" class="line"/>
+  <use href="#filled" x="230" y="503"/><use href="#unfilled" x="310" y="503"/><use href="#filled" x="230" y="583"/><use href="#filled" x="310" y="583"/>
+  <!-- 3B -->
+  <rect x="374" y="463" width="160" height="160" rx="8" class="section"/><path d="M454 463V623M374 543H534" class="line"/>
+  <use href="#unfilled" x="414" y="503"/><use href="#filled" x="494" y="503"/><use href="#unfilled" x="414" y="583"/><use href="#filled" x="494" y="583"/>
+  <!-- 3C hidden -->
+  <rect x="558" y="463" width="160" height="160" rx="8" class="section"/><text x="638" y="543" class="hidden">HIDDEN</text>
+</svg>

@@ -1,6 +1,6 @@
 /**
  * Display sub-strands for the three core reasoning assessments.
- * Must match backend `SUBCONSTRUCTS_BY_EXAM` in subconstructConstants.ts — Score
+ * Must match backend `SUBCONSTRUCTS_BY_EXAM` in subconstructConstants.ts - Score
  * Distribution matches roster construct `subconstruct` labels exactly.
  */
 export const REASONING_EXAM_SUBCATEGORIES: Record<string, readonly string[]> = {

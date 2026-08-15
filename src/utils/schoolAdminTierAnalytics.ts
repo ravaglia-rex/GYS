@@ -30,7 +30,7 @@ export const PROF_TIER_COLORS = {
 export function isActiveAssessmentProgress(p: Progress | undefined): p is Progress {
   if (!p || typeof p !== 'object') return false;
   const st = normalizedStatus(p);
-  // Unlocked (`available`) is not an attempt — membership unlock must not inflate analytics.
+  // Unlocked (`available`) is not an attempt - membership unlock must not inflate analytics.
   if (st === 'tier_advanced' || st === 'completed') return true;
   const attempts = Number((p as { attempts_count?: unknown }).attempts_count);
   if (Number.isFinite(attempts) && attempts > 0) return true;
@@ -50,7 +50,7 @@ export function isActiveAssessmentProgress(p: Progress | undefined): p is Progre
 /**
  * Per-assessment slot: current proficiency focus band (1 / 2 / 3).
  * Uses `proficiency_tier` (next unlocked / focus level). Values above 3 (all levels
- * cleared → maxTiers+1) count as Level 3. Do not map `tier_advanced` to Level 3 —
+ * cleared → maxTiers+1) count as Level 3. Do not map `tier_advanced` to Level 3 -
  * that status only means a tier was cleared, often Level 1.
  */
 export function slotProficiencyTierBand(p: Progress): 1 | 2 | 3 {

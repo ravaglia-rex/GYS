@@ -226,7 +226,7 @@ const PlatformAdminTestResultsPage: React.FC = () => {
                     }}
                   >
                     <Typography sx={{ fontWeight: 800, color: ip.heading }}>
-                      {shortExamLabel(att.assessment_id)} · Level {att.proficiency_tier ?? '—'}
+                      {shortExamLabel(att.assessment_id)} · Level {att.proficiency_tier ?? '-'}
                     </Typography>
                     <Chip
                       size="small"
@@ -389,7 +389,7 @@ const PlatformAdminTestResultsPage: React.FC = () => {
                           </Box>
                         ) : (
                           <Typography sx={{ color: '#64748b', fontSize: 13, mb: 1 }}>
-                            (No option text stored on this item — often image-only.)
+                            (No option text stored on this item - often image-only.)
                           </Typography>
                         )}
                         <Typography sx={{ color: '#334155', fontSize: 13, fontWeight: 600 }}>

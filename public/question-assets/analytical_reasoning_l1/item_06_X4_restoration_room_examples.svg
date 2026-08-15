@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="770" viewBox="0 0 1100 770" role="img" aria-labelledby="title desc">
+  <title id="title">Examples for Restoration Rooms A and B</title>
+  <desc id="desc">Four fixed-layout before-and-after examples show statue heights on the left, middle, and right pedestals and the loose statue. The spotlighted pedestal is marked lit.</desc>
+  <style>
+    .room { font:700 27px Arial,sans-serif; fill:#174a78; text-anchor:middle; }
+    .example { font:700 17px Arial,sans-serif; fill:#536474; }
+    .state { font:700 18px Arial,sans-serif; fill:#1c3144; text-anchor:middle; }
+    .column { font:700 14px Arial,sans-serif; fill:#536474; text-anchor:middle; }
+    .value { font:700 24px Arial,sans-serif; fill:#1c3144; text-anchor:middle; dominant-baseline:middle; }
+    .litvalue { font:700 19px Arial,sans-serif; fill:#174a78; text-anchor:middle; dominant-baseline:middle; }
+    .box { fill:#fff; stroke:#263746; stroke-width:2.5; }
+    .lit { fill:#fff4cc; stroke:#174a78; stroke-width:3; }
+    .loose { fill:#f3f5f7; stroke:#263746; stroke-width:2.5; }
+    .divider { stroke:#c7d0d8; stroke-width:2; }
+    .arrow { font:700 38px Arial,sans-serif; fill:#174a78; text-anchor:middle; dominant-baseline:middle; }
+  </style>
+  <rect width="1100" height="770" fill="#fff"/>
+
+  <text x="550" y="38" class="room">ROOM A EXAMPLES</text>
+
+  <!-- Room A, Example 1 -->
+  <text x="42" y="85" class="example">EXAMPLE 1</text>
+  <text x="280" y="86" class="state">BEFORE</text>
+  <text x="820" y="86" class="state">AFTER</text>
+  <g class="column"><text x="137.5" y="118">LEFT</text><text x="232.5" y="118">MIDDLE</text><text x="327.5" y="118">RIGHT</text><text x="422.5" y="118">LOOSE</text><text x="677.5" y="118">LEFT</text><text x="772.5" y="118">MIDDLE</text><text x="867.5" y="118">RIGHT</text><text x="962.5" y="118">LOOSE</text></g>
+  <rect x="90" y="130" width="95" height="70" class="box"/><rect x="185" y="130" width="95" height="70" class="lit"/><rect x="280" y="130" width="95" height="70" class="box"/><rect x="375" y="130" width="95" height="70" class="loose"/>
+  <text x="137.5" y="165" class="value">2</text><text x="232.5" y="165" class="litvalue">4 (LIT)</text><text x="327.5" y="165" class="value">1</text><text x="422.5" y="165" class="value">3</text>
+  <text x="550" y="165" class="arrow">→</text>
+  <rect x="630" y="130" width="95" height="70" class="box"/><rect x="725" y="130" width="95" height="70" class="lit"/><rect x="820" y="130" width="95" height="70" class="box"/><rect x="915" y="130" width="95" height="70" class="loose"/>
+  <text x="677.5" y="165" class="value">2</text><text x="772.5" y="165" class="litvalue">3 (LIT)</text><text x="867.5" y="165" class="value">1</text><text x="962.5" y="165" class="value">4</text>
+
+  <!-- Room A, Example 2 -->
+  <text x="42" y="240" class="example">EXAMPLE 2</text>
+  <text x="280" y="241" class="state">BEFORE</text>
+  <text x="820" y="241" class="state">AFTER</text>
+  <g class="column"><text x="137.5" y="273">LEFT</text><text x="232.5" y="273">MIDDLE</text><text x="327.5" y="273">RIGHT</text><text x="422.5" y="273">LOOSE</text><text x="677.5" y="273">LEFT</text><text x="772.5" y="273">MIDDLE</text><text x="867.5" y="273">RIGHT</text><text x="962.5" y="273">LOOSE</text></g>
+  <rect x="90" y="285" width="95" height="70" class="box"/><rect x="185" y="285" width="95" height="70" class="box"/><rect x="280" y="285" width="95" height="70" class="lit"/><rect x="375" y="285" width="95" height="70" class="loose"/>
+  <text x="137.5" y="320" class="value">4</text><text x="232.5" y="320" class="value">1</text><text x="327.5" y="320" class="litvalue">3 (LIT)</text><text x="422.5" y="320" class="value">2</text>
+  <text x="550" y="320" class="arrow">→</text>
+  <rect x="630" y="285" width="95" height="70" class="box"/><rect x="725" y="285" width="95" height="70" class="box"/><rect x="820" y="285" width="95" height="70" class="lit"/><rect x="915" y="285" width="95" height="70" class="loose"/>
+  <text x="677.5" y="320" class="value">4</text><text x="772.5" y="320" class="value">1</text><text x="867.5" y="320" class="litvalue">2 (LIT)</text><text x="962.5" y="320" class="value">3</text>
+
+  <line x1="55" y1="390" x2="1045" y2="390" class="divider"/>
+  <text x="550" y="430" class="room">ROOM B EXAMPLES</text>
+
+  <!-- Room B, Example 1 -->
+  <text x="42" y="477" class="example">EXAMPLE 1</text>
+  <text x="280" y="478" class="state">BEFORE</text>
+  <text x="820" y="478" class="state">AFTER</text>
+  <g class="column"><text x="137.5" y="510">LEFT</text><text x="232.5" y="510">MIDDLE</text><text x="327.5" y="510">RIGHT</text><text x="422.5" y="510">LOOSE</text><text x="677.5" y="510">LEFT</text><text x="772.5" y="510">MIDDLE</text><text x="867.5" y="510">RIGHT</text><text x="962.5" y="510">LOOSE</text></g>
+  <rect x="90" y="522" width="95" height="70" class="box"/><rect x="185" y="522" width="95" height="70" class="lit"/><rect x="280" y="522" width="95" height="70" class="box"/><rect x="375" y="522" width="95" height="70" class="loose"/>
+  <text x="137.5" y="557" class="value">2</text><text x="232.5" y="557" class="litvalue">4 (LIT)</text><text x="327.5" y="557" class="value">1</text><text x="422.5" y="557" class="value">3</text>
+  <text x="550" y="557" class="arrow">→</text>
+  <rect x="630" y="522" width="95" height="70" class="lit"/><rect x="725" y="522" width="95" height="70" class="box"/><rect x="820" y="522" width="95" height="70" class="box"/><rect x="915" y="522" width="95" height="70" class="loose"/>
+  <text x="677.5" y="557" class="litvalue">2 (LIT)</text><text x="772.5" y="557" class="value">4</text><text x="867.5" y="557" class="value">1</text><text x="962.5" y="557" class="value">3</text>
+
+  <!-- Room B, Example 2 -->
+  <text x="42" y="632" class="example">EXAMPLE 2</text>
+  <text x="280" y="633" class="state">BEFORE</text>
+  <text x="820" y="633" class="state">AFTER</text>
+  <g class="column"><text x="137.5" y="665">LEFT</text><text x="232.5" y="665">MIDDLE</text><text x="327.5" y="665">RIGHT</text><text x="422.5" y="665">LOOSE</text><text x="677.5" y="665">LEFT</text><text x="772.5" y="665">MIDDLE</text><text x="867.5" y="665">RIGHT</text><text x="962.5" y="665">LOOSE</text></g>
+  <rect x="90" y="677" width="95" height="70" class="box"/><rect x="185" y="677" width="95" height="70" class="lit"/><rect x="280" y="677" width="95" height="70" class="box"/><rect x="375" y="677" width="95" height="70" class="loose"/>
+  <text x="137.5" y="712" class="value">4</text><text x="232.5" y="712" class="litvalue">1 (LIT)</text><text x="327.5" y="712" class="value">3</text><text x="422.5" y="712" class="value">2</text>
+  <text x="550" y="712" class="arrow">→</text>
+  <rect x="630" y="677" width="95" height="70" class="box"/><rect x="725" y="677" width="95" height="70" class="box"/><rect x="820" y="677" width="95" height="70" class="lit"/><rect x="915" y="677" width="95" height="70" class="loose"/>
+  <text x="677.5" y="712" class="value">4</text><text x="772.5" y="712" class="value">1</text><text x="867.5" y="712" class="litvalue">3 (LIT)</text><text x="962.5" y="712" class="value">2</text>
+</svg>

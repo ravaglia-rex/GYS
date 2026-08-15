@@ -26,8 +26,11 @@ import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined';
 import UnarchiveOutlinedIcon from '@mui/icons-material/UnarchiveOutlined';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import {
+  formatDate,
   formatDateTime,
+  deletePlatformAdminQuestionProblemReport,
   getPlatformAdminQuestionProblemReportItem,
   listPlatformAdminQuestionProblemReports,
   setPlatformAdminQuestionProblemReportArchived,
@@ -56,6 +59,25 @@ import {
 import type { ExamQuestion } from '../../db/assessmentCollection';
 
 type SourceFilter = 'all' | 'official' | 'practice';
+type StatusFilter = 'open' | 'archived';
+
+const toggleGroupSx = {
+  bgcolor: '#fff',
+  '& .MuiToggleButton-root': {
+    textTransform: 'none',
+    px: 1.5,
+    color: ip.heading,
+    borderColor: '#cbd5e1',
+    fontWeight: 600,
+    '&.Mui-selected': {
+      bgcolor: 'rgba(16, 64, 139, 0.1)',
+      color: ip.navy,
+      borderColor: '#94a3b8',
+      '&:hover': { bgcolor: 'rgba(16, 64, 139, 0.16)' },
+    },
+    '&:hover': { bgcolor: '#f8fafc' },
+  },
+} as const;
 
 function toStimulusExamQuestion(item: PlatformAdminQuestionProblemReportItem): ExamQuestion {
   return {
@@ -71,7 +93,10 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
   const [reports, setReports] = useState<PlatformAdminQuestionProblemReport[]>([]);
   const [officialCount, setOfficialCount] = useState(0);
   const [practiceCount, setPracticeCount] = useState(0);
+  const [openCount, setOpenCount] = useState(0);
+  const [archivedCount, setArchivedCount] = useState(0);
   const [source, setSource] = useState<SourceFilter>('all');
+  const [status, setStatus] = useState<StatusFilter>('open');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -79,15 +104,22 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
   const [itemDetail, setItemDetail] = useState<PlatformAdminQuestionProblemReportItem | null>(null);
   const [itemLoading, setItemLoading] = useState(false);
   const [itemError, setItemError] = useState<string | null>(null);
+  const [actionBusyId, setActionBusyId] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{
+    kind: 'archive' | 'delete';
+    row: PlatformAdminQuestionProblemReport;
+  } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await listPlatformAdminQuestionProblemReports({ limit: 300, source });
+      const data = await listPlatformAdminQuestionProblemReports({ limit: 300, source, status });
       setReports(data.reports);
       setOfficialCount(data.official_count);
       setPracticeCount(data.practice_count);
+      setOpenCount(data.open_count);
+      setArchivedCount(data.archived_count);
     } catch (e) {
       console.error(e);
       setError('Could not load question reports. Try again.');
@@ -95,7 +127,7 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [source]);
+  }, [source, status]);
 
   useEffect(() => {
     void load();
@@ -116,7 +148,7 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
       setItemDetail(item);
     } catch (e) {
       console.error(e);
-      setItemError('Could not load this question. It may have been moved or deleted from the bank.');
+      setItemError('Could not load this question from the item bank.');
     } finally {
       setItemLoading(false);
     }
@@ -129,17 +161,60 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
     setItemLoading(false);
   }, []);
 
+  const applyArchiveChange = useCallback(
+    async (row: PlatformAdminQuestionProblemReport, archived: boolean) => {
+      setActionBusyId(row.id);
+      setError(null);
+      try {
+        await setPlatformAdminQuestionProblemReportArchived({ reportId: row.id, archived });
+        if (selectedReport?.id === row.id) closeReport();
+        setConfirmAction(null);
+        await load();
+      } catch (e) {
+        console.error(e);
+        setError(archived ? 'Could not archive this report.' : 'Could not restore this report.');
+      } finally {
+        setActionBusyId(null);
+      }
+    },
+    [closeReport, load, selectedReport?.id]
+  );
+
+  const applyDelete = useCallback(
+    async (row: PlatformAdminQuestionProblemReport) => {
+      setActionBusyId(row.id);
+      setError(null);
+      try {
+        await deletePlatformAdminQuestionProblemReport(row.id);
+        if (selectedReport?.id === row.id) closeReport();
+        setConfirmAction(null);
+        await load();
+      } catch (e) {
+        console.error(e);
+        setError('Could not delete this report.');
+      } finally {
+        setActionBusyId(null);
+      }
+    },
+    [closeReport, load, selectedReport?.id]
+  );
+
   const emptyMessage = useMemo(() => {
-    if (source === 'official') return 'No official exam question reports yet.';
-    if (source === 'practice') return 'No practice question reports yet.';
-    return 'No question reports yet. New reports from exams and practice will appear here.';
-  }, [source]);
+    if (status === 'archived') {
+      if (source === 'official') return 'No archived official exam question reports.';
+      if (source === 'practice') return 'No archived practice question reports.';
+      return 'No archived question reports.';
+    }
+    if (source === 'official') return 'No open official exam question reports.';
+    if (source === 'practice') return 'No open practice question reports.';
+    return 'No open question reports. New reports from exams and practice will appear here.';
+  }, [source, status]);
 
   return (
     <Box sx={platformAdminPageContainerSx}>
       <PlatformAdminPageHeader
         title="Question reports"
-        subtitle="Problems students flag on official exams and practice. Visible only to srishti@argus.ai and michael@argus.ai."
+        subtitle="Problems students flag on official exams and practice. Archive to hide from the open inbox, or delete to remove the report permanently."
         action={
           <Button
             startIcon={<RefreshIcon />}
@@ -155,62 +230,73 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
+          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' },
           gap: 2,
           mb: 2.5,
         }}
       >
         <PlatformAdminStatCard
-          title="Shown"
-          value={loading ? '…' : String(reports.length)}
+          title="Open"
+          value={loading ? '…' : String(openCount)}
           icon={<ReportProblemIcon />}
           accent={ip.navy}
+          selected={status === 'open'}
+          onClick={() => setStatus('open')}
         />
         <PlatformAdminStatCard
-          title="Official (in fetch)"
+          title="Archived"
+          value={loading ? '…' : String(archivedCount)}
+          icon={<ArchiveOutlinedIcon />}
+          accent="#64748b"
+          selected={status === 'archived'}
+          onClick={() => setStatus('archived')}
+        />
+        <PlatformAdminStatCard
+          title="Official (shown)"
           value={loading ? '…' : String(officialCount)}
           icon={<ReportProblemIcon />}
           accent="#2563eb"
         />
         <PlatformAdminStatCard
-          title="Practice (in fetch)"
+          title="Practice (shown)"
           value={loading ? '…' : String(practiceCount)}
           icon={<ReportProblemIcon />}
           accent="#64748b"
         />
       </Box>
 
-      <Box sx={{ mb: 2, display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
-        <Typography sx={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Show</Typography>
-        <ToggleButtonGroup
-          exclusive
-          size="small"
-          value={source}
-          onChange={(_e, next: SourceFilter | null) => {
-            if (next) setSource(next);
-          }}
-          sx={{
-            bgcolor: '#fff',
-            '& .MuiToggleButton-root': {
-              textTransform: 'none',
-              px: 1.5,
-              color: ip.heading,
-              borderColor: '#cbd5e1',
-              fontWeight: 600,
-              '&.Mui-selected': {
-                bgcolor: 'rgba(16, 64, 139, 0.1)',
-                color: ip.navy,
-                borderColor: '#94a3b8',
-                '&:hover': { bgcolor: 'rgba(16, 64, 139, 0.16)' },
-              },
-              '&:hover': { bgcolor: '#f8fafc' },
-            },
-          }}
-        >
-          <ToggleButton value="all">All</ToggleButton>
-          <ToggleButton value="official">Official exams</ToggleButton>
-          <ToggleButton value="practice">Practice</ToggleButton>
-        </ToggleButtonGroup>
+      <Box sx={{ mb: 2, display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
+          <Typography sx={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Inbox</Typography>
+          <ToggleButtonGroup
+            exclusive
+            size="small"
+            value={status}
+            onChange={(_e, next: StatusFilter | null) => {
+              if (next) setStatus(next);
+            }}
+            sx={toggleGroupSx}
+          >
+            <ToggleButton value="open">Open ({loading ? '…' : openCount})</ToggleButton>
+            <ToggleButton value="archived">Archived ({loading ? '…' : archivedCount})</ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
+          <Typography sx={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Show</Typography>
+          <ToggleButtonGroup
+            exclusive
+            size="small"
+            value={source}
+            onChange={(_e, next: SourceFilter | null) => {
+              if (next) setSource(next);
+            }}
+            sx={toggleGroupSx}
+          >
+            <ToggleButton value="all">All</ToggleButton>
+            <ToggleButton value="official">Official exams</ToggleButton>
+            <ToggleButton value="practice">Practice</ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
       </Box>
 
       {error && (
@@ -228,16 +314,16 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
           <Typography sx={{ color: '#64748b', py: 4, textAlign: 'center' }}>{emptyMessage}</Typography>
         ) : (
           <TableContainer component={Paper} sx={platformAdminTablePaperSx}>
-            <Table sx={platformAdminTableSx} size="small">
+            <Table sx={{ ...platformAdminTableSx, minWidth: 920, tableLayout: 'fixed' }} size="small">
               <TableHead>
                 <TableRow sx={platformAdminTableHeadRowSx}>
-                  <TableCell>When</TableCell>
-                  <TableCell>Source</TableCell>
-                  <TableCell>Exam / level</TableCell>
-                  <TableCell>Item</TableCell>
+                  <TableCell sx={{ width: 112 }}>When</TableCell>
+                  <TableCell sx={{ width: 104 }}>Source</TableCell>
+                  <TableCell sx={{ width: 168 }}>Exam / level</TableCell>
                   <TableCell>Report</TableCell>
-                  <TableCell>Student</TableCell>
-                  <TableCell>School</TableCell>
+                  <TableCell sx={{ width: 168 }}>Student</TableCell>
+                  <TableCell sx={{ width: 168 }}>School</TableCell>
+                  <TableCell align="right" sx={{ width: 88 }}> </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -249,7 +335,7 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
                     sx={{ cursor: 'pointer' }}
                   >
                     <TableCell sx={{ whiteSpace: 'nowrap', verticalAlign: 'top' }}>
-                      {formatDateTime(row.reported_at)}
+                      {formatDate(row.reported_at)}
                     </TableCell>
                     <TableCell sx={{ verticalAlign: 'top' }}>
                       <Chip
@@ -267,56 +353,138 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
                         }}
                       />
                     </TableCell>
-                    <TableCell sx={{ verticalAlign: 'top', minWidth: 140 }}>
+                    <TableCell sx={{ verticalAlign: 'top', width: 168 }}>
                       <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#0f172a' }}>
                         {row.exam_title || row.exam_id}
                       </Typography>
                       <Typography sx={{ fontSize: '0.75rem', color: '#64748b' }}>
                         {row.source === 'official' ? 'Level' : 'Practice level'}{' '}
-                        {row.tier_or_level ?? '—'}
+                        {row.tier_or_level ?? '-'}
                       </Typography>
                     </TableCell>
-                    <TableCell
-                      sx={{
-                        verticalAlign: 'top',
-                        fontFamily: 'monospace',
-                        fontSize: '0.75rem',
-                        color: ip.navy,
-                        textDecoration: 'underline',
-                        textUnderlineOffset: 2,
-                      }}
-                    >
-                      {row.item_id}
+                    <TableCell sx={{ verticalAlign: 'top' }}>
+                      <Typography
+                        sx={{
+                          fontSize: '0.95rem',
+                          fontWeight: 600,
+                          color: ip.heading,
+                          lineHeight: 1.45,
+                          whiteSpace: 'pre-wrap',
+                          overflowWrap: 'break-word',
+                        }}
+                      >
+                        {row.text || '-'}
+                      </Typography>
                     </TableCell>
-                    <TableCell sx={{ verticalAlign: 'top', maxWidth: 360 }}>
+                    <TableCell sx={{ verticalAlign: 'top', width: 168, maxWidth: 168 }}>
+                      <Typography
+                        sx={{
+                          fontWeight: 700,
+                          fontSize: '0.85rem',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                        title={row.reporter_name || undefined}
+                      >
+                        {row.reporter_name || 'Unknown'}
+                      </Typography>
+                      <Typography
+                        sx={{
+                          fontSize: '0.75rem',
+                          color: '#64748b',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                        title={row.reporter_email || undefined}
+                      >
+                        {row.reporter_email || '-'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ verticalAlign: 'top', width: 168, maxWidth: 168 }}>
                       <Typography
                         sx={{
                           fontSize: '0.85rem',
-                          color: '#334155',
-                          whiteSpace: 'pre-wrap',
-                          wordBreak: 'break-word',
+                          fontWeight: 700,
+                          color: ip.heading,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
                         }}
+                        title={row.school_name || undefined}
                       >
-                        {row.text || '—'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell sx={{ verticalAlign: 'top', minWidth: 160 }}>
-                      <Typography sx={{ fontWeight: 700, fontSize: '0.85rem' }}>
-                        {row.reporter_name || 'Unknown'}
-                      </Typography>
-                      <Typography sx={{ fontSize: '0.75rem', color: '#64748b' }}>
-                        {row.reporter_email || '—'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell sx={{ verticalAlign: 'top', minWidth: 140 }}>
-                      <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: ip.heading }}>
-                        {row.school_name || '—'}
+                        {row.school_name || '-'}
                       </Typography>
                       {row.school_id ? (
-                        <Typography sx={{ fontSize: '0.7rem', color: '#64748b', fontFamily: 'monospace' }}>
+                        <Typography
+                          sx={{
+                            fontSize: '0.7rem',
+                            color: '#64748b',
+                            fontFamily: 'monospace',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                          title={row.school_id}
+                        >
                           {row.school_id}
                         </Typography>
                       ) : null}
+                    </TableCell>
+                    <TableCell
+                      align="right"
+                      sx={{ verticalAlign: 'top', whiteSpace: 'nowrap', width: 1 }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.25 }}>
+                        {row.archived ? (
+                          <Tooltip title="Restore to open inbox">
+                            <span>
+                              <IconButton
+                                size="small"
+                                disabled={actionBusyId === row.id}
+                                onClick={() => void applyArchiveChange(row, false)}
+                                aria-label={`Restore report ${row.item_id}`}
+                                sx={{ color: ip.navy }}
+                              >
+                                {actionBusyId === row.id ? (
+                                  <CircularProgress size={16} />
+                                ) : (
+                                  <UnarchiveOutlinedIcon fontSize="small" />
+                                )}
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                        ) : (
+                          <Tooltip title="Archive">
+                            <span>
+                              <IconButton
+                                size="small"
+                                disabled={actionBusyId === row.id}
+                                onClick={() => setConfirmAction({ kind: 'archive', row })}
+                                aria-label={`Archive report ${row.item_id}`}
+                                sx={{ color: '#64748b' }}
+                              >
+                                <ArchiveOutlinedIcon fontSize="small" />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                        )}
+                        <Tooltip title="Delete permanently">
+                          <span>
+                            <IconButton
+                              size="small"
+                              color="error"
+                              disabled={actionBusyId === row.id}
+                              onClick={() => setConfirmAction({ kind: 'delete', row })}
+                              aria-label={`Delete report ${row.item_id}`}
+                            >
+                              <DeleteOutlineIcon fontSize="small" />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      </Box>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -359,7 +527,7 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
                     mb: 1.25,
                   }}
                 >
-                  {selectedReport.text || '—'}
+                  {selectedReport.text || '-'}
                 </Typography>
                 <Typography sx={{ fontSize: 12.5, color: '#64748b', lineHeight: 1.55 }}>
                   {formatDateTime(selectedReport.reported_at)}
@@ -370,8 +538,9 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
                   {' · '}
                   {selectedReport.exam_title || selectedReport.exam_id}
                   {` · ${selectedReport.source === 'official' ? 'Level' : 'Practice level'} ${
-                    selectedReport.tier_or_level ?? '—'
+                    selectedReport.tier_or_level ?? '-'
                   }`}
+                  {selectedReport.item_id ? ` · ${selectedReport.item_id}` : ''}
                 </Typography>
               </Box>
 
@@ -553,10 +722,77 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
             </Box>
           ) : null}
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+        <DialogActions sx={{ px: 3, pb: 2.5, justifyContent: 'space-between' }}>
+          <Box sx={{ display: 'flex', gap: 0.5 }}>
+            {selectedReport?.archived ? (
+              <Button
+                onClick={() => void applyArchiveChange(selectedReport, false)}
+                disabled={actionBusyId === selectedReport.id}
+                sx={platformAdminTextButtonSx}
+              >
+                Restore
+              </Button>
+            ) : selectedReport ? (
+              <Button
+                onClick={() => setConfirmAction({ kind: 'archive', row: selectedReport })}
+                disabled={actionBusyId === selectedReport.id}
+                sx={platformAdminTextButtonSx}
+              >
+                Archive
+              </Button>
+            ) : null}
+            {selectedReport ? (
+              <Button
+                onClick={() => setConfirmAction({ kind: 'delete', row: selectedReport })}
+                disabled={actionBusyId === selectedReport.id}
+                sx={platformAdminDangerTextButtonSx}
+              >
+                Delete
+              </Button>
+            ) : null}
+          </Box>
           <Button onClick={closeReport} sx={platformAdminTextButtonSx}>
             Close
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(confirmAction)}
+        onClose={() => setConfirmAction(null)}
+        PaperProps={{ sx: platformAdminDialogPaperSx }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, color: ip.heading }}>
+          {confirmAction?.kind === 'delete' ? 'Delete this report?' : 'Archive this report?'}
+        </DialogTitle>
+        <DialogContent>
+          <Typography sx={{ color: '#475569', fontSize: 14, lineHeight: 1.55 }}>
+            {confirmAction?.kind === 'delete'
+              ? 'This removes the report from the inbox permanently. You cannot restore it. Matching text on the question history is also removed.'
+              : 'It leaves the open inbox. You can restore it from Archived. The question item-level report history is kept.'}
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setConfirmAction(null)} sx={platformAdminTextButtonSx}>
+            Cancel
+          </Button>
+          {confirmAction?.kind === 'delete' ? (
+            <Button
+              onClick={() => confirmAction && void applyDelete(confirmAction.row)}
+              disabled={!confirmAction || actionBusyId === confirmAction.row.id}
+              sx={platformAdminDangerTextButtonSx}
+            >
+              Delete
+            </Button>
+          ) : (
+            <Button
+              onClick={() => confirmAction && void applyArchiveChange(confirmAction.row, true)}
+              disabled={!confirmAction || actionBusyId === confirmAction.row.id}
+              sx={platformAdminTextButtonSx}
+            >
+              Archive
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
     </Box>

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="390" viewBox="0 0 900 390" role="img" aria-labelledby="title desc">
+  <title id="title">Three-by-three grid of symbol groups</title>
+  <desc id="desc">A three-by-three grid. Row one contains triangle square circle; square diamond star; triangle circle diamond star. Row two contains triangle diamond; square star pentagon; a hidden cell. Row three contains square circle diamond; a hidden cell; and the target cell.</desc>
+  <style>
+    .cell { fill:#fff; stroke:#263746; stroke-width:3; }
+    .hidden { fill:#f1f4f7; stroke:#263746; stroke-width:3; }
+    .target { fill:#eef5fb; stroke:#174a78; stroke-width:4; }
+    .symbols { font:700 35px "Arial Unicode MS","Noto Sans Symbols 2",Arial,sans-serif; fill:#1c3144; text-anchor:middle; dominant-baseline:middle; letter-spacing:8px; }
+    .label { font:700 24px Arial,sans-serif; fill:#536474; text-anchor:middle; dominant-baseline:middle; letter-spacing:.5px; }
+    .question { font:700 42px Arial,sans-serif; fill:#174a78; text-anchor:middle; dominant-baseline:middle; }
+  </style>
+  <rect width="900" height="390" fill="#fff"/>
+
+  <!-- Row 1 -->
+  <rect x="75" y="42" width="250" height="96" class="cell"/>
+  <rect x="325" y="42" width="250" height="96" class="cell"/>
+  <rect x="575" y="42" width="250" height="96" class="cell"/>
+  <text x="200" y="90" class="symbols">▲ ■ ●</text>
+  <text x="450" y="90" class="symbols">■ ◆ ★</text>
+  <text x="700" y="90" class="symbols">▲ ● ◆ ★</text>
+
+  <!-- Row 2 -->
+  <rect x="75" y="138" width="250" height="96" class="cell"/>
+  <rect x="325" y="138" width="250" height="96" class="cell"/>
+  <rect x="575" y="138" width="250" height="96" class="hidden"/>
+  <text x="200" y="186" class="symbols">▲ ◆</text>
+  <text x="450" y="186" class="symbols">■ ★ ⬟</text>
+  <text x="700" y="186" class="label">HIDDEN</text>
+
+  <!-- Row 3 -->
+  <rect x="75" y="234" width="250" height="96" class="cell"/>
+  <rect x="325" y="234" width="250" height="96" class="hidden"/>
+  <rect x="575" y="234" width="250" height="96" class="target"/>
+  <text x="200" y="282" class="symbols">■ ● ◆</text>
+  <text x="450" y="282" class="label">HIDDEN</text>
+  <text x="700" y="282" class="question">?</text>
+</svg>

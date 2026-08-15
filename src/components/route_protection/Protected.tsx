@@ -8,6 +8,7 @@ import analytics from '../../segment/segment';
 import authTokenHandler from '../../functions/auth_token/auth_token_handler';
 import { recordDailyLogin } from '../../db/gamificationCollection';
 import StreakBrokenModal from '../gamification/StreakBrokenModal';
+import { hasRecordedDailyLoginToday, markDailyLoginRecorded } from '../../utils/dailyLoginGuard';
 
 interface ProtectedProps {
   children: ReactNode;
@@ -42,16 +43,20 @@ const Protected: React.FC<ProtectedProps> = ({ children }) => {
         analytics.identify(user.uid, {
           email: user.email,
         });
-        if (!loginCalledRef.current) {
+        if (!loginCalledRef.current && !hasRecordedDailyLoginToday(user.uid)) {
           loginCalledRef.current = true;
           try {
             const result = await recordDailyLogin();
+            markDailyLoginRecorded(user.uid);
             if (result.streak_break && typeof result.streak_break.previous_streak === 'number') {
               setStreakBreak({ previous_streak: result.streak_break.previous_streak });
             }
           } catch {
-            /* non-blocking streak update */
+            loginCalledRef.current = false;
+            /* non-blocking streak update; retry on next protected mount */
           }
+        } else if (!loginCalledRef.current) {
+          loginCalledRef.current = true;
         }
         setLoading(false);
       } else {

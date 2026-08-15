@@ -30,14 +30,6 @@ import QuizIcon from '@mui/icons-material/Quiz';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ExamQuestionStimulus } from '../../components/assessment/ExamQuestionBody';
-import {
-  ExamMarkdown,
-  ExamRichPrompt,
-  looksLikeExamMarkdown,
-  shouldRenderStructuredStimulus,
-} from '../../components/assessment/ExamMarkdown';
-import type { ExamQuestion } from '../../db/assessmentCollection';
 import {
   Bar,
   BarChart,
@@ -63,7 +55,6 @@ import {
   getPlatformAdminOfficialDailyStats,
   getPlatformAdminOfficialExamDetail,
   getPlatformAdminOfficialExamDrilldown,
-  getPlatformAdminOfficialExamQuestionStats,
   getPlatformAdminOfficialExamAbandons,
   getPlatformAdminOfficialExamSummaries,
   searchPlatformAdminOfficialExamCompletions,
@@ -80,7 +71,6 @@ import {
   type TopQodStudentRow,
   type OfficialDailyStatRow,
   type OfficialExamDrilldown,
-  type OfficialExamQuestionStats,
   type OfficialExamAbandons,
   type OfficialExamGradeRow,
   type OfficialExamLevelRow,
@@ -113,14 +103,19 @@ import {
   PlatformAdminPageHeader,
   PlatformAdminStatCard,
 } from './platformAdminComponents';
+import {
+  AdminExamOptionText,
+  AdminExamQuestionStem,
+} from './PlatformAdminExamQuestionCard';
+import { PlatformAdminItemBankSection } from './PlatformAdminItemBankSection';
 
-type AnalyticsSection = 'official' | 'practice' | 'qod' | 'activity' | 'coins';
+type AnalyticsSection = 'official' | 'item-bank' | 'practice' | 'qod' | 'activity' | 'coins';
 
 type OfficialView = 'overview' | 'exam-snapshots' | 'constructs' | 'grade-school' | 'completions' | 'abandons';
 type PracticeView = 'overview' | 'by-exam' | 'exam-detail';
 type QodView = 'overview' | 'top-students';
 
-const ANALYTICS_SECTIONS: AnalyticsSection[] = ['official', 'practice', 'qod', 'activity', 'coins'];
+const ANALYTICS_SECTIONS: AnalyticsSection[] = ['official', 'item-bank', 'practice', 'qod', 'activity', 'coins'];
 
 const ANALYTICS_SECTION_META: Record<
   AnalyticsSection,
@@ -129,6 +124,10 @@ const ANALYTICS_SECTION_META: Record<
   official: {
     title: 'Official Exams',
     subtitle: 'Completions, scores, strands, and search across live official exams.',
+  },
+  'item-bank': {
+    title: 'Item Bank',
+    subtitle: 'Every official exam question by exam and level, with options, correct answers, and pick rates.',
   },
   practice: {
     title: 'Practice Exams',
@@ -155,80 +154,6 @@ function isAnalyticsSection(value: string | undefined): value is AnalyticsSectio
 /** "Analytical Reasoning" → "Analytical"; leaves AI/English Proficiency unchanged. */
 function shortOfficialExamLabel(label: string): string {
   return label.replace(/\s+Reasoning$/i, '').trim() || label;
-}
-
-function toStimulusExamQuestion(q: {
-  item_id: string;
-  prompt?: string;
-  prompt_preview?: string;
-  options?: Array<{ text: string }>;
-  stimulus?: unknown;
-  stimulus_type?: string | null;
-}): ExamQuestion {
-  return {
-    id: q.item_id,
-    prompt: q.prompt || q.prompt_preview || '',
-    options: (q.options || []).map((o) => o.text),
-    stimulus: q.stimulus,
-    stimulus_type: q.stimulus_type ?? undefined,
-  };
-}
-
-function AdminExamQuestionStem({
-  q,
-  emptyLabel,
-  maxHeight,
-}: {
-  q: {
-    item_id: string;
-    prompt?: string;
-    prompt_preview?: string;
-    options?: Array<{ text: string }>;
-    stimulus?: unknown;
-    stimulus_type?: string | null;
-  };
-  emptyLabel: string;
-  maxHeight?: number;
-}) {
-  return (
-    <>
-      <Box
-        sx={{
-          mb: 1.25,
-          ...(maxHeight ? { maxHeight, overflow: 'auto', pr: 0.5 } : {}),
-        }}
-      >
-        <ExamRichPrompt
-          prompt={q.prompt || q.prompt_preview || ''}
-          stimulus={q.stimulus}
-          stimulusType={q.stimulus_type}
-          emptyLabel={emptyLabel}
-        />
-      </Box>
-      {shouldRenderStructuredStimulus(q.stimulus, q.stimulus_type) ? (
-        <Box sx={{ mb: 1.25 }}>
-          <ExamQuestionStimulus
-            q={toStimulusExamQuestion(q)}
-            border="#cbd5e1"
-            variant="light"
-          />
-        </Box>
-      ) : null}
-    </>
-  );
-}
-
-function AdminExamOptionText({ text }: { text: string }) {
-  if (looksLikeExamMarkdown(text)) {
-    return (
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <ExamMarkdown compact>{text}</ExamMarkdown>
-      </Box>
-    );
-  }
-  return (
-    <Typography sx={{ fontSize: 13, color: ip.heading, flex: 1 }}>{text}</Typography>
-  );
 }
 
 const selectedTagRowSx = {
@@ -317,14 +242,6 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
   const [completionLimit, setCompletionLimit] = useState(25);
   const [officialDrilldown, setOfficialDrilldown] = useState<OfficialExamDrilldown | null>(null);
   const [officialDrillLevel, setOfficialDrillLevel] = useState<'all' | number>('all');
-  const [officialQuestionStats, setOfficialQuestionStats] =
-    useState<OfficialExamQuestionStats | null>(null);
-  const [officialQuestionLoading, setOfficialQuestionLoading] = useState(false);
-  const [officialQuestionSelection, setOfficialQuestionSelection] = useState<{
-    tagType: OfficialQuestionTagType;
-    tag: string;
-    label: string;
-  } | null>(null);
   const [officialAttemptDetail, setOfficialAttemptDetail] =
     useState<OfficialExamAttemptDetail | null>(null);
   const [officialAttemptDetailLoading, setOfficialAttemptDetailLoading] = useState(false);
@@ -341,12 +258,12 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
   const officialDetailReqRef = useRef(0);
   const officialCompletionsReqRef = useRef(0);
   const officialDrillReqRef = useRef(0);
-  const officialQuestionReqRef = useRef(0);
-  const officialQuestionPanelRef = useRef<HTMLDivElement | null>(null);
   const [officialAbandons, setOfficialAbandons] = useState<OfficialExamAbandons | null>(null);
   const [officialAbandonsLoading, setOfficialAbandonsLoading] = useState(false);
   const [officialAbandonLevel, setOfficialAbandonLevel] = useState<'all' | number>('all');
   const officialAbandonsReqRef = useRef(0);
+  const [itemBankLoading, setItemBankLoading] = useState(false);
+  const [itemBankRefreshNonce, setItemBankRefreshNonce] = useState(0);
 
   const [practiceSummaries, setPracticeSummaries] = useState<PracticeExamSummaryRow[]>([]);
   const [practiceDaily, setPracticeDaily] = useState<PracticeDailyStatRow[]>([]);
@@ -488,8 +405,6 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
       const req = ++officialDrillReqRef.current;
       setOfficialDrillLoading(true);
       setOfficialDrilldown(null);
-      setOfficialQuestionSelection(null);
-      setOfficialQuestionStats(null);
       try {
         const data = await getPlatformAdminOfficialExamDrilldown(examId, {
           level: level === 'all' ? null : level,
@@ -505,49 +420,6 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
         setOfficialDrilldown(null);
       } finally {
         if (req === officialDrillReqRef.current) setOfficialDrillLoading(false);
-      }
-    },
-    []
-  );
-
-  const loadOfficialQuestionStats = useCallback(
-    async (
-      examId: string,
-      selection: { tagType: OfficialQuestionTagType; tag: string; label: string },
-      level: 'all' | number,
-      opts?: { refresh?: boolean }
-    ) => {
-      if (!examId) return;
-      const req = ++officialQuestionReqRef.current;
-      setOfficialQuestionSelection(selection);
-      setOfficialQuestionLoading(true);
-      setOfficialQuestionStats(null);
-      setOfficialError(null);
-      requestAnimationFrame(() => {
-        officialQuestionPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
-      try {
-        const data = await getPlatformAdminOfficialExamQuestionStats(examId, {
-          tagType: selection.tagType,
-          tag: selection.tag,
-          level: level === 'all' ? null : level,
-          refresh: opts?.refresh,
-        });
-        if (req !== officialQuestionReqRef.current) return;
-        setOfficialQuestionStats(data);
-        if (data.indexes_building) setOfficialIndexesBuilding(true);
-        requestAnimationFrame(() => {
-          officialQuestionPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        });
-      } catch (e: unknown) {
-        if (req !== officialQuestionReqRef.current) return;
-        const err = e as { response?: { data?: { error?: string } }; message?: string };
-        setOfficialError(
-          err?.response?.data?.error || err?.message || 'Failed to load question-level stats'
-        );
-        setOfficialQuestionStats(null);
-      } finally {
-        if (req === officialQuestionReqRef.current) setOfficialQuestionLoading(false);
       }
     },
     []
@@ -578,13 +450,6 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     },
     []
   );
-
-  const clearOfficialQuestionDrill = useCallback(() => {
-    officialQuestionReqRef.current += 1;
-    setOfficialQuestionSelection(null);
-    setOfficialQuestionStats(null);
-    setOfficialQuestionLoading(false);
-  }, []);
 
   const loadOfficialAttemptDetail = useCallback(
     async (examId: string, row: OfficialExamRecentRow) => {
@@ -624,6 +489,15 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     officialAttemptDetailPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [officialAttemptDetailKey, officialAttemptDetailLoading, officialAttemptDetail]);
 
+  const openItemBankForTag = (tagType: OfficialQuestionTagType, tag: string) => {
+    if (!selectedOfficialExamId) return;
+    const params = new URLSearchParams();
+    params.set('exam', selectedOfficialExamId);
+    if (officialDrillLevel !== 'all') params.set('level', String(officialDrillLevel));
+    params.set(tagType, tag);
+    navigate(`/platform-admin/analytics/item-bank?${params.toString()}`);
+  };
+
   const renderOfficialTagTable = (
     tagType: OfficialQuestionTagType,
     title: string,
@@ -642,10 +516,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
         <TableContainer
           component={Paper}
           elevation={0}
-          sx={{
-            ...platformAdminTablePaperSx,
-            mb: officialQuestionSelection?.tagType === tagType ? 1 : 2.5,
-          }}
+          sx={{ ...platformAdminTablePaperSx, mb: 2.5 }}
         >
           <Table size="small" sx={platformAdminTableSx}>
             <TableHead>
@@ -665,232 +536,36 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                rows.map((row) => {
-                  const selected =
-                    officialQuestionSelection?.tagType === tagType &&
-                    officialQuestionSelection.tag === row.key;
-                  return (
-                    <TableRow
-                      key={`${tagType}-${row.key}`}
-                      hover
-                      onClick={() => {
-                        if (!selectedOfficialExamId) return;
-                        if (selected) {
-                          clearOfficialQuestionDrill();
-                          return;
-                        }
-                        void loadOfficialQuestionStats(
-                          selectedOfficialExamId,
-                          { tagType, tag: row.key, label: row.label },
-                          officialDrillLevel
-                        );
+                rows.map((row) => (
+                  <TableRow
+                    key={`${tagType}-${row.key}`}
+                    hover
+                    onClick={() => openItemBankForTag(tagType, row.key)}
+                    sx={{ cursor: 'pointer' }}
+                  >
+                    <TableCell
+                      sx={{
+                        fontWeight: 700,
+                        color: ip.navy,
+                        textDecoration: 'underline',
+                        textUnderlineOffset: 2,
                       }}
-                      sx={selected ? selectedTagRowSx : { cursor: 'pointer' }}
                     >
-                      <TableCell
-                        sx={{
-                          fontWeight: 700,
-                          color: ip.navy,
-                          textDecoration: selected ? 'none' : 'underline',
-                          textUnderlineOffset: 2,
-                        }}
-                      >
-                        {row.label}
-                        {selected ? ' · open' : ''}
-                      </TableCell>
-                      <TableCell align="right">{row.attempts_with_data}</TableCell>
-                      <TableCell align="right">{row.avg_served}</TableCell>
-                      <TableCell align="right">
-                        <PlatformAdminAccuracyChip pct={row.accuracy_pct} />
-                      </TableCell>
-                      <TableCell align="right">{row.served_sum}</TableCell>
-                    </TableRow>
-                  );
-                })
+                      {row.label}
+                    </TableCell>
+                    <TableCell align="right">{row.attempts_with_data}</TableCell>
+                    <TableCell align="right">{row.avg_served}</TableCell>
+                    <TableCell align="right">
+                      <PlatformAdminAccuracyChip pct={row.accuracy_pct} />
+                    </TableCell>
+                    <TableCell align="right">{row.served_sum}</TableCell>
+                  </TableRow>
+                ))
               )}
             </TableBody>
           </Table>
         </TableContainer>
-        {renderOfficialQuestionDrillPanel(tagType)}
       </>
-    );
-  };
-
-  const renderOfficialQuestionDrillPanel = (forTagType: OfficialQuestionTagType) => {
-    if (!officialQuestionSelection || officialQuestionSelection.tagType !== forTagType) {
-      return null;
-    }
-    return (
-      <Box
-          ref={officialQuestionPanelRef}
-          sx={{
-            mb: 2.5,
-            mt: 0.5,
-            borderRadius: 2,
-            border: '1px solid #cbd5e1',
-            borderLeft: `4px solid ${ip.navy}`,
-            bgcolor: '#f8fafc',
-            overflow: 'hidden',
-          }}
-        >
-          <Box
-            sx={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 1,
-              px: 2,
-              py: 1.5,
-              bgcolor: 'rgba(16, 64, 139, 0.06)',
-              borderBottom: '1px solid #e2e8f0',
-            }}
-          >
-            <Box>
-              <Typography sx={{ fontWeight: 800, color: ip.heading, fontSize: 15 }}>
-                Questions · {officialQuestionSelection.label}
-              </Typography>
-              <Typography variant="caption" sx={{ color: ip.subtext }}>
-                Full items from the bank
-                {officialQuestionStats
-                  ? ` · ${officialQuestionStats.questions.length} served`
-                  : officialQuestionLoading
-                    ? ' · loading…'
-                    : ''}
-              </Typography>
-            </Box>
-            <Button
-              size="small"
-              startIcon={<ArrowBackIcon />}
-              onClick={clearOfficialQuestionDrill}
-              sx={platformAdminOutlinedButtonSx}
-            >
-              Back to rollups
-            </Button>
-          </Box>
-
-          <Box sx={{ px: 2, py: 2 }}>
-            {officialQuestionLoading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                <CircularProgress size={28} sx={{ color: ip.navy }} />
-              </Box>
-            ) : !officialQuestionStats || officialQuestionStats.questions.length === 0 ? (
-              <Typography variant="body2" sx={{ color: ip.subtext, py: 1 }}>
-                No served items found for this tag yet.
-              </Typography>
-            ) : (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.25 }}>
-                {officialQuestionStats.questions.map((q, qi) => (
-                  <Box
-                    key={q.item_id}
-                    sx={{
-                      bgcolor: '#fff',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: 1.5,
-                      p: 2,
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        gap: 1,
-                        alignItems: 'center',
-                        mb: 1,
-                      }}
-                    >
-                      <Typography sx={{ fontWeight: 800, color: ip.heading, fontSize: 15 }}>
-                        Q{qi + 1}
-                      </Typography>
-                      <PlatformAdminChip
-                        label={`${q.times_seen} saw`}
-                        tone="neutral"
-                      />
-                      <PlatformAdminAccuracyChip pct={q.accuracy_pct} />
-                      <PlatformAdminChip
-                        label={
-                          q.avg_time_sec != null ? `${q.avg_time_sec}s avg` : '— time'
-                        }
-                        tone="info"
-                      />
-                    </Box>
-                    <Typography sx={{ color: '#475569', fontSize: 12, mb: 0.75 }}>
-                      {q.item_id}
-                      {[q.strand, q.instruction_family, q.band].filter(Boolean).length
-                        ? ` · ${[q.strand, q.instruction_family, q.band]
-                            .filter(Boolean)
-                            .join(' · ')}`
-                        : ''}
-                    </Typography>
-                    <AdminExamQuestionStem q={q} emptyLabel="(no prompt)" maxHeight={420} />
-                    {q.options.length > 0 ? (
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-                        {q.options.map((opt) => (
-                          <Box
-                            key={`${q.item_id}-${opt.letter}`}
-                            sx={{
-                              display: 'flex',
-                              gap: 1,
-                              alignItems: 'flex-start',
-                              px: 1.25,
-                              py: 0.85,
-                              borderRadius: 1,
-                              border: '1px solid',
-                              borderColor: opt.is_correct ? '#86efac' : '#e2e8f0',
-                              bgcolor: opt.is_correct ? '#f0fdf4' : '#f8fafc',
-                              position: 'relative',
-                              overflow: 'hidden',
-                            }}
-                          >
-                            <Box
-                              sx={{
-                                position: 'absolute',
-                                inset: 0,
-                                width: `${Math.min(100, opt.pick_pct)}%`,
-                                bgcolor: opt.is_correct
-                                  ? 'rgba(22, 163, 74, 0.12)'
-                                  : 'rgba(16, 64, 139, 0.08)',
-                                pointerEvents: 'none',
-                              }}
-                            />
-                            <Typography
-                              sx={{
-                                fontWeight: 800,
-                                color: ip.heading,
-                                minWidth: 18,
-                                fontSize: 13,
-                                position: 'relative',
-                              }}
-                            >
-                              {opt.letter}.
-                            </Typography>
-                            <AdminExamOptionText text={opt.text || '(empty / image option)'} />
-                            <Typography
-                              sx={{
-                                fontWeight: 700,
-                                fontSize: 12,
-                                color: opt.is_correct ? '#166534' : '#334155',
-                                whiteSpace: 'nowrap',
-                                position: 'relative',
-                              }}
-                            >
-                              {opt.pick_pct}%
-                              {opt.is_correct ? ' · correct' : ''}
-                            </Typography>
-                          </Box>
-                        ))}
-                      </Box>
-                    ) : (
-                      <Typography sx={{ color: '#64748b', fontSize: 13 }}>
-                        (No option text on this item — often image-only.)
-                      </Typography>
-                    )}
-                  </Box>
-                ))}
-              </Box>
-            )}
-          </Box>
-      </Box>
     );
   };
 
@@ -1062,13 +737,14 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
 
   useEffect(() => {
     if (section !== 'official' || !selectedOfficialExamId) return;
+    if (officialView !== 'exam-snapshots' && officialView !== 'grade-school') return;
     void loadOfficialDetail(selectedOfficialExamId);
-  }, [section, selectedOfficialExamId, loadOfficialDetail]);
+  }, [section, officialView, selectedOfficialExamId, loadOfficialDetail]);
 
   useEffect(() => {
-    if (section !== 'official' || !selectedOfficialExamId) return;
+    if (section !== 'official' || officialView !== 'constructs' || !selectedOfficialExamId) return;
     void loadOfficialDrilldown(selectedOfficialExamId, officialDrillLevel);
-  }, [section, selectedOfficialExamId, officialDrillLevel, loadOfficialDrilldown]);
+  }, [section, officialView, selectedOfficialExamId, officialDrillLevel, loadOfficialDrilldown]);
 
   useEffect(() => {
     if (section !== 'official' || officialView !== 'abandons' || !selectedOfficialExamId) return;
@@ -1092,7 +768,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     officialCompletionsLoading ||
     officialAbandonsLoading ||
     officialAttemptDetailLoading ||
-    officialQuestionLoading ||
+    itemBankLoading ||
     practiceLoading ||
     practiceMonthlyLoading ||
     practiceDetailLoading ||
@@ -1104,20 +780,19 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     if (section === 'official') {
       void loadOfficialOverview({ refresh: true });
       if (selectedOfficialExamId) {
-        void loadOfficialDetail(selectedOfficialExamId, { refresh: true });
-        void loadOfficialDrilldown(selectedOfficialExamId, officialDrillLevel, { refresh: true });
+        if (officialView === 'exam-snapshots' || officialView === 'grade-school') {
+          void loadOfficialDetail(selectedOfficialExamId, { refresh: true });
+        }
+        if (officialView === 'constructs') {
+          void loadOfficialDrilldown(selectedOfficialExamId, officialDrillLevel, { refresh: true });
+        }
         if (officialView === 'abandons') {
           void loadOfficialAbandons(selectedOfficialExamId, officialAbandonLevel, { refresh: true });
         }
-        if (officialQuestionSelection) {
-          void loadOfficialQuestionStats(
-            selectedOfficialExamId,
-            officialQuestionSelection,
-            officialDrillLevel,
-            { refresh: true }
-          );
-        }
       }
+    }
+    if (section === 'item-bank') {
+      setItemBankRefreshNonce((n) => n + 1);
     }
     if (section === 'practice') {
       void loadPractice({ refresh: true });
@@ -1555,7 +1230,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                     {officialDrilldown
                       ? ` · ${officialDrilldown.attempts_analyzed.toLocaleString()} analyzed`
                       : ''}
-                    . Click any row for per-question stats from the live bank.
+                    . Click a row to open that filter in Item Bank.
                   </>
                 }
                 accent="teal"
@@ -1619,21 +1294,21 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                       {renderOfficialTagTable(
                         'strand',
                         'By strand',
-                        'Click a strand for per-question saw / correct / avg time from the live bank.',
+                        'Click a strand to open those items in Item Bank.',
                         officialDrilldown.by_strand || [],
                         'No strand statuses on these completions yet.'
                       )}
                       {renderOfficialTagTable(
                         'instruction_family',
                         'By instruction family (IF-01…IF-10)',
-                        'Click a family for per-question stats. Needs new AR completions after this analytics deploy.',
+                        'Click an instruction family to open those items in Item Bank.',
                         officialDrilldown.by_instruction_family || [],
                         'No instruction-family tallies yet.'
                       )}
                       {renderOfficialTagTable(
                         'band',
                         'By band (Entry / Core / Stretch)',
-                        'Click a band for per-question stats (L1-E / L1-C / L1-S).',
+                        'Click Entry / Core / Stretch to open those items in Item Bank.',
                         officialDrilldown.by_band || [],
                         'No band tallies on these completions yet.'
                       )}
@@ -1782,7 +1457,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                         Exposure group (top)
                       </Typography>
                       <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1 }}>
-                        Compact rollup — top 15 by served (same one-pass cache).
+                        Compact rollup - top 15 by served (same one-pass cache).
                       </Typography>
                       <TableContainer component={Paper} elevation={0} sx={{ ...platformAdminTablePaperSx, mb: 2.5 }}>
                         <Table size="small" sx={platformAdminTableSx}>
@@ -2209,8 +1884,8 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                                       {row.email}
                                     </Typography>
                                   </TableCell>
-                                  <TableCell>{row.school_name ?? '—'}</TableCell>
-                                  <TableCell align="right">{row.proficiency_tier ?? '—'}</TableCell>
+                                  <TableCell>{row.school_name ?? '-'}</TableCell>
+                                  <TableCell align="right">{row.proficiency_tier ?? '-'}</TableCell>
                                   <TableCell align="right">
                                     <Box
                                       sx={{
@@ -2271,7 +1946,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                                                       : {}),
                                                   }}
                                                 >
-                                                  Level {sit.proficiency_tier ?? '—'}
+                                                  Level {sit.proficiency_tier ?? '-'}
                                                   {sit.score_pct != null ? ` · ${sit.score_pct}%` : ''}
                                                 </Button>
                                               );
@@ -2295,7 +1970,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                                             >
                                               <Box>
                                                 <Typography sx={{ fontWeight: 800, color: ip.heading, fontSize: 15 }}>
-                                                  Level {officialAttemptDetail.proficiency_tier ?? '—'} exam ·{' '}
+                                                  Level {officialAttemptDetail.proficiency_tier ?? '-'} exam ·{' '}
                                                   {officialAttemptDetail.questions.length} questions
                                                 </Typography>
                                                 <Typography variant="caption" sx={{ color: ip.subtext }}>
@@ -2385,7 +2060,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                                                     </Typography>
                                                     <AdminExamQuestionStem
                                                       q={q}
-                                                      emptyLabel="(no prompt — bank item missing)"
+                                                      emptyLabel="(no prompt - bank item missing)"
                                                     />
                                                     {q.options.length > 0 ? (
                                                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
@@ -2434,7 +2109,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                                                       </Box>
                                                     ) : (
                                                       <Typography variant="caption" sx={{ color: ip.subtext }}>
-                                                        Picked {q.selected_letter} · key {q.correct_letter ?? '—'}
+                                                        Picked {q.selected_letter} · key {q.correct_letter ?? '-'}
                                                       </Typography>
                                                     )}
                                                   </Box>
@@ -2571,11 +2246,11 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                               <TableRow key={r.attempt_id}>
                                 <TableCell sx={{ fontFamily: 'monospace', fontSize: 12 }}>{r.attempt_id}</TableCell>
                                 <TableCell sx={{ fontFamily: 'monospace', fontSize: 12 }}>{r.uid}</TableCell>
-                                <TableCell align="right">{r.proficiency_tier ?? '—'}</TableCell>
-                                <TableCell>{r.abandon_reason || '—'}</TableCell>
+                                <TableCell align="right">{r.proficiency_tier ?? '-'}</TableCell>
+                                <TableCell>{r.abandon_reason || '-'}</TableCell>
                                 <TableCell align="right">{r.questions_answered}</TableCell>
                                 <TableCell align="right">
-                                  {r.failed_at ? formatDateTime(r.failed_at) : '—'}
+                                  {r.failed_at ? formatDateTime(r.failed_at) : '-'}
                                 </TableCell>
                               </TableRow>
                             ))
@@ -2591,6 +2266,13 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
             </>
           )}
         </>
+      )}
+
+      {section === 'item-bank' && (
+        <PlatformAdminItemBankSection
+          refreshNonce={itemBankRefreshNonce}
+          onLoadingChange={setItemBankLoading}
+        />
       )}
 
       {section === 'practice' && (
