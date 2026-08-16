@@ -1,14 +1,9 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import type { ExamQuestion } from '../../db/assessmentCollection';
-import { ExamMathBlock, ExamMathText } from './ExamMathText';
+import { ExamMathText } from './ExamMathText';
 import { ExamMarkdown, markdownFromStimulus } from './ExamMarkdown';
 import { cleanLearnerFacingExamMarkup } from './cleanLearnerFacingExamMarkup';
-
-const LIKERT_LEFT = 'Strongly disagree';
-const LIKERT_MID = 'Neutral';
-const LIKERT_RIGHT = 'Strongly agree';
-
 /** Secondary stem line (canonical `presentation.instruction`). */
 export const InstructionLine: React.FC<{ text: string }> = ({ text }) => (
   <Typography variant="body2" sx={{ color: '#475569', mb: 2, whiteSpace: 'pre-wrap', lineHeight: 1.55 }}>
