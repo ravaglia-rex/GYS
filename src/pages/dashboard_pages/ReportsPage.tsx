@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   Avatar,
@@ -27,9 +27,9 @@ import * as Sentry from '@sentry/react';
 import { auth } from '../../firebase/firebase';
 import {
   downloadStudentReport,
-  getStudentReports,
   type StudentReportListItem,
 } from '../../db/studentCollection';
+import { useStudentReports } from '../../query/hooks';
 import PageTutorial from '../../components/tutorial/PageTutorial';
 import { studentPageSubtitleSx, studentPageTitleSx } from '../../styles/studentTypography';
 import { canAccessOfficialStudentAssessments } from '../../utils/officialStudentAssessmentsAccess';
@@ -71,10 +71,15 @@ const ReportsPage: React.FC = () => {
   const isPhone = useMediaQuery(theme.breakpoints.down('sm'));
   const navigate = useNavigate();
   const [uid, setUid] = useState(() => auth.currentUser?.uid ?? '');
-  const [reports, setReports] = useState<StudentReportListItem[]>([]);
-  const [s3Configured, setS3Configured] = useState(true);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const reportsQuery = useStudentReports(uid, Boolean(uid));
+  const reports = [...(reportsQuery.data?.reports ?? [])].sort(
+    (a, b) => (b.milestone ?? 0) - (a.milestone ?? 0)
+  );
+  const s3Configured = reportsQuery.data?.s3Configured !== false;
+  const loading = reportsQuery.isLoading;
+  const error = reportsQuery.isError
+    ? ((reportsQuery.error as Error)?.message ?? 'Could not load reports.')
+    : null;
   const [rowError, setRowError] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
@@ -82,30 +87,6 @@ const ReportsPage: React.FC = () => {
     const unsub = onAuthStateChanged(auth, (user) => setUid(user?.uid ?? ''));
     return () => unsub();
   }, []);
-
-  const load = useCallback(async () => {
-    if (!uid) {
-      setReports([]);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await getStudentReports(uid);
-      setReports([...(data.reports ?? [])].sort((a, b) => (b.milestone ?? 0) - (a.milestone ?? 0)));
-      setS3Configured(data.s3Configured !== false);
-    } catch (e) {
-      setError((e as Error).message ?? 'Could not load reports.');
-      setReports([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [uid]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
 
   const onDownload = async (r: StudentReportListItem) => {
     setRowError(null);
@@ -232,7 +213,7 @@ const ReportsPage: React.FC = () => {
             sx={{ py: 3 }}
           >
             {error && (
-              <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+              <Alert severity="error" sx={{ mb: 2 }}>
                 {error}
               </Alert>
             )}

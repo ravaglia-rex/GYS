@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Alert,
   Box,
+  Button,
   CircularProgress,
   Tab,
   Tabs,
@@ -15,6 +16,7 @@ import {
   type OfficialExamSummaryRow,
   type OfficialItemBankFilterKey,
   type OfficialItemBankFilters,
+  type OfficialQuestionStatRow,
 } from '../../db/platformAdminAnalytics';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import {
@@ -26,12 +28,17 @@ import {
 } from './platformAdminComponents';
 import { PlatformAdminQuestionPerformanceCard } from './PlatformAdminExamQuestionCard';
 
+/**
+ * Subconstruct is hidden for now: on current AR banks it is the strand label
+ * (or a family→strand alias), so the filter duplicates Strand.
+ * Restore `'subconstruct'` here if a later official upload stores a distinct
+ * `item.subconstruct` / `subconstruct_tags` that is not the strand.
+ */
 const FILTER_KEYS: OfficialItemBankFilterKey[] = [
   'strand',
   'instruction_family',
   'band',
   'family',
-  'subconstruct',
   'mechanic',
 ];
 
@@ -46,6 +53,38 @@ const FILTER_LABELS: Record<OfficialItemBankFilterKey, string> = {
 
 const LEVELS = [1, 2, 3];
 const ALL_VALUE = 'all';
+const ITEM_BANK_PAGE_SIZE = 40;
+
+function ItemBankVirtualList({
+  questions,
+  loading,
+}: {
+  questions: OfficialQuestionStatRow[];
+  loading: boolean;
+}) {
+  const [visible, setVisible] = useState(ITEM_BANK_PAGE_SIZE);
+  const shown = questions.slice(0, visible);
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.25 }}>
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 1 }}>
+          <CircularProgress size={22} sx={{ color: ip.navy }} />
+        </Box>
+      ) : null}
+      {shown.map((q, qi) => (
+        <PlatformAdminQuestionPerformanceCard key={q.item_id} question={q} index={qi} />
+      ))}
+      {visible < questions.length ? (
+        <Button
+          onClick={() => setVisible((n) => n + ITEM_BANK_PAGE_SIZE)}
+          sx={{ alignSelf: 'center', textTransform: 'none' }}
+        >
+          Show more ({questions.length - visible} remaining)
+        </Button>
+      ) : null}
+    </Box>
+  );
+}
 
 const examPickerTabsSx = {
   mb: 2,
@@ -282,16 +321,7 @@ export function PlatformAdminItemBankSection({
                 No items in this exam level for the current filters.
               </Typography>
             ) : (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.25 }}>
-                {loading ? (
-                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 1 }}>
-                    <CircularProgress size={22} sx={{ color: ip.navy }} />
-                  </Box>
-                ) : null}
-                {bank.questions.map((q, qi) => (
-                  <PlatformAdminQuestionPerformanceCard key={q.item_id} question={q} index={qi} />
-                ))}
-              </Box>
+              <ItemBankVirtualList questions={bank.questions} loading={loading} />
             )}
           </PlatformAdminAnalyticsSection>
         </>

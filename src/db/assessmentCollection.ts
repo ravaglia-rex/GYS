@@ -55,6 +55,9 @@ export interface AssessmentRecord {
 export interface AbandonExamResponse {
   ok: boolean;
   strikes: number;
+  scored_from_abandon?: boolean;
+  scored_zero?: boolean;
+  next_attempt_available_at_ms?: number | null;
   suspended: boolean;
   suspended_until_ms: number | null;
 }

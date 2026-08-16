@@ -6,7 +6,10 @@ export const queryKeys = {
   studentAssessments: (uid: string) => ['studentAssessments', uid] as const,
   qod: () => ['qod'] as const,
   rewards: () => ['rewards'] as const,
+  redemptions: () => ['redemptions'] as const,
   schoolAdminSummary: (schoolId: string) => ['schoolAdminSummary', schoolId] as const,
   schoolAdminRoster: (schoolId: string) => ['schoolAdminRoster', schoolId] as const,
   coinsLeaderboard: (uid: string) => ['coinsLeaderboard', uid] as const,
+  studentSchoolLeaderboard: () => ['studentSchoolLeaderboard'] as const,
+  studentReports: (uid: string) => ['studentReports', uid] as const,
 };

@@ -26,7 +26,7 @@ import { studentPageSubtitleSx, studentPageTitleSx } from '../../styles/studentT
 import { auth } from '../../firebase/firebase';
 import type { ExamQuestion } from '../../db/assessmentCollection';
 import { ASSESSMENT_NAMES } from '../../utils/assessmentGating';
-import { ExamQuestionStimulus } from '../../components/assessment/ExamQuestionBody';
+import { ExamQuestionStimulus } from '../../components/assessment/ExamQuestionStimulus';
 
 const EXAM_LABELS: Record<string, string> = {
   analytical_reasoning: ASSESSMENT_NAMES.analytical_reasoning,

@@ -56,13 +56,29 @@ export function markdownFromStimulus(stimulus: unknown, stimulusType?: string | 
   return '';
 }
 
-const figureMaxWidth = (compact?: boolean) =>
-  compact ? 'min(100%, 280px)' : 'min(100%, 640px)';
+export const EXAM_FIGURE_MAX_WIDTH_PX = 640;
+/** Displayed height of the machine-style AR stem at 640px wide; used to cap taller figures. */
+export const EXAM_FIGURE_MAX_HEIGHT_PX = 460;
+export const ADMIN_EXAM_FIGURE_MAX_WIDTH_PX = 540;
+export const ADMIN_EXAM_FIGURE_MAX_HEIGHT_PX = 380;
 
-const MarkdownImage: React.FC<{ src?: string; alt?: string; compact?: boolean }> = ({
+const figureMaxWidthCss = (compact?: boolean, maxFigureWidth?: number) =>
+  compact
+    ? 'min(100%, 280px)'
+    : `min(100%, ${maxFigureWidth ?? EXAM_FIGURE_MAX_WIDTH_PX}px)`;
+
+const MarkdownImage: React.FC<{
+  src?: string;
+  alt?: string;
+  compact?: boolean;
+  maxFigureWidth?: number;
+  maxFigureHeight?: number;
+}> = ({
   src,
   alt,
   compact,
+  maxFigureWidth,
+  maxFigureHeight,
 }) => {
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(src ? 'loading' : 'error');
   return (
@@ -105,7 +121,8 @@ const MarkdownImage: React.FC<{ src?: string; alt?: string; compact?: boolean }>
           onError={() => setStatus('error')}
           sx={{
             display: 'block',
-            maxWidth: figureMaxWidth(compact),
+            maxWidth: figureMaxWidthCss(compact, maxFigureWidth),
+            maxHeight: maxFigureHeight ? `${maxFigureHeight}px` : undefined,
             width: 'auto',
             height: 'auto',
             visibility: status === 'ready' ? 'visible' : 'hidden',
@@ -130,11 +147,17 @@ export const ExamRichPrompt: React.FC<{
   stimulus?: unknown;
   stimulusType?: string | null;
   emptyLabel?: string;
-}> = ({ prompt, stimulus, stimulusType, emptyLabel = '(no prompt)' }) => {
+  maxFigureWidth?: number;
+  maxFigureHeight?: number;
+}> = ({ prompt, stimulus, stimulusType, emptyLabel = '(no prompt)', maxFigureWidth, maxFigureHeight }) => {
   const stimMd = markdownFromStimulus(stimulus, stimulusType);
   const body = stimMd.length > prompt.length ? stimMd : prompt;
   if (looksLikeExamMarkdown(body)) {
-    return <ExamMarkdown>{body || emptyLabel}</ExamMarkdown>;
+    return (
+      <ExamMarkdown maxFigureWidth={maxFigureWidth} maxFigureHeight={maxFigureHeight}>
+        {body || emptyLabel}
+      </ExamMarkdown>
+    );
   }
   return (
     <Typography
@@ -154,7 +177,9 @@ export const ExamRichPrompt: React.FC<{
 export const ExamMarkdown: React.FC<{
   children: string;
   compact?: boolean;
-}> = ({ children, compact = false }) => {
+  maxFigureWidth?: number;
+  maxFigureHeight?: number;
+}> = ({ children, compact = false, maxFigureWidth, maxFigureHeight }) => {
   const markdown = cleanLearnerFacingExamMarkup(children);
   if (!markdown.trim()) return null;
 
@@ -191,7 +216,8 @@ export const ExamMarkdown: React.FC<{
         },
         '& svg': {
           display: 'block',
-          maxWidth: figureMaxWidth(compact),
+          maxWidth: figureMaxWidthCss(compact, maxFigureWidth),
+          maxHeight: maxFigureHeight ? `${maxFigureHeight}px` : undefined,
           width: 'auto',
           height: 'auto',
           my: 1.5,
@@ -202,7 +228,13 @@ export const ExamMarkdown: React.FC<{
         remarkPlugins={[remarkGfm]}
         components={{
           img: ({ src, alt }: { src?: string; alt?: string }) => (
-            <MarkdownImage src={src} alt={alt} compact={compact} />
+            <MarkdownImage
+              src={src}
+              alt={alt}
+              compact={compact}
+              maxFigureWidth={maxFigureWidth}
+              maxFigureHeight={maxFigureHeight}
+            />
           ),
           table: ({ children }: { children?: React.ReactNode }) => (
             <Box sx={{ overflowX: 'auto', my: 2, maxWidth: '100%' }}>

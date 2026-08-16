@@ -1,51 +1,30 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Alert, Avatar, Box, Typography } from '@mui/material';
 import EmojiEvents from '@mui/icons-material/EmojiEvents';
 import * as Sentry from '@sentry/react';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import StudentLeaderboardPanel from '../../components/dashboard/StudentLeaderboardPanel';
 import { LoadingSpinner } from '../../components/ui/spinner';
-import { getStudentSchoolLeaderboard } from '../../db/studentLeaderboardCollection';
-import { type ExamLeaderboardSection, type LeaderboardGrade } from '../../utils/leaderboard';
+import { useStudentSchoolLeaderboard } from '../../query/hooks';
 import PageTutorial from '../../components/tutorial/PageTutorial';
 import { studentPageSubtitleSx, studentPageTitleSx } from '../../styles/studentTypography';
 
 const LeaderboardPage: React.FC = () => {
-  const [initialGrade, setInitialGrade] = useState<LeaderboardGrade>(10);
-  const [sections, setSections] = useState<ExamLeaderboardSection[]>([]);
-  const [lastUpdatedISO, setLastUpdatedISO] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const { data, isLoading: loading, isError, error: queryError } = useStudentSchoolLeaderboard();
+  const initialGrade = data?.grade ?? 10;
+  const sections = data?.sections ?? [];
+  const lastUpdatedISO = data?.lastUpdatedISO ?? null;
+  const error = isError
+    ? 'Could not load official school leaderboard data. Please try again later.'
+    : '';
 
   useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    void getStudentSchoolLeaderboard()
-      .then((data) => {
-        if (cancelled) return;
-        setInitialGrade(data.grade);
-        setSections(data.sections);
-        setLastUpdatedISO(data.lastUpdatedISO);
-        setError('');
-      })
-      .catch((err) => {
-        Sentry.withScope((scope) => {
-          scope.setTag('location', 'LeaderboardPage.load');
-          scope.captureException(err);
-        });
-        if (!cancelled) {
-          setSections([]);
-          setLastUpdatedISO(null);
-          setError('Could not load official school leaderboard data. Please try again later.');
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    if (!isError || !queryError) return;
+    Sentry.withScope((scope) => {
+      scope.setTag('location', 'LeaderboardPage.load');
+      scope.captureException(queryError);
+    });
+  }, [isError, queryError]);
 
   return (
     <Sentry.ErrorBoundary beforeCapture={(s) => s.setTag('location', 'LeaderboardPage')}>

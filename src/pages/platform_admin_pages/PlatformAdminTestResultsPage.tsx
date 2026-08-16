@@ -32,7 +32,7 @@ import {
 } from './platformAdminPageStyles';
 import { PlatformAdminPageHeader } from './platformAdminComponents';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
-import { ExamQuestionStimulus } from '../../components/assessment/ExamQuestionBody';
+import { ExamQuestionStimulus } from '../../components/assessment/ExamQuestionStimulus';
 import {
   ExamMarkdown,
   ExamRichPrompt,

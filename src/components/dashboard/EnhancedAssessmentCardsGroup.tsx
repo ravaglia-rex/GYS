@@ -122,6 +122,8 @@ interface EnhancedAssessmentCardsGroupProps {
   filterType?: 'available' | 'completed' | 'all';
   showDashboardOverview?: boolean;
   description?: string;
+  student?: Record<string, unknown> | null;
+  assessmentConfig?: AssessmentType[] | null;
   /** Mock assessments - skips Firestore; Start/Retake opens previewAssessmentPath unless previewDisableStartNavigation */
   previewBundle?: {
     assessments: AssessmentType[];
@@ -907,23 +909,31 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
   filterType = 'all',
   description,
   previewBundle,
+  student: studentProp,
+  assessmentConfig: configProp,
 }) => {
   const navigate = useNavigate();
   const liveLoad = !previewBundle && Boolean(uid);
+  const skipConfigQuery = Boolean(configProp);
+  const skipStudentQuery = Boolean(studentProp);
   const {
-    data: configFromBackend,
+    data: configFromQuery,
     isLoading: configLoading,
     isError: configError,
     error: configErr,
-  } = useAssessmentConfig(liveLoad);
+  } = useAssessmentConfig(liveLoad && !skipConfigQuery);
   const {
-    data: studentData,
+    data: studentFromQuery,
     isLoading: studentLoading,
     isError: studentError,
     error: studentErr,
-  } = useStudent(uid, liveLoad);
+  } = useStudent(uid, liveLoad && !skipStudentQuery);
+  const configFromBackend = configProp ?? configFromQuery;
+  const studentData = studentProp ?? studentFromQuery;
 
-  const loading = previewBundle ? false : configLoading || studentLoading;
+  const loading = previewBundle
+    ? false
+    : (!skipConfigQuery && configLoading) || (!skipStudentQuery && studentLoading);
 
   const error = useMemo(() => {
     if (previewBundle || !liveLoad) return null;

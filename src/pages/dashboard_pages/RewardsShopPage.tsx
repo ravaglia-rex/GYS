@@ -22,7 +22,7 @@ import StorefrontIcon from '@mui/icons-material/Storefront';
 import * as Sentry from '@sentry/react';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import { LoadingSpinner } from '../../components/ui/spinner';
-import { useRewards, useInvalidateStudentQueries } from '../../query/hooks';
+import { useRewards, useRedemptions, useInvalidateStudentQueries } from '../../query/hooks';
 import { redeemReward, type RedemptionRecord } from '../../db/gamificationCollection';
 import { studentPageSubtitleSx, studentPageTitleSx, studentSectionHeadingSx } from '../../styles/studentTypography';
 import { auth } from '../../firebase/firebase';
@@ -76,6 +76,7 @@ function redemptionCodeLabel(r: RedemptionRecord): string {
 
 const RewardsShopPage: React.FC = () => {
   const { data, isLoading, error, refetch } = useRewards();
+  const { data: redemptionData } = useRedemptions();
   const invalidateStudent = useInvalidateStudentQueries();
   const [confirmItemId, setConfirmItemId] = useState<string | null>(null);
   const [redeeming, setRedeeming] = useState(false);
@@ -85,7 +86,7 @@ const RewardsShopPage: React.FC = () => {
   const catalog = data?.catalog ?? [];
   const balance = data?.argus_coins ?? 0;
   const freezesReady = data?.streak_freezes_available ?? 0;
-  const redemptions = Object.entries(data?.redemptions ?? {}).sort(([, a], [, b]) => {
+  const redemptions = Object.entries(redemptionData?.redemptions ?? {}).sort(([, a], [, b]) => {
     const ta = typeof a.requested_at === 'object' && a.requested_at && 'seconds' in a.requested_at
       ? (a.requested_at.seconds ?? 0) : 0;
     const tb = typeof b.requested_at === 'object' && b.requested_at && 'seconds' in b.requested_at

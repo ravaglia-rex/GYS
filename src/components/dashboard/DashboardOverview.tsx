@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, Suspense, lazy } from 'react';
 import { Box, Card, CardContent, Typography, Avatar, Badge, IconButton } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -39,8 +39,9 @@ import {
 import { studentPageSubtitleSx, studentPageTitleSx } from '../../styles/studentTypography';
 import { readGamificationFromStudent, istDateStringClient } from '../../utils/gamification';
 import QodDashboardCard from '../gamification/QodDashboardCard';
-import CoinsLeaderboardWidget from './CoinsLeaderboardWidget';
 import HowGysWorksImportantBanner from './HowGysWorksImportantBanner';
+
+const CoinsLeaderboardWidget = lazy(() => import('./CoinsLeaderboardWidget'));
 
 export type { AssessmentChartRow } from '../../utils/assessmentGating';
 
@@ -388,6 +389,8 @@ interface DashboardOverviewProps {
     qod_streak: number;
     qod_answered_today?: boolean;
   };
+  /** Parent already loaded the student profile (avoids a second query subscription). */
+  student?: Record<string, unknown> | null;
 }
 
 const StatCard: React.FC<{
@@ -516,6 +519,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   previewDisableAssessmentStatClicks = false,
   persistNotificationDismissals = true,
   previewGamification,
+  student: studentProp,
 }) => {
   const navigate = useNavigate();
   const [, setIsNavigating] = useState(false);
@@ -534,7 +538,12 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   const [performanceOverviewHeight, setPerformanceOverviewHeight] = useState<number | null>(null);
 
   const useLiveProfile = Boolean(uid) && !previewProfile;
-  const { data: userData, isLoading: studentQueryLoading } = useStudent(uid, useLiveProfile);
+  const { data: queriedStudent, isLoading: queriedStudentLoading } = useStudent(
+    uid,
+    useLiveProfile && !studentProp
+  );
+  const userData = (studentProp ?? queriedStudent) as typeof queriedStudent;
+  const studentQueryLoading = studentProp ? false : queriedStudentLoading;
 
   const gamification = useMemo(() => {
     if (previewGamification) {
@@ -1130,7 +1139,11 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         preview={Boolean(previewProfile)}
       />
 
-      {!previewProfile && <CoinsLeaderboardWidget uid={uid} schoolId={schoolId} />}
+      {!previewProfile && (
+        <Suspense fallback={<Box sx={{ minHeight: 120, mb: 3 }} />}>
+          <CoinsLeaderboardWidget uid={uid} schoolId={schoolId} />
+        </Suspense>
+      )}
 
       {/* Performance Overview and Notifications - Side by side */}
       <Box sx={{ 

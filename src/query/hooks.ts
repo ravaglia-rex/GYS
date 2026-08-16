@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getStudent } from '../db/studentCollection';
+import { getStudentCoinsLeaderboard, getStudentSchoolLeaderboard } from '../db/studentLeaderboardCollection';
+import { getStudent, getStudentReports } from '../db/studentCollection';
 import {
   getAssessmentConfig,
   getStudentAssessments,
@@ -8,9 +9,8 @@ import {
 } from '../db/assessmentCollection';
 import { getSchoolDetails } from '../db/schoolCollection';
 import { getPayments } from '../db/studentPaymentMappings';
-import { fetchQod, fetchRewards } from '../db/gamificationCollection';
+import { fetchQod, fetchRewards, fetchRedemptions } from '../db/gamificationCollection';
 import { getSchoolStudentRoster, getSchoolSummary } from '../db/schoolAdminCollection';
-import { getStudentCoinsLeaderboard } from '../db/studentLeaderboardCollection';
 import { isVisibleSchoolRosterStudent } from '../utils/schoolAdminRosterUtils';
 import { queryKeys } from './queryKeys';
 
@@ -77,7 +77,10 @@ export function useInvalidateStudentQueries() {
     void qc.invalidateQueries({ queryKey: queryKeys.studentAssessments(uid) });
     void qc.invalidateQueries({ queryKey: queryKeys.payments(uid) });
     void qc.invalidateQueries({ queryKey: queryKeys.rewards() });
+    void qc.invalidateQueries({ queryKey: queryKeys.redemptions() });
     void qc.invalidateQueries({ queryKey: queryKeys.qod() });
+    void qc.invalidateQueries({ queryKey: queryKeys.studentSchoolLeaderboard() });
+    void qc.invalidateQueries({ queryKey: queryKeys.studentReports(uid) });
   };
 }
 
@@ -103,6 +106,15 @@ export function useRewards(enabled = true) {
   return useQuery({
     queryKey: queryKeys.rewards(),
     queryFn: fetchRewards,
+    enabled,
+    staleTime: 60_000,
+  });
+}
+
+export function useRedemptions(enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.redemptions(),
+    queryFn: fetchRedemptions,
     enabled,
     staleTime: 60_000,
   });
@@ -151,6 +163,27 @@ export function useCoinsLeaderboard(
     queryFn: () => getStudentCoinsLeaderboard(schoolId),
     enabled: Boolean(uid) && enabled,
     staleTime: COINS_LEADERBOARD_STALE_MS,
+  });
+}
+
+const SCHOOL_LEADERBOARD_STALE_MS = 5 * 60_000;
+const STUDENT_REPORTS_STALE_MS = 5 * 60_000;
+
+export function useStudentSchoolLeaderboard(enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.studentSchoolLeaderboard(),
+    queryFn: getStudentSchoolLeaderboard,
+    enabled,
+    staleTime: SCHOOL_LEADERBOARD_STALE_MS,
+  });
+}
+
+export function useStudentReports(uid: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.studentReports(uid ?? ''),
+    queryFn: () => getStudentReports(uid!),
+    enabled: Boolean(uid) && enabled,
+    staleTime: STUDENT_REPORTS_STALE_MS,
   });
 }
 

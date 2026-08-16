@@ -68,11 +68,6 @@ const ANALYTICS_NAV_ITEM: NavItem = {
       icon: <OfficialExamsIcon sx={{ color: '#2563eb', fontSize: CHILD_ICON_SIZE }} />,
     },
     {
-      title: 'Item Bank',
-      path: '/platform-admin/analytics/item-bank',
-      icon: <ItemBankIcon sx={{ color: '#2563eb', fontSize: CHILD_ICON_SIZE }} />,
-    },
-    {
       title: 'Practice Exams',
       path: '/platform-admin/analytics/practice',
       icon: <PracticeExamsIcon sx={{ color: '#2563eb', fontSize: CHILD_ICON_SIZE }} />,
@@ -99,6 +94,12 @@ const QUESTION_REPORTS_NAV_ITEM: NavItem = {
   title: 'Q Reports',
   path: '/platform-admin/question-reports',
   icon: <QuestionReportsIcon sx={{ color: '#c2410c', fontSize: SIDEBAR_ICON_SIZE }} />,
+};
+
+const ITEM_BANK_NAV_ITEM: NavItem = {
+  title: 'Item Bank',
+  path: '/platform-admin/item-bank',
+  icon: <ItemBankIcon sx={{ color: '#2563eb', fontSize: SIDEBAR_ICON_SIZE }} />,
 };
 
 const BASE_NAV_ITEMS: NavItem[] = [
@@ -135,7 +136,10 @@ export default function PlatformAdminLayout({ children }: PlatformAdminLayoutPro
 
   const navItems = useMemo(() => {
     const mid: NavItem[] = [];
-    if (canAccessPlatformAdminAnalytics(userEmail)) mid.push(ANALYTICS_NAV_ITEM);
+    if (canAccessPlatformAdminAnalytics(userEmail)) {
+      mid.push(ANALYTICS_NAV_ITEM);
+      mid.push(ITEM_BANK_NAV_ITEM);
+    }
     if (canAccessPlatformAdminQuestionReports(userEmail)) mid.push(QUESTION_REPORTS_NAV_ITEM);
     const base = [
       BASE_NAV_ITEMS[0],

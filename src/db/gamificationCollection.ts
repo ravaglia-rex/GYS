@@ -8,6 +8,7 @@ import {
   POST_GAMIFICATION_QOD_ANSWER_LEGACY,
   POST_GAMIFICATION_RECORD_DAILY_LOGIN,
   GET_GAMIFICATION_REWARDS,
+  GET_GAMIFICATION_REDEMPTIONS,
   POST_GAMIFICATION_REDEEM,
 } from '../constants/constants';
 import type { ExamQuestion } from './assessmentCollection';
@@ -238,6 +239,13 @@ export async function fetchRewards(): Promise<RewardsResponse> {
   const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS;
   const headers = await authHeaders();
   const response = await axios.get(`${base}${GAMIFICATION_APIS}${GET_GAMIFICATION_REWARDS}`, { headers });
+  return response.data;
+}
+
+export async function fetchRedemptions(): Promise<{ redemptions: Record<string, RedemptionRecord> }> {
+  const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS;
+  const headers = await authHeaders();
+  const response = await axios.get(`${base}${GAMIFICATION_APIS}${GET_GAMIFICATION_REDEMPTIONS}`, { headers });
   return response.data;
 }
 

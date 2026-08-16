@@ -65,10 +65,10 @@ const NEEDS_MIC = new Set(['english_proficiency']);
 const NEEDS_LAPTOP = new Set(['ai_literacy']);
 
 const EXAM_BEFORE_UNLOAD_HINT =
-  'Leaving or refreshing will end this exam attempt. You cannot continue until you start again (timer resets). Repeated interruptions may suspend your account.';
+  'Leaving or refreshing will end this exam attempt. You cannot continue this sit.';
 
 const EXAM_LEAVE_DIALOG_COPY =
-  'If you leave or refresh now, this exam attempt will be terminated. You will not be able to resume; you may start again only when you begin a new attempt (your timer resets). Each time you leave, go back, or refresh this way, it counts toward a limit. After 3 such events, your account will be temporarily suspended from starting new assessments.';
+  'If you leave or refresh now, this exam attempt will be terminated. You will not be able to resume. Stay in the exam to finish.';
 
 type PageStage = 'pre_exam' | 'proctoring_setup' | 'taking' | 'complete';
 
@@ -280,7 +280,14 @@ export default function AssessmentTakePage() {
         const res = await abandonExam(uid, attemptId, 'extended_background');
         invalidateStudentQueries(uid);
         examEndedRef.current = true;
-        if (res.suspended && res.suspended_until_ms) {
+        if (
+          (res.scored_from_abandon || res.scored_zero) &&
+          typeof res.next_attempt_available_at_ms === 'number'
+        ) {
+          window.alert(
+            `This level has been scored from the questions you already answered. You can start it again after ${new Date(res.next_attempt_available_at_ms).toLocaleDateString()}.`
+          );
+        } else if (res.suspended && res.suspended_until_ms) {
           window.alert(
             `Your account is temporarily suspended from starting new assessments until ${new Date(res.suspended_until_ms).toLocaleString()}.`
           );
@@ -372,13 +379,11 @@ export default function AssessmentTakePage() {
     void reportProctoringEvent(type, severity, snapshot);
   };
 
-  const { leftFullscreen, tryEnterFullscreen } = useExamIntegrity({
+  const { leftFullscreen, integrityWarning, tryEnterFullscreen } = useExamIntegrity({
     active: Boolean(attemptId && stage === 'taking'),
-    onBackgroundTooLong: () =>
-      endAttemptForIntegrity('This attempt ended because the exam stayed in the background too long.'),
-    onFullscreenExitTooLong: () =>
+    onLeaveLimitReached: () =>
       endAttemptForIntegrity(
-        'This attempt ended because fullscreen was exited. Stay in fullscreen for the whole exam.'
+        'This attempt ended because the exam was left in the background or fullscreen was exited.'
       ),
     enforceFullscreen: true,
     onPrintScreen: () => {
@@ -592,7 +597,14 @@ export default function AssessmentTakePage() {
       invalidateStudentQueries(uid);
       examEndedRef.current = true;
       setLeaveDialogOpen(false);
-      if (res.suspended && res.suspended_until_ms) {
+      if (
+        (res.scored_from_abandon || res.scored_zero) &&
+        typeof res.next_attempt_available_at_ms === 'number'
+      ) {
+        window.alert(
+          `This level has been scored from the questions you already answered. You can start it again after ${new Date(res.next_attempt_available_at_ms).toLocaleDateString()}.`
+        );
+      } else if (res.suspended && res.suspended_until_ms) {
         window.alert(
           `Your account is temporarily suspended from starting new assessments until ${new Date(res.suspended_until_ms).toLocaleString()}.`
         );
@@ -921,7 +933,7 @@ export default function AssessmentTakePage() {
 
       {showOfflineBar && (
         <Alert severity="warning" sx={{ flexShrink: 0, borderRadius: 0 }} onClose={() => setShowOfflineBar(false)}>
-          You appear to be offline. If you leave or refresh, this exam attempt may end and cannot be resumed (timer resets). Repeated interruptions can lead to a temporary account suspension.
+          You appear to be offline. Stay on this page to keep your attempt.
         </Alert>
       )}
 
@@ -931,7 +943,25 @@ export default function AssessmentTakePage() {
         </Alert>
       )}
 
-      {leftFullscreen && (
+      {integrityWarning && (
+        <Alert
+          severity="error"
+          sx={{ flexShrink: 0, borderRadius: 0 }}
+          action={
+            integrityWarning.canReenterFullscreen ? (
+              <Button color="inherit" size="small" onClick={tryEnterFullscreen}>
+                Re-enter Fullscreen
+              </Button>
+            ) : undefined
+          }
+        >
+          {integrityWarning.secondsLeft > 0
+            ? `Return to the exam now (${integrityWarning.secondsLeft}s). If you don't, or you keep leaving this screen, this attempt will end.`
+            : 'Stay on this exam in fullscreen. If you keep leaving this screen, this attempt will end.'}
+        </Alert>
+      )}
+
+      {leftFullscreen && !integrityWarning && (
         <Alert
           severity="error"
           sx={{ flexShrink: 0, borderRadius: 0 }}
@@ -941,7 +971,7 @@ export default function AssessmentTakePage() {
             </Button>
           }
         >
-          Fullscreen is required. Re-enter within a few seconds or this attempt will end.
+          Fullscreen is required. Stay in fullscreen for the whole exam.
         </Alert>
       )}
 

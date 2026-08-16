@@ -6,24 +6,25 @@ import PlatformAdminRoute from './PlatformAdminRoute';
 
 interface PlatformAdminSuperRouteProps {
   children: ReactNode;
+  nested?: boolean;
 }
 
-const PlatformAdminSuperRoute: React.FC<PlatformAdminSuperRouteProps> = ({ children }) => {
+const PlatformAdminSuperRoute: React.FC<PlatformAdminSuperRouteProps> = ({ children, nested = false }) => {
   const platformAdminRole = useSelector((state: RootState) => state.auth.platformAdminRole);
 
-  return (
-    <PlatformAdminRoute>
-      {platformAdminRole === 'super' ? (
-        children
-      ) : (
-        <Box sx={{ p: 4, maxWidth: 480, mx: 'auto', mt: 8 }}>
-          <Alert severity="error">
-            This section is restricted to the platform head admin.
-          </Alert>
-        </Box>
-      )}
-    </PlatformAdminRoute>
-  );
+  const content =
+    platformAdminRole === 'super' ? (
+      children
+    ) : (
+      <Box sx={{ p: 4, maxWidth: 480, mx: 'auto', mt: 8 }}>
+        <Alert severity="error">
+          This section is restricted to the platform head admin.
+        </Alert>
+      </Box>
+    );
+
+  if (nested) return content;
+  return <PlatformAdminRoute>{content}</PlatformAdminRoute>;
 };
 
 export default PlatformAdminSuperRoute;

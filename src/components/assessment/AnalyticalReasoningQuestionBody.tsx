@@ -1,6 +1,12 @@
 import React from 'react';
 import { Box, FormControl, FormControlLabel, Radio, RadioGroup, Typography } from '@mui/material';
 import type { ExamQuestion } from '../../db/assessmentCollection';
+import { ArOptionFigure } from './ArOptionFigure';
+import {
+  allLetterKeyOptions,
+  optionFigureFromAssets,
+  splitArOptionFigure,
+} from './arOptionFigureModel';
 import { ExamMarkdown } from './ExamMarkdown';
 
 interface AnalyticalReasoningQuestionBodyProps {
@@ -18,11 +24,6 @@ interface AnalyticalReasoningQuestionBodyProps {
 
 const OPTION_LETTERS = ['A', 'B', 'C', 'D'] as const;
 
-/**
- * Markdown + SVG renderer for Analytical Reasoning items.
- * Option figures are baked into body_markdown; the control below is a
- * letter picker only - never shuffle these options.
- */
 export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuestionBodyProps> = ({
   question,
   questionNumber,
@@ -44,6 +45,11 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
         ? question.options
         : [...OPTION_LETTERS];
   const markdown = question.body_markdown ?? question.prompt ?? '';
+  const split = splitArOptionFigure(markdown);
+  const optionFigure = split.optionFigure ?? optionFigureFromAssets(question.assets);
+  const stemMarkdown = optionFigure ? split.stemMarkdown : markdown;
+  const letterKeysOnly = allLetterKeyOptions(optionIds);
+  const pickOnFigure = Boolean(optionFigure && letterKeysOnly);
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -62,83 +68,147 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
         {hideQuestionTotal ? `Question ${questionNumber}` : `Question ${questionNumber} of ${totalQuestions}`}
       </Typography>
       <Box sx={{ mb: 2.5 }}>
-        <ExamMarkdown>{markdown}</ExamMarkdown>
+        <ExamMarkdown>{stemMarkdown}</ExamMarkdown>
       </Box>
-      <FormControl component="fieldset" fullWidth>
-        <RadioGroup
-          value={selectedOption !== null ? String(selectedOption) : ''}
-          onChange={(e) => {
-            if (selectionLocked) return;
-            onSelectOption(parseInt(e.target.value, 10));
-          }}
-        >
-          {optionIds.map((label, idx) => {
-            const selected = selectedOption === idx;
-            const rowBorder = selected ? primary : borderMuted;
-            const rowBg = selected ? primarySoft : '#fff';
-            const letterBg = selected ? primary : '#f1f5f9';
-            const letterBorder = selected ? primary : borderMuted;
-            const letterFg = selected ? '#fff' : '#64748b';
-            const letter = String.fromCharCode(65 + idx);
-            return (
-              <FormControlLabel
-                key={`${label}-${idx}`}
-                value={String(idx)}
-                control={<Radio sx={{ display: 'none' }} />}
-                onClick={() => {
-                  if (selectionLocked) return;
-                  onSelectOption(idx);
-                }}
-                aria-label={`Option ${letter}`}
-                label={
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
-                    <Box
-                      sx={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: '50%',
-                        bgcolor: letterBg,
-                        border: `2px solid ${letterBorder}`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <Typography sx={{ fontSize: '0.75rem', fontWeight: 800, color: letterFg }}>
-                        {letter}
-                      </Typography>
-                    </Box>
-                    <Typography
-                      sx={{
-                        color: selected ? '#0f172a' : '#475569',
-                        fontSize: '0.92rem',
-                        fontWeight: selected ? 700 : 500,
-                        lineHeight: 1.45,
-                      }}
-                    >
-                      Option {letter}
-                    </Typography>
-                  </Box>
-                }
-                sx={{
-                  m: 0,
-                  mb: 1.25,
-                  p: '14px 16px',
-                  borderRadius: 2,
-                  border: `2px solid ${rowBorder}`,
-                  bgcolor: rowBg,
-                  cursor: selectionLocked ? 'default' : 'pointer',
-                  alignItems: 'center',
-                  transition: 'all 0.15s',
-                  '&:hover': selectionLocked ? {} : { borderColor: `${primary}99` },
-                }}
-              />
-            );
-          })}
-        </RadioGroup>
-      </FormControl>
-      {footer}
+      {optionFigure ? (
+        <Box sx={{ mb: pickOnFigure ? 0 : 2.5 }}>
+          <ArOptionFigure
+            figure={optionFigure}
+            selectedIndex={selectedOption}
+            onSelect={pickOnFigure ? onSelectOption : undefined}
+            selectionLocked={selectionLocked}
+            primary={primary}
+            primarySoft={primarySoft}
+            optionCount={optionIds.length}
+          />
+        </Box>
+      ) : null}
+      {pickOnFigure ? (
+        footer
+      ) : letterKeysOnly ? (
+        <>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: footer ? 1.5 : 0 }}>
+            {optionIds.map((label, idx) => {
+              const selected = selectedOption === idx;
+              const letter = String.fromCharCode(65 + idx);
+              return (
+                <Box
+                  key={`${label}-${idx}`}
+                  component="button"
+                  type="button"
+                  aria-label={`Option ${letter}`}
+                  aria-pressed={selected}
+                  disabled={selectionLocked}
+                  onClick={() => {
+                    if (selectionLocked) return;
+                    onSelectOption(idx);
+                  }}
+                  sx={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 2,
+                    border: '2px solid',
+                    borderColor: selected ? primary : borderMuted,
+                    bgcolor: selected ? primarySoft : '#fff',
+                    cursor: selectionLocked ? 'default' : 'pointer',
+                    fontWeight: 800,
+                    fontSize: '1rem',
+                    color: selected ? primary : '#334155',
+                  }}
+                >
+                  {letter}
+                </Box>
+              );
+            })}
+          </Box>
+          {footer}
+        </>
+      ) : (
+        <>
+          <FormControl component="fieldset" fullWidth>
+            <RadioGroup
+              value={selectedOption !== null ? String(selectedOption) : ''}
+              onChange={(e) => {
+                if (selectionLocked) return;
+                onSelectOption(parseInt(e.target.value, 10));
+              }}
+            >
+              {optionIds.map((label, idx) => {
+                const selected = selectedOption === idx;
+                const rowBorder = selected ? primary : borderMuted;
+                const rowBg = selected ? primarySoft : '#fff';
+                const letterBg = selected ? primary : '#f1f5f9';
+                const letterBorder = selected ? primary : borderMuted;
+                const letterFg = selected ? '#fff' : '#64748b';
+                const letter = String.fromCharCode(65 + idx);
+                const showText = !isSameAsLetter(label, letter);
+                return (
+                  <FormControlLabel
+                    key={`${label}-${idx}`}
+                    value={String(idx)}
+                    control={<Radio sx={{ display: 'none' }} />}
+                    onClick={() => {
+                      if (selectionLocked) return;
+                      onSelectOption(idx);
+                    }}
+                    aria-label={`Option ${letter}`}
+                    label={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
+                        <Box
+                          sx={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: '50%',
+                            bgcolor: letterBg,
+                            border: `2px solid ${letterBorder}`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <Typography sx={{ fontSize: '0.75rem', fontWeight: 800, color: letterFg }}>
+                            {letter}
+                          </Typography>
+                        </Box>
+                        {showText ? (
+                          <Typography
+                            sx={{
+                              color: selected ? '#0f172a' : '#475569',
+                              fontSize: '0.92rem',
+                              fontWeight: selected ? 700 : 500,
+                              lineHeight: 1.45,
+                            }}
+                          >
+                            {label}
+                          </Typography>
+                        ) : null}
+                      </Box>
+                    }
+                    sx={{
+                      m: 0,
+                      mb: 1.25,
+                      p: '14px 16px',
+                      borderRadius: 2,
+                      border: `2px solid ${rowBorder}`,
+                      bgcolor: rowBg,
+                      cursor: selectionLocked ? 'default' : 'pointer',
+                      alignItems: 'center',
+                      transition: 'all 0.15s',
+                      '&:hover': selectionLocked ? {} : { borderColor: `${primary}99` },
+                    }}
+                  />
+                );
+              })}
+            </RadioGroup>
+          </FormControl>
+          {footer}
+        </>
+      )}
     </Box>
   );
 };
+
+function isSameAsLetter(label: string, letter: string): boolean {
+  return String(label ?? '').trim().replace(/\.$/, '').toUpperCase() === letter;
+}

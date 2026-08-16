@@ -632,6 +632,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
         let analyticsData: Record<string, any> = {};
         let registrationEmails: string[] = [];
         let institutionalTier: string | null = null;
+        let usedHistograms = false;
         try {
           // Single summary call also covers the school "header" fields (name/city/board/member
           // since/institutional tier) that used to require a separate client-side
@@ -641,21 +642,27 @@ const SchoolAdminDashboardPage: React.FC = () => {
           // Students/Analytics/Subscription pages read via `useSchoolAdminSummary` /
           // `useSchoolAdminRoster` - navigating between pages within staleTime reuses the
           // cached result instead of re-fetching.
-          const [summaryData, rosterData] = await Promise.all([
-            queryClient.ensureQueryData({
-              queryKey: queryKeys.schoolAdminSummary(schoolId),
-              queryFn: () => getSchoolSummary(schoolId),
-              staleTime: SCHOOL_ADMIN_QUERY_STALE_MS,
-            }),
-            queryClient.ensureQueryData({
-              queryKey: queryKeys.schoolAdminRoster(schoolId),
-              queryFn: () => getSchoolStudentRoster(schoolId),
-              staleTime: SCHOOL_ADMIN_QUERY_STALE_MS,
-            }),
-          ]);
-          allStudents = (rosterData ?? []).filter(isVisibleSchoolRosterStudent);
+          const summaryData = await queryClient.ensureQueryData({
+            queryKey: queryKeys.schoolAdminSummary(schoolId),
+            queryFn: () => getSchoolSummary(schoolId),
+            staleTime: SCHOOL_ADMIN_QUERY_STALE_MS,
+          });
           analyticsData = summaryData.analytics ?? {};
           institutionalTier = summaryData.institutional_tier ?? null;
+          const histograms = analyticsData.dashboard_histograms as
+            | {
+                student_count?: number;
+                initialized_count?: number;
+                assessments_completed?: number;
+                attempt_rate?: number;
+                tier123?: { tier1: number; tier2: number; tier3: number; total: number };
+                national_tiers?: {
+                  counts: Record<string, number>;
+                  total: number;
+                };
+                proficiency_by_exam?: ExamProficiencySummary[];
+              }
+            | undefined;
 
           setSchoolName(summaryData.school_name || 'Your School');
           setSchoolCity(summaryData.city || '');
@@ -664,6 +671,54 @@ const SchoolAdminDashboardPage: React.FC = () => {
             displaySubscriptionPlan(summaryData.subscription_plan || 'Standard Subscription')
           );
           setMemberSinceLabel(formatMemberSince(summaryData.member_since_iso));
+
+          if (histograms && typeof histograms.student_count === 'number') {
+            usedHistograms = true;
+            setTotalAssessmentsCompleted(histograms.assessments_completed ?? 0);
+            setStudentCount(histograms.student_count);
+            setInitializedStudentCount(histograms.initialized_count ?? histograms.student_count);
+            if (histograms.tier123) {
+              setProficiencyByExam(histograms.proficiency_by_exam ?? []);
+              setNationalPerfTiers({
+                counts: {
+                  explorer: histograms.national_tiers?.counts?.explorer ?? 0,
+                  bronze: histograms.national_tiers?.counts?.bronze ?? 0,
+                  silver: histograms.national_tiers?.counts?.silver ?? 0,
+                  gold: histograms.national_tiers?.counts?.gold ?? 0,
+                  platinum: histograms.national_tiers?.counts?.platinum ?? 0,
+                  diamond: histograms.national_tiers?.counts?.diamond ?? 0,
+                },
+                total: histograms.national_tiers?.total ?? histograms.student_count,
+              });
+            }
+            const rankParsed = parseOptionalInt(
+              analyticsData.institutional_rank ?? analyticsData.school_rank ?? analyticsData.national_rank
+            );
+            setInstitutionalRank(rankParsed != null && rankParsed > 0 ? rankParsed : null);
+            const rankDeltaParsed = parseOptionalInt(analyticsData.rank_change_q1 ?? analyticsData.rank_delta_q1);
+            setRankChangeQ1(rankDeltaParsed);
+            const t123 = histograms.tier123 ?? { tier1: 0, tier2: 0, tier3: 0, total: histograms.student_count };
+            setPerformance({
+              avgPercentile:
+                analyticsData.avg_percentile_source === 'national' ? analyticsData.avg_percentile ?? 0 : 0,
+              atLevel3Count: t123.tier3,
+              clearedLevel1Count: t123.tier2 + t123.tier3,
+              rosterTotal: t123.total,
+              attemptRate: histograms.attempt_rate ?? 0,
+              avgPercentileChange:
+                analyticsData.avg_percentile_source === 'national' ?
+                  analyticsData.perf_change_percentile ?? 0 :
+                  0,
+              completionChange: analyticsData.perf_change_completion ?? 0,
+            });
+          } else {
+            const rosterData = await queryClient.ensureQueryData({
+              queryKey: queryKeys.schoolAdminRoster(schoolId),
+              queryFn: () => getSchoolStudentRoster(schoolId),
+              staleTime: SCHOOL_ADMIN_QUERY_STALE_MS,
+            });
+            allStudents = (rosterData ?? []).filter(isVisibleSchoolRosterStudent);
+          }
         } catch (apiErr) {
           console.error('School summary/roster fetch failed:', apiErr);
           setDashboardApiError(
@@ -702,6 +757,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
           )
         );
 
+        if (!usedHistograms) {
         setTotalAssessmentsCompleted(countAssessmentsCompleted(allStudents));
         setStudentCount(allStudents.length);
         setInitializedStudentCount(countInitializedStudents(allStudents, registrationEmails));
@@ -730,6 +786,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
               0,
           completionChange: analyticsData.perf_change_completion ?? 0,
         });
+        }
 
       } catch (err) {
         console.error('Dashboard fetch error:', err);

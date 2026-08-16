@@ -121,6 +121,7 @@ export const GET_GAMIFICATION_QOD_LEGACY = '/qotd';
 export const POST_GAMIFICATION_QOD_ANSWER_LEGACY = '/qotd/answer';
 export const POST_GAMIFICATION_RECORD_DAILY_LOGIN = '/recordDailyLogin';
 export const GET_GAMIFICATION_REWARDS = '/rewards';
+export const GET_GAMIFICATION_REDEMPTIONS = '/redemptions';
 export const POST_GAMIFICATION_REDEEM = '/redeem';
 export const GET_GAMIFICATION_COIN_EVENTS = '/coin-events';
 

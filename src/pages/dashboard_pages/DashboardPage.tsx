@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, Suspense, lazy } from 'react';
 import { Alert, Box, Typography } from '@mui/material';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -6,7 +6,6 @@ import { auth } from '../../firebase/firebase';
 import { useAssessmentConfig, useStudent } from '../../query/hooks';
 import * as Sentry from '@sentry/react';
 import DashboardOverview from '../../components/dashboard/DashboardOverview';
-import { EnhancedAssessmentCardsGroup } from '../../components/dashboard/EnhancedAssessmentCardsGroup';
 import {
   ASSESSMENT_ORDER,
   COMPLETION_PREREQUISITES,
@@ -30,6 +29,12 @@ import type {
   DashboardNotificationEventSource,
   UnlockedAssessmentNotificationSource,
 } from '../../utils/dashboardNotifications';
+
+const EnhancedAssessmentCardsGroup = lazy(() =>
+  import('../../components/dashboard/EnhancedAssessmentCardsGroup').then((m) => ({
+    default: m.EnhancedAssessmentCardsGroup,
+  }))
+);
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -224,6 +229,7 @@ const Dashboard: React.FC = () => {
             <>
               <DashboardOverview
                 uid={uid}
+                student={student as Record<string, unknown>}
                 stats={{
                   totalAssessments: stats.totalAssessments,
                   completedAssessments: stats.tiersCompleted,
@@ -257,7 +263,18 @@ const Dashboard: React.FC = () => {
                       : 'Official exams are shown below for reference and will unlock soon. Practice Mode remains available in the meantime.'}
                   </Typography>
                 </Box>
-                <EnhancedAssessmentCardsGroup uid={uid} filterType="all" />
+                <Suspense
+                  fallback={
+                    <Box sx={{ minHeight: 240, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.04)' }} />
+                  }
+                >
+                  <EnhancedAssessmentCardsGroup
+                    uid={uid}
+                    filterType="all"
+                    student={student as Record<string, unknown>}
+                    assessmentConfig={configFromBackend}
+                  />
+                </Suspense>
               </Box>
             </>
           )}

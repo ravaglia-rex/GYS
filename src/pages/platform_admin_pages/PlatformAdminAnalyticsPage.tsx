@@ -107,15 +107,15 @@ import {
   AdminExamOptionText,
   AdminExamQuestionStem,
 } from './PlatformAdminExamQuestionCard';
-import { PlatformAdminItemBankSection } from './PlatformAdminItemBankSection';
+import { allLetterKeyOptions } from '../../components/assessment/arOptionFigureModel';
 
-type AnalyticsSection = 'official' | 'item-bank' | 'practice' | 'qod' | 'activity' | 'coins';
+type AnalyticsSection = 'official' | 'practice' | 'qod' | 'activity' | 'coins';
 
 type OfficialView = 'overview' | 'exam-snapshots' | 'constructs' | 'grade-school' | 'completions' | 'abandons';
 type PracticeView = 'overview' | 'by-exam' | 'exam-detail';
 type QodView = 'overview' | 'top-students';
 
-const ANALYTICS_SECTIONS: AnalyticsSection[] = ['official', 'item-bank', 'practice', 'qod', 'activity', 'coins'];
+const ANALYTICS_SECTIONS: AnalyticsSection[] = ['official', 'practice', 'qod', 'activity', 'coins'];
 
 const ANALYTICS_SECTION_META: Record<
   AnalyticsSection,
@@ -124,10 +124,6 @@ const ANALYTICS_SECTION_META: Record<
   official: {
     title: 'Official Exams',
     subtitle: 'Completions, scores, strands, and search across live official exams.',
-  },
-  'item-bank': {
-    title: 'Item Bank',
-    subtitle: 'Every official exam question by exam and level, with options, correct answers, and pick rates.',
   },
   practice: {
     title: 'Practice Exams',
@@ -262,8 +258,6 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
   const [officialAbandonsLoading, setOfficialAbandonsLoading] = useState(false);
   const [officialAbandonLevel, setOfficialAbandonLevel] = useState<'all' | number>('all');
   const officialAbandonsReqRef = useRef(0);
-  const [itemBankLoading, setItemBankLoading] = useState(false);
-  const [itemBankRefreshNonce, setItemBankRefreshNonce] = useState(0);
 
   const [practiceSummaries, setPracticeSummaries] = useState<PracticeExamSummaryRow[]>([]);
   const [practiceDaily, setPracticeDaily] = useState<PracticeDailyStatRow[]>([]);
@@ -495,7 +489,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     params.set('exam', selectedOfficialExamId);
     if (officialDrillLevel !== 'all') params.set('level', String(officialDrillLevel));
     params.set(tagType, tag);
-    navigate(`/platform-admin/analytics/item-bank?${params.toString()}`);
+    navigate(`/platform-admin/item-bank?${params.toString()}`);
   };
 
   const renderOfficialTagTable = (
@@ -768,7 +762,6 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     officialCompletionsLoading ||
     officialAbandonsLoading ||
     officialAttemptDetailLoading ||
-    itemBankLoading ||
     practiceLoading ||
     practiceMonthlyLoading ||
     practiceDetailLoading ||
@@ -790,9 +783,6 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
           void loadOfficialAbandons(selectedOfficialExamId, officialAbandonLevel, { refresh: true });
         }
       }
-    }
-    if (section === 'item-bank') {
-      setItemBankRefreshNonce((n) => n + 1);
     }
     if (section === 'practice') {
       void loadPractice({ refresh: true });
@@ -2062,7 +2052,47 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                                                       q={q}
                                                       emptyLabel="(no prompt - bank item missing)"
                                                     />
-                                                    {q.options.length > 0 ? (
+                                                    {q.options.length > 0 && allLetterKeyOptions(q.options.map((o) => o.text || o.letter)) ? (
+                                                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                                                        {q.options.map((opt, optIdx) => {
+                                                          const picked = q.selected_index === optIdx;
+                                                          const keyCorrect = q.correct_index === optIdx;
+                                                          return (
+                                                            <Box
+                                                              key={`${q.item_id}-${opt.letter}`}
+                                                              sx={{
+                                                                px: 1.1,
+                                                                py: 0.55,
+                                                                borderRadius: 1,
+                                                                border: '1px solid',
+                                                                borderColor: keyCorrect
+                                                                  ? '#86efac'
+                                                                  : picked
+                                                                    ? '#fca5a5'
+                                                                    : '#e2e8f0',
+                                                                bgcolor: keyCorrect
+                                                                  ? '#f0fdf4'
+                                                                  : picked
+                                                                    ? '#fef2f2'
+                                                                    : '#fff',
+                                                                fontSize: 12,
+                                                                fontWeight: 700,
+                                                                color: ip.heading,
+                                                              }}
+                                                            >
+                                                              {opt.letter}
+                                                              {keyCorrect && picked
+                                                                ? ' · correct · picked'
+                                                                : keyCorrect
+                                                                  ? ' · correct'
+                                                                  : picked
+                                                                    ? ' · picked'
+                                                                    : ''}
+                                                            </Box>
+                                                          );
+                                                        })}
+                                                      </Box>
+                                                    ) : q.options.length > 0 ? (
                                                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
                                                         {q.options.map((opt, optIdx) => {
                                                           const picked = q.selected_index === optIdx;
@@ -2266,13 +2296,6 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
             </>
           )}
         </>
-      )}
-
-      {section === 'item-bank' && (
-        <PlatformAdminItemBankSection
-          refreshNonce={itemBankRefreshNonce}
-          onLoadingChange={setItemBankLoading}
-        />
       )}
 
       {section === 'practice' && (

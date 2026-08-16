@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { BrowserRouter as Router, Route, Routes, Outlet, Navigate, useParams } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Outlet, Navigate, useLocation, useParams } from 'react-router-dom';
 import Protected from '../components/route_protection/Protected';
 import SchoolAdminRoute from '../components/route_protection/SchoolAdminRoute';
 import PlatformAdminRoute from '../components/route_protection/PlatformAdminRoute';
@@ -23,6 +23,45 @@ function LegacyAnalyticalExamRedirect({ rest }: { rest: 'detail' | 'take' }) {
       to={`/assessments/${ANALYTICAL_REASONING_ASSESSMENT_ID}/tier/${tier}/${rest}`}
       replace
     />
+  );
+}
+
+function PlatformAdminLegacyItemBankRedirect() {
+  const location = useLocation();
+  return <Navigate to={`/platform-admin/item-bank${location.search}`} replace />;
+}
+
+function StudentProtectedShell() {
+  return (
+    <Protected>
+      <Suspense fallback={<BigSpinner />}>
+        <Outlet />
+      </Suspense>
+    </Protected>
+  );
+}
+
+function SchoolAdminShell() {
+  return (
+    <SchoolAdminRoute>
+      <Suspense fallback={<BigSpinner />}>
+        <SchoolAdminPageWrapper>
+          <Outlet />
+        </SchoolAdminPageWrapper>
+      </Suspense>
+    </SchoolAdminRoute>
+  );
+}
+
+function PlatformAdminShell() {
+  return (
+    <PlatformAdminRoute>
+      <Suspense fallback={<BigSpinner />}>
+        <PlatformAdminLayout>
+          <Outlet />
+        </PlatformAdminLayout>
+      </Suspense>
+    </PlatformAdminRoute>
   );
 }
 
@@ -132,6 +171,7 @@ const PlatformAdminStudentDetailPage = lazy(() => import('../pages/platform_admi
 const PlatformAdminPipelinePage = lazy(() => import('../pages/platform_admin_pages/PlatformAdminPipelinePage'));
 const PlatformAdminAdminsPage = lazy(() => import('../pages/platform_admin_pages/PlatformAdminAdminsPage'));
 const PlatformAdminAnalyticsPage = lazy(() => import('../pages/platform_admin_pages/PlatformAdminAnalyticsPage'));
+const PlatformAdminItemBankPage = lazy(() => import('../pages/platform_admin_pages/PlatformAdminItemBankPage'));
 const PlatformAdminQuestionReportsPage = lazy(
   () => import('../pages/platform_admin_pages/PlatformAdminQuestionReportsPage')
 );
@@ -503,137 +543,27 @@ const AppRouter: React.FC = () => {
 
         {/* ------------------------------ SIGNUP AND LOGIN ROUTES END ------------------------------ */}
         {/* DASHBOARD ROUTES */}
-        <Route 
-          path="/dashboard" 
-          element={
-            <Protected>
-              <Suspense fallback={<BigSpinner/>}>
-                <DashboardPage />
-              </Suspense>
-            </Protected>
-          }
-          errorElement={<NotFoundPage />}
-        />
-
-        <Route
-          path="/leaderboard"
-          element={
-            <Protected>
-              <Suspense fallback={<BigSpinner />}>
-                <LeaderboardPage />
-              </Suspense>
-            </Protected>
-          }
-          errorElement={<NotFoundPage />}
-        />
-
-        <Route
-          path="/how-it-works"
-          element={
-            <Protected>
-              <Suspense fallback={<BigSpinner />}>
-                <HowItWorksPage />
-              </Suspense>
-            </Protected>
-          }
-          errorElement={<NotFoundPage />}
-        />
-
-        <Route
-          path="/practice-test/session/:examId/:level"
-          element={
-            <Protected>
-              <Suspense fallback={<BigSpinner />}>
-                <PracticeTakePage />
-              </Suspense>
-            </Protected>
-          }
-          errorElement={<NotFoundPage />}
-        />
-
-        <Route
-          path="/practice-test"
-          element={
-            <Protected>
-              <Suspense fallback={<BigSpinner />}>
-                <PracticeTestPage />
-              </Suspense>
-            </Protected>
-          }
-          errorElement={<NotFoundPage />}
-        />
-
-        <Route
-          path="/question-of-the-day"
-          element={
-            <Protected>
-              <Suspense fallback={<BigSpinner />}>
-                <QuestionOfTheDayPage />
-              </Suspense>
-            </Protected>
-          }
-          errorElement={<NotFoundPage />}
-        />
-
-        <Route
-          path="/rewards"
-          element={
-            <Protected>
-              <Suspense fallback={<BigSpinner />}>
-                <RewardsShopPage />
-              </Suspense>
-            </Protected>
-          }
-          errorElement={<NotFoundPage />}
-        />
-        
-        {/* Assessment list routes - browse always allowed; start CTAs stay paused until launch/beta */}
-        <Route
-          path="/assessments"
-          element={
-            <Protected>
-              <Suspense fallback={<BigSpinner/>}>
-                <AssessmentsPage />
-              </Suspense>
-            </Protected>
-          }
-          errorElement={<NotFoundPage />}
-        />
-        
-        <Route
-          path="/assessments/available"
-          element={
-            <Protected>
-              <Suspense fallback={<BigSpinner/>}>
-                <AssessmentsPage />
-              </Suspense>
-            </Protected>
-          }
-          errorElement={<NotFoundPage />}
-        />
-        
-        <Route
-          path="/assessments/completed"
-          element={
-            <Protected>
-              <Suspense fallback={<BigSpinner/>}>
-                <AssessmentsPage />
-              </Suspense>
-            </Protected>
-          }
-          errorElement={<NotFoundPage />}
-        />
-        <Route
-          path="/assessments/reports"
-          element={
-            <Protected>
-              <Suspense fallback={<BigSpinner/>}>
-                <ReportsPage />
-              </Suspense>
-            </Protected>
-          }
-          errorElement={<NotFoundPage />}
-        />
+        <Route element={<StudentProtectedShell />} errorElement={<NotFoundPage />}>
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/leaderboard" element={<LeaderboardPage />} />
+          <Route path="/how-it-works" element={<HowItWorksPage />} />
+          <Route path="/practice-test/session/:examId/:level" element={<PracticeTakePage />} />
+          <Route path="/practice-test" element={<PracticeTestPage />} />
+          <Route path="/question-of-the-day" element={<QuestionOfTheDayPage />} />
+          <Route path="/rewards" element={<RewardsShopPage />} />
+          <Route path="/assessments" element={<AssessmentsPage />} />
+          <Route path="/assessments/available" element={<AssessmentsPage />} />
+          <Route path="/assessments/completed" element={<AssessmentsPage />} />
+          <Route path="/assessments/reports" element={<ReportsPage />} />
+          <Route path="/assessments/:assessmentId/tier/:tierNumber/detail" element={<AssessmentDetailPage />} />
+          <Route path="/assessments/:assessmentId/tier/:tierNumber/take" element={<AssessmentTakePage />} />
+          <Route path="/assessments/:assessmentId/result" element={<AssessmentResultPage />} />
+          <Route path="/assessments/:assessmentId/result/details" element={<AssessmentResultDetailPage />} />
+          <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/payments" element={<BillingPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+        </Route>
         <Route path="/exams" element={<Navigate to="/assessments/available" replace />} />
         <Route path="/exams/available" element={<Navigate to="/assessments/available" replace />} />
         <Route path="/exams/completed" element={<Navigate to="/assessments/completed" replace />} />
@@ -663,353 +593,82 @@ const AppRouter: React.FC = () => {
             <Navigate to={`/for-schools/preview/assessment/${ANALYTICAL_REASONING_ASSESSMENT_ID}`} replace />
           }
         />
-        
-        {/* Assessment Routes */}
-        <Route
-          path="/assessments/:assessmentId/tier/:tierNumber/detail"
-          element={
-            <Protected>
-              <Suspense fallback={<BigSpinner/>}>
-                <AssessmentDetailPage />
-              </Suspense>
-            </Protected>
-          }
-          errorElement={<NotFoundPage />}
-        />
 
-        <Route
-          path="/assessments/:assessmentId/tier/:tierNumber/take"
-          element={
-            <Protected>
-              <Suspense fallback={<BigSpinner/>}>
-                <AssessmentTakePage />
-              </Suspense>
-            </Protected>
-          }
-          errorElement={<NotFoundPage />}
-        />
-
-        <Route
-          path="/assessments/:assessmentId/result"
-          element={
-            <Protected>
-              <Suspense fallback={<BigSpinner/>}>
-                <AssessmentResultPage />
-              </Suspense>
-            </Protected>
-          }
-          errorElement={<NotFoundPage />}
-        />
-
-        <Route
-          path="/assessments/:assessmentId/result/details"
-          element={
-            <Protected>
-              <Suspense fallback={<BigSpinner/>}>
-                <AssessmentResultDetailPage />
-              </Suspense>
-            </Protected>
-          }
-          errorElement={<NotFoundPage />}
-        />
-
-        {/* Reports Route */}
-        <Route
-          path="/reports"
-          element={
-            <Protected>
-              <Suspense fallback={<BigSpinner/>}>
-                <ReportsPage />
-              </Suspense>
-            </Protected>
-          }
-          errorElement={<NotFoundPage />}
-        />
-
-        {/* Payment Routes */}
-        <Route
-          path="/payments"
-          element={
-            <Protected>
-              <Suspense fallback={<BigSpinner/>}>
-                <BillingPage />
-              </Suspense>
-            </Protected>
-          }
-          errorElement={<NotFoundPage />}
-        />
-        
-        {/* Profile and Settings Routes */}
-        <Route
-          path="/profile"
-          element={
-            <Protected>
-              <Suspense fallback={<BigSpinner/>}>
-                <ProfilePage />
-              </Suspense>
-            </Protected>
-          }
-          errorElement={<NotFoundPage />}
-        />
-        
-        <Route
-          path="/settings"
-          element={
-            <Protected>
-              <Suspense fallback={<BigSpinner/>}>
-                <SettingsPage />
-              </Suspense>
-            </Protected>
-          }
-          errorElement={<NotFoundPage />}
-        />
-        
         {/* ------------------------------ SCHOOL ADMIN ROUTES HERE ---------------------- */}
-        <Route 
-          path="/school-admin/dashboard" 
-          element={
-            <SchoolAdminRoute>
-              <Suspense fallback={<BigSpinner/>}>
-                <SchoolAdminPageWrapper>
-                  <SchoolAdminDashboardPage />
-                </SchoolAdminPageWrapper>
-              </Suspense>
-            </SchoolAdminRoute>
-          }
-          errorElement={<NotFoundPage />}
-        />
-        
-        <Route 
-          path="/school-admin/students" 
-          element={
-            <SchoolAdminRoute>
-              <Suspense fallback={<BigSpinner/>}>
-                <SchoolAdminPageWrapper>
-                  <SchoolAdminStudentsPage />
-                </SchoolAdminPageWrapper>
-              </Suspense>
-            </SchoolAdminRoute>
-          }
-          errorElement={<NotFoundPage />}
-        />
-
-        <Route
-          path="/school-admin/students/:studentId"
-          element={
-            <SchoolAdminRoute>
-              <Suspense fallback={<BigSpinner />}>
-                <SchoolAdminPageWrapper>
-                  <SchoolAdminStudentDetailPage />
-                </SchoolAdminPageWrapper>
-              </Suspense>
-            </SchoolAdminRoute>
-          }
-          errorElement={<NotFoundPage />}
-        />
-        
-        <Route 
-          path="/school-admin/analytics" 
-          element={
-            <SchoolAdminRoute>
-              <Suspense fallback={<BigSpinner/>}>
-                <SchoolAdminPageWrapper>
-                  <SchoolAdminAnalyticsPage />
-                </SchoolAdminPageWrapper>
-              </Suspense>
-            </SchoolAdminRoute>
-          }
-          errorElement={<NotFoundPage />}
-        />
-
-        <Route
-          path="/school-admin/invitations"
-          element={<Navigate to="/school-admin/students" replace />}
-        />
-
-        <Route
-          path="/school-admin/student-emails"
-          element={<Navigate to="/school-admin/students" replace />}
-        />
-        
-        <Route 
-          path="/school-admin/settings" 
-          element={
-            <SchoolAdminRoute>
-              <Suspense fallback={<BigSpinner/>}>
-                <SchoolAdminPageWrapper>
-                  <SchoolAdminSettingsPage />
-                </SchoolAdminPageWrapper>
-              </Suspense>
-            </SchoolAdminRoute>
-          }
-          errorElement={<NotFoundPage />}
-        />
-
-        <Route 
-          path="/school-admin/reports" 
-          element={
-            <SchoolAdminRoute>
-              <Suspense fallback={<BigSpinner/>}>
-                <SchoolAdminPageWrapper>
-                  <SchoolAdminReportsPage />
-                </SchoolAdminPageWrapper>
-              </Suspense>
-            </SchoolAdminRoute>
-          }
-          errorElement={<NotFoundPage />}
-        />
-
-        <Route 
-          path="/school-admin/alerts" 
-          element={
-            <SchoolAdminRoute>
-              <Suspense fallback={<BigSpinner/>}>
-                <SchoolAdminPageWrapper>
-                  <SchoolAdminAlertsPage />
-                </SchoolAdminPageWrapper>
-              </Suspense>
-            </SchoolAdminRoute>
-          }
-          errorElement={<NotFoundPage />}
-        />
-
-        <Route 
-          path="/school-admin/subscription" 
-          element={
-            <SchoolAdminRoute>
-              <Suspense fallback={<BigSpinner/>}>
-                <SchoolAdminPageWrapper>
-                  <SchoolAdminSubscriptionPage />
-                </SchoolAdminPageWrapper>
-              </Suspense>
-            </SchoolAdminRoute>
-          }
-          errorElement={<NotFoundPage />}
-        />
+        <Route element={<SchoolAdminShell />} errorElement={<NotFoundPage />}>
+          <Route path="/school-admin/dashboard" element={<SchoolAdminDashboardPage />} />
+          <Route path="/school-admin/students" element={<SchoolAdminStudentsPage />} />
+          <Route path="/school-admin/students/:studentId" element={<SchoolAdminStudentDetailPage />} />
+          <Route path="/school-admin/analytics" element={<SchoolAdminAnalyticsPage />} />
+          <Route path="/school-admin/settings" element={<SchoolAdminSettingsPage />} />
+          <Route path="/school-admin/reports" element={<SchoolAdminReportsPage />} />
+          <Route path="/school-admin/alerts" element={<SchoolAdminAlertsPage />} />
+          <Route path="/school-admin/subscription" element={<SchoolAdminSubscriptionPage />} />
+        </Route>
+        <Route path="/school-admin/invitations" element={<Navigate to="/school-admin/students" replace />} />
+        <Route path="/school-admin/student-emails" element={<Navigate to="/school-admin/students" replace />} />
         {/* ------------------------------ SCHOOL ADMIN ROUTES END HERE ---------------------- */}
 
         {/* ------------------------------ PLATFORM ADMIN ROUTES ---------------------- */}
         <Route path="/platform-admin/dashboard" element={<Navigate to="/platform-admin/schools" replace />} />
+        <Route element={<PlatformAdminShell />} errorElement={<NotFoundPage />}>
+          <Route path="/platform-admin/schools" element={<PlatformAdminSchoolsPage />} />
+          <Route path="/platform-admin/schools/:schoolId" element={<PlatformAdminSchoolDetailPage />} />
+          <Route path="/platform-admin/rewards" element={<PlatformAdminRewardsPage />} />
+          <Route path="/platform-admin/students" element={<PlatformAdminStudentsPage />} />
+          <Route
+            path="/platform-admin/analytics/:section"
+            element={
+              <PlatformAdminAnalyticsRoute nested>
+                <PlatformAdminAnalyticsPage />
+              </PlatformAdminAnalyticsRoute>
+            }
+          />
+          <Route
+            path="/platform-admin/item-bank"
+            element={
+              <PlatformAdminAnalyticsRoute nested>
+                <PlatformAdminItemBankPage />
+              </PlatformAdminAnalyticsRoute>
+            }
+          />
+          <Route
+            path="/platform-admin/question-reports"
+            element={
+              <PlatformAdminAnalyticsRoute nested>
+                <PlatformAdminQuestionReportsPage />
+              </PlatformAdminAnalyticsRoute>
+            }
+          />
+          <Route
+            path="/platform-admin/students/:studentId"
+            element={
+              <PlatformAdminSuperRoute nested>
+                <PlatformAdminStudentDetailPage />
+              </PlatformAdminSuperRoute>
+            }
+          />
+          <Route
+            path="/platform-admin/pipelines"
+            element={
+              <PlatformAdminSuperRoute nested>
+                <PlatformAdminPipelinePage />
+              </PlatformAdminSuperRoute>
+            }
+          />
+          <Route
+            path="/platform-admin/admins"
+            element={
+              <PlatformAdminSuperRoute nested>
+                <PlatformAdminAdminsPage />
+              </PlatformAdminSuperRoute>
+            }
+          />
+        </Route>
+        <Route path="/platform-admin/analytics" element={<Navigate to="/platform-admin/analytics/official" replace />} />
         <Route
-          path="/platform-admin/schools"
-          element={
-            <PlatformAdminRoute>
-              <Suspense fallback={<BigSpinner />}>
-                <PlatformAdminLayout>
-                  <PlatformAdminSchoolsPage />
-                </PlatformAdminLayout>
-              </Suspense>
-            </PlatformAdminRoute>
-          }
-          errorElement={<NotFoundPage />}
-        />
-        <Route
-          path="/platform-admin/schools/:schoolId"
-          element={
-            <PlatformAdminRoute>
-              <Suspense fallback={<BigSpinner />}>
-                <PlatformAdminLayout>
-                  <PlatformAdminSchoolDetailPage />
-                </PlatformAdminLayout>
-              </Suspense>
-            </PlatformAdminRoute>
-          }
-          errorElement={<NotFoundPage />}
-        />
-        <Route
-          path="/platform-admin/rewards"
-          element={
-            <PlatformAdminRoute>
-              <Suspense fallback={<BigSpinner />}>
-                <PlatformAdminLayout>
-                  <PlatformAdminRewardsPage />
-                </PlatformAdminLayout>
-              </Suspense>
-            </PlatformAdminRoute>
-          }
-          errorElement={<NotFoundPage />}
-        />
-        <Route
-          path="/platform-admin/students"
-          element={
-            <PlatformAdminRoute>
-              <Suspense fallback={<BigSpinner />}>
-                <PlatformAdminLayout>
-                  <PlatformAdminStudentsPage />
-                </PlatformAdminLayout>
-              </Suspense>
-            </PlatformAdminRoute>
-          }
-          errorElement={<NotFoundPage />}
-        />
-        <Route
-          path="/platform-admin/analytics"
-          element={<Navigate to="/platform-admin/analytics/official" replace />}
-        />
-        <Route
-          path="/platform-admin/analytics/:section"
-          element={
-            <PlatformAdminAnalyticsRoute>
-              <Suspense fallback={<BigSpinner />}>
-                <PlatformAdminLayout>
-                  <PlatformAdminAnalyticsPage />
-                </PlatformAdminLayout>
-              </Suspense>
-            </PlatformAdminAnalyticsRoute>
-          }
-          errorElement={<NotFoundPage />}
-        />
-        <Route
-          path="/platform-admin/question-reports"
-          element={
-            <PlatformAdminAnalyticsRoute>
-              <Suspense fallback={<BigSpinner />}>
-                <PlatformAdminLayout>
-                  <PlatformAdminQuestionReportsPage />
-                </PlatformAdminLayout>
-              </Suspense>
-            </PlatformAdminAnalyticsRoute>
-          }
-          errorElement={<NotFoundPage />}
-        />
-        <Route
-          path="/platform-admin/students/:studentId"
-          element={
-            <PlatformAdminSuperRoute>
-              <Suspense fallback={<BigSpinner />}>
-                <PlatformAdminLayout>
-                  <PlatformAdminStudentDetailPage />
-                </PlatformAdminLayout>
-              </Suspense>
-            </PlatformAdminSuperRoute>
-          }
-          errorElement={<NotFoundPage />}
-        />
-        <Route
-          path="/platform-admin/pipelines"
-          element={
-            <PlatformAdminSuperRoute>
-              <Suspense fallback={<BigSpinner />}>
-                <PlatformAdminLayout>
-                  <PlatformAdminPipelinePage />
-                </PlatformAdminLayout>
-              </Suspense>
-            </PlatformAdminSuperRoute>
-          }
-          errorElement={<NotFoundPage />}
-        />
-        <Route
-          path="/platform-admin/admins"
-          element={
-            <PlatformAdminSuperRoute>
-              <Suspense fallback={<BigSpinner />}>
-                <PlatformAdminLayout>
-                  <PlatformAdminAdminsPage />
-                </PlatformAdminLayout>
-              </Suspense>
-            </PlatformAdminSuperRoute>
-          }
-          errorElement={<NotFoundPage />}
+          path="/platform-admin/analytics/item-bank"
+          element={<PlatformAdminLegacyItemBankRedirect />}
         />
         <Route path="/platform-admin" element={<Navigate to="/platform-admin/schools" replace />} />
         {/* ------------------------------ PLATFORM ADMIN ROUTES END ---------------------- */}

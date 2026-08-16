@@ -1,9 +1,23 @@
+import type { ReactNode } from 'react';
 import { Box, Typography } from '@mui/material';
-import { ExamQuestionStimulus } from '../../components/assessment/ExamQuestionBody';
+import { ArOptionFigure, ArOptionFigureSlice, useArOptionFigureMeta } from '../../components/assessment/ArOptionFigure';
+import {
+  allLetterKeyOptions,
+  isLetterKeyOptionText,
+  splitArOptionFigure,
+  splitEmbeddedAbcdChoiceList,
+} from '../../components/assessment/arOptionFigureModel';
+import {
+  ExamQuestionStimulus,
+  stripEmbeddedOptionLetterPrefix,
+} from '../../components/assessment/ExamQuestionStimulus';
 import {
   ExamMarkdown,
   ExamRichPrompt,
+  ADMIN_EXAM_FIGURE_MAX_HEIGHT_PX,
+  ADMIN_EXAM_FIGURE_MAX_WIDTH_PX,
   looksLikeExamMarkdown,
+  markdownFromStimulus,
   shouldRenderStructuredStimulus,
 } from '../../components/assessment/ExamMarkdown';
 import type { ExamQuestion } from '../../db/assessmentCollection';
@@ -31,7 +45,8 @@ export function toAdminStimulusExamQuestion(q: {
 export function AdminExamQuestionStem({
   q,
   emptyLabel,
-  maxHeight,
+  hideOptionFigure,
+  hideEmbeddedChoices,
 }: {
   q: {
     item_id: string;
@@ -42,21 +57,24 @@ export function AdminExamQuestionStem({
     stimulus_type?: string | null;
   };
   emptyLabel: string;
-  maxHeight?: number;
+  hideOptionFigure?: boolean;
+  hideEmbeddedChoices?: boolean;
 }) {
+  const rawPrompt = q.prompt || q.prompt_preview || '';
+  const stimMd = markdownFromStimulus(q.stimulus, q.stimulus_type);
+  const combined = stimMd.length > rawPrompt.length ? stimMd : rawPrompt;
+  const { stemMarkdown: withoutFigure, optionFigure } = splitArOptionFigure(combined);
+  const stemMarkdown = hideEmbeddedChoices
+    ? splitEmbeddedAbcdChoiceList(withoutFigure).stemMarkdown
+    : withoutFigure;
   return (
     <>
-      <Box
-        sx={{
-          mb: 1.25,
-          ...(maxHeight ? { maxHeight, overflow: 'auto', pr: 0.5 } : {}),
-        }}
-      >
+      <Box sx={{ mb: 1.25 }}>
         <ExamRichPrompt
-          prompt={q.prompt || q.prompt_preview || ''}
-          stimulus={q.stimulus}
-          stimulusType={q.stimulus_type}
+          prompt={stemMarkdown}
           emptyLabel={emptyLabel}
+          maxFigureWidth={ADMIN_EXAM_FIGURE_MAX_WIDTH_PX}
+          maxFigureHeight={ADMIN_EXAM_FIGURE_MAX_HEIGHT_PX}
         />
       </Box>
       {shouldRenderStructuredStimulus(q.stimulus, q.stimulus_type) ? (
@@ -65,7 +83,13 @@ export function AdminExamQuestionStem({
             q={toAdminStimulusExamQuestion(q)}
             border="#cbd5e1"
             variant="light"
+            unboundedHeight
           />
+        </Box>
+      ) : null}
+      {optionFigure && !hideOptionFigure ? (
+        <Box sx={{ mb: 1.25 }}>
+          <ArOptionFigure figure={optionFigure} />
         </Box>
       ) : null}
     </>
@@ -81,7 +105,77 @@ export function AdminExamOptionText({ text }: { text: string }) {
     );
   }
   return (
-    <Typography sx={{ fontSize: 13, color: ip.heading, flex: 1 }}>{text}</Typography>
+    <Typography sx={{ fontSize: '0.95rem', color: ip.heading, lineHeight: 1.45, flex: 1 }}>
+      {text}
+    </Typography>
+  );
+}
+
+function AdminExamOptionRow({
+  letter,
+  isCorrect,
+  pickPct,
+  pickCount,
+  children,
+}: {
+  letter: string;
+  isCorrect: boolean;
+  pickPct: number;
+  pickCount: number;
+  children: ReactNode;
+}) {
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        gap: 0.75,
+        alignItems: 'flex-start',
+        px: 1,
+        py: 0.45,
+        borderRadius: 1,
+        border: '1px solid',
+        borderColor: isCorrect ? '#86efac' : '#e2e8f0',
+        bgcolor: isCorrect ? '#f0fdf4' : '#f8fafc',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      <Box
+        sx={{
+          position: 'absolute',
+          inset: 0,
+          width: `${Math.min(100, pickPct)}%`,
+          bgcolor: isCorrect ? 'rgba(22, 163, 74, 0.12)' : 'rgba(16, 64, 139, 0.08)',
+          pointerEvents: 'none',
+        }}
+      />
+      <Typography
+        sx={{
+          fontWeight: 800,
+          color: ip.heading,
+          minWidth: 18,
+          fontSize: 13,
+          position: 'relative',
+        }}
+      >
+        {letter}.
+      </Typography>
+      <Box sx={{ flex: 1, minWidth: 0, position: 'relative' }}>{children}</Box>
+      <Typography
+        sx={{
+          fontWeight: 700,
+          fontSize: 12,
+          pt: 0.15,
+          color: isCorrect ? '#166534' : '#334155',
+          whiteSpace: 'nowrap',
+          position: 'relative',
+        }}
+      >
+        {pickPct}%
+        {pickCount > 0 ? ` · ${pickCount}` : ''}
+        {isCorrect ? ' · correct' : ''}
+      </Typography>
+    </Box>
   );
 }
 
@@ -95,6 +189,17 @@ export function PlatformAdminQuestionPerformanceCard({
   const taxonomy = [question.strand, question.instruction_family, question.band]
     .filter(Boolean)
     .join(' · ');
+  const rawPrompt = question.prompt || question.prompt_preview || '';
+  const stimMd = markdownFromStimulus(question.stimulus, question.stimulus_type);
+  const combined = stimMd.length > rawPrompt.length ? stimMd : rawPrompt;
+  const { stemMarkdown: withoutFigure, optionFigure } = splitArOptionFigure(combined);
+  const { choices: embeddedChoices } = splitEmbeddedAbcdChoiceList(withoutFigure);
+  const letterKeysOnly = allLetterKeyOptions(question.options.map((o) => o.text || o.letter));
+  const showFigureSlices = Boolean(optionFigure) && letterKeysOnly && !embeddedChoices?.some((t) => t && !isLetterKeyOptionText(t));
+  const { layout, slices, naturalWidth, naturalHeight } = useArOptionFigureMeta(
+    optionFigure?.src,
+    question.options.length || 4
+  );
   return (
     <Box
       sx={{
@@ -130,64 +235,47 @@ export function PlatformAdminQuestionPerformanceCard({
         {question.item_id}
         {taxonomy ? ` · ${taxonomy}` : ''}
       </Typography>
-      <AdminExamQuestionStem q={question} emptyLabel="(no prompt)" maxHeight={420} />
+      <AdminExamQuestionStem
+        q={question}
+        emptyLabel="(no prompt)"
+        hideOptionFigure={showFigureSlices}
+        hideEmbeddedChoices
+      />
       {question.options.length > 0 ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-          {question.options.map((opt) => (
-            <Box
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.4 }}>
+          {question.options.map((opt, optIdx) => {
+            const fromBank = stripEmbeddedOptionLetterPrefix(opt.text || '');
+            const fromStem = stripEmbeddedOptionLetterPrefix(embeddedChoices?.[optIdx] || '');
+            const optionText =
+              fromBank && !isLetterKeyOptionText(fromBank)
+                ? fromBank
+                : fromStem && !isLetterKeyOptionText(fromStem)
+                  ? fromStem
+                  : '';
+            return (
+            <AdminExamOptionRow
               key={`${question.item_id}-${opt.letter}`}
-              sx={{
-                display: 'flex',
-                gap: 1,
-                alignItems: 'flex-start',
-                px: 1.25,
-                py: 0.85,
-                borderRadius: 1,
-                border: '1px solid',
-                borderColor: opt.is_correct ? '#86efac' : '#e2e8f0',
-                bgcolor: opt.is_correct ? '#f0fdf4' : '#f8fafc',
-                position: 'relative',
-                overflow: 'hidden',
-              }}
+              letter={opt.letter}
+              isCorrect={opt.is_correct}
+              pickPct={opt.pick_pct}
+              pickCount={opt.pick_count}
             >
-              <Box
-                sx={{
-                  position: 'absolute',
-                  inset: 0,
-                  width: `${Math.min(100, opt.pick_pct)}%`,
-                  bgcolor: opt.is_correct
-                    ? 'rgba(22, 163, 74, 0.12)'
-                    : 'rgba(16, 64, 139, 0.08)',
-                  pointerEvents: 'none',
-                }}
-              />
-              <Typography
-                sx={{
-                  fontWeight: 800,
-                  color: ip.heading,
-                  minWidth: 18,
-                  fontSize: 13,
-                  position: 'relative',
-                }}
-              >
-                {opt.letter}.
-              </Typography>
-              <AdminExamOptionText text={opt.text || '(empty / image option)'} />
-              <Typography
-                sx={{
-                  fontWeight: 700,
-                  fontSize: 12,
-                  color: opt.is_correct ? '#166534' : '#334155',
-                  whiteSpace: 'nowrap',
-                  position: 'relative',
-                }}
-              >
-                {opt.pick_pct}%
-                {opt.pick_count > 0 ? ` · ${opt.pick_count}` : ''}
-                {opt.is_correct ? ' · correct' : ''}
-              </Typography>
-            </Box>
-          ))}
+              {showFigureSlices && optionFigure ? (
+                <ArOptionFigureSlice
+                  figure={optionFigure}
+                  index={optIdx}
+                  optionCount={question.options.length}
+                  layout={layout}
+                  slice={slices?.[optIdx]}
+                  naturalWidth={naturalWidth}
+                  naturalHeight={naturalHeight}
+                />
+              ) : optionText ? (
+                <AdminExamOptionText text={optionText} />
+              ) : null}
+            </AdminExamOptionRow>
+            );
+          })}
         </Box>
       ) : (
         <Typography sx={{ color: '#64748b', fontSize: 13 }}>
