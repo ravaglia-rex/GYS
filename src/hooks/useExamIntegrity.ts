@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 
 /** Grace to return after minimize, tab switch, or leaving fullscreen. */
-export const EXAM_LEAVE_GRACE_MS = 6_000;
+export const EXAM_LEAVE_GRACE_MS = 10_000;
 /** Brief leaves allowed in one sit before the attempt is ended. */
 export const EXAM_LEAVE_MAX_INCIDENTS = 3;
 
@@ -35,7 +35,7 @@ function isExamAway(enforceFullscreen: boolean): boolean {
 
 /**
  * While active: blocks copy/cut/paste/context menu, treats minimize / background /
- * fullscreen-exit as one leave type (6s grace, 3 leaves then the sit ends).
+ * fullscreen-exit as one leave type (10s grace, 3 leaves then the sit ends).
  */
 export function useExamIntegrity({
   active,

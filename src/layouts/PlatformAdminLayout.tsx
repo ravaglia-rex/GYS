@@ -362,8 +362,8 @@ export default function PlatformAdminLayout({ children }: PlatformAdminLayoutPro
         </Toolbar>
       </AppBar>
 
-      <Box sx={{ display: 'flex', flexDirection: 'column', pt: `${APP_BAR_HEIGHT}px`, minHeight: `calc(100vh - ${APP_BAR_HEIGHT}px)` }}>
-        <Box sx={{ display: 'flex', flex: 1, width: '100%', alignItems: 'stretch', minHeight: 0, bgcolor: PAGE_BG }}>
+      <Box sx={{ pt: `${APP_BAR_HEIGHT}px` }}>
+        <Box sx={{ display: 'flex', width: '100%', bgcolor: PAGE_BG }}>
           <Drawer
             variant="temporary"
             open={mobileOpen}
@@ -402,7 +402,7 @@ export default function PlatformAdminLayout({ children }: PlatformAdminLayoutPro
               flex: 1,
               minWidth: 0,
               bgcolor: PAGE_BG,
-              overflow: 'auto',
+              overflow: 'visible',
               marginLeft: { xs: 0, md: `${DRAWER_WIDTH}px` },
             }}
           >

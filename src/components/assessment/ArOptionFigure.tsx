@@ -121,10 +121,13 @@ export const ArOptionFigureSlice: React.FC<{
   const figH = naturalHeight || 1;
   const natW = (crop.wPct / 100) * figW;
   const natH = (crop.hPct / 100) * figH;
+  const aspect = natW / Math.max(natH, 1);
+  // `kind` comes from SVG geometry (2×2/3×3 vs wide panels). See arOptionFigureModel.
+  const wideStrip = slice?.kind === 'wide' || (!slice && aspect >= 1.7);
   const scale = Math.min(
     EXAM_FIGURE_MAX_WIDTH_PX / figW,
-    72 / Math.max(natH, 1),
-    140 / Math.max(natW, 1)
+    (wideStrip ? 220 : 72) / Math.max(natH, 1),
+    (wideStrip ? 560 : 140) / Math.max(natW, 1)
   );
   const sliceWidth = Math.max(1, natW * scale);
   const sliceHeight = Math.max(1, natH * scale);

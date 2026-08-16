@@ -2,12 +2,8 @@ import React from 'react';
 import { Box, FormControl, FormControlLabel, Radio, RadioGroup, Typography } from '@mui/material';
 import type { ExamQuestion } from '../../db/assessmentCollection';
 import { ArOptionFigure } from './ArOptionFigure';
-import {
-  allLetterKeyOptions,
-  optionFigureFromAssets,
-  splitArOptionFigure,
-} from './arOptionFigureModel';
 import { ExamMarkdown } from './ExamMarkdown';
+import { resolveLearnerExamOptions } from './resolveLearnerExamOptions';
 
 interface AnalyticalReasoningQuestionBodyProps {
   question: ExamQuestion;
@@ -38,18 +34,26 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
   const primary = theme === 'purple' ? '#7b1fa2' : '#0d47a1';
   const primarySoft = theme === 'purple' ? 'rgba(123,31,162,0.08)' : 'rgba(13,71,161,0.06)';
   const borderMuted = '#e2e8f0';
-  const optionIds =
-    question.option_ids && question.option_ids.length >= 2
-      ? question.option_ids
-      : question.options && question.options.length >= 2
-        ? question.options
-        : [...OPTION_LETTERS];
   const markdown = question.body_markdown ?? question.prompt ?? '';
-  const split = splitArOptionFigure(markdown);
-  const optionFigure = split.optionFigure ?? optionFigureFromAssets(question.assets);
-  const stemMarkdown = optionFigure ? split.stemMarkdown : markdown;
-  const letterKeysOnly = allLetterKeyOptions(optionIds);
-  const pickOnFigure = Boolean(optionFigure && letterKeysOnly);
+  const resolved = resolveLearnerExamOptions({
+    markdown,
+    stimulus: question.stimulus,
+    stimulusType: question.stimulus_type,
+    bankOptions:
+      question.options && question.options.length >= 2
+        ? question.options
+        : question.option_ids,
+    assets: question.assets,
+  });
+  const optionIds =
+    resolved.optionTexts.length >= 2 ? resolved.optionTexts : [...OPTION_LETTERS];
+  const optionFigure = resolved.optionFigure;
+  const stemMarkdown = resolved.stemMarkdown;
+  const pickOnFigure = resolved.pickOnFigure;
+  const letterKeysOnly = !pickOnFigure && !optionIds.some((t, i) => {
+    const letter = String.fromCharCode(65 + i);
+    return String(t ?? '').trim() && !isSameAsLetter(t, letter);
+  });
 
   return (
     <Box sx={{ width: '100%' }}>

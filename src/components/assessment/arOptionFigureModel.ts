@@ -7,8 +7,14 @@ export function isLetterKeyOptionText(text: string): boolean {
   return /^[A-D]\.?$/i.test(String(text ?? '').trim());
 }
 
+/** True when option i is only the A–D key for that slot (not an answer like "B" in slot A). */
+export function isPlaceholderOptionText(text: string, index: number): boolean {
+  const letter = String.fromCharCode(65 + index);
+  return new RegExp(`^${letter}\\.?$`, 'i').test(String(text ?? '').trim());
+}
+
 export function allLetterKeyOptions(texts: string[]): boolean {
-  return texts.length >= 2 && texts.every(isLetterKeyOptionText);
+  return texts.length >= 2 && texts.every((t, i) => isPlaceholderOptionText(t, i));
 }
 
 function normalizeChoiceLine(line: string): string {
@@ -63,6 +69,9 @@ export function parseAbcdChoiceLines(block: string): string[] | null {
       if (line.trim() === '') continue;
       return null;
     }
+    if (/^\s*<\/?(?:details|summary)\b/i.test(line)) {
+      break;
+    }
     current.push(line);
   }
   flush();
@@ -109,6 +118,231 @@ export function splitEmbeddedAbcdChoiceList(markdown: string): {
   return { stemMarkdown: raw, choices: null };
 }
 
+function parsePipeRow(line: string): string[] | null {
+  const t = line.trim();
+  if (!t.includes('|')) return null;
+  if (/^\s*\|?\s*:?-{2,}:?(\s*\|\s*:?-{2,}:?)+\s*\|?\s*$/.test(t)) return null;
+  const inner = t.replace(/^\|/, '').replace(/\|$/, '');
+  const cells = inner.split('|').map((c) => c.replace(/\*\*/g, '').trim());
+  return cells.length >= 2 ? cells : null;
+}
+
+function isTableSepRow(line: string): boolean {
+  const t = line.trim();
+  if (/^\s*\|?\s*:?-{2,}:?(\s*\|\s*:?-{2,}:?)+\s*\|?\s*$/.test(t)) return true;
+  const cells = parsePipeRow(line);
+  return Boolean(cells?.length && cells.every((c) => /^:?-{2,}:?$/.test(c)));
+}
+
+function isLetterHeaderRow(cells: string[]): boolean {
+  return cells.length >= 2 && cells.length <= 6 && cells.every((c, i) => isPlaceholderOptionText(c, i));
+}
+
+function looksLikeOptionTableCell(cell: string): boolean {
+  const t = cell.trim();
+  if (!t || t.length > 48) return false;
+  if (/^(HIDDEN|\[\?\]|\?+)$/i.test(t)) return false;
+  return true;
+}
+
+function markdownTableBlocks(lines: string[]): Array<{ start: number; end: number; rows: string[][] }> {
+  const blocks: Array<{ start: number; end: number; rows: string[][] }> = [];
+  let i = 0;
+  while (i < lines.length) {
+    if (!parsePipeRow(lines[i]) && !isTableSepRow(lines[i])) {
+      i += 1;
+      continue;
+    }
+    const start = i;
+    while (i < lines.length && (parsePipeRow(lines[i]) || isTableSepRow(lines[i]))) {
+      i += 1;
+    }
+    const end = i - 1;
+    const rows: string[][] = [];
+    for (const line of lines.slice(start, end + 1)) {
+      if (!line.trim() || isTableSepRow(line)) continue;
+      const cells = parsePipeRow(line);
+      if (!cells) {
+        rows.length = 0;
+        break;
+      }
+      rows.push(cells);
+    }
+    if (rows.length) blocks.push({ start, end, rows });
+  }
+  return blocks;
+}
+
+function compactChoicesFromRows(rows: string[][]): string[] | null {
+  if (rows.length === 0 || rows.length > 2) return null;
+  const colCount = rows[0].length;
+  if (colCount < 2 || colCount > 4) return null;
+  if (rows.some((r) => r.length !== colCount)) return null;
+  let choices: string[] | null = null;
+  if (rows.length === 2 && isLetterHeaderRow(rows[0]) && rows[1].every(looksLikeOptionTableCell)) {
+    choices = rows[1];
+  } else if (rows.length === 1 && !isLetterHeaderRow(rows[0]) && rows[0].every(looksLikeOptionTableCell)) {
+    choices = rows[0];
+  }
+  if (!choices?.some((t, i) => t && !isPlaceholderOptionText(t, i))) return null;
+  return choices;
+}
+
+function formatMatrixOptionRow(values: string[], labels: string[]): string {
+  const named =
+    labels.length === values.length &&
+    labels.some((lab) => lab.trim() && !isLetterKeyOptionText(lab));
+  if (named) {
+    return values
+      .map((v, i) => {
+        const lab = (labels[i] || '').trim();
+        return lab ? `${lab}: ${v}` : v;
+      })
+      .filter(Boolean)
+      .join('; ');
+  }
+  return values.filter(Boolean).join('; ');
+}
+
+/** Rows whose first cell is A–D in order (optional header like Option | Room A | …). */
+function matrixChoicesFromRows(rows: string[][]): string[] | null {
+  if (rows.length < 2) return null;
+  let header: string[] | null = null;
+  let data = rows;
+  if (!isPlaceholderOptionText(rows[0][0] || '', 0)) {
+    header = rows[0];
+    data = rows.slice(1);
+  }
+  if (data.length < 2 || data.length > 4) return null;
+  if (data.some((r, i) => r.length < 2 || !isPlaceholderOptionText(r[0] || '', i))) return null;
+  const colCount = data[0].length;
+  if (data.some((r) => r.length !== colCount)) return null;
+  const labels = header ? header.slice(1) : [];
+  const choices = data.map((row) => formatMatrixOptionRow(row.slice(1), labels));
+  if (!choices.some((t, i) => t && !isPlaceholderOptionText(t, i))) return null;
+  return choices;
+}
+
+/**
+ * Markdown tables that are actually A–D choices: a compact 1–2 row label table,
+ * or a matrix whose first column is A–D (e.g. Option | Room A | Room B | Room C).
+ */
+export function splitEmbeddedOptionTable(markdown: string): {
+  stemMarkdown: string;
+  choices: string[] | null;
+} {
+  const raw = (markdown ?? '').replace(/\r\n/g, '\n');
+  if (!raw.trim()) return { stemMarkdown: raw, choices: null };
+  const lines = raw.split('\n');
+  const blocks = markdownTableBlocks(lines);
+  for (let b = blocks.length - 1; b >= 0; b--) {
+    const { start, end, rows } = blocks[b];
+    const compact = compactChoicesFromRows(rows);
+    if (compact) {
+      const trailing = !lines.slice(end + 1).join('\n').trim();
+      const stemMarkdown = trailing
+        ? [...lines.slice(0, start), ...lines.slice(end + 1)].join('\n').replace(/\n{3,}/g, '\n\n').trim()
+        : raw;
+      return { stemMarkdown, choices: compact };
+    }
+    const matrix = matrixChoicesFromRows(rows);
+    if (matrix) return { stemMarkdown: raw, choices: matrix };
+  }
+
+  const tableRe = /<table\b[^>]*>[\s\S]*?<\/table>/gi;
+  const htmlTables: RegExpExecArray[] = [];
+  let tableMatch: RegExpExecArray | null;
+  while ((tableMatch = tableRe.exec(raw)) !== null) {
+    htmlTables.push(tableMatch);
+  }
+  for (let i = htmlTables.length - 1; i >= 0; i--) {
+    const hit = htmlTables[i];
+    const rows = rowsFromHtmlTable(hit[0] ?? '');
+    if (!rows) continue;
+    const compact = compactChoicesFromRows(rows);
+    if (compact) {
+      const after = raw.slice((hit.index ?? 0) + hit[0].length).trim();
+      const stemMarkdown = after
+        ? raw
+        : `${raw.slice(0, hit.index ?? 0)}${raw.slice((hit.index ?? 0) + hit[0].length)}`
+            .replace(/\n{3,}/g, '\n\n')
+            .trim();
+      return { stemMarkdown, choices: compact };
+    }
+    const matrix = matrixChoicesFromRows(rows);
+    if (matrix) return { stemMarkdown: raw, choices: matrix };
+  }
+  return { stemMarkdown: raw, choices: null };
+}
+
+function rowsFromHtmlTable(html: string): string[][] | null {
+  const rows: string[][] = [];
+  const trRe = /<tr\b[^>]*>([\s\S]*?)<\/tr>/gi;
+  let tr: RegExpExecArray | null;
+  while ((tr = trRe.exec(html)) !== null) {
+    const cells: string[] = [];
+    const cellRe = /<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/gi;
+    let cell: RegExpExecArray | null;
+    while ((cell = cellRe.exec(tr[1] ?? '')) !== null) {
+      cells.push(
+        String(cell[1] ?? '')
+          .replace(/<br\s*\/?>/gi, ', ')
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/&nbsp;/gi, ' ')
+          .replace(/&amp;/gi, '&')
+          .replace(/&lt;/gi, '<')
+          .replace(/&gt;/gi, '>')
+          .replace(/\s+/g, ' ')
+          .trim()
+      );
+    }
+    if (cells.length) rows.push(cells);
+  }
+  return rows.length ? rows : null;
+}
+
+export function splitLearnerExamChoices(markdown: string): {
+  stemMarkdown: string;
+  choices: string[] | null;
+} {
+  const list = splitEmbeddedAbcdChoiceList(markdown);
+  const listHasReal = Boolean(list.choices?.some((t, i) => t && !isPlaceholderOptionText(t, i)));
+  if (listHasReal) return list;
+  const table = splitEmbeddedOptionTable(list.stemMarkdown);
+  if (table.choices) return table;
+  return list;
+}
+
+export function choicesFromTableGrid(headers: string[], rows: string[][]): string[] | null {
+  const grid = headers.some((h) => String(h ?? '').trim()) ? [headers.map((h) => String(h ?? '')), ...rows] : rows;
+  return matrixChoicesFromRows(grid) ?? compactChoicesFromRows(grid);
+}
+
+export function optionChoicesFromStimulus(stimulus: unknown): string[] | null {
+  if (stimulus == null) return null;
+  if (typeof stimulus === 'string') return splitEmbeddedOptionTable(stimulus).choices;
+  if (typeof stimulus !== 'object' || Array.isArray(stimulus)) return null;
+  const rec = stimulus as Record<string, unknown>;
+  if (typeof rec.body_markdown === 'string') {
+    const fromBody = splitLearnerExamChoices(rec.body_markdown).choices;
+    if (fromBody?.some((t, i) => t && !isPlaceholderOptionText(t, i))) return fromBody;
+  }
+  if (typeof rec.text === 'string') {
+    const fromText = splitEmbeddedOptionTable(rec.text).choices;
+    if (fromText?.some((t, i) => t && !isPlaceholderOptionText(t, i))) return fromText;
+  }
+  const rawHeaders = rec.headers ?? rec.columns;
+  const rawRows = rec.rows ?? rec.data;
+  const headers = Array.isArray(rawHeaders)
+    ? rawHeaders.map((h) => String(h ?? '').trim())
+    : [];
+  if (!Array.isArray(rawRows) || rawRows.length < 2) return null;
+  const rows = rawRows.map((row) =>
+    Array.isArray(row) ? row.map((c) => String(c ?? '').trim()) : [String(row ?? '')]
+  );
+  return choicesFromTableGrid(headers, rows);
+}
+
 export function splitArOptionFigure(markdown: string): {
   stemMarkdown: string;
   optionFigure: ArOptionFigureRef | null;
@@ -143,11 +377,21 @@ export function optionFigureFromAssets(
 
 const SKIP_TEXT_CLASS = /\b(letter|number|inside|symbol|num|lab|mark)\b/i;
 
+/**
+ * Option-figure sizing for current and future items (no class-name dependency):
+ *
+ * GRID (compact): one 2×2 or 3×3 cell matrix — an interior cross or thirds
+ *   split, including slightly landscape grids with axis labels around them.
+ * WIDE (larger): two+ side-by-side panels, 1×N strips, tables, trees, dual views.
+ */
+export type OptionFigureSliceKind = 'grid' | 'wide';
+
 export type OptionFigureSliceRect = {
   xPct: number;
   yPct: number;
   wPct: number;
   hPct: number;
+  kind: OptionFigureSliceKind;
 };
 
 function svgLocalPoint(el: Element): { x: number; y: number } {
@@ -213,6 +457,187 @@ export function svgNaturalSizeFromText(svgText: string): { width: number; height
   return { width: vb.w, height: vb.h };
 }
 
+function svgTransformOrigin(el: Element): { x: number; y: number } {
+  let x = 0;
+  let y = 0;
+  let node: Element | null = el;
+  while (node) {
+    const tr = node.getAttribute('transform');
+    if (tr) {
+      const m = /translate\(\s*(-?[\d.]+)(?:[,\s]+(-?[\d.]+))?/.exec(tr);
+      if (m) {
+        x += Number.parseFloat(m[1]);
+        y += Number.parseFloat(m[2] || '0');
+      }
+    }
+    node = node.parentElement;
+  }
+  return { x, y };
+}
+
+function parsePathAxisSegments(
+  d: string,
+  ox: number,
+  oy: number
+): Array<{ x1: number; y1: number; x2: number; y2: number }> {
+  const segs: Array<{ x1: number; y1: number; x2: number; y2: number }> = [];
+  const re = /([MLHV])\s*(-?[\d.]+)(?:[\s,]+(-?[\d.]+))?/gi;
+  let cx = 0;
+  let cy = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(d))) {
+    const cmd = m[1].toUpperCase();
+    if (cmd === 'M') {
+      cx = Number.parseFloat(m[2]);
+      cy = Number.parseFloat(m[3] || '0');
+    } else if (cmd === 'L') {
+      const nx = Number.parseFloat(m[2]);
+      const ny = Number.parseFloat(m[3] || '0');
+      segs.push({ x1: cx + ox, y1: cy + oy, x2: nx + ox, y2: ny + oy });
+      cx = nx;
+      cy = ny;
+    } else if (cmd === 'V') {
+      const ny = Number.parseFloat(m[2]);
+      segs.push({ x1: cx + ox, y1: cy + oy, x2: cx + ox, y2: ny + oy });
+      cy = ny;
+    } else if (cmd === 'H') {
+      const nx = Number.parseFloat(m[2]);
+      segs.push({ x1: cx + ox, y1: cy + oy, x2: nx + ox, y2: cy + oy });
+      cx = nx;
+    }
+  }
+  return segs;
+}
+
+function collectAxisSegments(doc: Document): Array<{ x1: number; y1: number; x2: number; y2: number }> {
+  const segs: Array<{ x1: number; y1: number; x2: number; y2: number }> = [];
+  for (const line of Array.from(doc.querySelectorAll('line'))) {
+    const o = svgTransformOrigin(line);
+    segs.push({
+      x1: (Number.parseFloat(line.getAttribute('x1') || '0') || 0) + o.x,
+      y1: (Number.parseFloat(line.getAttribute('y1') || '0') || 0) + o.y,
+      x2: (Number.parseFloat(line.getAttribute('x2') || '0') || 0) + o.x,
+      y2: (Number.parseFloat(line.getAttribute('y2') || '0') || 0) + o.y,
+    });
+  }
+  for (const path of Array.from(doc.querySelectorAll('path'))) {
+    const o = svgTransformOrigin(path);
+    segs.push(...parsePathAxisSegments(path.getAttribute('d') || '', o.x, o.y));
+  }
+  return segs;
+}
+
+function uniqueNear(values: number[], tol: number): number[] {
+  const sorted = [...values].sort((a, b) => a - b);
+  const out: number[] = [];
+  for (const v of sorted) {
+    if (!out.length || Math.abs(v - out[out.length - 1]) > tol) out.push(v);
+  }
+  return out;
+}
+
+type SliceBox = { x: number; y: number; w: number; h: number };
+
+function hasCellMatrixDividers(
+  box: SliceBox,
+  segs: Array<{ x1: number; y1: number; x2: number; y2: number }>
+): boolean {
+  const xMin = box.x + box.w * 0.18;
+  const xMax = box.x + box.w * 0.82;
+  const yMin = box.y + box.h * 0.18;
+  const yMax = box.y + box.h * 0.82;
+  const vxs: number[] = [];
+  const hys: number[] = [];
+  for (const s of segs) {
+    const dx = Math.abs(s.x2 - s.x1);
+    const dy = Math.abs(s.y2 - s.y1);
+    const len = Math.hypot(dx, dy);
+    if (dx < 8 && dy > box.h * 0.4) {
+      const x = (s.x1 + s.x2) / 2;
+      const yLo = Math.min(s.y1, s.y2);
+      const yHi = Math.max(s.y1, s.y2);
+      if (x > xMin && x < xMax && yLo <= box.y + box.h * 0.2 && yHi >= box.y + box.h * 0.8) {
+        vxs.push(x);
+      }
+    } else if (dy < 8 && dx > box.w * 0.4) {
+      const y = (s.y1 + s.y2) / 2;
+      const xLo = Math.min(s.x1, s.x2);
+      const xHi = Math.max(s.x1, s.x2);
+      if (y > yMin && y < yMax && xLo <= box.x + box.w * 0.2 && xHi >= box.x + box.w * 0.8) {
+        hys.push(y);
+      }
+    } else if (len < 1) {
+      continue;
+    }
+  }
+  const v = uniqueNear(vxs, Math.max(6, box.w * 0.06)).length;
+  const h = uniqueNear(hys, Math.max(6, box.h * 0.06)).length;
+  if (v === 1 && h === 1) return true;
+  if (v === 2 && h === 2) return true;
+  if (v === 3 && h === 3) return true;
+  return false;
+}
+
+function hasSideBySidePanels(parent: SliceBox, cards: SliceBox[]): boolean {
+  const parentArea = parent.w * parent.h;
+  const kids = cards.filter((c) => {
+    if (c === parent) return false;
+    if (c.w >= parent.w * 0.92 && c.h >= parent.h * 0.92) return false;
+    const area = c.w * c.h;
+    if (area < parentArea * 0.1 || area > parentArea * 0.7) return false;
+    const cx = c.x + c.w / 2;
+    const cy = c.y + c.h / 2;
+    return cx > parent.x && cx < parent.x + parent.w && cy > parent.y && cy < parent.y + parent.h;
+  });
+  if (kids.length < 2) return false;
+  const xs = kids.map((k) => k.x + k.w / 2).sort((a, b) => a - b);
+  return xs[xs.length - 1] - xs[0] > parent.w * 0.28;
+}
+
+function classifyOptionFigureKind(
+  box: SliceBox,
+  segs: Array<{ x1: number; y1: number; x2: number; y2: number }>,
+  cards: SliceBox[]
+): OptionFigureSliceKind {
+  if (hasCellMatrixDividers(box, segs)) return 'grid';
+  if (hasSideBySidePanels(box, cards)) return 'wide';
+  const vOnly = uniqueNear(
+    segs
+      .filter((s) => {
+        const dx = Math.abs(s.x2 - s.x1);
+        const dy = Math.abs(s.y2 - s.y1);
+        const x = (s.x1 + s.x2) / 2;
+        return (
+          dx < 8 &&
+          dy > box.h * 0.35 &&
+          x > box.x + box.w * 0.15 &&
+          x < box.x + box.w * 0.85
+        );
+      })
+      .map((s) => (s.x1 + s.x2) / 2),
+    Math.max(6, box.w * 0.08)
+  ).length;
+  const hOnly = uniqueNear(
+    segs
+      .filter((s) => {
+        const dx = Math.abs(s.x2 - s.x1);
+        const dy = Math.abs(s.y2 - s.y1);
+        const y = (s.y1 + s.y2) / 2;
+        return (
+          dy < 8 &&
+          dx > box.w * 0.35 &&
+          y > box.y + box.h * 0.15 &&
+          y < box.y + box.h * 0.85
+        );
+      })
+      .map((s) => (s.y1 + s.y2) / 2),
+    Math.max(6, box.h * 0.08)
+  ).length;
+  if (vOnly >= 2 && hOnly === 0) return 'wide';
+  if (box.w / Math.max(box.h, 1) >= 1.45) return 'wide';
+  return 'grid';
+}
+
 function isFullCanvasRect(
   w: number,
   h: number,
@@ -237,16 +662,35 @@ export function optionFigureContentSlicesFromSvg(
   if (!labels) return null;
   const letterPts = labels.map((el) => svgLocalPoint(el));
 
-  const cards: Array<{ x: number; y: number; w: number; h: number; cx: number; cy: number; area: number }> = [];
+  const cards: Array<{
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    cx: number;
+    cy: number;
+    area: number;
+    className: string;
+  }> = [];
   for (const rect of Array.from(doc.querySelectorAll('rect'))) {
     const w = Number.parseFloat(rect.getAttribute('width') || '');
     const h = Number.parseFloat(rect.getAttribute('height') || '');
     if (!(w > 28 && h > 28)) continue;
     if (isFullCanvasRect(w, h, vb)) continue;
     const pt = svgLocalPoint(rect);
-    cards.push({ x: pt.x, y: pt.y, w, h, cx: pt.x + w / 2, cy: pt.y + h / 2, area: w * h });
+    cards.push({
+      x: pt.x,
+      y: pt.y,
+      w,
+      h,
+      cx: pt.x + w / 2,
+      cy: pt.y + h / 2,
+      area: w * h,
+      className: rect.getAttribute('class') || '',
+    });
   }
   if (!cards.length) return null;
+  const segs = collectAxisSegments(doc);
 
   const grouped: Array<typeof cards> = Array.from({ length: n }, () => []);
   for (const card of cards) {
@@ -269,7 +713,10 @@ export function optionFigureContentSlicesFromSvg(
   for (let i = 0; i < n; i++) {
     const group = grouped[i];
     if (!group.length) return null;
-    mains.push(group.reduce((best, card) => (card.area > best.area ? card : best)));
+    const matrix = group.filter((c) => hasCellMatrixDividers(c, segs));
+    mains.push(
+      (matrix.length ? matrix : group).reduce((best, card) => (card.area > best.area ? card : best))
+    );
   }
   const mainAreas = mains.map((c) => c.area).sort((a, b) => a - b);
   const medianMain = mainAreas[Math.floor(mainAreas.length / 2)] || 1;
@@ -291,6 +738,7 @@ export function optionFigureContentSlicesFromSvg(
       yPct: ((y1 - vb.y) / vb.h) * 100,
       wPct: ((x2 - x1) / vb.w) * 100,
       hPct: ((y2 - y1) / vb.h) * 100,
+      kind: classifyOptionFigureKind(main, segs, grouped[i]),
     });
   }
   return slices;

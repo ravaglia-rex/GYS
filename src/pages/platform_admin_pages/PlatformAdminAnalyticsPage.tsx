@@ -107,7 +107,7 @@ import {
   AdminExamOptionText,
   AdminExamQuestionStem,
 } from './PlatformAdminExamQuestionCard';
-import { allLetterKeyOptions } from '../../components/assessment/arOptionFigureModel';
+import { resolveLearnerExamOptions } from '../../components/assessment/resolveLearnerExamOptions';
 
 type AnalyticsSection = 'official' | 'practice' | 'qod' | 'activity' | 'coins';
 
@@ -2052,7 +2052,16 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                                                       q={q}
                                                       emptyLabel="(no prompt - bank item missing)"
                                                     />
-                                                    {q.options.length > 0 && allLetterKeyOptions(q.options.map((o) => o.text || o.letter)) ? (
+                                                    {(() => {
+                                                      const resolved = resolveLearnerExamOptions({
+                                                        markdown: q.prompt || q.prompt_preview || '',
+                                                        stimulus: q.stimulus,
+                                                        stimulusType: q.stimulus_type,
+                                                        bankOptions: q.options.map((o) => o.text),
+                                                      });
+                                                      const hasText = resolved.optionTexts.some((t) => t);
+                                                      if (q.options.length > 0 && (resolved.pickOnFigure || !hasText)) {
+                                                        return (
                                                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
                                                         {q.options.map((opt, optIdx) => {
                                                           const picked = q.selected_index === optIdx;
@@ -2092,7 +2101,10 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                                                           );
                                                         })}
                                                       </Box>
-                                                    ) : q.options.length > 0 ? (
+                                                        );
+                                                      }
+                                                      if (q.options.length > 0) {
+                                                        return (
                                                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
                                                         {q.options.map((opt, optIdx) => {
                                                           const picked = q.selected_index === optIdx;
@@ -2123,7 +2135,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                                                               <Typography sx={{ fontWeight: 800, minWidth: 18 }}>
                                                                 {opt.letter}
                                                               </Typography>
-                                                              <AdminExamOptionText text={opt.text} />
+                                                              <AdminExamOptionText text={resolved.optionTexts[optIdx] || opt.text} />
                                                               <Typography variant="caption" sx={{ color: ip.subtext }}>
                                                                 {keyCorrect && picked
                                                                   ? 'correct · picked'
@@ -2137,11 +2149,14 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                                                           );
                                                         })}
                                                       </Box>
-                                                    ) : (
+                                                        );
+                                                      }
+                                                      return (
                                                       <Typography variant="caption" sx={{ color: ip.subtext }}>
                                                         Picked {q.selected_letter} · key {q.correct_letter ?? '-'}
                                                       </Typography>
-                                                    )}
+                                                      );
+                                                    })()}
                                                   </Box>
                                                 ))}
                                               </Box>

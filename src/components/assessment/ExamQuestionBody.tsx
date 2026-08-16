@@ -9,6 +9,7 @@ import { ExamMathBlock, ExamMathText } from './ExamMathText';
 import { QuestionProblemReport, type QuestionReportFrame } from './QuestionProblemReport';
 import { inferQuestionInteraction } from './inferQuestionInteraction';
 import { AnalyticalReasoningQuestionBody } from './AnalyticalReasoningQuestionBody';
+import { cleanLearnerFacingExamMarkup } from './cleanLearnerFacingExamMarkup';
 import {
   ExamQuestionStimulus as HumanFriendlyStimulus,
   InstructionLine,
@@ -59,7 +60,9 @@ function OptionPicker({
         }}
       >
         {options.map((rawOption, idx) => {
-          const option = stripEmbeddedOptionLetterPrefix(rawOption);
+          const option = stripEmbeddedOptionLetterPrefix(
+            cleanLearnerFacingExamMarkup(rawOption)
+          );
           const fb = answerFeedback;
           let rowBorder = selectedOption === idx ? primaryColor : borderMuted;
           let rowBg = selectedOption === idx ? primarySoft : '#fff';

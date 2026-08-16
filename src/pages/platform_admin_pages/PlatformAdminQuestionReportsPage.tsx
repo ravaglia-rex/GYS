@@ -56,6 +56,7 @@ import {
   looksLikeExamMarkdown,
   shouldRenderStructuredStimulus,
 } from '../../components/assessment/ExamMarkdown';
+import { resolvedOptionTextsForItem } from '../../components/assessment/resolveLearnerExamOptions';
 import type { ExamQuestion } from '../../db/assessmentCollection';
 
 type SourceFilter = 'all' | 'official' | 'practice';
@@ -616,6 +617,8 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mb: 1.5 }}>
                       {itemDetail.options.map((opt, optIdx) => {
                         const keyCorrect = itemDetail.correct_index === optIdx;
+                        const optionText =
+                          resolvedOptionTextsForItem(itemDetail)[optIdx] || opt.text;
                         return (
                           <Box
                             key={`${itemDetail.item_id}-${opt.letter}`}
@@ -641,9 +644,9 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
                             >
                               {opt.letter}.
                             </Typography>
-                            {looksLikeExamMarkdown(opt.text) ? (
+                            {looksLikeExamMarkdown(optionText) ? (
                               <Box sx={{ flex: 1, minWidth: 0 }}>
-                                <ExamMarkdown compact>{opt.text}</ExamMarkdown>
+                                <ExamMarkdown compact>{optionText}</ExamMarkdown>
                               </Box>
                             ) : (
                               <Typography
@@ -654,7 +657,7 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
                                   flex: 1,
                                 }}
                               >
-                                {opt.text}
+                                {optionText}
                               </Typography>
                             )}
                             {keyCorrect ? (

@@ -299,7 +299,9 @@ export function PlatformAdminItemBankSection({
                       label={FILTER_LABELS[key]}
                       labels={labels}
                       value={current || ALL_VALUE}
-                      minWidth={key === 'instruction_family' ? 220 : 160}
+                      minWidth={
+                        key === 'strand' ? 380 : key === 'instruction_family' ? 240 : 160
+                      }
                       onChange={(value) => {
                         const next = { ...filters };
                         if (value === ALL_VALUE) delete next[key];

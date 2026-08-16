@@ -1,23 +1,15 @@
 import type { ReactNode } from 'react';
 import { Box, Typography } from '@mui/material';
 import { ArOptionFigure, ArOptionFigureSlice, useArOptionFigureMeta } from '../../components/assessment/ArOptionFigure';
-import {
-  allLetterKeyOptions,
-  isLetterKeyOptionText,
-  splitArOptionFigure,
-  splitEmbeddedAbcdChoiceList,
-} from '../../components/assessment/arOptionFigureModel';
-import {
-  ExamQuestionStimulus,
-  stripEmbeddedOptionLetterPrefix,
-} from '../../components/assessment/ExamQuestionStimulus';
+import { resolveLearnerExamOptions } from '../../components/assessment/resolveLearnerExamOptions';
+import { ExamQuestionStimulus } from '../../components/assessment/ExamQuestionStimulus';
+import { cleanLearnerFacingExamMarkup } from '../../components/assessment/cleanLearnerFacingExamMarkup';
 import {
   ExamMarkdown,
   ExamRichPrompt,
   ADMIN_EXAM_FIGURE_MAX_HEIGHT_PX,
   ADMIN_EXAM_FIGURE_MAX_WIDTH_PX,
   looksLikeExamMarkdown,
-  markdownFromStimulus,
   shouldRenderStructuredStimulus,
 } from '../../components/assessment/ExamMarkdown';
 import type { ExamQuestion } from '../../db/assessmentCollection';
@@ -46,7 +38,6 @@ export function AdminExamQuestionStem({
   q,
   emptyLabel,
   hideOptionFigure,
-  hideEmbeddedChoices,
 }: {
   q: {
     item_id: string;
@@ -60,13 +51,14 @@ export function AdminExamQuestionStem({
   hideOptionFigure?: boolean;
   hideEmbeddedChoices?: boolean;
 }) {
-  const rawPrompt = q.prompt || q.prompt_preview || '';
-  const stimMd = markdownFromStimulus(q.stimulus, q.stimulus_type);
-  const combined = stimMd.length > rawPrompt.length ? stimMd : rawPrompt;
-  const { stemMarkdown: withoutFigure, optionFigure } = splitArOptionFigure(combined);
-  const stemMarkdown = hideEmbeddedChoices
-    ? splitEmbeddedAbcdChoiceList(withoutFigure).stemMarkdown
-    : withoutFigure;
+  const resolved = resolveLearnerExamOptions({
+    markdown: q.prompt || q.prompt_preview || '',
+    stimulus: q.stimulus,
+    stimulusType: q.stimulus_type,
+    bankOptions: (q.options || []).map((o) => o.text),
+  });
+  const stemMarkdown = resolved.stemMarkdown;
+  const optionFigure = resolved.optionFigure;
   return (
     <>
       <Box sx={{ mb: 1.25 }}>
@@ -97,16 +89,17 @@ export function AdminExamQuestionStem({
 }
 
 export function AdminExamOptionText({ text }: { text: string }) {
-  if (looksLikeExamMarkdown(text)) {
+  const cleaned = cleanLearnerFacingExamMarkup(text);
+  if (looksLikeExamMarkdown(cleaned)) {
     return (
       <Box sx={{ flex: 1, minWidth: 0 }}>
-        <ExamMarkdown compact>{text}</ExamMarkdown>
+        <ExamMarkdown compact>{cleaned}</ExamMarkdown>
       </Box>
     );
   }
   return (
     <Typography sx={{ fontSize: '0.95rem', color: ip.heading, lineHeight: 1.45, flex: 1 }}>
-      {text}
+      {cleaned}
     </Typography>
   );
 }
@@ -190,15 +183,17 @@ export function PlatformAdminQuestionPerformanceCard({
     .filter(Boolean)
     .join(' · ');
   const rawPrompt = question.prompt || question.prompt_preview || '';
-  const stimMd = markdownFromStimulus(question.stimulus, question.stimulus_type);
-  const combined = stimMd.length > rawPrompt.length ? stimMd : rawPrompt;
-  const { stemMarkdown: withoutFigure, optionFigure } = splitArOptionFigure(combined);
-  const { choices: embeddedChoices } = splitEmbeddedAbcdChoiceList(withoutFigure);
-  const letterKeysOnly = allLetterKeyOptions(question.options.map((o) => o.text || o.letter));
-  const showFigureSlices = Boolean(optionFigure) && letterKeysOnly && !embeddedChoices?.some((t) => t && !isLetterKeyOptionText(t));
+  const resolved = resolveLearnerExamOptions({
+    markdown: rawPrompt,
+    stimulus: question.stimulus,
+    stimulusType: question.stimulus_type,
+    bankOptions: question.options.map((o) => o.text),
+  });
+  const optionFigure = resolved.optionFigure;
+  const showFigureSlices = resolved.pickOnFigure;
   const { layout, slices, naturalWidth, naturalHeight } = useArOptionFigureMeta(
     optionFigure?.src,
-    question.options.length || 4
+    question.options.length || resolved.optionTexts.length || 4
   );
   return (
     <Box
@@ -244,14 +239,7 @@ export function PlatformAdminQuestionPerformanceCard({
       {question.options.length > 0 ? (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.4 }}>
           {question.options.map((opt, optIdx) => {
-            const fromBank = stripEmbeddedOptionLetterPrefix(opt.text || '');
-            const fromStem = stripEmbeddedOptionLetterPrefix(embeddedChoices?.[optIdx] || '');
-            const optionText =
-              fromBank && !isLetterKeyOptionText(fromBank)
-                ? fromBank
-                : fromStem && !isLetterKeyOptionText(fromStem)
-                  ? fromStem
-                  : '';
+            const optionText = resolved.optionTexts[optIdx] || '';
             return (
             <AdminExamOptionRow
               key={`${question.item_id}-${opt.letter}`}

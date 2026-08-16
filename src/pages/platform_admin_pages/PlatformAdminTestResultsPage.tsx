@@ -39,6 +39,7 @@ import {
   looksLikeExamMarkdown,
   shouldRenderStructuredStimulus,
 } from '../../components/assessment/ExamMarkdown';
+import { resolvedOptionTextsForItem } from '../../components/assessment/resolveLearnerExamOptions';
 import type { ExamQuestion } from '../../db/assessmentCollection';
 
 function toExamQuestionForStimulus(q: TestDayQuestionRow): ExamQuestion {
@@ -305,6 +306,8 @@ const PlatformAdminTestResultsPage: React.FC = () => {
                             {q.options.map((opt, optIdx) => {
                               const picked = q.selected_index === optIdx;
                               const keyCorrect = q.correct_index === optIdx;
+                              const optionText =
+                                resolvedOptionTextsForItem(q)[optIdx] || opt.text;
                               return (
                                 <Box
                                   key={`${q.item_id}-${opt.letter}`}
@@ -342,9 +345,9 @@ const PlatformAdminTestResultsPage: React.FC = () => {
                                   >
                                     {opt.letter}.
                                   </Typography>
-                                  {looksLikeExamMarkdown(opt.text) ? (
+                                  {looksLikeExamMarkdown(optionText) ? (
                                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                                      <ExamMarkdown compact>{opt.text}</ExamMarkdown>
+                                      <ExamMarkdown compact>{optionText}</ExamMarkdown>
                                     </Box>
                                   ) : (
                                     <Typography
@@ -356,7 +359,7 @@ const PlatformAdminTestResultsPage: React.FC = () => {
                                         letterSpacing: '0.04em',
                                       }}
                                     >
-                                      {opt.text}
+                                      {optionText}
                                     </Typography>
                                   )}
                                   {picked && (

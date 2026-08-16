@@ -3,32 +3,35 @@
  * markdown/prompt strings. ReactMarkdown does not render raw HTML by default, so
  * tags appear as literal text. Clean that up for learners.
  */
+const DETAILS_BLOCK = /<details\b[^>]*>[\s\S]*?<\/details>/gi;
+const DETAILS_OR_SUMMARY_TAG = /<\/?(?:details|summary)\b[^>]*>/gi;
+
 export function cleanLearnerFacingExamMarkup(raw: string): string {
   if (!raw) return raw;
 
-  const detailsBlock =
-    /<details\b[^>]*>\s*<summary\b[^>]*>[\s\S]*?<\/summary>([\s\S]*?)<\/details>/gi;
+  let withoutDetails = raw.replace(DETAILS_BLOCK, '');
+  if (/<details\b/i.test(withoutDetails)) {
+    withoutDetails = withoutDetails.replace(/<details\b[\s\S]*$/i, '');
+  }
+  if (/<summary\b/i.test(withoutDetails)) {
+    withoutDetails = withoutDetails.replace(/<summary\b[\s\S]*$/i, '');
+  }
+  withoutDetails = withoutDetails.replace(DETAILS_OR_SUMMARY_TAG, '').trim();
 
-  const withoutDetails = raw.replace(detailsBlock, '').trim();
-  const hasVisual =
-    /<img\b|<svg\b|!\[[^\]]*]\(/i.test(withoutDetails) ||
-    /<img\b|<svg\b|!\[[^\]]*]\(/i.test(raw);
+  // If the item already has visible content, drop the screen-reader block.
+  // Only inline the inner description when the entire string *was* that block.
+  let out = withoutDetails;
+  if (!out) {
+    out = raw
+      .replace(DETAILS_BLOCK, (block) =>
+        block
+          .replace(/<summary\b[^>]*>[\s\S]*?<\/summary>/gi, '')
+          .replace(DETAILS_OR_SUMMARY_TAG, '')
+          .trim()
+      )
+      .replace(DETAILS_OR_SUMMARY_TAG, '');
+  }
 
-  // When figures/images are present, drop the screen-reader block entirely.
-  // When they are not, keep the inner description so options are still readable.
-  let out = hasVisual && withoutDetails.length > 0
-    ? withoutDetails
-    : raw
-        .replace(detailsBlock, (_m, body: string) => String(body ?? '').trim())
-        .replace(/<\/?details\b[^>]*>/gi, '')
-        .replace(/<\/?summary\b[^>]*>/gi, '');
-
-  // Strip any leftover orphan accessibility tags.
-  out = out
-    .replace(/<\/?details\b[^>]*>/gi, '')
-    .replace(/<\/?summary\b[^>]*>/gi, '')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-
+  out = out.replace(/\n{3,}/g, '\n\n').trim();
   return out.length > 0 ? out : raw.trim();
 }
