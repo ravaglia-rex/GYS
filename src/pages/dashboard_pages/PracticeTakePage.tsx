@@ -247,12 +247,22 @@ export default function PracticeTakePage() {
         setPoolCap(typeof res.total_in_level === 'number' ? res.total_in_level : undefined);
         setIndex(0);
         if (res.questions.length === 0) {
-          setError('You have completed all unseen questions for this level. Reset progress from Practice Mode to draw from the full pool again.');
+          const seenCount = typeof res.draw_seen_count === 'number' ? res.draw_seen_count : 0;
+          setError(
+            seenCount > 0
+              ? 'You have completed all unseen questions for this level. Reset progress from Practice Mode to draw from the full pool again.'
+              : 'No practice questions are available for this level right now. Try another level, or ask your school to contact support if this continues.'
+          );
         }
       })
       .catch((e) => {
         Sentry.captureException(e);
-        if (!cancelled) setError('Could not load practice questions. Try again later.');
+        if (cancelled) return;
+        if (axios.isAxiosError(e) && e.response?.status === 404) {
+          setError('No practice questions are available for this level yet.');
+          return;
+        }
+        setError('Could not load practice questions. Try again later.');
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

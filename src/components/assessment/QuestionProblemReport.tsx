@@ -35,10 +35,24 @@ export interface QuestionProblemReportProps {
 
 const MAX_LEN = 4000;
 
+/** Stable identities — inline `slotProps.backdrop` objects can loop MUI Fade/Transition. */
+const REPORT_DIALOG_SX = {
+  '& .MuiBackdrop-root': {
+    backgroundColor: 'rgba(0, 0, 0, 0.72)',
+  },
+} as const;
+
+const REPORT_DIALOG_PAPER_SX = {
+  bgcolor: '#1e293b',
+  backgroundImage: 'none',
+  border: '1px solid rgba(255, 255, 255, 0.08)',
+  boxShadow: '0 24px 48px rgba(0, 0, 0, 0.45)',
+} as const;
+
 const REPORT_CATEGORIES = [
-  { id: 'wrong_key', label: 'Wrong answer key or scoring' },
+  { id: 'options', label: 'Issue with the answer options' },
   { id: 'typo', label: 'Typo or grammar mistake' },
-  { id: 'unclear', label: 'Unclear wording or instructions' },
+  { id: 'confusing', label: 'Question is confusing or too hard to understand' },
   { id: 'media', label: 'Broken image, diagram, or audio/video' },
   { id: 'technical', label: 'Technical problem (layout, buttons, no response)' },
   { id: 'other', label: 'Something else' },
@@ -178,19 +192,9 @@ export const QuestionProblemReport: React.FC<QuestionProblemReportProps> = ({
         onClose={handleClose}
         fullWidth
         maxWidth="sm"
-        slotProps={{
-          backdrop: {
-            sx: { backgroundColor: 'rgba(0, 0, 0, 0.72)' },
-          },
-          paper: {
-            sx: {
-              bgcolor: '#1e293b',
-              backgroundImage: 'none',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              boxShadow: '0 24px 48px rgba(0, 0, 0, 0.45)',
-            },
-          },
-        }}
+        transitionDuration={0}
+        sx={REPORT_DIALOG_SX}
+        PaperProps={{ sx: REPORT_DIALOG_PAPER_SX }}
       >
         {!done && (
           <DialogTitle sx={{ fontWeight: 800, color: 'text.primary', pb: 1 }}>Report a problem</DialogTitle>

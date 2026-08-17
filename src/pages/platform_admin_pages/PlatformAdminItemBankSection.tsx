@@ -6,6 +6,7 @@ import {
   CircularProgress,
   Tab,
   Tabs,
+  TextField,
   Typography,
 } from '@mui/material';
 import { useSearchParams } from 'react-router-dom';
@@ -18,9 +19,12 @@ import {
   type OfficialItemBankFilters,
   type OfficialQuestionStatRow,
 } from '../../db/platformAdminAnalytics';
+import { MathJaxContext } from 'better-react-mathjax';
+import { EXAM_MATHJAX_CONFIG } from '../../components/assessment/examMathJaxConfig';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import {
   platformAdminFilterToolbarRowSx,
+  platformAdminSearchFieldSx,
 } from './platformAdminPageStyles';
 import {
   PlatformAdminAnalyticsSection,
@@ -55,14 +59,39 @@ const LEVELS = [1, 2, 3];
 const ALL_VALUE = 'all';
 const ITEM_BANK_PAGE_SIZE = 40;
 
+function questionMatchesFind(q: OfficialQuestionStatRow, needle: string): boolean {
+  const n = needle.trim().toLowerCase();
+  if (!n) return true;
+  const hay = [
+    q.item_id,
+    q.prompt,
+    q.prompt_preview,
+    q.strand,
+    q.instruction_family,
+    q.band,
+    q.family,
+    q.mechanic,
+    q.subconstruct,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+  return hay.includes(n);
+}
+
 function ItemBankVirtualList({
   questions,
   loading,
+  showAll,
 }: {
   questions: OfficialQuestionStatRow[];
   loading: boolean;
+  showAll: boolean;
 }) {
   const [visible, setVisible] = useState(ITEM_BANK_PAGE_SIZE);
+  useEffect(() => {
+    setVisible(showAll ? questions.length : ITEM_BANK_PAGE_SIZE);
+  }, [questions, showAll]);
   const shown = questions.slice(0, visible);
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.25 }}>
@@ -149,22 +178,25 @@ export function PlatformAdminItemBankSection({
   const levelRaw = Number(searchParams.get('level'));
   const level = Number.isFinite(levelRaw) && levelRaw > 0 ? Math.floor(levelRaw) : 1;
   const filters = useMemo(() => readFilters(searchParams), [searchParams]);
+  const findQuery = searchParams.get('q') || '';
 
   const setQuery = useCallback(
-    (patch: { exam?: string; level?: number; filters?: OfficialItemBankFilters }) => {
+    (patch: { exam?: string; level?: number; filters?: OfficialItemBankFilters; find?: string }) => {
       const next = new URLSearchParams();
       const nextExam = patch.exam ?? examId;
       const nextLevel = patch.level ?? level;
       const nextFilters = patch.filters ?? filters;
+      const nextFind = patch.find !== undefined ? patch.find : findQuery;
       if (nextExam) next.set('exam', nextExam);
       next.set('level', String(nextLevel));
       for (const key of FILTER_KEYS) {
         const value = nextFilters[key];
         if (value) next.set(key, value);
       }
+      if (nextFind.trim()) next.set('q', nextFind.trim());
       setSearchParams(next, { replace: true });
     },
-    [examId, filters, level, setSearchParams]
+    [examId, filters, findQuery, level, setSearchParams]
   );
 
   useEffect(() => {
@@ -228,6 +260,11 @@ export function PlatformAdminItemBankSection({
     if (filters[key]) return true;
     return (facets?.[key] || []).length > 0;
   });
+  const foundQuestions = useMemo(() => {
+    const rows = bank?.questions || [];
+    if (!findQuery.trim()) return rows;
+    return rows.filter((q) => questionMatchesFind(q, findQuery));
+  }, [bank?.questions, findQuery]);
 
   return (
     <>
@@ -245,7 +282,7 @@ export function PlatformAdminItemBankSection({
         <>
           <Tabs
             value={examId || false}
-            onChange={(_e, value: string) => setQuery({ exam: value, filters: {} })}
+            onChange={(_e, value: string) => setQuery({ exam: value, filters: {}, find: '' })}
             variant="scrollable"
             scrollButtons="auto"
             sx={examPickerTabsSx}
@@ -282,6 +319,52 @@ export function PlatformAdminItemBankSection({
             }
             accent="teal"
           >
+            <TextField
+              size="small"
+              fullWidth
+              value={findQuery}
+              onChange={(e) => setQuery({ find: e.target.value })}
+              placeholder="Find item ID (e.g. AR-L1-T5-04-P3)"
+              sx={{ ...platformAdminSearchFieldSx, mb: 1.5, maxWidth: 520 }}
+            />
+
+            {bank && bank.questions.length > 0 ? (
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 0.5,
+                  mb: 2,
+                }}
+              >
+                {bank.questions.map((q) => (
+                  <Box
+                    key={`id-${q.item_id}`}
+                    component="button"
+                    type="button"
+                    onClick={() => setQuery({ find: q.item_id })}
+                    sx={{
+                      m: 0,
+                      px: 0.75,
+                      py: 0.15,
+                      border: '1px solid #e2e8f0',
+                      borderRadius: 1,
+                      bgcolor: findQuery && q.item_id.toLowerCase().includes(findQuery.trim().toLowerCase())
+                        ? 'rgba(16, 64, 139, 0.08)'
+                        : '#fff',
+                      color: ip.heading,
+                      fontSize: 11,
+                      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                      cursor: 'pointer',
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    {q.item_id}
+                  </Box>
+                ))}
+              </Box>
+            ) : null}
+
             {visibleFilterKeys.length > 0 ? (
               <Box sx={{ ...platformAdminFilterToolbarRowSx, mb: 2, flexWrap: 'wrap', gap: 1.25 }}>
                 {visibleFilterKeys.map((key) => {
@@ -322,8 +405,24 @@ export function PlatformAdminItemBankSection({
               <Typography variant="body2" sx={{ color: ip.subtext, py: 2 }}>
                 No items in this exam level for the current filters.
               </Typography>
+            ) : foundQuestions.length === 0 ? (
+              <Typography variant="body2" sx={{ color: ip.subtext, py: 2 }}>
+                No items match “{findQuery.trim()}”.
+              </Typography>
+            ) : examId === 'mathematical_reasoning' ? (
+              <MathJaxContext version={3} config={EXAM_MATHJAX_CONFIG}>
+                <ItemBankVirtualList
+                  questions={foundQuestions}
+                  loading={loading}
+                  showAll={Boolean(findQuery.trim())}
+                />
+              </MathJaxContext>
             ) : (
-              <ItemBankVirtualList questions={bank.questions} loading={loading} />
+              <ItemBankVirtualList
+                questions={foundQuestions}
+                loading={loading}
+                showAll={Boolean(findQuery.trim())}
+              />
             )}
           </PlatformAdminAnalyticsSection>
         </>

@@ -43,6 +43,12 @@ export const OFFICIAL_BETA_STARTABLE_ASSESSMENT_IDS = new Set<string>([
   'analytical_reasoning',
 ]);
 
+/**
+ * Official Analytical Reasoning currently delivers only the new Level 1 bank.
+ * Other AR levels must not start. Not a public-launch flag.
+ */
+export const OFFICIAL_ANALYTICAL_REASONING_STARTABLE_TIERS = new Set<number>([1]);
+
 export function normalizeOfficialAssessmentEmail(email: unknown): string {
   return typeof email === 'string' ? email.trim().toLowerCase() : '';
 }
@@ -103,6 +109,13 @@ export function canStartOfficialAssessment(
 ): boolean {
   if (!assessmentId) return false;
   const id = canonicalAssessmentId(assessmentId);
+  if (
+    id === 'analytical_reasoning' &&
+    tierNumber != null &&
+    !OFFICIAL_ANALYTICAL_REASONING_STARTABLE_TIERS.has(tierNumber)
+  ) {
+    return false;
+  }
   if (isPubliclyLiveAssessmentTier(id, tierNumber)) return true;
   // Full launch mode: global on + empty live list means every exam is open.
   if (STUDENT_OFFICIAL_ASSESSMENTS_ENABLED && OFFICIAL_LIVE_ASSESSMENT_IDS.size === 0) {

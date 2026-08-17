@@ -1,11 +1,12 @@
 /**
  * Canonical assessment id for Exam 1 is `analytical_reasoning`.
- * Legacy Firestore / URL id is only assembled here for redirects and dual-read.
+ * Legacy URL id is only assembled here for redirects. Live Firestore banks
+ * use `analytical_reasoning`.
  */
 
 export const ANALYTICAL_REASONING_ASSESSMENT_ID = 'analytical_reasoning';
 
-/** Legacy id still present in bookmarks, Firestore banks, and historical payloads. */
+/** Legacy id still present in bookmarks and historical payloads. */
 export const LEGACY_ANALYTICAL_REASONING_ASSESSMENT_ID = 'symbolic_reasoning';
 
 const LEGACY_TO_CANONICAL: Record<string, string> = {

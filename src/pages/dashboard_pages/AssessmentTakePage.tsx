@@ -50,6 +50,7 @@ import {
   isProctoringActive,
   resolveProctoringConfig,
   useProctoringMonitor,
+  type ProctoringEventType,
 } from '../../features/proctoring';
 import * as Sentry from '@sentry/react';
 
@@ -267,7 +268,7 @@ export default function AssessmentTakePage() {
     ((message: string) => void | Promise<void>) | null
   >(null);
   const reportProctoringEventRef = useRef<
-    ((type: 'tab_background' | 'fullscreen_exit' | 'print_screen', severity: 'low' | 'medium' | 'high', snapshot?: boolean) => void) | null
+    ((type: ProctoringEventType, severity: 'low' | 'medium' | 'high', snapshot?: boolean) => void) | null
   >(null);
 
   const endAttemptForIntegrity = useCallback(
@@ -379,11 +380,11 @@ export default function AssessmentTakePage() {
     void reportProctoringEvent(type, severity, snapshot);
   };
 
-  const { leftFullscreen, integrityWarning, tryEnterFullscreen } = useExamIntegrity({
+  const { leftFullscreen, lostWindowFocus, integrityWarning, tryEnterFullscreen } = useExamIntegrity({
     active: Boolean(attemptId && stage === 'taking'),
     onLeaveLimitReached: () =>
       endAttemptForIntegrity(
-        'This attempt ended because the exam was left in the background or fullscreen was exited.'
+        'This attempt ended because the exam was left in the background, another window was focused, or fullscreen was exited.'
       ),
     enforceFullscreen: true,
     onPrintScreen: () => {
@@ -398,6 +399,11 @@ export default function AssessmentTakePage() {
     if (!proctoringEnabled || !leftFullscreen || stage !== 'taking' || !attemptId) return;
     void reportProctoringEventRef.current?.('fullscreen_exit', 'low', false);
   }, [proctoringEnabled, leftFullscreen, stage, attemptId]);
+
+  useEffect(() => {
+    if (!proctoringEnabled || !lostWindowFocus || stage !== 'taking' || !attemptId) return;
+    void reportProctoringEventRef.current?.('window_blur', 'low', false);
+  }, [proctoringEnabled, lostWindowFocus, stage, attemptId]);
 
   const proctoringRoutedRef = useRef(false);
   useEffect(() => {
@@ -956,8 +962,8 @@ export default function AssessmentTakePage() {
           }
         >
           {integrityWarning.secondsLeft > 0
-            ? `Return to the exam now (${integrityWarning.secondsLeft}s). If you don't, or you keep leaving this screen, this attempt will end.`
-            : 'Stay on this exam in fullscreen. If you keep leaving this screen, this attempt will end.'}
+            ? `Return to the exam now (${integrityWarning.secondsLeft}s). If you don't, or you keep leaving this window, this attempt will end.`
+            : 'Stay on this exam in fullscreen and keep this window in front. If you keep leaving, this attempt will end.'}
         </Alert>
       )}
 

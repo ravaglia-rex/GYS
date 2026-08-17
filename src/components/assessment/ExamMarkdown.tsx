@@ -39,7 +39,7 @@ const markdownTableCellSx = {
 } as const;
 
 export function looksLikeExamMarkdown(s: string): boolean {
-  return /!\[[^\]]*]\(|^#{1,6}\s|```|<svg\b|<img\b|^\|.+\|/m.test(s);
+  return /!\[[^\]]*]\(|^#{1,6}\s|```|<svg\b|<img\b|^\|.+\||\*\*[^*\n]+\*\*|__[^_\n]+__/m.test(s);
 }
 
 export function markdownFromStimulus(stimulus: unknown, stimulusType?: string | null): string {
@@ -59,8 +59,6 @@ export function markdownFromStimulus(stimulus: unknown, stimulusType?: string | 
 export const EXAM_FIGURE_MAX_WIDTH_PX = 640;
 /** Displayed height of the machine-style AR stem at 640px wide; used to cap taller figures. */
 export const EXAM_FIGURE_MAX_HEIGHT_PX = 460;
-export const ADMIN_EXAM_FIGURE_MAX_WIDTH_PX = 540;
-export const ADMIN_EXAM_FIGURE_MAX_HEIGHT_PX = 380;
 
 const figureMaxWidthCss = (compact?: boolean, maxFigureWidth?: number) =>
   compact
@@ -181,6 +179,7 @@ export const ExamMarkdown: React.FC<{
   maxFigureHeight?: number;
 }> = ({ children, compact = false, maxFigureWidth, maxFigureHeight }) => {
   const markdown = cleanLearnerFacingExamMarkup(children);
+  const figureHeightCap = maxFigureHeight ?? (compact ? undefined : EXAM_FIGURE_MAX_HEIGHT_PX);
   if (!markdown.trim()) return null;
 
   return (
@@ -217,7 +216,7 @@ export const ExamMarkdown: React.FC<{
         '& svg': {
           display: 'block',
           maxWidth: figureMaxWidthCss(compact, maxFigureWidth),
-          maxHeight: maxFigureHeight ? `${maxFigureHeight}px` : undefined,
+          maxHeight: figureHeightCap ? `${figureHeightCap}px` : undefined,
           width: 'auto',
           height: 'auto',
           my: 1.5,
@@ -233,7 +232,7 @@ export const ExamMarkdown: React.FC<{
               alt={alt}
               compact={compact}
               maxFigureWidth={maxFigureWidth}
-              maxFigureHeight={maxFigureHeight}
+              maxFigureHeight={figureHeightCap}
             />
           ),
           table: ({ children }: { children?: React.ReactNode }) => (

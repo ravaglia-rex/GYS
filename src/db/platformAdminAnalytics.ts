@@ -476,7 +476,7 @@ export type OfficialProgressionSummary = {
   recommended: number;
   not_recommended: number;
   recommended_pct: number;
-  reason_counts: Array<{ key: string; count: number }>;
+  reason_counts: Array<{ key: string; count: number; label?: string }>;
 };
 
 export type OfficialSetRouteSummary = {
@@ -485,7 +485,7 @@ export type OfficialSetRouteSummary = {
   finished_at_40: number;
   extension_triggered: number;
   extension_trigger_pct: number;
-  reason_counts: Array<{ key: string; count: number }>;
+  reason_counts: Array<{ key: string; count: number; label?: string }>;
 };
 
 export type OfficialCrossSplitRow = {
@@ -1034,7 +1034,13 @@ export async function getPlatformAdminOfficialDailyStats(
     { headers, params: { days, ...refreshParams(opts?.refresh) } }
   );
   return {
-    days: Array.isArray(res.data.days) ? res.data.days : [],
+    days: Array.isArray(res.data.days)
+      ? res.data.days.map((d: OfficialDailyStatRow) => ({
+          date: typeof d?.date === 'string' ? d.date : '',
+          total_completed: Number(d?.total_completed) || 0,
+          by_exam: d?.by_exam && typeof d.by_exam === 'object' ? d.by_exam : {},
+        }))
+      : [],
     today: res.data.today ?? null,
     exam_ids: Array.isArray(res.data.exam_ids) ? res.data.exam_ids : [],
     generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import * as Sentry from '@sentry/react';
 import {
   Alert,
   Box,
@@ -80,6 +81,7 @@ import {
   type OfficialExamAttemptDetail,
   type OfficialQuestionTagType,
   type OfficialTagAggRow,
+  type OfficialCrossSplitRow,
 } from '../../db/platformAdminAnalytics';
 import { formatDate, formatDateTime } from '../../db/platformAdminCollection';
 import {
@@ -114,8 +116,190 @@ type AnalyticsSection = 'official' | 'practice' | 'qod' | 'activity' | 'coins';
 type OfficialView = 'overview' | 'exam-snapshots' | 'constructs' | 'grade-school' | 'completions' | 'abandons';
 type PracticeView = 'overview' | 'by-exam' | 'exam-detail';
 type QodView = 'overview' | 'top-students';
+type GradeSchoolStrandSplit =
+  | { kind: 'grade'; key: string; label: string }
+  | { kind: 'school'; key: string; label: string };
 
 const ANALYTICS_SECTIONS: AnalyticsSection[] = ['official', 'practice', 'qod', 'activity', 'coins'];
+
+const AR_STRAND_LABELS: Record<string, string> = {
+  pattern: 'Pattern & Structure Induction',
+  rule: 'Rule & Transformation Application',
+  relational: 'Relational & Constraint Deduction',
+  flexible: 'Flexible Model Evaluation',
+};
+
+const AR_INSTRUCTION_FAMILY_LABELS: Record<string, string> = {
+  'IF-01': 'Matrix and grid completion',
+  'IF-02': 'Sequence and panel progression',
+  'IF-03': 'Analogy and transformation',
+  'IF-04': 'Input-output and correspondence',
+  'IF-05': 'Relational order reconstruction',
+  'IF-06': 'Constraint scenarios',
+  'IF-07': 'Anchored classification and set relations',
+  'IF-08': 'Spatial transformation',
+  'IF-09': 'Model and evidence evaluation',
+  'IF-10': 'Spatial construction and recognition',
+};
+
+const AR_REPRESENTATION_MODE_LABELS: Record<string, string> = {
+  abstract_figural: 'Abstract figural',
+  code_table: 'Code table',
+  relational_schematic: 'Relational schematic',
+  short_context: 'Short context',
+  spatial_2d: 'Spatial 2D',
+  spatial_3d: 'Spatial 3D',
+  symbolic_code: 'Code table',
+};
+
+const AR_PROGRESSION_REASON_LABELS: Record<string, string> = {
+  not_all_strands_have_sufficient_evidence: 'Not all strands have enough evidence',
+  fewer_than_three_secure_strands: 'Fewer than three strands are secure',
+  a_strand_remains_emerging: 'A strand is still emerging',
+  unresolved_delivery_or_rendering_incident: 'Unresolved delivery or rendering issue',
+};
+
+const AR_EXTENSION_REASON_LABELS: Record<string, string> = {
+  progression_decision_within_uncertainty_margin: 'Level-up decision is still uncertain',
+  usable_evidence_reduced_by_omission_or_delivery_incident:
+    'Usable evidence reduced by a skipped item or delivery issue',
+  extension_pool_infeasible_finishing_at_32:
+    'Could not add the extra 8 items — sitting finished at 32',
+  extension_assembly_infeasible_finishing_at_32:
+    'Could not assemble the extra 8 items — sitting finished at 32',
+};
+
+function titleCaseAnalyticsKey(key: string): string {
+  const spaced = key.replace(/_/g, ' ').replace(/:/g, ' · ').trim();
+  if (!spaced) return key;
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+function representationModeDisplayLabel(key: string, fallback?: string): string {
+  return AR_REPRESENTATION_MODE_LABELS[key] ?? fallback ?? titleCaseAnalyticsKey(key);
+}
+
+function progressionReasonDisplayLabel(key: string, fallback?: string): string {
+  return AR_PROGRESSION_REASON_LABELS[key] ?? fallback ?? titleCaseAnalyticsKey(key);
+}
+
+function extensionReasonDisplayLabel(key: string, fallback?: string): string {
+  if (AR_EXTENSION_REASON_LABELS[key]) return AR_EXTENSION_REASON_LABELS[key];
+  const colon = key.indexOf(':');
+  if (colon > 0) {
+    const prefix = key.slice(0, colon);
+    const strandName = AR_STRAND_LABELS[key.slice(colon + 1)] ?? key.slice(colon + 1);
+    if (prefix === 'strand_below_evidence_floor') {
+      return `${strandName} is below the evidence floor`;
+    }
+    if (prefix === 'conflicting_results_leave_strand_unresolved') {
+      return `${strandName} has conflicting results`;
+    }
+    if (prefix === 'strength_lacks_changed_family_or_stretch_confirmation') {
+      return `${strandName} looks strong but lacks a new family or Stretch confirmation`;
+    }
+  }
+  return fallback && fallback !== key ? fallback : titleCaseAnalyticsKey(key);
+}
+
+function exposureGroupDisplayLabel(key: string, fallback?: string): string {
+  const live = key.match(/^AR-(L[12])-IF(\d{2})-([ECS])-P(\d+)$/i);
+  if (live) {
+    const level = live[1].toUpperCase();
+    const ifId = `IF-${live[2]}`;
+    const family = AR_INSTRUCTION_FAMILY_LABELS[ifId] ?? ifId;
+    const bandCode = live[3].toUpperCase();
+    const band = bandCode === 'E' ? 'Entry' : bandCode === 'C' ? 'Core' : 'Stretch';
+    return `${level} · ${ifId} ${family} · ${band} · parent ${live[4]}`;
+  }
+  const legacy = key.match(/^AR-(L[12])-([A-Z]{1,3}\d*)-(\d{2})-P(\d+)$/i);
+  if (legacy) {
+    return `${legacy[1].toUpperCase()} · ${legacy[2].toUpperCase()} · family ${legacy[3]} · parent ${legacy[4]}`;
+  }
+  return fallback && fallback !== key ? fallback : key;
+}
+
+function gradeSchoolRowSx(selected: boolean) {
+  return {
+    cursor: 'pointer',
+    bgcolor: selected ? 'rgba(16, 64, 139, 0.08)' : undefined,
+    '&:hover': { bgcolor: selected ? 'rgba(16, 64, 139, 0.1)' : 'rgba(16, 64, 139, 0.04)' },
+  } as const;
+}
+
+function strandRowsForGradeSchoolSplit(
+  split: GradeSchoolStrandSplit,
+  drilldown: OfficialExamDrilldown | null
+): OfficialCrossSplitRow[] {
+  if (!drilldown) return [];
+  if (split.kind === 'grade') {
+    return (drilldown.strand_by_grade || []).filter(
+      (row) =>
+        row.split_key === split.key ||
+        row.split_label === `Grade ${split.key}` ||
+        row.split_label === split.label
+    );
+  }
+  return (drilldown.strand_by_school || []).filter(
+    (row) => row.split_key === split.key || row.split_label === split.label
+  );
+}
+
+function GradeSchoolStrandExpandRow({
+  split,
+  drilldown,
+  loading,
+  colSpan,
+}: {
+  split: GradeSchoolStrandSplit;
+  drilldown: OfficialExamDrilldown | null;
+  loading: boolean;
+  colSpan: number;
+}) {
+  const rows = strandRowsForGradeSchoolSplit(split, drilldown);
+  return (
+    <TableRow>
+      <TableCell colSpan={colSpan} sx={{ bgcolor: '#f8fafc', py: 1.5, px: 1.5 }}>
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+            <CircularProgress size={22} sx={{ color: ip.navy }} />
+          </Box>
+        ) : (
+          <Table size="small" sx={{ ...platformAdminTableSx, minWidth: 0 }}>
+            <TableHead>
+              <TableRow sx={platformAdminTableHeadRowSx}>
+                <TableCell>Strand</TableCell>
+                <TableCell align="right">Attempts</TableCell>
+                <TableCell align="right">Accuracy</TableCell>
+                <TableCell align="right">Served</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {rows.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} align="center" sx={{ py: 1.5, color: ip.subtext }}>
+                    No strand rows for this {split.kind} yet.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                rows.map((row) => (
+                  <TableRow key={`${row.split_key}-${row.tag_key}`}>
+                    <TableCell>{row.tag_label}</TableCell>
+                    <TableCell align="right">{row.attempts_with_data}</TableCell>
+                    <TableCell align="right">
+                      <PlatformAdminAccuracyChip pct={row.accuracy_pct} />
+                    </TableCell>
+                    <TableCell align="right">{row.served_sum}</TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        )}
+      </TableCell>
+    </TableRow>
+  );
+}
 
 const ANALYTICS_SECTION_META: Record<
   AnalyticsSection,
@@ -145,6 +329,11 @@ const ANALYTICS_SECTION_META: Record<
 
 function isAnalyticsSection(value: string | undefined): value is AnalyticsSection {
   return Boolean(value && ANALYTICS_SECTIONS.includes(value as AnalyticsSection));
+}
+
+/** Chart x-label from YYYY-MM-DD; never throw if a cached row is missing `date`. */
+function ymdChartLabel(date: unknown): string {
+  return typeof date === 'string' && date.length >= 5 ? date.slice(5) : '';
 }
 
 /** "Analytical Reasoning" → "Analytical"; leaves AI/English Proficiency unchanged. */
@@ -212,7 +401,7 @@ const examPickerTabsSx = {
   '& .MuiTabs-indicator': { display: 'none' },
 } as const;
 
-const PlatformAdminAnalyticsPage: React.FC = () => {
+const PlatformAdminAnalyticsPageInner: React.FC = () => {
   const navigate = useNavigate();
   const { section: sectionParam } = useParams<{ section?: string }>();
   const section: AnalyticsSection = isAnalyticsSection(sectionParam) ? sectionParam : 'official';
@@ -238,6 +427,8 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
   const [completionLimit, setCompletionLimit] = useState(25);
   const [officialDrilldown, setOfficialDrilldown] = useState<OfficialExamDrilldown | null>(null);
   const [officialDrillLevel, setOfficialDrillLevel] = useState<'all' | number>('all');
+  const [gradeSchoolStrandSplit, setGradeSchoolStrandSplit] =
+    useState<GradeSchoolStrandSplit | null>(null);
   const [officialAttemptDetail, setOfficialAttemptDetail] =
     useState<OfficialExamAttemptDetail | null>(null);
   const [officialAttemptDetailLoading, setOfficialAttemptDetailLoading] = useState(false);
@@ -741,6 +932,23 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
   }, [section, officialView, selectedOfficialExamId, officialDrillLevel, loadOfficialDrilldown]);
 
   useEffect(() => {
+    setGradeSchoolStrandSplit(null);
+  }, [selectedOfficialExamId, officialView]);
+
+  const officialDrilldownRef = useRef(officialDrilldown);
+  officialDrilldownRef.current = officialDrilldown;
+
+  useEffect(() => {
+    if (section !== 'official' || officialView !== 'grade-school' || !selectedOfficialExamId) return;
+    if (!gradeSchoolStrandSplit) return;
+    const current = officialDrilldownRef.current;
+    if (current && current.exam_id === selectedOfficialExamId && current.level_filter == null) {
+      return;
+    }
+    void loadOfficialDrilldown(selectedOfficialExamId, 'all');
+  }, [section, officialView, selectedOfficialExamId, gradeSchoolStrandSplit, loadOfficialDrilldown]);
+
+  useEffect(() => {
     if (section !== 'official' || officialView !== 'abandons' || !selectedOfficialExamId) return;
     void loadOfficialAbandons(selectedOfficialExamId, officialAbandonLevel);
   }, [section, officialView, selectedOfficialExamId, officialAbandonLevel, loadOfficialAbandons]);
@@ -779,6 +987,9 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
         if (officialView === 'constructs') {
           void loadOfficialDrilldown(selectedOfficialExamId, officialDrillLevel, { refresh: true });
         }
+        if (officialView === 'grade-school' && gradeSchoolStrandSplit) {
+          void loadOfficialDrilldown(selectedOfficialExamId, 'all', { refresh: true });
+        }
         if (officialView === 'abandons') {
           void loadOfficialAbandons(selectedOfficialExamId, officialAbandonLevel, { refresh: true });
         }
@@ -807,11 +1018,12 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     () =>
       officialDaily.map((d) => {
         const row: Record<string, string | number> = {
-          date: d.date.slice(5),
-          completed: d.total_completed,
+          date: ymdChartLabel(d?.date),
+          completed: d?.total_completed ?? 0,
         };
+        const byExam = d?.by_exam && typeof d.by_exam === 'object' ? d.by_exam : {};
         for (const examId of officialDailyExamIds) {
-          row[examId] = d.by_exam[examId]?.completed ?? 0;
+          row[examId] = byExam[examId]?.completed ?? 0;
         }
         return row;
       }),
@@ -855,9 +1067,9 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
   const qodChartData = useMemo(
     () =>
       qodDays.map((d) => ({
-        date: d.date.slice(5),
-        answered: d.total_answered,
-        correct: d.total_correct,
+        date: ymdChartLabel(d?.date),
+        answered: d?.total_answered ?? 0,
+        correct: d?.total_correct ?? 0,
       })),
     [qodDays]
   );
@@ -865,10 +1077,10 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
   const practiceDailyChartData = useMemo(
     () =>
       practiceDaily.map((d) => ({
-        date: d.date.slice(5),
-        sessions: d.total_sessions,
-        questions: d.total_questions,
-        correct: d.total_correct,
+        date: ymdChartLabel(d?.date),
+        sessions: d?.total_sessions ?? 0,
+        questions: d?.total_questions ?? 0,
+        correct: d?.total_correct ?? 0,
       })),
     [practiceDaily]
   );
@@ -893,9 +1105,10 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
   const practiceDailyByExamChartData = useMemo(
     () =>
       practiceDailyByExam.map((d) => {
-        const row: Record<string, string | number> = { date: d.date.slice(5) };
+        const row: Record<string, string | number> = { date: ymdChartLabel(d?.date) };
+        const byExam = d?.by_exam && typeof d.by_exam === 'object' ? d.by_exam : {};
         for (const examId of practiceDailyExamIds) {
-          row[examId] = d.by_exam[examId]?.sessions ?? 0;
+          row[examId] = byExam[examId]?.sessions ?? 0;
         }
         return row;
       }),
@@ -1351,22 +1564,24 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                       </Typography>
                       <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1 }}>
                         {officialDrilldown.l1_to_l2_progression?.attempts_with_data
-                          ? `${officialDrilldown.l1_to_l2_progression.recommended} recommended of ${officialDrilldown.l1_to_l2_progression.attempts_with_data} (${officialDrilldown.l1_to_l2_progression.recommended_pct}%)`
-                          : 'No progression fields on these completions yet.'}
+                          ? `${officialDrilldown.l1_to_l2_progression.recommended} of ${officialDrilldown.l1_to_l2_progression.attempts_with_data} sits recommended for Level 2 (${officialDrilldown.l1_to_l2_progression.recommended_pct}%)`
+                          : 'No Level 1 → Level 2 recommendations on these completions yet.'}
                       </Typography>
                       {(officialDrilldown.l1_to_l2_progression?.reason_counts || []).length > 0 && (
                         <TableContainer component={Paper} elevation={0} sx={{ ...platformAdminTablePaperSx, mb: 2.5 }}>
                           <Table size="small" sx={platformAdminTableSx}>
                             <TableHead>
                               <TableRow sx={platformAdminTableHeadRowSx}>
-                                <TableCell>Reason</TableCell>
-                                <TableCell align="right">Count</TableCell>
+                                <TableCell>Why not recommended</TableCell>
+                                <TableCell align="right">Sits</TableCell>
                               </TableRow>
                             </TableHead>
                             <TableBody>
                               {officialDrilldown.l1_to_l2_progression.reason_counts.map((r) => (
                                 <TableRow key={r.key}>
-                                  <TableCell>{r.key}</TableCell>
+                                  <TableCell>
+                                    {progressionReasonDisplayLabel(r.key, r.label)}
+                                  </TableCell>
                                   <TableCell align="right">{r.count}</TableCell>
                                 </TableRow>
                               ))}
@@ -1376,26 +1591,28 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                       )}
 
                       <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5, mt: 1 }}>
-                        Set route (32 vs 40)
+                        32-item vs 40-item sittings
                       </Typography>
                       <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1 }}>
                         {officialDrilldown.set_route?.attempts_with_ar_shape
-                          ? `AR sits · ${officialDrilldown.set_route.finished_at_32} finished at 32 · ${officialDrilldown.set_route.finished_at_40} at 40 · extension ${officialDrilldown.set_route.extension_triggered} (${officialDrilldown.set_route.extension_trigger_pct}%)`
-                          : 'No AR-shaped attempts in this filter yet.'}
+                          ? `${officialDrilldown.set_route.attempts_with_ar_shape} Analytical Reasoning sits: ${officialDrilldown.set_route.finished_at_32} finished at 32 items, ${officialDrilldown.set_route.finished_at_40} at 40 items. Extra 8-item set used on ${officialDrilldown.set_route.extension_triggered} sits (${officialDrilldown.set_route.extension_trigger_pct}%).`
+                          : 'No Analytical Reasoning sits in this filter yet.'}
                       </Typography>
                       {(officialDrilldown.set_route?.reason_counts || []).length > 0 && (
                         <TableContainer component={Paper} elevation={0} sx={{ ...platformAdminTablePaperSx, mb: 2.5 }}>
                           <Table size="small" sx={platformAdminTableSx}>
                             <TableHead>
                               <TableRow sx={platformAdminTableHeadRowSx}>
-                                <TableCell>Extension reason</TableCell>
-                                <TableCell align="right">Count</TableCell>
+                                <TableCell>Why the extra 8 items were added</TableCell>
+                                <TableCell align="right">Sits</TableCell>
                               </TableRow>
                             </TableHead>
                             <TableBody>
                               {officialDrilldown.set_route.reason_counts.map((r) => (
                                 <TableRow key={r.key}>
-                                  <TableCell>{r.key}</TableCell>
+                                  <TableCell>
+                                    {extensionReasonDisplayLabel(r.key, r.label)}
+                                  </TableCell>
                                   <TableCell align="right">{r.count}</TableCell>
                                 </TableRow>
                               ))}
@@ -1405,16 +1622,16 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                       )}
 
                       <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5, mt: 1 }}>
-                        Representation mode
+                        How items were shown
                       </Typography>
                       <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1 }}>
-                        From denormalized answer tags on new AR sits.
+                        Presentation style on newer Analytical Reasoning sits (figures, spatial, tables, short context).
                       </Typography>
                       <TableContainer component={Paper} elevation={0} sx={{ ...platformAdminTablePaperSx, mb: 2.5 }}>
                         <Table size="small" sx={platformAdminTableSx}>
                           <TableHead>
                             <TableRow sx={platformAdminTableHeadRowSx}>
-                              <TableCell>Mode</TableCell>
+                              <TableCell>Style</TableCell>
                               <TableCell align="right">Attempts</TableCell>
                               <TableCell align="right">Accuracy</TableCell>
                               <TableCell align="right">Served</TableCell>
@@ -1424,13 +1641,15 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                             {(officialDrilldown.by_representation_mode || []).length === 0 ? (
                               <TableRow>
                                 <TableCell colSpan={4} align="center" sx={{ py: 2, color: ip.subtext }}>
-                                  No representation-mode tags yet.
+                                  No presentation-style tags yet.
                                 </TableCell>
                               </TableRow>
                             ) : (
                               officialDrilldown.by_representation_mode.map((row) => (
                                 <TableRow key={row.key}>
-                                  <TableCell sx={{ fontWeight: 700 }}>{row.label}</TableCell>
+                                  <TableCell sx={{ fontWeight: 700 }}>
+                                    {representationModeDisplayLabel(row.key, row.label)}
+                                  </TableCell>
                                   <TableCell align="right">{row.attempts_with_data}</TableCell>
                                   <TableCell align="right">
                                     <PlatformAdminAccuracyChip pct={row.accuracy_pct} />
@@ -1444,10 +1663,10 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                       </TableContainer>
 
                       <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
-                        Exposure group (top)
+                        Look-alike item groups
                       </Typography>
                       <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1 }}>
-                        Compact rollup - top 15 by served (same one-pass cache).
+                        Families that look too similar to serve twice in one sitting. Top 15 by items served.
                       </Typography>
                       <TableContainer component={Paper} elevation={0} sx={{ ...platformAdminTablePaperSx, mb: 2.5 }}>
                         <Table size="small" sx={platformAdminTableSx}>
@@ -1463,95 +1682,23 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                             {(officialDrilldown.by_exposure_group || []).slice(0, 15).length === 0 ? (
                               <TableRow>
                                 <TableCell colSpan={4} align="center" sx={{ py: 2, color: ip.subtext }}>
-                                  No exposure-group tags yet.
+                                  No look-alike group tags yet.
                                 </TableCell>
                               </TableRow>
                             ) : (
                               officialDrilldown.by_exposure_group.slice(0, 15).map((row) => (
                                 <TableRow key={row.key}>
-                                  <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>{row.label}</TableCell>
-                                  <TableCell align="right">{row.attempts_with_data}</TableCell>
-                                  <TableCell align="right">
-                                    <PlatformAdminAccuracyChip pct={row.accuracy_pct} />
+                                  <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>
+                                    <Box>
+                                      {exposureGroupDisplayLabel(row.key, row.label)}
+                                      <Typography
+                                        variant="caption"
+                                        sx={{ display: 'block', color: ip.subtext, fontFamily: 'monospace' }}
+                                      >
+                                        {row.key}
+                                      </Typography>
+                                    </Box>
                                   </TableCell>
-                                  <TableCell align="right">{row.served_sum}</TableCell>
-                                </TableRow>
-                              ))
-                            )}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
-
-                      <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
-                        Strand × grade
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1 }}>
-                        Accuracy by grade at attempt × strand (same completion scan).
-                      </Typography>
-                      <TableContainer component={Paper} elevation={0} sx={{ ...platformAdminTablePaperSx, mb: 2.5 }}>
-                        <Table size="small" sx={platformAdminTableSx}>
-                          <TableHead>
-                            <TableRow sx={platformAdminTableHeadRowSx}>
-                              <TableCell>Grade</TableCell>
-                              <TableCell>Strand</TableCell>
-                              <TableCell align="right">Attempts</TableCell>
-                              <TableCell align="right">Accuracy</TableCell>
-                              <TableCell align="right">Served</TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {(officialDrilldown.strand_by_grade || []).length === 0 ? (
-                              <TableRow>
-                                <TableCell colSpan={5} align="center" sx={{ py: 2, color: ip.subtext }}>
-                                  No grade × strand rows yet.
-                                </TableCell>
-                              </TableRow>
-                            ) : (
-                              officialDrilldown.strand_by_grade.map((row) => (
-                                <TableRow key={`${row.split_key}-${row.tag_key}`}>
-                                  <TableCell sx={{ fontWeight: 700 }}>{row.split_label}</TableCell>
-                                  <TableCell>{row.tag_label}</TableCell>
-                                  <TableCell align="right">{row.attempts_with_data}</TableCell>
-                                  <TableCell align="right">
-                                    <PlatformAdminAccuracyChip pct={row.accuracy_pct} />
-                                  </TableCell>
-                                  <TableCell align="right">{row.served_sum}</TableCell>
-                                </TableRow>
-                              ))
-                            )}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
-
-                      <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
-                        Strand × school
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1 }}>
-                        Top school × strand accuracy (names hydrated once per scan).
-                      </Typography>
-                      <TableContainer component={Paper} elevation={0} sx={{ ...platformAdminTablePaperSx, mb: 2.5 }}>
-                        <Table size="small" sx={platformAdminTableSx}>
-                          <TableHead>
-                            <TableRow sx={platformAdminTableHeadRowSx}>
-                              <TableCell>School</TableCell>
-                              <TableCell>Strand</TableCell>
-                              <TableCell align="right">Attempts</TableCell>
-                              <TableCell align="right">Accuracy</TableCell>
-                              <TableCell align="right">Served</TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {(officialDrilldown.strand_by_school || []).slice(0, 40).length === 0 ? (
-                              <TableRow>
-                                <TableCell colSpan={5} align="center" sx={{ py: 2, color: ip.subtext }}>
-                                  No school × strand rows yet.
-                                </TableCell>
-                              </TableRow>
-                            ) : (
-                              officialDrilldown.strand_by_school.slice(0, 40).map((row) => (
-                                <TableRow key={`${row.split_key}-${row.tag_key}`}>
-                                  <TableCell sx={{ fontWeight: 600 }}>{row.split_label}</TableCell>
-                                  <TableCell>{row.tag_label}</TableCell>
                                   <TableCell align="right">{row.attempts_with_data}</TableCell>
                                   <TableCell align="right">
                                     <PlatformAdminAccuracyChip pct={row.accuracy_pct} />
@@ -1571,7 +1718,7 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
               {officialView === 'grade-school' && (
               <PlatformAdminAnalyticsSection
                 title="Grade & school"
-                subtitle="From completed attempts (grade at attempt when available; otherwise student grade)."
+                subtitle="From completed attempts (grade at attempt when available; otherwise student grade). Click a grade or school for strand-wise accuracy."
                 accent="amber"
               >
                   {officialDetailLoading ? (
@@ -1601,11 +1748,24 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                                   </TableCell>
                                 </TableRow>
                               ) : (
-                                officialByGrade.map((row) => (
-                                  <TableRow key={row.grade == null ? 'unknown' : row.grade}>
-                                    <TableCell sx={{ fontWeight: 700 }}>
-                                      {row.grade == null ? 'Unknown' : `G${row.grade}`}
-                                    </TableCell>
+                                officialByGrade.map((row) => {
+                                  const key = row.grade == null ? 'unknown' : String(row.grade);
+                                  const label = row.grade == null ? 'Unknown' : `G${row.grade}`;
+                                  const selected =
+                                    gradeSchoolStrandSplit?.kind === 'grade' &&
+                                    gradeSchoolStrandSplit.key === key;
+                                  return (
+                                  <React.Fragment key={key}>
+                                  <TableRow
+                                    hover
+                                    onClick={() =>
+                                      setGradeSchoolStrandSplit(
+                                        selected ? null : { kind: 'grade', key, label }
+                                      )
+                                    }
+                                    sx={gradeSchoolRowSx(selected)}
+                                  >
+                                    <TableCell sx={{ fontWeight: 700 }}>{label}</TableCell>
                                     <TableCell align="right">{row.completed_attempts}</TableCell>
                                     <TableCell align="right">{row.unique_students}</TableCell>
                                     <TableCell align="right">
@@ -1615,7 +1775,17 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                                       <PlatformAdminAccuracyChip pct={row.pass_rate_pct} />
                                     </TableCell>
                                   </TableRow>
-                                ))
+                                  {selected && gradeSchoolStrandSplit ? (
+                                    <GradeSchoolStrandExpandRow
+                                      split={gradeSchoolStrandSplit}
+                                      drilldown={officialDrilldown}
+                                      loading={officialDrillLoading}
+                                      colSpan={5}
+                                    />
+                                  ) : null}
+                                  </React.Fragment>
+                                  );
+                                })
                               )}
                             </TableBody>
                           </Table>
@@ -1642,8 +1812,24 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                                   </TableCell>
                                 </TableRow>
                               ) : (
-                                officialBySchool.map((row) => (
-                                  <TableRow key={row.school_id ?? row.school_name}>
+                                officialBySchool.map((row) => {
+                                  const key = row.school_id || row.school_name;
+                                  const selected =
+                                    gradeSchoolStrandSplit?.kind === 'school' &&
+                                    gradeSchoolStrandSplit.key === key;
+                                  return (
+                                  <React.Fragment key={key}>
+                                  <TableRow
+                                    hover
+                                    onClick={() =>
+                                      setGradeSchoolStrandSplit(
+                                        selected
+                                          ? null
+                                          : { kind: 'school', key, label: row.school_name }
+                                      )
+                                    }
+                                    sx={gradeSchoolRowSx(selected)}
+                                  >
                                     <TableCell sx={{ fontWeight: 600 }}>{row.school_name}</TableCell>
                                     <TableCell align="right">{row.completed_attempts}</TableCell>
                                     <TableCell align="right">{row.unique_students}</TableCell>
@@ -1654,7 +1840,17 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                                       <PlatformAdminAccuracyChip pct={row.pass_rate_pct} />
                                     </TableCell>
                                   </TableRow>
-                                ))
+                                  {selected && gradeSchoolStrandSplit ? (
+                                    <GradeSchoolStrandExpandRow
+                                      split={gradeSchoolStrandSplit}
+                                      drilldown={officialDrilldown}
+                                      loading={officialDrillLoading}
+                                      colSpan={5}
+                                    />
+                                  ) : null}
+                                  </React.Fragment>
+                                  );
+                                })
                               )}
                             </TableBody>
                           </Table>
@@ -2053,17 +2249,18 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                                                       emptyLabel="(no prompt - bank item missing)"
                                                     />
                                                     {(() => {
+                                                      const optionRows = Array.isArray(q.options) ? q.options : [];
                                                       const resolved = resolveLearnerExamOptions({
                                                         markdown: q.prompt || q.prompt_preview || '',
                                                         stimulus: q.stimulus,
                                                         stimulusType: q.stimulus_type,
-                                                        bankOptions: q.options.map((o) => o.text),
+                                                        bankOptions: optionRows.map((o) => o.text),
                                                       });
                                                       const hasText = resolved.optionTexts.some((t) => t);
-                                                      if (q.options.length > 0 && (resolved.pickOnFigure || !hasText)) {
+                                                      if (optionRows.length > 0 && (resolved.pickOnFigure || !hasText)) {
                                                         return (
                                                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
-                                                        {q.options.map((opt, optIdx) => {
+                                                        {optionRows.map((opt, optIdx) => {
                                                           const picked = q.selected_index === optIdx;
                                                           const keyCorrect = q.correct_index === optIdx;
                                                           return (
@@ -2103,10 +2300,10 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
                                                       </Box>
                                                         );
                                                       }
-                                                      if (q.options.length > 0) {
+                                                      if (optionRows.length > 0) {
                                                         return (
                                                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-                                                        {q.options.map((opt, optIdx) => {
+                                                        {optionRows.map((opt, optIdx) => {
                                                           const picked = q.selected_index === optIdx;
                                                           const keyCorrect = q.correct_index === optIdx;
                                                           return (
@@ -3017,5 +3214,31 @@ const PlatformAdminAnalyticsPage: React.FC = () => {
     </Box>
   );
 };
+
+function AnalyticsPageFallback({ resetError }: { resetError?: () => void }) {
+  return (
+    <Alert
+      severity="error"
+      sx={{ mt: 2 }}
+      action={
+        resetError ? (
+          <Button color="inherit" size="small" onClick={() => resetError()}>
+            Try again
+          </Button>
+        ) : undefined
+      }
+    >
+      Analytics failed to render. Try again, or hard-refresh if this followed a deploy.
+    </Alert>
+  );
+}
+
+const PlatformAdminAnalyticsPage: React.FC = () => (
+  <Sentry.ErrorBoundary
+    fallback={({ resetError }) => <AnalyticsPageFallback resetError={resetError} />}
+  >
+    <PlatformAdminAnalyticsPageInner />
+  </Sentry.ErrorBoundary>
+);
 
 export default PlatformAdminAnalyticsPage;

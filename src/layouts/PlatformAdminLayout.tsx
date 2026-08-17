@@ -49,6 +49,9 @@ const APP_BAR_HEIGHT = 64;
 const PAGE_BG = '#f1f5f9';
 const SIDEBAR_ICON_SIZE = 22;
 const CHILD_ICON_SIZE = 18;
+/** Stable identity — a new ModalProps object every render can loop MUI Fade/Transition. */
+const MOBILE_DRAWER_MODAL_PROPS = { keepMounted: false } as const;
+const SUBMENU_COLLAPSE_TIMEOUT_MS = 200;
 
 type NavItem = {
   title: string;
@@ -187,7 +190,10 @@ export default function PlatformAdminLayout({ children }: PlatformAdminLayoutPro
     const childActive = hasActiveChild(item);
     const active = level === 0 ? isPathActive(item.path) || childActive : location.pathname === item.path;
     const hasChildren = Boolean(item.children?.length);
-    const submenuOpen = openSubmenus[item.title] ?? childActive;
+    // Include the parent path so /analytics → /analytics/official does not close-then-open
+    // Collapse (that enter animation is what loops Transition on first load).
+    const submenuOpen =
+      openSubmenus[item.title] ?? (childActive || (hasChildren && isPathActive(item.path)));
 
     return (
       <Box key={item.path}>
@@ -246,7 +252,7 @@ export default function PlatformAdminLayout({ children }: PlatformAdminLayoutPro
         </Box>
 
         {hasChildren && (
-          <Collapse in={submenuOpen} timeout="auto" unmountOnExit>
+          <Collapse in={submenuOpen} timeout={SUBMENU_COLLAPSE_TIMEOUT_MS}>
             <Box sx={{ py: 0.25 }}>{item.children!.map((child) => renderNavItem(child, level + 1))}</Box>
           </Collapse>
         )}
@@ -368,7 +374,7 @@ export default function PlatformAdminLayout({ children }: PlatformAdminLayoutPro
             variant="temporary"
             open={mobileOpen}
             onClose={() => setMobileOpen(false)}
-            ModalProps={{ keepMounted: true }}
+            ModalProps={MOBILE_DRAWER_MODAL_PROPS}
             sx={{
               display: { xs: 'block', md: 'none' },
               '& .MuiDrawer-paper': { width: DRAWER_WIDTH, ...drawerPaperSx },

@@ -5,14 +5,16 @@ import {
   layoutFromSvgText,
   optionFigureContentSlicesFromSvg,
   optionFigureGridSx,
+  optionFigureIncludesStemContent,
   optionFigureSliceWindow,
+  optionFigureStemSliceFromOptionSlices,
   svgNaturalSizeFromText,
   type ArOptionFigureLayout,
   type ArOptionFigureRef,
   type OptionFigureSliceRect,
 } from './arOptionFigureModel';
 
-import { EXAM_FIGURE_MAX_WIDTH_PX } from './ExamMarkdown';
+import { EXAM_FIGURE_MAX_HEIGHT_PX, EXAM_FIGURE_MAX_WIDTH_PX } from './ExamMarkdown';
 
 const borderMuted = '#e2e8f0';
 
@@ -22,6 +24,8 @@ export function useArOptionFigureMeta(
 ): {
   layout: ArOptionFigureLayout;
   slices: OptionFigureSliceRect[] | null;
+  stemSlice: OptionFigureSliceRect | null;
+  includesStemContent: boolean;
   naturalWidth: number;
   naturalHeight: number;
 } {
@@ -86,7 +90,14 @@ export function useArOptionFigureMeta(
     };
   }, [src, optionCount]);
 
-  return { layout, slices, naturalWidth, naturalHeight };
+  return {
+    layout,
+    slices,
+    stemSlice: optionFigureStemSliceFromOptionSlices(slices),
+    includesStemContent: optionFigureIncludesStemContent(layout, slices),
+    naturalWidth,
+    naturalHeight,
+  };
 }
 
 export function useArOptionFigureLayout(src: string | undefined): ArOptionFigureLayout {
@@ -101,6 +112,8 @@ export const ArOptionFigureSlice: React.FC<{
   slice?: OptionFigureSliceRect | null;
   naturalWidth?: number;
   naturalHeight?: number;
+  /** Default keeps historical option-slice sizing. Combined stem+options figures pass a fit. */
+  fit?: 'option' | 'exam' | 'crop';
 }> = ({
   figure,
   index,
@@ -109,6 +122,7 @@ export const ArOptionFigureSlice: React.FC<{
   slice,
   naturalWidth = 0,
   naturalHeight = 0,
+  fit = 'option',
 }) => {
   const win = optionFigureSliceWindow(layout, index, optionCount);
   const crop = slice ?? {
@@ -124,11 +138,23 @@ export const ArOptionFigureSlice: React.FC<{
   const aspect = natW / Math.max(natH, 1);
   // `kind` comes from SVG geometry (2×2/3×3 vs wide panels). See arOptionFigureModel.
   const wideStrip = slice?.kind === 'wide' || (!slice && aspect >= 1.7);
-  const scale = Math.min(
-    EXAM_FIGURE_MAX_WIDTH_PX / figW,
-    (wideStrip ? 220 : 72) / Math.max(natH, 1),
-    (wideStrip ? 560 : 140) / Math.max(natW, 1)
-  );
+  const scale =
+    fit === 'exam'
+      ? Math.min(
+          EXAM_FIGURE_MAX_WIDTH_PX / Math.max(natW, 1),
+          EXAM_FIGURE_MAX_HEIGHT_PX / Math.max(natH, 1)
+        )
+      : fit === 'crop'
+        ? Math.min(
+            EXAM_FIGURE_MAX_WIDTH_PX / Math.max(natW, 1),
+            (wideStrip ? 220 : 140) / Math.max(natH, 1),
+            (wideStrip ? 560 : 140) / Math.max(natW, 1)
+          )
+        : Math.min(
+            EXAM_FIGURE_MAX_WIDTH_PX / figW,
+            (wideStrip ? 220 : 72) / Math.max(natH, 1),
+            (wideStrip ? 560 : 140) / Math.max(natW, 1)
+          );
   const sliceWidth = Math.max(1, natW * scale);
   const sliceHeight = Math.max(1, natH * scale);
   return (

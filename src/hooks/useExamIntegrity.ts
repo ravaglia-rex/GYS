@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 
-/** Grace to return after minimize, tab switch, or leaving fullscreen. */
+/** Grace to return after minimize, tab switch, focus loss, or leaving fullscreen. */
 export const EXAM_LEAVE_GRACE_MS = 10_000;
 /** Brief leaves allowed in one sit before the attempt is ended. */
 export const EXAM_LEAVE_MAX_INCIDENTS = 3;
@@ -27,7 +27,8 @@ type UseExamIntegrityOptions = {
   enforceFullscreen?: boolean;
 };
 
-function isExamAway(enforceFullscreen: boolean): boolean {
+function isExamAway(enforceFullscreen: boolean, windowFocused: boolean): boolean {
+  if (!windowFocused) return true;
   if (document.visibilityState === 'hidden') return true;
   if (enforceFullscreen && !document.fullscreenElement) return true;
   return false;
@@ -35,7 +36,7 @@ function isExamAway(enforceFullscreen: boolean): boolean {
 
 /**
  * While active: blocks copy/cut/paste/context menu, treats minimize / background /
- * fullscreen-exit as one leave type (10s grace, 3 leaves then the sit ends).
+ * another-window focus / fullscreen-exit as one leave type (10s grace, 3 leaves then the sit ends).
  */
 export function useExamIntegrity({
   active,
@@ -44,6 +45,7 @@ export function useExamIntegrity({
   enforceFullscreen = true,
 }: UseExamIntegrityOptions) {
   const [leftFullscreen, setLeftFullscreen] = useState(false);
+  const [lostWindowFocus, setLostWindowFocus] = useState(false);
   const [warning, setWarning] = useState<ExamIntegrityWarning | null>(null);
 
   const onEndRef = useRef(onLeaveLimitReached);
@@ -54,6 +56,7 @@ export function useExamIntegrity({
   const awayRef = useRef(false);
   const endedRef = useRef(false);
   const primedRef = useRef(false);
+  const windowFocusedRef = useRef(true);
   const leaveCountRef = useRef(0);
   const graceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tickTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -103,7 +106,10 @@ export function useExamIntegrity({
     tickTimerRef.current = setInterval(refreshWarning, 250);
     graceTimerRef.current = setTimeout(() => {
       if (endedRef.current) return;
-      if (isExamAway(enforceFullscreen) || leaveCountRef.current >= EXAM_LEAVE_MAX_INCIDENTS) {
+      if (
+        isExamAway(enforceFullscreen, windowFocusedRef.current) ||
+        leaveCountRef.current >= EXAM_LEAVE_MAX_INCIDENTS
+      ) {
         endAttempt();
       }
     }, EXAM_LEAVE_GRACE_MS);
@@ -122,7 +128,7 @@ export function useExamIntegrity({
 
   const onReturn = useCallback(() => {
     if (!active || endedRef.current) return;
-    if (isExamAway(enforceFullscreen)) return;
+    if (isExamAway(enforceFullscreen, windowFocusedRef.current)) return;
     awayRef.current = false;
     clearTimers();
     if (leaveCountRef.current >= EXAM_LEAVE_MAX_INCIDENTS) {
@@ -143,10 +149,12 @@ export function useExamIntegrity({
   useEffect(() => {
     if (!active) {
       setLeftFullscreen(false);
+      setLostWindowFocus(false);
       setWarning(null);
       awayRef.current = false;
       endedRef.current = false;
       primedRef.current = false;
+      windowFocusedRef.current = true;
       leaveCountRef.current = 0;
       clearTimers();
       return;
@@ -162,12 +170,18 @@ export function useExamIntegrity({
     document.addEventListener('paste', stop, true);
     document.addEventListener('contextmenu', stop, true);
 
+    windowFocusedRef.current = document.hasFocus();
+
     const sync = () => {
-      const away = isExamAway(enforceFullscreen);
+      const away = isExamAway(enforceFullscreen, windowFocusedRef.current);
       setLeftFullscreen(enforceFullscreen && !document.fullscreenElement);
+      setLostWindowFocus(
+        !windowFocusedRef.current && document.visibilityState === 'visible'
+      );
       if (!primedRef.current) {
         if (
           document.visibilityState === 'visible' &&
+          windowFocusedRef.current &&
           (!enforceFullscreen || Boolean(document.fullscreenElement))
         ) {
           primedRef.current = true;
@@ -178,8 +192,19 @@ export function useExamIntegrity({
       else onReturn();
     };
 
+    const onWindowBlur = () => {
+      windowFocusedRef.current = false;
+      sync();
+    };
+    const onWindowFocus = () => {
+      windowFocusedRef.current = true;
+      sync();
+    };
+
     document.addEventListener('visibilitychange', sync);
     document.addEventListener('fullscreenchange', sync);
+    window.addEventListener('blur', onWindowBlur);
+    window.addEventListener('focus', onWindowFocus);
     if (enforceFullscreen && !document.fullscreenElement) {
       void document.documentElement.requestFullscreen?.().catch(() => {});
     }
@@ -200,6 +225,8 @@ export function useExamIntegrity({
       document.removeEventListener('contextmenu', stop, true);
       document.removeEventListener('visibilitychange', sync);
       document.removeEventListener('fullscreenchange', sync);
+      window.removeEventListener('blur', onWindowBlur);
+      window.removeEventListener('focus', onWindowFocus);
       window.removeEventListener('keydown', onKeyCapture, true);
       clearTimers();
     };
@@ -207,6 +234,7 @@ export function useExamIntegrity({
 
   return {
     leftFullscreen,
+    lostWindowFocus,
     integrityWarning: warning,
     tryEnterFullscreen,
     dismissFullscreenWarning: () => {

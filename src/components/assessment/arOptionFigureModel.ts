@@ -648,6 +648,108 @@ function isFullCanvasRect(
   return false;
 }
 
+function letterPointsAreStacked(pts: Array<{ x: number; y: number }>): boolean {
+  if (pts.length < 2) return false;
+  const xs = pts.map((p) => p.x);
+  const ys = pts.map((p) => p.y);
+  const xSpread = Math.max(...xs) - Math.min(...xs);
+  const ySpread = Math.max(...ys) - Math.min(...ys);
+  return ySpread >= 8 && xSpread < ySpread * 0.35;
+}
+
+function sliceRectFromBounds(
+  minX: number,
+  minY: number,
+  maxX: number,
+  maxY: number,
+  vb: { x: number; y: number; w: number; h: number },
+  kind: OptionFigureSliceKind
+): OptionFigureSliceRect {
+  const pad = Math.max(3, Math.min(maxX - minX, maxY - minY) * 0.03);
+  const x1 = Math.max(vb.x, minX - pad);
+  const y1 = Math.max(vb.y, minY - pad);
+  const x2 = Math.min(vb.x + vb.w, maxX + pad);
+  const y2 = Math.min(vb.y + vb.h, maxY + pad);
+  return {
+    xPct: ((x1 - vb.x) / vb.w) * 100,
+    yPct: ((y1 - vb.y) / vb.h) * 100,
+    wPct: ((x2 - x1) / vb.w) * 100,
+    hPct: ((y2 - y1) / vb.h) * 100,
+    kind,
+  };
+}
+
+/**
+ * Stacked A–D tables (one row per option). Crop each letter's horizontal band
+ * so a multi-cell row is not reduced to its largest single box, and stem
+ * content above the table is not assigned to option A.
+ */
+function stackedRowSlicesFromCards(
+  letterPts: Array<{ x: number; y: number }>,
+  cards: Array<{ x: number; y: number; w: number; h: number; cy: number }>,
+  vb: { x: number; y: number; w: number; h: number }
+): OptionFigureSliceRect[] | null {
+  const n = letterPts.length;
+  const order = letterPts
+    .map((p, i) => ({ i, y: p.y }))
+    .sort((a, b) => a.y - b.y);
+  const slices: Array<OptionFigureSliceRect | undefined> = new Array(n);
+  for (let k = 0; k < n; k++) {
+    const y = order[k].y;
+    const prev = order[k - 1];
+    const next = order[k + 1];
+    const halfPrev = prev ? (y - prev.y) / 2 : next ? (next.y - y) / 2 : 40;
+    const halfNext = next ? (next.y - y) / 2 : halfPrev;
+    const y1 = y - halfPrev;
+    const y2 = y + halfNext;
+    const letterX = letterPts[order[k].i].x;
+    const rowCards = cards.filter((c) =>
+      k === n - 1 ? c.cy >= y1 && c.cy <= y2 : c.cy >= y1 && c.cy < y2
+    );
+    const withoutLetter = rowCards.filter((c) => c.x + c.w > letterX + 24);
+    const inBand = withoutLetter.length ? withoutLetter : rowCards;
+    if (!inBand.length) return null;
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const c of inBand) {
+      minX = Math.min(minX, c.x);
+      minY = Math.min(minY, c.y);
+      maxX = Math.max(maxX, c.x + c.w);
+      maxY = Math.max(maxY, c.y + c.h);
+    }
+    slices[order[k].i] = sliceRectFromBounds(minX, minY, maxX, maxY, vb, 'wide');
+  }
+  if (slices.some((s) => !s)) return null;
+  return slices as OptionFigureSliceRect[];
+}
+
+/** True when A–D sit in the lower part of a figure that also has stem content above. */
+export function optionFigureIncludesStemContent(
+  _layout: ArOptionFigureLayout,
+  slices: OptionFigureSliceRect[] | null
+): boolean {
+  if (!slices?.length) return false;
+  return Math.min(...slices.map((s) => s.yPct)) >= 28;
+}
+
+/** Top of a combined stem+options figure (initial state, route), above the A–D rows. */
+export function optionFigureStemSliceFromOptionSlices(
+  slices: OptionFigureSliceRect[] | null
+): OptionFigureSliceRect | null {
+  if (!slices?.length) return null;
+  const minY = Math.min(...slices.map((s) => s.yPct));
+  if (minY < 28) return null;
+  return {
+    xPct: 0,
+    yPct: 0,
+    wPct: 100,
+    hPct: Math.max(8, minY - 0.6),
+    kind: 'wide',
+  };
+}
+
 export function optionFigureContentSlicesFromSvg(
   svgText: string,
   optionCount: number
@@ -690,6 +792,13 @@ export function optionFigureContentSlicesFromSvg(
     });
   }
   if (!cards.length) return null;
+  if (letterPointsAreStacked(letterPts)) {
+    const minY = Math.min(...letterPts.map((p) => p.y));
+    if ((minY - vb.y) / vb.h >= 0.28) {
+      const stacked = stackedRowSlicesFromCards(letterPts, cards, vb);
+      if (stacked) return stacked;
+    }
+  }
   const segs = collectAxisSegments(doc);
 
   const grouped: Array<typeof cards> = Array.from({ length: n }, () => []);

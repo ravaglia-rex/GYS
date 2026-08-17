@@ -7,8 +7,8 @@ import { cleanLearnerFacingExamMarkup } from '../../components/assessment/cleanL
 import {
   ExamMarkdown,
   ExamRichPrompt,
-  ADMIN_EXAM_FIGURE_MAX_HEIGHT_PX,
-  ADMIN_EXAM_FIGURE_MAX_WIDTH_PX,
+  EXAM_FIGURE_MAX_HEIGHT_PX,
+  EXAM_FIGURE_MAX_WIDTH_PX,
   looksLikeExamMarkdown,
   shouldRenderStructuredStimulus,
 } from '../../components/assessment/ExamMarkdown';
@@ -65,8 +65,8 @@ export function AdminExamQuestionStem({
         <ExamRichPrompt
           prompt={stemMarkdown}
           emptyLabel={emptyLabel}
-          maxFigureWidth={ADMIN_EXAM_FIGURE_MAX_WIDTH_PX}
-          maxFigureHeight={ADMIN_EXAM_FIGURE_MAX_HEIGHT_PX}
+          maxFigureWidth={EXAM_FIGURE_MAX_WIDTH_PX}
+          maxFigureHeight={EXAM_FIGURE_MAX_HEIGHT_PX}
         />
       </Box>
       {shouldRenderStructuredStimulus(q.stimulus, q.stimulus_type) ? (
@@ -190,11 +190,12 @@ export function PlatformAdminQuestionPerformanceCard({
     bankOptions: question.options.map((o) => o.text),
   });
   const optionFigure = resolved.optionFigure;
-  const showFigureSlices = resolved.pickOnFigure;
-  const { layout, slices, naturalWidth, naturalHeight } = useArOptionFigureMeta(
-    optionFigure?.src,
-    question.options.length || resolved.optionTexts.length || 4
-  );
+  const { layout, slices, stemSlice, includesStemContent, naturalWidth, naturalHeight } =
+    useArOptionFigureMeta(
+      optionFigure?.src,
+      question.options.length || resolved.optionTexts.length || 4
+    );
+  const showFigureSlices = Boolean(resolved.pickOnFigure);
   return (
     <Box
       sx={{
@@ -236,6 +237,20 @@ export function PlatformAdminQuestionPerformanceCard({
         hideOptionFigure={showFigureSlices}
         hideEmbeddedChoices
       />
+      {showFigureSlices && includesStemContent && optionFigure && stemSlice ? (
+        <Box sx={{ mb: 1.25 }}>
+          <ArOptionFigureSlice
+            figure={optionFigure}
+            index={0}
+            optionCount={question.options.length}
+            layout={layout}
+            slice={stemSlice}
+            naturalWidth={naturalWidth}
+            naturalHeight={naturalHeight}
+            fit="exam"
+          />
+        </Box>
+      ) : null}
       {question.options.length > 0 ? (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.4 }}>
           {question.options.map((opt, optIdx) => {
@@ -257,6 +272,7 @@ export function PlatformAdminQuestionPerformanceCard({
                   slice={slices?.[optIdx]}
                   naturalWidth={naturalWidth}
                   naturalHeight={naturalHeight}
+                  fit={includesStemContent ? 'crop' : 'option'}
                 />
               ) : optionText ? (
                 <AdminExamOptionText text={optionText} />

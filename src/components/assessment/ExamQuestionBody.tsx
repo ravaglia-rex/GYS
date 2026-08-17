@@ -188,9 +188,6 @@ function VisualOptionPicker({
   selectionLocked = false,
   answerFeedback = null,
 }: VisualOptionPickerProps) {
-  const maxChoiceColumns = Math.max(1, ...choices.flatMap((choice) => choice.map((row) => row.length)));
-  const stackChoices = maxChoiceColumns > 6;
-
   return (
     <FormControl component="fieldset" fullWidth>
       <RadioGroup
@@ -203,7 +200,7 @@ function VisualOptionPicker({
         <Box
           sx={{
             display: 'grid',
-            gridTemplateColumns: stackChoices ? '1fr' : { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' },
+            gridTemplateColumns: '1fr',
             gap: 1.5,
           }}
         >

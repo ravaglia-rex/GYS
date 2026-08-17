@@ -3,6 +3,7 @@ export type ProctoringEventType =
   | 'multiple_faces'
   | 'tab_background'
   | 'fullscreen_exit'
+  | 'window_blur'
   | 'camera_denied'
   | 'print_screen'
   | 'other';
