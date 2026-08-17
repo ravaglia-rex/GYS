@@ -115,7 +115,7 @@ export const studentFaqSections: { heading: string; items: LandingFaqItem[] }[] 
         question: 'How long do the exams take?',
         answer: (
           <p>
-            Analytical Reasoning Levels 1 and 2 have a 30-minute time limit. Analytical Level 3, Verbal Reasoning, and Mathematical Reasoning each have a 40-minute time limit. Other timed assessments
+            Analytical Reasoning, Verbal Reasoning, and Mathematical Reasoning each have a 40-minute time limit. Other timed assessments
             vary. The Personality assessment is
             untimed and typically takes about 30–45 minutes. Students do not need to complete all assessments in one
             sitting. They can complete the assessments included in their membership at their own pace over days or

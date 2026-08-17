@@ -3,11 +3,7 @@ import {
   countClearedTiersFromProgress,
   examSequencePrereqMet,
 } from './tierProgression';
-import {
-  canonicalAssessmentId,
-  LEGACY_ANALYTICAL_REASONING_ASSESSMENT_ID,
-  ANALYTICAL_REASONING_ASSESSMENT_ID,
-} from './assessmentIdCompat';
+import { canonicalAssessmentId } from './assessmentIdCompat';
 
 /**
  * Canonical assessment order for sorting and gating (wired assessment ids from Firestore).
@@ -218,10 +214,7 @@ export function computeGate(
   for (const prereq of prereqs) {
     const prereqProgress =
       progress[prereq] ??
-      progress[canonicalAssessmentId(prereq)] ??
-      (prereq === 'analytical_reasoning'
-        ? progress[LEGACY_ANALYTICAL_REASONING_ASSESSMENT_ID]
-        : undefined);
+      progress[canonicalAssessmentId(prereq)];
     const prereqAss = byId.get(prereq);
     const prereqMaxTiers = maxTiersForAssessment(prereq, prereqAss?.tiers?.length);
     const passed = examSequencePrereqMet(
@@ -390,12 +383,7 @@ export function buildDashboardExamChartRows(
   return DASHBOARD_CHART_EXAM_IDS.map((id) => {
     const a = sorted.find((x) => canonicalAssessmentId(x.id) === id);
     const subject = chartExamDisplayName(id);
-    const p =
-      progress[id] ??
-      (id === ANALYTICAL_REASONING_ASSESSMENT_ID
-        ? progress[LEGACY_ANALYTICAL_REASONING_ASSESSMENT_ID]
-        : undefined) ??
-      defaultAssessmentProgress;
+    const p = progress[id] ?? defaultAssessmentProgress;
     const gate = a ? computeGate(id, membershipLevel, progress, studentGrade, sorted) : { locked: true as const };
     const picked = pickLatestOrBestAssessmentScore(p);
     const showBar = !!a && !gate.locked && picked != null;

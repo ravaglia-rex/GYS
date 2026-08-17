@@ -149,7 +149,6 @@ const AR_REPRESENTATION_MODE_LABELS: Record<string, string> = {
   short_context: 'Short context',
   spatial_2d: 'Spatial 2D',
   spatial_3d: 'Spatial 3D',
-  symbolic_code: 'Code table',
 };
 
 const AR_PROGRESSION_REASON_LABELS: Record<string, string> = {
