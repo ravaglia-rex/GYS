@@ -655,10 +655,14 @@ export default function AssessmentTakePage() {
 
       if (!response.next_question) {
         setError(
-          'Could not load the next question. Please go back and start again if this persists.'
+          response.already_recorded
+            ? 'Your answer was saved, but the next question could not be loaded. Tap Next again — do not refresh.'
+            : 'Could not load the next question. Please go back and start again if this persists.'
         );
         return;
       }
+
+      setError(null);
 
       setSelectedOption(null);
       setCurrentQuestion(response.next_question);
@@ -674,14 +678,14 @@ export default function AssessmentTakePage() {
       }
       if (err?.code === 'ECONNABORTED' || /timeout/i.test(String(err?.message ?? ''))) {
         setError(
-          'Submitting your answer timed out (often at a section boundary). Check your connection, then go back and try again - do not keep refreshing.'
+          'Submitting timed out while loading the next set (often after question 24). Your answer may already be saved — tap Next again. Do not refresh.'
         );
         return;
       }
       if (err?.response?.data?.code === 'section_inventory_timeout' || err?.response?.status === 503) {
         setError(
           err?.response?.data?.error ??
-            'Could not load the next section. Wait a moment and try Next again - avoid refreshing.'
+            'Could not load the next section. Wait a moment and tap Next again — avoid refreshing.'
         );
         return;
       }

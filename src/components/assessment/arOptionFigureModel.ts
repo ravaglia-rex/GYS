@@ -1,3 +1,5 @@
+import { EXAM_FIGURE_MAX_HEIGHT_PX, EXAM_FIGURE_MAX_WIDTH_PX } from './ExamMarkdown';
+
 const MD_IMAGE = /!\[([^\]]*)\]\(([^)]+)\)/g;
 
 export type ArOptionFigureRef = { alt: string; src: string };
@@ -393,6 +395,48 @@ export type OptionFigureSliceRect = {
   hPct: number;
   kind: OptionFigureSliceKind;
 };
+
+/** Display cap for a compact 2×2 / 3×3 card option (matches live exam rows). */
+export const AR_OPTION_GRID_SLICE_MAX_HEIGHT_PX = 72;
+export const AR_OPTION_GRID_SLICE_MAX_WIDTH_PX = 110;
+
+/**
+ * When a combined stem+options SVG is scaled to the exam figure cap, a single
+ * grid option slice can inherit the full figure height (~460px). Cap grid slices
+ * so fold / card options stay the same size as standalone 2×2 option rows.
+ */
+export function arOptionFigureSliceDisplaySize(
+  natW: number,
+  natH: number,
+  figW: number,
+  figH: number,
+  fit: 'option' | 'exam' | 'crop',
+  slice?: Pick<OptionFigureSliceRect, 'kind'> | null
+): { width: number; height: number } {
+  const figureScale = Math.min(
+    EXAM_FIGURE_MAX_WIDTH_PX / Math.max(figW, 1),
+    EXAM_FIGURE_MAX_HEIGHT_PX / Math.max(figH, 1)
+  );
+  const scale =
+    fit === 'exam'
+      ? Math.min(
+          EXAM_FIGURE_MAX_WIDTH_PX / Math.max(natW, 1),
+          EXAM_FIGURE_MAX_HEIGHT_PX / Math.max(natH, 1)
+        )
+      : figureScale;
+  let width = Math.max(1, natW * scale);
+  let height = Math.max(1, natH * scale);
+  if (fit === 'crop' && slice?.kind === 'grid') {
+    const capScale = Math.min(
+      AR_OPTION_GRID_SLICE_MAX_WIDTH_PX / width,
+      AR_OPTION_GRID_SLICE_MAX_HEIGHT_PX / height,
+      1
+    );
+    width *= capScale;
+    height *= capScale;
+  }
+  return { width, height };
+}
 
 function svgLocalPoint(el: Element): { x: number; y: number } {
   let x = Number.parseFloat(el.getAttribute('x') || '0') || 0;

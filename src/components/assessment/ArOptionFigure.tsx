@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Box } from '@mui/material';
 import {
+  arOptionFigureSliceDisplaySize,
   layoutFromAspect,
   layoutFromSvgText,
   optionFigureContentSlicesFromSvg,
@@ -13,7 +14,6 @@ import {
   type OptionFigureSliceRect,
 } from './arOptionFigureModel';
 
-import { EXAM_FIGURE_MAX_HEIGHT_PX, EXAM_FIGURE_MAX_WIDTH_PX } from './ExamMarkdown';
 import { resolveExamFigureSrc } from './examFigureSrc';
 import { lookupSavedOptionFigureCrops } from './arOptionFigureCrops';
 
@@ -161,21 +161,14 @@ export const ArOptionFigureSlice: React.FC<{
   const figH = naturalHeight || 1;
   const natW = (crop.wPct / 100) * figW;
   const natH = (crop.hPct / 100) * figH;
-  // Same caps as ExamMarkdown: scale the whole asset, then show the crop window.
-  // Avoids per-slice height caps (72 / 140 / 220) that blew up wide option rows.
-  const figureScale = Math.min(
-    EXAM_FIGURE_MAX_WIDTH_PX / Math.max(figW, 1),
-    EXAM_FIGURE_MAX_HEIGHT_PX / Math.max(figH, 1)
+  const { width: sliceWidth, height: sliceHeight } = arOptionFigureSliceDisplaySize(
+    natW,
+    natH,
+    figW,
+    figH,
+    fit,
+    slice
   );
-  const scale =
-    fit === 'exam'
-      ? Math.min(
-          EXAM_FIGURE_MAX_WIDTH_PX / Math.max(natW, 1),
-          EXAM_FIGURE_MAX_HEIGHT_PX / Math.max(natH, 1)
-        )
-      : figureScale;
-  const sliceWidth = Math.max(1, natW * scale);
-  const sliceHeight = Math.max(1, natH * scale);
   const imgSrc = resolveExamFigureSrc(figure.src);
   return (
     <Box

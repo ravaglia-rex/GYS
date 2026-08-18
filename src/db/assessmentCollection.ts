@@ -141,6 +141,7 @@ export interface RecordAnswerResponse {
   current_index?: number;
   total_questions?: number;
   next_question: ExamQuestion | null;
+  already_recorded?: boolean;
 }
 
 export interface CompleteExamResponse {
@@ -171,7 +172,7 @@ export const getAssessmentConfig = async (): Promise<AssessmentType[]> => {
       'Assessment config response was not a list. Ensure Firestore app_config/assessment_types exists and the API is deployed.'
     );
   }
-  // Stale Redis / Firestore may still return legacy Exam 1 id; UI keys are analytical_reasoning.
+  // Exam 1 is expected to already be stored as analytical_reasoning.
   return canonicalizeAssessmentList(data as AssessmentType[]);
 };
 
@@ -188,7 +189,7 @@ export const getStudentAssessments = async (uid: string): Promise<{ assessments:
 };
 
 /** Section-boundary Next can assemble the next block; fail loudly instead of spinning forever. */
-const EXAM_MUTATION_TIMEOUT_MS = 45_000;
+const EXAM_MUTATION_TIMEOUT_MS = 60_000;
 
 export const initializeExam = async (
   uid: string,
