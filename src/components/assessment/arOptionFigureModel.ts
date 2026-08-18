@@ -725,13 +725,20 @@ function stackedRowSlicesFromCards(
   return slices as OptionFigureSliceRect[];
 }
 
+/**
+ * Options must sit clearly in the lower half before we treat the top as stem art.
+ * Options-only sheets often reserve ~25–35% for A–D labels above the cards; that
+ * headroom is not stem content and must not trigger stem cropping / crop fit.
+ */
+export const OPTION_FIGURE_STEM_CONTENT_MIN_Y_PCT = 40;
+
 /** True when A–D sit in the lower part of a figure that also has stem content above. */
 export function optionFigureIncludesStemContent(
   _layout: ArOptionFigureLayout,
   slices: OptionFigureSliceRect[] | null
 ): boolean {
   if (!slices?.length) return false;
-  return Math.min(...slices.map((s) => s.yPct)) >= 28;
+  return Math.min(...slices.map((s) => s.yPct)) >= OPTION_FIGURE_STEM_CONTENT_MIN_Y_PCT;
 }
 
 /** Top of a combined stem+options figure (initial state, route), above the A–D rows. */
@@ -740,7 +747,7 @@ export function optionFigureStemSliceFromOptionSlices(
 ): OptionFigureSliceRect | null {
   if (!slices?.length) return null;
   const minY = Math.min(...slices.map((s) => s.yPct));
-  if (minY < 28) return null;
+  if (minY < OPTION_FIGURE_STEM_CONTENT_MIN_Y_PCT) return null;
   return {
     xPct: 0,
     yPct: 0,
@@ -794,7 +801,7 @@ export function optionFigureContentSlicesFromSvg(
   if (!cards.length) return null;
   if (letterPointsAreStacked(letterPts)) {
     const minY = Math.min(...letterPts.map((p) => p.y));
-    if ((minY - vb.y) / vb.h >= 0.28) {
+    if ((minY - vb.y) / vb.h >= OPTION_FIGURE_STEM_CONTENT_MIN_Y_PCT / 100) {
       const stacked = stackedRowSlicesFromCards(letterPts, cards, vb);
       if (stacked) return stacked;
     }

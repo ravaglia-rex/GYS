@@ -39,6 +39,7 @@ import { MathJaxContext } from 'better-react-mathjax';
 import { getAssessmentFlowDefinition } from '../../config/assessmentFlowUI';
 import { EXAM_MATHJAX_CONFIG } from '../../components/assessment/examMathJaxConfig';
 import { inferQuestionInteraction } from '../../components/assessment/inferQuestionInteraction';
+import { ExamQuestionBody } from '../../components/assessment/ExamQuestionBody';
 import { useExamIntegrity } from '../../hooks/useExamIntegrity';
 import {
   canStartOfficialAssessment,
@@ -54,10 +55,6 @@ import {
 } from '../../features/proctoring';
 import * as Sentry from '@sentry/react';
 
-/** Heavy exam UI + face/proctoring setup - code-split until the student reaches those stages. */
-const ExamQuestionBody = lazy(() =>
-  import('../../components/assessment/ExamQuestionBody').then((m) => ({ default: m.ExamQuestionBody }))
-);
 const PreExamProctoringSetup = lazy(() =>
   import('../../features/proctoring').then((m) => ({ default: m.PreExamProctoringSetup }))
 );
@@ -850,26 +847,18 @@ export default function AssessmentTakePage() {
   const questionNumber = currentIndex + 1;
 
   const questionBodyEl = (
-    <Suspense
-      fallback={
-        <Box sx={{ py: 6, display: 'flex', justifyContent: 'center' }}>
-          <CircularProgress size={32} sx={{ color: primaryBtn }} />
-        </Box>
-      }
-    >
-      <ExamQuestionBody
-        assessmentId={assessmentId}
-        question={currentQuestion}
-        questionNumber={questionNumber}
-        totalQuestions={totalQuestions}
-        selectedOption={selectedOption}
-        onSelectOption={setSelectedOption}
-        theme={flow.theme}
-        renderMath={mathExam}
-        questionReport={officialQuestionReport}
-        hideQuestionTotal={hideQuestionTotal}
-      />
-    </Suspense>
+    <ExamQuestionBody
+      assessmentId={assessmentId}
+      question={currentQuestion}
+      questionNumber={questionNumber}
+      totalQuestions={totalQuestions}
+      selectedOption={selectedOption}
+      onSelectOption={setSelectedOption}
+      theme={flow.theme}
+      renderMath={mathExam}
+      questionReport={officialQuestionReport}
+      hideQuestionTotal={hideQuestionTotal}
+    />
   );
 
   return (

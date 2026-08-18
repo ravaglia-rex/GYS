@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { cleanLearnerFacingExamMarkup } from './cleanLearnerFacingExamMarkup';
+import { resolveExamFigureSrc } from './examFigureSrc';
 
 const borderMuted = '#e2e8f0';
 
@@ -113,7 +114,7 @@ const MarkdownImage: React.FC<{
       ) : (
         <Box
           component="img"
-          src={src}
+          src={src ? resolveExamFigureSrc(src) : src}
           alt={alt ?? ''}
           onLoad={() => setStatus('ready')}
           onError={() => setStatus('error')}

@@ -29,5 +29,8 @@
     "src",
     "**/*.ts",
     "**/*.tsx"
+  ],
+  "exclude": [
+    "scripts"
   ]
 }

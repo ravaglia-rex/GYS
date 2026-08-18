@@ -1,4 +1,5 @@
 import { cleanLearnerFacingExamMarkup } from './cleanLearnerFacingExamMarkup';
+import { resolveExamFigureSrc } from './examFigureSrc';
 import { markdownFromStimulus } from './ExamMarkdown';
 import {
   allLetterKeyOptions,
@@ -42,7 +43,11 @@ export function resolveLearnerExamOptions(input: {
     stimMd.length > rawPrompt.length ? stimMd : rawPrompt
   );
   const splitFig = splitArOptionFigure(combined);
-  const optionFigure = splitFig.optionFigure ?? optionFigureFromAssets(input.assets);
+  const fromAssets = optionFigureFromAssets(input.assets);
+  const optionFigureRaw = splitFig.optionFigure ?? fromAssets;
+  const optionFigure = optionFigureRaw
+    ? { ...optionFigureRaw, src: resolveExamFigureSrc(optionFigureRaw.src) }
+    : null;
   const withoutFigure = optionFigure ? splitFig.stemMarkdown : combined;
   const splitChoices = splitLearnerExamChoices(withoutFigure);
   const fromStimulus = optionChoicesFromStimulus(input.stimulus);

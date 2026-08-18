@@ -48,6 +48,7 @@
     "zod": "^3.23.8"
   },
   "scripts": {
+    "generate:ar-option-crops": "npx --yes -p jsdom -p tsx tsx scripts/generateArOptionFigureCrops.ts",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "build:with-sentry": "react-scripts build && npm run sentry:sourcemaps",

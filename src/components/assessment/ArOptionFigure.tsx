@@ -5,7 +5,6 @@ import {
   layoutFromSvgText,
   optionFigureContentSlicesFromSvg,
   optionFigureGridSx,
-  optionFigureIncludesStemContent,
   optionFigureSliceWindow,
   optionFigureStemSliceFromOptionSlices,
   svgNaturalSizeFromText,
@@ -15,6 +14,8 @@ import {
 } from './arOptionFigureModel';
 
 import { EXAM_FIGURE_MAX_HEIGHT_PX, EXAM_FIGURE_MAX_WIDTH_PX } from './ExamMarkdown';
+import { resolveExamFigureSrc } from './examFigureSrc';
+import { lookupSavedOptionFigureCrops } from './arOptionFigureCrops';
 
 const borderMuted = '#e2e8f0';
 
@@ -35,14 +36,24 @@ export function useArOptionFigureMeta(
   const [naturalHeight, setNaturalHeight] = useState(0);
   const layoutFromSvgRef = useRef(false);
 
+  const saved = lookupSavedOptionFigureCrops(src);
+
   useEffect(() => {
     let cancelled = false;
     layoutFromSvgRef.current = false;
+    if (saved) {
+      setLayout(saved.layout);
+      setSlices(saved.slices);
+      setNaturalWidth(saved.naturalWidth);
+      setNaturalHeight(saved.naturalHeight);
+      return undefined;
+    }
     setLayout('grid');
     setSlices(null);
     setNaturalWidth(0);
     setNaturalHeight(0);
     if (!src) return undefined;
+    const figureSrc = resolveExamFigureSrc(src);
 
     const applyAspect = () => {
       const img = new Image();
@@ -54,17 +65,17 @@ export function useArOptionFigureMeta(
           setLayout(layoutFromAspect(img.naturalWidth, img.naturalHeight));
         }
       };
-      img.src = src;
+      img.src = figureSrc;
     };
 
-    if (!/\.svg(\?|$)/i.test(src)) {
+    if (!/\.svg(\?|$)/i.test(figureSrc)) {
       applyAspect();
       return () => {
         cancelled = true;
       };
     }
 
-    fetch(src)
+    fetch(figureSrc)
       .then((res) => (res.ok ? res.text() : Promise.reject(new Error('svg fetch failed'))))
       .then((text) => {
         if (cancelled) return;
@@ -88,13 +99,24 @@ export function useArOptionFigureMeta(
     return () => {
       cancelled = true;
     };
-  }, [src, optionCount]);
+  }, [src, optionCount, saved]);
 
+  const stemSlice = saved?.stemSlice ?? optionFigureStemSliceFromOptionSlices(slices);
+  if (saved) {
+    return {
+      layout: saved.layout,
+      slices: saved.slices,
+      stemSlice: saved.stemSlice,
+      includesStemContent: Boolean(saved.stemSlice),
+      naturalWidth: saved.naturalWidth,
+      naturalHeight: saved.naturalHeight,
+    };
+  }
   return {
     layout,
     slices,
-    stemSlice: optionFigureStemSliceFromOptionSlices(slices),
-    includesStemContent: optionFigureIncludesStemContent(layout, slices),
+    stemSlice,
+    includesStemContent: Boolean(stemSlice),
     naturalWidth,
     naturalHeight,
   };
@@ -112,7 +134,11 @@ export const ArOptionFigureSlice: React.FC<{
   slice?: OptionFigureSliceRect | null;
   naturalWidth?: number;
   naturalHeight?: number;
-  /** Default keeps historical option-slice sizing. Combined stem+options figures pass a fit. */
+  /**
+   * `exam` — size a stem crop to the exam figure caps (crop box itself).
+   * `option` / `crop` — size like ExamMarkdown would show the full asset, then
+   * crop. That keeps option glyphs on the same scale as the stem figure.
+   */
   fit?: 'option' | 'exam' | 'crop';
 }> = ({
   figure,
@@ -135,28 +161,22 @@ export const ArOptionFigureSlice: React.FC<{
   const figH = naturalHeight || 1;
   const natW = (crop.wPct / 100) * figW;
   const natH = (crop.hPct / 100) * figH;
-  const aspect = natW / Math.max(natH, 1);
-  // `kind` comes from SVG geometry (2×2/3×3 vs wide panels). See arOptionFigureModel.
-  const wideStrip = slice?.kind === 'wide' || (!slice && aspect >= 1.7);
+  // Same caps as ExamMarkdown: scale the whole asset, then show the crop window.
+  // Avoids per-slice height caps (72 / 140 / 220) that blew up wide option rows.
+  const figureScale = Math.min(
+    EXAM_FIGURE_MAX_WIDTH_PX / Math.max(figW, 1),
+    EXAM_FIGURE_MAX_HEIGHT_PX / Math.max(figH, 1)
+  );
   const scale =
     fit === 'exam'
       ? Math.min(
           EXAM_FIGURE_MAX_WIDTH_PX / Math.max(natW, 1),
           EXAM_FIGURE_MAX_HEIGHT_PX / Math.max(natH, 1)
         )
-      : fit === 'crop'
-        ? Math.min(
-            EXAM_FIGURE_MAX_WIDTH_PX / Math.max(natW, 1),
-            (wideStrip ? 220 : 140) / Math.max(natH, 1),
-            (wideStrip ? 560 : 140) / Math.max(natW, 1)
-          )
-        : Math.min(
-            EXAM_FIGURE_MAX_WIDTH_PX / figW,
-            (wideStrip ? 220 : 72) / Math.max(natH, 1),
-            (wideStrip ? 560 : 140) / Math.max(natW, 1)
-          );
+      : figureScale;
   const sliceWidth = Math.max(1, natW * scale);
   const sliceHeight = Math.max(1, natH * scale);
+  const imgSrc = resolveExamFigureSrc(figure.src);
   return (
     <Box
       sx={{
@@ -171,7 +191,7 @@ export const ArOptionFigureSlice: React.FC<{
     >
       <Box
         component="img"
-        src={figure.src}
+        src={imgSrc}
         alt={figure.alt || `Option ${String.fromCharCode(65 + index)}`}
         sx={{
           position: 'absolute',
@@ -222,7 +242,7 @@ export const ArOptionFigure: React.FC<{
     >
       <Box
         component="img"
-        src={figure.src}
+        src={resolveExamFigureSrc(figure.src)}
         alt={figure.alt || 'Answer choices'}
         sx={{
           display: 'block',

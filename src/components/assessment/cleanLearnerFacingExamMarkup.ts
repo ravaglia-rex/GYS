@@ -3,6 +3,8 @@
  * markdown/prompt strings. ReactMarkdown does not render raw HTML by default, so
  * tags appear as literal text. Clean that up for learners.
  */
+import { rewriteExamMarkdownFigureUrls } from './examFigureSrc';
+
 const DETAILS_BLOCK = /<details\b[^>]*>[\s\S]*?<\/details>/gi;
 const DETAILS_OR_SUMMARY_TAG = /<\/?(?:details|summary)\b[^>]*>/gi;
 
@@ -32,6 +34,6 @@ export function cleanLearnerFacingExamMarkup(raw: string): string {
       .replace(DETAILS_OR_SUMMARY_TAG, '');
   }
 
-  out = out.replace(/\n{3,}/g, '\n\n').trim();
-  return out.length > 0 ? out : raw.trim();
+  out = rewriteExamMarkdownFigureUrls(out.replace(/\n{3,}/g, '\n\n').trim());
+  return out.length > 0 ? out : rewriteExamMarkdownFigureUrls(raw.trim());
 }
