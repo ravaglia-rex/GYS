@@ -16,8 +16,8 @@ import { useAssessmentConfig, useStudentAssessments } from '../../query/hooks';
 import {
   assessmentDisplayName,
   EXAM_MAX_SCORE_POINTS,
+  examScorePointsFromFraction,
   isLevelBasedAssessment,
-  tierPercentToExamPoints,
 } from '../../utils/assessmentGating';
 import { timestampToMillis } from '../../utils/examAttemptCooldown';
 import { displayExamCoinsAwarded } from '../../utils/gamification';
@@ -64,7 +64,7 @@ function formatAttemptScore(attempt: AttemptRecord): string {
   if (typeof attempt.score !== 'number' || Number.isNaN(attempt.score)) {
     return attempt.status === 'in_progress' ? 'Pending' : '--';
   }
-  return `${tierPercentToExamPoints(Math.round(attempt.score * 100))} / ${EXAM_MAX_SCORE_POINTS}`;
+  return `${examScorePointsFromFraction(attempt.score)} / ${EXAM_MAX_SCORE_POINTS}`;
 }
 
 function formatAttemptCoins(attempt: AttemptRecord): string {

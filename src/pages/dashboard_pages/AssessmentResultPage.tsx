@@ -62,7 +62,7 @@ const AssessmentResultPage: React.FC = () => {
   const levelBased = isLevelBasedAssessment(assessmentId);
   const flow = getAssessmentFlowDefinition(assessmentId);
   const displayScore = Math.round(scorePercent);
-  const scorePoints = tierPercentToExamPoints(displayScore);
+  const scorePoints = tierPercentToExamPoints(scorePercent);
   const unlockItems = unlockedItemsAfterAttempt({
     assessmentId,
     completedTier: tierNumber,

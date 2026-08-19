@@ -76,7 +76,7 @@ const ColumnChart: React.FC<{ data: AssessmentChartRow[] }> = ({ data }) => {
 
   const dataWithPoints = rows.map((item, index) => {
     const locked = item.locked === true;
-    const tierPct = locked ? 0 : Math.max(0, Math.min(100, Math.round(item.score)));
+    const tierPct = locked ? 0 : Math.max(0, Math.min(100, item.score));
     const points = locked ? 0 : tierPercentToExamPoints(tierPct);
     const isNonCompetitive =
       !locked &&

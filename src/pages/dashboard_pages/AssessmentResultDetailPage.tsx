@@ -42,8 +42,7 @@ const AssessmentResultDetailPage: React.FC = () => {
   const { assessmentId, tierNumber, scorePercent, correct, total, passed, completedAt } = state;
   const flow = getAssessmentFlowDefinition(assessmentId);
   const levelBased = isLevelBasedAssessment(assessmentId);
-  const displayScore = Math.round(scorePercent);
-  const scorePoints = tierPercentToExamPoints(displayScore);
+  const scorePoints = tierPercentToExamPoints(scorePercent);
   const nudge = passed ? nextAssessmentNudge(assessmentId) : null;
 
   const dateLabel = completedAt

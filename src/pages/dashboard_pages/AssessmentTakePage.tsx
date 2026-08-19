@@ -667,6 +667,9 @@ export default function AssessmentTakePage() {
       setSelectedOption(null);
       setCurrentQuestion(response.next_question);
       setCurrentIndex(response.current_index ?? currentIndex + 1);
+      if (typeof response.total_questions === 'number' && response.total_questions > 0) {
+        setTotalQuestions(response.total_questions);
+      }
       questionStartTimeRef.current = Date.now();
     } catch (err: any) {
       Sentry.captureException(err);

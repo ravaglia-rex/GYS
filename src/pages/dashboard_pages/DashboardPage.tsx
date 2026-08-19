@@ -16,6 +16,7 @@ import {
   defaultAssessmentProgress,
   isAssessmentFullyComplete,
   buildDashboardExamChartRows,
+  examScorePointsFromFraction,
   type AssessmentChartRow,
 } from '../../utils/assessmentGating';
 import PageTutorial from '../../components/tutorial/PageTutorial';
@@ -148,10 +149,9 @@ const Dashboard: React.FC = () => {
     const scoresWithValues = Object.values(progress).filter((p) => p.best_score !== null);
     const avgScore =
       scoresWithValues.length > 0
-        ? Math.round(
-            (scoresWithValues.reduce((sum, p) => sum + (p.best_score ?? 0), 0) /
-              scoresWithValues.length) *
-              1000
+        ? examScorePointsFromFraction(
+            scoresWithValues.reduce((sum, p) => sum + (p.best_score ?? 0), 0) /
+              scoresWithValues.length
           )
         : 0;
 

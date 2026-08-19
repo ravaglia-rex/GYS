@@ -16,7 +16,10 @@ export function isPlaceholderOptionText(text: string, index: number): boolean {
   const t = String(text ?? '').trim();
   return (
     new RegExp(`^${letter}\\.?$`, 'i').test(t) ||
-    new RegExp(`^(?:option|choice|network|figure|diagram|image|cover|tile)\\s+${letter}\\.?$`, 'i').test(t)
+    new RegExp(
+      `^(?:option|choice|network|figure|diagram|image|cover|tile|state)\\s+${letter}\\.?$`,
+      'i'
+    ).test(t)
   );
 }
 
@@ -503,6 +506,9 @@ const LARGER_OPTION_FIGURE_SIZE_EXCEPTIONS = [
   'AR-L1-T4-08-P3',
   'T4-08-P3',
   'item_47_T4-08-P3',
+  'AR-L1-T5-02-P3',
+  'T5-02-P3',
+  'item_13_X2_scanner_options',
   'AR-L1-T5-03-P2',
   'T5-03-P2',
   'item_22_X3_relay_options',

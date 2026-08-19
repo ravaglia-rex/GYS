@@ -266,10 +266,20 @@ export const LEVEL_CLEAR_THRESHOLD_PERCENT = 80;
 export const LEVEL_CLEAR_THRESHOLD_POINTS = 800;
 export const LEVEL_CLEAR_THRESHOLD_LABEL = `${LEVEL_CLEAR_THRESHOLD_POINTS} on ${EXAM_MAX_SCORE_POINTS}`;
 
-/** Chart rows use best-tier as 0–100; map to the display scale for labels and bars. */
+/** Must match backend `examScoreDisplay.ts`: round 0–1 to nearest /1000 point first. */
+export function examScorePointsFromFraction(fraction0to1: number): number {
+  if (!Number.isFinite(fraction0to1)) return 0;
+  const f = Math.max(0, Math.min(1, fraction0to1));
+  return Math.round(f * EXAM_MAX_SCORE_POINTS);
+}
+
+export function examScorePercentFromFraction(fraction0to1: number): number {
+  return examScorePointsFromFraction(fraction0to1) / 10;
+}
+
 export function tierPercentToExamPoints(percent0to100: number): number {
   const p = Math.max(0, Math.min(100, percent0to100));
-  return Math.round((p / 100) * EXAM_MAX_SCORE_POINTS);
+  return examScorePointsFromFraction(p / 100);
 }
 
 /** One slot per exam bar on the student dashboard overview chart. */
@@ -308,14 +318,14 @@ export function pickLatestOrBestAssessmentScore(p: AssessmentProgress): {
 
   if (hasLatest) {
     return {
-      score0to100: Math.max(0, Math.min(100, Math.round(ls * 100))),
+      score0to100: examScorePercentFromFraction(ls),
       chartLevel: ll,
       chartScoreIsBestFallback: false,
     };
   }
   if (p.best_score != null && p.attempts_count > 0) {
     return {
-      score0to100: Math.max(0, Math.min(100, Math.round(p.best_score * 100))),
+      score0to100: examScorePercentFromFraction(p.best_score),
       chartLevel: null,
       chartScoreIsBestFallback: true,
     };
@@ -331,7 +341,7 @@ export type AssessmentLevelScoreBreakdownRow = {
 
 function normalizeRawScoreToPercent(raw: unknown): number | null {
   if (typeof raw !== 'number' || Number.isNaN(raw)) return null;
-  return Math.max(0, Math.min(100, Math.round(raw * 100)));
+  return examScorePercentFromFraction(raw);
 }
 
 export function buildAssessmentLevelScoreBreakdown(

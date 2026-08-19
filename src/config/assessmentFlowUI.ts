@@ -61,7 +61,7 @@ const ONE_SITTING_BEFORE: BeforeBeginItem = {
 const analyticalReasoningBefore: BeforeBeginItem[] = [
   FORWARD_ONLY_BEFORE,
   { icon: 'clock', text: 'You have a fixed time once you start - the timer cannot be paused.' },
-  { icon: 'block', text: 'No calculators, notes, or outside help.' },
+  { icon: 'block', text: 'No calculators, notes, or outside help. You can use pen and paper to scribble.' },
   { icon: 'chart', text: 'National tier and percentile update weekly on Monday.' },
   ONE_SITTING_BEFORE,
 ];

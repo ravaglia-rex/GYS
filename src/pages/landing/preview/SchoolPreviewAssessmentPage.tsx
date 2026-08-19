@@ -289,7 +289,7 @@ export default function SchoolPreviewAssessmentPage() {
         icon: 'clock',
         text: `This Level ${selectedLevel} sample has ${previewQuestionCount} practice questions and a 10-minute countdown (display only, not enforced). You can exit anytime; nothing is saved.`,
       },
-      { icon: 'block', text: 'No calculators, notes, or outside help (same norms as the live exam).' },
+      { icon: 'block', text: 'No calculators, notes, or outside help (same norms as the live exam). You can use pen and paper to scribble.' },
       { icon: 'chart', text: 'Scores here are for practice feedback only, not official benchmarking.' },
       { icon: 'phone', text: 'Find a quiet place with minimal distraction to get a feel for the real flow.' },
       { icon: 'bolt', text: 'The live exam adapts difficulty; this sample uses fixed practice items.' },

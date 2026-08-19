@@ -95,7 +95,7 @@ function formatBestScore(raw: number | null | undefined): string {
   if (raw == null || Number.isNaN(Number(raw))) return '-';
   const n = Number(raw);
   const pct0to100 = n <= 1 ? n * 100 : n;
-  const points = tierPercentToExamPoints(Math.round(pct0to100));
+  const points = tierPercentToExamPoints(pct0to100);
   return `${points} on ${EXAM_MAX_SCORE_POINTS}`;
 }
 

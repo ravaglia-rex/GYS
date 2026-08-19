@@ -1,5 +1,5 @@
 import type { StudentRow } from '../db/schoolAdminCollection';
-import { ASSESSMENT_ORDER, ASSESSMENT_NAMES } from './assessmentGating';
+import { ASSESSMENT_ORDER, ASSESSMENT_NAMES, examScorePointsFromFraction } from './assessmentGating';
 import {
   normalizeAchievementTierId,
   CANONICAL_ACHIEVEMENT_TIER_IDS,
@@ -413,7 +413,7 @@ export interface ExamScoreDistribution {
 export function summarizeScoreDistributionByExam(
   students: StudentRow[],
   examBlocks: ReadonlyArray<{ examId: string; subcategories: readonly string[] }>,
-  maxPoints = 1000
+  _maxPoints = 1000
 ): ExamScoreDistribution[] {
   return examBlocks.map(({ examId, subcategories }) => {
     const acc = new Map<string, { sum: number; n: number; bands: Record<ScoreBandId, number> }>();
@@ -426,7 +426,7 @@ export function summarizeScoreDistributionByExam(
       for (const name of subcategories) {
         const frac = fractions[name];
         if (typeof frac !== 'number') continue;
-        const points = Math.round(frac * maxPoints);
+        const points = examScorePointsFromFraction(frac);
         const row = acc.get(name)!;
         row.sum += points;
         row.n += 1;
