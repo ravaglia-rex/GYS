@@ -1,12 +1,14 @@
 import { cleanLearnerFacingExamMarkup } from './cleanLearnerFacingExamMarkup';
 import { resolveExamFigureSrc } from './examFigureSrc';
-import { markdownFromStimulus } from './ExamMarkdown';
+import { mergeExamPromptMarkdown } from './ExamMarkdown';
 import {
   allLetterKeyOptions,
   isPlaceholderOptionText,
   optionChoicesFromStimulus,
   optionFigureFromAssets,
+  splitArImageBySrc,
   splitArOptionFigure,
+  splitLastArImageAsOptionFigure,
   splitLearnerExamChoices,
   type ArOptionFigureRef,
 } from './arOptionFigureModel';
@@ -19,11 +21,45 @@ function hasRealChoiceText(texts: Array<string | undefined> | null | undefined):
   return Boolean(texts?.some((t, i) => t && !isPlaceholderOptionText(t, i)));
 }
 
+function looksLikeStoredOptionFigure(fig: { src: string; alt?: string } | null): boolean {
+  if (!fig) return false;
+  const haystack = `${fig.src} ${fig.alt ?? ''}`;
+  if (/(?:composite|cycle)_matrix/i.test(haystack) || /followed by\s+.+answer cards/i.test(haystack)) {
+    return false;
+  }
+  return /\b(option|options|choice|choices|answer|answers|possible)\b/i.test(
+    haystack
+  );
+}
+
+function assetAlreadyReferenced(markdown: string, path: string): boolean {
+  const normalized = path.trim();
+  if (!normalized) return true;
+  const file = normalized.replace(/\\/g, '/').split('/').pop() ?? '';
+  return markdown.includes(normalized) || Boolean(file && markdown.includes(file));
+}
+
+function stemAssetMarkdown(
+  assets: Array<{ path?: string; alt?: string }> | null | undefined,
+  existingMarkdown: string
+): string {
+  if (!assets?.length) return '';
+  return assets
+    .filter((asset) => {
+      const path = asset.path?.trim();
+      if (!path || assetAlreadyReferenced(existingMarkdown, path)) return false;
+      return !looksLikeStoredOptionFigure({ src: path, alt: asset.alt ?? '' });
+    })
+    .map((asset) => `![${asset.alt ?? 'Question figure'}](${asset.path})`)
+    .join('\n\n');
+}
+
 export type ResolvedLearnerExamOptions = {
   stemMarkdown: string;
   optionFigure: ArOptionFigureRef | null;
   optionTexts: string[];
   pickOnFigure: boolean;
+  hasRealOptionText: boolean;
 };
 
 /**
@@ -36,19 +72,28 @@ export function resolveLearnerExamOptions(input: {
   stimulusType?: string | null;
   bankOptions?: string[] | null;
   assets?: Array<{ path?: string; alt?: string }> | null;
+  optionFigure?: { src: string; alt?: string } | null;
 }): ResolvedLearnerExamOptions {
   const rawPrompt = input.markdown ?? '';
-  const stimMd = markdownFromStimulus(input.stimulus, input.stimulusType);
+  const merged = mergeExamPromptMarkdown(rawPrompt, input.stimulus, input.stimulusType);
+  const assetMarkdown = stemAssetMarkdown(input.assets, merged);
   const combined = cleanLearnerFacingExamMarkup(
-    stimMd.length > rawPrompt.length ? stimMd : rawPrompt
+    assetMarkdown ? `${merged}\n\n${assetMarkdown}` : merged
   );
   const splitFig = splitArOptionFigure(combined);
   const fromAssets = optionFigureFromAssets(input.assets);
-  const optionFigureRaw = splitFig.optionFigure ?? fromAssets;
-  const optionFigure = optionFigureRaw
-    ? { ...optionFigureRaw, src: resolveExamFigureSrc(optionFigureRaw.src) }
+  const storedFig = input.optionFigure?.src
+    ? { src: input.optionFigure.src, alt: input.optionFigure.alt ?? '' }
     : null;
-  const withoutFigure = optionFigure ? splitFig.stemMarkdown : combined;
+  const trustedStoredFig = looksLikeStoredOptionFigure(storedFig) ? storedFig : null;
+  const splitStoredFig = trustedStoredFig ? splitArImageBySrc(combined, trustedStoredFig.src) : null;
+  let optionFigureRaw = trustedStoredFig ?? splitFig.optionFigure ?? fromAssets;
+  let withoutFigure =
+    trustedStoredFig && splitStoredFig?.optionFigure
+      ? splitStoredFig.stemMarkdown
+      : optionFigureRaw && splitFig.optionFigure
+        ? splitFig.stemMarkdown
+        : combined;
   const splitChoices = splitLearnerExamChoices(withoutFigure);
   const fromStimulus = optionChoicesFromStimulus(input.stimulus);
   const bank = (input.bankOptions ?? []).map((t, i) => {
@@ -69,14 +114,25 @@ export function resolveLearnerExamOptions(input: {
       (t, i) => t || String.fromCharCode(65 + i)
     )
   );
+  if (!optionFigureRaw && !realText && bankKeysOnly) {
+    const fallbackFig = splitLastArImageAsOptionFigure(combined);
+    if (fallbackFig.optionFigure) {
+      optionFigureRaw = fallbackFig.optionFigure;
+      withoutFigure = fallbackFig.stemMarkdown;
+    }
+  }
+  const optionFigure = optionFigureRaw
+    ? { ...optionFigureRaw, src: resolveExamFigureSrc(optionFigureRaw.src) }
+    : null;
   const pickOnFigure = Boolean(optionFigure && !realText && bankKeysOnly);
-  const stemMarkdown = realText && !pickOnFigure ? splitChoices.stemMarkdown : withoutFigure;
+  const stemMarkdown = realText || pickOnFigure ? splitChoices.stemMarkdown : withoutFigure;
 
   return {
     stemMarkdown,
     optionFigure,
     optionTexts,
     pickOnFigure,
+    hasRealOptionText: realText,
   };
 }
 

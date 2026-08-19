@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="720" viewBox="0 0 1000 720" role="img" aria-labelledby="title desc">
   <title id="title">Two examples of a delivery box moving between rooms</title>
-  <desc id="desc">In example one a box containing a triangle, with a square clipped outside, moves from the left room into a right room containing a loose circle. It finishes in the right room containing the circle; the square remains clipped and the triangle becomes loose. Example two shows the same exchange vertically with different symbols.</desc>
+  <desc id="desc">Example one shows the box entering the attic: the inside and loose items exchange places while the clipped item remains clipped. Example two shows the box entering the right room: the clipped and loose items exchange places while the inside item remains inside.</desc>
   <style>
     .card { fill:#f8fafc; stroke:#b7c4ce; stroke-width:2; }
     .room { fill:#fff; stroke:#435765; stroke-width:2.2; }
@@ -28,13 +28,13 @@
   <rect class="card" x="520" y="42" width="460" height="295" rx="9"/>
   <text class="heading" x="250" y="69">BEFORE</text><text class="heading" x="750" y="69">AFTER</text>
   <rect class="room" x="43" y="88" width="190" height="220" rx="5"/><rect class="room" x="267" y="88" width="190" height="220" rx="5"/>
-  <text class="room-name" x="138" y="112">LEFT ROOM</text><text class="room-name" x="362" y="112">RIGHT ROOM</text>
+  <text class="room-name" x="138" y="112">LEFT ROOM</text><text class="room-name" x="362" y="112">ATTIC</text>
   <path class="move" d="M182 132H319"/><text class="move-label" x="250" y="126">MOVE</text>
   <g transform="translate(92 166)"><rect class="box" width="92" height="82" rx="6"/><text class="box-label" x="46" y="18">INSIDE</text><text class="inside" x="46" y="52">▲</text><path class="clip-line" d="M92 23H108"/><rect class="clip" x="106" y="8" width="42" height="34" rx="5"/><text class="clip-symbol" x="127" y="25">■</text><text class="state-label" x="127" y="59">clipped</text></g>
   <text class="loose" x="362" y="200">●</text><text class="state-label" x="362" y="230">loose</text>
 
   <rect class="room" x="543" y="88" width="190" height="220" rx="5"/><rect class="room" x="767" y="88" width="190" height="220" rx="5"/>
-  <text class="room-name" x="638" y="112">LEFT ROOM</text><text class="room-name" x="862" y="112">RIGHT ROOM</text><text class="empty" x="638" y="207">empty</text>
+  <text class="room-name" x="638" y="112">LEFT ROOM</text><text class="room-name" x="862" y="112">ATTIC</text><text class="empty" x="638" y="207">empty</text>
   <g transform="translate(792 159)"><rect class="box" width="92" height="82" rx="6"/><text class="box-label" x="46" y="18">INSIDE</text><text class="inside" x="46" y="52">●</text><path class="clip-line" d="M92 23H108"/><rect class="clip" x="106" y="8" width="42" height="34" rx="5"/><text class="clip-symbol" x="127" y="25">■</text><text class="state-label" x="127" y="59">clipped</text></g>
   <text class="loose" x="922" y="268">▲</text><text class="state-label" x="922" y="294">loose</text>
 
@@ -43,14 +43,14 @@
   <rect class="card" x="20" y="392" width="460" height="308" rx="9"/>
   <rect class="card" x="520" y="392" width="460" height="308" rx="9"/>
   <text class="heading" x="250" y="419">BEFORE</text><text class="heading" x="750" y="419">AFTER</text>
-  <rect class="room" x="146" y="442" width="208" height="105" rx="5"/><rect class="room" x="146" y="573" width="208" height="105" rx="5"/>
-  <text class="room-name" x="250" y="465">UPPER ROOM</text><text class="room-name" x="250" y="596">LOWER ROOM</text>
-  <text class="loose" x="250" y="506">□</text><text class="state-label" x="292" y="509">loose</text>
-  <path class="move" d="M390 622V508"/><text class="move-label" x="416" y="568">MOVE</text>
-  <g transform="translate(184 599)"><rect class="box" width="92" height="64" rx="6"/><text class="box-label" x="46" y="17">INSIDE</text><text class="inside" x="46" y="43">◆</text><path class="clip-line" d="M92 20H108"/><rect class="clip" x="106" y="4" width="42" height="32" rx="5"/><text class="clip-symbol" x="127" y="21">★</text></g>
+  <rect class="room" x="43" y="438" width="190" height="220" rx="5"/><rect class="room" x="267" y="438" width="190" height="220" rx="5"/>
+  <text class="room-name" x="138" y="462">LEFT ROOM</text><text class="room-name" x="362" y="462">RIGHT ROOM</text>
+  <path class="move" d="M182 482H319"/><text class="move-label" x="250" y="476">MOVE</text>
+  <g transform="translate(92 516)"><rect class="box" width="92" height="82" rx="6"/><text class="box-label" x="46" y="18">INSIDE</text><text class="inside" x="46" y="52">◆</text><path class="clip-line" d="M92 23H108"/><rect class="clip" x="106" y="8" width="42" height="34" rx="5"/><text class="clip-symbol" x="127" y="25">★</text><text class="state-label" x="127" y="59">clipped</text></g>
+  <text class="loose" x="362" y="550">□</text><text class="state-label" x="362" y="580">loose</text>
 
-  <rect class="room" x="646" y="442" width="208" height="105" rx="5"/><rect class="room" x="646" y="573" width="208" height="105" rx="5"/>
-  <text class="room-name" x="750" y="465">UPPER ROOM</text><text class="room-name" x="750" y="596">LOWER ROOM</text><text class="empty" x="750" y="631">empty</text>
-  <g transform="translate(673 471)"><rect class="box" width="92" height="64" rx="6"/><text class="box-label" x="46" y="17">INSIDE</text><text class="inside" x="46" y="43">□</text><path class="clip-line" d="M92 20H108"/><rect class="clip" x="106" y="4" width="42" height="32" rx="5"/><text class="clip-symbol" x="127" y="21">★</text></g>
-  <text class="loose" x="826" y="516">◆</text><text class="state-label" x="826" y="540">loose</text>
+  <rect class="room" x="543" y="438" width="190" height="220" rx="5"/><rect class="room" x="767" y="438" width="190" height="220" rx="5"/>
+  <text class="room-name" x="638" y="462">LEFT ROOM</text><text class="room-name" x="862" y="462">RIGHT ROOM</text><text class="empty" x="638" y="557">empty</text>
+  <g transform="translate(792 509)"><rect class="box" width="92" height="82" rx="6"/><text class="box-label" x="46" y="18">INSIDE</text><text class="inside" x="46" y="52">◆</text><path class="clip-line" d="M92 23H108"/><rect class="clip" x="106" y="8" width="42" height="34" rx="5"/><text class="clip-symbol" x="127" y="25">□</text><text class="state-label" x="127" y="59">clipped</text></g>
+  <text class="loose" x="922" y="618">★</text><text class="state-label" x="922" y="644">loose</text>
 </svg>

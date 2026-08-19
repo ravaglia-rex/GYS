@@ -6,7 +6,7 @@
   </style>
   <defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#9b5b00"/></marker></defs>
   <rect width="900" height="410" fill="#fff"/><rect class="panel" x="75" y="15" width="750" height="370" rx="10"/>
-  <text class="heading" x="450" y="48">TARGET - BEFORE</text>
+  <text class="heading" x="450" y="48">TARGET — BEFORE</text>
   <path class="report" d="M450 126V151H285V174M450 151H615V174M285 216V244H205V267M285 244H365V267M615 216V244H535V267M615 244H695V267"/>
   <rect class="node" x="405" y="84" width="90" height="42" rx="21"/><text class="person" x="450" y="106">Z □</text>
   <rect class="promoted" x="240" y="174" width="90" height="42" rx="21"/><text class="person" x="285" y="196">D △</text>

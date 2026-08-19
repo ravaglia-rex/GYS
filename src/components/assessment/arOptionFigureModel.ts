@@ -1,6 +1,7 @@
 import { EXAM_FIGURE_MAX_HEIGHT_PX, EXAM_FIGURE_MAX_WIDTH_PX } from './ExamMarkdown';
 
 const MD_IMAGE = /!\[([^\]]*)\]\(([^)]+)\)/g;
+const HTML_IMG_TAG = /<img\b[^>]*\bsrc=["'][^"']+["'][^>]*>/gi;
 
 export type ArOptionFigureRef = { alt: string; src: string };
 export type ArOptionFigureLayout = 'row' | 'stack' | 'grid';
@@ -12,7 +13,11 @@ export function isLetterKeyOptionText(text: string): boolean {
 /** True when option i is only the A–D key for that slot (not an answer like "B" in slot A). */
 export function isPlaceholderOptionText(text: string, index: number): boolean {
   const letter = String.fromCharCode(65 + index);
-  return new RegExp(`^${letter}\\.?$`, 'i').test(String(text ?? '').trim());
+  const t = String(text ?? '').trim();
+  return (
+    new RegExp(`^${letter}\\.?$`, 'i').test(t) ||
+    new RegExp(`^(?:option|choice|network|figure|diagram|image|cover|tile)\\s+${letter}\\.?$`, 'i').test(t)
+  );
 }
 
 export function allLetterKeyOptions(texts: string[]): boolean {
@@ -349,22 +354,104 @@ export function splitArOptionFigure(markdown: string): {
   stemMarkdown: string;
   optionFigure: ArOptionFigureRef | null;
 } {
+  return splitArOptionFigureInternal(markdown, false);
+}
+
+export function splitLastArImageAsOptionFigure(markdown: string): {
+  stemMarkdown: string;
+  optionFigure: ArOptionFigureRef | null;
+} {
+  return splitArOptionFigureInternal(markdown, true);
+}
+
+export function splitArImageBySrc(markdown: string, src: string | undefined | null): {
+  stemMarkdown: string;
+  optionFigure: ArOptionFigureRef | null;
+} {
   const raw = markdown ?? '';
-  if (!raw.trim()) return { stemMarkdown: raw, optionFigure: null };
-  const matches: RegExpExecArray[] = [];
-  MD_IMAGE.lastIndex = 0;
-  let match: RegExpExecArray | null;
-  while ((match = MD_IMAGE.exec(raw)) !== null) {
-    matches.push(match);
-  }
-  const hit = matches.reverse().find((m) => /option/i.test(m[2] ?? '') || /option/i.test(m[1] ?? ''));
-  if (!hit || hit.index == null) return { stemMarkdown: raw, optionFigure: null };
-  const stemMarkdown = `${raw.slice(0, hit.index)}${raw.slice(hit.index + hit[0].length)}`
+  const target = imageSrcKey(src);
+  if (!raw.trim() || !target) return { stemMarkdown: raw, optionFigure: null };
+  const matches = arImageMatches(raw);
+  const hit = matches
+    .slice()
+    .reverse()
+    .find((m) => imageSrcKey(m.src) === target);
+  if (!hit) return { stemMarkdown: raw, optionFigure: null };
+  const stemMarkdown = `${raw.slice(0, hit.index)}${raw.slice(hit.index + hit.rawTag.length)}`
     .replace(/\n{3,}/g, '\n\n')
     .trim();
   return {
     stemMarkdown,
-    optionFigure: { alt: hit[1] ?? '', src: hit[2] ?? '' },
+    optionFigure: { alt: hit.alt, src: hit.src },
+  };
+}
+
+type ImgMatch = { alt: string; src: string; index: number; rawTag: string };
+
+function imageSrcKey(src: string | undefined | null): string {
+  return String(src ?? '')
+    .trim()
+    .split('#')[0]
+    .split('?')[0]
+    .replace(/\\/g, '/')
+    .split('/')
+    .pop()
+    ?.toLowerCase() ?? '';
+}
+
+function arImageMatches(raw: string): ImgMatch[] {
+  const matches: ImgMatch[] = [];
+
+  // Markdown image syntax: ![alt](src)
+  MD_IMAGE.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = MD_IMAGE.exec(raw)) !== null) {
+    matches.push({
+      alt: match[1] ?? '',
+      src: match[2] ?? '',
+      index: match.index ?? 0,
+      rawTag: match[0],
+    });
+  }
+
+  // HTML image tags (some item prompts come through as HTML, not markdown)
+  HTML_IMG_TAG.lastIndex = 0;
+  let htmlMatch: RegExpExecArray | null;
+  while ((htmlMatch = HTML_IMG_TAG.exec(raw)) !== null) {
+    const tag = htmlMatch[0] ?? '';
+    const srcMatch = /<img\b[^>]*\bsrc=["']([^"']+)["']/i.exec(tag);
+    const altMatch = /\balt=["']([^"']*)["']/i.exec(tag);
+    matches.push({
+      alt: altMatch?.[1] ?? '',
+      src: srcMatch?.[1] ?? '',
+      index: htmlMatch.index ?? 0,
+      rawTag: tag,
+    });
+  }
+
+  return matches;
+}
+
+function splitArOptionFigureInternal(markdown: string, allowAnyImage: boolean): {
+  stemMarkdown: string;
+  optionFigure: ArOptionFigureRef | null;
+} {
+  const raw = markdown ?? '';
+  if (!raw.trim()) return { stemMarkdown: raw, optionFigure: null };
+  const matches = arImageMatches(raw);
+
+  const hit = matches
+    .slice()
+    .reverse()
+    .find((m) => allowAnyImage || /option/i.test(m.src ?? '') || /option/i.test(m.alt ?? ''));
+  if (!hit) return { stemMarkdown: raw, optionFigure: null };
+
+  const stemMarkdown = `${raw.slice(0, hit.index)}${raw.slice(hit.index + hit.rawTag.length)}`
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  return {
+    stemMarkdown,
+    optionFigure: { alt: hit.alt, src: hit.src },
   };
 }
 
@@ -399,6 +486,39 @@ export type OptionFigureSliceRect = {
 /** Display cap for a compact 2×2 / 3×3 card option (matches live exam rows). */
 export const AR_OPTION_GRID_SLICE_MAX_HEIGHT_PX = 72;
 export const AR_OPTION_GRID_SLICE_MAX_WIDTH_PX = 110;
+/** Display cap for larger image options such as tiles/cards with edge symbols. */
+export const AR_OPTION_SLICE_MAX_HEIGHT_PX = 104;
+export const AR_OPTION_SLICE_MAX_WIDTH_PX = 140;
+/** Stem crops from combined stem+options SVGs should not use the full exam cap. */
+export const AR_OPTION_STEM_SLICE_MAX_HEIGHT_PX = 340;
+export const AR_OPTION_STEM_SLICE_MAX_WIDTH_PX = 560;
+
+const LARGER_OPTION_FIGURE_SIZE_EXCEPTIONS = [
+  'AR-L1-FND-IF10-P01',
+  'FND-IF10-P01',
+  'f10v_tray_and_covers',
+  'AR-L1-T3-05-P1',
+  'T3-05-P1',
+  'item_17_t3_05_plan_options',
+  'AR-L1-T4-08-P3',
+  'T4-08-P3',
+  'item_47_T4-08-P3',
+  'AR-L1-T5-03-P2',
+  'T5-03-P2',
+  'item_22_X3_relay_options',
+  'AR-L1-T5-05-P1',
+  'T5-05-P1',
+  'item_23_X5_station_network_options',
+] as const;
+
+function optionFigureSizeMultiplier(src: string | undefined): number {
+  const normalized = (src ?? '').toLowerCase();
+  return LARGER_OPTION_FIGURE_SIZE_EXCEPTIONS.some((key) =>
+    normalized.includes(key.toLowerCase())
+  )
+    ? 1.75
+    : 1;
+}
 
 /**
  * When a combined stem+options SVG is scaled to the exam figure cap, a single
@@ -410,26 +530,34 @@ export function arOptionFigureSliceDisplaySize(
   natH: number,
   figW: number,
   figH: number,
-  fit: 'option' | 'exam' | 'crop',
-  slice?: Pick<OptionFigureSliceRect, 'kind'> | null
+  fit: 'option' | 'exam' | 'stem' | 'crop',
+  slice?: Pick<OptionFigureSliceRect, 'kind'> | null,
+  src?: string
 ): { width: number; height: number } {
   const figureScale = Math.min(
     EXAM_FIGURE_MAX_WIDTH_PX / Math.max(figW, 1),
     EXAM_FIGURE_MAX_HEIGHT_PX / Math.max(figH, 1)
   );
   const scale =
-    fit === 'exam'
+    fit === 'exam' || fit === 'stem'
       ? Math.min(
-          EXAM_FIGURE_MAX_WIDTH_PX / Math.max(natW, 1),
-          EXAM_FIGURE_MAX_HEIGHT_PX / Math.max(natH, 1)
+          (fit === 'stem' ? AR_OPTION_STEM_SLICE_MAX_WIDTH_PX : EXAM_FIGURE_MAX_WIDTH_PX) / Math.max(natW, 1),
+          (fit === 'stem' ? AR_OPTION_STEM_SLICE_MAX_HEIGHT_PX : EXAM_FIGURE_MAX_HEIGHT_PX) / Math.max(natH, 1)
         )
       : figureScale;
   let width = Math.max(1, natW * scale);
   let height = Math.max(1, natH * scale);
-  if (fit === 'crop' && slice?.kind === 'grid') {
+  if (fit === 'option' || fit === 'crop') {
+    const multiplier = optionFigureSizeMultiplier(src);
+    const maxWidth =
+      (slice?.kind === 'grid' ? AR_OPTION_GRID_SLICE_MAX_WIDTH_PX : AR_OPTION_SLICE_MAX_WIDTH_PX) *
+      multiplier;
+    const maxHeight =
+      (slice?.kind === 'grid' ? AR_OPTION_GRID_SLICE_MAX_HEIGHT_PX : AR_OPTION_SLICE_MAX_HEIGHT_PX) *
+      multiplier;
     const capScale = Math.min(
-      AR_OPTION_GRID_SLICE_MAX_WIDTH_PX / width,
-      AR_OPTION_GRID_SLICE_MAX_HEIGHT_PX / height,
+      maxWidth / width,
+      maxHeight / height,
       1
     );
     width *= capScale;

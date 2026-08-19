@@ -18,6 +18,9 @@ const PlatformAdminItemBankPage: React.FC = () => {
       sx={{
         ...platformAdminPageContainerSx,
         maxWidth: 1280,
+        height: 'calc(100vh - 64px)',
+        overflowY: 'auto',
+        overflowX: 'hidden',
         bgcolor: '#F1F5F9',
         borderRadius: { md: 3 },
         border: { md: `1px solid ${ip.cardBorder}` },

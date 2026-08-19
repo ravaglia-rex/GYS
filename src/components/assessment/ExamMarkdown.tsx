@@ -43,6 +43,10 @@ export function looksLikeExamMarkdown(s: string): boolean {
   return /!\[[^\]]*]\(|^#{1,6}\s|```|<svg\b|<img\b|^\|.+\||\*\*[^*\n]+\*\*|__[^_\n]+__/m.test(s);
 }
 
+export function hasExamFigureMarkup(s: string): boolean {
+  return /!\[[^\]]*]\(|<svg\b|<img\b/i.test(s);
+}
+
 export function markdownFromStimulus(stimulus: unknown, stimulusType?: string | null): string {
   if (stimulus == null) return '';
   if (typeof stimulus === 'string' && looksLikeExamMarkdown(stimulus)) return stimulus.trim();
@@ -55,6 +59,19 @@ export function markdownFromStimulus(stimulus: unknown, stimulusType?: string | 
     }
   }
   return '';
+}
+
+export function mergeExamPromptMarkdown(prompt: string, stimulus: unknown, stimulusType?: string | null): string {
+  const rawPrompt = String(prompt ?? '').trim();
+  const stimMd = markdownFromStimulus(stimulus, stimulusType);
+  if (!stimMd) return rawPrompt;
+  if (!rawPrompt) return stimMd;
+  if (rawPrompt === stimMd || rawPrompt.includes(stimMd)) return rawPrompt;
+  if (stimMd.includes(rawPrompt)) return stimMd;
+  if (hasExamFigureMarkup(stimMd) && !hasExamFigureMarkup(rawPrompt)) {
+    return `${rawPrompt}\n\n${stimMd}`;
+  }
+  return stimMd.length > rawPrompt.length ? stimMd : rawPrompt;
 }
 
 export const EXAM_FIGURE_MAX_WIDTH_PX = 640;
@@ -149,8 +166,7 @@ export const ExamRichPrompt: React.FC<{
   maxFigureWidth?: number;
   maxFigureHeight?: number;
 }> = ({ prompt, stimulus, stimulusType, emptyLabel = '(no prompt)', maxFigureWidth, maxFigureHeight }) => {
-  const stimMd = markdownFromStimulus(stimulus, stimulusType);
-  const body = stimMd.length > prompt.length ? stimMd : prompt;
+  const body = mergeExamPromptMarkdown(prompt, stimulus, stimulusType);
   if (looksLikeExamMarkdown(body)) {
     return (
       <ExamMarkdown maxFigureWidth={maxFigureWidth} maxFigureHeight={maxFigureHeight}>

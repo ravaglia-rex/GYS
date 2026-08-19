@@ -4,6 +4,7 @@ import { ArOptionFigure, ArOptionFigureSlice, useArOptionFigureMeta } from '../.
 import { resolveLearnerExamOptions } from '../../components/assessment/resolveLearnerExamOptions';
 import { ExamQuestionStimulus } from '../../components/assessment/ExamQuestionStimulus';
 import { cleanLearnerFacingExamMarkup } from '../../components/assessment/cleanLearnerFacingExamMarkup';
+import { isPlaceholderOptionText } from '../../components/assessment/arOptionFigureModel';
 import {
   ExamMarkdown,
   ExamRichPrompt,
@@ -17,6 +18,10 @@ import type { OfficialQuestionStatRow } from '../../db/platformAdminAnalytics';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import { PlatformAdminAccuracyChip, PlatformAdminChip } from './platformAdminComponents';
 
+function stripOptionLetterPrefix(option: string): string {
+  return String(option ?? '').replace(/^[A-D][.)]\s+/i, '').trim();
+}
+
 export function toAdminStimulusExamQuestion(q: {
   item_id: string;
   prompt?: string;
@@ -24,6 +29,8 @@ export function toAdminStimulusExamQuestion(q: {
   options?: Array<{ text: string }>;
   stimulus?: unknown;
   stimulus_type?: string | null;
+  assets?: Array<{ path?: string; alt?: string }>;
+  option_figure?: { src: string; alt?: string } | null;
 }): ExamQuestion {
   return {
     id: q.item_id,
@@ -46,6 +53,8 @@ export function AdminExamQuestionStem({
     options?: Array<{ text: string }>;
     stimulus?: unknown;
     stimulus_type?: string | null;
+    assets?: Array<{ path?: string; alt?: string }>;
+    option_figure?: { src: string; alt?: string } | null;
   };
   emptyLabel: string;
   hideOptionFigure?: boolean;
@@ -56,9 +65,22 @@ export function AdminExamQuestionStem({
     stimulus: q.stimulus,
     stimulusType: q.stimulus_type,
     bankOptions: (q.options || []).map((o) => o.text),
+    assets: q.assets,
+    optionFigure: q.option_figure,
   });
   const stemMarkdown = resolved.stemMarkdown;
   const optionFigure = resolved.optionFigure;
+  // Some item-bank payloads include real option text, but `resolveLearnerExamOptions`
+  // may fail to parse it from markdown/stimulus and can incorrectly mark `realText=false`.
+  // In that case we still want to hide the option-image strip because the text
+  // choices are available in `q.options[].text`.
+  const hasRealOptionTextInBank = Boolean(
+    (q.options || []).some((o, i) => {
+      const cleaned = stripOptionLetterPrefix(cleanLearnerFacingExamMarkup(o.text));
+      return Boolean(cleaned && !isPlaceholderOptionText(cleaned, i));
+    })
+  );
+  const hasAnyRealOptionText = resolved.hasRealOptionText || hasRealOptionTextInBank;
   return (
     <>
       <Box sx={{ mb: 1.25 }}>
@@ -79,7 +101,7 @@ export function AdminExamQuestionStem({
           />
         </Box>
       ) : null}
-      {optionFigure && !hideOptionFigure ? (
+      {optionFigure && !hideOptionFigure && !hasAnyRealOptionText ? (
         <Box sx={{ mb: 1.25 }}>
           <ArOptionFigure figure={optionFigure} />
         </Box>
@@ -188,6 +210,8 @@ export function PlatformAdminQuestionPerformanceCard({
     stimulus: question.stimulus,
     stimulusType: question.stimulus_type,
     bankOptions: question.options.map((o) => o.text),
+    assets: question.assets,
+    optionFigure: question.option_figure,
   });
   const optionFigure = resolved.optionFigure;
   const { layout, slices, stemSlice, includesStemContent, naturalWidth, naturalHeight } =
@@ -247,12 +271,22 @@ export function PlatformAdminQuestionPerformanceCard({
             slice={stemSlice}
             naturalWidth={naturalWidth}
             naturalHeight={naturalHeight}
-            fit="exam"
+            fit="stem"
           />
         </Box>
       ) : null}
       {question.options.length > 0 ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.4 }}>
+        <Box
+          sx={
+            showFigureSlices
+              ? {
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                  gap: 0.75,
+                }
+              : { display: 'flex', flexDirection: 'column', gap: 0.4 }
+          }
+        >
           {question.options.map((opt, optIdx) => {
             const optionText = resolved.optionTexts[optIdx] || '';
             return (

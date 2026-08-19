@@ -40,6 +40,7 @@ const FILTER_KEYS: OfficialItemBankFilterKey[] = [
   'band',
   'family',
   'mechanic',
+  'has_images',
 ];
 
 const FILTER_LABELS: Record<OfficialItemBankFilterKey, string> = {
@@ -49,6 +50,7 @@ const FILTER_LABELS: Record<OfficialItemBankFilterKey, string> = {
   family: 'Family',
   subconstruct: 'Subconstruct',
   mechanic: 'Mechanic',
+  has_images: 'Images',
 };
 
 const LEVELS = [1, 2, 3];

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="300" viewBox="0 0 820 300" role="img" aria-labelledby="title desc">
+  <title id="title">Four square tile options</title>
+  <desc id="desc">Each tile has one symbol printed near each edge. A has triangle top, square right, diamond bottom, circle left. B has triangle top, circle right, diamond bottom, square left. C has triangle top, square right, circle bottom, diamond left. D has triangle top, diamond right, square bottom, circle left.</desc>
+  <rect width="820" height="300" fill="#ffffff"/>
+  <text x="410" y="34" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" fill="#243247">Tile options</text>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" fill="#243247">
+    <text x="35" y="75">A</text><text x="235" y="75">B</text><text x="435" y="75">C</text><text x="635" y="75">D</text>
+  </g>
+  <g fill="#f2f5f9" stroke="#243247" stroke-width="4">
+    <rect x="55" y="70" width="140" height="170" rx="12"/>
+    <rect x="255" y="70" width="140" height="170" rx="12"/>
+    <rect x="455" y="70" width="140" height="170" rx="12"/>
+    <rect x="655" y="70" width="140" height="170" rx="12"/>
+  </g>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#243247">
+    <text x="125" y="103" text-anchor="middle">▲</text><text x="178" y="165" text-anchor="middle">■</text><text x="125" y="228" text-anchor="middle">◆</text><text x="72" y="165" text-anchor="middle">●</text>
+    <text x="325" y="103" text-anchor="middle">▲</text><text x="378" y="165" text-anchor="middle">●</text><text x="325" y="228" text-anchor="middle">◆</text><text x="272" y="165" text-anchor="middle">■</text>
+    <text x="525" y="103" text-anchor="middle">▲</text><text x="578" y="165" text-anchor="middle">■</text><text x="525" y="228" text-anchor="middle">●</text><text x="472" y="165" text-anchor="middle">◆</text>
+    <text x="725" y="103" text-anchor="middle">▲</text><text x="778" y="165" text-anchor="middle">◆</text><text x="725" y="228" text-anchor="middle">■</text><text x="672" y="165" text-anchor="middle">●</text>
+  </g>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="14" fill="#667085">
+    <text x="125" y="271" text-anchor="middle">may be rotated</text>
+    <text x="325" y="271" text-anchor="middle">may be rotated</text>
+    <text x="525" y="271" text-anchor="middle">may be rotated</text>
+    <text x="725" y="271" text-anchor="middle">may be rotated</text>
+  </g>
+</svg>

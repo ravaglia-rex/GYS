@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="170" viewBox="0 0 760 170" role="img" aria-labelledby="title desc">
+  <title id="title">Four answer cards</title>
+  <desc id="desc">A is a large hollow square with a small solid star. B is a large hollow circle with a small solid circle. C is a large hollow triangle with a small solid diamond. D is a large hollow square with a small solid circle.</desc>
+  <rect width="760" height="170" fill="#ffffff"/>
+  <g fill="#f8fafc" stroke="#d6deea" stroke-width="2">
+    <rect x="25" y="35" width="150" height="110" rx="12"/><rect x="215" y="35" width="150" height="110" rx="12"/>
+    <rect x="405" y="35" width="150" height="110" rx="12"/><rect x="595" y="35" width="140" height="110" rx="12"/>
+  </g>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" fill="#243247">
+    <text x="43" y="63">A</text><text x="233" y="63">B</text><text x="423" y="63">C</text><text x="613" y="63">D</text>
+  </g>
+  <g fill="none" stroke="#243247" stroke-width="4" stroke-linejoin="round">
+    <rect x="71" y="65" width="58" height="58" rx="2"/>
+    <circle cx="290" cy="94" r="30"/>
+    <polygon points="480,65 449,121 511,121"/>
+    <rect x="636" y="65" width="58" height="58" rx="2"/>
+  </g>
+  <g fill="#243247">
+    <path d="M100 84 L103 91 L111 91 L105 96 L107 104 L100 99 L93 104 L95 96 L89 91 L97 91 Z"/>
+    <circle cx="290" cy="94" r="8"/>
+    <polygon points="480,85 489,94 480,103 471,94"/>
+    <circle cx="665" cy="94" r="8"/>
+  </g>
+</svg>

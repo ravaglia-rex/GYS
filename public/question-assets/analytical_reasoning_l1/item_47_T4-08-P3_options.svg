@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="700" viewBox="0 0 1000 700" role="img" aria-labelledby="title desc">
   <title id="title">Four possible final delivery states</title>
-  <desc id="desc">All options leave the left room empty. They differ in what remains loose in the attic, what is inside the box in the right room, what is loose beside it, and whether the square remains clipped to the box.</desc>
+  <desc id="desc">All options leave the left room empty. They differ in the loose item in the attic and in the inside, clipped, and loose items in the right room.</desc>
   <style>
     .card { fill:#f8fafc; stroke:#b7c4ce; stroke-width:2; }
     .room { fill:#fff; stroke:#435765; stroke-width:2; }
@@ -23,13 +23,13 @@
   <g transform="translate(25 35)"><rect class="card" width="460" height="305" rx="9"/><text class="option" x="18" y="34">A</text>
     <rect class="room" x="45" y="62" width="150" height="210" rx="5"/><rect class="room" x="225" y="62" width="205" height="210" rx="5"/>
     <text class="room-name" x="120" y="86">ATTIC</text><text class="room-name" x="327" y="86">RIGHT ROOM</text><text class="loose" x="120" y="160">▲</text><text class="state-label" x="120" y="190">loose</text>
-    <g transform="translate(250 118)"><rect class="box" width="88" height="76" rx="6"/><text class="box-label" x="44" y="17">INSIDE</text><text class="inside" x="44" y="48">●</text><path class="clip-line" d="M88 22H102"/><rect class="clip" x="100" y="7" width="38" height="31" rx="5"/><text class="clip-symbol" x="119" y="23">■</text></g><text class="loose" x="385" y="217">◆</text><text class="state-label" x="385" y="245">loose</text>
+    <g transform="translate(250 118)"><rect class="box" width="88" height="76" rx="6"/><text class="box-label" x="44" y="17">INSIDE</text><text class="inside" x="44" y="48">◆</text><path class="clip-line" d="M88 22H102"/><rect class="clip" x="100" y="7" width="38" height="31" rx="5"/><text class="clip-symbol" x="119" y="23">●</text></g><text class="loose" x="385" y="217">■</text><text class="state-label" x="385" y="245">loose</text>
   </g>
 
   <!-- B -->
   <g transform="translate(515 35)"><rect class="card" width="460" height="305" rx="9"/><text class="option" x="18" y="34">B</text>
     <rect class="room" x="45" y="62" width="150" height="210" rx="5"/><rect class="room" x="225" y="62" width="205" height="210" rx="5"/>
-    <text class="room-name" x="120" y="86">ATTIC</text><text class="room-name" x="327" y="86">RIGHT ROOM</text><text class="loose" x="120" y="160">◆</text><text class="state-label" x="120" y="190">loose</text>
+    <text class="room-name" x="120" y="86">ATTIC</text><text class="room-name" x="327" y="86">RIGHT ROOM</text><text class="loose" x="120" y="160">▲</text><text class="state-label" x="120" y="190">loose</text>
     <g transform="translate(250 118)"><rect class="box" width="88" height="76" rx="6"/><text class="box-label" x="44" y="17">INSIDE</text><text class="inside" x="44" y="48">●</text><path class="clip-line" d="M88 22H102"/><rect class="clip" x="100" y="7" width="38" height="31" rx="5"/><text class="clip-symbol" x="119" y="23">■</text></g><text class="loose" x="385" y="217">▲</text><text class="state-label" x="385" y="245">loose</text>
   </g>
 
@@ -37,13 +37,13 @@
   <g transform="translate(25 370)"><rect class="card" width="460" height="305" rx="9"/><text class="option" x="18" y="34">C</text>
     <rect class="room" x="45" y="62" width="150" height="210" rx="5"/><rect class="room" x="225" y="62" width="205" height="210" rx="5"/>
     <text class="room-name" x="120" y="86">ATTIC</text><text class="room-name" x="327" y="86">RIGHT ROOM</text><text class="loose" x="120" y="160">◆</text><text class="state-label" x="120" y="190">loose</text>
-    <g transform="translate(250 118)"><rect class="box" width="88" height="76" rx="6"/><text class="box-label" x="44" y="17">INSIDE</text><text class="inside" x="44" y="48">▲</text><path class="clip-line" d="M88 22H102"/><rect class="clip" x="100" y="7" width="38" height="31" rx="5"/><text class="clip-symbol" x="119" y="23">■</text></g><text class="loose" x="385" y="217">●</text><text class="state-label" x="385" y="245">loose</text>
+    <g transform="translate(250 118)"><rect class="box" width="88" height="76" rx="6"/><text class="box-label" x="44" y="17">INSIDE</text><text class="inside" x="44" y="48">▲</text><path class="clip-line" d="M88 22H102"/><rect class="clip" x="100" y="7" width="38" height="31" rx="5"/><text class="clip-symbol" x="119" y="23">●</text></g><text class="loose" x="385" y="217">■</text><text class="state-label" x="385" y="245">loose</text>
   </g>
 
   <!-- D -->
   <g transform="translate(515 370)"><rect class="card" width="460" height="305" rx="9"/><text class="option" x="18" y="34">D</text>
     <rect class="room" x="45" y="62" width="150" height="210" rx="5"/><rect class="room" x="225" y="62" width="205" height="210" rx="5"/>
-    <text class="room-name" x="120" y="86">ATTIC</text><text class="room-name" x="327" y="86">RIGHT ROOM</text><text class="loose" x="96" y="160">▲</text><text class="loose" x="145" y="160">■</text><text class="state-label" x="120" y="190">both loose</text>
-    <g transform="translate(250 118)"><rect class="box" width="88" height="76" rx="6"/><text class="box-label" x="44" y="17">INSIDE</text><text class="inside" x="44" y="48">●</text></g><text class="loose" x="385" y="217">◆</text><text class="state-label" x="385" y="245">loose</text>
+    <text class="room-name" x="120" y="86">ATTIC</text><text class="room-name" x="327" y="86">RIGHT ROOM</text><text class="loose" x="120" y="160">▲</text><text class="state-label" x="120" y="190">loose</text>
+    <g transform="translate(250 118)"><rect class="box" width="88" height="76" rx="6"/><text class="box-label" x="44" y="17">INSIDE</text><text class="inside" x="44" y="48">◆</text><path class="clip-line" d="M88 22H102"/><rect class="clip" x="100" y="7" width="38" height="31" rx="5"/><text class="clip-symbol" x="119" y="23">■</text></g><text class="loose" x="385" y="217">●</text><text class="state-label" x="385" y="245">loose</text>
   </g>
 </svg>

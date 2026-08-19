@@ -764,6 +764,8 @@ export type OfficialQuestionStatRow = {
   prompt_preview: string;
   stimulus: unknown;
   stimulus_type: string | null;
+  assets?: Array<{ path?: string; alt?: string }>;
+  option_figure?: {src: string; alt?: string} | null;
   options: OfficialQuestionOptionStat[];
   correct_index: number | null;
   family: string | null;
@@ -843,6 +845,8 @@ export async function getPlatformAdminOfficialExamQuestionStats(
           prompt_preview: typeof q.prompt_preview === 'string' ? q.prompt_preview : '',
           stimulus: q.stimulus ?? null,
           stimulus_type: typeof q.stimulus_type === 'string' ? q.stimulus_type : null,
+          assets: Array.isArray(q.assets) ? q.assets : [],
+          option_figure: q.option_figure ?? null,
           options: Array.isArray(q.options) ? q.options : [],
           correct_index: typeof q.correct_index === 'number' ? q.correct_index : null,
         }))
@@ -858,7 +862,8 @@ export type OfficialItemBankFilterKey =
   | 'band'
   | 'family'
   | 'subconstruct'
-  | 'mechanic';
+  | 'mechanic'
+  | 'has_images';
 
 export type OfficialItemBankFilters = Partial<Record<OfficialItemBankFilterKey, string>>;
 
@@ -902,6 +907,7 @@ function parseItemBankFacets(raw: unknown): OfficialItemBankFacets {
     family: parse('family'),
     subconstruct: parse('subconstruct'),
     mechanic: parse('mechanic'),
+    has_images: parse('has_images'),
   };
 }
 
@@ -934,6 +940,8 @@ export async function getPlatformAdminOfficialExamItemBank(
         prompt_preview: typeof q.prompt_preview === 'string' ? q.prompt_preview : '',
         stimulus: q.stimulus ?? null,
         stimulus_type: typeof q.stimulus_type === 'string' ? q.stimulus_type : null,
+        assets: Array.isArray(q.assets) ? q.assets : [],
+        option_figure: q.option_figure ?? null,
         options: Array.isArray(q.options) ? q.options : [],
         correct_index: typeof q.correct_index === 'number' ? q.correct_index : null,
       }))

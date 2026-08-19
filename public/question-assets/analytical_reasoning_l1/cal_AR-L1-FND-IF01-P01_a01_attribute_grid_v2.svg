@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="500" viewBox="0 0 760 500" role="img" aria-labelledby="title desc">
+  <title id="title">Three-by-three grid of large shapes containing small symbols</title>
+  <desc id="desc">The first row contains three large hollow triangles, holding respectively a small solid circle, diamond, and star. The second row repeats those small symbols inside large hollow squares. The third row begins with a large hollow circle containing a small solid circle, then a large hollow circle containing a small solid diamond, followed by a missing card.</desc>
+  <defs>
+    <g id="large-triangle"><path d="M0 -38 L38 32 L-38 32 Z" fill="#fff" stroke="#24384c" stroke-width="5"/></g>
+    <g id="large-square"><rect x="-34" y="-34" width="68" height="68" rx="3" fill="#fff" stroke="#24384c" stroke-width="5"/></g>
+    <g id="large-circle"><circle cx="0" cy="0" r="36" fill="#fff" stroke="#24384c" stroke-width="5"/></g>
+    <g id="small-circle"><circle cx="0" cy="0" r="9" fill="#24384c"/></g>
+    <g id="small-diamond"><path d="M0 -11 L11 0 L0 11 L-11 0 Z" fill="#24384c"/></g>
+    <g id="small-star"><path d="M0 -13 L3.8 -4.2 L13 -4 L5.7 1.8 L8 11 L0 6 L-8 11 L-5.7 1.8 L-13 -4 L-3.8 -4.2 Z" fill="#24384c"/></g>
+  </defs>
+  <style>
+    .label { font: 700 20px Arial,sans-serif; fill:#536474; text-anchor:middle; dominant-baseline:middle; }
+    .card { fill:#fff; stroke:#c5ced7; stroke-width:2; }
+    .missing { font:700 24px Arial,sans-serif; fill:#174a78; text-anchor:middle; dominant-baseline:middle; }
+  </style>
+  <rect width="760" height="500" fill="#fff"/>
+  <text x="255" y="34" class="label">Column 1</text>
+  <text x="435" y="34" class="label">Column 2</text>
+  <text x="615" y="34" class="label">Column 3</text>
+  <text x="100" y="115" class="label">Row 1</text>
+  <text x="100" y="255" class="label">Row 2</text>
+  <text x="100" y="395" class="label">Row 3</text>
+
+  <g transform="translate(255 115)"><rect x="-70" y="-57" width="140" height="114" rx="8" class="card"/><use href="#large-triangle"/><use href="#small-circle"/></g>
+  <g transform="translate(435 115)"><rect x="-70" y="-57" width="140" height="114" rx="8" class="card"/><use href="#large-triangle"/><use href="#small-diamond"/></g>
+  <g transform="translate(615 115)"><rect x="-70" y="-57" width="140" height="114" rx="8" class="card"/><use href="#large-triangle"/><use href="#small-star"/></g>
+
+  <g transform="translate(255 255)"><rect x="-70" y="-57" width="140" height="114" rx="8" class="card"/><use href="#large-square"/><use href="#small-circle"/></g>
+  <g transform="translate(435 255)"><rect x="-70" y="-57" width="140" height="114" rx="8" class="card"/><use href="#large-square"/><use href="#small-diamond"/></g>
+  <g transform="translate(615 255)"><rect x="-70" y="-57" width="140" height="114" rx="8" class="card"/><use href="#large-square"/><use href="#small-star"/></g>
+
+  <g transform="translate(255 395)"><rect x="-70" y="-57" width="140" height="114" rx="8" class="card"/><use href="#large-circle"/><use href="#small-circle"/></g>
+  <g transform="translate(435 395)"><rect x="-70" y="-57" width="140" height="114" rx="8" class="card"/><use href="#large-circle"/><use href="#small-diamond"/></g>
+  <g transform="translate(615 395)"><rect x="-70" y="-57" width="140" height="114" rx="8" class="card"/><text x="0" y="2" class="missing">[?]</text></g>
+</svg>

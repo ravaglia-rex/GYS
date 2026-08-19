@@ -43,7 +43,7 @@
 
   <!-- Test 2 -->
   <text x="680" y="205" class="heading">TEST 2</text>
-  <text x="680" y="232" class="sub">turn the stencil over left-to-right first</text>
+  <text x="680" y="232" class="sub">flip the stencil over to view its back first</text>
   <g transform="translate(560 250)">
     <rect width="240" height="210" rx="8" class="card"/>
     <path d="M80,0 V210 M160,0 V210 M0,70 H240 M0,140 H240" class="grid"/>

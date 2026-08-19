@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="210" viewBox="0 0 820 210" role="img" aria-labelledby="title desc">
+  <title id="title">Four possible cards</title>
+  <desc id="desc">Option A is a large hollow circle containing a small solid star. Option B is a large hollow circle containing a small solid diamond. Option C is a large hollow square containing a small solid star. Option D is a large hollow triangle containing a small solid circle.</desc>
+  <defs>
+    <g id="large-triangle"><path d="M0 -38 L38 32 L-38 32 Z" fill="#fff" stroke="#24384c" stroke-width="5"/></g>
+    <g id="large-square"><rect x="-34" y="-34" width="68" height="68" rx="3" fill="#fff" stroke="#24384c" stroke-width="5"/></g>
+    <g id="large-circle"><circle cx="0" cy="0" r="36" fill="#fff" stroke="#24384c" stroke-width="5"/></g>
+    <g id="small-circle"><circle cx="0" cy="0" r="9" fill="#24384c"/></g>
+    <g id="small-diamond"><path d="M0 -11 L11 0 L0 11 L-11 0 Z" fill="#24384c"/></g>
+    <g id="small-star"><path d="M0 -13 L3.8 -4.2 L13 -4 L5.7 1.8 L8 11 L0 6 L-8 11 L-5.7 1.8 L-13 -4 L-3.8 -4.2 Z" fill="#24384c"/></g>
+  </defs>
+  <style>
+    .option { font:700 22px Arial,sans-serif; fill:#174a78; text-anchor:middle; }
+    .card { fill:#fff; stroke:#c5ced7; stroke-width:2; }
+  </style>
+  <rect width="820" height="210" fill="#fff"/>
+  <g transform="translate(110 115)"><text x="0" y="-76" class="option">A</text><rect x="-70" y="-57" width="140" height="114" rx="8" class="card"/><use href="#large-circle"/><use href="#small-star"/></g>
+  <g transform="translate(310 115)"><text x="0" y="-76" class="option">B</text><rect x="-70" y="-57" width="140" height="114" rx="8" class="card"/><use href="#large-circle"/><use href="#small-diamond"/></g>
+  <g transform="translate(510 115)"><text x="0" y="-76" class="option">C</text><rect x="-70" y="-57" width="140" height="114" rx="8" class="card"/><use href="#large-square"/><use href="#small-star"/></g>
+  <g transform="translate(710 115)"><text x="0" y="-76" class="option">D</text><rect x="-70" y="-57" width="140" height="114" rx="8" class="card"/><use href="#large-triangle"/><use href="#small-circle"/></g>
+</svg>

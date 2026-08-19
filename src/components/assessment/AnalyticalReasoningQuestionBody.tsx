@@ -44,17 +44,18 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
         ? question.options
         : question.option_ids,
     assets: question.assets,
+    optionFigure: question.option_figure,
   });
   const optionIds =
     resolved.optionTexts.length >= 2 ? resolved.optionTexts : [...OPTION_LETTERS];
   const optionFigure = resolved.optionFigure;
   const stemMarkdown = resolved.stemMarkdown;
   const pickOnFigure = resolved.pickOnFigure;
-  const showSlicedOptions = Boolean(pickOnFigure && optionFigure);
   const letterKeysOnly = !pickOnFigure && !optionIds.some((t, i) => {
     const letter = String.fromCharCode(65 + i);
     return String(t ?? '').trim() && !isSameAsLetter(t, letter);
   });
+  const showFigureOptions = pickOnFigure || letterKeysOnly;
   const { layout, slices, stemSlice, includesStemContent, naturalWidth, naturalHeight } =
     useArOptionFigureMeta(optionFigure?.src, optionIds.length);
 
@@ -86,88 +87,87 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
               slice={stemSlice}
               naturalWidth={naturalWidth}
               naturalHeight={naturalHeight}
-              fit="exam"
+              fit="stem"
             />
           </Box>
         ) : null}
       </Box>
-      {showSlicedOptions && optionFigure ? (
+      {optionFigure && showFigureOptions ? (
         <>
-          <FormControl component="fieldset" fullWidth sx={{ mb: footer ? 1.5 : 0 }}>
-            <RadioGroup
-              value={selectedOption !== null ? String(selectedOption) : ''}
-              onChange={(e) => {
-                if (selectionLocked) return;
-                onSelectOption(parseInt(e.target.value, 10));
-              }}
-            >
-              {optionIds.map((_, idx) => {
-                const selected = selectedOption === idx;
-                const rowBorder = selected ? primary : borderMuted;
-                const rowBg = selected ? primarySoft : '#fff';
-                const letterBg = selected ? primary : '#f1f5f9';
-                const letterBorder = selected ? primary : borderMuted;
-                const letterFg = selected ? '#fff' : '#64748b';
-                const letter = String.fromCharCode(65 + idx);
-                return (
-                  <FormControlLabel
-                    key={`figure-opt-${letter}`}
-                    value={String(idx)}
-                    control={<Radio sx={{ display: 'none' }} />}
-                    onClick={() => {
-                      if (selectionLocked) return;
-                      onSelectOption(idx);
-                    }}
-                    aria-label={`Option ${letter}`}
-                    label={
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%', minWidth: 0 }}>
-                        <Box
-                          sx={{
-                            width: 28,
-                            height: 28,
-                            borderRadius: '50%',
-                            bgcolor: letterBg,
-                            border: `2px solid ${letterBorder}`,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
-                          }}
-                        >
-                          <Typography sx={{ fontSize: '0.75rem', fontWeight: 800, color: letterFg }}>
-                            {letter}
-                          </Typography>
-                        </Box>
-                        <ArOptionFigureSlice
-                          figure={optionFigure}
-                          index={idx}
-                          optionCount={optionIds.length}
-                          layout={layout}
-                          slice={slices?.[idx]}
-                          naturalWidth={naturalWidth}
-                          naturalHeight={naturalHeight}
-                          fit={includesStemContent ? 'crop' : 'option'}
-                        />
-                      </Box>
-                    }
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+              gap: 1.25,
+              mb: footer ? 1.5 : 0,
+            }}
+          >
+            {optionIds.map((_, idx) => {
+              const selected = selectedOption === idx;
+              const rowBorder = selected ? primary : borderMuted;
+              const rowBg = selected ? primarySoft : '#fff';
+              const letterBg = selected ? primary : '#f1f5f9';
+              const letterBorder = selected ? primary : borderMuted;
+              const letterFg = selected ? '#fff' : '#64748b';
+              const letter = String.fromCharCode(65 + idx);
+
+              return (
+                <Box
+                  key={`figure-opt-${letter}`}
+                  component="button"
+                  type="button"
+                  aria-label={`Option ${letter}`}
+                  aria-pressed={selected}
+                  disabled={selectionLocked}
+                  onClick={() => {
+                    if (selectionLocked) return;
+                    onSelectOption(idx);
+                  }}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.5,
+                    p: '14px 16px',
+                    borderRadius: 2,
+                    border: `2px solid ${rowBorder}`,
+                    bgcolor: rowBg,
+                    cursor: selectionLocked ? 'default' : 'pointer',
+                    minWidth: 0,
+                    transition: 'all 0.15s',
+                    '&:hover': selectionLocked ? {} : { borderColor: `${primary}99` },
+                  }}
+                >
+                  <Box
                     sx={{
-                      m: 0,
-                      mb: 1.25,
-                      p: '14px 16px',
-                      borderRadius: 2,
-                      border: `2px solid ${rowBorder}`,
-                      bgcolor: rowBg,
-                      cursor: selectionLocked ? 'default' : 'pointer',
+                      width: 28,
+                      height: 28,
+                      borderRadius: '50%',
+                      bgcolor: letterBg,
+                      border: `2px solid ${letterBorder}`,
+                      display: 'flex',
                       alignItems: 'center',
-                      transition: 'all 0.15s',
-                      '&:hover': selectionLocked ? {} : { borderColor: `${primary}99` },
-                      '& .MuiFormControlLabel-label': { width: '100%', minWidth: 0 },
+                      justifyContent: 'center',
+                      flexShrink: 0,
                     }}
+                  >
+                    <Typography sx={{ fontSize: '0.75rem', fontWeight: 800, color: letterFg }}>
+                      {letter}
+                    </Typography>
+                  </Box>
+                  <ArOptionFigureSlice
+                    figure={optionFigure}
+                    index={idx}
+                    optionCount={optionIds.length}
+                    layout={layout}
+                    slice={slices?.[idx]}
+                    naturalWidth={naturalWidth}
+                    naturalHeight={naturalHeight}
+                    fit={includesStemContent ? 'crop' : 'option'}
                   />
-                );
-              })}
-            </RadioGroup>
-          </FormControl>
+                </Box>
+              );
+            })}
+          </Box>
           {footer}
         </>
       ) : letterKeysOnly ? (

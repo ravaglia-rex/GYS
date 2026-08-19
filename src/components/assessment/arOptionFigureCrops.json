@@ -1,4 +1,88 @@
 {
+  "cal_AR-L1-FND-IF10-P01-V01_f10v_tray_and_covers.svg": {
+    "layout": "row",
+    "naturalWidth": 760,
+    "naturalHeight": 460,
+    "slices": [
+      {
+        "xPct": 11.711,
+        "yPct": 69.348,
+        "wPct": 11.579,
+        "hPct": 27.391,
+        "kind": "wide"
+      },
+      {
+        "xPct": 35.395,
+        "yPct": 69.348,
+        "wPct": 11.579,
+        "hPct": 27.391,
+        "kind": "wide"
+      },
+      {
+        "xPct": 59.079,
+        "yPct": 73.478,
+        "wPct": 16.579,
+        "hPct": 19.13,
+        "kind": "wide"
+      },
+      {
+        "xPct": 82.763,
+        "yPct": 73.478,
+        "wPct": 11.579,
+        "hPct": 19.13,
+        "kind": "wide"
+      }
+    ],
+    "stemSlice": {
+      "xPct": 36.579,
+      "yPct": 4.348,
+      "wPct": 26.842,
+      "hPct": 49.13,
+      "kind": "wide"
+    }
+  },
+  "cal_AR-L1-FND-IF10-P02-V01_r05v_edge_tile.svg": {
+    "layout": "row",
+    "naturalWidth": 820,
+    "naturalHeight": 520,
+    "slices": [
+      {
+        "xPct": 3.659,
+        "yPct": 66.346,
+        "wPct": 19.512,
+        "hPct": 30.769,
+        "kind": "wide"
+      },
+      {
+        "xPct": 28.049,
+        "yPct": 66.346,
+        "wPct": 19.512,
+        "hPct": 30.769,
+        "kind": "wide"
+      },
+      {
+        "xPct": 52.439,
+        "yPct": 66.346,
+        "wPct": 19.512,
+        "hPct": 30.769,
+        "kind": "wide"
+      },
+      {
+        "xPct": 76.829,
+        "yPct": 66.346,
+        "wPct": 19.512,
+        "hPct": 30.769,
+        "kind": "wide"
+      }
+    ],
+    "stemSlice": {
+      "xPct": 34.146,
+      "yPct": 5.769,
+      "wPct": 31.707,
+      "hPct": 46.154,
+      "kind": "wide"
+    }
+  },
   "item_01_X1_stencil_options.svg": {
     "layout": "grid",
     "naturalWidth": 940,
@@ -409,28 +493,28 @@
       {
         "xPct": 3.778,
         "yPct": 6.538,
-        "wPct": 43.556,
+        "wPct": 47,
         "hPct": 40.769,
         "kind": "wide"
       },
       {
         "xPct": 52.667,
         "yPct": 6.538,
-        "wPct": 43.556,
+        "wPct": 47,
         "hPct": 40.769,
         "kind": "wide"
       },
       {
         "xPct": 3.778,
         "yPct": 52.692,
-        "wPct": 43.556,
+        "wPct": 47,
         "hPct": 40.769,
         "kind": "wide"
       },
       {
         "xPct": 52.667,
         "yPct": 52.692,
-        "wPct": 43.556,
+        "wPct": 47,
         "hPct": 40.769,
         "kind": "wide"
       }

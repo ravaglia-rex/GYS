@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="400" viewBox="0 0 760 400" role="img" aria-labelledby="title desc">
+  <title id="title">Three by three grid of composite shape cards</title>
+  <desc id="desc">Each visible card has a clearly larger hollow outer shape and a clearly smaller solid inner symbol. The bottom-right card is missing.</desc>
+  <rect width="760" height="400" fill="#ffffff"/>
+  <g font-family="Arial, Helvetica, sans-serif" fill="#243247">
+    <text x="200" y="35" text-anchor="middle" font-size="18" font-weight="700">Column 1</text>
+    <text x="410" y="35" text-anchor="middle" font-size="18" font-weight="700">Column 2</text>
+    <text x="620" y="35" text-anchor="middle" font-size="18" font-weight="700">Column 3</text>
+    <text x="72" y="126" text-anchor="middle" font-size="18" font-weight="700">Row 1</text>
+    <text x="72" y="226" text-anchor="middle" font-size="18" font-weight="700">Row 2</text>
+    <text x="72" y="326" text-anchor="middle" font-size="18" font-weight="700">Row 3</text>
+  </g>
+  <g fill="#f8fafc" stroke="#d6deea" stroke-width="2">
+    <rect x="145" y="65" width="110" height="80" rx="12"/><rect x="355" y="65" width="110" height="80" rx="12"/><rect x="565" y="65" width="110" height="80" rx="12"/>
+    <rect x="145" y="165" width="110" height="80" rx="12"/><rect x="355" y="165" width="110" height="80" rx="12"/><rect x="565" y="165" width="110" height="80" rx="12"/>
+    <rect x="145" y="265" width="110" height="80" rx="12"/><rect x="355" y="265" width="110" height="80" rx="12"/><rect x="565" y="265" width="110" height="80" rx="12"/>
+  </g>
+  <g fill="none" stroke="#243247" stroke-width="4" stroke-linejoin="round">
+    <polygon points="200,76 169,132 231,132"/>
+    <rect x="381" y="76" width="58" height="58" rx="2"/>
+    <circle cx="620" cy="105" r="30"/>
+    <rect x="171" y="176" width="58" height="58" rx="2"/>
+    <circle cx="410" cy="205" r="30"/>
+    <polygon points="620,176 589,232 651,232"/>
+    <circle cx="200" cy="305" r="30"/>
+    <polygon points="410,276 379,332 441,332"/>
+  </g>
+  <g fill="#243247">
+    <circle cx="200" cy="105" r="8"/>
+    <path d="M410 95 L413 102 L421 102 L415 107 L417 115 L410 110 L403 115 L405 107 L399 102 L407 102 Z"/>
+    <polygon points="620,96 629,105 620,114 611,105"/>
+    <polygon points="200,196 209,205 200,214 191,205"/>
+    <circle cx="410" cy="205" r="8"/>
+    <path d="M620 195 L623 202 L631 202 L625 207 L627 215 L620 210 L613 215 L615 207 L609 202 L617 202 Z"/>
+    <path d="M200 295 L203 302 L211 302 L205 307 L207 315 L200 310 L193 315 L195 307 L189 302 L197 302 Z"/>
+    <polygon points="410,296 419,305 410,314 401,305"/>
+  </g>
+  <text x="620" y="315" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700" fill="#243247">[?]</text>
+</svg>

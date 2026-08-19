@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="920" height="500" viewBox="0 0 920 500" role="img" aria-labelledby="title desc">
-  <title id="title">Four labelled blocks forming a bent three-dimensional chain</title>
+  <title id="title">Four labelled blocks positioned in a cube-shaped frame</title>
   <desc id="desc">At the lower level, the square block is directly east of the triangle block and the circle block is directly north of the square block. The diamond block is directly above the circle block.</desc>
   <style>
     .frame { fill: none; stroke: #8aa0b2; stroke-width: 2.5; }

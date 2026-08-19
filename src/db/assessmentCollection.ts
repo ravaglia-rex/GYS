@@ -116,6 +116,7 @@ export interface ExamQuestion {
   body_markdown?: string;
   option_ids?: string[];
   assets?: Array<{path?: string; alt?: string}>;
+  option_figure?: {src: string; alt?: string} | null;
   /** Extra stem line from canonical `presentation.instruction`. */
   instruction?: string;
   /** Canonical pattern-logic payload for richer renderers (optional). */
