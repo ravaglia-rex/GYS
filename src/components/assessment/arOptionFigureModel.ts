@@ -494,18 +494,21 @@ export const AR_OPTION_STEM_SLICE_MAX_HEIGHT_PX = 340;
 export const AR_OPTION_STEM_SLICE_MAX_WIDTH_PX = 560;
 
 const LARGER_OPTION_FIGURE_SIZE_EXCEPTIONS = [
-  'AR-L1-FND-IF10-P01',
-  'FND-IF10-P01',
-  'f10v_tray_and_covers',
   'AR-L1-T3-05-P1',
   'T3-05-P1',
   'item_17_t3_05_plan_options',
+  'AR-L1-T4-06-P1',
+  'T4-06-P1',
+  'item_18_T4-06-P1',
   'AR-L1-T4-08-P3',
   'T4-08-P3',
   'item_47_T4-08-P3',
   'AR-L1-T5-03-P2',
   'T5-03-P2',
   'item_22_X3_relay_options',
+  'AR-L1-T5-04-P3',
+  'T5-04-P3',
+  'item_06_X4_restoration_target_options',
   'AR-L1-T5-05-P1',
   'T5-05-P1',
   'item_23_X5_station_network_options',
@@ -524,6 +527,10 @@ function optionFigureSizeMultiplier(src: string | undefined): number {
  * When a combined stem+options SVG is scaled to the exam figure cap, a single
  * grid option slice can inherit the full figure height (~460px). Cap grid slices
  * so fold / card options stay the same size as standalone 2×2 option rows.
+ *
+ * Stem crops stay on that same figure scale. Fitting the crop box itself to
+ * 560×340 upscaled tight trays (IF10) to ~340px while every other exam figure
+ * stayed at the 640×460 cap.
  */
 export function arOptionFigureSliceDisplaySize(
   natW: number,
@@ -539,12 +546,18 @@ export function arOptionFigureSliceDisplaySize(
     EXAM_FIGURE_MAX_HEIGHT_PX / Math.max(figH, 1)
   );
   const scale =
-    fit === 'exam' || fit === 'stem'
+    fit === 'exam'
       ? Math.min(
-          (fit === 'stem' ? AR_OPTION_STEM_SLICE_MAX_WIDTH_PX : EXAM_FIGURE_MAX_WIDTH_PX) / Math.max(natW, 1),
-          (fit === 'stem' ? AR_OPTION_STEM_SLICE_MAX_HEIGHT_PX : EXAM_FIGURE_MAX_HEIGHT_PX) / Math.max(natH, 1)
+          EXAM_FIGURE_MAX_WIDTH_PX / Math.max(natW, 1),
+          EXAM_FIGURE_MAX_HEIGHT_PX / Math.max(natH, 1)
         )
-      : figureScale;
+      : fit === 'stem'
+        ? Math.min(
+            figureScale,
+            AR_OPTION_STEM_SLICE_MAX_WIDTH_PX / Math.max(natW, 1),
+            AR_OPTION_STEM_SLICE_MAX_HEIGHT_PX / Math.max(natH, 1)
+          )
+        : figureScale;
   let width = Math.max(1, natW * scale);
   let height = Math.max(1, natH * scale);
   if (fit === 'option' || fit === 'crop') {

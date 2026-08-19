@@ -98,6 +98,7 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
             sx={{
               display: 'grid',
               gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+              alignItems: 'start',
               gap: 1.25,
               mb: footer ? 1.5 : 0,
             }}

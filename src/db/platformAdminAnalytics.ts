@@ -865,7 +865,9 @@ export type OfficialItemBankFilterKey =
   | 'mechanic'
   | 'has_images';
 
-export type OfficialItemBankFilters = Partial<Record<OfficialItemBankFilterKey, string>>;
+export type OfficialItemBankFilters = Partial<Record<OfficialItemBankFilterKey, string>> & {
+  item_id?: string;
+};
 
 export type OfficialItemBankFacet = {
   key: string;
@@ -925,7 +927,7 @@ export async function getPlatformAdminOfficialExamItemBank(
     level: opts.level,
   };
   const filters = opts.filters || {};
-  (Object.keys(filters) as OfficialItemBankFilterKey[]).forEach((key) => {
+  (Object.keys(filters) as Array<OfficialItemBankFilterKey | 'item_id'>).forEach((key) => {
     const value = filters[key];
     if (value) params[key] = value;
   });

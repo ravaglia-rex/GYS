@@ -282,6 +282,7 @@ export function PlatformAdminQuestionPerformanceCard({
               ? {
                   display: 'grid',
                   gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                  alignItems: 'start',
                   gap: 0.75,
                 }
               : { display: 'flex', flexDirection: 'column', gap: 0.4 }

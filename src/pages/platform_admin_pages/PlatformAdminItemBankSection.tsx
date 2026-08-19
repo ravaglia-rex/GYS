@@ -4,10 +4,13 @@ import {
   Box,
   Button,
   CircularProgress,
+  InputAdornment,
   Tab,
   Tabs,
+  TextField,
   Typography,
 } from '@mui/material';
+import SearchIcon from '@mui/icons-material/Search';
 import { useSearchParams } from 'react-router-dom';
 import {
   getPlatformAdminOfficialExamItemBank,
@@ -21,7 +24,10 @@ import {
 import { MathJaxContext } from 'better-react-mathjax';
 import { EXAM_MATHJAX_CONFIG } from '../../components/assessment/examMathJaxConfig';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
-import { platformAdminFilterToolbarRowSx } from './platformAdminPageStyles';
+import {
+  platformAdminFilterToolbarRowSx,
+  platformAdminSearchFieldSx,
+} from './platformAdminPageStyles';
 import {
   PlatformAdminAnalyticsSection,
   PlatformAdminFilterControl,
@@ -134,6 +140,12 @@ function filtersEqual(a: OfficialItemBankFilters, b: OfficialItemBankFilters): b
   return FILTER_KEYS.every((key) => (a[key] || '') === (b[key] || ''));
 }
 
+function itemIdMatchesQuery(itemId: string, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  return itemId.toLowerCase().includes(q);
+}
+
 export function PlatformAdminItemBankSection({
   refreshNonce = 0,
   onLoadingChange,
@@ -153,23 +165,33 @@ export function PlatformAdminItemBankSection({
   const examId = searchParams.get('exam') || '';
   const levelRaw = Number(searchParams.get('level'));
   const level = Number.isFinite(levelRaw) && levelRaw > 0 ? Math.floor(levelRaw) : 1;
-  const filters = useMemo(() => readFilters(searchParams), [searchParams]);
+  const taxonomyParamKey = FILTER_KEYS.map((key) => `${key}:${searchParams.get(key) || ''}`).join('|');
+  const filters = useMemo(() => readFilters(searchParams), [taxonomyParamKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const itemIdQuery = searchParams.get('item_id') || '';
 
   const setQuery = useCallback(
-    (patch: { exam?: string; level?: number; filters?: OfficialItemBankFilters }) => {
+    (patch: {
+      exam?: string;
+      level?: number;
+      filters?: OfficialItemBankFilters;
+      itemIdQuery?: string;
+    }) => {
       const next = new URLSearchParams();
       const nextExam = patch.exam ?? examId;
       const nextLevel = patch.level ?? level;
       const nextFilters = patch.filters ?? filters;
+      const nextItemId = patch.itemIdQuery !== undefined ? patch.itemIdQuery : itemIdQuery;
       if (nextExam) next.set('exam', nextExam);
       next.set('level', String(nextLevel));
       for (const key of FILTER_KEYS) {
         const value = nextFilters[key];
         if (value) next.set(key, value);
       }
+      const trimmedItemId = nextItemId.trim();
+      if (trimmedItemId) next.set('item_id', trimmedItemId);
       setSearchParams(next, { replace: true });
     },
-    [examId, filters, level, setSearchParams]
+    [examId, filters, itemIdQuery, level, setSearchParams]
   );
 
   useEffect(() => {
@@ -233,7 +255,11 @@ export function PlatformAdminItemBankSection({
     if (filters[key]) return true;
     return (facets?.[key] || []).length > 0;
   });
-  const questions = bank?.questions || [];
+  const questions = useMemo(() => {
+    const rows = bank?.questions || [];
+    if (!itemIdQuery.trim()) return rows;
+    return rows.filter((q) => itemIdMatchesQuery(q.item_id, itemIdQuery));
+  }, [bank, itemIdQuery]);
 
   return (
     <>
@@ -251,7 +277,7 @@ export function PlatformAdminItemBankSection({
         <>
           <Tabs
             value={examId || false}
-            onChange={(_e, value: string) => setQuery({ exam: value, filters: {} })}
+            onChange={(_e, value: string) => setQuery({ exam: value, filters: {}, itemIdQuery: '' })}
             variant="scrollable"
             scrollButtons="auto"
             sx={examPickerTabsSx}
@@ -283,42 +309,65 @@ export function PlatformAdminItemBankSection({
             }
             subtitle={
               bank
-                ? `${bank.total_items.toLocaleString()} items · ${bank.served_items.toLocaleString()} served. Filters combine. Unserved items stay visible.`
+                ? `${(itemIdQuery.trim() ? questions.length : bank.total_items).toLocaleString()} items · ${(
+                    itemIdQuery.trim()
+                      ? questions.filter((q) => q.times_seen > 0).length
+                      : bank.served_items
+                  ).toLocaleString()} served. Search by item ID or combine filters. Unserved items stay visible.`
                 : 'Browse every official bank item with options, the correct answer, and pick rates.'
             }
             accent="teal"
           >
-            {visibleFilterKeys.length > 0 ? (
-              <Box sx={{ ...platformAdminFilterToolbarRowSx, mb: 2, flexWrap: 'wrap', gap: 1.25 }}>
-                {visibleFilterKeys.map((key) => {
-                  const options = facets?.[key] || [];
-                  const labels: Record<string, string> = { [ALL_VALUE]: `All ${FILTER_LABELS[key].toLowerCase()}` };
-                  for (const row of options) {
-                    labels[row.key] = `${row.label} (${row.count})`;
-                  }
-                  const current = filters[key];
-                  if (current && !labels[current]) labels[current] = current;
-                  return (
-                    <PlatformAdminFilterControl
-                      key={key}
-                      id={`item-bank-${key}`}
-                      label={FILTER_LABELS[key]}
-                      labels={labels}
-                      value={current || ALL_VALUE}
-                      minWidth={
-                        key === 'strand' ? 380 : key === 'instruction_family' ? 240 : 160
-                      }
-                      onChange={(value) => {
-                        const next = { ...filters };
-                        if (value === ALL_VALUE) delete next[key];
-                        else next[key] = value;
-                        if (!filtersEqual(next, filters)) setQuery({ filters: next });
-                      }}
-                    />
-                  );
-                })}
-              </Box>
-            ) : null}
+            <Box sx={{ ...platformAdminFilterToolbarRowSx, mb: 2, flexWrap: 'wrap', gap: 1.25 }}>
+              <TextField
+                id="item-bank-item-id"
+                size="small"
+                placeholder="Search item ID (AR-L1-T5-05-P1:v1)"
+                value={itemIdQuery}
+                onChange={(e) => setQuery({ itemIdQuery: e.target.value })}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ color: ip.subtext, fontSize: 20 }} />
+                    </InputAdornment>
+                  ),
+                }}
+                inputProps={{ 'aria-label': 'Search item bank by item ID' }}
+                sx={{
+                  ...platformAdminSearchFieldSx,
+                  flex: '1 1 240px',
+                  minWidth: 220,
+                  maxWidth: 420,
+                }}
+              />
+              {visibleFilterKeys.map((key) => {
+                const options = facets?.[key] || [];
+                const labels: Record<string, string> = { [ALL_VALUE]: `All ${FILTER_LABELS[key].toLowerCase()}` };
+                for (const row of options) {
+                  labels[row.key] = `${row.label} (${row.count})`;
+                }
+                const current = filters[key];
+                if (current && !labels[current]) labels[current] = current;
+                return (
+                  <PlatformAdminFilterControl
+                    key={key}
+                    id={`item-bank-${key}`}
+                    label={FILTER_LABELS[key]}
+                    labels={labels}
+                    value={current || ALL_VALUE}
+                    minWidth={
+                      key === 'strand' ? 380 : key === 'instruction_family' ? 240 : 160
+                    }
+                    onChange={(value) => {
+                      const next = { ...filters };
+                      if (value === ALL_VALUE) delete next[key];
+                      else next[key] = value;
+                      if (!filtersEqual(next, filters)) setQuery({ filters: next });
+                    }}
+                  />
+                );
+              })}
+            </Box>
 
             {loading && !bank ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>

@@ -136,7 +136,8 @@ export const ArOptionFigureSlice: React.FC<{
   naturalHeight?: number;
   /**
    * `exam` — size a figure crop to the full exam figure caps (crop box itself).
-   * `stem` — size the stem crop from a combined stem+options figure.
+   * `stem` — same scale as ExamMarkdown would show the combined asset, capped
+   * so a tight tray/grid crop is not blown up to the stem max box.
    * `option` / `crop` — size like ExamMarkdown would show the full asset, then
    * crop. That keeps option glyphs on the same scale as the stem figure.
    */
