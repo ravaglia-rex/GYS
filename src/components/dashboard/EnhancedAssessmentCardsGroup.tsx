@@ -35,7 +35,7 @@ import {
 import { canAttemptTier, countClearedTiersFromProgress } from '../../utils/tierProgression';
 import { getReasoningExamSubcategories } from '../../data/reasoningExamSubcategories';
 import { auth } from '../../firebase/firebase';
-import { canStartOfficialAssessment } from '../../utils/officialStudentAssessmentsAccess';
+import { canStartOfficialAssessment, officialAssessmentSchoolIdFromStudent } from '../../utils/officialStudentAssessmentsAccess';
 import { formatCooldownDate, nextEligibleAtMsForLevel } from '../../utils/examAttemptCooldown';
 import { canonicalAssessmentId, canonicalizeProgressMap } from '../../utils/assessmentIdCompat';
 import {
@@ -162,6 +162,8 @@ interface AssessmentCardProps {
   previewSampleCtaHidden?: boolean;
   /** Live student gate while official question banks are not ready */
   officialStartPaused?: boolean;
+  /** Per-level live gate (school-scoped / public tier allowlist). */
+  isOfficialLevelStartable?: (level: number) => boolean;
 }
 
 const AssessmentCard: React.FC<AssessmentCardProps> = ({
@@ -175,6 +177,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
   previewStartBlocked = false,
   previewSampleCtaHidden = false,
   officialStartPaused = false,
+  isOfficialLevelStartable,
 }) => {
   const navigate = useNavigate();
   const goPreviewSample = (path: string) =>
@@ -668,6 +671,27 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
                 );
               }
 
+              if (isOfficialLevelStartable && !isOfficialLevelStartable(level)) {
+                return (
+                  <Button
+                    key={level}
+                    fullWidth
+                    variant="outlined"
+                    disabled
+                    sx={{
+                      borderColor: '#475569',
+                      color: '#94a3b8',
+                      borderRadius: 1.5,
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      '&.Mui-disabled': { borderColor: '#334155', color: '#64748b' },
+                    }}
+                  >
+                    Level {level} · Coming soon
+                  </Button>
+                );
+              }
+
               if (onCooldown && cooldownMs != null) {
                 return (
                   <Tooltip
@@ -993,9 +1017,10 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
   }, [previewBundle, studentData]);
 
   const viewerEmail = auth.currentUser?.email;
+  const officialSchoolId = officialAssessmentSchoolIdFromStudent(studentData);
 
   const handleStart = (assessmentId: string, tierNumber: number) => {
-    if (!previewBundle && !canStartOfficialAssessment(assessmentId, viewerEmail, tierNumber)) {
+    if (!previewBundle && !canStartOfficialAssessment(assessmentId, viewerEmail, tierNumber, officialSchoolId)) {
       return;
     }
     if (previewBundle?.previewDisableStartNavigation) {
@@ -1109,7 +1134,12 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
                   previewBundle?.previewHideSampleCtaForIds?.includes(assessment.id)
                 )}
                 officialStartPaused={
-                  !previewBundle && !canStartOfficialAssessment(assessment.id, viewerEmail)
+                  !previewBundle && !canStartOfficialAssessment(assessment.id, viewerEmail, undefined, officialSchoolId)
+                }
+                isOfficialLevelStartable={
+                  previewBundle
+                    ? undefined
+                    : (level) => canStartOfficialAssessment(assessment.id, viewerEmail, level, officialSchoolId)
                 }
               />
             </Box>

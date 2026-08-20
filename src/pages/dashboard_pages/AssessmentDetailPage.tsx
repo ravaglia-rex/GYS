@@ -44,6 +44,7 @@ import {
 import { mergeStatGridWithTier } from '../../components/assessment/mergeStatGridWithTier';
 import {
   canStartOfficialAssessment,
+  officialAssessmentSchoolIdFromStudent,
 } from '../../utils/officialStudentAssessmentsAccess';
 import { formatCooldownDate, nextEligibleAtMsForLevel } from '../../utils/examAttemptCooldown';
 import { assessmentIdsEqual, canonicalAssessmentId, canonicalizeProgressMap, readAssessmentProgress } from '../../utils/assessmentIdCompat';
@@ -80,11 +81,7 @@ const AssessmentDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const uid = auth.currentUser?.uid ?? '';
   const tier = parseInt(tierNumber ?? '1', 10);
-  const officialExamStartable = Boolean(
-    assessmentId && canStartOfficialAssessment(assessmentId, auth.currentUser?.email, tier)
-  );
   const levelBased = assessmentId ? isLevelBasedAssessment(assessmentId) : true;
-
   const {
     data: student,
     isLoading: studentLoading,
@@ -143,6 +140,15 @@ const AssessmentDetailPage: React.FC = () => {
     !!assessment && (!levelBased || canAttemptTier(progressForAssessment, tier, maxTierCount));
   const cooldownNextEligibleMs = levelBased ? nextEligibleAtMsForLevel(progressForAssessment, tier) : null;
   const cooldownActive = !gate.locked && tierAttemptAllowed && cooldownNextEligibleMs != null;
+  const officialExamStartable = Boolean(
+    assessmentId &&
+      canStartOfficialAssessment(
+        assessmentId,
+        auth.currentUser?.email,
+        tier,
+        officialAssessmentSchoolIdFromStudent(student)
+      )
+  );
 
   const statGrid = useMemo(
     () => mergeStatGridWithTier(flow, tierConfig),
@@ -591,7 +597,7 @@ const AssessmentDetailPage: React.FC = () => {
           <Button
             fullWidth
             variant="contained"
-            disabled={!tierAttemptAllowed || cooldownActive || !officialExamStartable}
+            disabled={!tierAttemptAllowed || cooldownActive || !officialExamStartable || studentLoading}
             onClick={() =>
               tierAttemptAllowed &&
               !cooldownActive &&
@@ -608,7 +614,9 @@ const AssessmentDetailPage: React.FC = () => {
               textTransform: 'none',
             }}
           >
-            {!officialExamStartable
+            {studentLoading
+              ? 'Loading…'
+              : !officialExamStartable
               ? 'Official exams coming soon'
               : cooldownActive && cooldownNextEligibleMs != null
                 ? `Available ${formatCooldownDate(cooldownNextEligibleMs)}`

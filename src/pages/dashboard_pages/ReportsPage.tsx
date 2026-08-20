@@ -29,10 +29,13 @@ import {
   downloadStudentReport,
   type StudentReportListItem,
 } from '../../db/studentCollection';
-import { useStudentReports } from '../../query/hooks';
+import { useStudentReports, useStudent } from '../../query/hooks';
 import PageTutorial from '../../components/tutorial/PageTutorial';
 import { studentPageSubtitleSx, studentPageTitleSx } from '../../styles/studentTypography';
-import { canAccessOfficialStudentAssessments } from '../../utils/officialStudentAssessmentsAccess';
+import {
+  canAccessOfficialStudentAssessments,
+  officialAssessmentSchoolIdFromStudent,
+} from '../../utils/officialStudentAssessmentsAccess';
 
 function a11yProps(index: number) {
   return {
@@ -71,6 +74,7 @@ const ReportsPage: React.FC = () => {
   const isPhone = useMediaQuery(theme.breakpoints.down('sm'));
   const navigate = useNavigate();
   const [uid, setUid] = useState(() => auth.currentUser?.uid ?? '');
+  const { data: student } = useStudent(uid, Boolean(uid));
   const reportsQuery = useStudentReports(uid, Boolean(uid));
   const reports = [...(reportsQuery.data?.reports ?? [])].sort(
     (a, b) => (b.milestone ?? 0) - (a.milestone ?? 0)
@@ -163,7 +167,10 @@ const ReportsPage: React.FC = () => {
                   Assessments
                 </Typography>
                 <Typography variant="h6" sx={studentPageSubtitleSx}>
-                  {canAccessOfficialStudentAssessments(auth.currentUser?.email)
+                  {canAccessOfficialStudentAssessments(
+                    auth.currentUser?.email,
+                    officialAssessmentSchoolIdFromStudent(student)
+                  )
                     ? 'Take assessments, view results, and track your progress'
                     : 'Official exams are coming soon; practice mode remains available'}
                 </Typography>

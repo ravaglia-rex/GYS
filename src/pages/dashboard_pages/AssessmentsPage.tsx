@@ -10,7 +10,11 @@ import { auth } from '../../firebase/firebase';
 import * as Sentry from '@sentry/react';
 import PageTutorial from '../../components/tutorial/PageTutorial';
 import { studentPageSubtitleSx, studentPageTitleSx } from '../../styles/studentTypography';
-import { canAccessOfficialStudentAssessments } from '../../utils/officialStudentAssessmentsAccess';
+import {
+  canAccessOfficialStudentAssessments,
+  officialAssessmentSchoolIdFromStudent,
+} from '../../utils/officialStudentAssessmentsAccess';
+import { useStudent } from '../../query/hooks';
 
 
 interface TabPanelProps {
@@ -52,7 +56,11 @@ const AssessmentsPage: React.FC = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const uid = auth.currentUser?.uid || '';
-  const officialAssessmentsEnabled = canAccessOfficialStudentAssessments(auth.currentUser?.email);
+  const { data: student } = useStudent(uid, Boolean(uid));
+  const officialAssessmentsEnabled = canAccessOfficialStudentAssessments(
+    auth.currentUser?.email,
+    officialAssessmentSchoolIdFromStudent(student)
+  );
   const [activeTab, setActiveTab] = useState(0);
 
   // Determine active tab based on current route

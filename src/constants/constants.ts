@@ -143,6 +143,7 @@ export const CHECK_EMAIL_EXISTS='/checkEmailExists';
 // Temporary launch gate: official student exams stay start-paused until listed in
 // OFFICIAL_LIVE_ASSESSMENT_IDS (utils/officialStudentAssessmentsAccess.ts).
 // Optional OFFICIAL_LIVE_ASSESSMENT_TIERS limits which levels are public (e.g. Analytical 1–2).
+// School-scoped live uses OFFICIAL_SCHOOL_LIVE_ASSESSMENTS (not a public launch).
 // Browse UI remains visible with "coming soon" locks.
 // Beta (srishti2k1@gmail.com, michael+student@argus.ai) may start only OFFICIAL_BETA_STARTABLE_ASSESSMENT_IDS
 // (currently analytical_reasoning) so the dashboard feels like a real student.

@@ -36,6 +36,24 @@ export const OFFICIAL_LIVE_ASSESSMENT_TIERS: Record<string, ReadonlySet<number>>
 };
 
 /**
+ * School-scoped live exams. Does not make exams public.
+ * Keep in sync with backend `OFFICIAL_SCHOOL_LIVE_ASSESSMENTS`.
+ *
+ * ONLY add after CAPS naming the school and exam
+ * (e.g. `MAKE ANALYTICAL LVL 1 LIVE FOR KIDS IN ASPEE NUTAN ACADEMY`).
+ */
+export const ASPEE_NUTAN_ACADEMY_SCHOOL_ID = 't2EHIIPz3kYWu5HAaASX';
+
+export const OFFICIAL_SCHOOL_LIVE_ASSESSMENTS: Record<
+  string,
+  Record<string, ReadonlySet<number>>
+> = {
+  [ASPEE_NUTAN_ACADEMY_SCHOOL_ID]: {
+    analytical_reasoning: new Set([1]),
+  },
+};
+
+/**
  * Exams beta testers may start before public live launch.
  * Same student feel otherwise (non-listed exams stay "coming soon").
  * Keep in sync with backend `OFFICIAL_BETA_STARTABLE_ASSESSMENT_IDS`.
@@ -52,6 +70,12 @@ export const OFFICIAL_ANALYTICAL_REASONING_STARTABLE_TIERS = new Set<number>([1]
 
 export function normalizeOfficialAssessmentEmail(email: unknown): string {
   return typeof email === 'string' ? email.trim().toLowerCase() : '';
+}
+
+export function officialAssessmentSchoolIdFromStudent(student: unknown): string {
+  if (!student || typeof student !== 'object') return '';
+  const id = (student as { school_id?: unknown }).school_id;
+  return typeof id === 'string' ? id.trim() : '';
 }
 
 /**
@@ -78,13 +102,23 @@ export function hasPublicLiveOfficialAssessments(): boolean {
   return OFFICIAL_LIVE_ASSESSMENT_IDS.size > 0;
 }
 
+export function hasSchoolLiveOfficialAssessments(schoolId: unknown): boolean {
+  const id = typeof schoolId === 'string' ? schoolId.trim() : '';
+  const live = id ? OFFICIAL_SCHOOL_LIVE_ASSESSMENTS[id] : undefined;
+  return Boolean(live && Object.keys(live).length > 0);
+}
+
 /**
  * True when the student may start/continue official exams in general
- * (global launch, beta tester, or any exam publicly live).
+ * (global launch, school-scoped live, beta tester, or any exam publicly live).
  */
-export function canAccessOfficialStudentAssessments(email: unknown): boolean {
+export function canAccessOfficialStudentAssessments(
+  email: unknown,
+  schoolId?: unknown
+): boolean {
   if (STUDENT_OFFICIAL_ASSESSMENTS_ENABLED) return true;
   if (hasPublicLiveOfficialAssessments()) return true;
+  if (hasSchoolLiveOfficialAssessments(schoolId)) return true;
   return isOfficialAssessmentBetaTester(email);
 }
 
@@ -98,15 +132,33 @@ function isPubliclyLiveAssessmentTier(assessmentId: string, tierNumber?: number)
   return liveTiers.has(tierNumber);
 }
 
+function isSchoolLiveAssessmentTier(
+  schoolId: unknown,
+  assessmentId: string,
+  tierNumber?: number
+): boolean {
+  const sid = typeof schoolId === 'string' ? schoolId.trim() : '';
+  if (!sid) return false;
+  const byExam = OFFICIAL_SCHOOL_LIVE_ASSESSMENTS[sid];
+  if (!byExam) return false;
+  const id = canonicalAssessmentId(assessmentId);
+  const liveTiers = byExam[id];
+  if (!liveTiers) return false;
+  if (tierNumber == null) return true;
+  return liveTiers.has(tierNumber);
+}
+
 /**
  * True when this specific assessment (and optional tier) may be started by this user.
  * Public: only live ids/tiers (or all if global full launch).
+ * School-scoped: listed school + exam + tier.
  * Beta: live ids + early-access allowlist (student-identical otherwise).
  */
 export function canStartOfficialAssessment(
   assessmentId: string,
   email: unknown,
-  tierNumber?: number
+  tierNumber?: number,
+  schoolId?: unknown
 ): boolean {
   if (!assessmentId) return false;
   const id = canonicalAssessmentId(assessmentId);
@@ -118,6 +170,7 @@ export function canStartOfficialAssessment(
     return false;
   }
   if (isPubliclyLiveAssessmentTier(id, tierNumber)) return true;
+  if (isSchoolLiveAssessmentTier(schoolId, id, tierNumber)) return true;
   // Full launch mode: global on + empty live list means every exam is open.
   if (STUDENT_OFFICIAL_ASSESSMENTS_ENABLED && OFFICIAL_LIVE_ASSESSMENT_IDS.size === 0) {
     return true;

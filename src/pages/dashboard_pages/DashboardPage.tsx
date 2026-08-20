@@ -23,6 +23,7 @@ import PageTutorial from '../../components/tutorial/PageTutorial';
 import {
   canAccessOfficialStudentAssessments,
   canStartOfficialAssessment,
+  officialAssessmentSchoolIdFromStudent,
 } from '../../utils/officialStudentAssessmentsAccess';
 import { canonicalAssessmentId, readAssessmentProgress } from '../../utils/assessmentIdCompat';
 import type {
@@ -71,7 +72,8 @@ const Dashboard: React.FC = () => {
   const loadError = studentIsError
     ? 'Could not load your dashboard data. Please refresh or try again later.'
     : '';
-  const officialAssessmentsEnabled = canAccessOfficialStudentAssessments(userEmail);
+  const officialSchoolId = officialAssessmentSchoolIdFromStudent(student);
+  const officialAssessmentsEnabled = canAccessOfficialStudentAssessments(userEmail, officialSchoolId);
 
   const dashboardDerived = useMemo(() => {
     if (loading || !student) {
@@ -129,7 +131,7 @@ const Dashboard: React.FC = () => {
       }
       // Only treat exams as "available" when membership-unlocked and publicly live (or beta).
       if (
-        canStartOfficialAssessment(a.id, userEmail) &&
+        canStartOfficialAssessment(a.id, userEmail, undefined, officialSchoolId) &&
         !gate.locked &&
         !isAssessmentFullyComplete(a, p)
       ) {
@@ -168,7 +170,7 @@ const Dashboard: React.FC = () => {
       backendNotificationEvents: dashboardNotificationEvents,
       assessmentScopeLine: `${tiersCompleted} of ${listedTotal} complete`,
     };
-  }, [student, configFromBackend, loading, userEmail]);
+  }, [student, configFromBackend, loading, userEmail, officialSchoolId]);
 
   const {
     stats,

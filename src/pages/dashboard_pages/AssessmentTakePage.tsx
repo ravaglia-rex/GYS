@@ -34,7 +34,7 @@ import {
   ExamQuestion,
   CompleteExamResponse,
 } from '../../db/assessmentCollection';
-import { useAssessmentConfig, useInvalidateStudentQueries } from '../../query/hooks';
+import { useAssessmentConfig, useStudent, useInvalidateStudentQueries } from '../../query/hooks';
 import { MathJaxContext } from 'better-react-mathjax';
 import { getAssessmentFlowDefinition } from '../../config/assessmentFlowUI';
 import { EXAM_MATHJAX_CONFIG } from '../../components/assessment/examMathJaxConfig';
@@ -43,6 +43,7 @@ import { ExamQuestionBody } from '../../components/assessment/ExamQuestionBody';
 import { useExamIntegrity } from '../../hooks/useExamIntegrity';
 import {
   canStartOfficialAssessment,
+  officialAssessmentSchoolIdFromStudent,
 } from '../../utils/officialStudentAssessmentsAccess';
 import { getExamDeviceFingerprint } from '../../utils/examDeviceFingerprint';
 import { isLevelBasedAssessment } from '../../utils/assessmentGating';
@@ -221,6 +222,7 @@ export default function AssessmentTakePage() {
 
   const tier = parseInt(tierNumber ?? '1', 10);
   const needsPreExamStep = assessmentId ? NEEDS_MIC.has(assessmentId) || NEEDS_LAPTOP.has(assessmentId) : false;
+  const { data: student, isLoading: studentLoading } = useStudent(uid, Boolean(uid));
 
   const [stage, setStage] = useState<PageStage>(needsPreExamStep ? 'pre_exam' : 'taking');
   const invalidateStudentQueries = useInvalidateStudentQueries();
@@ -731,7 +733,20 @@ export default function AssessmentTakePage() {
     return null;
   }
 
-  if (!canStartOfficialAssessment(assessmentId, auth.currentUser?.email, tier)) {
+  if (studentLoading) {
+    return (
+      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!canStartOfficialAssessment(
+    assessmentId,
+    auth.currentUser?.email,
+    tier,
+    officialAssessmentSchoolIdFromStudent(student)
+  )) {
     return (
       <Box sx={{ minHeight: '100vh', bgcolor: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, p: 3 }}>
         <Alert severity="info" sx={{ maxWidth: 500, width: '100%' }}>
