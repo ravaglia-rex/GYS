@@ -28,6 +28,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CorrectIcon from '@mui/icons-material/CheckCircleOutline';
 import PeopleIcon from '@mui/icons-material/PeopleOutline';
 import QuizIcon from '@mui/icons-material/Quiz';
+import FormatListNumberedIcon from '@mui/icons-material/FormatListNumbered';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -36,8 +37,11 @@ import {
   BarChart,
   CartesianGrid,
   Legend,
+  Cell,
   Line,
   LineChart,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -105,11 +109,7 @@ import {
   PlatformAdminPageHeader,
   PlatformAdminStatCard,
 } from './platformAdminComponents';
-import {
-  AdminExamOptionText,
-  AdminExamQuestionStem,
-} from './PlatformAdminExamQuestionCard';
-import { resolveLearnerExamOptions } from '../../components/assessment/resolveLearnerExamOptions';
+import { PlatformAdminAttemptPaper } from './PlatformAdminExamQuestionCard';
 
 type AnalyticsSection = 'official' | 'practice' | 'qod' | 'activity' | 'coins';
 
@@ -216,6 +216,153 @@ function exposureGroupDisplayLabel(key: string, fallback?: string): string {
     return `${legacy[1].toUpperCase()} · ${legacy[2].toUpperCase()} · family ${legacy[3]} · parent ${legacy[4]}`;
   }
   return fallback && fallback !== key ? fallback : key;
+}
+
+type PaperLengthSlice = {
+  key: string;
+  name: string;
+  value: number;
+  color: string;
+  avgAnswered: number;
+};
+
+function paperLengthSlicesFromRoute(
+  route: OfficialExamDrilldown['set_route'] | undefined
+): PaperLengthSlice[] {
+  if (!route) return [];
+  const short = route.track_short?.sits ?? 0;
+  const n32 = (route.track_32?.sits ?? route.finished_at_32 ?? 0) + short;
+  const n40 = route.track_40?.sits ?? route.finished_at_40 ?? 0;
+  if (n32 + n40 <= 0) return [];
+  const shortAnswered = route.track_short?.avg_answered ?? 0;
+  const avg32 =
+    short > 0 && (route.track_32?.sits ?? 0) > 0
+      ? Math.round(
+          (10 *
+            ((route.track_32.avg_answered ?? 0) * route.track_32.sits +
+              shortAnswered * short)) /
+            n32
+        ) / 10
+      : route.track_32?.avg_answered ?? 0;
+  return [
+    {
+      key: '32',
+      name: '32 questions',
+      value: n32,
+      color: ip.navy,
+      avgAnswered: avg32,
+    },
+    {
+      key: '40',
+      name: '40 questions',
+      value: n40,
+      color: '#F59E0B',
+      avgAnswered: route.track_40?.avg_answered ?? 0,
+    },
+  ];
+}
+
+function PaperLengthDonut({ slices }: { slices: PaperLengthSlice[] }) {
+  const total = slices.reduce((s, row) => s + row.value, 0);
+  const top = [...slices].sort((a, b) => b.value - a.value)[0];
+  const topPct = total > 0 && top ? Math.round((100 * top.value) / total) : 0;
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 2.5,
+        flexWrap: 'wrap',
+        minHeight: 220,
+      }}
+    >
+      <Box sx={{ width: 220, height: 220, position: 'relative', flex: '0 0 220px' }}>
+        <ResponsiveContainer>
+          <PieChart>
+            <Pie
+              data={slices}
+              dataKey="value"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              innerRadius={64}
+              outerRadius={96}
+              paddingAngle={2.5}
+              stroke="#fff"
+              strokeWidth={3}
+            >
+              {slices.map((s) => (
+                <Cell key={s.key} fill={s.color} />
+              ))}
+            </Pie>
+            <Tooltip
+              formatter={(value, name) => {
+                const n = typeof value === 'number' ? value : Number(value) || 0;
+                return [`${n.toLocaleString()} kids`, String(name)];
+              }}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'none',
+          }}
+        >
+          <Typography sx={{ fontWeight: 800, fontSize: 26, color: ip.heading, lineHeight: 1 }}>
+            {topPct}%
+          </Typography>
+          <Typography variant="caption" sx={{ color: ip.subtext, fontWeight: 700, mt: 0.35 }}>
+            {top?.name ?? ''}
+          </Typography>
+        </Box>
+      </Box>
+      <Box sx={{ flex: 1, minWidth: 180, display: 'flex', flexDirection: 'column', gap: 1 }}>
+        {slices.map((s) => {
+          const pct = total > 0 ? Math.round((1000 * s.value) / total) / 10 : 0;
+          return (
+            <Box
+              key={s.key}
+              sx={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 1.25,
+                px: 1.4,
+                py: 1.15,
+                borderRadius: 2,
+                bgcolor: ip.cardMutedBg,
+                border: `1px solid ${ip.cardBorder}`,
+              }}
+            >
+              <Box
+                sx={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: '50%',
+                  bgcolor: s.color,
+                  mt: 0.7,
+                  flexShrink: 0,
+                }}
+              />
+              <Box sx={{ minWidth: 0 }}>
+                <Typography sx={{ fontWeight: 800, color: ip.heading, fontSize: 15, lineHeight: 1.25 }}>
+                  {s.value.toLocaleString()} kids · {s.name}
+                </Typography>
+                <Typography variant="caption" sx={{ color: ip.subtext, display: 'block' }}>
+                  {pct}% of sits · avg answered {s.avgAnswered}
+                </Typography>
+              </Box>
+            </Box>
+          );
+        })}
+      </Box>
+    </Box>
+  );
 }
 
 function gradeSchoolRowSx(selected: boolean) {
@@ -1037,10 +1184,16 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
       (s, e) => s + e.avg_score_pct * e.completed_attempts,
       0
     );
+    const questionsWeighted = officialSummaries.reduce(
+      (s, e) => s + (e.avg_questions_answered ?? 0) * e.completed_attempts,
+      0
+    );
     return {
       completed,
       students,
       avgScore: completed > 0 ? Math.round((10 * weighted) / completed) / 10 : 0,
+      avgQuestions:
+        completed > 0 ? Math.round((10 * questionsWeighted) / completed) / 10 : 0,
       passRate: completed > 0 ? Math.round((1000 * passed) / completed) / 10 : 0,
     };
   }, [officialSummaries]);
@@ -1222,7 +1375,17 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                 subtitle="Platform-wide official exam totals and daily completion trends (IST). Click a card to open the matching tab."
                 accent="navy"
               >
-                <Box sx={{ ...platformAdminStatsGridSx, mb: 2.5 }}>
+                <Box
+                  sx={{
+                    ...platformAdminStatsGridSx,
+                    mb: 2.5,
+                    gridTemplateColumns: {
+                      xs: '1fr 1fr',
+                      sm: 'repeat(3, 1fr)',
+                      lg: 'repeat(5, 1fr)',
+                    },
+                  }}
+                >
                   <PlatformAdminStatCard
                     title="Total completions"
                     value={officialTotals.completed.toLocaleString()}
@@ -1250,6 +1413,14 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                     icon={<QuizIcon sx={{ color: '#0d47a1' }} />}
                     accent="#0d47a1"
                     onClick={() => openOfficialTab('exam-snapshots')}
+                  />
+                  <PlatformAdminStatCard
+                    title="Avg questions"
+                    value={officialTotals.avgQuestions.toLocaleString()}
+                    subtitle="Answered per kid in the timed sit"
+                    icon={<FormatListNumberedIcon sx={{ color: '#6d28d9' }} />}
+                    accent="#6d28d9"
+                    onClick={() => openOfficialTab('completions')}
                   />
                 </Box>
                 <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.75 }}>
@@ -1322,14 +1493,14 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                     ? `${shortOfficialExamLabel(selectedOfficialSummary.label)} · snapshot`
                     : 'Exam snapshot'
                 }
-                subtitle="Completions, students, score, and pass rate for the selected exam, then breakdown by level."
+                subtitle="Completions, students, score, pass rate, and average questions answered for the selected exam, then breakdown by level."
                 accent="slate"
               >
                 {selectedOfficialSummary ? (
                   <Box
                     sx={{
                       display: 'grid',
-                      gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(4, 1fr)' },
+                      gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, 1fr)', md: 'repeat(5, 1fr)' },
                       gap: 1.25,
                       mb: 2.25,
                     }}
@@ -1350,6 +1521,10 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                       {
                         label: 'Pass rate',
                         value: `${selectedOfficialSummary.pass_rate_pct}%`,
+                      },
+                      {
+                        label: 'Avg questions',
+                        value: `${selectedOfficialSummary.avg_questions_answered ?? 0}`,
                       },
                     ].map((cell) => (
                       <Box
@@ -1478,20 +1653,67 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                     </Typography>
                   ) : (
                     <>
-                      <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 1 }}>
-                        Score distribution (/1000)
-                      </Typography>
-                      <Box sx={{ width: '100%', height: 220, mb: 2.5 }}>
-                        <ResponsiveContainer>
-                          <BarChart data={officialDrilldown.score_distribution}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                            <XAxis dataKey="bucket" tick={{ fontSize: 11 }} />
-                            <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                            <Tooltip />
-                            <Bar dataKey="count" name="Completions" fill="#2563eb" radius={[4, 4, 0, 0]} />
-                          </BarChart>
-                        </ResponsiveContainer>
+                      <Box
+                        sx={{
+                          display: 'grid',
+                          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+                          gap: 2,
+                          mb: 2.5,
+                          alignItems: 'stretch',
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            border: `1px solid ${ip.cardBorder}`,
+                            borderRadius: 2,
+                            p: 1.75,
+                            bgcolor: '#fff',
+                          }}
+                        >
+                          <Typography sx={{ fontWeight: 800, color: ip.heading, mb: 0.25 }}>
+                            32 vs 40 scoring paper
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1.25 }}>
+                            Which denominator scoring used. Kids who never reached Set 5 still count as 40 if they were scored out of 40.
+                          </Typography>
+                          {paperLengthSlicesFromRoute(officialDrilldown.set_route).length > 0 ? (
+                            <PaperLengthDonut
+                              slices={paperLengthSlicesFromRoute(officialDrilldown.set_route)}
+                            />
+                          ) : (
+                            <Typography variant="body2" sx={{ color: ip.subtext, py: 6, textAlign: 'center' }}>
+                              No Analytical Reasoning sits in this filter yet.
+                            </Typography>
+                          )}
+                        </Box>
+                        <Box
+                          sx={{
+                            border: `1px solid ${ip.cardBorder}`,
+                            borderRadius: 2,
+                            p: 1.75,
+                            bgcolor: '#fff',
+                          }}
+                        >
+                          <Typography sx={{ fontWeight: 800, color: ip.heading, mb: 0.25 }}>
+                            Score distribution (/1000)
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1.25 }}>
+                            Completions by score band.
+                          </Typography>
+                          <Box sx={{ width: '100%', height: 220 }}>
+                            <ResponsiveContainer>
+                              <BarChart data={officialDrilldown.score_distribution}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                                <XAxis dataKey="bucket" tick={{ fontSize: 11 }} />
+                                <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                                <Tooltip />
+                                <Bar dataKey="count" name="Completions" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </Box>
+                        </Box>
                       </Box>
+
 
                       {renderOfficialTagTable(
                         'strand',
@@ -1590,11 +1812,11 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                       )}
 
                       <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.5, mt: 1 }}>
-                        32-item vs 40-item sittings
+                        Why the extra 8 items were added
                       </Typography>
                       <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1 }}>
                         {officialDrilldown.set_route?.attempts_with_ar_shape
-                          ? `${officialDrilldown.set_route.attempts_with_ar_shape} Analytical Reasoning sits: ${officialDrilldown.set_route.finished_at_32} finished at 32 items, ${officialDrilldown.set_route.finished_at_40} at 40 items. Extra 8-item set used on ${officialDrilldown.set_route.extension_triggered} sits (${officialDrilldown.set_route.extension_trigger_pct}%).`
+                          ? `Extra set used on ${officialDrilldown.set_route.extension_triggered} of ${officialDrilldown.set_route.attempts_with_ar_shape} sits (${officialDrilldown.set_route.extension_trigger_pct}%). Avg assembled ${officialDrilldown.set_route.avg_questions_served ?? '–'} · avg answered ${officialDrilldown.set_route.avg_questions_answered ?? '–'}.`
                           : 'No Analytical Reasoning sits in this filter yet.'}
                       </Typography>
                       {(officialDrilldown.set_route?.reason_counts || []).length > 0 && (
@@ -1863,7 +2085,7 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
               {officialView === 'completions' && (
               <PlatformAdminAnalyticsSection
                 title="Search completions"
-                subtitle="Loads when you open this tab. Use filters and Search to refine. Click a student to open their full exam paper (questions, choices, and answers) for that level."
+                subtitle="Loads when you open this tab. Use filters and Search to refine. Questions is how many items they answered in the timed sit. Click a student to open their full exam paper (questions, choices, and answers) for that level."
                 accent="violet"
               >
                   <Box sx={{ ...platformAdminFilterToolbarRowSx, mb: 2 }}>
@@ -2019,6 +2241,7 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                               <TableCell>Student</TableCell>
                               <TableCell>School</TableCell>
                               <TableCell align="right">Level</TableCell>
+                              <TableCell align="right">Questions</TableCell>
                               <TableCell align="right">Score</TableCell>
                               <TableCell align="right">Passed</TableCell>
                             </TableRow>
@@ -2026,7 +2249,7 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                           <TableBody>
                             {officialRecent.length === 0 ? (
                               <TableRow>
-                                <TableCell colSpan={6} align="center" sx={{ py: 3, color: ip.subtext }}>
+                                <TableCell colSpan={7} align="center" sx={{ py: 3, color: ip.subtext }}>
                                   No completions matched these filters.
                                 </TableCell>
                               </TableRow>
@@ -2071,6 +2294,7 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                                   </TableCell>
                                   <TableCell>{row.school_name ?? '-'}</TableCell>
                                   <TableCell align="right">{row.proficiency_tier ?? '-'}</TableCell>
+                                  <TableCell align="right">{row.questions_answered ?? '-'}</TableCell>
                                   <TableCell align="right">
                                     <Box
                                       sx={{
@@ -2100,7 +2324,7 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                                 {selected ? (
                                   <TableRow>
                                     <TableCell
-                                      colSpan={6}
+                                      colSpan={7}
                                       sx={{ p: 0, bgcolor: '#f8fafc', verticalAlign: 'top' }}
                                     >
                                       <Box ref={officialAttemptDetailPanelRef} sx={{ p: 2 }}>
@@ -2183,179 +2407,11 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                                                 This attempt has no stored question queue, so the paper cannot be reconstructed.
                                               </Typography>
                                             ) : (
-                                              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                                                {officialAttemptDetail.questions.map((q) => (
-                                                  <Box
-                                                    key={`${officialAttemptDetail.attempt_id}-${q.index}-${q.item_id}`}
-                                                    sx={{
-                                                      bgcolor: '#fff',
-                                                      border: '1px solid #e2e8f0',
-                                                      borderRadius: 1.5,
-                                                      p: 1.75,
-                                                    }}
-                                                  >
-                                                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 0.75 }}>
-                                                      <Typography sx={{ fontWeight: 800, color: ip.heading }}>
-                                                        Q{q.index}
-                                                      </Typography>
-                                                      <PlatformAdminChip
-                                                        label={
-                                                          q.is_correct == null
-                                                            ? 'ungraded'
-                                                            : q.is_correct
-                                                              ? 'correct'
-                                                              : 'incorrect'
-                                                        }
-                                                        tone={
-                                                          q.is_correct == null
-                                                            ? 'neutral'
-                                                            : q.is_correct
-                                                              ? 'success'
-                                                              : 'error'
-                                                        }
-                                                      />
-                                                      {q.time_spent_sec != null ? (
-                                                        <PlatformAdminChip
-                                                          label={`${q.time_spent_sec}s`}
-                                                          tone="info"
-                                                        />
-                                                      ) : null}
-                                                      {q.strand_label || q.strand ? (
-                                                        <PlatformAdminChip
-                                                          label={q.strand_label || q.strand || ''}
-                                                          tone="info"
-                                                        />
-                                                      ) : null}
-                                                      {q.instruction_family ? (
-                                                        <PlatformAdminChip
-                                                          label={
-                                                            q.instruction_family_label
-                                                              ? `${q.instruction_family} · ${q.instruction_family_label}`
-                                                              : q.instruction_family
-                                                          }
-                                                          tone="neutral"
-                                                        />
-                                                      ) : null}
-                                                      {q.band ? (
-                                                        <PlatformAdminChip label={q.band} tone="warning" />
-                                                      ) : null}
-                                                    </Box>
-                                                    <Typography sx={{ color: '#475569', fontSize: 12, mb: 0.5 }}>
-                                                      {q.item_id}
-                                                    </Typography>
-                                                    <AdminExamQuestionStem
-                                                      q={q}
-                                                      emptyLabel="(no prompt - bank item missing)"
-                                                    />
-                                                    {(() => {
-                                                      const optionRows = Array.isArray(q.options) ? q.options : [];
-                                                      const resolved = resolveLearnerExamOptions({
-                                                        markdown: q.prompt || q.prompt_preview || '',
-                                                        stimulus: q.stimulus,
-                                                        stimulusType: q.stimulus_type,
-                                                        bankOptions: optionRows.map((o) => o.text),
-                                                      });
-                                                      const hasText = resolved.optionTexts.some((t) => t);
-                                                      if (optionRows.length > 0 && (resolved.pickOnFigure || !hasText)) {
-                                                        return (
-                                                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
-                                                        {optionRows.map((opt, optIdx) => {
-                                                          const picked = q.selected_index === optIdx;
-                                                          const keyCorrect = q.correct_index === optIdx;
-                                                          return (
-                                                            <Box
-                                                              key={`${q.item_id}-${opt.letter}`}
-                                                              sx={{
-                                                                px: 1.1,
-                                                                py: 0.55,
-                                                                borderRadius: 1,
-                                                                border: '1px solid',
-                                                                borderColor: keyCorrect
-                                                                  ? '#86efac'
-                                                                  : picked
-                                                                    ? '#fca5a5'
-                                                                    : '#e2e8f0',
-                                                                bgcolor: keyCorrect
-                                                                  ? '#f0fdf4'
-                                                                  : picked
-                                                                    ? '#fef2f2'
-                                                                    : '#fff',
-                                                                fontSize: 12,
-                                                                fontWeight: 700,
-                                                                color: ip.heading,
-                                                              }}
-                                                            >
-                                                              {opt.letter}
-                                                              {keyCorrect && picked
-                                                                ? ' · correct · picked'
-                                                                : keyCorrect
-                                                                  ? ' · correct'
-                                                                  : picked
-                                                                    ? ' · picked'
-                                                                    : ''}
-                                                            </Box>
-                                                          );
-                                                        })}
-                                                      </Box>
-                                                        );
-                                                      }
-                                                      if (optionRows.length > 0) {
-                                                        return (
-                                                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-                                                        {optionRows.map((opt, optIdx) => {
-                                                          const picked = q.selected_index === optIdx;
-                                                          const keyCorrect = q.correct_index === optIdx;
-                                                          return (
-                                                            <Box
-                                                              key={`${q.item_id}-${opt.letter}`}
-                                                              sx={{
-                                                                display: 'flex',
-                                                                gap: 1,
-                                                                alignItems: 'flex-start',
-                                                                px: 1.25,
-                                                                py: 0.85,
-                                                                borderRadius: 1,
-                                                                border: '1px solid',
-                                                                borderColor: keyCorrect
-                                                                  ? '#86efac'
-                                                                  : picked
-                                                                    ? '#fca5a5'
-                                                                    : '#e2e8f0',
-                                                                bgcolor: keyCorrect
-                                                                  ? '#f0fdf4'
-                                                                  : picked
-                                                                    ? '#fef2f2'
-                                                                    : '#fff',
-                                                              }}
-                                                            >
-                                                              <Typography sx={{ fontWeight: 800, minWidth: 18 }}>
-                                                                {opt.letter}
-                                                              </Typography>
-                                                              <AdminExamOptionText text={resolved.optionTexts[optIdx] || opt.text} />
-                                                              <Typography variant="caption" sx={{ color: ip.subtext }}>
-                                                                {keyCorrect && picked
-                                                                  ? 'correct · picked'
-                                                                  : keyCorrect
-                                                                    ? 'correct'
-                                                                    : picked
-                                                                      ? 'picked'
-                                                                      : ''}
-                                                              </Typography>
-                                                            </Box>
-                                                          );
-                                                        })}
-                                                      </Box>
-                                                        );
-                                                      }
-                                                      return (
-                                                      <Typography variant="caption" sx={{ color: ip.subtext }}>
-                                                        Picked {q.selected_letter} · key {q.correct_letter ?? '-'}
-                                                      </Typography>
-                                                      );
-                                                    })()}
-                                                  </Box>
-                                                ))}
-                                              </Box>
+                                              <PlatformAdminAttemptPaper
+                                                questions={officialAttemptDetail.questions}
+                                                attemptId={officialAttemptDetail.attempt_id}
+                                                examId={selectedOfficialExamId}
+                                              />
                                             )}
                                           </Box>
                                         ) : (

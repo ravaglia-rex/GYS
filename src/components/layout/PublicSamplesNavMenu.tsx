@@ -39,7 +39,7 @@ const PublicSamplesNavMenu: React.FC = () => {
         onClick={() => setIsOpen((prev) => !prev)}
         aria-haspopup="menu"
         aria-expanded={isOpen}
-        className="inline-flex items-center gap-1.5 text-gray-600 hover:text-gray-900 transition-colors duration-150"
+        className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap text-gray-600 hover:text-gray-900 transition-colors duration-150"
       >
         Explore
         <ChevronDown

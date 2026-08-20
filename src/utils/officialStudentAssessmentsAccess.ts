@@ -18,6 +18,14 @@ export const OFFICIAL_STUDENT_ASSESSMENT_BETA_EMAILS = new Set([
 ]);
 
 /**
+ * These accounts skip the 3-month same-level cooldown in the student UI.
+ * Keep in sync with backend `UNLIMITED_OFFICIAL_EXAM_RETAKE_EMAILS`.
+ */
+export const UNLIMITED_OFFICIAL_EXAM_RETAKE_EMAILS = new Set([
+  'srishti2k1@gmail.com',
+]);
+
+/**
  * Official exams open for all students (membership / prerequisites still apply).
  * Empty = nothing live for the public.
  *
@@ -95,6 +103,11 @@ export function resolveOfficialAssessmentViewerEmail(
 export function isOfficialAssessmentBetaTester(email: unknown): boolean {
   const normalized = normalizeOfficialAssessmentEmail(email);
   return Boolean(normalized) && OFFICIAL_STUDENT_ASSESSMENT_BETA_EMAILS.has(normalized);
+}
+
+export function isUnlimitedOfficialExamRetakeEmail(email: unknown): boolean {
+  const normalized = normalizeOfficialAssessmentEmail(email);
+  return Boolean(normalized) && UNLIMITED_OFFICIAL_EXAM_RETAKE_EMAILS.has(normalized);
 }
 
 /** True when at least one official exam is publicly live. */

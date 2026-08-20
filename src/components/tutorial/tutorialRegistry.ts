@@ -105,13 +105,13 @@ export const TUTORIAL_REGISTRY: Record<TutorialPageKey, TutorialStepDefinition[]
     {
       targetId: 'student-nav-reports',
       title: 'Reports',
-      body: 'Milestone PDF reports unlock based on your package. National percentiles and PDFs refresh on a weekly Monday run.',
+      body: 'Milestone PDF reports unlock based on your package. Discovery PDFs appear shortly after you finish Analytical Reasoning. National percentiles still refresh on Monday.',
       placement: 'right',
     },
     {
       targetId: 'student-reports-list',
       title: 'Your report history',
-      body: 'Each row is a milestone PDF you can download once the weekly generation run has completed.',
+      body: 'Each row is a milestone PDF you can download once it has been generated.',
       placement: 'top',
     },
   ],

@@ -48,8 +48,6 @@ export const PLATFORM_ADMIN_ANALYTICS_SCHOOL_ADMIN_ACTIVITY = '/analytics/school
 export const PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAMS = '/analytics/official-exams';
 export const PLATFORM_ADMIN_ANALYTICS_OFFICIAL_DAILY = '/analytics/official-daily';
 export const PLATFORM_ADMIN_QUESTION_PROBLEM_REPORTS = '/question-problem-reports';
-export const PLATFORM_ADMIN_TEST_RESULTS_TRACKED_EMAILS = '/test-results/tracked-emails';
-export const PLATFORM_ADMIN_TEST_RESULTS_DAY_QUESTIONS = '/test-results/day-questions';
 
 // Schools
 export const CREATE_EXPEDITED_SCHOOL='/createExpeditedSchool';

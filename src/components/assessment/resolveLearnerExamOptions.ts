@@ -4,6 +4,7 @@ import { mergeExamPromptMarkdown } from './ExamMarkdown';
 import {
   allLetterKeyOptions,
   isPlaceholderOptionText,
+  looksLikeArOptionFigureHint,
   optionChoicesFromStimulus,
   optionFigureFromAssets,
   splitArImageBySrc,
@@ -23,13 +24,7 @@ function hasRealChoiceText(texts: Array<string | undefined> | null | undefined):
 
 function looksLikeStoredOptionFigure(fig: { src: string; alt?: string } | null): boolean {
   if (!fig) return false;
-  const haystack = `${fig.src} ${fig.alt ?? ''}`;
-  if (/(?:composite|cycle)_matrix/i.test(haystack) || /followed by\s+.+answer cards/i.test(haystack)) {
-    return false;
-  }
-  return /\b(option|options|choice|choices|answer|answers|possible)\b/i.test(
-    haystack
-  );
+  return looksLikeArOptionFigureHint(fig.src, fig.alt ?? '');
 }
 
 function assetAlreadyReferenced(markdown: string, path: string): boolean {
@@ -86,15 +81,17 @@ export function resolveLearnerExamOptions(input: {
     ? { src: input.optionFigure.src, alt: input.optionFigure.alt ?? '' }
     : null;
   const trustedStoredFig = looksLikeStoredOptionFigure(storedFig) ? storedFig : null;
-  const splitStoredFig = trustedStoredFig ? splitArImageBySrc(combined, trustedStoredFig.src) : null;
   let optionFigureRaw = trustedStoredFig ?? splitFig.optionFigure ?? fromAssets;
-  let withoutFigure =
-    trustedStoredFig && splitStoredFig?.optionFigure
-      ? splitStoredFig.stemMarkdown
-      : optionFigureRaw && splitFig.optionFigure
-        ? splitFig.stemMarkdown
-        : combined;
-  const splitChoices = splitLearnerExamChoices(withoutFigure);
+  let withoutFigure = combined;
+  if (optionFigureRaw?.src) {
+    const splitBySrc = splitArImageBySrc(combined, optionFigureRaw.src);
+    if (splitBySrc.optionFigure) {
+      withoutFigure = splitBySrc.stemMarkdown;
+    } else if (splitFig.optionFigure) {
+      withoutFigure = splitFig.stemMarkdown;
+    }
+  }
+  let splitChoices = splitLearnerExamChoices(withoutFigure);
   const fromStimulus = optionChoicesFromStimulus(input.stimulus);
   const bank = (input.bankOptions ?? []).map((t, i) => {
     const cleaned = stripOptionLetterPrefix(cleanLearnerFacingExamMarkup(t));
@@ -119,6 +116,7 @@ export function resolveLearnerExamOptions(input: {
     if (fallbackFig.optionFigure) {
       optionFigureRaw = fallbackFig.optionFigure;
       withoutFigure = fallbackFig.stemMarkdown;
+      splitChoices = splitLearnerExamChoices(withoutFigure);
     }
   }
   const optionFigure = optionFigureRaw

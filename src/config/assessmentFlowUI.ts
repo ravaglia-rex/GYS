@@ -8,7 +8,16 @@ import { canonicalAssessmentId } from '../utils/assessmentIdCompat';
 
 export type AssessmentThemeMode = 'blue' | 'purple';
 
-export type BeforeBeginIconKey = 'clock' | 'phone' | 'block' | 'bolt' | 'chart' | 'headphones' | 'mic' | 'seat';
+export type BeforeBeginIconKey =
+  | 'clock'
+  | 'phone'
+  | 'block'
+  | 'bolt'
+  | 'chart'
+  | 'headphones'
+  | 'mic'
+  | 'seat'
+  | 'help';
 
 export interface BeforeBeginItem {
   icon: BeforeBeginIconKey;
@@ -58,12 +67,18 @@ const ONE_SITTING_BEFORE: BeforeBeginItem = {
   text: 'Once started, you must complete this in one sitting. You cannot return to a question after you submit an answer.',
 };
 
+const NO_SKIP_BEFORE: BeforeBeginItem = {
+  icon: 'help',
+  text: 'You cannot skip questions. If you are stuck, pick the closest answer you can and go to the next question.',
+};
+
 const analyticalReasoningBefore: BeforeBeginItem[] = [
   FORWARD_ONLY_BEFORE,
   { icon: 'clock', text: 'You have a fixed time once you start - the timer cannot be paused.' },
   { icon: 'block', text: 'No calculators, notes, or outside help. You can use pen and paper to scribble.' },
   { icon: 'chart', text: 'National tier and percentile update weekly on Monday.' },
   ONE_SITTING_BEFORE,
+  NO_SKIP_BEFORE,
 ];
 
 const englishBefore: BeforeBeginItem[] = [
@@ -127,6 +142,7 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
       { icon: 'phone', text: 'Minimize distractions; you will need focused reading.' },
       { icon: 'block', text: 'No dictionaries, translators, or outside help.' },
       ONE_SITTING_BEFORE,
+      NO_SKIP_BEFORE,
     ],
     theme: 'blue',
     defaultQuestionInteraction: 'passage_mcq',

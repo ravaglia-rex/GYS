@@ -14,7 +14,12 @@ import {
   shouldRenderStructuredStimulus,
 } from '../../components/assessment/ExamMarkdown';
 import type { ExamQuestion } from '../../db/assessmentCollection';
-import type { OfficialQuestionStatRow } from '../../db/platformAdminAnalytics';
+import type {
+  OfficialAttemptQuestionRow,
+  OfficialQuestionStatRow,
+} from '../../db/platformAdminAnalytics';
+import { MathJaxContext } from 'better-react-mathjax';
+import { EXAM_MATHJAX_CONFIG } from '../../components/assessment/examMathJaxConfig';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import { PlatformAdminAccuracyChip, PlatformAdminChip } from './platformAdminComponents';
 
@@ -126,17 +131,37 @@ export function AdminExamOptionText({ text }: { text: string }) {
   );
 }
 
+export type AdminExamQuestionView = {
+  item_id: string;
+  prompt?: string;
+  prompt_preview?: string;
+  options?: Array<{ letter?: string; text: string }>;
+  stimulus?: unknown;
+  stimulus_type?: string | null;
+  assets?: Array<{ path?: string; alt?: string }>;
+  option_figure?: { src: string; alt?: string } | null;
+};
+
+export type AdminExamOptionStatus = {
+  isCorrect: boolean;
+  picked?: boolean;
+  caption?: string;
+  pickPct?: number;
+};
+
 function AdminExamOptionRow({
   letter,
   isCorrect,
+  picked,
+  caption,
   pickPct,
-  pickCount,
   children,
 }: {
   letter: string;
   isCorrect: boolean;
-  pickPct: number;
-  pickCount: number;
+  picked?: boolean;
+  caption?: string;
+  pickPct?: number;
   children: ReactNode;
 }) {
   return (
@@ -149,21 +174,23 @@ function AdminExamOptionRow({
         py: 0.45,
         borderRadius: 1,
         border: '1px solid',
-        borderColor: isCorrect ? '#86efac' : '#e2e8f0',
-        bgcolor: isCorrect ? '#f0fdf4' : '#f8fafc',
+        borderColor: isCorrect ? '#86efac' : picked ? '#fca5a5' : '#e2e8f0',
+        bgcolor: isCorrect ? '#f0fdf4' : picked ? '#fef2f2' : '#f8fafc',
         position: 'relative',
         overflow: 'hidden',
       }}
     >
-      <Box
-        sx={{
-          position: 'absolute',
-          inset: 0,
-          width: `${Math.min(100, pickPct)}%`,
-          bgcolor: isCorrect ? 'rgba(22, 163, 74, 0.12)' : 'rgba(16, 64, 139, 0.08)',
-          pointerEvents: 'none',
-        }}
-      />
+      {typeof pickPct === 'number' ? (
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            width: `${Math.min(100, pickPct)}%`,
+            bgcolor: isCorrect ? 'rgba(22, 163, 74, 0.12)' : 'rgba(16, 64, 139, 0.08)',
+            pointerEvents: 'none',
+          }}
+        />
+      ) : null}
       <Typography
         sx={{
           fontWeight: 800,
@@ -176,21 +203,127 @@ function AdminExamOptionRow({
         {letter}.
       </Typography>
       <Box sx={{ flex: 1, minWidth: 0, position: 'relative' }}>{children}</Box>
-      <Typography
-        sx={{
-          fontWeight: 700,
-          fontSize: 12,
-          pt: 0.15,
-          color: isCorrect ? '#166534' : '#334155',
-          whiteSpace: 'nowrap',
-          position: 'relative',
-        }}
-      >
-        {pickPct}%
-        {pickCount > 0 ? ` · ${pickCount}` : ''}
-        {isCorrect ? ' · correct' : ''}
-      </Typography>
+      {caption ? (
+        <Typography
+          sx={{
+            fontWeight: 700,
+            fontSize: 12,
+            pt: 0.15,
+            color: isCorrect ? '#166534' : picked ? '#991b1b' : '#334155',
+            whiteSpace: 'nowrap',
+            position: 'relative',
+          }}
+        >
+          {caption}
+        </Typography>
+      ) : null}
     </Box>
+  );
+}
+
+/** Stem + options as the exam / item bank show them (figure slices or text). */
+export function AdminExamQuestionBody({
+  q,
+  emptyLabel,
+  optionStatus,
+}: {
+  q: AdminExamQuestionView;
+  emptyLabel: string;
+  optionStatus?: (optIdx: number) => AdminExamOptionStatus;
+}) {
+  const optionRows = Array.isArray(q.options) ? q.options : [];
+  const resolved = resolveLearnerExamOptions({
+    markdown: q.prompt || q.prompt_preview || '',
+    stimulus: q.stimulus,
+    stimulusType: q.stimulus_type,
+    bankOptions: optionRows.map((o) => o.text),
+    assets: q.assets,
+    optionFigure: q.option_figure,
+  });
+  const optionFigure = resolved.optionFigure;
+  const optionCount = optionRows.length || resolved.optionTexts.length || 4;
+  const { layout, slices, stemSlice, includesStemContent, naturalWidth, naturalHeight } =
+    useArOptionFigureMeta(optionFigure?.src, optionCount);
+  const showFigureSlices = Boolean(resolved.pickOnFigure);
+  const rows =
+    optionRows.length > 0
+      ? optionRows
+      : resolved.optionTexts.map((text, i) => ({
+          letter: String.fromCharCode(65 + i),
+          text,
+        }));
+  return (
+    <>
+      <AdminExamQuestionStem
+        q={q}
+        emptyLabel={emptyLabel}
+        hideOptionFigure={showFigureSlices}
+        hideEmbeddedChoices
+      />
+      {showFigureSlices && includesStemContent && optionFigure && stemSlice ? (
+        <Box sx={{ mb: 1.25 }}>
+          <ArOptionFigureSlice
+            figure={optionFigure}
+            index={0}
+            optionCount={optionCount}
+            layout={layout}
+            slice={stemSlice}
+            naturalWidth={naturalWidth}
+            naturalHeight={naturalHeight}
+            fit="stem"
+          />
+        </Box>
+      ) : null}
+      {rows.length > 0 ? (
+        <Box
+          sx={
+            showFigureSlices
+              ? {
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                  alignItems: 'start',
+                  gap: 0.75,
+                }
+              : { display: 'flex', flexDirection: 'column', gap: 0.4 }
+          }
+        >
+          {rows.map((opt, optIdx) => {
+            const optionText = resolved.optionTexts[optIdx] || opt.text || '';
+            const letter = opt.letter || String.fromCharCode(65 + optIdx);
+            const status = optionStatus?.(optIdx) ?? { isCorrect: false };
+            return (
+              <AdminExamOptionRow
+                key={`${q.item_id}-${letter}`}
+                letter={letter}
+                isCorrect={status.isCorrect}
+                picked={status.picked}
+                caption={status.caption}
+                pickPct={status.pickPct}
+              >
+                {showFigureSlices && optionFigure ? (
+                  <ArOptionFigureSlice
+                    figure={optionFigure}
+                    index={optIdx}
+                    optionCount={optionCount}
+                    layout={layout}
+                    slice={slices?.[optIdx]}
+                    naturalWidth={naturalWidth}
+                    naturalHeight={naturalHeight}
+                    fit={includesStemContent ? 'crop' : 'option'}
+                  />
+                ) : optionText ? (
+                  <AdminExamOptionText text={optionText} />
+                ) : null}
+              </AdminExamOptionRow>
+            );
+          })}
+        </Box>
+      ) : (
+        <Typography sx={{ color: '#64748b', fontSize: 13 }}>
+          (No option text on this item - often image-only.)
+        </Typography>
+      )}
+    </>
   );
 }
 
@@ -204,22 +337,6 @@ export function PlatformAdminQuestionPerformanceCard({
   const taxonomy = [question.strand, question.instruction_family, question.band]
     .filter(Boolean)
     .join(' · ');
-  const rawPrompt = question.prompt || question.prompt_preview || '';
-  const resolved = resolveLearnerExamOptions({
-    markdown: rawPrompt,
-    stimulus: question.stimulus,
-    stimulusType: question.stimulus_type,
-    bankOptions: question.options.map((o) => o.text),
-    assets: question.assets,
-    optionFigure: question.option_figure,
-  });
-  const optionFigure = resolved.optionFigure;
-  const { layout, slices, stemSlice, includesStemContent, naturalWidth, naturalHeight } =
-    useArOptionFigureMeta(
-      optionFigure?.src,
-      question.options.length || resolved.optionTexts.length || 4
-    );
-  const showFigureSlices = Boolean(resolved.pickOnFigure);
   return (
     <Box
       sx={{
@@ -255,72 +372,121 @@ export function PlatformAdminQuestionPerformanceCard({
         {question.item_id}
         {taxonomy ? ` · ${taxonomy}` : ''}
       </Typography>
-      <AdminExamQuestionStem
+      <AdminExamQuestionBody
         q={question}
         emptyLabel="(no prompt)"
-        hideOptionFigure={showFigureSlices}
-        hideEmbeddedChoices
+        optionStatus={(optIdx) => {
+          const opt = question.options[optIdx];
+          const pickPct = opt?.pick_pct ?? 0;
+          const pickCount = opt?.pick_count ?? 0;
+          return {
+            isCorrect: Boolean(opt?.is_correct),
+            pickPct,
+            caption: `${pickPct}%${pickCount > 0 ? ` · ${pickCount}` : ''}${
+              opt?.is_correct ? ' · correct' : ''
+            }`,
+          };
+        }}
       />
-      {showFigureSlices && includesStemContent && optionFigure && stemSlice ? (
-        <Box sx={{ mb: 1.25 }}>
-          <ArOptionFigureSlice
-            figure={optionFigure}
-            index={0}
-            optionCount={question.options.length}
-            layout={layout}
-            slice={stemSlice}
-            naturalWidth={naturalWidth}
-            naturalHeight={naturalHeight}
-            fit="stem"
-          />
-        </Box>
-      ) : null}
-      {question.options.length > 0 ? (
-        <Box
-          sx={
-            showFigureSlices
-              ? {
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                  alignItems: 'start',
-                  gap: 0.75,
-                }
-              : { display: 'flex', flexDirection: 'column', gap: 0.4 }
+    </Box>
+  );
+}
+
+export function PlatformAdminAttemptPaper({
+  questions,
+  attemptId,
+  examId,
+}: {
+  questions: OfficialAttemptQuestionRow[];
+  attemptId: string;
+  examId: string | null;
+}) {
+  const paper = (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+      {questions.map((q) => (
+        <PlatformAdminAttemptQuestionCard
+          key={`${attemptId}-${q.index}-${q.item_id}`}
+          question={q}
+        />
+      ))}
+    </Box>
+  );
+  if (examId === 'mathematical_reasoning') {
+    return (
+      <MathJaxContext version={3} config={EXAM_MATHJAX_CONFIG}>
+        {paper}
+      </MathJaxContext>
+    );
+  }
+  return paper;
+}
+
+export function PlatformAdminAttemptQuestionCard({
+  question,
+}: {
+  question: OfficialAttemptQuestionRow;
+}) {
+  return (
+    <Box
+      sx={{
+        bgcolor: '#fff',
+        border: '1px solid #e2e8f0',
+        borderRadius: 1.5,
+        p: 1.75,
+      }}
+    >
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 0.75 }}>
+        <Typography sx={{ fontWeight: 800, color: ip.heading }}>Q{question.index}</Typography>
+        <PlatformAdminChip
+          label={
+            question.is_correct == null ? 'ungraded' : question.is_correct ? 'correct' : 'incorrect'
           }
-        >
-          {question.options.map((opt, optIdx) => {
-            const optionText = resolved.optionTexts[optIdx] || '';
-            return (
-            <AdminExamOptionRow
-              key={`${question.item_id}-${opt.letter}`}
-              letter={opt.letter}
-              isCorrect={opt.is_correct}
-              pickPct={opt.pick_pct}
-              pickCount={opt.pick_count}
-            >
-              {showFigureSlices && optionFigure ? (
-                <ArOptionFigureSlice
-                  figure={optionFigure}
-                  index={optIdx}
-                  optionCount={question.options.length}
-                  layout={layout}
-                  slice={slices?.[optIdx]}
-                  naturalWidth={naturalWidth}
-                  naturalHeight={naturalHeight}
-                  fit={includesStemContent ? 'crop' : 'option'}
-                />
-              ) : optionText ? (
-                <AdminExamOptionText text={optionText} />
-              ) : null}
-            </AdminExamOptionRow>
-            );
-          })}
-        </Box>
-      ) : (
-        <Typography sx={{ color: '#64748b', fontSize: 13 }}>
-          (No option text on this item - often image-only.)
+          tone={question.is_correct == null ? 'neutral' : question.is_correct ? 'success' : 'error'}
+        />
+        {question.time_spent_sec != null ? (
+          <PlatformAdminChip label={`${question.time_spent_sec}s`} tone="info" />
+        ) : null}
+        {question.strand_label || question.strand ? (
+          <PlatformAdminChip label={question.strand_label || question.strand || ''} tone="info" />
+        ) : null}
+        {question.instruction_family ? (
+          <PlatformAdminChip
+            label={
+              question.instruction_family_label
+                ? `${question.instruction_family} · ${question.instruction_family_label}`
+                : question.instruction_family
+            }
+            tone="neutral"
+          />
+        ) : null}
+        {question.band ? <PlatformAdminChip label={question.band} tone="warning" /> : null}
+      </Box>
+      <Typography sx={{ color: '#475569', fontSize: 12, mb: 0.5 }}>{question.item_id}</Typography>
+      <AdminExamQuestionBody
+        q={question}
+        emptyLabel="(no prompt - bank item missing)"
+        optionStatus={(optIdx) => {
+          const picked = question.selected_index === optIdx;
+          const isCorrect = question.correct_index === optIdx;
+          return {
+            isCorrect,
+            picked,
+            caption:
+              isCorrect && picked
+                ? 'correct · picked'
+                : isCorrect
+                  ? 'correct'
+                  : picked
+                    ? 'picked'
+                    : '',
+          };
+        }}
+      />
+      {question.options.length === 0 ? (
+        <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mt: 0.75 }}>
+          Picked {question.selected_letter} · key {question.correct_letter ?? '-'}
         </Typography>
-      )}
+      ) : null}
     </Box>
   );
 }

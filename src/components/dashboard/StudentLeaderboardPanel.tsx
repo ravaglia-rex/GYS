@@ -39,6 +39,27 @@ export interface StudentLeaderboardPanelProps {
   sectionsByGrade?: Partial<Record<LeaderboardGrade, ExamLeaderboardSection[]>>;
 }
 
+function sectionHasEntries(sections: ExamLeaderboardSection[] | undefined): boolean {
+  return Boolean(sections?.some((section) => section.entries.length > 0));
+}
+
+function richestGradeWithEntries(
+  sectionsByGrade: Partial<Record<LeaderboardGrade, ExamLeaderboardSection[]>> | undefined,
+  fallback: LeaderboardGrade
+): LeaderboardGrade {
+  if (!sectionsByGrade) return fallback;
+  let best = fallback;
+  let bestCount = -1;
+  for (const g of LEADERBOARD_GRADES) {
+    const count = sectionsByGrade[g]?.reduce((sum, section) => sum + section.entries.length, 0) ?? 0;
+    if (count > bestCount) {
+      bestCount = count;
+      best = g;
+    }
+  }
+  return bestCount > 0 ? best : fallback;
+}
+
 export default function StudentLeaderboardPanel({
   initialGrade = 10,
   sections,
@@ -52,8 +73,11 @@ export default function StudentLeaderboardPanel({
     () => new Set(LEADERBOARD_DEFAULT_EXPANDED_EXAM_IDS)
   );
   useEffect(() => {
-    setGrade(initialGrade);
-  }, [initialGrade]);
+    const own = sectionsByGrade?.[initialGrade] ?? sections;
+    setGrade(
+      sectionHasEntries(own) ? initialGrade : richestGradeWithEntries(sectionsByGrade, initialGrade)
+    );
+  }, [initialGrade, sections, sectionsByGrade]);
 
   const handleGrade = (_: React.SyntheticEvent, value: LeaderboardGrade | null) => {
     if (gradeToggleDisabled || value == null) return;
@@ -154,7 +178,7 @@ export default function StudentLeaderboardPanel({
 
       {visibleSections.length === 0 && (
         <Alert severity="info" sx={{ bgcolor: 'rgba(59, 130, 246, 0.12)', color: '#e2e8f0', border: '1px solid rgba(59, 130, 246, 0.35)', '& .MuiAlert-icon': { color: '#93c5fd' } }}>
-          No official school leaderboard data yet. This will be updated periodically as students at your school take the test.
+          No official scores for this class yet. Switch class above, or check back as students at your school take the test.
         </Alert>
       )}
 
@@ -195,7 +219,7 @@ export default function StudentLeaderboardPanel({
                   {section.examName}
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
-                  Top 10 at your school - best official score ({leaderboardScoreScaleLabel}).
+                  Top 10 in this class - best official score ({leaderboardScoreScaleLabel}).
                 </Typography>
               </Box>
             </AccordionSummary>

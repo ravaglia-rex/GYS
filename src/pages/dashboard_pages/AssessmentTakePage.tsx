@@ -22,6 +22,7 @@ import {
   LaptopMac as LaptopMacIcon,
   PlayArrow as PlayArrowIcon,
   AccessTime as AccessTimeIcon,
+  Fullscreen as FullscreenIcon,
 } from '@mui/icons-material';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import { auth } from '../../firebase/firebase';
@@ -68,6 +69,83 @@ const EXAM_BEFORE_UNLOAD_HINT =
 
 const EXAM_LEAVE_DIALOG_COPY =
   'If you leave or refresh now, this exam attempt will be terminated. You will not be able to resume. Stay in the exam to finish.';
+
+function ExamFullscreenRequiredDialog({
+  open,
+  secondsLeft,
+  onReturnToFullscreen,
+}: {
+  open: boolean;
+  secondsLeft: number | null;
+  onReturnToFullscreen: () => void;
+}) {
+  const inGrace = secondsLeft != null && secondsLeft > 0;
+  return (
+    <Dialog
+      open={open}
+      maxWidth="sm"
+      fullWidth
+      disableEscapeKeyDown
+      slotProps={{
+        backdrop: {
+          sx: {
+            backgroundColor: 'rgba(15, 23, 42, 0.62)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+          },
+        },
+        paper: {
+          sx: {
+            bgcolor: '#fff',
+            color: '#0f172a',
+            backgroundImage: 'none',
+            borderRadius: 2,
+            maxWidth: 480,
+            width: '100%',
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.45)',
+            textAlign: 'center',
+          },
+        },
+      }}
+    >
+      <DialogTitle sx={{ px: { xs: 2.5, sm: 3.5 }, pt: { xs: 3, sm: 3.5 }, pb: 1, fontWeight: 800, fontSize: '1.25rem', color: '#0f172a' }}>
+        Return to fullscreen
+      </DialogTitle>
+      <DialogContent sx={{ px: { xs: 2.5, sm: 3.5 }, pt: 0, pb: 1 }}>
+        <DialogContentText
+          component="div"
+          sx={{ m: 0, color: '#334155', typography: 'body1', lineHeight: 1.65, fontSize: '1rem' }}
+        >
+          {inGrace ? (
+            <>
+              You left fullscreen. Click the button below to continue the exam.
+              <Box component="p" sx={{ mt: 1.5, mb: 0, fontWeight: 800, fontSize: '1.15rem', color: '#b91c1c' }}>
+                Return now ({secondsLeft}s)
+              </Box>
+              <Box component="p" sx={{ mt: 1, mb: 0, color: '#334155' }}>
+                If you do not return in time, or you keep leaving this window, this attempt will end.
+              </Box>
+            </>
+          ) : (
+            'Fullscreen is required for the whole exam. Click the button below to re-enter fullscreen and continue.'
+          )}
+        </DialogContentText>
+      </DialogContent>
+      <DialogActions sx={{ px: { xs: 2.5, sm: 3.5 }, pb: { xs: 3, sm: 3.5 }, pt: 1.5, justifyContent: 'center' }}>
+        <Button
+          variant="contained"
+          size="large"
+          startIcon={<FullscreenIcon />}
+          onClick={onReturnToFullscreen}
+          autoFocus
+          sx={{ fontWeight: 800, px: 3, py: 1.1, minWidth: 240 }}
+        >
+          OK, return to fullscreen
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
 
 type PageStage = 'pre_exam' | 'proctoring_setup' | 'taking' | 'complete';
 
@@ -960,35 +1038,11 @@ export default function AssessmentTakePage() {
         </Alert>
       )}
 
-      {integrityWarning && (
-        <Alert
-          severity="error"
-          sx={{ flexShrink: 0, borderRadius: 0 }}
-          action={
-            integrityWarning.canReenterFullscreen ? (
-              <Button color="inherit" size="small" onClick={tryEnterFullscreen}>
-                Re-enter Fullscreen
-              </Button>
-            ) : undefined
-          }
-        >
+      {integrityWarning && !leftFullscreen && (
+        <Alert severity="error" sx={{ flexShrink: 0, borderRadius: 0 }}>
           {integrityWarning.secondsLeft > 0
             ? `Return to the exam now (${integrityWarning.secondsLeft}s). If you don't, or you keep leaving this window, this attempt will end.`
             : 'Stay on this exam in fullscreen and keep this window in front. If you keep leaving, this attempt will end.'}
-        </Alert>
-      )}
-
-      {leftFullscreen && !integrityWarning && (
-        <Alert
-          severity="error"
-          sx={{ flexShrink: 0, borderRadius: 0 }}
-          action={
-            <Button color="inherit" size="small" onClick={tryEnterFullscreen}>
-              Re-enter Fullscreen
-            </Button>
-          }
-        >
-          Fullscreen is required. Stay in fullscreen for the whole exam.
         </Alert>
       )}
 
@@ -1055,6 +1109,12 @@ export default function AssessmentTakePage() {
           {currentIndex + 1 >= totalQuestions ? 'Submit' : 'Next'}
         </Button>
       </Box>
+
+      <ExamFullscreenRequiredDialog
+        open={leftFullscreen}
+        secondsLeft={integrityWarning?.secondsLeft ?? null}
+        onReturnToFullscreen={tryEnterFullscreen}
+      />
 
       <Dialog
         open={leaveDialogOpen}

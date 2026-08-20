@@ -395,7 +395,12 @@ export function PlatformAdminFilterControl<T extends string>({
         gap: 1,
         height: PLATFORM_ADMIN_TOOLBAR_H,
         ...(fullWidth
-          ? { flex: '1 1 0', minWidth: Math.min(minWidth, 140), width: '100%' }
+          ? {
+              flex: '1 1 0',
+              minWidth: Math.min(minWidth, 140),
+              width: '100%',
+              overflow: 'hidden',
+            }
           : { flexShrink: 0 }),
       }}
     >

@@ -65,7 +65,7 @@ const LeaderboardPage: React.FC = () => {
                   School Leaderboard
                 </Typography>
                 <Typography variant="h6" sx={studentPageSubtitleSx}>
-                  See how you compare with classmates at your school on each exam. Available when your school’s cohort data is published.
+                  See how students at your school compare on each exam, by class.
                 </Typography>
               </Box>
             </Box>
@@ -111,6 +111,7 @@ const LeaderboardPage: React.FC = () => {
                 <StudentLeaderboardPanel
                   initialGrade={initialGrade}
                   sections={sections}
+                  sectionsByGrade={data?.sectionsByGrade}
                   lastUpdatedISO={lastUpdatedISO}
                 />
               </>

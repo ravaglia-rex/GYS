@@ -24,10 +24,7 @@ import {
 import { MathJaxContext } from 'better-react-mathjax';
 import { EXAM_MATHJAX_CONFIG } from '../../components/assessment/examMathJaxConfig';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
-import {
-  platformAdminFilterToolbarRowSx,
-  platformAdminSearchFieldSx,
-} from './platformAdminPageStyles';
+import { platformAdminSearchFieldSx } from './platformAdminPageStyles';
 import {
   PlatformAdminAnalyticsSection,
   PlatformAdminFilterControl,
@@ -57,6 +54,12 @@ const FILTER_LABELS: Record<OfficialItemBankFilterKey, string> = {
   subconstruct: 'Subconstruct',
   mechanic: 'Mechanic',
   has_images: 'Images',
+};
+
+const IMAGE_FILTER_LABELS: Record<string, string> = {
+  all: 'All',
+  yes: 'With images',
+  no: 'Without images',
 };
 
 const LEVELS = [1, 2, 3];
@@ -253,13 +256,57 @@ export function PlatformAdminItemBankSection({
   const facets = bank?.facets;
   const visibleFilterKeys = FILTER_KEYS.filter((key) => {
     if (filters[key]) return true;
+    if (key === 'has_images') return Boolean(bank);
     return (facets?.[key] || []).length > 0;
   });
+  const row1FilterKeys = visibleFilterKeys.filter((key) => key === 'strand');
+  const row2FilterKeys = visibleFilterKeys.filter((key) => key !== 'strand');
   const questions = useMemo(() => {
     const rows = bank?.questions || [];
     if (!itemIdQuery.trim()) return rows;
     return rows.filter((q) => itemIdMatchesQuery(q.item_id, itemIdQuery));
   }, [bank, itemIdQuery]);
+
+  const renderFilter = (key: OfficialItemBankFilterKey) => {
+    const options = facets?.[key] || [];
+    const labels: Record<string, string> =
+      key === 'has_images'
+        ? { [ALL_VALUE]: IMAGE_FILTER_LABELS.all }
+        : { [ALL_VALUE]: `All ${FILTER_LABELS[key].toLowerCase()}` };
+    if (key === 'has_images') {
+      const counts = Object.fromEntries(options.map((row) => [row.key, row.count]));
+      for (const imageKey of ['yes', 'no'] as const) {
+        const count = counts[imageKey];
+        labels[imageKey] =
+          count != null
+            ? `${IMAGE_FILTER_LABELS[imageKey]} (${count})`
+            : IMAGE_FILTER_LABELS[imageKey];
+      }
+    } else {
+      for (const row of options) {
+        labels[row.key] = `${row.label} (${row.count})`;
+      }
+    }
+    const current = filters[key];
+    if (current && !labels[current]) labels[current] = current;
+    return (
+      <PlatformAdminFilterControl
+        key={key}
+        id={`item-bank-${key}`}
+        label={FILTER_LABELS[key]}
+        labels={labels}
+        value={current || ALL_VALUE}
+        fullWidth
+        minWidth={key === 'strand' ? 380 : key === 'instruction_family' ? 240 : 160}
+        onChange={(value) => {
+          const next = { ...filters };
+          if (value === ALL_VALUE) delete next[key];
+          else next[key] = value;
+          if (!filtersEqual(next, filters)) setQuery({ filters: next });
+        }}
+      />
+    );
+  };
 
   return (
     <>
@@ -318,55 +365,55 @@ export function PlatformAdminItemBankSection({
             }
             accent="teal"
           >
-            <Box sx={{ ...platformAdminFilterToolbarRowSx, mb: 2, flexWrap: 'wrap', gap: 1.25 }}>
-              <TextField
-                id="item-bank-item-id"
-                size="small"
-                placeholder="Search item ID (AR-L1-T5-05-P1:v1)"
-                value={itemIdQuery}
-                onChange={(e) => setQuery({ itemIdQuery: e.target.value })}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon sx={{ color: ip.subtext, fontSize: 20 }} />
-                    </InputAdornment>
-                  ),
-                }}
-                inputProps={{ 'aria-label': 'Search item bank by item ID' }}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25, mb: 2 }}>
+              <Box
                 sx={{
-                  ...platformAdminSearchFieldSx,
-                  flex: '1 1 240px',
-                  minWidth: 220,
-                  maxWidth: 420,
+                  display: 'grid',
+                  gridTemplateColumns: {
+                    xs: '1fr',
+                    sm: row1FilterKeys.length > 0 ? 'minmax(0, 1fr) minmax(0, 1fr)' : '1fr',
+                  },
+                  gap: 1.25,
+                  alignItems: 'center',
                 }}
-              />
-              {visibleFilterKeys.map((key) => {
-                const options = facets?.[key] || [];
-                const labels: Record<string, string> = { [ALL_VALUE]: `All ${FILTER_LABELS[key].toLowerCase()}` };
-                for (const row of options) {
-                  labels[row.key] = `${row.label} (${row.count})`;
-                }
-                const current = filters[key];
-                if (current && !labels[current]) labels[current] = current;
-                return (
-                  <PlatformAdminFilterControl
-                    key={key}
-                    id={`item-bank-${key}`}
-                    label={FILTER_LABELS[key]}
-                    labels={labels}
-                    value={current || ALL_VALUE}
-                    minWidth={
-                      key === 'strand' ? 380 : key === 'instruction_family' ? 240 : 160
-                    }
-                    onChange={(value) => {
-                      const next = { ...filters };
-                      if (value === ALL_VALUE) delete next[key];
-                      else next[key] = value;
-                      if (!filtersEqual(next, filters)) setQuery({ filters: next });
-                    }}
-                  />
-                );
-              })}
+              >
+                <TextField
+                  id="item-bank-item-id"
+                  size="small"
+                  placeholder="Search item ID (AR-L1-T5-05-P1:v1)"
+                  value={itemIdQuery}
+                  onChange={(e) => setQuery({ itemIdQuery: e.target.value })}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon sx={{ color: ip.subtext, fontSize: 20 }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                  inputProps={{ 'aria-label': 'Search item bank by item ID' }}
+                  sx={{
+                    ...platformAdminSearchFieldSx,
+                    width: '100%',
+                    minWidth: 0,
+                  }}
+                />
+                {row1FilterKeys.map(renderFilter)}
+              </Box>
+              {row2FilterKeys.length > 0 ? (
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: {
+                      xs: '1fr',
+                      sm: `repeat(${row2FilterKeys.length}, minmax(0, 1fr))`,
+                    },
+                    gap: 1.25,
+                    alignItems: 'center',
+                  }}
+                >
+                  {row2FilterKeys.map(renderFilter)}
+                </Box>
+              ) : null}
             </Box>
 
             {loading && !bank ? (

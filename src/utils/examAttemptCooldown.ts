@@ -1,4 +1,5 @@
 import type { AssessmentProgress } from './assessmentGating';
+import { isUnlimitedOfficialExamRetakeEmail } from './officialStudentAssessmentsAccess';
 
 export const EXAM_ATTEMPT_COOLDOWN_MONTHS = 3;
 
@@ -43,8 +44,10 @@ export function timestampToMillis(value: unknown): number | null {
 
 export function nextEligibleAtMsForLevel(
   progress: AssessmentProgress | undefined,
-  level: number
+  level: number,
+  email?: unknown
 ): number | null {
+  if (isUnlimitedOfficialExamRetakeEmail(email)) return null;
   const value = progress?.next_eligible_at_by_level?.[String(level)];
   const ms = timestampToMillis(value);
   return ms != null && ms > Date.now() ? ms : null;

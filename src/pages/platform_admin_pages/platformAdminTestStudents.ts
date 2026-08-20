@@ -1,5 +1,13 @@
 import { isHiddenStaffStudentEmail } from '../../constants/hiddenStaffStudents';
 
+/**
+ * Human QA / demo student emails. Keep in sync with backend
+ * `PLATFORM_ADMIN_TEST_STUDENT_EMAILS`.
+ */
+export const PLATFORM_ADMIN_TEST_STUDENT_EMAILS = new Set([
+  'srishti2k1@gmail.com',
+]);
+
 /** Greenfield seed cohort emails (hidden from the platform admin student list). */
 export function isGreenfieldSeedStudentEmail(email: string | null | undefined): boolean {
   const cleaned = (email ?? '').trim().toLowerCase();
@@ -16,6 +24,7 @@ export function isPlatformAdminTestStudent(student: {
   if (student.is_test === true) return true;
   const email = (student.email ?? '').trim().toLowerCase();
   if (isHiddenStaffStudentEmail(email)) return true;
+  if (PLATFORM_ADMIN_TEST_STUDENT_EMAILS.has(email)) return true;
   return email.endsWith('@seed.argus.test');
 }
 

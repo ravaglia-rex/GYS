@@ -5,13 +5,28 @@ import {
   STUDENTS_APIS,
 } from '../constants/constants';
 import authTokenHandler from '../functions/auth_token/auth_token_handler';
-import type { ExamLeaderboardSection, LeaderboardGrade } from '../utils/leaderboard';
+import { LEADERBOARD_GRADES, type ExamLeaderboardSection, type LeaderboardGrade } from '../utils/leaderboard';
 
 export interface StudentSchoolLeaderboardResponse {
   schoolId: string;
   grade: LeaderboardGrade;
   sections: ExamLeaderboardSection[];
+  /** Per-class boards for the whole school. Class toggle reads this. */
+  sectionsByGrade?: Partial<Record<LeaderboardGrade, ExamLeaderboardSection[]>>;
   lastUpdatedISO: string | null;
+}
+
+function normalizeSectionsByGrade(
+  raw: unknown
+): Partial<Record<LeaderboardGrade, ExamLeaderboardSection[]>> | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const source = raw as Record<string, unknown>;
+  const out: Partial<Record<LeaderboardGrade, ExamLeaderboardSection[]>> = {};
+  for (const g of LEADERBOARD_GRADES) {
+    const sections = source[String(g)];
+    if (Array.isArray(sections)) out[g] = sections as ExamLeaderboardSection[];
+  }
+  return out;
 }
 
 export const getStudentSchoolLeaderboard = async (): Promise<StudentSchoolLeaderboardResponse> => {
@@ -24,7 +39,11 @@ export const getStudentSchoolLeaderboard = async (): Promise<StudentSchoolLeader
     `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${STUDENTS_APIS}${FETCH_STUDENT_SCHOOL_LEADERBOARD}`,
     { headers: { Authorization: `Bearer ${authToken}` } }
   );
-  return response.data;
+  const data = response.data as StudentSchoolLeaderboardResponse;
+  return {
+    ...data,
+    sectionsByGrade: normalizeSectionsByGrade(data.sectionsByGrade),
+  };
 };
 
 export interface CoinsLeaderboardEntry {

@@ -446,7 +446,7 @@ function splitArOptionFigureInternal(markdown: string, allowAnyImage: boolean): 
   const hit = matches
     .slice()
     .reverse()
-    .find((m) => allowAnyImage || /option/i.test(m.src ?? '') || /option/i.test(m.alt ?? ''));
+    .find((m) => allowAnyImage || looksLikeArOptionFigureHint(m.src ?? '', m.alt ?? ''));
   if (!hit) return { stemMarkdown: raw, optionFigure: null };
 
   const stemMarkdown = `${raw.slice(0, hit.index)}${raw.slice(hit.index + hit.rawTag.length)}`
@@ -458,11 +458,28 @@ function splitArOptionFigureInternal(markdown: string, allowAnyImage: boolean): 
   };
 }
 
+/**
+ * Shared hint for “this image is the A–D option strip” (or a combined
+ * stem+options SVG that we crop). Keep composite/cycle matrices as stem.
+ */
+export function looksLikeArOptionFigureHint(src: string, alt = ''): boolean {
+  const haystack = `${src} ${alt}`;
+  if (/(?:composite|cycle)_matrix/i.test(haystack)) return false;
+  if (/followed by\s+.+answer cards/i.test(haystack)) return false;
+  return (
+    /\b(option|options|choice|choices|answer|answers|possible)\b/i.test(haystack) ||
+    /followed by\s+.+\bcovers\b/i.test(haystack) ||
+    /(?:^|\/|_|\b)covers(?:_|\.|$)/i.test(src)
+  );
+}
+
 export function optionFigureFromAssets(
   assets?: Array<{ path?: string; alt?: string }> | null
 ): ArOptionFigureRef | null {
   if (!assets?.length) return null;
-  const hit = [...assets].reverse().find((a) => /option/i.test(a.path ?? '') || /option/i.test(a.alt ?? ''));
+  const hit = [...assets]
+    .reverse()
+    .find((a) => looksLikeArOptionFigureHint(a.path ?? '', a.alt ?? ''));
   if (!hit?.path) return null;
   return { src: hit.path, alt: hit.alt ?? '' };
 }

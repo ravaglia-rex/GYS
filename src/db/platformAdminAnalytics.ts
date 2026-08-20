@@ -358,6 +358,7 @@ export type OfficialExamSummaryRow = {
   unique_students: number;
   avg_score_pct: number;
   avg_score_points: number;
+  avg_questions_answered: number;
   passed_attempts: number;
   pass_rate_pct: number;
 };
@@ -403,6 +404,7 @@ export type OfficialExamRecentRow = {
   proficiency_tier: number | null;
   score_pct: number;
   score_points: number;
+  questions_answered: number;
   passed: boolean;
   completed_at: string | null;
 };
@@ -479,6 +481,12 @@ export type OfficialProgressionSummary = {
   reason_counts: Array<{ key: string; count: number; label?: string }>;
 };
 
+export type OfficialSetRouteTrackStats = {
+  sits: number;
+  avg_served: number;
+  avg_answered: number;
+};
+
 export type OfficialSetRouteSummary = {
   attempts_with_ar_shape: number;
   finished_at_32: number;
@@ -486,6 +494,11 @@ export type OfficialSetRouteSummary = {
   extension_triggered: number;
   extension_trigger_pct: number;
   reason_counts: Array<{ key: string; count: number; label?: string }>;
+  avg_questions_served: number;
+  avg_questions_answered: number;
+  track_32: OfficialSetRouteTrackStats;
+  track_40: OfficialSetRouteTrackStats;
+  track_short: OfficialSetRouteTrackStats;
 };
 
 export type OfficialCrossSplitRow = {
@@ -681,14 +694,30 @@ export async function getPlatformAdminOfficialExamDrilldown(
       recommended_pct: 0,
       reason_counts: [],
     },
-    set_route: res.data.set_route ?? {
-      attempts_with_ar_shape: 0,
-      finished_at_32: 0,
-      finished_at_40: 0,
-      extension_triggered: 0,
-      extension_trigger_pct: 0,
-      reason_counts: [],
-    },
+    set_route: (() => {
+      const raw = (res.data.set_route ?? {}) as OfficialSetRouteSummary;
+      const emptyTrack = { sits: 0, avg_served: 0, avg_answered: 0 };
+      const track32 = raw.track_32 ?? emptyTrack;
+      const track40 = raw.track_40 ?? emptyTrack;
+      const short = raw.track_short ?? emptyTrack;
+      const sits32 =
+        (typeof track32.sits === 'number' ? track32.sits : raw.finished_at_32 || 0) +
+        (typeof short.sits === 'number' ? short.sits : 0);
+      const sits40 = typeof track40.sits === 'number' ? track40.sits : raw.finished_at_40 || 0;
+      return {
+        attempts_with_ar_shape: raw.attempts_with_ar_shape ?? 0,
+        finished_at_32: sits32,
+        finished_at_40: sits40,
+        extension_triggered: raw.extension_triggered ?? 0,
+        extension_trigger_pct: raw.extension_trigger_pct ?? 0,
+        reason_counts: Array.isArray(raw.reason_counts) ? raw.reason_counts : [],
+        avg_questions_served: raw.avg_questions_served ?? 0,
+        avg_questions_answered: raw.avg_questions_answered ?? 0,
+        track_32: { ...emptyTrack, ...track32, sits: sits32 },
+        track_40: { ...emptyTrack, ...track40, sits: sits40 },
+        track_short: emptyTrack,
+      };
+    })(),
     strand_by_grade: Array.isArray(res.data.strand_by_grade) ? res.data.strand_by_grade : [],
     strand_by_school: Array.isArray(res.data.strand_by_school) ? res.data.strand_by_school : [],
     score_distribution: Array.isArray(res.data.score_distribution) ? res.data.score_distribution : [],
@@ -975,6 +1004,8 @@ export type OfficialAttemptQuestionRow = {
   prompt_preview: string;
   stimulus: unknown;
   stimulus_type: string | null;
+  assets?: Array<{ path?: string; alt?: string }>;
+  option_figure?: { src: string; alt?: string } | null;
   options: Array<{ letter: string; text: string }>;
   selected_index: number | null;
   selected_letter: string;
@@ -1024,7 +1055,18 @@ export async function getPlatformAdminOfficialExamAttemptDetail(
     strand_statuses: res.data.strand_statuses ?? null,
     instruction_family_scores: res.data.instruction_family_scores ?? null,
     band_scores: res.data.band_scores ?? null,
-    questions: Array.isArray(res.data.questions) ? res.data.questions : [],
+    questions: Array.isArray(res.data.questions)
+      ? res.data.questions.map((q: OfficialAttemptQuestionRow) => ({
+          ...q,
+          prompt: typeof q.prompt === 'string' ? q.prompt : q.prompt_preview || '',
+          prompt_preview: typeof q.prompt_preview === 'string' ? q.prompt_preview : '',
+          stimulus: q.stimulus ?? null,
+          stimulus_type: typeof q.stimulus_type === 'string' ? q.stimulus_type : null,
+          assets: Array.isArray(q.assets) ? q.assets : [],
+          option_figure: q.option_figure ?? null,
+          options: Array.isArray(q.options) ? q.options : [],
+        }))
+      : [],
     generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
   };
 }

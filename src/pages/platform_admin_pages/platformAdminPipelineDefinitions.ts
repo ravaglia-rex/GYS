@@ -17,15 +17,15 @@ export const PIPELINE_DEFINITIONS: PipelineDefinition[] = [
     subtitle: 'National tiers + student PDF reports',
     duration: 'Typically 5–20 minutes',
     summary:
-      'Runs across every student account. Use after large assessment windows or when student tiers/reports look stale. Same job as the weekly Monday 2:00 IST schedule.',
+      'Recalculates national tiers from latest scores, then queues ranking-ready student PDF jobs. Report PDFs render on a 1-minute drain (up to 4 in parallel), not inside this 9-minute job. Same national-tier job as the weekly Monday 2:00 IST schedule.',
     steps: [
       'Recalculates national performance tiers and national_composite_percentile for all students.',
-      'Scans each student for newly eligible Discovery / Triad (and higher) reports.',
-      'Generates missing PDF reports and stores them on the student record (S3 + Firestore).',
-      'On a full completed pass: publishes in-app dashboard alerts for leaderboard and badge refresh. No email.',
+      'Enqueues Discovery catch-up plus Triad (and higher) PDF jobs that need a first issue or a retake-cycle reissue.',
+      'A separate 1-minute worker renders those PDFs to S3. Finishing Analytical still queues a Discovery PDF within about a minute. Triad and later wait for this ranking so the printed percentile is fresh.',
+      'On a full completed scan: publishes in-app dashboard alerts for leaderboard and badge refresh. No email.',
     ],
     warning:
-      'Can pause mid-run if it hits the Cloud Functions time limit; the next run resumes from a checkpoint for that India month.',
+      'The scan can still pause mid-fleet on the Cloud Functions time limit; the next run resumes that India month. Discovery PDFs do not wait for Monday. Reasoning Triad and later do.',
   },
   {
     id: 'school',

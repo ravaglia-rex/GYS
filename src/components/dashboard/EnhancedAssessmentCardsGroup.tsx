@@ -644,7 +644,9 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
                 progress.best_scores_by_level?.[String(level)] != null ||
                 progress.latest_attempt_level === level ||
                 progress.last_finished_at_by_level?.[String(level)] != null;
-              const cooldownMs = attemptable ? nextEligibleAtMsForLevel(progress, level) : null;
+              const cooldownMs = attemptable
+                ? nextEligibleAtMsForLevel(progress, level, auth.currentUser?.email)
+                : null;
               const onCooldown = cooldownMs != null;
               const isPrimaryStart = attemptable && !hasAttempt && !onCooldown;
               const isRetake = attemptable && hasAttempt && !onCooldown;

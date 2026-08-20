@@ -267,8 +267,8 @@ const ReportsPage: React.FC = () => {
                 </Box>
               ) : reports.length === 0 ? (
                 <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.78)', py: 2, lineHeight: 1.65 }}>
-                  No milestone PDF is ready yet. Finish the exams included in your package (at your grade level),
-                  then check back after the next Monday. 
+                  No milestone PDF is ready yet. Finish the exams included in your package (at your grade level).
+                  Discovery reports usually appear within a few minutes of finishing Analytical Reasoning. 
                  
                 </Typography>
               ) : (

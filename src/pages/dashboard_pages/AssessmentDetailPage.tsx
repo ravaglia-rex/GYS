@@ -23,6 +23,7 @@ import BarChartIcon from '@mui/icons-material/BarChart';
 import HeadphonesIcon from '@mui/icons-material/Headphones';
 import MicIcon from '@mui/icons-material/Mic';
 import EventSeatIcon from '@mui/icons-material/EventSeat';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import * as Sentry from '@sentry/react';
 import { auth } from '../../firebase/firebase';
 import { useAssessmentConfig, useStudent } from '../../query/hooks';
@@ -70,6 +71,8 @@ function BeforeBeginIcon({ k }: { k: BeforeBeginIconKey }) {
       return <MicIcon sx={sx} />;
     case 'seat':
       return <EventSeatIcon sx={sx} />;
+    case 'help':
+      return <HelpOutlineIcon sx={sx} />;
     default:
       return <AccessTimeIcon sx={sx} />;
   }
@@ -138,7 +141,9 @@ const AssessmentDetailPage: React.FC = () => {
   const maxTierCount = levelBased ? assessment?.tiers?.length ?? 1 : 0;
   const tierAttemptAllowed =
     !!assessment && (!levelBased || canAttemptTier(progressForAssessment, tier, maxTierCount));
-  const cooldownNextEligibleMs = levelBased ? nextEligibleAtMsForLevel(progressForAssessment, tier) : null;
+  const cooldownNextEligibleMs = levelBased
+    ? nextEligibleAtMsForLevel(progressForAssessment, tier, auth.currentUser?.email)
+    : null;
   const cooldownActive = !gate.locked && tierAttemptAllowed && cooldownNextEligibleMs != null;
   const officialExamStartable = Boolean(
     assessmentId &&

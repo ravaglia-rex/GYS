@@ -909,13 +909,14 @@ export const HowItWorksContent: React.FC = () => {
             id="student-how-it-works-pdf-reports"
             icon={<QueryStatsIcon />}
             title="PDF Milestone Reports"
-            subtitle="Your package unlocks the report. National percentiles and PDFs refresh together every Monday."
+            subtitle="Your package unlocks the report. Discovery PDFs appear shortly after you finish Analytical Reasoning."
             sx={{ mb: 3, mt: 3 }}
           >
             <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.78)', lineHeight: 1.65, mb: 1.5, ...justifiedTextSx }}>
               Individual exam scores appear under Completed &amp; Results as soon as you finish. Milestone PDF
-              reports are different: they are generated on a weekly basis after national percentiles are
-              recomputed for your grade. This is done on Monday every week.
+              reports are generated after you complete the exams in that package. Discovery (Entry) reports
+              usually appear within a few minutes of finishing Analytical Reasoning. Reasoning Triad and later
+              reports wait for the Monday national ranking, then the PDF is built the same day.
             </Typography>
             <Typography sx={{ color: 'white', fontWeight: 900, fontSize: '0.95rem', mb: 1 }}>
               What each package unlocks
@@ -940,8 +941,9 @@ export const HowItWorksContent: React.FC = () => {
               </Box>
               
             <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.78)', lineHeight: 1.65, ...justifiedTextSx }}>
-              Why wait for Monday? National percentile needs a full grade-wide ranking. Generating PDFs in that same
-              weekly pass means the number in your report matches your real standing - not just your raw score percent.
+              Why wait for Monday on Triad reports? National percentile needs a full grade-wide ranking.
+              Discovery reports do not use that ranking, so they do not wait. Later reports are generated
+              the same day as the Monday ranking so the number in the PDF matches your real standing.
             </Typography>
           </SectionCard>
 

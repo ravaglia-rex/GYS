@@ -61,11 +61,11 @@ const LandingPublicHeader: React.FC<LandingPublicHeaderProps> = ({
   return (
     <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/90 backdrop-blur relative">
       <LandingHeaderScrollProgress scrollProgress={scrollProgress} />
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-3 sm:gap-6 sm:px-6 sm:py-4">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
         <button
           type="button"
           onClick={() => go('/')}
-          className="group flex min-w-0 items-center gap-3 text-left"
+          className="group flex shrink-0 items-center gap-3 text-left"
           aria-label="Go to homepage"
         >
           <div
@@ -74,19 +74,26 @@ const LandingPublicHeader: React.FC<LandingPublicHeaderProps> = ({
           >
             GYS
           </div>
-          <div className="hidden min-w-0 sm:block">
-            <h1 className="font-bold text-lg tracking-tight text-gray-900">Global Young Scholar</h1>
-            <p className="text-xs text-gray-500">Powered by Argus, Access&nbsp;USA, EducationWorld</p>
+          <div className="hidden sm:block">
+            <h1 className="whitespace-nowrap font-bold text-lg tracking-tight text-gray-900">
+              Global Young Scholar
+            </h1>
+            <p className="hidden whitespace-nowrap text-xs text-gray-500 lg:block">
+              Powered by Argus, Access&nbsp;USA, EducationWorld
+            </p>
           </div>
         </button>
 
-        <nav className="hidden items-center gap-8 text-base font-semibold md:flex" aria-label="Main">
+        <nav
+          className="hidden min-w-0 items-center justify-center gap-5 whitespace-nowrap text-base font-semibold lg:flex xl:gap-8"
+          aria-label="Main"
+        >
           {MAIN_NAV_LINKS.map((item) => (
             <button
               key={item.path}
               type="button"
               onClick={() => navigate(item.path)}
-              className="text-gray-600 transition-colors duration-150 hover:text-gray-900"
+              className="shrink-0 text-gray-600 transition-colors duration-150 hover:text-gray-900"
             >
               {item.label}
             </button>
@@ -95,7 +102,7 @@ const LandingPublicHeader: React.FC<LandingPublicHeaderProps> = ({
         </nav>
 
         <div className="flex shrink-0 items-center gap-2">
-          <div className="hidden items-center gap-2 md:flex">
+          <div className="hidden items-center gap-2 lg:flex">
             <button
               type="button"
               onClick={() => navigate('/login')}
@@ -118,7 +125,7 @@ const LandingPublicHeader: React.FC<LandingPublicHeaderProps> = ({
 
           <button
             type="button"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition-colors hover:bg-slate-50 md:hidden"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition-colors hover:bg-slate-50 lg:hidden"
             onClick={() => setMobileOpen((open) => !open)}
             aria-expanded={mobileOpen}
             aria-controls="landing-public-mobile-nav"
@@ -130,7 +137,7 @@ const LandingPublicHeader: React.FC<LandingPublicHeaderProps> = ({
           <button
             type="button"
             onClick={() => navigate('/login')}
-            className={`${loginButtonClass} md:hidden`}
+            className={`${loginButtonClass} lg:hidden`}
             style={{ borderColor: GYS_BLUE, color: GYS_BLUE }}
           >
             Log In
@@ -140,7 +147,7 @@ const LandingPublicHeader: React.FC<LandingPublicHeaderProps> = ({
 
       <button
         type="button"
-        className={`fixed inset-0 z-40 bg-slate-950/15 transition-opacity duration-300 ease-out md:hidden ${
+        className={`fixed inset-0 z-40 bg-slate-950/45 transition-opacity duration-300 ease-out lg:hidden ${
           mobileOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
         }`}
         aria-label="Close menu"
@@ -149,16 +156,16 @@ const LandingPublicHeader: React.FC<LandingPublicHeaderProps> = ({
       />
       <nav
         id="landing-public-mobile-nav"
-        className={`absolute left-3 right-3 top-[calc(100%+0.5rem)] z-50 overflow-hidden rounded-2xl border bg-white/95 shadow-2xl ring-1 ring-black/5 backdrop-blur transition-[max-height,opacity,transform,border-color] duration-300 ease-out md:hidden ${
+        className={`absolute left-3 right-3 top-[calc(100%+0.5rem)] z-50 rounded-2xl border bg-white shadow-2xl ring-1 ring-black/5 transition-[max-height,opacity,transform,border-color] duration-300 ease-out lg:hidden ${
           mobileOpen
-            ? 'max-h-[min(70vh,28rem)] translate-y-0 border-slate-200 opacity-100'
-            : 'pointer-events-none max-h-0 -translate-y-2 border-transparent opacity-0'
+            ? 'max-h-[min(calc(100dvh-6rem),40rem)] overflow-y-auto translate-y-0 border-slate-200 opacity-100'
+            : 'pointer-events-none max-h-0 overflow-hidden -translate-y-2 border-transparent opacity-0'
         }`}
         aria-label="Mobile"
         aria-hidden={!mobileOpen}
       >
         <div
-          className={`mx-auto max-w-6xl p-2 transition-[opacity,transform] duration-300 ease-out ${
+          className={`mx-auto max-w-6xl p-2 pb-3 transition-[opacity,transform] duration-300 ease-out ${
             mobileOpen ? 'translate-y-0 opacity-100 delay-75' : '-translate-y-1 opacity-0'
           }`}
         >

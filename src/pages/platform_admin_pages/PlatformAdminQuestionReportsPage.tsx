@@ -49,15 +49,9 @@ import {
 } from './platformAdminPageStyles';
 import { PlatformAdminPageHeader, PlatformAdminStatCard, PlatformAdminTableSection } from './platformAdminComponents';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
-import { ExamQuestionStimulus } from '../../components/assessment/ExamQuestionStimulus';
-import {
-  ExamMarkdown,
-  ExamRichPrompt,
-  looksLikeExamMarkdown,
-  shouldRenderStructuredStimulus,
-} from '../../components/assessment/ExamMarkdown';
-import { resolvedOptionTextsForItem } from '../../components/assessment/resolveLearnerExamOptions';
-import type { ExamQuestion } from '../../db/assessmentCollection';
+import { MathJaxContext } from 'better-react-mathjax';
+import { EXAM_MATHJAX_CONFIG } from '../../components/assessment/examMathJaxConfig';
+import { AdminExamQuestionBody } from './PlatformAdminExamQuestionCard';
 
 type SourceFilter = 'all' | 'official' | 'practice';
 type StatusFilter = 'open' | 'archived';
@@ -80,14 +74,31 @@ const toggleGroupSx = {
   },
 } as const;
 
-function toStimulusExamQuestion(item: PlatformAdminQuestionProblemReportItem): ExamQuestion {
-  return {
-    id: item.item_id,
-    prompt: item.prompt || '',
-    options: (item.options || []).map((o) => o.text),
-    stimulus: item.stimulus,
-    stimulus_type: item.stimulus_type ?? undefined,
-  };
+function ReportedQuestionBody({ item }: { item: PlatformAdminQuestionProblemReportItem }) {
+  const body = (
+    <AdminExamQuestionBody
+      q={item}
+      emptyLabel="(no prompt)"
+      optionStatus={(optIdx) => {
+        const isCorrect = item.correct_index === optIdx;
+        return {
+          isCorrect,
+          caption: isCorrect ? 'correct' : '',
+        };
+      }}
+    />
+  );
+  return (
+    <Box sx={{ mb: 1.5 }}>
+      {item.exam_id === 'mathematical_reasoning' ? (
+        <MathJaxContext version={3} config={EXAM_MATHJAX_CONFIG}>
+          {body}
+        </MathJaxContext>
+      ) : (
+        body
+      )}
+    </Box>
+  );
 }
 
 const PlatformAdminQuestionReportsPage: React.FC = () => {
@@ -500,7 +511,7 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
         onClose={closeReport}
         fullWidth
         maxWidth="md"
-        PaperProps={{ sx: { ...platformAdminDialogPaperSx, maxWidth: 760 } }}
+        PaperProps={{ sx: { ...platformAdminDialogPaperSx, maxWidth: 920 } }}
       >
         <DialogTitle sx={{ fontWeight: 700, color: ip.heading, px: 3, pt: 2.5, pb: 1 }}>
           Reported question
@@ -595,88 +606,7 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
                     </Typography>
                   ) : null}
 
-                  <Box sx={{ mb: 1.25 }}>
-                    <ExamRichPrompt
-                      prompt={itemDetail.prompt || ''}
-                      stimulus={itemDetail.stimulus}
-                      stimulusType={itemDetail.stimulus_type}
-                    />
-                  </Box>
-
-                  {shouldRenderStructuredStimulus(itemDetail.stimulus, itemDetail.stimulus_type) ? (
-                    <Box sx={{ mb: 1.5 }}>
-                      <ExamQuestionStimulus
-                        q={toStimulusExamQuestion(itemDetail)}
-                        border="#cbd5e1"
-                        variant="light"
-                      />
-                    </Box>
-                  ) : null}
-
-                  {itemDetail.options.length > 0 ? (
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mb: 1.5 }}>
-                      {itemDetail.options.map((opt, optIdx) => {
-                        const keyCorrect = itemDetail.correct_index === optIdx;
-                        const optionText =
-                          resolvedOptionTextsForItem(itemDetail)[optIdx] || opt.text;
-                        return (
-                          <Box
-                            key={`${itemDetail.item_id}-${opt.letter}`}
-                            sx={{
-                              display: 'flex',
-                              gap: 1,
-                              alignItems: 'flex-start',
-                              px: 1.25,
-                              py: 0.85,
-                              borderRadius: 1,
-                              border: '1px solid',
-                              borderColor: keyCorrect ? '#86efac' : '#e2e8f0',
-                              bgcolor: keyCorrect ? '#f0fdf4' : '#f8fafc',
-                            }}
-                          >
-                            <Typography
-                              sx={{
-                                fontWeight: 800,
-                                color: ip.heading,
-                                minWidth: 18,
-                                fontSize: 13,
-                              }}
-                            >
-                              {opt.letter}.
-                            </Typography>
-                            {looksLikeExamMarkdown(optionText) ? (
-                              <Box sx={{ flex: 1, minWidth: 0 }}>
-                                <ExamMarkdown compact>{optionText}</ExamMarkdown>
-                              </Box>
-                            ) : (
-                              <Typography
-                                sx={{
-                                  color: ip.heading,
-                                  fontSize: 16,
-                                  lineHeight: 1.35,
-                                  flex: 1,
-                                }}
-                              >
-                                {optionText}
-                              </Typography>
-                            )}
-                            {keyCorrect ? (
-                              <Typography
-                                sx={{
-                                  fontWeight: 700,
-                                  fontSize: 12,
-                                  color: '#166534',
-                                  whiteSpace: 'nowrap',
-                                }}
-                              >
-                                correct
-                              </Typography>
-                            ) : null}
-                          </Box>
-                        );
-                      })}
-                    </Box>
-                  ) : null}
+                  <ReportedQuestionBody item={itemDetail} />
 
                   {itemDetail.solution_steps.length > 0 ? (
                     <Box sx={{ mb: 1.5 }}>
