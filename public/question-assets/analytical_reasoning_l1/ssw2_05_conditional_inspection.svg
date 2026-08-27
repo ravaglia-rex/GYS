@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="440" viewBox="0 0 860 440" role="img" aria-labelledby="title desc">
+  <title id="title">Four conditional inspection cards</title>
+  <desc id="desc">A: solid and hollow triangles become solid square and solid triangle. B: the same start becomes solid square and hollow triangle. C: solid triangle and hollow circle become hollow square and solid diamond. D: the same start becomes hollow triangle and solid diamond.</desc>
+  <rect width="860" height="440" fill="#fff"/>
+  <g font-family="Arial, sans-serif" fill="#0f172a" dominant-baseline="middle">
+    <g stroke="#cbd5e1" stroke-width="2" fill="#f8fafc"><rect x="100" y="25" width="700" height="82" rx="9"/><rect x="100" y="127" width="700" height="82" rx="9"/><rect x="100" y="229" width="700" height="82" rx="9"/><rect x="100" y="331" width="700" height="82" rx="9"/></g>
+    <g font-size="23" font-weight="700"><text x="45" y="66">A</text><text x="45" y="168">B</text><text x="45" y="270">C</text><text x="45" y="372">D</text></g>
+    <g font-size="40" text-anchor="middle">
+      <text x="250" y="66">▲</text><text x="320" y="66">△</text><text x="450" y="66" font-size="30">→</text><text x="580" y="66">■</text><text x="650" y="66">▲</text>
+      <text x="250" y="168">▲</text><text x="320" y="168">△</text><text x="450" y="168" font-size="30">→</text><text x="580" y="168">■</text><text x="650" y="168">△</text>
+      <text x="250" y="270">▲</text><text x="320" y="270">○</text><text x="450" y="270" font-size="30">→</text><text x="580" y="270">□</text><text x="650" y="270">◆</text>
+      <text x="250" y="372">▲</text><text x="320" y="372">○</text><text x="450" y="372" font-size="30">→</text><text x="580" y="372">△</text><text x="650" y="372">◆</text>
+    </g>
+  </g>
+</svg>

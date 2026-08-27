@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="760" viewBox="0 0 760 760" role="img" aria-labelledby="title desc">
+  <title id="title">Flip and rotate card task</title>
+  <desc id="desc">A starting three by three card is followed by a left-to-right flip and a clockwise quarter turn. Four answer cards are shown.</desc>
+  <rect width="940" height="660" fill="#fff"/>
+  <defs>
+    <g id="grid"><rect width="150" height="150" rx="8" fill="#fff" stroke="#334155" stroke-width="3"/><path d="M50 0V150M100 0V150M0 50H150M0 100H150" stroke="#cbd5e1" stroke-width="2"/></g>
+  </defs>
+  <g font-family="Arial, sans-serif" fill="#0f172a" dominant-baseline="middle">
+    <text x="40" y="30" font-size="18" font-weight="700" fill="#475569">START</text>
+    <g transform="translate(40 48)"><use href="#grid"/><g font-size="28" text-anchor="middle"><text x="25" y="25">▲</text><text x="75" y="75">↑</text><text x="125" y="75">□</text><text x="75" y="125">●</text></g></g>
+    <text x="260" y="115" font-size="22" font-weight="700">FLIP ↔</text><text x="375" y="115" font-size="28">→</text><text x="430" y="115" font-size="22" font-weight="700">TURN 90° ↻</text>
+    <text x="40" y="250" font-size="18" font-weight="700" fill="#475569">OPTIONS</text>
+    <g transform="translate(80 310)"><text x="0" y="-20" font-size="24" font-weight="700">A</text><use href="#grid"/><g font-size="28" text-anchor="middle"><text x="75" y="25">□</text><text x="25" y="75">●</text><text x="75" y="75">→</text><text x="125" y="125">▲</text></g></g>
+    <g transform="translate(450 310)"><text x="0" y="-20" font-size="24" font-weight="700">B</text><use href="#grid"/><g font-size="28" text-anchor="middle"><text x="125" y="25">▲</text><text x="25" y="75">●</text><text x="75" y="75">→</text><text x="75" y="125">□</text></g></g>
+    <g transform="translate(80 555)"><text x="0" y="-20" font-size="24" font-weight="700">C</text><use href="#grid"/><g font-size="28" text-anchor="middle"><text x="125" y="25">▲</text><text x="25" y="75">□</text><text x="75" y="75">↑</text><text x="75" y="125">●</text></g></g>
+    <g transform="translate(450 555)"><text x="0" y="-20" font-size="24" font-weight="700">D</text><use href="#grid"/><g font-size="28" text-anchor="middle"><text x="75" y="25">□</text><text x="25" y="75">●</text><text x="75" y="75">←</text><text x="125" y="125">▲</text></g></g>
+  </g>
+</svg>

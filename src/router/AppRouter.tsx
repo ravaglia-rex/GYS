@@ -9,10 +9,11 @@ import NotFoundPage from '../pages/NotFoundPage';
 import BigSpinner from '../components/ui/BigSpinner';
 import StudentRegistrationFlowLayout from '../layouts/StudentRegistrationFlowLayout';
 import { lazyWithRetry as lazy } from '../utils/lazyWithRetry';
+import { SitePageHitTracker } from '../db/sitePageHits';
 
 function PlatformAdminLegacyItemBankRedirect() {
   const location = useLocation();
-  return <Navigate to={`/platform-admin/item-bank${location.search}`} replace />;
+  return <Navigate to={`/platform-admin/item-bank/official${location.search}`} replace />;
 }
 
 function StudentProtectedShell() {
@@ -163,6 +164,7 @@ const PlatformAdminQuestionReportsPage = lazy(
 const AppRouter: React.FC = () => {
   return (
     <Router>
+      <SitePageHitTracker />
       {/* ------------------------------ SIGNUP AND LOGIN ROUTES ------------------------------ */}
       <Routes>
         <Route
@@ -583,12 +585,16 @@ const AppRouter: React.FC = () => {
             }
           />
           <Route
-            path="/platform-admin/item-bank"
+            path="/platform-admin/item-bank/:bank"
             element={
               <PlatformAdminAnalyticsRoute nested>
                 <PlatformAdminItemBankPage />
               </PlatformAdminAnalyticsRoute>
             }
+          />
+          <Route
+            path="/platform-admin/item-bank"
+            element={<Navigate to="/platform-admin/item-bank/official" replace />}
           />
           <Route
             path="/platform-admin/question-reports"
@@ -623,7 +629,7 @@ const AppRouter: React.FC = () => {
             }
           />
         </Route>
-        <Route path="/platform-admin/analytics" element={<Navigate to="/platform-admin/analytics/official" replace />} />
+        <Route path="/platform-admin/analytics" element={<Navigate to="/platform-admin/analytics/activity" replace />} />
         <Route
           path="/platform-admin/analytics/item-bank"
           element={<PlatformAdminLegacyItemBankRedirect />}

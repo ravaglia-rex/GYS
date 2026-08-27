@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="350" viewBox="0 0 820 350" role="img" aria-labelledby="title desc">
+  <title id="title">Alternating symbol sequence</title>
+  <desc id="desc">Five rows of four symbols lead to a missing sixth row.</desc>
+  <rect width="820" height="350" fill="#fff"/>
+  <g font-family="Arial, sans-serif" fill="#0f172a" dominant-baseline="middle">
+    <g font-size="17" font-weight="700" fill="#64748b" text-anchor="end">
+      <text x="92" y="42">1</text><text x="92" y="97">2</text><text x="92" y="152">3</text><text x="92" y="207">4</text><text x="92" y="262">5</text><text x="92" y="317">6</text>
+    </g>
+    <g stroke="#cbd5e1" stroke-width="2" fill="#f8fafc">
+      <rect x="110" y="15" width="500" height="50" rx="8"/><rect x="110" y="70" width="500" height="50" rx="8"/><rect x="110" y="125" width="500" height="50" rx="8"/><rect x="110" y="180" width="500" height="50" rx="8"/><rect x="110" y="235" width="500" height="50" rx="8"/><rect x="110" y="290" width="500" height="50" rx="8" stroke-dasharray="8 6"/>
+    </g>
+    <g font-size="36" text-anchor="middle">
+      <text x="180" y="42">▲</text><text x="300" y="42">○</text><text x="420" y="42">■</text><text x="540" y="42">◆</text>
+      <text x="180" y="97">○</text><text x="300" y="97">■</text><text x="420" y="97">◆</text><text x="540" y="97">▲</text>
+      <text x="180" y="152">●</text><text x="300" y="152">□</text><text x="420" y="152">◇</text><text x="540" y="152">△</text>
+      <text x="180" y="207">□</text><text x="300" y="207">◇</text><text x="420" y="207">△</text><text x="540" y="207">●</text>
+      <text x="180" y="262">■</text><text x="300" y="262">◆</text><text x="420" y="262">▲</text><text x="540" y="262">○</text>
+      <text x="360" y="317" font-size="30" font-weight="700">[?]</text>
+    </g>
+  </g>
+</svg>

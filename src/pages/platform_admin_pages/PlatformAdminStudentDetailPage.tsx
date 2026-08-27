@@ -96,6 +96,8 @@ function coinReasonLabel(reason: string): string {
       return 'Practice';
     case 'exam':
       return 'Exam';
+    case 'profile_complete':
+      return 'Profile complete';
     case 'redeem':
       return 'Redemption';
     case 'refund':

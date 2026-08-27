@@ -4,6 +4,8 @@ import remarkGfm from 'remark-gfm';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { cleanLearnerFacingExamMarkup } from './cleanLearnerFacingExamMarkup';
 import { resolveExamFigureSrc } from './examFigureSrc';
+import { ExamMathText } from './ExamMathText';
+import { useExamMathTypeset } from './useExamMathTypeset';
 
 const borderMuted = '#e2e8f0';
 
@@ -99,7 +101,9 @@ const MarkdownImage: React.FC<{
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(src ? 'loading' : 'error');
   return (
     <Box
+      component="span"
       sx={{
+        display: 'block',
         position: 'relative',
         my: compact ? 0.75 : 1.5,
         borderRadius: 1,
@@ -113,6 +117,7 @@ const MarkdownImage: React.FC<{
     >
       {status === 'loading' ? (
         <Box
+          component="span"
           sx={{
             position: 'absolute',
             inset: 0,
@@ -125,7 +130,7 @@ const MarkdownImage: React.FC<{
         </Box>
       ) : null}
       {status === 'error' ? (
-        <Typography variant="caption" sx={{ display: 'block', color: '#64748b', p: 1.25 }}>
+        <Typography component="span" variant="caption" sx={{ display: 'block', color: '#64748b', p: 1.25 }}>
           {alt || 'Image failed to load'}
         </Typography>
       ) : (
@@ -165,13 +170,44 @@ export const ExamRichPrompt: React.FC<{
   emptyLabel?: string;
   maxFigureWidth?: number;
   maxFigureHeight?: number;
-}> = ({ prompt, stimulus, stimulusType, emptyLabel = '(no prompt)', maxFigureWidth, maxFigureHeight }) => {
+  /** Requires a MathJaxContext ancestor (e.g. Mathematical Reasoning item bank). */
+  renderMath?: boolean;
+}> = ({
+  prompt,
+  stimulus,
+  stimulusType,
+  emptyLabel = '(no prompt)',
+  maxFigureWidth,
+  maxFigureHeight,
+  renderMath = false,
+}) => {
   const body = mergeExamPromptMarkdown(prompt, stimulus, stimulusType);
   if (looksLikeExamMarkdown(body)) {
     return (
-      <ExamMarkdown maxFigureWidth={maxFigureWidth} maxFigureHeight={maxFigureHeight}>
+      <ExamMarkdown
+        maxFigureWidth={maxFigureWidth}
+        maxFigureHeight={maxFigureHeight}
+        renderMath={renderMath}
+      >
         {body || emptyLabel}
       </ExamMarkdown>
+    );
+  }
+  if (renderMath) {
+    return (
+      <ExamMathText
+        inline={false}
+        sx={{
+          color: '#0f172a',
+          fontSize: 14,
+          mb: 1,
+          lineHeight: 1.45,
+          whiteSpace: 'pre-wrap',
+          display: 'block',
+        }}
+      >
+        {prompt || emptyLabel}
+      </ExamMathText>
     );
   }
   return (
@@ -194,13 +230,17 @@ export const ExamMarkdown: React.FC<{
   compact?: boolean;
   maxFigureWidth?: number;
   maxFigureHeight?: number;
-}> = ({ children, compact = false, maxFigureWidth, maxFigureHeight }) => {
+  /** Requires a MathJaxContext ancestor (e.g. Mathematical Reasoning item bank). */
+  renderMath?: boolean;
+}> = ({ children, compact = false, maxFigureWidth, maxFigureHeight, renderMath = false }) => {
   const markdown = cleanLearnerFacingExamMarkup(children);
   const figureHeightCap = maxFigureHeight ?? (compact ? undefined : EXAM_FIGURE_MAX_HEIGHT_PX);
+  const mathRef = useExamMathTypeset(markdown, renderMath);
   if (!markdown.trim()) return null;
 
   return (
     <Box
+      ref={renderMath ? mathRef : undefined}
       sx={{
         color: '#334155',
         fontSize: compact ? '0.88rem' : { xs: '0.95rem', sm: '1rem' },
@@ -243,6 +283,20 @@ export const ExamMarkdown: React.FC<{
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
+          // Image-only paragraphs: unwrap so MarkdownImage isn't nested in <p>.
+          // Mixed text+image paragraphs stay as <p>; MarkdownImage uses <span> so nesting is valid.
+          p: ({ children }: { children?: React.ReactNode }) => {
+            const kids = React.Children.toArray(children);
+            const onlyImage =
+              kids.length === 1 &&
+              React.isValidElement(kids[0]) &&
+              kids[0].type === MarkdownImage;
+            if (onlyImage) return <>{children}</>;
+            return <p>{children}</p>;
+          },
+          li: ({ children }: { children?: React.ReactNode }) => <li>{children}</li>,
+          strong: ({ children }: { children?: React.ReactNode }) => <strong>{children}</strong>,
+          em: ({ children }: { children?: React.ReactNode }) => <em>{children}</em>,
           img: ({ src, alt }: { src?: string; alt?: string }) => (
             <MarkdownImage
               src={src}

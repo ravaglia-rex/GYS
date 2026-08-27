@@ -71,6 +71,34 @@ export const OFFICIAL_BETA_STARTABLE_ASSESSMENT_IDS = new Set<string>([
 ]);
 
 /**
+ * Per-exam email allowlists for early start (narrower than the full beta list).
+ * Keep in sync with backend `OFFICIAL_RESTRICTED_STARTABLE_ASSESSMENT_EMAILS`.
+ * Not a public launch.
+ */
+export const OFFICIAL_RESTRICTED_STARTABLE_ASSESSMENT_EMAILS: Record<
+  string,
+  ReadonlySet<string>
+> = {
+  verbal_reasoning: new Set([
+    'srishti2k1@gmail.com',
+    'divyam.ew+1@gmail.com',
+    'vv@accessmca.com',
+  ]),
+};
+
+/**
+ * Optional per-exam tier allowlist for restricted starters.
+ * Missing key = every tier of that restricted exam.
+ * Keep in sync with backend `OFFICIAL_RESTRICTED_STARTABLE_ASSESSMENT_TIERS`.
+ */
+export const OFFICIAL_RESTRICTED_STARTABLE_ASSESSMENT_TIERS: Record<
+  string,
+  ReadonlySet<number>
+> = {
+  verbal_reasoning: new Set([1, 2]),
+};
+
+/**
  * Official Analytical Reasoning currently delivers only the new Level 1 bank.
  * Other AR levels must not start. Not a public-launch flag.
  */
@@ -194,5 +222,24 @@ export function canStartOfficialAssessment(
   ) {
     return true;
   }
+  if (isRestrictedOfficialAssessmentStarter(id, email, tierNumber)) {
+    return true;
+  }
   return false;
+}
+
+/** True when this email may start a restricted early-access exam (e.g. Verbal QA). */
+export function isRestrictedOfficialAssessmentStarter(
+  assessmentId: string,
+  email: unknown,
+  tierNumber?: number
+): boolean {
+  const id = canonicalAssessmentId(assessmentId);
+  const restricted = OFFICIAL_RESTRICTED_STARTABLE_ASSESSMENT_EMAILS[id];
+  if (!restricted) return false;
+  if (!restricted.has(normalizeOfficialAssessmentEmail(email))) return false;
+  const allowedTiers = OFFICIAL_RESTRICTED_STARTABLE_ASSESSMENT_TIERS[id];
+  if (!allowedTiers) return true;
+  if (tierNumber == null) return true;
+  return allowedTiers.has(tierNumber);
 }

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="440" viewBox="0 0 560 440" role="img" aria-labelledby="title desc">
+  <title id="title">Six-square cube net</title>
+  <desc id="desc">Triangle above square. Middle row circle, square, diamond. Star below diamond, with hexagon to the right of star.</desc>
+  <rect width="560" height="440" fill="#fff"/>
+  <g transform="translate(70 35)" stroke="#334155" stroke-width="3" fill="#f8fafc">
+    <rect x="110" y="0" width="110" height="110"/>
+    <rect x="0" y="110" width="110" height="110"/>
+    <rect x="110" y="110" width="110" height="110"/>
+    <rect x="220" y="110" width="110" height="110"/>
+    <rect x="220" y="220" width="110" height="110"/>
+    <rect x="330" y="220" width="110" height="110"/>
+  </g>
+  <g font-family="Arial, sans-serif" font-size="48" fill="#0f172a" text-anchor="middle" dominant-baseline="middle">
+    <text x="235" y="90">▲</text>
+    <text x="125" y="200">●</text>
+    <text x="235" y="200">■</text>
+    <text x="345" y="200">◆</text>
+    <text x="345" y="310">★</text>
+    <text x="455" y="310">⬟</text>
+  </g>
+</svg>

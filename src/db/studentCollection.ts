@@ -116,7 +116,21 @@ export type UpdateStudentPayload = {
     ui_preferences?: StudentTutorialUiPreferences;
 };
 
-export const updateStudent = async (user_id: string, student: UpdateStudentPayload) => {
+export type UpdateStudentResult = {
+  profile_completion?: {
+    percent: number;
+    filled: number;
+    total: number;
+    complete: boolean;
+    reward_coins: number;
+  };
+  profile_completion_coins_awarded?: number;
+};
+
+export const updateStudent = async (
+  user_id: string,
+  student: UpdateStudentPayload
+): Promise<UpdateStudentResult> => {
     try {
         const authToken = await authTokenHandler.getAuthToken();
         const config = {
@@ -130,8 +144,15 @@ export const updateStudent = async (user_id: string, student: UpdateStudentPaylo
                 student: student
             }
         };
-        await axios.request(config);
-        return;
+        const response = await axios.request(config);
+        const data = (response?.data ?? {}) as UpdateStudentResult;
+        return {
+          profile_completion: data.profile_completion,
+          profile_completion_coins_awarded:
+            typeof data.profile_completion_coins_awarded === 'number'
+              ? data.profile_completion_coins_awarded
+              : 0,
+        };
     } catch (error) {
         throw new Error(`Error updating student for user ${user_id}. Please contact globalyoungscholar@argus.ai`);
     }

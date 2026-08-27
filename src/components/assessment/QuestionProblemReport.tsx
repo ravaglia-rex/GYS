@@ -35,7 +35,7 @@ export interface QuestionProblemReportProps {
 
 const MAX_LEN = 4000;
 
-/** Stable identities — inline `slotProps.backdrop` objects can loop MUI Fade/Transition. */
+/** Stable identities - inline `slotProps.backdrop` objects can loop MUI Fade/Transition. */
 const REPORT_DIALOG_SX = {
   '& .MuiBackdrop-root': {
     backgroundColor: 'rgba(0, 0, 0, 0.72)',

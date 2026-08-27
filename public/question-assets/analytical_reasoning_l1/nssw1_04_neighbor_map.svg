@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="620" height="300" viewBox="0 0 620 300" role="img" aria-labelledby="title desc">
+  <title id="title">Five-region neighbor map</title>
+  <desc id="desc">A neighbors B and C. B and C each neighbor D. D neighbors E. B and C are not neighbors.</desc>
+  <style>.edge{stroke:#64778e;stroke-width:9;stroke-linecap:round}.region{fill:#f7f9fc;stroke:#22374f;stroke-width:4}.txt{font:700 28px Arial,sans-serif;fill:#17283e;text-anchor:middle;dominant-baseline:middle}.note{font:600 17px Arial,sans-serif;fill:#52667d;text-anchor:middle}</style>
+  <line class="edge" x1="110" y1="150" x2="260" y2="75"/><line class="edge" x1="110" y1="150" x2="260" y2="225"/>
+  <line class="edge" x1="260" y1="75" x2="410" y2="150"/><line class="edge" x1="260" y1="225" x2="410" y2="150"/><line class="edge" x1="410" y1="150" x2="545" y2="150"/>
+  <circle class="region" cx="85" cy="150" r="44"/><text class="txt" x="85" y="151">A</text>
+  <circle class="region" cx="260" cy="58" r="44"/><text class="txt" x="260" y="59">B</text>
+  <circle class="region" cx="260" cy="242" r="44"/><text class="txt" x="260" y="243">C</text>
+  <circle class="region" cx="430" cy="150" r="44"/><text class="txt" x="430" y="151">D</text>
+  <circle class="region" cx="570" cy="150" r="44"/><text class="txt" x="570" y="151">E</text>
+</svg>

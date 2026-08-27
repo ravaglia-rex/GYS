@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="680" viewBox="0 0 1240 680">
+  <rect width="1240" height="680" fill="#fff"/>
+  <style>.title{font:700 24px Arial,sans-serif;fill:#24334b}.lab{font:700 20px Arial,sans-serif;fill:#24334b;text-anchor:middle}.cell{fill:#f9fbfe;stroke:#738299;stroke-width:2}.sym{font:31px Arial,sans-serif;fill:#1d2a40;text-anchor:middle;dominant-baseline:middle}.arrow{font:700 32px Arial,sans-serif;fill:#a34f22;text-anchor:middle;dominant-baseline:middle}.big{font:700 34px Arial,sans-serif;fill:#65738a;text-anchor:middle}</style>
+  <defs><g id="grid"><path d="M0 0h174v174H0zM58 0v174M116 0v174M0 58h174M0 116h174" class="cell"/></g></defs>
+  <text x="50" y="42" class="title">Example</text>
+  <g transform="translate(65 70)"><use href="#grid"/><text x="29" y="29" class="sym">▲</text><text x="87" y="87" class="arrow">→</text><text x="145" y="145" class="sym">■</text></g>
+  <text x="285" y="168" class="big">→</text>
+  <g transform="translate(335 70)"><use href="#grid"/><text x="145" y="29" class="sym">■</text><text x="87" y="87" class="arrow">↑</text><text x="29" y="145" class="sym">▲</text></g>
+
+  <text x="50" y="325" class="title">Target</text>
+  <g transform="translate(65 365)"><use href="#grid"/><text x="87" y="29" class="sym">◆</text><text x="29" y="87" class="sym">●</text><text x="145" y="145" class="arrow">↓</text></g>
+
+  <text x="305" y="325" class="title">Options</text>
+  <text x="390" y="355" class="lab">A</text><g transform="translate(303 365)"><use href="#grid"/><text x="87" y="29" class="sym">●</text><text x="145" y="87" class="sym">◆</text><text x="29" y="145" class="arrow">←</text></g>
+  <text x="630" y="355" class="lab">B</text><g transform="translate(543 365)"><use href="#grid"/><text x="145" y="29" class="arrow">→</text><text x="29" y="87" class="sym">◆</text><text x="87" y="145" class="sym">●</text></g>
+  <text x="870" y="355" class="lab">C</text><g transform="translate(783 365)"><use href="#grid"/><text x="145" y="29" class="arrow">↓</text><text x="29" y="87" class="sym">◆</text><text x="87" y="145" class="sym">●</text></g>
+  <text x="1110" y="355" class="lab">D</text><g transform="translate(1023 365)"><use href="#grid"/><text x="87" y="29" class="sym">◆</text><text x="145" y="87" class="sym">●</text><text x="29" y="145" class="arrow">↓</text></g>
+</svg>

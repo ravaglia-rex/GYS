@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="520" viewBox="0 0 920 520" role="img" aria-labelledby="title desc">
+  <title id="title">Eight rotatable puzzle pieces with symbol-coded tabs and sockets</title>
+  <desc id="desc">Pieces A, C, E, G, Q, T, X, and Z. Every marked edge has a triangle, circle, star, diamond, hexagon, or square and either an outward tab or inward socket.</desc>
+  <style>
+    .tile { fill:#fff; stroke:#222; stroke-width:3; }
+    .fixed { fill:#e8f2ff; }
+    .tabfill { fill:#dcecf8; }
+    .connector { fill:none; stroke:#174a78; stroke-width:4; stroke-linecap:round; }
+    .tile-label { font:700 24px sans-serif; fill:#222; text-anchor:middle; dominant-baseline:middle; }
+    .type { font:700 19px "DejaVu Sans",sans-serif; fill:#174a78; text-anchor:middle; dominant-baseline:middle; }
+    .legend { font:700 17px sans-serif; fill:#222; }
+    .note { font:16px sans-serif; fill:#333; }
+  </style>
+  <rect width="920" height="520" fill="#fff"/>
+  <defs>
+    <g id="tab"><path class="tabfill" d="M-14 0V-10Q0-26 14-10V0Z"/><path class="connector" d="M-14 0V-10Q0-26 14-10V0"/></g>
+    <g id="socket"><path d="M-14 0Q0 26 14 0Z" fill="#fff"/><path class="connector" d="M-14 0Q0 26 14 0"/></g>
+  </defs>
+  <line x1="70" y1="46" x2="140" y2="46" stroke="#222" stroke-width="3"/><g transform="translate(105 46)"><use href="#tab"/></g><text class="legend" x="155" y="51">OUTWARD TAB</text>
+  <line x1="345" y1="46" x2="415" y2="46" stroke="#222" stroke-width="3"/><g transform="translate(380 46)"><use href="#socket"/></g><text class="legend" x="430" y="51">INWARD SOCKET</text>
+  <text class="note" x="650" y="51">Match symbol + opposite connector</text>
+
+  <!-- A: blank, triangle tab, star socket, blank -->
+  <g transform="translate(55 110)"><rect class="tile fixed" width="120" height="120" rx="5"/><g transform="translate(120 60) rotate(90)"><use href="#tab"/></g><g transform="translate(60 120) rotate(180)"><use href="#socket"/></g><text class="type" x="96" y="60">△</text><text class="type" x="60" y="96">★</text><text class="tile-label" x="60" y="60">A</text></g>
+  <!-- Z: blank, circle tab, diamond tab, triangle socket -->
+  <g transform="translate(745 350)"><rect class="tile" width="120" height="120" rx="5"/><g transform="translate(120 60) rotate(90)"><use href="#tab"/></g><g transform="translate(60 120) rotate(180)"><use href="#tab"/></g><g transform="translate(0 60) rotate(270)"><use href="#socket"/></g><text class="type" x="96" y="60">○</text><text class="type" x="60" y="96">◇</text><text class="type" x="24" y="60">△</text><text class="tile-label" x="60" y="60">Z</text></g>
+  <!-- C: blank, star socket, hexagon socket, circle socket -->
+  <g transform="translate(285 110)"><rect class="tile" width="120" height="120" rx="5"/><g transform="translate(120 60) rotate(90)"><use href="#socket"/></g><g transform="translate(60 120) rotate(180)"><use href="#socket"/></g><g transform="translate(0 60) rotate(270)"><use href="#socket"/></g><text class="type" x="96" y="60">★</text><text class="type" x="60" y="96">⬡</text><text class="type" x="24" y="60">○</text><text class="tile-label" x="60" y="60">C</text></g>
+  <!-- X: blank, blank, square tab, star tab -->
+  <g transform="translate(515 350)"><rect class="tile" width="120" height="120" rx="5"/><g transform="translate(60 120) rotate(180)"><use href="#tab"/></g><g transform="translate(0 60) rotate(270)"><use href="#tab"/></g><text class="type" x="60" y="96">□</text><text class="type" x="24" y="60">★</text><text class="tile-label" x="60" y="60">X</text></g>
+  <!-- E: star tab, diamond tab, blank, blank -->
+  <g transform="translate(515 110)"><rect class="tile" width="120" height="120" rx="5"/><g transform="translate(60 0)"><use href="#tab"/></g><g transform="translate(120 60) rotate(90)"><use href="#tab"/></g><text class="type" x="60" y="24">★</text><text class="type" x="96" y="60">◇</text><text class="tile-label" x="60" y="60">E</text></g>
+  <!-- Q: diamond socket, triangle socket, blank, diamond socket -->
+  <g transform="translate(55 350)"><rect class="tile" width="120" height="120" rx="5"/><g transform="translate(60 0)"><use href="#socket"/></g><g transform="translate(120 60) rotate(90)"><use href="#socket"/></g><g transform="translate(0 60) rotate(270)"><use href="#socket"/></g><text class="type" x="60" y="24">◇</text><text class="type" x="96" y="60">△</text><text class="type" x="24" y="60">◇</text><text class="tile-label" x="60" y="60">Q</text></g>
+  <!-- G: hexagon tab, circle tab, blank, triangle tab -->
+  <g transform="translate(745 110)"><rect class="tile" width="120" height="120" rx="5"/><g transform="translate(60 0)"><use href="#tab"/></g><g transform="translate(120 60) rotate(90)"><use href="#tab"/></g><g transform="translate(0 60) rotate(270)"><use href="#tab"/></g><text class="type" x="60" y="24">⬡</text><text class="type" x="96" y="60">○</text><text class="type" x="24" y="60">△</text><text class="tile-label" x="60" y="60">G</text></g>
+  <!-- T: square socket, blank, blank, circle socket -->
+  <g transform="translate(285 350)"><rect class="tile" width="120" height="120" rx="5"/><g transform="translate(60 0)"><use href="#socket"/></g><g transform="translate(0 60) rotate(270)"><use href="#socket"/></g><text class="type" x="60" y="24">□</text><text class="type" x="24" y="60">○</text><text class="tile-label" x="60" y="60">T</text></g>
+</svg>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="410" viewBox="0 0 860 410" role="img" aria-labelledby="title desc">
+  <title id="title">Four possible two-symbol changes</title>
+  <desc id="desc">A: triangle and hollow circle become square and diamond. B: triangle and hollow circle become square and hollow diamond. C: triangle and hollow circle become hollow triangle and diamond. D: triangle and hollow circle become hollow triangle and hollow diamond.</desc>
+  <rect width="860" height="410" fill="#fff"/>
+  <g font-family="Arial, sans-serif" dominant-baseline="middle">
+    <g stroke="#cbd5e1" stroke-width="2" fill="#f8fafc">
+      <rect x="90" y="25" width="710" height="78" rx="10"/><rect x="90" y="119" width="710" height="78" rx="10"/><rect x="90" y="213" width="710" height="78" rx="10"/><rect x="90" y="307" width="710" height="78" rx="10"/>
+    </g>
+    <g fill="#334155" font-size="24" font-weight="700"><text x="40" y="64">A</text><text x="40" y="158">B</text><text x="40" y="252">C</text><text x="40" y="346">D</text></g>
+    <g fill="#0f172a" font-size="42" text-anchor="middle">
+      <text x="230" y="64">▲</text><text x="300" y="64">○</text><text x="445" y="64" font-size="32">→</text><text x="590" y="64">■</text><text x="660" y="64">◆</text>
+      <text x="230" y="158">▲</text><text x="300" y="158">○</text><text x="445" y="158" font-size="32">→</text><text x="590" y="158">■</text><text x="660" y="158">◇</text>
+      <text x="230" y="252">▲</text><text x="300" y="252">○</text><text x="445" y="252" font-size="32">→</text><text x="590" y="252">△</text><text x="660" y="252">◆</text>
+      <text x="230" y="346">▲</text><text x="300" y="346">○</text><text x="445" y="346" font-size="32">→</text><text x="590" y="346">△</text><text x="660" y="346">◇</text>
+    </g>
+  </g>
+</svg>

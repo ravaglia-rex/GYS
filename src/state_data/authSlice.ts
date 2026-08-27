@@ -12,6 +12,7 @@ export interface AuthState {
     user: User | null;
     role: 'student' | 'schooladmin' | 'platformadmin' | null;
     platformAdminRole: 'super' | 'member' | null;
+    platformAdminPermissions: string[];
     schoolAdmin: SchoolAdmin | null;
     loading: boolean;
     error: string | null;
@@ -21,6 +22,7 @@ const initialState: AuthState = {
     user: null,
     role: null,
     platformAdminRole: null,
+    platformAdminPermissions: [],
     schoolAdmin: null,
     loading: false,
     error: null,
@@ -71,6 +73,9 @@ const authSlice = createSlice({
         setPlatformAdminRole: (state, action: PayloadAction<'super' | 'member' | null>) => {
             state.platformAdminRole = action.payload;
         },
+        setPlatformAdminPermissions: (state, action: PayloadAction<string[]>) => {
+            state.platformAdminPermissions = Array.isArray(action.payload) ? action.payload : [];
+        },
         setSchoolAdmin: (state, action: PayloadAction<SchoolAdmin | null>) => {
             state.schoolAdmin = action.payload;
         },
@@ -78,6 +83,7 @@ const authSlice = createSlice({
             state.user = null;
             state.role = null;
             state.platformAdminRole = null;
+            state.platformAdminPermissions = [];
             state.schoolAdmin = null;
             state.error = null;
         },
@@ -106,5 +112,13 @@ const authSlice = createSlice({
     },
 });
 
-export const { setUser, setRole, setPlatformAdminRole, setSchoolAdmin, clearAuth, setError } = authSlice.actions;
+export const {
+    setUser,
+    setRole,
+    setPlatformAdminRole,
+    setPlatformAdminPermissions,
+    setSchoolAdmin,
+    clearAuth,
+    setError,
+} = authSlice.actions;
 export default authSlice.reducer;

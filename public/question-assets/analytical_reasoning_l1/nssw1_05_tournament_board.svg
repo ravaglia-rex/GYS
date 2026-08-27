@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="650" height="310" viewBox="0 0 650 310" role="img" aria-labelledby="title desc">
+  <title id="title">Known tournament results</title>
+  <desc id="desc">Triangle defeats circle and square. Circle defeats square and diamond. Square defeats diamond and star. Diamond defeats star and triangle.</desc>
+  <style>.head{fill:#273a52}.row{fill:#fff;stroke:#c2ccd8;stroke-width:2}.h{fill:#fff;font:700 20px Arial,sans-serif}.badge{fill:#16283e;font:700 32px Arial,sans-serif}.verb{fill:#64758a;font:700 18px Arial,sans-serif}.pair{fill:#16283e;font:700 30px Arial,sans-serif}</style>
+  <rect class="head" x="25" y="18" width="600" height="48" rx="10"/><text class="h" x="105" y="49" text-anchor="middle">BADGE</text><text class="h" x="390" y="49" text-anchor="middle">DEFEATS</text>
+  <g transform="translate(25 75)"><rect class="row" width="600" height="50" rx="8"/><text class="badge" x="105" y="35" text-anchor="middle">▲</text><text class="verb" x="252" y="32" text-anchor="middle">defeats</text><text class="pair" x="430" y="35" text-anchor="middle">●   ■</text></g>
+  <g transform="translate(25 132)"><rect class="row" width="600" height="50" rx="8"/><text class="badge" x="105" y="35" text-anchor="middle">●</text><text class="verb" x="252" y="32" text-anchor="middle">defeats</text><text class="pair" x="430" y="35" text-anchor="middle">■   ◆</text></g>
+  <g transform="translate(25 189)"><rect class="row" width="600" height="50" rx="8"/><text class="badge" x="105" y="35" text-anchor="middle">■</text><text class="verb" x="252" y="32" text-anchor="middle">defeats</text><text class="pair" x="430" y="35" text-anchor="middle">◆   ★</text></g>
+  <g transform="translate(25 246)"><rect class="row" width="600" height="50" rx="8"/><text class="badge" x="105" y="35" text-anchor="middle">◆</text><text class="verb" x="252" y="32" text-anchor="middle">defeats</text><text class="pair" x="430" y="35" text-anchor="middle">★   ▲</text></g>
+</svg>

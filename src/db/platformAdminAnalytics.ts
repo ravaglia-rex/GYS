@@ -10,6 +10,7 @@ import {
   PLATFORM_ADMIN_ANALYTICS_TOP_COINS,
   PLATFORM_ADMIN_ANALYTICS_TOP_QOD,
   PLATFORM_ADMIN_ANALYTICS_SCHOOL_ADMIN_ACTIVITY,
+  PLATFORM_ADMIN_ANALYTICS_SITE_PAGE_HITS,
   PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAMS,
   PLATFORM_ADMIN_ANALYTICS_OFFICIAL_DAILY,
 } from '../constants/constants';
@@ -131,6 +132,14 @@ export type SchoolAdminActivityRow = {
   school_name: string | null;
   last_active_at: string | null;
 };
+
+export type PlatformAdminPageHitRow = {
+  path: string;
+  label: string;
+  hits: number;
+};
+
+export type SitePageHitRow = PlatformAdminPageHitRow;
 
 export async function getPlatformAdminPracticeExamSummaries(opts?: {
   refresh?: boolean;
@@ -350,6 +359,28 @@ export async function getPlatformAdminSchoolAdminActivity(
     generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
   };
 }
+
+export async function getPlatformAdminPageHits(): Promise<{
+  pages: PlatformAdminPageHitRow[];
+  total_hits: number;
+  generated_at: string;
+}> {
+  const headers = await authHeaders();
+  const res = await axios.get(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_SITE_PAGE_HITS}`,
+    { headers }
+  );
+  return {
+    pages: Array.isArray(res.data.pages) ? res.data.pages : [],
+    total_hits:
+      typeof res.data.total_hits === 'number' && Number.isFinite(res.data.total_hits)
+        ? res.data.total_hits
+        : 0,
+    generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
+  };
+}
+
+export const getSitePageHits = getPlatformAdminPageHits;
 
 export type OfficialExamSummaryRow = {
   exam_id: string;
@@ -810,6 +841,8 @@ export type OfficialQuestionStatRow = {
   accuracy_pct: number | null;
   avg_time_ms: number | null;
   avg_time_sec: number | null;
+  imported_at?: string | null;
+  is_new_in_latest_upload?: boolean;
 };
 
 export type OfficialExamQuestionStats = {
@@ -892,7 +925,8 @@ export type OfficialItemBankFilterKey =
   | 'family'
   | 'subconstruct'
   | 'mechanic'
-  | 'has_images';
+  | 'has_images'
+  | 'is_new';
 
 export type OfficialItemBankFilters = Partial<Record<OfficialItemBankFilterKey, string>> & {
   item_id?: string;
@@ -917,6 +951,7 @@ export type OfficialExamItemBank = {
   served_items: number;
   questions: OfficialQuestionStatRow[];
   generated_at: string;
+  latest_upload_at?: string | null;
 };
 
 function parseItemBankFacets(raw: unknown): OfficialItemBankFacets {
@@ -939,6 +974,7 @@ function parseItemBankFacets(raw: unknown): OfficialItemBankFacets {
     subconstruct: parse('subconstruct'),
     mechanic: parse('mechanic'),
     has_images: parse('has_images'),
+    is_new: parse('is_new'),
   };
 }
 
@@ -989,6 +1025,60 @@ export async function getPlatformAdminOfficialExamItemBank(
     served_items: Number(res.data.served_items) || questions.filter((q) => q.times_seen > 0).length,
     questions,
     generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
+    latest_upload_at:
+      typeof res.data.latest_upload_at === 'string' ? res.data.latest_upload_at : null,
+  };
+}
+
+export async function getPlatformAdminPracticeExamItemBank(
+  examId: string,
+  opts: {
+    level: number;
+    filters?: OfficialItemBankFilters;
+    refresh?: boolean;
+  }
+): Promise<OfficialExamItemBank> {
+  const headers = await authHeaders();
+  const params: Record<string, string | number> = {
+    ...refreshParams(opts.refresh),
+    level: opts.level,
+  };
+  const filters = opts.filters || {};
+  (Object.keys(filters) as Array<OfficialItemBankFilterKey | 'item_id'>).forEach((key) => {
+    const value = filters[key];
+    if (value) params[key] = value;
+  });
+  const res = await axios.get(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_PRACTICE_EXAMS}/${encodeURIComponent(examId)}/item-bank`,
+    { headers, params }
+  );
+  const questions: OfficialQuestionStatRow[] = Array.isArray(res.data.questions)
+    ? res.data.questions.map((q: OfficialQuestionStatRow) => ({
+        ...q,
+        prompt: typeof q.prompt === 'string' ? q.prompt : q.prompt_preview || '',
+        prompt_preview: typeof q.prompt_preview === 'string' ? q.prompt_preview : '',
+        stimulus: q.stimulus ?? null,
+        stimulus_type: typeof q.stimulus_type === 'string' ? q.stimulus_type : null,
+        assets: Array.isArray(q.assets) ? q.assets : [],
+        option_figure: q.option_figure ?? null,
+        options: Array.isArray(q.options) ? q.options : [],
+        correct_index: typeof q.correct_index === 'number' ? q.correct_index : null,
+      }))
+    : [];
+  return {
+    exam_id: typeof res.data.exam_id === 'string' ? res.data.exam_id : examId,
+    label: typeof res.data.label === 'string' ? res.data.label : examId,
+    level: typeof res.data.level === 'number' ? res.data.level : opts.level,
+    filters:
+      res.data.filters && typeof res.data.filters === 'object' ? res.data.filters : filters,
+    facets: parseItemBankFacets(res.data.facets),
+    source: typeof res.data.source === 'string' ? res.data.source : 'practice_bank',
+    total_items: Number(res.data.total_items) || questions.length,
+    served_items: Number(res.data.served_items) || questions.filter((q) => q.times_seen > 0).length,
+    questions,
+    generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
+    latest_upload_at:
+      typeof res.data.latest_upload_at === 'string' ? res.data.latest_upload_at : null,
   };
 }
 

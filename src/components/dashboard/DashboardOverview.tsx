@@ -38,8 +38,10 @@ import {
 } from '../../utils/dashboardNotifications';
 import { studentPageSubtitleSx, studentPageTitleSx } from '../../styles/studentTypography';
 import { readGamificationFromStudent, istDateStringClient } from '../../utils/gamification';
+import { computeProfileCompletion } from '../../utils/profileCompletion';
 import QodDashboardCard from '../gamification/QodDashboardCard';
 import HowGysWorksImportantBanner from './HowGysWorksImportantBanner';
+import ProfileCompletionIncentiveCard from './ProfileCompletionIncentiveCard';
 
 const CoinsLeaderboardWidget = lazy(() => import('./CoinsLeaderboardWidget'));
 
@@ -576,6 +578,11 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     return readGamificationFromStudent(userData as Record<string, unknown> | undefined);
   }, [previewGamification, userData]);
 
+  const profileCompletion = useMemo(
+    () => computeProfileCompletion(userData as Record<string, unknown> | undefined),
+    [userData]
+  );
+
   const schoolId =
     typeof userData?.school_id === 'string' && userData.school_id && userData.school_id !== 'not-listed'
       ? userData.school_id
@@ -1033,6 +1040,31 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           >
             QoD streak: {gamification.qod_streak.current}d
           </Box>
+          {!profileCompletion.complete && (
+            <Box
+              component="span"
+              sx={{
+                px: 1.25,
+                py: 0.5,
+                borderRadius: 999,
+                bgcolor: 'rgba(234,179,8,0.12)',
+                border: '1px solid rgba(234,179,8,0.35)',
+                color: '#fde68a',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                cursor: previewProfile ? 'default' : 'pointer',
+              }}
+              onClick={
+                previewProfile
+                  ? undefined
+                  : () => {
+                      void navigate('/profile');
+                    }
+              }
+            >
+              Profile {profileCompletion.percent}% · +{profileCompletion.reward_coins} coins at 100%
+            </Box>
+          )}
           {gamification.streak_freezes_available > 0 && (
             <Box
               component="span"
@@ -1132,6 +1164,21 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
       </Box>
 
       {!previewProfile && uid ? <HowGysWorksImportantBanner uid={uid} /> : null}
+
+      {!previewProfile ? (
+        <ProfileCompletionIncentiveCard completion={profileCompletion} />
+      ) : (
+        <ProfileCompletionIncentiveCard
+          completion={{
+            percent: 44,
+            filled: 4,
+            total: 9,
+            complete: false,
+            reward_coins: profileCompletion.reward_coins,
+          }}
+          preview
+        />
+      )}
 
       <QodDashboardCard
         qodStreak={gamification.qod_streak.current}

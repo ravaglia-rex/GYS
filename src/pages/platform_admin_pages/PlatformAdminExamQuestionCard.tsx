@@ -13,6 +13,7 @@ import {
   looksLikeExamMarkdown,
   shouldRenderStructuredStimulus,
 } from '../../components/assessment/ExamMarkdown';
+import { ExamMathText } from '../../components/assessment/ExamMathText';
 import type { ExamQuestion } from '../../db/assessmentCollection';
 import type {
   OfficialAttemptQuestionRow,
@@ -50,6 +51,7 @@ export function AdminExamQuestionStem({
   q,
   emptyLabel,
   hideOptionFigure,
+  renderMath = false,
 }: {
   q: {
     item_id: string;
@@ -64,6 +66,8 @@ export function AdminExamQuestionStem({
   emptyLabel: string;
   hideOptionFigure?: boolean;
   hideEmbeddedChoices?: boolean;
+  /** Requires MathJaxContext ancestor (Mathematical Reasoning). */
+  renderMath?: boolean;
 }) {
   const resolved = resolveLearnerExamOptions({
     markdown: q.prompt || q.prompt_preview || '',
@@ -94,6 +98,7 @@ export function AdminExamQuestionStem({
           emptyLabel={emptyLabel}
           maxFigureWidth={EXAM_FIGURE_MAX_WIDTH_PX}
           maxFigureHeight={EXAM_FIGURE_MAX_HEIGHT_PX}
+          renderMath={renderMath}
         />
       </Box>
       {shouldRenderStructuredStimulus(q.stimulus, q.stimulus_type) ? (
@@ -115,12 +120,29 @@ export function AdminExamQuestionStem({
   );
 }
 
-export function AdminExamOptionText({ text }: { text: string }) {
+export function AdminExamOptionText({
+  text,
+  renderMath = false,
+}: {
+  text: string;
+  renderMath?: boolean;
+}) {
   const cleaned = cleanLearnerFacingExamMarkup(text);
   if (looksLikeExamMarkdown(cleaned)) {
     return (
       <Box sx={{ flex: 1, minWidth: 0 }}>
-        <ExamMarkdown compact>{cleaned}</ExamMarkdown>
+        <ExamMarkdown compact renderMath={renderMath}>
+          {cleaned}
+        </ExamMarkdown>
+      </Box>
+    );
+  }
+  if (renderMath) {
+    return (
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <ExamMathText inline={false} sx={{ fontSize: '0.95rem', color: ip.heading, lineHeight: 1.45 }}>
+          {cleaned}
+        </ExamMathText>
       </Box>
     );
   }
@@ -226,10 +248,12 @@ export function AdminExamQuestionBody({
   q,
   emptyLabel,
   optionStatus,
+  renderMath = false,
 }: {
   q: AdminExamQuestionView;
   emptyLabel: string;
   optionStatus?: (optIdx: number) => AdminExamOptionStatus;
+  renderMath?: boolean;
 }) {
   const optionRows = Array.isArray(q.options) ? q.options : [];
   const resolved = resolveLearnerExamOptions({
@@ -259,6 +283,7 @@ export function AdminExamQuestionBody({
         emptyLabel={emptyLabel}
         hideOptionFigure={showFigureSlices}
         hideEmbeddedChoices
+        renderMath={renderMath}
       />
       {showFigureSlices && includesStemContent && optionFigure && stemSlice ? (
         <Box sx={{ mb: 1.25 }}>
@@ -312,7 +337,7 @@ export function AdminExamQuestionBody({
                     fit={includesStemContent ? 'crop' : 'option'}
                   />
                 ) : optionText ? (
-                  <AdminExamOptionText text={optionText} />
+                  <AdminExamOptionText text={optionText} renderMath={renderMath} />
                 ) : null}
               </AdminExamOptionRow>
             );
@@ -330,9 +355,11 @@ export function AdminExamQuestionBody({
 export function PlatformAdminQuestionPerformanceCard({
   question,
   index,
+  renderMath = false,
 }: {
   question: OfficialQuestionStatRow;
   index: number;
+  renderMath?: boolean;
 }) {
   const taxonomy = [question.strand, question.instruction_family, question.band]
     .filter(Boolean)
@@ -375,6 +402,7 @@ export function PlatformAdminQuestionPerformanceCard({
       <AdminExamQuestionBody
         q={question}
         emptyLabel="(no prompt)"
+        renderMath={renderMath}
         optionStatus={(optIdx) => {
           const opt = question.options[optIdx];
           const pickPct = opt?.pick_pct ?? 0;
@@ -401,17 +429,19 @@ export function PlatformAdminAttemptPaper({
   attemptId: string;
   examId: string | null;
 }) {
+  const renderMath = examId === 'mathematical_reasoning';
   const paper = (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
       {questions.map((q) => (
         <PlatformAdminAttemptQuestionCard
           key={`${attemptId}-${q.index}-${q.item_id}`}
           question={q}
+          renderMath={renderMath}
         />
       ))}
     </Box>
   );
-  if (examId === 'mathematical_reasoning') {
+  if (renderMath) {
     return (
       <MathJaxContext version={3} config={EXAM_MATHJAX_CONFIG}>
         {paper}
@@ -423,8 +453,10 @@ export function PlatformAdminAttemptPaper({
 
 export function PlatformAdminAttemptQuestionCard({
   question,
+  renderMath = false,
 }: {
   question: OfficialAttemptQuestionRow;
+  renderMath?: boolean;
 }) {
   return (
     <Box
@@ -465,6 +497,7 @@ export function PlatformAdminAttemptQuestionCard({
       <AdminExamQuestionBody
         q={question}
         emptyLabel="(no prompt - bank item missing)"
+        renderMath={renderMath}
         optionStatus={(optIdx) => {
           const picked = question.selected_index === optIdx;
           const isCorrect = question.correct_index === optIdx;

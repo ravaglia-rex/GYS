@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="470" viewBox="0 0 860 470" role="img" aria-labelledby="title desc">
+  <title id="title">Treasure map and rotatable viewing key</title>
+  <desc id="desc">A six-by-six symbol map contains repeated stars, triangles, and squares. A three-by-three viewing key has star, triangle, and square anchor windows plus blank center and corner windows.</desc>
+  <style>.grid{fill:#fffdf5;stroke:#52667d;stroke-width:2}.sym{font:700 28px Arial,sans-serif;fill:#182a40;text-anchor:middle;dominant-baseline:middle}.heading{font:700 21px Arial,sans-serif;fill:#263b53;text-anchor:middle}.mask{fill:#62758b;stroke:#263b53;stroke-width:3}.hole{fill:#fff;stroke:#182a40;stroke-width:3}.window{font:700 26px Arial,sans-serif;fill:#182a40;text-anchor:middle;dominant-baseline:middle}.note{font:600 17px Arial,sans-serif;fill:#5b6d82;text-anchor:middle}.order{fill:#eaf0f6;stroke:#263b53;stroke-width:2}.num{font:700 15px Arial,sans-serif;fill:#263b53;text-anchor:middle;dominant-baseline:middle}</style>
+  <text class="heading" x="235" y="28">TREASURE MAP</text><text class="heading" x="665" y="28">VIEWING KEY</text>
+  <g transform="translate(55 50)">
+    <rect class="grid" width="360" height="360"/>
+    <path class="grid" d="M60 0v360M120 0v360M180 0v360M240 0v360M300 0v360M0 60h360M0 120h360M0 180h360M0 240h360M0 300h360"/>
+    <g class="sym">
+      <text x="30" y="31">●</text><text x="90" y="31">◆</text><text x="150" y="31">■</text><text x="210" y="31">⬟</text><text x="270" y="31">◆</text><text x="330" y="31">●</text>
+      <text x="30" y="91">⬟</text><text x="90" y="91">⬟</text><text x="150" y="91">■</text><text x="210" y="91">★</text><text x="270" y="91">★</text><text x="330" y="91">●</text>
+      <text x="30" y="151">⬟</text><text x="90" y="151">⬟</text><text x="150" y="151">▲</text><text x="210" y="151">■</text><text x="270" y="151">◆</text><text x="330" y="151">◆</text>
+      <text x="30" y="211">⬟</text><text x="90" y="211">■</text><text x="150" y="211">◆</text><text x="210" y="211">■</text><text x="270" y="211">▲</text><text x="330" y="211">●</text>
+      <text x="30" y="271">★</text><text x="90" y="271">■</text><text x="150" y="271">●</text><text x="210" y="271">⬟</text><text x="270" y="271">●</text><text x="330" y="271">▲</text>
+      <text x="30" y="331">●</text><text x="90" y="331">★</text><text x="150" y="331">◆</text><text x="210" y="331">●</text><text x="270" y="331">◆</text><text x="330" y="331">★</text>
+    </g>
+  </g>
+  <g transform="translate(575 100)">
+    <rect class="mask" width="180" height="180" rx="8"/>
+    <path d="M60 0v180M120 0v180M0 60h180M0 120h180" stroke="#aeb9c5" stroke-width="2"/>
+    <rect class="hole" x="6" y="6" width="48" height="48" rx="8"/><text class="window" x="30" y="31">★</text>
+    <rect class="hole" x="126" y="6" width="48" height="48" rx="8"/><text class="window" x="150" y="31">▲</text>
+    <rect class="hole" x="66" y="66" width="48" height="48" rx="8"/><circle class="order" cx="102" cy="78" r="11"/><text class="num" x="102" y="79">1</text>
+    <rect class="hole" x="6" y="126" width="48" height="48" rx="8"/><text class="window" x="30" y="151">■</text>
+    <rect class="hole" x="126" y="126" width="48" height="48" rx="8"/><circle class="order" cx="162" cy="138" r="11"/><text class="num" x="162" y="139">2</text>
+  </g>
+  <text class="note" x="665" y="320">Slide or rotate. Do not flip.</text>
+  <text class="note" x="665" y="350">Read blank windows 1, then 2.</text>
+</svg>

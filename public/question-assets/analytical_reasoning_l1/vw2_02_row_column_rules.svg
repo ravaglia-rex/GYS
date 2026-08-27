@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="500" viewBox="0 0 980 500" role="img" aria-labelledby="title desc">
+  <title id="title">Three by three symbol-set grid with three hidden cells</title>
+  <desc id="desc">Columns A, B, C and rows X, Y, Z. X-A contains triangle and circle; X-B circle and square; X-C triangle, circle, and square. Y-A circle and square; Y-B square and diamond; Y-C is H1. Z-A circle; Z-B is H2; Z-C is H3.</desc>
+  <style>.cell{fill:#fff;stroke:#263b58;stroke-width:3}.head{font:700 24px sans-serif;fill:#243a57;text-anchor:middle}.sym{font:700 31px "DejaVu Sans",sans-serif;fill:#243a57;text-anchor:middle;dominant-baseline:middle}.hidden{font:700 26px sans-serif;fill:#7a3f20;text-anchor:middle;dominant-baseline:middle}.note{font:600 17px sans-serif;fill:#607087;text-anchor:middle}</style>
+  <rect width="980" height="500" fill="#fff"/>
+  <text class="note" x="550" y="34">Determine the row rule and the different column rule.</text>
+  <g transform="translate(145 65)">
+    <text class="head" x="120" y="32">A</text><text class="head" x="360" y="32">B</text><text class="head" x="600" y="32">C</text>
+    <text class="head" x="-45" y="105">X</text><text class="head" x="-45" y="225">Y</text><text class="head" x="-45" y="345">Z</text>
+    <g transform="translate(0 55)"><rect class="cell" width="220" height="95" rx="8"/><text class="sym" x="110" y="51">{▲, ●}</text></g>
+    <g transform="translate(240 55)"><rect class="cell" width="220" height="95" rx="8"/><text class="sym" x="110" y="51">{●, ■}</text></g>
+    <g transform="translate(480 55)"><rect class="cell" width="220" height="95" rx="8"/><text class="sym" x="110" y="51">{▲, ●, ■}</text></g>
+    <g transform="translate(0 175)"><rect class="cell" width="220" height="95" rx="8"/><text class="sym" x="110" y="51">{●, ■}</text></g>
+    <g transform="translate(240 175)"><rect class="cell" width="220" height="95" rx="8"/><text class="sym" x="110" y="51">{■, ◆}</text></g>
+    <g transform="translate(480 175)"><rect class="cell" width="220" height="95" rx="8" stroke-dasharray="8 6"/><text class="hidden" x="110" y="51">H1</text></g>
+    <g transform="translate(0 295)"><rect class="cell" width="220" height="95" rx="8"/><text class="sym" x="110" y="51">{●}</text></g>
+    <g transform="translate(240 295)"><rect class="cell" width="220" height="95" rx="8" stroke-dasharray="8 6"/><text class="hidden" x="110" y="51">H2</text></g>
+    <g transform="translate(480 295)"><rect class="cell" width="220" height="95" rx="8" stroke-dasharray="8 6"/><text class="hidden" x="110" y="51">H3</text></g>
+  </g>
+</svg>

@@ -638,7 +638,10 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
         ) : levelBased ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
             {Array.from({ length: totalTiers }, (_, i) => i + 1).map((level) => {
-              const attemptable = !isLocked && canAttemptTier(progress, level, totalTiers);
+              const attemptable =
+                !isLocked &&
+                (canAttemptTier(progress, level, totalTiers) ||
+                  Boolean(isOfficialLevelStartable?.(level)));
               const hasAttempt =
                 progress.tiers_cleared?.[String(level)] === true ||
                 progress.best_scores_by_level?.[String(level)] != null ||

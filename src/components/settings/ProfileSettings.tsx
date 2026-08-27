@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Box, 
   Card, 
@@ -9,6 +9,7 @@ import {
   Alert,
   InputAdornment,
   MenuItem,
+  LinearProgress,
 } from '@mui/material';
 import { 
   User, 
@@ -32,6 +33,9 @@ import { queryKeys } from '../../query/queryKeys';
 import { studentSectionHeadingSx } from '../../styles/studentTypography';
 import { toIndiaMobileNationalDigits, withIndiaCountryCode } from '../../utils/indiaMobile';
 import { readGamificationFromStudent } from '../../utils/gamification';
+import { profileCompletionFromForm } from '../../utils/profileCompletion';
+import { useToast } from '../ui/use-toast';
+import ProfileCompleteCelebration from '../gamification/ProfileCompleteCelebration';
 
 const HEARD_FROM_OPTIONS = [
   { value: '', label: 'Select' },
@@ -43,11 +47,64 @@ const HEARD_FROM_OPTIONS = [
   { value: 'OTHER', label: 'Other' },
 ];
 
+/** Filled values stay bright; placeholders stay muted - including when fields are disabled. */
+const profileFieldSx = {
+  '& .MuiOutlinedInput-root': {
+    color: '#fff',
+    fontSize: '1rem',
+    '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
+    '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.5)' },
+    '&.Mui-focused fieldset': { borderColor: '#8b5cf6' },
+    '&.Mui-disabled': {
+      color: '#fff',
+      WebkitTextFillColor: '#fff',
+      '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.22)' },
+    },
+  },
+  '& .MuiInputBase-input': {
+    color: '#fff',
+    WebkitTextFillColor: '#fff',
+    '&.Mui-disabled': {
+      color: '#fff',
+      WebkitTextFillColor: '#fff',
+      opacity: 1,
+    },
+    '&::placeholder': {
+      color: 'rgba(255, 255, 255, 0.38)',
+      WebkitTextFillColor: 'rgba(255, 255, 255, 0.38)',
+      opacity: 1,
+      fontStyle: 'italic',
+    },
+  },
+  '& .MuiSelect-select.Mui-disabled': {
+    color: '#fff',
+    WebkitTextFillColor: '#fff',
+    opacity: 1,
+  },
+  '& .MuiInputLabel-root': {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: '1rem',
+    fontWeight: 500,
+    '&.Mui-disabled': { color: 'rgba(255, 255, 255, 0.9)' },
+  },
+  '& .MuiInputLabel-root.Mui-focused': { color: '#8b5cf6' },
+  '& .MuiSvgIcon-root': { color: 'rgba(255, 255, 255, 0.7)' },
+};
+
+const profileEmptySelectSx = {
+  color: 'rgba(255, 255, 255, 0.38)',
+  WebkitTextFillColor: 'rgba(255, 255, 255, 0.38)',
+  fontStyle: 'italic',
+} as const;
+
 const ProfileSettings: React.FC = () => {
   const currentUser = auth.currentUser;
+  const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [celebrationOpen, setCelebrationOpen] = useState(false);
+  const [celebrationCoins, setCelebrationCoins] = useState(0);
 
   const [formData, setFormData] = useState({
     displayName: currentUser?.displayName || '',
@@ -75,6 +132,7 @@ const ProfileSettings: React.FC = () => {
 
   const { data: userData } = useStudent(currentUser?.uid, Boolean(currentUser?.uid));
   const argusCoins = readGamificationFromStudent(userData).argus_coins;
+  const profileCompletion = useMemo(() => profileCompletionFromForm(formData), [formData]);
   const schoolId =
     typeof userData?.school_id === 'string' && userData.school_id && userData.school_id !== 'not-listed'
       ? userData.school_id
@@ -140,48 +198,73 @@ const ProfileSettings: React.FC = () => {
 
   const handleSave = async () => {
     setIsSaving(true);
+    setSuccessMessage(null);
     try {
-      // Save grade changes if grade was modified
-      if (currentUser?.uid && originalGrade !== null) {
+      if (!currentUser?.uid) return;
+
+      const updates: Record<string, unknown> = {};
+      const [firstName, ...lastNameParts] = formData.displayName.trim().split(/\s+/).filter(Boolean);
+      if (firstName) {
+        updates.first_name = firstName;
+        updates.last_name = lastNameParts.join(' ');
+      }
+      updates.phone_number = withIndiaCountryCode(formData.phoneNumber);
+      updates.date_of_birth = formData.dateOfBirth;
+      updates.city_state = formData.cityState.trim();
+      updates.home_language = formData.homeLanguage.trim();
+      updates.aspiration = formData.aspiration.trim();
+      updates.heard_from = formData.heardFrom;
+      updates.parent_name = formData.parentName.trim();
+      updates.parent_email = formData.parentEmail.trim();
+      updates.parent_phone = withIndiaCountryCode(formData.parentPhone);
+      if (formData.about !== undefined) updates.about_me = formData.about;
+
+      if (originalGrade !== null) {
         const currentGrade = parseInt(formData.grade.replace(/\D/g, ''), 10);
-        if (currentGrade !== originalGrade) {
-          await updateStudent(currentUser.uid, { grade: currentGrade });
-          void queryClient.invalidateQueries({ queryKey: queryKeys.student(currentUser.uid) });
-          setOriginalGrade(currentGrade);
+        if (Number.isFinite(currentGrade) && currentGrade !== originalGrade) {
+          updates.grade = currentGrade;
         }
       }
 
-      // Save parent information and about me changes
-      if (currentUser?.uid) {
-        const updates: any = {};
-        const [firstName, ...lastNameParts] = formData.displayName.trim().split(/\s+/).filter(Boolean);
-        if (firstName) {
-          updates.first_name = firstName;
-          updates.last_name = lastNameParts.join(' ');
+      let coinsAwarded = 0;
+      if (Object.keys(updates).length > 0) {
+        const result = await updateStudent(currentUser.uid, updates as Parameters<typeof updateStudent>[1]);
+        coinsAwarded =
+          typeof result.profile_completion_coins_awarded === 'number'
+            ? result.profile_completion_coins_awarded
+            : 0;
+        if (typeof updates.grade === 'number') {
+          setOriginalGrade(updates.grade);
         }
-        updates.phone_number = withIndiaCountryCode(formData.phoneNumber);
-        updates.date_of_birth = formData.dateOfBirth;
-        updates.city_state = formData.cityState.trim();
-        updates.home_language = formData.homeLanguage.trim();
-        updates.aspiration = formData.aspiration.trim();
-        updates.heard_from = formData.heardFrom;
-        updates.parent_name = formData.parentName.trim();
-        updates.parent_email = formData.parentEmail.trim();
-        updates.parent_phone = withIndiaCountryCode(formData.parentPhone);
-        if (formData.about !== undefined) updates.about_me = formData.about;
-        
-        if (Object.keys(updates).length > 0) {
-          await updateStudent(currentUser.uid, updates);
-          void queryClient.invalidateQueries({ queryKey: queryKeys.student(currentUser.uid) });
-        }
+        void queryClient.invalidateQueries({ queryKey: queryKeys.student(currentUser.uid) });
       }
-      
-      // Simulate API call for other fields
-      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const hitHundred = profileCompletionFromForm(formData).complete;
+      const message =
+        coinsAwarded > 0
+          ? `Profile complete! You earned ${coinsAwarded} Argus Coins.`
+          : hitHundred
+            ? 'Profile 100% complete - nice work!'
+            : 'Profile updated successfully!';
+
+      setSuccessMessage(message);
       setIsEditing(false);
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000);
+
+      if (coinsAwarded > 0) {
+        setCelebrationCoins(coinsAwarded);
+        setCelebrationOpen(true);
+      } else {
+        toast({
+          title: 'Profile saved',
+          description: message,
+        });
+      }
     } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Could not save profile',
+        description: 'Please try again in a moment.',
+      });
     } finally {
       setIsSaving(false);
     }
@@ -190,18 +273,102 @@ const ProfileSettings: React.FC = () => {
 
   return (
     <Box>
-      {showSuccess && (
-        <Alert severity="success" sx={{ 
+      <ProfileCompleteCelebration
+        open={celebrationOpen}
+        coinsAwarded={celebrationCoins}
+        onClose={() => setCelebrationOpen(false)}
+      />
+
+      {successMessage && (
+        <Alert
+          severity="success"
+          onClose={() => setSuccessMessage(null)}
+          sx={{ 
           mb: 3,
           backgroundColor: 'rgba(16, 185, 129, 0.9)',
           color: 'white',
           '& .MuiAlert-icon': {
             color: 'white'
-          }
-        }}>
-          Profile updated successfully!
+          },
+          '& .MuiAlert-action .MuiIconButton-root': {
+            color: 'white',
+          },
+        }}
+        >
+          {successMessage}
         </Alert>
       )}
+
+      <Card
+        sx={{
+          mb: 3,
+          background: profileCompletion.complete
+            ? 'linear-gradient(135deg, rgba(16,185,129,0.16) 0%, rgba(59,130,246,0.08) 100%)'
+            : 'linear-gradient(135deg, rgba(234,179,8,0.14) 0%, rgba(16,185,129,0.08) 100%)',
+          border: profileCompletion.complete
+            ? '1px solid rgba(16,185,129,0.35)'
+            : '1px solid rgba(234,179,8,0.35)',
+          borderRadius: 3,
+        }}
+      >
+        <CardContent sx={{ p: 2.5 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 1.5,
+              mb: 1.25,
+            }}
+          >
+            <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '1.05rem' }}>
+              Profile {profileCompletion.percent}% complete
+            </Typography>
+            <Box
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 0.75,
+                px: 1.25,
+                py: 0.5,
+                borderRadius: 999,
+                bgcolor: 'rgba(234,179,8,0.18)',
+                border: '1px solid rgba(234,179,8,0.35)',
+                color: '#fde68a',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+              }}
+            >
+              <Coins size={15} />
+              {profileCompletion.complete
+                ? '100% reward unlocked'
+                : `+${profileCompletion.reward_coins} coins at 100%`}
+            </Box>
+          </Box>
+          <LinearProgress
+            variant="determinate"
+            value={profileCompletion.percent}
+            sx={{
+              height: 8,
+              borderRadius: 999,
+              bgcolor: 'rgba(255,255,255,0.12)',
+              mb: 1,
+              '& .MuiLinearProgress-bar': {
+                borderRadius: 999,
+                background: profileCompletion.complete
+                  ? 'linear-gradient(90deg, #10b981 0%, #3b82f6 100%)'
+                  : 'linear-gradient(90deg, #eab308 0%, #10b981 100%)',
+              },
+            }}
+          />
+          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.72)' }}>
+            {profileCompletion.complete
+              ? 'Nice work - your profile is fully complete! Nice work!'
+              : `Fill in the remaining fields below to earn ${profileCompletion.reward_coins} Argus Coins (${profileCompletion.filled}/${profileCompletion.total} done).`}
+          </Typography>
+        </CardContent>
+      </Card>
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
 
@@ -232,21 +399,7 @@ const ProfileSettings: React.FC = () => {
                         </InputAdornment>
                       ),
                     }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        color: 'white',
-                        fontSize: '1rem',
-                        '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
-                        '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.5)' },
-                        '&.Mui-focused fieldset': { borderColor: '#8b5cf6' },
-                      },
-                      '& .MuiInputLabel-root': { 
-                        color: 'rgba(255, 255, 255, 0.9)', 
-                        fontSize: '1rem',
-                        fontWeight: 500
-                      },
-                      '& .MuiInputLabel-root.Mui-focused': { color: '#8b5cf6' },
-                    }}
+                    sx={profileFieldSx}
                   />
                 </Box>
 
@@ -263,18 +416,7 @@ const ProfileSettings: React.FC = () => {
                         </InputAdornment>
                       ),
                     }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        color: 'rgba(255, 255, 255, 0.8)',
-                        fontSize: '1rem',
-                        '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.2)' },
-                      },
-                      '& .MuiInputLabel-root': { 
-                        color: 'rgba(255, 255, 255, 0.8)', 
-                        fontSize: '1rem',
-                        fontWeight: 500
-                      },
-                    }}
+                    sx={profileFieldSx}
                   />
                 </Box>
 
@@ -286,6 +428,7 @@ const ProfileSettings: React.FC = () => {
                     value={formData.phoneNumber}
                     onChange={(e) => handleInputChange('phoneNumber', toIndiaMobileNationalDigits(e.target.value))}
                     disabled={!isEditing}
+                    placeholder={isEditing ? '10-digit mobile' : 'Not set'}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start" sx={{ gap: 0.75 }}>
@@ -297,21 +440,7 @@ const ProfileSettings: React.FC = () => {
                       ),
                     }}
                     inputProps={{ inputMode: 'numeric', maxLength: 10 }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        color: 'white',
-                        fontSize: '1rem',
-                        '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
-                        '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.5)' },
-                        '&.Mui-focused fieldset': { borderColor: '#8b5cf6' },
-                      },
-                      '& .MuiInputLabel-root': { 
-                        color: 'rgba(255, 255, 255, 0.9)', 
-                        fontSize: '1rem',
-                        fontWeight: 500
-                      },
-                      '& .MuiInputLabel-root.Mui-focused': { color: '#8b5cf6' },
-                    }}
+                    sx={profileFieldSx}
                   />
                 </Box>
 
@@ -342,12 +471,23 @@ const ProfileSettings: React.FC = () => {
                         '&.Mui-disabled': {
                           color: '#fde68a',
                           WebkitTextFillColor: '#fde68a',
+                          '& fieldset': { borderColor: 'rgba(234, 179, 8, 0.35)' },
+                        },
+                      },
+                      '& .MuiInputBase-input': {
+                        color: '#fde68a',
+                        WebkitTextFillColor: '#fde68a',
+                        '&.Mui-disabled': {
+                          color: '#fde68a',
+                          WebkitTextFillColor: '#fde68a',
+                          opacity: 1,
                         },
                       },
                       '& .MuiInputLabel-root': {
-                        color: 'rgba(255, 255, 255, 0.8)',
+                        color: 'rgba(255, 255, 255, 0.9)',
                         fontSize: '1rem',
                         fontWeight: 500,
+                        '&.Mui-disabled': { color: 'rgba(255, 255, 255, 0.9)' },
                       },
                     }}
                   />
@@ -369,21 +509,7 @@ const ProfileSettings: React.FC = () => {
                         </InputAdornment>
                       ),
                     }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        color: 'white',
-                        fontSize: '1rem',
-                        '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
-                        '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.5)' },
-                        '&.Mui-focused fieldset': { borderColor: '#8b5cf6' },
-                      },
-                      '& .MuiInputLabel-root': { 
-                        color: 'rgba(255, 255, 255, 0.9)', 
-                        fontSize: '1rem',
-                        fontWeight: 500
-                      },
-                      '& .MuiInputLabel-root.Mui-focused': { color: '#8b5cf6' },
-                    }}
+                    sx={profileFieldSx}
                   />
                 </Box>
 
@@ -394,7 +520,7 @@ const ProfileSettings: React.FC = () => {
                     value={formData.cityState}
                     onChange={(e) => handleInputChange('cityState', e.target.value)}
                     disabled={!isEditing}
-                    placeholder="Bengaluru, Karnataka"
+                    placeholder={isEditing ? 'e.g. Bengaluru, Karnataka' : 'Not set'}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -402,21 +528,7 @@ const ProfileSettings: React.FC = () => {
                         </InputAdornment>
                       ),
                     }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        color: 'white',
-                        fontSize: '1rem',
-                        '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
-                        '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.5)' },
-                        '&.Mui-focused fieldset': { borderColor: '#8b5cf6' },
-                      },
-                      '& .MuiInputLabel-root': { 
-                        color: 'rgba(255, 255, 255, 0.9)', 
-                        fontSize: '1rem',
-                        fontWeight: 500
-                      },
-                      '& .MuiInputLabel-root.Mui-focused': { color: '#8b5cf6' },
-                    }}
+                    sx={profileFieldSx}
                   />
                 </Box>
 
@@ -433,21 +545,7 @@ const ProfileSettings: React.FC = () => {
                         </InputAdornment>
                       ),
                     }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        color: 'white',
-                        fontSize: '1rem',
-                        '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
-                        '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.5)' },
-                        '&.Mui-focused fieldset': { borderColor: '#8b5cf6' },
-                      },
-                      '& .MuiInputLabel-root': { 
-                        color: 'rgba(255, 255, 255, 0.9)', 
-                        fontSize: '1rem',
-                        fontWeight: 500
-                      },
-                      '& .MuiInputLabel-root.Mui-focused': { color: '#8b5cf6' },
-                    }}
+                    sx={profileFieldSx}
                   />
                 </Box>
 
@@ -462,21 +560,7 @@ const ProfileSettings: React.FC = () => {
                     SelectProps={{
                       native: false,
                     }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        color: 'white',
-                        fontSize: '1rem',
-                        '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
-                        '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.5)' },
-                        '&.Mui-focused fieldset': { borderColor: '#8b5cf6' },
-                      },
-                      '& .MuiInputLabel-root': { 
-                        color: 'rgba(255, 255, 255, 0.9)', 
-                        fontSize: '1rem',
-                        fontWeight: 500
-                      },
-                      '& .MuiInputLabel-root.Mui-focused': { color: '#8b5cf6' },
-                    }}
+                    sx={profileFieldSx}
                   >
                     <MenuItem value="Class 6">Class 6</MenuItem>
                     <MenuItem value="Class 7">Class 7</MenuItem>
@@ -495,7 +579,7 @@ const ProfileSettings: React.FC = () => {
                     value={formData.homeLanguage}
                     onChange={(e) => handleInputChange('homeLanguage', e.target.value)}
                     disabled={!isEditing}
-                    placeholder="English, Hindi, Tamil..."
+                    placeholder={isEditing ? 'e.g. English, Hindi, Tamil' : 'Not set'}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -503,21 +587,7 @@ const ProfileSettings: React.FC = () => {
                         </InputAdornment>
                       ),
                     }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        color: 'white',
-                        fontSize: '1rem',
-                        '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
-                        '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.5)' },
-                        '&.Mui-focused fieldset': { borderColor: '#8b5cf6' },
-                      },
-                      '& .MuiInputLabel-root': { 
-                        color: 'rgba(255, 255, 255, 0.9)', 
-                        fontSize: '1rem',
-                        fontWeight: 500
-                      },
-                      '& .MuiInputLabel-root.Mui-focused': { color: '#8b5cf6' },
-                    }}
+                    sx={profileFieldSx}
                   />
                 </Box>
 
@@ -528,7 +598,7 @@ const ProfileSettings: React.FC = () => {
                     value={formData.aspiration}
                     onChange={(e) => handleInputChange('aspiration', e.target.value)}
                     disabled={!isEditing}
-                    placeholder="Engineering, medicine, design, undecided..."
+                    placeholder={isEditing ? 'e.g. Engineering, medicine, design' : 'Not set'}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -536,21 +606,7 @@ const ProfileSettings: React.FC = () => {
                         </InputAdornment>
                       ),
                     }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        color: 'white',
-                        fontSize: '1rem',
-                        '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
-                        '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.5)' },
-                        '&.Mui-focused fieldset': { borderColor: '#8b5cf6' },
-                      },
-                      '& .MuiInputLabel-root': { 
-                        color: 'rgba(255, 255, 255, 0.9)', 
-                        fontSize: '1rem',
-                        fontWeight: 500
-                      },
-                      '& .MuiInputLabel-root.Mui-focused': { color: '#8b5cf6' },
-                    }}
+                    sx={profileFieldSx}
                   />
                 </Box>
 
@@ -562,6 +618,20 @@ const ProfileSettings: React.FC = () => {
                     onChange={(e) => handleInputChange('heardFrom', e.target.value)}
                     disabled={!isEditing}
                     select
+                    SelectProps={{
+                      displayEmpty: true,
+                      renderValue: (selected) => {
+                        const value = String(selected ?? '');
+                        if (!value) {
+                          return (
+                            <Box component="span" sx={profileEmptySelectSx}>
+                              {isEditing ? 'Select' : 'Not set'}
+                            </Box>
+                          );
+                        }
+                        return HEARD_FROM_OPTIONS.find((o) => o.value === value)?.label ?? value;
+                      },
+                    }}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -569,21 +639,7 @@ const ProfileSettings: React.FC = () => {
                         </InputAdornment>
                       ),
                     }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        color: 'white',
-                        fontSize: '1rem',
-                        '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
-                        '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.5)' },
-                        '&.Mui-focused fieldset': { borderColor: '#8b5cf6' },
-                      },
-                      '& .MuiInputLabel-root': { 
-                        color: 'rgba(255, 255, 255, 0.9)', 
-                        fontSize: '1rem',
-                        fontWeight: 500
-                      },
-                      '& .MuiInputLabel-root.Mui-focused': { color: '#8b5cf6' },
-                    }}
+                    sx={profileFieldSx}
                   >
                     {HEARD_FROM_OPTIONS.map((option) => (
                       <MenuItem key={option.value || 'empty'} value={option.value}>
@@ -601,6 +657,7 @@ const ProfileSettings: React.FC = () => {
                     value={formData.parentName}
                     onChange={(e) => handleInputChange('parentName', e.target.value)}
                     disabled={!isEditing}
+                    placeholder={isEditing ? "Parent's full name" : 'Not set'}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -608,21 +665,7 @@ const ProfileSettings: React.FC = () => {
                         </InputAdornment>
                       ),
                     }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        color: 'white',
-                        fontSize: '1rem',
-                        '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
-                        '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.5)' },
-                        '&.Mui-focused fieldset': { borderColor: '#8b5cf6' },
-                      },
-                      '& .MuiInputLabel-root': { 
-                        color: 'rgba(255, 255, 255, 0.9)', 
-                        fontSize: '1rem',
-                        fontWeight: 500
-                      },
-                      '& .MuiInputLabel-root.Mui-focused': { color: '#8b5cf6' },
-                    }}
+                    sx={profileFieldSx}
                   />
                 </Box>
 
@@ -633,6 +676,7 @@ const ProfileSettings: React.FC = () => {
                     value={formData.parentEmail}
                     onChange={(e) => handleInputChange('parentEmail', e.target.value)}
                     disabled={!isEditing}
+                    placeholder={isEditing ? 'parent@email.com' : 'Not set'}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -640,21 +684,7 @@ const ProfileSettings: React.FC = () => {
                         </InputAdornment>
                       ),
                     }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        color: 'white',
-                        fontSize: '1rem',
-                        '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
-                        '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.5)' },
-                        '&.Mui-focused fieldset': { borderColor: '#8b5cf6' },
-                      },
-                      '& .MuiInputLabel-root': { 
-                        color: 'rgba(255, 255, 255, 0.9)', 
-                        fontSize: '1rem',
-                        fontWeight: 500
-                      },
-                                              '& .MuiInputLabel-root.Mui-focused': { color: '#8b5cf6' },
-                    }}
+                    sx={profileFieldSx}
                   />
                 </Box>
 
@@ -666,6 +696,7 @@ const ProfileSettings: React.FC = () => {
                     value={formData.parentPhone}
                     onChange={(e) => handleInputChange('parentPhone', toIndiaMobileNationalDigits(e.target.value))}
                     disabled={!isEditing}
+                    placeholder={isEditing ? '10-digit mobile' : 'Not set'}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start" sx={{ gap: 0.75 }}>
@@ -677,21 +708,7 @@ const ProfileSettings: React.FC = () => {
                       ),
                     }}
                     inputProps={{ inputMode: 'numeric', maxLength: 10 }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        color: 'white',
-                        fontSize: '1rem',
-                        '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
-                        '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.5)' },
-                        '&.Mui-focused fieldset': { borderColor: '#8b5cf6' },
-                      },
-                      '& .MuiInputLabel-root': { 
-                        color: 'rgba(255, 255, 255, 0.9)', 
-                        fontSize: '1rem',
-                        fontWeight: 500
-                      },
-                      '& .MuiInputLabel-root.Mui-focused': { color: '#8b5cf6' },
-                    }}
+                    sx={profileFieldSx}
                   />
                 </Box>
 
@@ -704,22 +721,8 @@ const ProfileSettings: React.FC = () => {
                     disabled={!isEditing}
                     multiline
                     rows={4}
-                    placeholder="Tell us about yourself..."
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        color: 'white',
-                        fontSize: '1rem',
-                        '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
-                        '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.5)' },
-                        '&.Mui-focused fieldset': { borderColor: '#8b5cf6' },
-                      },
-                      '& .MuiInputLabel-root': { 
-                        color: 'rgba(255, 255, 255, 0.9)', 
-                        fontSize: '1rem',
-                        fontWeight: 500
-                      },
-                      '& .MuiInputLabel-root.Mui-focused': { color: '#8b5cf6' },
-                    }}
+                    placeholder={isEditing ? 'Tell us about yourself…' : 'Not set'}
+                    sx={profileFieldSx}
                   />
                 </Box>
               </Box>

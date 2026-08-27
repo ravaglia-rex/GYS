@@ -44,18 +44,45 @@ function TabPanel(props: TabPanelProps) {
 
 const textFieldSx = {
   '& .MuiOutlinedInput-root': {
-    color: 'white',
+    color: '#fff',
     fontSize: '1rem',
     '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
     '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.5)' },
     '&.Mui-focused fieldset': { borderColor: '#8b5cf6' },
+    '&.Mui-disabled': {
+      color: '#fff',
+      WebkitTextFillColor: '#fff',
+      '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.22)' },
+    },
+  },
+  '& .MuiInputBase-input': {
+    color: '#fff',
+    WebkitTextFillColor: '#fff',
+    '&.Mui-disabled': {
+      color: '#fff',
+      WebkitTextFillColor: '#fff',
+      opacity: 1,
+    },
+    '&::placeholder': {
+      color: 'rgba(255, 255, 255, 0.38)',
+      WebkitTextFillColor: 'rgba(255, 255, 255, 0.38)',
+      opacity: 1,
+      fontStyle: 'italic',
+    },
+  },
+  '& .MuiSelect-select.Mui-disabled': {
+    color: '#fff',
+    WebkitTextFillColor: '#fff',
+    opacity: 1,
   },
   '& .MuiInputLabel-root': {
     color: 'rgba(255, 255, 255, 0.9)',
     fontSize: '1rem',
     fontWeight: 500,
+    '&.Mui-disabled': { color: 'rgba(255, 255, 255, 0.9)' },
   },
   '& .MuiInputLabel-root.Mui-focused': { color: '#8b5cf6' },
+  '& .MuiSvgIcon-root': { color: 'rgba(255, 255, 255, 0.7)' },
 };
 
 /**

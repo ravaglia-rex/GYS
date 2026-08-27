@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Box, Button, CircularProgress, LinearProgress } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import { useParams } from 'react-router-dom';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import {
   platformAdminOutlinedButtonSx,
@@ -10,6 +11,9 @@ import { PlatformAdminPageHeader } from './platformAdminComponents';
 import { PlatformAdminItemBankSection } from './PlatformAdminItemBankSection';
 
 const PlatformAdminItemBankPage: React.FC = () => {
+  const { bank: bankParam } = useParams<{ bank?: string }>();
+  const bankKind =
+    bankParam === 'practice' ? 'practice' : bankParam === 'review' ? 'review' : 'official';
   const [loading, setLoading] = useState(false);
   const [refreshNonce, setRefreshNonce] = useState(0);
 
@@ -28,7 +32,7 @@ const PlatformAdminItemBankPage: React.FC = () => {
     >
       <PlatformAdminPageHeader
         title="Item Bank"
-        subtitle="Every official exam question by exam and level, with options, correct answers, and pick rates. Data is Redis-cached and not realtime."
+        subtitle="Official and practice pools by exam and level, with options and correct answers. Official also shows pick rates. Data is Redis-cached and not realtime."
         action={
           <Button
             variant="outlined"
@@ -55,6 +59,7 @@ const PlatformAdminItemBankPage: React.FC = () => {
       ) : null}
 
       <PlatformAdminItemBankSection
+        key={bankKind}
         refreshNonce={refreshNonce}
         onLoadingChange={setLoading}
       />

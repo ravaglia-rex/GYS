@@ -45,6 +45,7 @@ import {
 import { mergeStatGridWithTier } from '../../components/assessment/mergeStatGridWithTier';
 import {
   canStartOfficialAssessment,
+  isRestrictedOfficialAssessmentStarter,
   officialAssessmentSchoolIdFromStudent,
 } from '../../utils/officialStudentAssessmentsAccess';
 import { formatCooldownDate, nextEligibleAtMsForLevel } from '../../utils/examAttemptCooldown';
@@ -139,19 +140,25 @@ const AssessmentDetailPage: React.FC = () => {
       }
     : defaultAssessmentProgress;
   const maxTierCount = levelBased ? assessment?.tiers?.length ?? 1 : 0;
+  const viewerEmail = auth.currentUser?.email;
+  const officialSchoolId = officialAssessmentSchoolIdFromStudent(student);
   const tierAttemptAllowed =
-    !!assessment && (!levelBased || canAttemptTier(progressForAssessment, tier, maxTierCount));
+    !!assessment &&
+    !!assessmentId &&
+    (!levelBased ||
+      canAttemptTier(progressForAssessment, tier, maxTierCount) ||
+      isRestrictedOfficialAssessmentStarter(assessmentId, viewerEmail, tier));
   const cooldownNextEligibleMs = levelBased
-    ? nextEligibleAtMsForLevel(progressForAssessment, tier, auth.currentUser?.email)
+    ? nextEligibleAtMsForLevel(progressForAssessment, tier, viewerEmail)
     : null;
   const cooldownActive = !gate.locked && tierAttemptAllowed && cooldownNextEligibleMs != null;
   const officialExamStartable = Boolean(
     assessmentId &&
       canStartOfficialAssessment(
         assessmentId,
-        auth.currentUser?.email,
+        viewerEmail,
         tier,
-        officialAssessmentSchoolIdFromStudent(student)
+        officialSchoolId
       )
   );
 

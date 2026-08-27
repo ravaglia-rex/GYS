@@ -194,7 +194,12 @@ function PlatformAdminSchoolDetailPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const platformAdminRole = useSelector((state: RootState) => state.auth.platformAdminRole);
+  const platformAdminPermissions = useSelector(
+    (state: RootState) => state.auth.platformAdminPermissions
+  );
   const isSuperAdmin = platformAdminRole === 'super';
+  const canAddStudentEmails =
+    isSuperAdmin || platformAdminPermissions.includes('add_student_emails');
   const [school, setSchool] = useState<PlatformAdminSchoolDetail | null>(null);
   const [paymentHistory, setPaymentHistory] = useState<PlatformAdminPaymentHistoryItem[]>([]);
   const [analytics, setAnalytics] = useState<Record<string, unknown> | null>(null);
@@ -991,27 +996,31 @@ function PlatformAdminSchoolDetailPage() {
               <Typography variant="subtitle1" sx={{ fontWeight: 700, color: ip.heading }}>
                 Student roster
               </Typography>
-              {isSuperAdmin && (
+              {(isSuperAdmin || canAddStudentEmails) && (
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    startIcon={<EditIcon />}
-                    onClick={openStudentCapDialog}
-                    sx={platformAdminOutlinedButtonSx}
-                  >
-                    Override student cap
-                  </Button>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    startIcon={<AddStudentsIcon />}
-                    onClick={openAddStudentsDialog}
-                    disabled={studentCap !== null && remainingRosterSlots === 0}
-                    sx={platformAdminOutlinedButtonSx}
-                  >
-                    Add students
-                  </Button>
+                  {isSuperAdmin && (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<EditIcon />}
+                      onClick={openStudentCapDialog}
+                      sx={platformAdminOutlinedButtonSx}
+                    >
+                      Override student cap
+                    </Button>
+                  )}
+                  {canAddStudentEmails && (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<AddStudentsIcon />}
+                      onClick={openAddStudentsDialog}
+                      disabled={studentCap !== null && remainingRosterSlots === 0}
+                      sx={platformAdminOutlinedButtonSx}
+                    >
+                      Add students
+                    </Button>
+                  )}
                 </Box>
               )}
             </Box>
@@ -2084,7 +2093,7 @@ function PlatformAdminSchoolDetailPage() {
         </DialogActions>
       </Dialog>
 
-      {isSuperAdmin && (
+      {canAddStudentEmails && (
       <Dialog
         open={addStudentsOpen}
         onClose={() => !addStudentsSubmitting && setAddStudentsOpen(false)}

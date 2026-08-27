@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="780" height="860" viewBox="0 0 780 860" role="img" aria-labelledby="title desc">
+  <title id="title">Rotate and stack transparent cards</title>
+  <desc id="desc">Cards A and B are three-by-three dot grids. Four possible stacked results are shown.</desc>
+  <rect width="780" height="860" fill="#fff"/>
+  <defs>
+    <g id="grid"><rect width="165" height="165" rx="8" fill="#fff" fill-opacity="0.8" stroke="#334155" stroke-width="3"/><path d="M55 0V165M110 0V165M0 55H165M0 110H165" stroke="#cbd5e1" stroke-width="2"/></g>
+    <circle id="solid" r="15" fill="#0f172a"/>
+    <circle id="hollow" r="14" fill="#fff" stroke="#0f172a" stroke-width="4"/>
+  </defs>
+  <g font-family="Arial, sans-serif" fill="#0f172a">
+    <text x="65" y="35" font-size="19" font-weight="700">CARD A</text><text x="320" y="35" font-size="19" font-weight="700">CARD B</text>
+    <g transform="translate(65 55)"><use href="#grid"/><use href="#solid" x="27.5" y="27.5"/><use href="#hollow" x="137.5" y="82.5"/><use href="#solid" x="82.5" y="137.5"/></g>
+    <g transform="translate(320 55)"><use href="#grid"/><use href="#solid" x="82.5" y="27.5"/><use href="#hollow" x="27.5" y="82.5"/><use href="#hollow" x="137.5" y="137.5"/></g>
+    <text x="540" y="138" font-size="26" font-weight="700">B ↻ 90°</text><text x="665" y="138" font-size="30">→ A</text>
+    <text x="65" y="275" font-size="19" font-weight="700" fill="#475569">OPTIONS</text>
+    <g transform="translate(100 335)"><text x="0" y="-18" font-size="24" font-weight="700">A</text><use href="#grid"/><use href="#solid" x="27.5" y="27.5"/><use href="#hollow" x="82.5" y="27.5"/><use href="#solid" x="137.5" y="82.5"/><use href="#hollow" x="27.5" y="137.5"/><use href="#solid" x="82.5" y="137.5"/></g>
+    <g transform="translate(505 335)"><text x="0" y="-18" font-size="24" font-weight="700">B</text><use href="#grid"/><use href="#solid" x="27.5" y="27.5"/><use href="#solid" x="82.5" y="27.5"/><use href="#hollow" x="27.5" y="82.5"/><use href="#hollow" x="137.5" y="82.5"/><use href="#solid" x="82.5" y="137.5"/><use href="#hollow" x="137.5" y="137.5"/></g>
+    <g transform="translate(100 625)"><text x="0" y="-18" font-size="24" font-weight="700">C</text><use href="#grid"/><use href="#solid" x="27.5" y="27.5"/><use href="#hollow" x="137.5" y="27.5"/><use href="#solid" x="27.5" y="82.5"/><use href="#hollow" x="137.5" y="82.5"/><use href="#solid" x="82.5" y="137.5"/></g>
+    <g transform="translate(505 625)"><text x="0" y="-18" font-size="24" font-weight="700">D</text><use href="#grid"/><use href="#solid" x="27.5" y="27.5"/><use href="#hollow" x="82.5" y="27.5"/><use href="#hollow" x="137.5" y="82.5"/><use href="#hollow" x="27.5" y="137.5"/><use href="#solid" x="82.5" y="137.5"/></g>
+  </g>
+</svg>

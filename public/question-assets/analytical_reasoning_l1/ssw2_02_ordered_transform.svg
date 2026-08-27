@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="700" viewBox="0 0 900 700" role="img" aria-labelledby="title desc">
+  <title id="title">Ordered card transformations</title>
+  <desc id="desc">Two two-by-two transformation examples, one target, and four answer cards.</desc>
+  <rect width="900" height="700" fill="#fff"/>
+  <defs>
+    <g id="card"><rect width="120" height="120" rx="8" fill="#f8fafc" stroke="#334155" stroke-width="3"/><path d="M60 0V120M0 60H120" stroke="#cbd5e1" stroke-width="2"/></g>
+  </defs>
+  <g font-family="Arial, sans-serif" fill="#0f172a" dominant-baseline="middle">
+    <g font-size="17" font-weight="700" fill="#64748b"><text x="40" y="105">EXAMPLE 1</text><text x="40" y="255">EXAMPLE 2</text><text x="40" y="425">TARGET</text></g>
+    <g transform="translate(170 45)"><use href="#card"/><g font-size="30" text-anchor="middle"><text x="30" y="30">▲</text><text x="90" y="30">○</text><text x="30" y="90">◆</text><text x="90" y="90">□</text></g></g>
+    <text x="330" y="105" font-size="30">→</text>
+    <g transform="translate(385 45)"><use href="#card"/><g font-size="30" text-anchor="middle"><text x="30" y="30">◇</text><text x="90" y="30">△</text><text x="30" y="90">□</text><text x="90" y="90">○</text></g></g>
+    <g transform="translate(170 195)"><use href="#card"/><g font-size="30" text-anchor="middle"><text x="30" y="30">●</text><text x="90" y="30">△</text><text x="30" y="90">■</text><text x="90" y="90">◇</text></g></g>
+    <text x="330" y="255" font-size="30">→</text>
+    <g transform="translate(385 195)"><use href="#card"/><g font-size="30" text-anchor="middle"><text x="30" y="30">□</text><text x="90" y="30">○</text><text x="30" y="90">◇</text><text x="90" y="90">△</text></g></g>
+    <g transform="translate(170 365)"><use href="#card"/><g font-size="30" text-anchor="middle"><text x="30" y="30">△</text><text x="90" y="30">◆</text><text x="30" y="90">○</text><text x="90" y="90">■</text></g></g>
+    <text x="330" y="425" font-size="30">→</text><text x="445" y="425" font-size="28" font-weight="700">[?]</text>
+    <g transform="translate(580 70)"><text x="0" y="-18" font-size="22" font-weight="700">A</text><use href="#card"/><g font-size="30" text-anchor="middle"><text x="30" y="30">○</text><text x="90" y="30">△</text><text x="30" y="90">■</text><text x="90" y="90">◆</text></g></g>
+    <g transform="translate(750 70)"><text x="0" y="-18" font-size="22" font-weight="700">B</text><use href="#card"/><g font-size="30" text-anchor="middle"><text x="30" y="30">●</text><text x="90" y="30">▲</text><text x="30" y="90">■</text><text x="90" y="90">◆</text></g></g>
+    <g transform="translate(580 270)"><text x="0" y="-18" font-size="22" font-weight="700">C</text><use href="#card"/><g font-size="30" text-anchor="middle"><text x="30" y="30">○</text><text x="90" y="30">▲</text><text x="30" y="90">■</text><text x="90" y="90">◇</text></g></g>
+    <g transform="translate(750 270)"><text x="0" y="-18" font-size="22" font-weight="700">D</text><use href="#card"/><g font-size="30" text-anchor="middle"><text x="30" y="30">●</text><text x="90" y="30">△</text><text x="30" y="90">□</text><text x="90" y="90">◆</text></g></g>
+  </g>
+</svg>

@@ -75,10 +75,12 @@ const toggleGroupSx = {
 } as const;
 
 function ReportedQuestionBody({ item }: { item: PlatformAdminQuestionProblemReportItem }) {
+  const renderMath = item.exam_id === 'mathematical_reasoning';
   const body = (
     <AdminExamQuestionBody
       q={item}
       emptyLabel="(no prompt)"
+      renderMath={renderMath}
       optionStatus={(optIdx) => {
         const isCorrect = item.correct_index === optIdx;
         return {
@@ -90,7 +92,7 @@ function ReportedQuestionBody({ item }: { item: PlatformAdminQuestionProblemRepo
   );
   return (
     <Box sx={{ mb: 1.5 }}>
-      {item.exam_id === 'mathematical_reasoning' ? (
+      {renderMath ? (
         <MathJaxContext version={3} config={EXAM_MATHJAX_CONFIG}>
           {body}
         </MathJaxContext>

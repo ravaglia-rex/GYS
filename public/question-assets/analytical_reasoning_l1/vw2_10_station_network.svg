@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="360" viewBox="0 0 720 360" role="img" aria-labelledby="title desc">
+  <title id="title">Six-position station corridor network</title>
+  <desc id="desc">Position 3 is connected to positions 1, 2, 4, and 6. Position 4 is also connected to position 5.</desc>
+  <style>
+    .edge { stroke:#30445f; stroke-width:6; stroke-linecap:round; }
+    .node { fill:#fff; stroke:#1f3150; stroke-width:5; }
+    .label { font:700 30px sans-serif; fill:#1f3150; text-anchor:middle; dominant-baseline:middle; }
+  </style>
+  <rect width="720" height="360" fill="#fff"/>
+  <g class="edge">
+    <line x1="120" y1="180" x2="300" y2="180"/>
+    <line x1="300" y1="180" x2="480" y2="180"/>
+    <line x1="480" y1="180" x2="640" y2="180"/>
+    <line x1="300" y1="180" x2="300" y2="55"/>
+    <line x1="300" y1="180" x2="300" y2="305"/>
+  </g>
+  <g>
+    <circle class="node" cx="120" cy="180" r="42"/><text class="label" x="120" y="182">1</text>
+    <circle class="node" cx="300" cy="55" r="42"/><text class="label" x="300" y="57">2</text>
+    <circle class="node" cx="300" cy="180" r="42"/><text class="label" x="300" y="182">3</text>
+    <circle class="node" cx="480" cy="180" r="42"/><text class="label" x="480" y="182">4</text>
+    <circle class="node" cx="640" cy="180" r="42"/><text class="label" x="640" y="182">5</text>
+    <circle class="node" cx="300" cy="305" r="42"/><text class="label" x="300" y="307">6</text>
+  </g>
+</svg>

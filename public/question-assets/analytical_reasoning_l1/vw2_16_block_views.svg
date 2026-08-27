@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1170" viewBox="0 0 1200 1170" role="img" aria-labelledby="title desc">
+  <title id="title">Block positions on two levels and four possible observer views</title>
+  <desc id="desc">Two aligned three-by-three grids show the upper and floor levels. The upper level has a diamond in the lower-left cell. The floor level has a square in the lower-left cell, a triangle immediately to its right, and a circle immediately above the triangle. An observer stands to the right of the floor grid looking left. Four options show possible observer views.</desc>
+  <style>
+    .panel{fill:#fff;stroke:#263b58;stroke-width:4}
+    .upper{fill:#f6f1fb}.floor{fill:#f2f7fb}
+    .line{stroke:#aab7c5;stroke-width:2.5}
+    .symbol{font:700 52px "DejaVu Sans",sans-serif;fill:#152e4e;text-anchor:middle;dominant-baseline:middle}
+    .small{font:700 44px "DejaVu Sans",sans-serif;fill:#152e4e;text-anchor:middle;dominant-baseline:middle}
+    .head{font:700 26px sans-serif;fill:#243a57;text-anchor:middle}
+    .opt{font:700 32px sans-serif;fill:#243a57;text-anchor:middle}
+    .obs{fill:#e9f0f6;stroke:#263b58;stroke-width:3}
+    .sight{fill:none;stroke:#d26928;stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+  </style>
+  <rect width="1200" height="1170" fill="#fff"/>
+
+  <text class="head" x="325" y="38">BLOCK POSITIONS BY LEVEL</text>
+
+  <text class="head" x="325" y="78">UPPER LEVEL</text>
+  <g transform="translate(220 94)">
+    <rect class="panel upper" width="210" height="210" rx="7"/>
+    <path class="line" d="M70 0V210M140 0V210M0 70H210M0 140H210"/>
+    <text class="symbol" x="35" y="175">◆</text>
+  </g>
+
+  <text class="head" x="325" y="384">FLOOR LEVEL</text>
+  <g transform="translate(220 400)">
+    <rect class="panel floor" width="210" height="210" rx="7"/>
+    <path class="line" d="M70 0V210M140 0V210M0 70H210M0 140H210"/>
+    <text class="symbol" x="35" y="175">■</text>
+    <text class="symbol" x="105" y="175">▲</text>
+    <text class="symbol" x="105" y="105">●</text>
+  </g>
+
+  <g transform="translate(635 440)">
+    <circle class="obs" cx="45" cy="25" r="23"/>
+    <path class="obs" d="M14 103Q18 52 45 52T76 103Z"/>
+    <path class="sight" d="M6 55H-115M-115 55l22-14M-115 55l22 14"/>
+    <text class="head" x="45" y="140">EAST-SIDE</text>
+    <text class="head" x="45" y="170">OBSERVER</text>
+  </g>
+
+  <defs>
+    <g id="g3">
+      <rect class="panel" width="180" height="180" rx="7"/>
+      <path class="line" d="M60 0V180M120 0V180M0 60H180M0 120H180"/>
+    </g>
+  </defs>
+
+  <text class="head" x="600" y="682">POSSIBLE OBSERVER VIEWS</text>
+
+  <g transform="translate(220 716)">
+    <text class="opt" x="90" y="-10">A</text><use href="#g3"/>
+    <text class="small" x="30" y="30">■</text><text class="small" x="30" y="90">▲</text><text class="small" x="90" y="90">●</text>
+  </g>
+  <g transform="translate(800 716)">
+    <text class="opt" x="90" y="-10">B</text><use href="#g3"/>
+    <text class="small" x="30" y="30">◆</text><text class="small" x="30" y="90">▲</text><text class="small" x="90" y="90">●</text>
+  </g>
+  <g transform="translate(220 956)">
+    <text class="opt" x="90" y="-10">C</text><use href="#g3"/>
+    <text class="small" x="150" y="30">◆</text><text class="small" x="90" y="90">●</text><text class="small" x="150" y="90">▲</text>
+  </g>
+  <g transform="translate(800 956)">
+    <text class="opt" x="90" y="-10">D</text><use href="#g3"/>
+    <text class="small" x="30" y="30">◆</text><text class="small" x="30" y="90">■</text><text class="small" x="90" y="90">●</text>
+  </g>
+</svg>

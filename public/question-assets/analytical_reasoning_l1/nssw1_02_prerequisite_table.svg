@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="430" viewBox="0 0 680 430" role="img" aria-labelledby="title desc">
+  <title id="title">Task prerequisite table</title>
+  <desc id="desc">A and B have no prerequisites. C requires A. D requires B. E requires C and D. F requires C. G requires E and F.</desc>
+  <style>.outer{fill:#fff;stroke:#263b53;stroke-width:3}.head{fill:#263b53}.h{fill:#fff;font:700 20px Arial,sans-serif;text-anchor:middle}.row1{fill:#fff}.row2{fill:#f2f6fa}.line{stroke:#aeb9c6;stroke-width:2}.task{fill:#182a40;font:700 24px Arial,sans-serif;text-anchor:middle;dominant-baseline:middle}.req{fill:#263b53;font:600 21px Arial,sans-serif;text-anchor:middle;dominant-baseline:middle}.note{fill:#5b6d82;font:600 16px Arial,sans-serif;text-anchor:middle}</style>
+  <rect class="outer" x="35" y="20" width="610" height="365" rx="10"/>
+  <path class="head" d="M45 20h590a10 10 0 0 1 10 10v45H35V30a10 10 0 0 1 10-10z"/>
+  <text class="h" x="155" y="56">TASK</text><text class="h" x="450" y="56">MUST ALREADY BE COMPLETE</text>
+  <rect class="row2" x="37" y="75" width="606" height="44"/><rect class="row1" x="37" y="119" width="606" height="44"/>
+  <rect class="row2" x="37" y="163" width="606" height="44"/><rect class="row1" x="37" y="207" width="606" height="44"/>
+  <rect class="row2" x="37" y="251" width="606" height="44"/><rect class="row1" x="37" y="295" width="606" height="44"/>
+  <rect class="row2" x="37" y="339" width="606" height="44"/>
+  <path class="line" d="M265 75v308M37 119h606M37 163h606M37 207h606M37 251h606M37 295h606M37 339h606"/>
+  <g class="task"><text x="155" y="98">A</text><text x="155" y="142">B</text><text x="155" y="186">C</text><text x="155" y="230">D</text><text x="155" y="274">E</text><text x="155" y="318">F</text><text x="155" y="362">G</text></g>
+  <g class="req"><text x="450" y="98">none</text><text x="450" y="142">none</text><text x="450" y="186">A</text><text x="450" y="230">B</text><text x="450" y="274">C and D</text><text x="450" y="318">C</text><text x="450" y="362">E and F</text></g>
+  <text class="note" x="340" y="417">“None” means the task is available at the start.</text>
+</svg>

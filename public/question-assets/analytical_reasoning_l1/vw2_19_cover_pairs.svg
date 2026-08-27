@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="650" viewBox="0 0 1040 650" role="img" aria-labelledby="title desc">
+  <title id="title">Four answer choices, each containing two square-cell covers</title>
+  <desc id="desc">All pairs contain nine covered squares in total. The pieces may be moved and rotated but not flipped.</desc>
+  <style>
+    .cell { fill:#324d6b; stroke:#fff; stroke-width:3; }
+    .box { fill:#f8fafc; stroke:#c7d3df; stroke-width:3; rx:14; }
+    .label { font:700 30px sans-serif; fill:#20344f; }
+    .piece { font:600 18px sans-serif; fill:#526984; text-anchor:middle; }
+  </style>
+  <rect width="1040" height="650" fill="#fff"/>
+
+  <g transform="translate(30 30)">
+    <rect class="box" width="480" height="280"/>
+    <text class="label" x="22" y="42">A</text>
+    <g transform="translate(85 70)">
+      <rect class="cell" x="0" y="0" width="48" height="48"/><rect class="cell" x="48" y="0" width="48" height="48"/>
+      <rect class="cell" x="0" y="48" width="48" height="48"/><rect class="cell" x="0" y="96" width="48" height="48"/>
+      <text class="piece" x="48" y="180">cover 1</text>
+    </g>
+    <g transform="translate(290 55)">
+      <rect class="cell" x="0" y="0" width="48" height="48"/><rect class="cell" x="0" y="48" width="48" height="48"/>
+      <rect class="cell" x="0" y="96" width="48" height="48"/><rect class="cell" x="0" y="144" width="48" height="48"/><rect class="cell" x="48" y="144" width="48" height="48"/>
+      <text class="piece" x="48" y="205">cover 2</text>
+    </g>
+  </g>
+
+  <g transform="translate(530 30)">
+    <rect class="box" width="480" height="280"/>
+    <text class="label" x="22" y="42">B</text>
+    <g transform="translate(85 82)">
+      <rect class="cell" x="0" y="0" width="48" height="48"/><rect class="cell" x="48" y="0" width="48" height="48"/>
+      <rect class="cell" x="0" y="48" width="48" height="48"/><rect class="cell" x="48" y="48" width="48" height="48"/>
+      <text class="piece" x="48" y="132">cover 1</text>
+    </g>
+    <g transform="translate(285 55)">
+      <rect class="cell" x="0" y="0" width="48" height="48"/><rect class="cell" x="0" y="48" width="48" height="48"/><rect class="cell" x="0" y="96" width="48" height="48"/>
+      <rect class="cell" x="48" y="96" width="48" height="48"/><rect class="cell" x="96" y="96" width="48" height="48"/>
+      <text class="piece" x="72" y="180">cover 2</text>
+    </g>
+  </g>
+
+  <g transform="translate(30 340)">
+    <rect class="box" width="480" height="280"/>
+    <text class="label" x="22" y="42">C</text>
+    <g transform="translate(70 72)">
+      <rect class="cell" x="0" y="0" width="48" height="48"/><rect class="cell" x="48" y="0" width="48" height="48"/><rect class="cell" x="96" y="0" width="48" height="48"/>
+      <rect class="cell" x="48" y="48" width="48" height="48"/>
+      <text class="piece" x="72" y="132">cover 1</text>
+    </g>
+    <g transform="translate(300 45)">
+      <rect class="cell" x="48" y="0" width="48" height="48"/>
+      <rect class="cell" x="0" y="48" width="48" height="48"/><rect class="cell" x="48" y="48" width="48" height="48"/>
+      <rect class="cell" x="0" y="96" width="48" height="48"/><rect class="cell" x="48" y="96" width="48" height="48"/>
+      <text class="piece" x="48" y="180">cover 2</text>
+    </g>
+  </g>
+
+  <g transform="translate(530 340)">
+    <rect class="box" width="480" height="280"/>
+    <text class="label" x="22" y="42">D</text>
+    <g transform="translate(70 82)">
+      <rect class="cell" x="48" y="0" width="48" height="48"/><rect class="cell" x="96" y="0" width="48" height="48"/>
+      <rect class="cell" x="0" y="48" width="48" height="48"/><rect class="cell" x="48" y="48" width="48" height="48"/>
+      <text class="piece" x="72" y="132">cover 1</text>
+    </g>
+    <g transform="translate(285 72)">
+      <rect class="cell" x="0" y="0" width="48" height="48"/><rect class="cell" x="96" y="0" width="48" height="48"/>
+      <rect class="cell" x="0" y="48" width="48" height="48"/><rect class="cell" x="48" y="48" width="48" height="48"/><rect class="cell" x="96" y="48" width="48" height="48"/>
+      <text class="piece" x="72" y="132">cover 2</text>
+    </g>
+  </g>
+</svg>

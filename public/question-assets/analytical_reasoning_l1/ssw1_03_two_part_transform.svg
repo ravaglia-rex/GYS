@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="300" viewBox="0 0 820 300" role="img" aria-labelledby="title desc">
+  <title id="title">Two transformation examples and a target</title>
+  <desc id="desc">Example one: solid triangle, hollow circle, solid square becomes solid square, solid circle, solid triangle. Example two: hollow square, solid diamond, hollow triangle becomes hollow triangle, hollow diamond, hollow square. Target: solid circle, hollow triangle, hollow diamond.</desc>
+  <rect width="820" height="300" fill="#fff"/>
+  <g font-family="Arial, sans-serif" dominant-baseline="middle">
+    <g font-size="16" font-weight="700" fill="#64748b"><text x="40" y="58">EXAMPLE 1</text><text x="40" y="144">EXAMPLE 2</text><text x="40" y="238">TARGET</text></g>
+    <g stroke="#cbd5e1" stroke-width="2" fill="#f8fafc">
+      <rect x="190" y="25" width="205" height="66" rx="9"/><rect x="525" y="25" width="205" height="66" rx="9"/>
+      <rect x="190" y="111" width="205" height="66" rx="9"/><rect x="525" y="111" width="205" height="66" rx="9"/>
+      <rect x="190" y="205" width="205" height="66" rx="9"/><rect x="525" y="205" width="205" height="66" rx="9" stroke-dasharray="8 6"/>
+    </g>
+    <g font-size="38" fill="#0f172a" text-anchor="middle">
+      <text x="240" y="58">▲</text><text x="293" y="58">○</text><text x="346" y="58">■</text><text x="460" y="58" font-size="32">→</text><text x="575" y="58">■</text><text x="628" y="58">●</text><text x="681" y="58">▲</text>
+      <text x="240" y="144">□</text><text x="293" y="144">◆</text><text x="346" y="144">△</text><text x="460" y="144" font-size="32">→</text><text x="575" y="144">△</text><text x="628" y="144">◇</text><text x="681" y="144">□</text>
+      <text x="240" y="238">●</text><text x="293" y="238">△</text><text x="346" y="238">◇</text><text x="460" y="238" font-size="32">→</text><text x="628" y="238" font-size="29" font-weight="700">[?]</text>
+    </g>
+  </g>
+</svg>

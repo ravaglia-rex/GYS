@@ -5,7 +5,7 @@ import { auth } from '../../firebase/firebase';
 import BigSpinner from '../ui/BigSpinner';
 import { useDispatch } from 'react-redux';
 import { getPlatformAdminMe } from '../../db/platformAdminCollection';
-import { setRole, setPlatformAdminRole, setUser } from '../../state_data/authSlice';
+import { setRole, setPlatformAdminRole, setPlatformAdminPermissions, setUser } from '../../state_data/authSlice';
 import { AppDispatch } from '../../state_data/reducer';
 import authTokenHandler from '../../functions/auth_token/auth_token_handler';
 import { Alert, Box } from '@mui/material';
@@ -48,6 +48,7 @@ const PlatformAdminRoute: React.FC<PlatformAdminRouteProps> = ({ children }) => 
 
       dispatch(setRole('platformadmin'));
       dispatch(setPlatformAdminRole(me.role));
+      dispatch(setPlatformAdminPermissions(Array.isArray(me.permissions) ? me.permissions : []));
       setLoading(false);
     });
 

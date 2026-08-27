@@ -26,6 +26,7 @@ import {
   ExpandMore,
   FactCheckOutlined as OfficialExamsIcon,
   FitnessCenterOutlined as PracticeExamsIcon,
+  RateReviewOutlined as ReviewDraftsIcon,
   TodayOutlined as QodIcon,
   TimelineOutlined as ActivityIcon,
   MonetizationOnOutlined as CoinsIcon,
@@ -49,7 +50,7 @@ const APP_BAR_HEIGHT = 64;
 const PAGE_BG = '#f1f5f9';
 const SIDEBAR_ICON_SIZE = 22;
 const CHILD_ICON_SIZE = 18;
-/** Stable identity — a new ModalProps object every render can loop MUI Fade/Transition. */
+/** Stable identity - a new ModalProps object every render can loop MUI Fade/Transition. */
 const MOBILE_DRAWER_MODAL_PROPS = { keepMounted: false } as const;
 const SUBMENU_COLLAPSE_TIMEOUT_MS = 200;
 
@@ -66,6 +67,11 @@ const ANALYTICS_NAV_ITEM: NavItem = {
   icon: <AnalyticsIcon sx={{ color: '#2563eb', fontSize: SIDEBAR_ICON_SIZE }} />,
   children: [
     {
+      title: 'Overall Activity',
+      path: '/platform-admin/analytics/activity',
+      icon: <ActivityIcon sx={{ color: '#2563eb', fontSize: CHILD_ICON_SIZE }} />,
+    },
+    {
       title: 'Official Exams',
       path: '/platform-admin/analytics/official',
       icon: <OfficialExamsIcon sx={{ color: '#2563eb', fontSize: CHILD_ICON_SIZE }} />,
@@ -79,11 +85,6 @@ const ANALYTICS_NAV_ITEM: NavItem = {
       title: 'Question of the Day',
       path: '/platform-admin/analytics/qod',
       icon: <QodIcon sx={{ color: '#2563eb', fontSize: CHILD_ICON_SIZE }} />,
-    },
-    {
-      title: 'Overall Activity',
-      path: '/platform-admin/analytics/activity',
-      icon: <ActivityIcon sx={{ color: '#2563eb', fontSize: CHILD_ICON_SIZE }} />,
     },
     {
       title: 'Coins',
@@ -103,6 +104,23 @@ const ITEM_BANK_NAV_ITEM: NavItem = {
   title: 'Item Bank',
   path: '/platform-admin/item-bank',
   icon: <ItemBankIcon sx={{ color: '#2563eb', fontSize: SIDEBAR_ICON_SIZE }} />,
+  children: [
+    {
+      title: 'Official',
+      path: '/platform-admin/item-bank/official',
+      icon: <OfficialExamsIcon sx={{ color: '#2563eb', fontSize: CHILD_ICON_SIZE }} />,
+    },
+    {
+      title: 'Practice',
+      path: '/platform-admin/item-bank/practice',
+      icon: <PracticeExamsIcon sx={{ color: '#2563eb', fontSize: CHILD_ICON_SIZE }} />,
+    },
+    {
+      title: 'Review drafts',
+      path: '/platform-admin/item-bank/review',
+      icon: <ReviewDraftsIcon sx={{ color: '#2563eb', fontSize: CHILD_ICON_SIZE }} />,
+    },
+  ],
 };
 
 const BASE_NAV_ITEMS: NavItem[] = [
@@ -177,8 +195,10 @@ export default function PlatformAdminLayout({ children }: PlatformAdminLayoutPro
   const hasActiveChild = (item: NavItem): boolean =>
     item.children?.some((child) => isPathActive(child.path) || hasActiveChild(child)) ?? false;
 
-  const go = (path: string) => {
-    navigate(path);
+  const go = (path: string, opts?: { keepSearch?: boolean }) => {
+    const target =
+      opts?.keepSearch && location.search ? `${path}${location.search}` : path;
+    navigate(target);
     setMobileOpen(false);
   };
 
@@ -186,11 +206,16 @@ export default function PlatformAdminLayout({ children }: PlatformAdminLayoutPro
     setOpenSubmenus((prev) => ({ ...prev, [title]: !(prev[title] ?? false) }));
   };
 
+  /** Sibling switches under Item Bank / Analytics should keep exam/level filters. */
+  const shouldKeepSearchOnNav = (path: string) =>
+    path.startsWith('/platform-admin/item-bank/') ||
+    path.startsWith('/platform-admin/analytics/');
+
   const renderNavItem = (item: NavItem, level = 0) => {
     const childActive = hasActiveChild(item);
     const active = level === 0 ? isPathActive(item.path) || childActive : location.pathname === item.path;
     const hasChildren = Boolean(item.children?.length);
-    // Include the parent path so /analytics → /analytics/official does not close-then-open
+    // Include the parent path so /analytics → /analytics/activity does not close-then-open
     // Collapse (that enter animation is what loops Transition on first load).
     const submenuOpen =
       openSubmenus[item.title] ?? (childActive || (hasChildren && isPathActive(item.path)));
@@ -202,10 +227,12 @@ export default function PlatformAdminLayout({ children }: PlatformAdminLayoutPro
             if (hasChildren) {
               toggleSubmenu(item.title);
               if (!childActive && item.children?.[0]) {
-                go(item.children[0].path);
+                go(item.children[0].path, {
+                  keepSearch: shouldKeepSearchOnNav(item.children[0].path),
+                });
               }
             } else {
-              go(item.path);
+              go(item.path, { keepSearch: shouldKeepSearchOnNav(item.path) });
             }
           }}
           sx={{

@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1160" viewBox="0 0 1200 1160" role="img" aria-labelledby="title desc">
+  <title id="title">Room operation examples and recorded initial and final states</title>
+  <desc id="desc">Room A changes inside triangle, clipped square, and A-loose circle to inside circle, clipped triangle, and A-loose square. Room B changes inside triangle, clipped square, and B-loose circle to inside square, clipped circle, and B-loose triangle. Room C changes inside triangle and clipped square to inside square and clipped triangle; it has no loose item. The initial state is inside triangle, clipped square, A-loose circle, B-loose diamond. The final state is inside circle, clipped triangle, A-loose diamond, B-loose square.</desc>
+  <style>
+    .head{font:700 28px sans-serif;fill:#243a57;text-anchor:middle}
+    .room{font:700 30px sans-serif;fill:#243a57;text-anchor:middle}
+    .state{font:700 22px sans-serif;fill:#526a84;text-anchor:middle}
+    .role{font:700 18px sans-serif;fill:#526a84;text-anchor:middle}
+    .symbol{font:700 50px "DejaVu Sans",sans-serif;fill:#152e4e;text-anchor:middle;dominant-baseline:middle}
+    .cell{stroke:#263b58;stroke-width:3}
+    .inside{fill:#eef5fb}.clipped{fill:#fff4e9}.loose{fill:#f4f1f8}.none{fill:#f7f7f7;stroke-dasharray:7 6}
+    .arrow{fill:none;stroke:#d26928;stroke-width:6;stroke-linecap:round;stroke-linejoin:round}
+    .note{font:700 17px sans-serif;fill:#748399;text-anchor:middle}
+  </style>
+  <rect width="1200" height="1160" fill="#fff"/>
+
+  <text class="head" x="600" y="42">HOW EACH ROOM CHANGES THE ITEMS</text>
+
+  <!-- Room A -->
+  <text class="room" x="70" y="155">ROOM A</text>
+  <text class="state" x="340" y="88">BEFORE</text>
+  <text class="role" x="205" y="120">INSIDE</text><text class="role" x="340" y="120">CLIPPED</text><text class="role" x="475" y="120">A LOOSE</text>
+  <rect class="cell inside" x="145" y="135" width="120" height="100" rx="8"/><rect class="cell clipped" x="280" y="135" width="120" height="100" rx="8"/><rect class="cell loose" x="415" y="135" width="120" height="100" rx="8"/>
+  <text class="symbol" x="205" y="185">▲</text><text class="symbol" x="340" y="185">■</text><text class="symbol" x="475" y="185">●</text>
+  <path class="arrow" d="M555 185H625M625 185l-20-14M625 185l-20 14"/>
+  <text class="state" x="860" y="88">AFTER</text>
+  <text class="role" x="725" y="120">INSIDE</text><text class="role" x="860" y="120">CLIPPED</text><text class="role" x="995" y="120">A LOOSE</text>
+  <rect class="cell inside" x="665" y="135" width="120" height="100" rx="8"/><rect class="cell clipped" x="800" y="135" width="120" height="100" rx="8"/><rect class="cell loose" x="935" y="135" width="120" height="100" rx="8"/>
+  <text class="symbol" x="725" y="185">●</text><text class="symbol" x="860" y="185">▲</text><text class="symbol" x="995" y="185">■</text>
+
+  <!-- Room B -->
+  <text class="room" x="70" y="395">ROOM B</text>
+  <text class="state" x="340" y="328">BEFORE</text>
+  <text class="role" x="205" y="360">INSIDE</text><text class="role" x="340" y="360">CLIPPED</text><text class="role" x="475" y="360">B LOOSE</text>
+  <rect class="cell inside" x="145" y="375" width="120" height="100" rx="8"/><rect class="cell clipped" x="280" y="375" width="120" height="100" rx="8"/><rect class="cell loose" x="415" y="375" width="120" height="100" rx="8"/>
+  <text class="symbol" x="205" y="425">▲</text><text class="symbol" x="340" y="425">■</text><text class="symbol" x="475" y="425">●</text>
+  <path class="arrow" d="M555 425H625M625 425l-20-14M625 425l-20 14"/>
+  <text class="state" x="860" y="328">AFTER</text>
+  <text class="role" x="725" y="360">INSIDE</text><text class="role" x="860" y="360">CLIPPED</text><text class="role" x="995" y="360">B LOOSE</text>
+  <rect class="cell inside" x="665" y="375" width="120" height="100" rx="8"/><rect class="cell clipped" x="800" y="375" width="120" height="100" rx="8"/><rect class="cell loose" x="935" y="375" width="120" height="100" rx="8"/>
+  <text class="symbol" x="725" y="425">■</text><text class="symbol" x="860" y="425">●</text><text class="symbol" x="995" y="425">▲</text>
+
+  <!-- Room C -->
+  <text class="room" x="70" y="635">ROOM C</text>
+  <text class="state" x="340" y="568">BEFORE</text>
+  <text class="role" x="205" y="600">INSIDE</text><text class="role" x="340" y="600">CLIPPED</text><text class="role" x="475" y="600">NO LOOSE ITEM</text>
+  <rect class="cell inside" x="145" y="615" width="120" height="100" rx="8"/><rect class="cell clipped" x="280" y="615" width="120" height="100" rx="8"/><rect class="cell none" x="415" y="615" width="120" height="100" rx="8"/>
+  <text class="symbol" x="205" y="665">▲</text><text class="symbol" x="340" y="665">■</text><text class="note" x="475" y="670">NONE</text>
+  <path class="arrow" d="M555 665H625M625 665l-20-14M625 665l-20 14"/>
+  <text class="state" x="860" y="568">AFTER</text>
+  <text class="role" x="725" y="600">INSIDE</text><text class="role" x="860" y="600">CLIPPED</text><text class="role" x="995" y="600">NO LOOSE ITEM</text>
+  <rect class="cell inside" x="665" y="615" width="120" height="100" rx="8"/><rect class="cell clipped" x="800" y="615" width="120" height="100" rx="8"/><rect class="cell none" x="935" y="615" width="120" height="100" rx="8"/>
+  <text class="symbol" x="725" y="665">■</text><text class="symbol" x="860" y="665">▲</text><text class="note" x="995" y="670">NONE</text>
+
+  <text class="head" x="600" y="790">RECORDED STATES</text>
+
+  <text class="state" x="300" y="835">INITIAL</text>
+  <text class="role" x="120" y="870">INSIDE</text><text class="role" x="240" y="870">CLIPPED</text><text class="role" x="360" y="870">A LOOSE</text><text class="role" x="480" y="870">B LOOSE</text>
+  <rect class="cell inside" x="65" y="885" width="110" height="100" rx="8"/><rect class="cell clipped" x="185" y="885" width="110" height="100" rx="8"/><rect class="cell loose" x="305" y="885" width="110" height="100" rx="8"/><rect class="cell loose" x="425" y="885" width="110" height="100" rx="8"/>
+  <text class="symbol" x="120" y="935">▲</text><text class="symbol" x="240" y="935">■</text><text class="symbol" x="360" y="935">●</text><text class="symbol" x="480" y="935">◆</text>
+  <path class="arrow" d="M555 935H625M625 935l-20-14M625 935l-20 14"/>
+  <text class="state" x="900" y="835">FINAL</text>
+  <text class="role" x="720" y="870">INSIDE</text><text class="role" x="840" y="870">CLIPPED</text><text class="role" x="960" y="870">A LOOSE</text><text class="role" x="1080" y="870">B LOOSE</text>
+  <rect class="cell inside" x="665" y="885" width="110" height="100" rx="8"/><rect class="cell clipped" x="785" y="885" width="110" height="100" rx="8"/><rect class="cell loose" x="905" y="885" width="110" height="100" rx="8"/><rect class="cell loose" x="1025" y="885" width="110" height="100" rx="8"/>
+  <text class="symbol" x="720" y="935">●</text><text class="symbol" x="840" y="935">▲</text><text class="symbol" x="960" y="935">◆</text><text class="symbol" x="1080" y="935">■</text>
+</svg>

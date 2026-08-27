@@ -115,7 +115,7 @@ export const studentFaqSections: { heading: string; items: LandingFaqItem[] }[] 
         question: 'How long do the exams take?',
         answer: (
           <p>
-            Analytical Reasoning, Verbal Reasoning, and Mathematical Reasoning each have a 40-minute time limit. Other timed assessments
+            Analytical Reasoning and Verbal Reasoning each have a 45-minute time limit. Mathematical Reasoning has a 40-minute time limit. Other timed assessments
             vary. The Personality assessment is
             untimed and typically takes about 30–45 minutes. Students do not need to complete all assessments in one
             sitting. They can complete the assessments included in their membership at their own pace over days or

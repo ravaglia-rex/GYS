@@ -55,6 +55,7 @@ import {
   getPlatformAdminPracticeMonthlyStats,
   getPlatformAdminQodStats,
   getPlatformAdminSchoolAdminActivity,
+  getPlatformAdminPageHits,
   getPlatformAdminTopCoins,
   getPlatformAdminTopQod,
   getPlatformAdminOfficialDailyStats,
@@ -72,6 +73,7 @@ import {
   type PracticeMonthlyStatRow,
   type QodDailyStatRow,
   type SchoolAdminActivityRow,
+  type PlatformAdminPageHitRow,
   type TopCoinsStudentRow,
   type TopQodStudentRow,
   type OfficialDailyStatRow,
@@ -120,7 +122,7 @@ type GradeSchoolStrandSplit =
   | { kind: 'grade'; key: string; label: string }
   | { kind: 'school'; key: string; label: string };
 
-const ANALYTICS_SECTIONS: AnalyticsSection[] = ['official', 'practice', 'qod', 'activity', 'coins'];
+const ANALYTICS_SECTIONS: AnalyticsSection[] = ['activity', 'official', 'practice', 'qod', 'coins'];
 
 const AR_STRAND_LABELS: Record<string, string> = {
   pattern: 'Pattern & Structure Induction',
@@ -163,9 +165,9 @@ const AR_EXTENSION_REASON_LABELS: Record<string, string> = {
   usable_evidence_reduced_by_omission_or_delivery_incident:
     'Usable evidence reduced by a skipped item or delivery issue',
   extension_pool_infeasible_finishing_at_32:
-    'Could not add the extra 8 items — sitting finished at 32',
+    'Could not add the extra 8 items - sitting finished at 32',
   extension_assembly_infeasible_finishing_at_32:
-    'Could not assemble the extra 8 items — sitting finished at 32',
+    'Could not assemble the extra 8 items - sitting finished at 32',
 };
 
 function titleCaseAnalyticsKey(key: string): string {
@@ -465,7 +467,7 @@ const ANALYTICS_SECTION_META: Record<
   },
   activity: {
     title: 'Overall Activity',
-    subtitle: 'School admin login and platform activity signals.',
+    subtitle: 'User page hits across the product, plus school admin login activity.',
   },
   coins: {
     title: 'Coins',
@@ -630,6 +632,8 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
   const [coinsError, setCoinsError] = useState<string | null>(null);
 
   const [schoolAdmins, setSchoolAdmins] = useState<SchoolAdminActivityRow[]>([]);
+  const [pageHits, setPageHits] = useState<PlatformAdminPageHitRow[]>([]);
+  const [pageHitsTotal, setPageHitsTotal] = useState(0);
   const [activityGeneratedAt, setActivityGeneratedAt] = useState('');
   const [activityLoading, setActivityLoading] = useState(false);
   const [activityError, setActivityError] = useState<string | null>(null);
@@ -826,7 +830,7 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
     params.set('exam', selectedOfficialExamId);
     if (officialDrillLevel !== 'all') params.set('level', String(officialDrillLevel));
     params.set(tagType, tag);
-    navigate(`/platform-admin/item-bank?${params.toString()}`);
+    navigate(`/platform-admin/item-bank/official?${params.toString()}`);
   };
 
   const renderOfficialTagTable = (
@@ -1041,9 +1045,14 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
     setActivityLoading(true);
     setActivityError(null);
     try {
-      const admins = await getPlatformAdminSchoolAdminActivity(20, { refresh: opts?.refresh });
+      const [admins, hits] = await Promise.all([
+        getPlatformAdminSchoolAdminActivity(20, { refresh: opts?.refresh }),
+        getPlatformAdminPageHits(),
+      ]);
       setSchoolAdmins(admins.admins);
-      setActivityGeneratedAt(admins.generated_at);
+      setPageHits(hits.pages);
+      setPageHitsTotal(hits.total_hits);
+      setActivityGeneratedAt(hits.generated_at || admins.generated_at);
     } catch (e: unknown) {
       const err = e as { response?: { data?: { error?: string } }; message?: string };
       setActivityError(err?.response?.data?.error || err?.message || 'Failed to load activity analytics');
@@ -1054,7 +1063,7 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
 
   useEffect(() => {
     if (!isAnalyticsSection(sectionParam)) {
-      navigate('/platform-admin/analytics/official', { replace: true });
+      navigate('/platform-admin/analytics/activity', { replace: true });
     }
   }, [sectionParam, navigate]);
 
@@ -1247,6 +1256,17 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
       })),
     [practiceMonthly]
   );
+
+  const pageHitsChartData = useMemo(
+    () =>
+      pageHits.map((row) => ({
+        label: row.label,
+        hits: row.hits,
+      })),
+    [pageHits]
+  );
+
+  const pageHitsChartHeight = Math.max(280, pageHitsChartData.length * 36 + 48);
 
   const examLabelById = useMemo(() => {
     const map = new Map<string, string>();
@@ -3113,45 +3133,86 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
             {staleHint(activityGeneratedAt)}
           </Typography>
 
-          {activityLoading && schoolAdmins.length === 0 ? (
+          {activityLoading && schoolAdmins.length === 0 && pageHits.length === 0 ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
               <CircularProgress sx={{ color: ip.navy }} />
             </Box>
           ) : (
-            <PlatformAdminAnalyticsSection
-              title="School admin sign-ins"
-              subtitle="Firebase Auth last sign-in. Also shown on each school detail page."
-              accent="slate"
-            >
-              <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
-                <Table size="small" sx={platformAdminTableSx}>
-                  <TableHead>
-                    <TableRow sx={platformAdminTableHeadRowSx}>
-                      <TableCell>Email</TableCell>
-                      <TableCell>School</TableCell>
-                      <TableCell>Last sign-in</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {schoolAdmins.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={3} align="center" sx={{ py: 3, color: ip.subtext }}>
-                          No school admin sign-ins recorded yet.
-                        </TableCell>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+              <PlatformAdminAnalyticsSection
+                title="Site page hits"
+                subtitle={`Lifetime views on landing, signup, student, and school pages · ${pageHitsTotal.toLocaleString()} total.`}
+                accent="navy"
+              >
+                {pageHits.length === 0 ? (
+                  <Typography sx={{ color: ip.subtext, py: 3, textAlign: 'center' }}>
+                    No page hits recorded yet. Counts start as users browse the site.
+                  </Typography>
+                ) : (
+                  <Box sx={{ width: '100%', height: pageHitsChartHeight }}>
+                    <ResponsiveContainer>
+                      <BarChart
+                        layout="vertical"
+                        data={pageHitsChartData}
+                        margin={{ top: 8, right: 24, left: 8, bottom: 8 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
+                        <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12 }} />
+                        <YAxis
+                          type="category"
+                          dataKey="label"
+                          width={168}
+                          tick={{ fontSize: 12, fill: '#334155' }}
+                          interval={0}
+                        />
+                        <Tooltip
+                          formatter={(value: number | string) => [
+                            typeof value === 'number' ? value.toLocaleString() : value,
+                            'Hits',
+                          ]}
+                        />
+                        <Bar dataKey="hits" name="Hits" fill="#2563eb" radius={[0, 4, 4, 0]} barSize={22} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </Box>
+                )}
+              </PlatformAdminAnalyticsSection>
+
+              <PlatformAdminAnalyticsSection
+                title="School admin sign-ins"
+                subtitle="Firebase Auth last sign-in. Also shown on each school detail page."
+                accent="slate"
+              >
+                <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
+                  <Table size="small" sx={platformAdminTableSx}>
+                    <TableHead>
+                      <TableRow sx={platformAdminTableHeadRowSx}>
+                        <TableCell>Email</TableCell>
+                        <TableCell>School</TableCell>
+                        <TableCell>Last sign-in</TableCell>
                       </TableRow>
-                    ) : (
-                      schoolAdmins.map((row) => (
-                        <TableRow key={row.email}>
-                          <TableCell sx={{ fontWeight: 600 }}>{row.email}</TableCell>
-                          <TableCell>{row.school_name ?? row.school_id ?? '-'}</TableCell>
-                          <TableCell>{formatDate(row.last_active_at)}</TableCell>
+                    </TableHead>
+                    <TableBody>
+                      {schoolAdmins.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={3} align="center" sx={{ py: 3, color: ip.subtext }}>
+                            No school admin sign-ins recorded yet.
+                          </TableCell>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </PlatformAdminAnalyticsSection>
+                      ) : (
+                        schoolAdmins.map((row) => (
+                          <TableRow key={row.email}>
+                            <TableCell sx={{ fontWeight: 600 }}>{row.email}</TableCell>
+                            <TableCell>{row.school_name ?? row.school_id ?? '-'}</TableCell>
+                            <TableCell>{formatDate(row.last_active_at)}</TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </PlatformAdminAnalyticsSection>
+            </Box>
           )}
         </>
       )}

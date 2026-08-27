@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="620" height="420" viewBox="0 0 620 420" role="img" aria-labelledby="title desc">
+  <title id="title">Shape and arrow matrix</title>
+  <desc id="desc">A three by three grid. Row one: triangle up arrow, circle down arrow, square right arrow. Row two: square right arrow, triangle left arrow, circle down arrow. Row three: circle down arrow, square up arrow, missing card.</desc>
+  <rect width="620" height="420" fill="#fff"/>
+  <g transform="translate(85 38)" stroke="#334155" stroke-width="3" fill="#f8fafc">
+    <rect x="0" y="0" width="150" height="110" rx="9"/><rect x="150" y="0" width="150" height="110" rx="9"/><rect x="300" y="0" width="150" height="110" rx="9"/>
+    <rect x="0" y="110" width="150" height="110" rx="9"/><rect x="150" y="110" width="150" height="110" rx="9"/><rect x="300" y="110" width="150" height="110" rx="9"/>
+    <rect x="0" y="220" width="150" height="110" rx="9"/><rect x="150" y="220" width="150" height="110" rx="9"/><rect x="300" y="220" width="150" height="110" rx="9"/>
+  </g>
+  <g font-family="Arial, sans-serif" font-size="42" fill="#0f172a" text-anchor="middle" dominant-baseline="middle">
+    <text x="130" y="94">▲</text><text x="190" y="94">↑</text>
+    <text x="280" y="94">●</text><text x="340" y="94">↓</text>
+    <text x="430" y="94">■</text><text x="490" y="94">→</text>
+    <text x="130" y="204">■</text><text x="190" y="204">→</text>
+    <text x="280" y="204">▲</text><text x="340" y="204">←</text>
+    <text x="430" y="204">●</text><text x="490" y="204">↓</text>
+    <text x="130" y="314">●</text><text x="190" y="314">↓</text>
+    <text x="280" y="314">■</text><text x="340" y="314">↑</text>
+    <text x="460" y="314" font-size="34" font-weight="700">[?]</text>
+  </g>
+</svg>

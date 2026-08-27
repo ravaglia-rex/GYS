@@ -1,6 +1,6 @@
 import React from 'react';
-import { MathJax } from 'better-react-mathjax';
 import { Box, type SxProps, type Theme } from '@mui/material';
+import { useExamMathTypeset } from './useExamMathTypeset';
 
 type ExamMathTextProps = {
   children: string;
@@ -14,36 +14,41 @@ type ExamMathTextProps = {
  */
 export const ExamMathText: React.FC<ExamMathTextProps> = ({ children, inline = true, sx }) => {
   const text = children ?? '';
+  const mathRef = useExamMathTypeset(text, Boolean(text.trim()));
   if (!text.trim()) return null;
 
   return (
-    <MathJax inline={inline} dynamic>
-      <Box
-        component="span"
-        sx={{
-          color: 'inherit',
-          fontSize: 'inherit',
-          fontWeight: 'inherit',
-          lineHeight: 1.45,
-          display: inline ? 'inline' : 'block',
-          ...sx,
-        }}
-      >
-        {text}
-      </Box>
-    </MathJax>
+    <Box
+      ref={mathRef}
+      component="span"
+      sx={{
+        color: 'inherit',
+        fontSize: 'inherit',
+        fontWeight: 'inherit',
+        lineHeight: 1.45,
+        display: inline ? 'inline' : 'block',
+        ...sx,
+      }}
+    >
+      {text}
+    </Box>
   );
 };
 
-export const ExamMathBlock: React.FC<{ children: string; sx?: SxProps<Theme> }> = ({ children, sx }) => (
-  <Box sx={{ overflowX: 'auto', ...sx }}>
-    <MathJax dynamic>
+export const ExamMathBlock: React.FC<{ children: string; sx?: SxProps<Theme> }> = ({ children, sx }) => {
+  const text = children ?? '';
+  const mathRef = useExamMathTypeset(text, Boolean(text.trim()));
+  if (!text.trim()) return null;
+
+  return (
+    <Box sx={{ overflowX: 'auto', ...sx }}>
       <Box
+        ref={mathRef}
         component="div"
         sx={{ fontSize: '0.92rem', lineHeight: 1.65, color: '#334155', fontStyle: 'italic' }}
       >
-        {children}
+        {text}
       </Box>
-    </MathJax>
-  </Box>
-);
+    </Box>
+  );
+};

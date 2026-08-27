@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720">
+  <rect width="1200" height="720" fill="#fff"/>
+  <style>.title{font:700 24px Arial,sans-serif;fill:#24334b}.lab{font:700 18px Arial,sans-serif;fill:#33445e;text-anchor:middle}.grid{fill:#f8fafc;stroke:#75849a;stroke-width:2}.sym{font:31px Arial,sans-serif;fill:#21324c;text-anchor:middle;dominant-baseline:middle}.h{font:15px Arial,sans-serif;fill:#6b778b;text-anchor:middle}.sight{stroke:#b44f2d;stroke-width:4;marker-end:url(#arr)}.observer{stroke:#304765;stroke-width:4;fill:none}</style>
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0L0,6L9,3z" fill="#b44f2d"/></marker>
+    <g id="view"><path d="M0 0h270v156H0zM90 0v156M180 0v156M0 78h270" class="grid"/></g>
+  </defs>
+  <text x="40" y="42" class="title">Board seen from above</text>
+  <text x="185" y="88" class="lab">WEST — nearer</text><text x="335" y="88" class="lab">EAST — farther</text>
+  <text x="68" y="151" class="lab">North</text><text x="68" y="251" class="lab">Middle</text><text x="68" y="351" class="lab">South</text>
+  <g transform="translate(110 105)"><path d="M0 0h300v300H0zM150 0v300M0 100h300M0 200h300" class="grid"/>
+    <text x="75" y="48" class="sym">▲</text><text x="75" y="78" class="h">height 1</text><text x="225" y="48" class="sym">■</text><text x="225" y="78" class="h">height 2</text>
+    <text x="75" y="148" class="sym">◆</text><text x="75" y="178" class="h">height 1</text><text x="225" y="148" class="sym">●</text><text x="225" y="178" class="h">height 1</text>
+    <text x="75" y="248" class="sym">★</text><text x="75" y="278" class="h">height 2</text><text x="225" y="248" class="sym">⬟</text><text x="225" y="278" class="h">height 1</text>
+  </g>
+  <g transform="translate(55 470)" class="observer"><circle cx="0" cy="-18" r="12" fill="#e7eef8"/><path d="M0 -6v34M-18 8h36M0 28l-14 22M0 28l14 22"/></g>
+  <line x1="88" y1="478" x2="165" y2="478" class="sight"/><text x="125" y="517" class="h">looking east</text>
+
+  <text x="500" y="42" class="title">Possible views from the west</text>
+  <g transform="translate(505 100)"><text x="135" y="-16" class="lab">A</text><use href="#view"/><text x="45" y="39" class="sym">■</text><text x="225" y="39" class="sym">★</text><text x="45" y="117" class="sym">▲</text><text x="135" y="117" class="sym">●</text><text x="225" y="117" class="sym">⬟</text><text x="135" y="184" class="h">North       Middle       South</text></g>
+  <g transform="translate(875 100)"><text x="135" y="-16" class="lab">B</text><use href="#view"/><text x="45" y="39" class="sym">■</text><text x="225" y="39" class="sym">★</text><text x="45" y="117" class="sym">▲</text><text x="135" y="117" class="sym">◆</text><text x="225" y="117" class="sym">⬟</text><text x="135" y="184" class="h">North       Middle       South</text></g>
+  <g transform="translate(505 410)"><text x="135" y="-16" class="lab">C</text><use href="#view"/><text x="45" y="39" class="sym">★</text><text x="225" y="39" class="sym">■</text><text x="45" y="117" class="sym">⬟</text><text x="135" y="117" class="sym">◆</text><text x="225" y="117" class="sym">▲</text><text x="135" y="184" class="h">North       Middle       South</text></g>
+  <g transform="translate(875 410)"><text x="135" y="-16" class="lab">D</text><use href="#view"/><text x="45" y="39" class="sym">■</text><text x="135" y="39" class="sym">◆</text><text x="225" y="39" class="sym">★</text><text x="45" y="117" class="sym">▲</text><text x="225" y="117" class="sym">⬟</text><text x="135" y="184" class="h">North       Middle       South</text></g>
+</svg>

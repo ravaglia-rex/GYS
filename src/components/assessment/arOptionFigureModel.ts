@@ -489,7 +489,7 @@ const SKIP_TEXT_CLASS = /\b(letter|number|inside|symbol|num|lab|mark)\b/i;
 /**
  * Option-figure sizing for current and future items (no class-name dependency):
  *
- * GRID (compact): one 2×2 or 3×3 cell matrix — an interior cross or thirds
+ * GRID (compact): one 2×2 or 3×3 cell matrix - an interior cross or thirds
  *   split, including slightly landscape grids with axis labels around them.
  * WIDE (larger): two+ side-by-side panels, 1×N strips, tables, trees, dual views.
  */
@@ -618,6 +618,133 @@ function svgLocalPoint(el: Element): { x: number; y: number } {
     node = node.parentElement;
   }
   return { x, y };
+}
+
+function isInsideDefs(el: Element): boolean {
+  let node: Element | null = el;
+  while (node) {
+    if (node.tagName?.toLowerCase() === 'defs') return true;
+    node = node.parentElement;
+  }
+  return false;
+}
+
+function resolveSvgRefBox(doc: Document, refId: string): { w: number; h: number } | null {
+  const ref = doc.getElementById(refId);
+  if (!ref) return null;
+  const rect = ref.tagName?.toLowerCase() === 'rect' ? ref : ref.querySelector('rect');
+  if (!rect) return null;
+  const w = Number.parseFloat(rect.getAttribute('width') || '');
+  const h = Number.parseFloat(rect.getAttribute('height') || '');
+  if (!(w > 28 && h > 28)) return null;
+  return { w, h };
+}
+
+type OptionFigureCard = {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  cx: number;
+  cy: number;
+  area: number;
+  className: string;
+};
+
+function collectOptionFigureCards(
+  doc: Document,
+  vb: { x: number; y: number; w: number; h: number }
+): OptionFigureCard[] {
+  const cards: OptionFigureCard[] = [];
+  const pushCard = (
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    className: string
+  ) => {
+    if (!(w > 28 && h > 28)) return;
+    if (isFullCanvasRect(w, h, vb)) return;
+    cards.push({
+      x,
+      y,
+      w,
+      h,
+      cx: x + w / 2,
+      cy: y + h / 2,
+      area: w * h,
+      className,
+    });
+  };
+
+  for (const rect of Array.from(doc.querySelectorAll('rect'))) {
+    if (isInsideDefs(rect)) continue;
+    const w = Number.parseFloat(rect.getAttribute('width') || '');
+    const h = Number.parseFloat(rect.getAttribute('height') || '');
+    if (!(w > 28 && h > 28)) continue;
+    const pt = svgLocalPoint(rect);
+    pushCard(pt.x, pt.y, w, h, rect.getAttribute('class') || '');
+  }
+
+  for (const use of Array.from(doc.querySelectorAll('use'))) {
+    if (isInsideDefs(use)) continue;
+    const href = use.getAttribute('href') || use.getAttribute('xlink:href') || '';
+    const refId = href.replace(/^#/, '').trim();
+    if (!refId) continue;
+    const size = resolveSvgRefBox(doc, refId);
+    if (!size) continue;
+    const pt = svgLocalPoint(use);
+    pushCard(pt.x, pt.y, size.w, size.h, use.getAttribute('class') || '');
+  }
+
+  return cards;
+}
+
+/** Drop stem/example cards above the A–D row so grouping stays on answer tiles. */
+function filterCardsToOptionBand(
+  cards: OptionFigureCard[],
+  letterPts: Array<{ x: number; y: number }>
+): OptionFigureCard[] {
+  if (!letterPts.length || !cards.length) return cards;
+  const minLetterY = Math.min(...letterPts.map((p) => p.y));
+  const maxCardH = Math.max(...cards.map((c) => c.h), 120);
+  const cutoff = minLetterY - Math.min(maxCardH * 0.35, 80);
+  const inBand = cards.filter((c) => c.cy >= cutoff);
+  return inBand.length >= letterPts.length ? inBand : cards;
+}
+
+/** Pair left-to-right answer tiles with A–D labels on the same row. */
+function rowLayoutSlicesFromCards(
+  letterPts: Array<{ x: number; y: number }>,
+  cards: OptionFigureCard[],
+  vb: { x: number; y: number; w: number; h: number },
+  segs: Array<{ x1: number; y1: number; x2: number; y2: number }>
+): OptionFigureSliceRect[] | null {
+  if (letterPts.length < 2 || cards.length < letterPts.length) return null;
+  const order = letterPts
+    .map((p, i) => ({ i, x: p.x, y: p.y }))
+    .sort((a, b) => a.x - b.x);
+  const ySpread = Math.max(...letterPts.map((p) => p.y)) - Math.min(...letterPts.map((p) => p.y));
+  if (ySpread > 8) return null;
+  const sortedCards = [...cards].sort((a, b) => a.cx - b.cx);
+  if (sortedCards.length < order.length) return null;
+  const slices: OptionFigureSliceRect[] = [];
+  for (let k = 0; k < order.length; k++) {
+    const card = sortedCards[k];
+    const pad = Math.max(3, Math.min(card.w, card.h) * 0.03);
+    const x1 = Math.max(vb.x, card.x - pad);
+    const y1 = Math.max(vb.y, card.y - pad);
+    const x2 = Math.min(vb.x + vb.w, card.x + card.w + pad);
+    const y2 = Math.min(vb.y + vb.h, card.y + card.h + pad);
+    slices[order[k].i] = {
+      xPct: ((x1 - vb.x) / vb.w) * 100,
+      yPct: ((y1 - vb.y) / vb.h) * 100,
+      wPct: ((x2 - x1) / vb.w) * 100,
+      hPct: ((y2 - y1) / vb.h) * 100,
+      kind: classifyOptionFigureKind(card, segs, cards),
+    };
+  }
+  return slices.some((s) => !s) ? null : (slices as OptionFigureSliceRect[]);
 }
 
 function optionLabelEls(doc: Document, count: number): Element[] | null {
@@ -979,34 +1106,18 @@ export function optionFigureContentSlicesFromSvg(
   if (!labels) return null;
   const letterPts = labels.map((el) => svgLocalPoint(el));
 
-  const cards: Array<{
-    x: number;
-    y: number;
-    w: number;
-    h: number;
-    cx: number;
-    cy: number;
-    area: number;
-    className: string;
-  }> = [];
-  for (const rect of Array.from(doc.querySelectorAll('rect'))) {
-    const w = Number.parseFloat(rect.getAttribute('width') || '');
-    const h = Number.parseFloat(rect.getAttribute('height') || '');
-    if (!(w > 28 && h > 28)) continue;
-    if (isFullCanvasRect(w, h, vb)) continue;
-    const pt = svgLocalPoint(rect);
-    cards.push({
-      x: pt.x,
-      y: pt.y,
-      w,
-      h,
-      cx: pt.x + w / 2,
-      cy: pt.y + h / 2,
-      area: w * h,
-      className: rect.getAttribute('class') || '',
-    });
-  }
+  let cards = collectOptionFigureCards(doc, vb);
   if (!cards.length) return null;
+  cards = filterCardsToOptionBand(cards, letterPts);
+  const segs = collectAxisSegments(doc);
+  const xSpread =
+    Math.max(...letterPts.map((p) => p.x)) - Math.min(...letterPts.map((p) => p.x));
+  const ySpread =
+    Math.max(...letterPts.map((p) => p.y)) - Math.min(...letterPts.map((p) => p.y));
+  if (xSpread >= 8 && xSpread > ySpread * 0.35) {
+    const rowSlices = rowLayoutSlicesFromCards(letterPts, cards, vb, segs);
+    if (rowSlices) return rowSlices;
+  }
   if (letterPointsAreStacked(letterPts)) {
     const minY = Math.min(...letterPts.map((p) => p.y));
     if ((minY - vb.y) / vb.h >= OPTION_FIGURE_STEM_CONTENT_MIN_Y_PCT / 100) {
@@ -1014,8 +1125,6 @@ export function optionFigureContentSlicesFromSvg(
       if (stacked) return stacked;
     }
   }
-  const segs = collectAxisSegments(doc);
-
   const grouped: Array<typeof cards> = Array.from({ length: n }, () => []);
   for (const card of cards) {
     let best = 0;

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="430" viewBox="0 0 1180 430">
+  <rect width="1180" height="430" fill="#ffffff"/>
+  <style>
+    .title{font:700 24px Arial,sans-serif;fill:#24334b}.cycle{font:700 21px Arial,sans-serif;fill:#53627a}.time{font:700 18px Arial,sans-serif;fill:#33445e;text-anchor:middle}.card{fill:#f8fafc;stroke:#8090a6;stroke-width:2}.symbol{font:34px Arial,sans-serif;fill:#1d2a40;text-anchor:middle}.pos{font:18px Arial,sans-serif;fill:#53627a;text-anchor:middle}.rowlabel{font:700 18px Arial,sans-serif;fill:#33445e}
+  </style>
+  <text x="40" y="42" class="title">Position ring</text>
+  <text x="225" y="42" class="cycle">1 → 2 → 3 → 4 → 5 → 1</text>
+  <text x="40" y="90" class="title">Six consecutive times</text>
+  <text x="28" y="192" class="rowlabel">Triangle</text>
+  <text x="35" y="310" class="rowlabel">Square</text>
+
+  <g transform="translate(145 112)"><rect width="150" height="245" rx="12" class="card"/><text x="75" y="30" class="time">TIME 1</text><text x="75" y="91" class="symbol">▲</text><text x="75" y="119" class="pos">position 1</text><text x="75" y="204" class="symbol">■</text><text x="75" y="231" class="pos">position 2</text></g>
+  <g transform="translate(315 112)"><rect width="150" height="245" rx="12" class="card"/><text x="75" y="30" class="time">TIME 2</text><text x="75" y="91" class="symbol">▲</text><text x="75" y="119" class="pos">position 3</text><text x="75" y="204" class="symbol">■</text><text x="75" y="231" class="pos">position 3</text></g>
+  <g transform="translate(485 112)"><rect width="150" height="245" rx="12" class="card"/><text x="75" y="30" class="time">TIME 3</text><text x="75" y="91" class="symbol">△</text><text x="75" y="119" class="pos">position 1</text><text x="75" y="204" class="symbol">■</text><text x="75" y="231" class="pos">position 4</text></g>
+  <g transform="translate(655 112)"><rect width="150" height="245" rx="12" class="card"/><text x="75" y="30" class="time">TIME 4</text><text x="75" y="91" class="symbol">△</text><text x="75" y="119" class="pos">position 3</text><text x="75" y="204" class="symbol">■</text><text x="75" y="231" class="pos">position 5</text></g>
+  <g transform="translate(825 112)"><rect width="150" height="245" rx="12" class="card"/><text x="75" y="30" class="time">TIME 5</text><text x="75" y="91" class="symbol">△</text><text x="75" y="119" class="pos">position 5</text><text x="75" y="204" class="symbol">■</text><text x="75" y="231" class="pos">position 1</text></g>
+  <g transform="translate(995 112)"><rect width="150" height="245" rx="12" class="card"/><text x="75" y="30" class="time">TIME 6</text><text x="75" y="91" class="symbol">△</text><text x="75" y="119" class="pos">position 2</text><text x="75" y="204" class="symbol">■</text><text x="75" y="231" class="pos">position 2</text></g>
+</svg>

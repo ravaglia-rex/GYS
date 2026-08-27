@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="710" viewBox="0 0 1160 710" role="img" aria-labelledby="title desc">
+  <title id="title">Board, east-side observer, printed arrow, and four possible photographs</title>
+  <desc id="desc">The initial board is a three by three grid with a circle at east-center, a triangle at southwest, and an east-pointing arrow printed in the center. An observer stands east of the board looking west. Four answer photographs show possible final positions and arrow directions.</desc>
+  <style>.grid{fill:#fff;stroke:#263b58;stroke-width:3}.line{stroke:#a8b2bf;stroke-width:2}.lab{font:700 20px sans-serif;fill:#243a57;text-anchor:middle}.small{font:700 15px sans-serif;fill:#b34f2c;text-anchor:middle}.sym{font:700 31px "DejaVu Sans",sans-serif;fill:#243a57;text-anchor:middle;dominant-baseline:middle}.dir{font:700 25px sans-serif;fill:#b34f2c;text-anchor:middle}.obs{fill:#e9f0f6;stroke:#263b58;stroke-width:3}.opt{font:700 23px sans-serif;fill:#243a57}</style>
+  <rect width="1160" height="710" fill="#fff"/>
+  <defs><g id="g3"><rect class="grid" width="216" height="216" rx="6"/><path class="line" d="M72 0V216M144 0V216M0 72H216M0 144H216"/></g></defs>
+  <text class="lab" x="300" y="35">INITIAL BOARD — VIEWED FROM ABOVE</text><text class="dir" x="180" y="70">NORTH ↑</text>
+  <g transform="translate(192 90)"><use href="#g3"/><text class="sym" x="180" y="108">●</text><text class="sym" x="36" y="180">▲</text><text class="dir" x="108" y="116">→</text></g>
+  <text class="dir" x="480" y="205">←</text><text class="small" x="480" y="230">LOOKING WEST</text>
+  <g transform="translate(550 118)"><circle class="obs" cx="55" cy="28" r="24"/><path class="obs" d="M22 112Q26 54 55 54T88 112Z"/><text class="lab" x="55" y="145">EAST-SIDE</text><text class="lab" x="55" y="171">OBSERVER</text></g>
+  <text class="lab" x="580" y="395">POSSIBLE PHOTOGRAPHS</text>
+  <g transform="translate(30 430)"><text class="opt" x="0" y="24">A</text><g transform="translate(32)"><use href="#g3"/><text class="sym" x="36" y="36">●</text><text class="sym" x="108" y="36">▲</text><text class="dir" x="108" y="116">→</text></g></g>
+  <g transform="translate(310 430)"><text class="opt" x="0" y="24">B</text><g transform="translate(32)"><use href="#g3"/><text class="sym" x="108" y="36">▲</text><text class="sym" x="180" y="36">●</text><text class="dir" x="108" y="116">←</text></g></g>
+  <g transform="translate(590 430)"><text class="opt" x="0" y="24">C</text><g transform="translate(32)"><use href="#g3"/><text class="sym" x="36" y="36">●</text><text class="sym" x="108" y="36">▲</text><text class="dir" x="108" y="116">←</text></g></g>
+  <g transform="translate(870 430)"><text class="opt" x="0" y="24">D</text><g transform="translate(32)"><use href="#g3"/><text class="sym" x="108" y="180">▲</text><text class="sym" x="180" y="180">●</text><text class="dir" x="108" y="116">→</text></g></g>
+</svg>

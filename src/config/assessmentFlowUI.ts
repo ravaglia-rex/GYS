@@ -97,7 +97,7 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
     examTitleShort: 'Analytical Reasoning',
     heroSubtitle: 'Your first assessment',
     statGrid: [
-      { label: 'Duration', value: '40 min' },
+      { label: 'Duration', value: '45 min' },
       { label: 'Questions', value: '32–40' },
       { label: 'Difficulty', value: 'Adaptive' },
       { label: 'Language', value: 'English' },
@@ -122,9 +122,9 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
     examTitleShort: 'Verbal Reasoning',
     heroSubtitle: 'Reading and argument skills',
     statGrid: [
-      { label: 'Duration', value: '40 min' },
+      { label: 'Duration', value: '45 min' },
       { label: 'Format', value: 'Multiple choice' },
-      { label: 'Difficulty', value: 'Adaptive' },
+      { label: 'Questions', value: '32' },
       { label: 'Language', value: 'English' },
     ],
     bodyDescription:
@@ -147,7 +147,7 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
     theme: 'blue',
     defaultQuestionInteraction: 'passage_mcq',
     useTimer: true,
-    adaptiveForwardOnly: true,
+    adaptiveForwardOnly: false,
   },
   mathematical_reasoning: {
     examOrdinal: 3,

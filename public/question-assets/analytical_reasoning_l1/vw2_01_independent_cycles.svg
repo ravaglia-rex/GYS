@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="430" viewBox="0 0 900 430" role="img" aria-labelledby="title desc">
+  <title id="title">Three by three grid of paired shapes and arrows</title>
+  <desc id="desc">Row one: hollow triangle up arrow, hollow circle right arrow, hollow square left arrow. Row two: hollow diamond right arrow, hollow triangle down arrow, hollow circle up arrow. Row three: hollow square down arrow, hollow diamond left arrow, unknown.</desc>
+  <style>
+    .cell{fill:#fff;stroke:#263b58;stroke-width:3}.sym{font:700 43px "DejaVu Sans",sans-serif;fill:#243a57;text-anchor:middle;dominant-baseline:middle}.shape{font-size:58px}.triangle{font-size:49px}.q{font:700 34px sans-serif;fill:#243a57;text-anchor:middle;dominant-baseline:middle}.guide{font:600 18px sans-serif;fill:#607087;text-anchor:middle}
+  </style>
+  <rect width="900" height="430" fill="#fff"/>
+  <text class="guide" x="450" y="35">Each card contains one hollow shape and one arrow.</text>
+  <g transform="translate(105 65)">
+    <g transform="translate(0 0)"><rect class="cell" width="210" height="95" rx="10"/><text class="sym shape triangle" x="76" y="51">△</text><text class="sym" x="145" y="51">↑</text></g>
+    <g transform="translate(240 0)"><rect class="cell" width="210" height="95" rx="10"/><text class="sym shape" x="76" y="51">○</text><text class="sym" x="145" y="51">→</text></g>
+    <g transform="translate(480 0)"><rect class="cell" width="210" height="95" rx="10"/><text class="sym shape" x="76" y="51">□</text><text class="sym" x="145" y="51">←</text></g>
+    <g transform="translate(0 115)"><rect class="cell" width="210" height="95" rx="10"/><text class="sym shape" x="76" y="51">◇</text><text class="sym" x="145" y="51">→</text></g>
+    <g transform="translate(240 115)"><rect class="cell" width="210" height="95" rx="10"/><text class="sym shape triangle" x="76" y="51">△</text><text class="sym" x="145" y="51">↓</text></g>
+    <g transform="translate(480 115)"><rect class="cell" width="210" height="95" rx="10"/><text class="sym shape" x="76" y="51">○</text><text class="sym" x="145" y="51">↑</text></g>
+    <g transform="translate(0 230)"><rect class="cell" width="210" height="95" rx="10"/><text class="sym shape" x="76" y="51">□</text><text class="sym" x="145" y="51">↓</text></g>
+    <g transform="translate(240 230)"><rect class="cell" width="210" height="95" rx="10"/><text class="sym shape" x="76" y="51">◇</text><text class="sym" x="145" y="51">←</text></g>
+    <g transform="translate(480 230)"><rect class="cell" width="210" height="95" rx="10" stroke-dasharray="9 7"/><text class="q" x="105" y="51">[?]</text></g>
+  </g>
+</svg>

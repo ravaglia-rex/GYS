@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="340" viewBox="0 0 760 340" role="img" aria-labelledby="title desc">
+  <title id="title">Changing-state route map</title>
+  <desc id="desc">S connects to P. P connects to Q through a blue door and T through a red door. Q connects to switch X, and X connects to P.</desc>
+  <style>.road{fill:none;stroke:#52667d;stroke-width:7;stroke-linecap:round}.blue{stroke:#2776bd}.red{stroke:#bd3f3f}.bridge{fill:none;stroke:#fff;stroke-width:17;stroke-linecap:round}.node{fill:#fff;stroke:#20344d;stroke-width:4}.switch{fill:#fff3d6}.target{fill:#e6f5e8}.txt{font:700 25px Arial,sans-serif;fill:#17283e;text-anchor:middle;dominant-baseline:middle}.small{font:700 16px Arial,sans-serif;fill:#263b54;text-anchor:middle}.door{fill:#fff;stroke-width:3;rx:5}.token{fill:#e9b949;stroke:#8a6c17;stroke-width:2}</style>
+  <path class="road" d="M95 170H265"/><path class="road blue" d="M315 150L465 70"/><path class="road" d="M500 95V235"/><path class="road" d="M465 265L315 190"/><path class="bridge" d="M315 170H620"/><path class="road red" d="M315 170H620"/>
+  <rect class="door" x="363" y="92" width="78" height="32" stroke="#2776bd"/><text class="small" x="402" y="114">BLUE</text>
+  <rect class="door" x="525" y="151" width="70" height="32" stroke="#bd3f3f"/><text class="small" x="560" y="173">RED</text>
+  <circle class="node" cx="65" cy="170" r="31"/><text class="txt" x="65" y="171">S</text>
+  <circle class="node" cx="285" cy="170" r="31"/><text class="txt" x="285" y="171">P</text>
+  <circle class="node" cx="490" cy="65" r="31"/><text class="txt" x="490" y="66">Q</text>
+  <circle class="token" cx="522" cy="38" r="10"/><text class="small" x="553" y="43">TOKEN</text>
+  <circle class="node switch" cx="490" cy="265" r="31"/><text class="txt" x="490" y="266">X</text><text class="small" x="490" y="316">SWITCH</text>
+  <circle class="node target" cx="650" cy="170" r="31"/><text class="txt" x="650" y="171">T</text>
+</svg>

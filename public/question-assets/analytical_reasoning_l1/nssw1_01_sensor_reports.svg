@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="780" height="240" viewBox="0 0 780 240" role="img" aria-labelledby="title desc">
+  <title id="title">Three sensor-panel reports</title>
+  <desc id="desc">W reports triangle and solid. X reports square and left. Y reports triangle and left.</desc>
+  <style>
+    .panel{fill:#fff;stroke:#25364d;stroke-width:3;rx:14}.head{fill:#25364d}.label{fill:#fff;font:700 24px Arial,sans-serif}.chip{fill:#eef3f8;stroke:#8191a6;stroke-width:2;rx:10}.txt{fill:#18283d;font:600 24px Arial,sans-serif}.join{fill:#64758b;font:700 20px Arial,sans-serif}
+  </style>
+  <g transform="translate(20 25)">
+    <rect class="panel" x="0" y="0" width="230" height="185"/>
+    <path class="head" d="M14 0h202a14 14 0 0 1 14 14v35H0V14A14 14 0 0 1 14 0z"/>
+    <text class="label" x="115" y="33" text-anchor="middle">PANEL W</text>
+    <rect class="chip" x="24" y="72" width="182" height="42"/><text class="txt" x="115" y="101" text-anchor="middle">▲  triangle</text>
+    <text class="join" x="115" y="137" text-anchor="middle">AND</text>
+    <rect class="chip" x="24" y="145" width="182" height="30"/><text class="txt" x="115" y="168" text-anchor="middle">solid</text>
+  </g>
+  <g transform="translate(275 25)">
+    <rect class="panel" x="0" y="0" width="230" height="185"/>
+    <path class="head" d="M14 0h202a14 14 0 0 1 14 14v35H0V14A14 14 0 0 1 14 0z"/>
+    <text class="label" x="115" y="33" text-anchor="middle">PANEL X</text>
+    <rect class="chip" x="24" y="72" width="182" height="42"/><text class="txt" x="115" y="101" text-anchor="middle">■  square</text>
+    <text class="join" x="115" y="137" text-anchor="middle">AND</text>
+    <rect class="chip" x="24" y="145" width="182" height="30"/><text class="txt" x="115" y="168" text-anchor="middle">left</text>
+  </g>
+  <g transform="translate(530 25)">
+    <rect class="panel" x="0" y="0" width="230" height="185"/>
+    <path class="head" d="M14 0h202a14 14 0 0 1 14 14v35H0V14A14 14 0 0 1 14 0z"/>
+    <text class="label" x="115" y="33" text-anchor="middle">PANEL Y</text>
+    <rect class="chip" x="24" y="72" width="182" height="42"/><text class="txt" x="115" y="101" text-anchor="middle">▲  triangle</text>
+    <text class="join" x="115" y="137" text-anchor="middle">AND</text>
+    <rect class="chip" x="24" y="145" width="182" height="30"/><text class="txt" x="115" y="168" text-anchor="middle">left</text>
+  </g>
+</svg>

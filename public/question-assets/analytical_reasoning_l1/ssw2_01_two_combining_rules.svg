@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="560" viewBox="0 0 760 560" role="img" aria-labelledby="title desc">
+  <title id="title">Grid with two combining rules</title>
+  <desc id="desc">Top row: triangle circle; triangle square diamond; circle square diamond. Middle row: circle star; square star hexagon; H1. Bottom row: circle; H2; H3.</desc>
+  <rect width="760" height="560" fill="#fff"/>
+  <g transform="translate(110 70)" stroke="#334155" stroke-width="3" fill="#f8fafc">
+    <rect x="0" y="0" width="180" height="130" rx="8"/><rect x="180" y="0" width="180" height="130" rx="8"/><rect x="360" y="0" width="180" height="130" rx="8"/>
+    <rect x="0" y="130" width="180" height="130" rx="8"/><rect x="180" y="130" width="180" height="130" rx="8"/><rect x="360" y="130" width="180" height="130" rx="8" stroke-dasharray="8 6"/>
+    <rect x="0" y="260" width="180" height="130" rx="8"/><rect x="180" y="260" width="180" height="130" rx="8" stroke-dasharray="8 6"/><rect x="360" y="260" width="180" height="130" rx="8" stroke-dasharray="8 6"/>
+  </g>
+  <g font-family="Arial, sans-serif" fill="#0f172a" text-anchor="middle" dominant-baseline="middle">
+    <g font-size="38">
+      <text x="175" y="135">▲</text><text x="225" y="135">●</text>
+      <text x="340" y="135">▲</text><text x="380" y="135">■</text><text x="420" y="135">◆</text>
+      <text x="520" y="135">●</text><text x="560" y="135">■</text><text x="600" y="135">◆</text>
+      <text x="175" y="265">●</text><text x="225" y="265">★</text>
+      <text x="340" y="265">■</text><text x="380" y="265">★</text><text x="420" y="265">⬟</text>
+      <text x="200" y="395">●</text>
+    </g>
+    <g font-size="28" font-weight="700"><text x="560" y="265">H1</text><text x="380" y="395">H2</text><text x="560" y="395">H3</text></g>
+  </g>
+  <g font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#64748b" text-anchor="middle">
+    <text x="200" y="50">COLUMN 1</text><text x="380" y="50">COLUMN 2</text><text x="560" y="50">COLUMN 3</text>
+  </g>
+</svg>

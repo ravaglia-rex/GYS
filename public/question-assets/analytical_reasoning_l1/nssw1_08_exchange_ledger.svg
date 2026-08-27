@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="390" viewBox="0 0 880 390" role="img" aria-labelledby="title desc">
+  <title id="title">Before and after simultaneous token exchange</title>
+  <desc id="desc">Four stations each hold two tokens before and after a simultaneous clockwise transfer. A sends triangle, C sends star, while transfers from B and D are hidden.</desc>
+  <style>.head{font:700 20px Arial,sans-serif;fill:#263b53;text-anchor:middle}.station{fill:#fff;stroke:#52667d;stroke-width:3;rx:10}.name{fill:#263b53;font:700 22px Arial,sans-serif;text-anchor:middle}.tokens{fill:#17283e;font:700 30px Arial,sans-serif;text-anchor:middle}.arrow{fill:none;stroke:#52667d;stroke-width:3}.transfer{fill:#fff;stroke:#9ba8b7;stroke-width:2;rx:8}.ttext{font:700 19px Arial,sans-serif;fill:#263b53;text-anchor:middle}.after{fill:#edf5ed}</style>
+  <text class="head" x="440" y="28">BEFORE</text>
+  <g transform="translate(35 48)"><rect class="station" width="180" height="82"/><text class="name" x="90" y="28">A</text><text class="tokens" x="90" y="65">▲  ●</text></g>
+  <g transform="translate(245 48)"><rect class="station" width="180" height="82"/><text class="name" x="90" y="28">B</text><text class="tokens" x="90" y="65">■  ◆</text></g>
+  <g transform="translate(455 48)"><rect class="station" width="180" height="82"/><text class="name" x="90" y="28">C</text><text class="tokens" x="90" y="65">★  ⬟</text></g>
+  <g transform="translate(665 48)"><rect class="station" width="180" height="82"/><text class="name" x="90" y="28">D</text><text class="tokens" x="90" y="65">○  □</text></g>
+  <text class="head" x="440" y="170">SIMULTANEOUS CLOCKWISE TRANSFERS</text>
+  <g transform="translate(155 190)"><rect class="transfer" width="100" height="42"/><text class="ttext" x="50" y="28">A→B  ▲</text></g>
+  <g transform="translate(310 190)"><rect class="transfer" width="100" height="42"/><text class="ttext" x="50" y="28">B→C  ?</text></g>
+  <g transform="translate(465 190)"><rect class="transfer" width="100" height="42"/><text class="ttext" x="50" y="28">C→D  ★</text></g>
+  <g transform="translate(620 190)"><rect class="transfer" width="100" height="42"/><text class="ttext" x="50" y="28">D→A  ?</text></g>
+  <text class="head" x="440" y="275">AFTER</text>
+  <g transform="translate(35 292)"><rect class="station after" width="180" height="82"/><text class="name" x="90" y="28">A</text><text class="tokens" x="90" y="65">●  □</text></g>
+  <g transform="translate(245 292)"><rect class="station after" width="180" height="82"/><text class="name" x="90" y="28">B</text><text class="tokens" x="90" y="65">■  ▲</text></g>
+  <g transform="translate(455 292)"><rect class="station after" width="180" height="82"/><text class="name" x="90" y="28">C</text><text class="tokens" x="90" y="65">⬟  ◆</text></g>
+  <g transform="translate(665 292)"><rect class="station after" width="180" height="82"/><text class="name" x="90" y="28">D</text><text class="tokens" x="90" y="65">○  ★</text></g>
+</svg>

@@ -15,13 +15,13 @@
 
   <rect width="900" height="560" fill="#fff"/>
 
-  <text class="head" x="300" y="34">A — INPUT</text>
-  <text class="head" x="500" y="34">B — INPUT</text>
-  <text class="head output" x="700" y="34">C — OUTPUT</text>
+  <text class="head" x="300" y="34">A - INPUT</text>
+  <text class="head" x="500" y="34">B - INPUT</text>
+  <text class="head output" x="700" y="34">C - OUTPUT</text>
 
-  <text class="rowhead" x="20" y="145">X — INPUT</text>
-  <text class="rowhead" x="20" y="305">Y — INPUT</text>
-  <text class="rowhead output" x="20" y="465">Z — OUTPUT</text>
+  <text class="rowhead" x="20" y="145">X - INPUT</text>
+  <text class="rowhead" x="20" y="305">Y - INPUT</text>
+  <text class="rowhead output" x="20" y="465">Z - OUTPUT</text>
 
   <line class="divider" x1="620" y1="55" x2="620" y2="535"/>
   <line class="divider" x1="225" y1="380" x2="775" y2="380"/>

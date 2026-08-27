@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="560" viewBox="0 0 920 560" role="img" aria-labelledby="title desc">
+  <title id="title">Two folds, one punch, and four unfolded options</title>
+  <desc id="desc">A three-by-four sheet folds right half left, then bottom row up. The lower-left square of the final packet is punched. Four answer grids show possible unfolded hole positions.</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0 0L0 6L9 3z" fill="#496078"/></marker></defs>
+  <style>.sheet{fill:#fff;stroke:#263b53;stroke-width:3}.line{stroke:#8090a3;stroke-width:2}.crease{stroke:#bd4b4b;stroke-width:3;stroke-dasharray:8 6}.arr{fill:none;stroke:#496078;stroke-width:4;marker-end:url(#arrow)}.head{font:700 18px Arial,sans-serif;fill:#263b53;text-anchor:middle}.step{font:600 16px Arial,sans-serif;fill:#5a6d83;text-anchor:middle}.hole{fill:#17283e}.punch{fill:#fff;stroke:#bd3f3f;stroke-width:5}.label{font:700 22px Arial,sans-serif;fill:#263b53;text-anchor:middle}</style>
+  <text class="head" x="150" y="28">START</text><text class="head" x="452" y="28">AFTER FOLD 1</text><text class="head" x="720" y="28">AFTER FOLD 2</text>
+  <g transform="translate(50 50)"><rect class="sheet" width="240" height="180"/><path class="line" d="M60 0v180M120 0v180M180 0v180M0 60h240M0 120h240"/><line class="crease" x1="120" y1="0" x2="120" y2="180"/></g>
+  <path class="arr" d="M265 250C225 295 165 295 125 250"/><text class="step" x="195" y="320">right half folds left</text>
+  <g transform="translate(392 50)"><rect class="sheet" width="120" height="180"/><path class="line" d="M60 0v180M0 60h120M0 120h120"/><line class="crease" x1="0" y1="120" x2="120" y2="120"/></g>
+  <path class="arr" d="M490 245C470 280 420 280 400 240"/><text class="step" x="452" y="320">bottom row folds up</text>
+  <g transform="translate(660 50)"><rect class="sheet" width="120" height="120"/><path class="line" d="M60 0v120M0 60h120"/><circle class="punch" cx="30" cy="90" r="12"/></g>
+  <text class="step" x="720" y="200">punch lower-left</text>
+  <text class="head" x="460" y="355">WHICH UNFOLDED SHEET?</text>
+  <g transform="translate(35 390)"><text class="label" x="100" y="-12">A</text><rect class="sheet" width="200" height="120"/><path class="line" d="M50 0v120M100 0v120M150 0v120M0 40h200M0 80h200"/><circle class="hole" cx="25" cy="20" r="9"/><circle class="hole" cx="175" cy="20" r="9"/><circle class="hole" cx="25" cy="60" r="9"/><circle class="hole" cx="175" cy="60" r="9"/></g>
+  <g transform="translate(255 390)"><text class="label" x="100" y="-12">B</text><rect class="sheet" width="200" height="120"/><path class="line" d="M50 0v120M100 0v120M150 0v120M0 40h200M0 80h200"/><circle class="hole" cx="25" cy="20" r="9"/><circle class="hole" cx="175" cy="20" r="9"/><circle class="hole" cx="25" cy="100" r="9"/><circle class="hole" cx="175" cy="100" r="9"/></g>
+  <g transform="translate(475 390)"><text class="label" x="100" y="-12">C</text><rect class="sheet" width="200" height="120"/><path class="line" d="M50 0v120M100 0v120M150 0v120M0 40h200M0 80h200"/><circle class="hole" cx="25" cy="60" r="9"/><circle class="hole" cx="175" cy="60" r="9"/><circle class="hole" cx="25" cy="100" r="9"/><circle class="hole" cx="175" cy="100" r="9"/></g>
+  <g transform="translate(695 390)"><text class="label" x="100" y="-12">D</text><rect class="sheet" width="200" height="120"/><path class="line" d="M50 0v120M100 0v120M150 0v120M0 40h200M0 80h200"/><circle class="hole" cx="75" cy="60" r="9"/><circle class="hole" cx="125" cy="60" r="9"/><circle class="hole" cx="75" cy="100" r="9"/><circle class="hole" cx="125" cy="100" r="9"/></g>
+</svg>

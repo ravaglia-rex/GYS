@@ -168,6 +168,9 @@ export const EXAM_COINS_BASE = 60;
 export const EXAM_COINS_SCORE_BONUS_MAX = 90;
 export const EXAM_COINS_PROFILE_FLAT = 60;
 
+/** Mirrors backend `GAMIFICATION_CONFIG.profileCompletion.coins`. */
+export const GAMIFICATION_CONFIG_PROFILE_COMPLETION_COINS = 100;
+
 const EXAM_NON_SCORED_IDS = new Set(['comprehensive_personality', 'career_interest_inventory']);
 
 /** scoreFraction is 0–1 (attempt.score). Perfect scored exam → 150. */
