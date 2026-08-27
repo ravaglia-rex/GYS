@@ -528,6 +528,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   const [userName, setUserName] = useState<string>(() => getFirebaseFirstName());
   const [loading, setLoading] = useState<boolean>(true);
   const [studentGrade, setStudentGrade] = useState<number | null>(null);
+  const [studentSection, setStudentSection] = useState<string | null>(null);
   const [schoolName, setSchoolName] = useState<string | null>(null);
   const [membershipLevel, setMembershipLevel] = useState<string | null>(null);
   const [membershipExpiry, setMembershipExpiry] = useState<string | null>(null);
@@ -704,6 +705,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     if (previewProfile) {
       setUserName(previewProfile.userName);
       setStudentGrade(previewProfile.grade);
+      setStudentSection(null);
       setSchoolName(previewProfile.schoolName);
       setMembershipLevel(previewProfile.membershipLevel);
       setMembershipExpiry(previewProfile.membershipExpiry);
@@ -726,6 +728,9 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     if (userData?.grade) {
       setStudentGrade(userData.grade);
     }
+    const sectionRaw =
+      typeof userData?.section === 'string' ? userData.section.trim() : '';
+    setStudentSection(sectionRaw || null);
     if (typeof userData?.signup_school_name === 'string' && userData.signup_school_name.trim()) {
       setSchoolName(userData.signup_school_name.trim());
     } else if (schoolNameFromQuery && typeof schoolNameFromQuery === 'string') {
@@ -926,7 +931,14 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
               overflowWrap: 'anywhere',
             }}
           >
-            {[studentGrade ? `Class ${studentGrade}` : null, schoolName ?? null].filter(Boolean).join(' • ')}
+            {[
+              studentGrade
+                ? `Class ${studentGrade}${studentSection ? `-${studentSection}` : ''}`
+                : null,
+              schoolName ?? null,
+            ]
+              .filter(Boolean)
+              .join(' • ')}
           </Typography>
         </Box>
       )}

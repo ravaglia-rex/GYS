@@ -26,6 +26,7 @@ import * as Sentry from '@sentry/react';
 import PageFooter from '../../components/layout/LandingSiteFooter';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
 import { LandingHeaderScrollProgress } from '../../components/landing/LandingScrollChrome';
+import SignupSelect from '../../components/authentication/SignupSelect';
 import { useLandingScrollProgress } from '../../hooks/useLandingPageScroll';
 import {
   SCHOOL_REGISTRATION_PLANS as PLANS,
@@ -920,23 +921,24 @@ const SchoolRegistrationPage: React.FC = () => {
                       <label className="block text-xs font-semibold text-slate-600 mb-1">
                         Which state board?<span className="text-red-500"> *</span>
                       </label>
-                      <select
+                      <SignupSelect
                         value={stateBoardState}
                         onChange={(e) => {
                           setStateBoardState(e.target.value);
                           clearError('stateBoardState');
                         }}
-                        className={`w-full rounded-lg border px-3.5 py-2.5 text-sm sm:text-base text-slate-900 focus:outline-none focus:ring-1 ${
+                        className={
                           errors.stateBoardState
                             ? 'border-red-400 focus:border-red-400 focus:ring-red-300'
-                            : 'border-slate-200 focus:border-slate-400 focus:ring-slate-400'
-                        }`}
+                            : ''
+                        }
+                        aria-label="Which state board"
                       >
                         <option value="">Select state</option>
                         {INDIAN_STATES.map((s) => (
                           <option key={s} value={s}>{s}</option>
                         ))}
-                      </select>
+                      </SignupSelect>
                       {errors.stateBoardState && (
                         <p className="mt-1 text-xs text-red-600">{errors.stateBoardState}</p>
                       )}
@@ -974,25 +976,25 @@ const SchoolRegistrationPage: React.FC = () => {
                     <label className="block text-xs sm:text-sm font-bold text-slate-700">
                       State / Union Territory<span className="text-red-500"> *</span>
                     </label>
-                    <select
+                    <SignupSelect
                       value={addressState}
                       onChange={(e) => {
                         setAddressState(e.target.value);
                         clearError('addressState');
                       }}
-                      className={`mt-1.5 w-full rounded-lg border px-3.5 py-2.5 text-sm sm:text-base text-slate-900 focus:outline-none focus:ring-1 ${
+                      className={
                         errors.addressState
                           ? 'border-red-400 focus:border-red-400 focus:ring-red-300'
-                          : 'border-slate-200 focus:border-slate-400 focus:ring-slate-400'
-                      }`}
-                      autoComplete="address-level1"
+                          : ''
+                      }
                       required
+                      aria-label="State or union territory"
                     >
                       <option value="">Select state</option>
                       {INDIAN_STATES.map((s) => (
                         <option key={s} value={s}>{s}</option>
                       ))}
-                    </select>
+                    </SignupSelect>
                     {errors.addressState && (
                       <p className="mt-1 text-xs text-red-600">{errors.addressState}</p>
                     )}
@@ -1004,21 +1006,22 @@ const SchoolRegistrationPage: React.FC = () => {
                   <label className="block text-xs sm:text-sm font-bold text-slate-700">
                     How did you hear about GYS?<span className="text-red-500"> *</span>
                   </label>
-                  <select
+                  <SignupSelect
                     value={referralSource}
                     onChange={(e) => { setReferralSource(e.target.value); clearError('referralSource'); }}
-                    className={`mt-1.5 w-full rounded-lg border px-3.5 py-2.5 text-sm sm:text-base text-slate-900 focus:outline-none focus:ring-1 ${
+                    className={
                       errors.referralSource
                         ? 'border-red-400 focus:border-red-400 focus:ring-red-300'
-                        : 'border-slate-200 focus:border-slate-400 focus:ring-slate-400'
-                    }`}
+                        : ''
+                    }
                     required
+                    aria-label="How did you hear about GYS"
                   >
                     <option value="">Select an option</option>
                     {REFERRAL_SOURCES.map((s) => (
                       <option key={s} value={s}>{s}</option>
                     ))}
-                  </select>
+                  </SignupSelect>
                   {errors.referralSource && (
                     <p className="mt-1 text-xs text-red-600">{errors.referralSource}</p>
                   )}
@@ -1374,7 +1377,7 @@ const SchoolRegistrationPage: React.FC = () => {
                   <label className="block text-xs sm:text-sm font-bold text-slate-700">
                     Are you registered under Indian GST?<span className="text-red-500"> *</span>
                   </label>
-                  <select
+                  <SignupSelect
                     value={gstRegistrationStatus}
                     onChange={(e) => {
                       const next = e.target.value as GstRegistrationStatus;
@@ -1383,18 +1386,19 @@ const SchoolRegistrationPage: React.FC = () => {
                       clearError('gstRegistrationStatus');
                       clearError('gstin');
                     }}
-                    className={`mt-1.5 w-full rounded-lg border px-3.5 py-2.5 text-sm sm:text-base text-slate-900 focus:outline-none focus:ring-1 ${
+                    className={
                       errors.gstRegistrationStatus
                         ? 'border-red-400 focus:border-red-400 focus:ring-red-300'
-                        : 'border-slate-200 focus:border-slate-400 focus:ring-slate-400'
-                    }`}
+                        : ''
+                    }
                     required
+                    aria-label="GST registration status"
                   >
                     <option value="">Select one</option>
                     <option value="yes">Yes</option>
                     <option value="no">No</option>
                     <option value="not_sure">Not sure</option>
-                  </select>
+                  </SignupSelect>
                   {errors.gstRegistrationStatus && (
                     <p className="mt-1 text-xs text-red-600">{errors.gstRegistrationStatus}</p>
                   )}

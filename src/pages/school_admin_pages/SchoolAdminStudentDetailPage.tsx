@@ -399,6 +399,12 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
                 <Typography variant="caption" sx={{ color: ip.subtext }}>Class</Typography>
                 <Typography sx={{ color: ip.heading }}>{row.grade > 0 ? row.grade : '-'}</Typography>
               </Box>
+              <Box>
+                <Typography variant="caption" sx={{ color: ip.subtext }}>Section</Typography>
+                <Typography sx={{ color: ip.heading }}>
+                  {typeof row.section === 'string' && row.section.trim() ? row.section.trim() : '-'}
+                </Typography>
+              </Box>
               <Box sx={{ gridColumn: { xs: '1', sm: '1 / -1' } }}>
                 <Typography variant="caption" sx={{ color: ip.subtext }}>Registration / approval</Typography>
                 <Box sx={{ mt: 0.5 }}>

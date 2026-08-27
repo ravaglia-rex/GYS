@@ -11,6 +11,7 @@ import {
   normalizeStudentMembershipLevel,
 } from '../../utils/studentMembershipPricing';
 import { mergeSignupState, writeSignupDraft } from '../../utils/studentSignupDraft';
+import SignupSelect from '../../components/authentication/SignupSelect';
 
 const GYS_BLUE = '#1e3a8a';
 
@@ -20,6 +21,7 @@ interface LocationState {
   email: string;
   whatsappPhone?: string;
   grade: string;
+  section?: string;
   dob?: string;
   signupSchoolName?: string;
   homeLanguage?: string;
@@ -143,6 +145,7 @@ const StudentSchoolStepPage: React.FC = () => {
       email,
       whatsappPhone,
       grade,
+      section,
     } = base;
 
     if (!email || !firstName || !lastName || !whatsappPhone || !grade) {
@@ -171,6 +174,7 @@ const StudentSchoolStepPage: React.FC = () => {
       email: normalizedEmail,
       whatsappPhone,
       grade,
+      section: typeof section === 'string' ? section.trim() : '',
       dob: undefined,
       schoolId: schoolIdForSignup,
       ...(lockedSchool?.name && { schoolName: lockedSchool.name }),
@@ -216,12 +220,14 @@ const StudentSchoolStepPage: React.FC = () => {
         email: m.email,
         whatsappPhone: m.whatsappPhone,
         grade: m.grade,
+        section: m.section,
         prefill: {
           firstName: m.firstName,
           lastName: m.lastName,
           email: m.email,
           whatsappPhone: m.whatsappPhone,
           grade: m.grade,
+          section: m.section,
         },
       },
     });
@@ -353,10 +359,10 @@ const StudentSchoolStepPage: React.FC = () => {
               <label className="block text-xs sm:text-sm font-bold text-slate-700">
                 How Did You Hear About GYS?
               </label>
-              <select
+              <SignupSelect
                 value={heardFrom}
                 onChange={(event) => setHeardFrom(event.target.value)}
-                className="mt-1.5 w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm sm:text-base text-slate-900 bg-white focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                aria-label="How did you hear about GYS"
               >
                 <option value="">Select</option>
                 <option value="SCHOOL">My school</option>
@@ -365,7 +371,7 @@ const StudentSchoolStepPage: React.FC = () => {
                 <option value="EDUCATIONWORLD">EducationWorld</option>
                 <option value="SOCIAL_MEDIA">Social media</option>
                 <option value="OTHER">Other</option>
-              </select>
+              </SignupSelect>
             </div>
 
             <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">

@@ -1,6 +1,7 @@
 /**
  * Mirrors backend `gamification/profileCompletion.ts`.
  * Counts post-signup profile fields. Signup-required fields are excluded.
+ * Section is optional at signup but required here for 100%.
  */
 
 import {isValidIndiaMobile} from './indiaMobile';
@@ -9,6 +10,7 @@ import {GAMIFICATION_CONFIG_PROFILE_COMPLETION_COINS} from './gamification';
 export const PROFILE_COMPLETION_FIELD_KEYS = [
   'date_of_birth',
   'city_state',
+  'section',
   'home_language',
   'aspiration',
   'heard_from',
@@ -70,6 +72,7 @@ export function computeProfileCompletion(
 export function profileCompletionFromForm(form: {
   dateOfBirth?: string;
   cityState?: string;
+  section?: string;
   homeLanguage?: string;
   aspiration?: string;
   heardFrom?: string;
@@ -81,6 +84,7 @@ export function profileCompletionFromForm(form: {
   return computeProfileCompletion({
     date_of_birth: form.dateOfBirth ?? '',
     city_state: form.cityState ?? '',
+    section: form.section ?? '',
     home_language: form.homeLanguage ?? '',
     aspiration: form.aspiration ?? '',
     heard_from: form.heardFrom ?? '',

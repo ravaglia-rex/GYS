@@ -329,6 +329,10 @@ const PlatformAdminStudentDetailPage: React.FC = () => {
             <DetailRow label="Last name" value={student.last_name || ' - '} />
             <DetailRow label="Phone" value={student.phone_number || ' - '} />
             <DetailRow label="Grade" value={student.grade != null ? String(student.grade) : ' - '} />
+            <DetailRow
+              label="Section"
+              value={typeof student.section === 'string' && student.section.trim() ? student.section.trim() : ' - '}
+            />
             <DetailRow label="Heard from" value={student.heard_from || ' - '} />
             <DetailRow label="Joined" value={formatDate(student.created_at)} />
             <DetailRow label="Updated" value={formatDate(student.updated_at)} />

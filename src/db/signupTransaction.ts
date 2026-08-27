@@ -8,6 +8,8 @@ export type NewStudent = {
     email: string;
     school_id: string;
     grade: number;
+    /** Optional class section (e.g. A, B). */
+    section?: string;
     parent_name: string;
     parent_email: string;
     parent_phone: string;

@@ -136,6 +136,8 @@ export interface StudentRow {
   first_name: string;
   last_name: string;
   grade: number;
+  /** Optional class section (e.g. A, B). */
+  section?: string;
   membership_level: number;
   approval_status: string;
   /** Coalesced on the API; missing legacy docs read as `explorer`. */

@@ -108,6 +108,8 @@ export type UpdateStudentPayload = {
     parent_phone?: string;
     phone_number?: string;
     grade?: number;
+    /** Optional class section (e.g. A, B). Empty string clears. */
+    section?: string;
     date_of_birth?: string;
     city_state?: string;
     home_language?: string;

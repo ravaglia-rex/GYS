@@ -8,6 +8,15 @@ import { useStudentSignupExit } from '../../contexts/StudentSignupExitContext';
 import { useStudentSignupExitGuard } from '../../hooks/useStudentSignupExitGuard';
 import { mergeSignupState, writeSignupDraft } from '../../utils/studentSignupDraft';
 import { normalizeIndiaMobileE164 } from '../../utils/indiaMobile';
+import {
+  normalizeStudentSection,
+  STUDENT_SECTION_OTHER,
+  STUDENT_SECTION_PRESETS,
+  studentSectionFromUi,
+  studentSectionToUi,
+  type StudentSectionUiChoice,
+} from '../../utils/studentSection';
+import SignupSelect from '../../components/authentication/SignupSelect';
 
 const GYS_BLUE = '#1e3a8a';
 
@@ -51,6 +60,7 @@ const StudentRegistrationPage: React.FC = () => {
       emailLockedFromInvite: Boolean(inviteEmail) || lockedFromState,
       whatsappPhone: toIndiaMobileLocalDigits(m.whatsappPhone ?? p.whatsappPhone),
       grade: String(m.grade ?? p.grade ?? ''),
+      section: normalizeStudentSection(m.section ?? p.section),
     };
   }, [location.state, inviteEmail]);
 
@@ -61,6 +71,12 @@ const StudentRegistrationPage: React.FC = () => {
   const [email, setEmail] = useState(regInitial.email);
   const [whatsappPhone, setWhatsappPhone] = useState(regInitial.whatsappPhone);
   const [grade, setGrade] = useState(regInitial.grade);
+  const [sectionChoice, setSectionChoice] = useState<StudentSectionUiChoice>(
+    () => studentSectionToUi(regInitial.section).choice
+  );
+  const [sectionOther, setSectionOther] = useState(
+    () => studentSectionToUi(regInitial.section).otherText
+  );
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isContinuing, setIsContinuing] = useState(false);
   const [whatsappPhoneError, setWhatsappPhoneError] = useState('');
@@ -71,6 +87,9 @@ const StudentRegistrationPage: React.FC = () => {
     setEmail(regInitial.email);
     setWhatsappPhone(regInitial.whatsappPhone);
     setGrade(regInitial.grade);
+    const ui = studentSectionToUi(regInitial.section);
+    setSectionChoice(ui.choice);
+    setSectionOther(ui.otherText);
   }, [
     location.key,
     regInitial.firstName,
@@ -78,6 +97,7 @@ const StudentRegistrationPage: React.FC = () => {
     regInitial.email,
     regInitial.whatsappPhone,
     regInitial.grade,
+    regInitial.section,
   ]);
   const [emailInUseOpen, setEmailInUseOpen] = useState<boolean>(!!locationState?.emailInUse);
   /** Which check blocked signup production Auth/Firestore are used even when the API runs on localhost. */
@@ -141,6 +161,7 @@ const StudentRegistrationPage: React.FC = () => {
         return;
       }
 
+      const normalizedSection = studentSectionFromUi(sectionChoice, sectionOther);
       const nextState = {
         firstName,
         lastName,
@@ -148,6 +169,7 @@ const StudentRegistrationPage: React.FC = () => {
         emailLockedFromInvite,
         whatsappPhone: normalizedWhatsappPhone,
         grade,
+        section: normalizedSection,
         dob: undefined,
         cityState: undefined,
       };
@@ -335,25 +357,63 @@ const StudentRegistrationPage: React.FC = () => {
               )}
             </div>
 
-            <div>
-              <label className="block text-xs sm:text-sm font-bold text-slate-700">
-                Student Class<span className="text-red-500"> *</span>
-              </label>
-              <select
-                value={grade}
-                onChange={(event) => setGrade(event.target.value)}
-                className="mt-1.5 w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm sm:text-base text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
-                required
-              >
-                <option value="">Select Class</option>
-                <option value="6">Class 6</option>
-                <option value="7">Class 7</option>
-                <option value="8">Class 8</option>
-                <option value="9">Class 9</option>
-                <option value="10">Class 10</option>
-                <option value="11">Class 11</option>
-                <option value="12">Class 12</option>
-              </select>
+            <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 sm:gap-4">
+              <div className="min-w-0">
+                <label className="block text-xs sm:text-sm font-bold text-slate-700">
+                  Student Class<span className="text-red-500"> *</span>
+                </label>
+                <SignupSelect
+                  value={grade}
+                  onChange={(event) => setGrade(event.target.value)}
+                  required
+                  aria-label="Student class"
+                >
+                  <option value="">Select class</option>
+                  <option value="6">Class 6</option>
+                  <option value="7">Class 7</option>
+                  <option value="8">Class 8</option>
+                  <option value="9">Class 9</option>
+                  <option value="10">Class 10</option>
+                  <option value="11">Class 11</option>
+                  <option value="12">Class 12</option>
+                </SignupSelect>
+              </div>
+              <div className="min-w-0">
+                <label className="block text-xs sm:text-sm font-bold text-slate-700">
+                  Section{' '}
+                  <span className="font-normal text-slate-500">(optional)</span>
+                </label>
+                <SignupSelect
+                  value={sectionChoice}
+                  onChange={(event) => {
+                    const next = event.target.value as StudentSectionUiChoice;
+                    setSectionChoice(next);
+                    if (next !== STUDENT_SECTION_OTHER) setSectionOther('');
+                  }}
+                  aria-label="Section"
+                >
+                  <option value="">Select section</option>
+                  {STUDENT_SECTION_PRESETS.map((letter) => (
+                    <option key={letter} value={letter}>
+                      {letter}
+                    </option>
+                  ))}
+                  <option value={STUDENT_SECTION_OTHER}>Other</option>
+                </SignupSelect>
+                {sectionChoice === STUDENT_SECTION_OTHER && (
+                  <input
+                    type="text"
+                    value={sectionOther}
+                    onChange={(event) =>
+                      setSectionOther(normalizeStudentSection(event.target.value))
+                    }
+                    className="mt-2 h-11 w-full rounded-lg border border-slate-200 px-3.5 text-sm sm:text-base text-slate-900 placeholder:text-slate-400 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400/20"
+                    placeholder="Enter section"
+                    autoComplete="off"
+                    maxLength={12}
+                  />
+                )}
+              </div>
             </div>
 
             <label className="mt-1 flex items-start gap-2 text-xs text-slate-600">

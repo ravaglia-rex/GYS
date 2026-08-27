@@ -34,6 +34,14 @@ import { studentSectionHeadingSx } from '../../styles/studentTypography';
 import { toIndiaMobileNationalDigits, withIndiaCountryCode } from '../../utils/indiaMobile';
 import { readGamificationFromStudent } from '../../utils/gamification';
 import { profileCompletionFromForm } from '../../utils/profileCompletion';
+import {
+  normalizeStudentSection,
+  STUDENT_SECTION_OTHER,
+  STUDENT_SECTION_PRESETS,
+  studentSectionFromUi,
+  studentSectionToUi,
+  type StudentSectionUiChoice,
+} from '../../utils/studentSection';
 import { useToast } from '../ui/use-toast';
 import ProfileCompleteCelebration from '../gamification/ProfileCompleteCelebration';
 
@@ -111,6 +119,7 @@ const ProfileSettings: React.FC = () => {
     email: currentUser?.email || '',
     school: '',
     grade: '',
+    section: '',
     dateOfBirth: '',
     cityState: '',
     homeLanguage: '',
@@ -127,6 +136,9 @@ const ProfileSettings: React.FC = () => {
   });
   
   const [originalGrade, setOriginalGrade] = useState<number | null>(null);
+  const [originalSection, setOriginalSection] = useState<string>('');
+  const [sectionChoice, setSectionChoice] = useState<StudentSectionUiChoice>('');
+  const [sectionOtherText, setSectionOtherText] = useState('');
   const [schoolName, setSchoolName] = useState<string>('');
   const [profileHydrated, setProfileHydrated] = useState(false);
 
@@ -142,11 +154,17 @@ const ProfileSettings: React.FC = () => {
   useEffect(() => {
     if (!userData || profileHydrated) return;
     setOriginalGrade(userData.grade || null);
+    const sectionValue = normalizeStudentSection(userData.section);
+    setOriginalSection(sectionValue);
+    const sectionUi = studentSectionToUi(sectionValue);
+    setSectionChoice(sectionUi.choice);
+    setSectionOtherText(sectionUi.otherText);
     setFormData((prev) => ({
       ...prev,
       displayName: `${userData.first_name || ''} ${userData.last_name || ''}`.trim(),
       school: userData.school_id || '',
       grade: userData.grade ? `Class ${userData.grade}` : '',
+      section: sectionValue,
       dateOfBirth: userData.date_of_birth || '',
       cityState: userData.city_state || '',
       homeLanguage: userData.home_language || '',
@@ -189,6 +207,22 @@ const ProfileSettings: React.FC = () => {
 
 
 
+  const handleSectionChoiceChange = (choice: StudentSectionUiChoice) => {
+    setSectionChoice(choice);
+    const other =
+      choice === STUDENT_SECTION_OTHER ? sectionOtherText : '';
+    if (choice !== STUDENT_SECTION_OTHER) {
+      setSectionOtherText('');
+    }
+    handleInputChange('section', studentSectionFromUi(choice, other));
+  };
+
+  const handleSectionOtherChange = (raw: string) => {
+    const next = normalizeStudentSection(raw);
+    setSectionOtherText(next);
+    handleInputChange('section', studentSectionFromUi(STUDENT_SECTION_OTHER, next));
+  };
+
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({
       ...prev,
@@ -226,6 +260,11 @@ const ProfileSettings: React.FC = () => {
         }
       }
 
+      const nextSection = normalizeStudentSection(formData.section);
+      if (nextSection !== originalSection) {
+        updates.section = nextSection;
+      }
+
       let coinsAwarded = 0;
       if (Object.keys(updates).length > 0) {
         const result = await updateStudent(currentUser.uid, updates as Parameters<typeof updateStudent>[1]);
@@ -235,6 +274,9 @@ const ProfileSettings: React.FC = () => {
             : 0;
         if (typeof updates.grade === 'number') {
           setOriginalGrade(updates.grade);
+        }
+        if ('section' in updates) {
+          setOriginalSection(nextSection);
         }
         void queryClient.invalidateQueries({ queryKey: queryKeys.student(currentUser.uid) });
       }
@@ -570,6 +612,71 @@ const ProfileSettings: React.FC = () => {
                     <MenuItem value="Class 11">Class 11</MenuItem>
                     <MenuItem value="Class 12">Class 12</MenuItem>
                   </TextField>
+                </Box>
+
+                <Box>
+                  <TextField
+                    fullWidth
+                    label="Section"
+                    value={sectionChoice || (isEditing ? '' : '__unset__')}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      if (next === '__unset__') return;
+                      handleSectionChoiceChange(next as StudentSectionUiChoice);
+                    }}
+                    disabled={!isEditing}
+                    select
+                    SelectProps={{ native: false }}
+                    InputLabelProps={{ shrink: true }}
+                    helperText="Needed for a complete profile"
+                    FormHelperTextProps={{
+                      sx: {
+                        color: 'rgba(255, 255, 255, 0.55)',
+                        fontSize: '0.75rem',
+                        mx: 0,
+                        mt: 0.75,
+                      },
+                    }}
+                    sx={{
+                      ...profileFieldSx,
+                      ...(!sectionChoice && !isEditing
+                        ? {
+                            '& .MuiSelect-select': profileEmptySelectSx,
+                          }
+                        : {}),
+                    }}
+                  >
+                    {!isEditing && !sectionChoice ? (
+                      <MenuItem value="__unset__" disabled>
+                        Not set
+                      </MenuItem>
+                    ) : null}
+                    {isEditing ? <MenuItem value="">Select section</MenuItem> : null}
+                    {STUDENT_SECTION_PRESETS.map((letter) => (
+                      <MenuItem key={letter} value={letter}>
+                        {letter}
+                      </MenuItem>
+                    ))}
+                    <MenuItem value={STUDENT_SECTION_OTHER}>Other</MenuItem>
+                  </TextField>
+                  {(sectionChoice === STUDENT_SECTION_OTHER ||
+                    (!isEditing && Boolean(sectionOtherText))) && (
+                    <TextField
+                      fullWidth
+                      label={isEditing ? 'Enter section' : 'Section detail'}
+                      value={
+                        isEditing
+                          ? sectionOtherText
+                          : sectionOtherText || 'Not set'
+                      }
+                      onChange={(e) => handleSectionOtherChange(e.target.value)}
+                      disabled={!isEditing}
+                      placeholder={isEditing ? 'e.g. H or A1' : undefined}
+                      InputLabelProps={{ shrink: true }}
+                      inputProps={{ maxLength: 12 }}
+                      sx={{ ...profileFieldSx, mt: 1.5 }}
+                    />
+                  )}
                 </Box>
 
                 <Box>

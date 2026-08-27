@@ -15,6 +15,7 @@ import {
   normalizeStudentMembershipLevel,
   STUDENT_SIGNUP_BASE_INR,
 } from '../../utils/studentMembershipPricing';
+import { normalizeStudentSection } from '../../utils/studentSection';
 
 const GYS_BLUE = '#1e3a8a';
 const STUDENT_SIGNUP_COMPLIANCE_CHARGE_RATE = 0.18;
@@ -27,6 +28,7 @@ interface SignupFlowState {
   email?: string;
   whatsappPhone?: string;
   grade?: string;
+  section?: string;
   dob?: string;
   cityState?: string;
   schoolId?: string;
@@ -118,6 +120,7 @@ const StudentPaymentPage: React.FC = () => {
       email,
       whatsappPhone,
       grade,
+      section,
       dob,
       cityState,
       schoolId,
@@ -159,6 +162,7 @@ const StudentPaymentPage: React.FC = () => {
       navigate('/students/register');
       return;
     }
+    const normalizedSection = normalizeStudentSection(section);
 
     setIsCreatingAccount(true);
 
@@ -174,6 +178,7 @@ const StudentPaymentPage: React.FC = () => {
         email: normalizedEmail,
         school_id: schoolId,
         grade: numericGrade,
+        ...(normalizedSection && { section: normalizedSection }),
         parent_name: '',
         parent_email: '',
         parent_phone: '',
@@ -194,6 +199,7 @@ const StudentPaymentPage: React.FC = () => {
         last_name: lastName,
         school_id: schoolId,
         grade: numericGrade,
+        ...(normalizedSection && { section: normalizedSection }),
         homeLanguage,
         aspiration,
         heardFrom,
@@ -227,6 +233,7 @@ const StudentPaymentPage: React.FC = () => {
               email: state.email,
               whatsappPhone,
               grade,
+              section,
               dob,
               cityState,
             },
@@ -322,12 +329,14 @@ const StudentPaymentPage: React.FC = () => {
   const signupState = mergeSignupState(location.state);
   const studentName = [state.firstName, state.lastName].filter(Boolean).join(' ') || 'Not provided';
   const normalizedWhatsappPhoneForPayload = normalizeIndiaMobileE164(state.whatsappPhone || '') || '';
+  const normalizedSectionForPayload = normalizeStudentSection(state.section);
   const signupStudentPayload = {
     first_name: state.firstName || '',
     last_name: state.lastName || '',
     email: (state.email || '').trim().toLowerCase(),
     school_id: state.schoolId || '',
     grade: state.grade ? parseInt(state.grade, 10) : 0,
+    ...(normalizedSectionForPayload && { section: normalizedSectionForPayload }),
     parent_name: '',
     parent_email: '',
     parent_phone: '',
@@ -366,6 +375,7 @@ const StudentPaymentPage: React.FC = () => {
           email: state.email,
           whatsappPhone: state.whatsappPhone,
           grade: state.grade,
+          section: state.section,
         },
       },
     });
@@ -443,6 +453,9 @@ const StudentPaymentPage: React.FC = () => {
                     <p className="mt-1 text-sm font-semibold text-slate-900">{studentName}</p>
                     <p className="text-xs text-slate-600">
                       {state.email} · Class {state.grade || 'not provided'}
+                      {normalizedSectionForPayload
+                        ? ` · Section ${normalizedSectionForPayload}`
+                        : ''}
                     </p>
                     <p className="text-xs text-slate-600">
                       WhatsApp: {state.whatsappPhone || 'not provided'}

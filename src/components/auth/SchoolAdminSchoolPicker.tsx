@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { ChevronDown } from 'lucide-react';
 import { Button } from '../ui/button';
 import { LoadingSpinner as Spinner } from '../ui/spinner';
+import SignupSelect from '../authentication/SignupSelect';
 import type { SchoolEmailCheck } from '../../db/schoolAdminCollection';
 
 export type SchoolAdminPickerOption = Pick<
@@ -87,27 +87,20 @@ const SchoolAdminSchoolPicker: React.FC<SchoolAdminSchoolPickerProps> = ({
           <label htmlFor="school-admin-school-picker" className="text-sm font-medium text-slate-900">
             School
           </label>
-          <div className="relative">
-            <select
-              id="school-admin-school-picker"
-              className="h-11 w-full cursor-pointer appearance-none rounded-lg border border-slate-300 bg-slate-50 py-2.5 pl-3.5 pr-12 text-sm font-medium text-slate-900 shadow-sm transition-colors hover:border-slate-400 hover:bg-white focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600/20 disabled:cursor-not-allowed disabled:opacity-60"
-              value={selectedId}
-              disabled={isBusy}
-              onChange={(e) => setSelectedId(e.target.value)}
-            >
-              {schools.map((school) => (
-                <option key={school.schoolId} value={school.schoolId}>
-                  {schoolLabel(school)}
-                </option>
-              ))}
-            </select>
-            <div
-              className="pointer-events-none absolute inset-y-0 right-0 flex w-11 items-center justify-center border-l border-slate-200"
-              aria-hidden
-            >
-              <ChevronDown className="h-4 w-4 text-slate-500" strokeWidth={2.25} />
-            </div>
-          </div>
+          <SignupSelect
+            id="school-admin-school-picker"
+            value={selectedId}
+            disabled={isBusy}
+            onChange={(e) => setSelectedId(e.target.value)}
+            aria-label="School"
+            required
+          >
+            {schools.map((school) => (
+              <option key={school.schoolId} value={school.schoolId}>
+                {schoolLabel(school)}
+              </option>
+            ))}
+          </SignupSelect>
         </div>
 
         <Button

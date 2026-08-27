@@ -208,6 +208,7 @@ export type PlatformAdminStudentRow = {
   school_id: string | null;
   school_name: string | null;
   grade: number | null;
+  section?: string | null;
   membership_level: number | null;
   approval_status: string | null;
   achievement_tier: string | null;

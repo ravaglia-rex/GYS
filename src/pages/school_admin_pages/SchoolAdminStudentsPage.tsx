@@ -74,6 +74,8 @@ type RosterRegistered = {
   firstName: string;
   lastName: string;
   grade: number;
+  /** Normalized class section when the student entered one. */
+  section: string;
   assessmentsCompleted: number;
   achievementTier: string;
   membershipLevel: number;
@@ -96,8 +98,18 @@ type AssessmentsCompletedFilter = 'all' | '0' | '1' | '2' | '3_plus';
  * "account created but no password". `needs_password` / `no_account` drill into those two.
  */
 type StatusFilter = 'all' | 'registered' | 'invited' | 'needs_password' | 'no_account' | 'revoked';
+/** `none` = registered students with no section entered. */
+type SectionFilter = 'all' | 'none' | string;
 type SortField = 'firstName' | 'lastName' | 'grade' | 'assessmentsCompleted' | 'email';
 type SortDirection = 'asc' | 'desc';
+
+function rosterSectionOf(row: StudentRow | RosterRegistered): string {
+  const raw =
+    'section' in row && typeof row.section === 'string'
+      ? row.section
+      : '';
+  return raw.trim();
+}
 
 const SORT_FIELD_LABELS: Record<SortField, string> = {
   firstName: 'First name',
@@ -460,6 +472,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [gradeFilter, setGradeFilter] = useState<number | 'all'>('all');
+  const [sectionFilter, setSectionFilter] = useState<SectionFilter>('all');
   const [assessmentsCompletedFilter, setAssessmentsCompletedFilter] =
     useState<AssessmentsCompletedFilter>('all');
   const [showFilters, setShowFilters] = useState(false);
@@ -506,6 +519,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
         firstName: dr.first_name,
         lastName: dr.last_name,
         grade: dr.grade,
+        section: rosterSectionOf(dr),
         assessmentsCompleted: countAssessmentsFromProgress(dr.assessment_progress),
         achievementTier: normalizeAchievementTierId(dr.achievement_tier),
         membershipLevel: dr.membership_level,
@@ -576,6 +590,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
           firstName: String(dr.first_name ?? ''),
           lastName: String(dr.last_name ?? ''),
           grade,
+          section: rosterSectionOf(dr),
           assessmentsCompleted: countAssessmentsFromProgress(dr.assessment_progress),
           achievementTier: normalizeAchievementTierId(dr.achievement_tier),
           membershipLevel: dr.membership_level ?? 0,
@@ -766,6 +781,15 @@ const SchoolAdminStudentsPage: React.FC = () => {
       if (gradeFilter !== 'all') {
         if (r.kind !== 'registered' || r.grade !== gradeFilter) return false;
       }
+      if (sectionFilter !== 'all') {
+        if (r.kind !== 'registered') return false;
+        const section = r.section.trim();
+        if (sectionFilter === 'none') {
+          if (section) return false;
+        } else if (section !== sectionFilter) {
+          return false;
+        }
+      }
       if (assessmentsCompletedFilter !== 'all' && r.kind === 'registered') {
         const n = r.assessmentsCompleted;
         const ok =
@@ -830,6 +854,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
     searchTerm,
     statusFilter,
     gradeFilter,
+    sectionFilter,
     assessmentsCompletedFilter,
     sortField,
     sortDirection,
@@ -862,16 +887,38 @@ const SchoolAdminStudentsPage: React.FC = () => {
     [rows]
   );
 
+  const sectionFilterOptions = useMemo(() => {
+    const registered = rows.filter((r): r is RosterRegistered => r.kind === 'registered');
+    const sections = Array.from(
+      new Set(registered.map(r => r.section.trim()).filter(Boolean))
+    ).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+    const hasNone = registered.some(r => !r.section.trim());
+    return { sections, hasNone };
+  }, [rows]);
+
+  useEffect(() => {
+    if (sectionFilter === 'all') return;
+    if (sectionFilter === 'none') {
+      if (!sectionFilterOptions.hasNone) setSectionFilter('all');
+      return;
+    }
+    if (!sectionFilterOptions.sections.includes(sectionFilter)) {
+      setSectionFilter('all');
+    }
+  }, [sectionFilter, sectionFilterOptions]);
+
   const hasActiveFilters =
     !!searchTerm.trim() ||
     statusFilter !== 'all' ||
     gradeFilter !== 'all' ||
+    sectionFilter !== 'all' ||
     assessmentsCompletedFilter !== 'all';
 
   const handleClearFilters = () => {
     setSearchTerm('');
     setStatusFilter('all');
     setGradeFilter('all');
+    setSectionFilter('all');
     setAssessmentsCompletedFilter('all');
   };
 
@@ -1260,6 +1307,39 @@ const SchoolAdminStudentsPage: React.FC = () => {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Typography
                       component="label"
+                      htmlFor="students-section-filter"
+                      variant="body2"
+                      sx={{ color: ip.subtext, fontWeight: 500, whiteSpace: 'nowrap', flexShrink: 0 }}
+                    >
+                      Section
+                    </Typography>
+                    <Select
+                      id="students-section-filter"
+                      size="small"
+                      value={sectionFilter}
+                      onChange={e => setSectionFilter(e.target.value as SectionFilter)}
+                      renderValue={v => {
+                        if (v === 'all') return 'All';
+                        if (v === 'none') return 'None';
+                        return String(v);
+                      }}
+                      MenuProps={{ PaperProps: { sx: rosterSelectMenuPaperSx } }}
+                      sx={rosterFilterSelectSx}
+                    >
+                      <MenuItem value="all">All</MenuItem>
+                      {sectionFilterOptions.sections.map(section => (
+                        <MenuItem key={section} value={section}>
+                          {section}
+                        </MenuItem>
+                      ))}
+                      {sectionFilterOptions.hasNone ? (
+                        <MenuItem value="none">None</MenuItem>
+                      ) : null}
+                    </Select>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography
+                      component="label"
                       htmlFor="students-assessments-filter"
                       variant="body2"
                       sx={{ color: ip.subtext, fontWeight: 500, whiteSpace: 'nowrap', flexShrink: 0 }}
@@ -1458,7 +1538,11 @@ const SchoolAdminStudentsPage: React.FC = () => {
                             bgcolor: index % 2 === 1 ? ip.cardMutedBg : '#fff',
                           }}
                         >
-                          {r.grade > 0 ? r.grade : '-'}
+                          {r.grade > 0
+                            ? r.section
+                              ? `${r.grade}-${r.section}`
+                              : String(r.grade)
+                            : r.section || '-'}
                         </TableCell>
                         <TableCell
                           sx={{
