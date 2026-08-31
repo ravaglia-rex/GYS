@@ -12,7 +12,8 @@
   <!-- Reusable six-node branching geometry. -->
   <g transform="translate(40,40)">
     <rect width="380" height="200" rx="12" class="panel"/><text x="18" y="34" class="option">A</text>
-    <g transform="translate(70,42)">
+    <!-- Inset so node strokes stay inside the 380×200 panel (was translate(70,42) and clipped). -->
+    <g transform="translate(34,36)">
       <path d="M20 78H120 M120 78H220 M220 78H320 M220 78V138 H320" class="edge" fill="none"/>
       <g class="node"><circle cx="220" cy="78" r="24"/><circle cx="120" cy="78" r="24"/><circle cx="320" cy="78" r="24"/><circle cx="220" cy="138" r="24"/><circle cx="20" cy="78" r="24"/><circle cx="320" cy="138" r="24"/></g>
       <g class="label"><text x="220" y="78">T</text><text x="120" y="78">L</text><text x="320" y="78">M</text><text x="220" y="138">O</text><text x="20" y="78">C</text><text x="320" y="138">G</text></g>
@@ -21,7 +22,7 @@
 
   <g transform="translate(480,40)">
     <rect width="380" height="200" rx="12" class="panel"/><text x="18" y="34" class="option">B</text>
-    <g transform="translate(70,42)">
+    <g transform="translate(34,36)">
       <path d="M20 78H120 M120 78H220 M220 78H320 M220 78V138 H320" class="edge" fill="none"/>
       <g class="node"><circle cx="220" cy="78" r="24"/><circle cx="120" cy="78" r="24"/><circle cx="320" cy="78" r="24"/><circle cx="220" cy="138" r="24"/><circle cx="20" cy="78" r="24"/><circle cx="320" cy="138" r="24"/></g>
       <g class="label"><text x="220" y="78">T</text><text x="120" y="78">C</text><text x="320" y="78">L</text><text x="220" y="138">O</text><text x="20" y="78">G</text><text x="320" y="138">M</text></g>
@@ -30,7 +31,7 @@
 
   <g transform="translate(40,280)">
     <rect width="380" height="200" rx="12" class="panel"/><text x="18" y="34" class="option">C</text>
-    <g transform="translate(70,42)">
+    <g transform="translate(34,36)">
       <path d="M20 78H120 M120 78H220 M220 78H320 M220 78V138 H320" class="edge" fill="none"/>
       <g class="node"><circle cx="220" cy="78" r="24"/><circle cx="120" cy="78" r="24"/><circle cx="320" cy="78" r="24"/><circle cx="220" cy="138" r="24"/><circle cx="20" cy="78" r="24"/><circle cx="320" cy="138" r="24"/></g>
       <g class="label"><text x="220" y="78">T</text><text x="120" y="78">M</text><text x="320" y="78">L</text><text x="220" y="138">O</text><text x="20" y="78">C</text><text x="320" y="138">G</text></g>
@@ -39,7 +40,7 @@
 
   <g transform="translate(480,280)">
     <rect width="380" height="200" rx="12" class="panel"/><text x="18" y="34" class="option">D</text>
-    <g transform="translate(70,42)">
+    <g transform="translate(34,36)">
       <path d="M20 78H120 M120 78H220 M220 78H320 M220 78V138 H320" class="edge" fill="none"/>
       <g class="node"><circle cx="220" cy="78" r="24"/><circle cx="120" cy="78" r="24"/><circle cx="320" cy="78" r="24"/><circle cx="220" cy="138" r="24"/><circle cx="20" cy="78" r="24"/><circle cx="320" cy="138" r="24"/></g>
       <g class="label"><text x="220" y="78">G</text><text x="120" y="78">M</text><text x="320" y="78">L</text><text x="220" y="138">O</text><text x="20" y="78">C</text><text x="320" y="138">T</text></g>

@@ -10,6 +10,7 @@ import { useToast } from '../../components/ui/use-toast';
 import { LoadingSpinner as Spinner } from '../../components/ui/spinner';
 import analytics from '../../segment/segment';
 import { normalizeIndiaMobileE164 } from '../../utils/indiaMobile';
+import { isStudentSignupPhoneOptional } from '../../utils/studentSignupPhoneOptional';
 import {
   formatInrFromPaise,
   normalizeStudentMembershipLevel,
@@ -131,7 +132,7 @@ const StudentPaymentPage: React.FC = () => {
       membershipLevel,
     } = state;
 
-    if (!email || !firstName || !lastName || !whatsappPhone || !grade || !schoolId || !numericLevel) {
+    if (!email || !firstName || !lastName || !grade || !schoolId || !numericLevel) {
       toast({
         variant: 'destructive',
         title: 'Session expired',
@@ -141,9 +142,11 @@ const StudentPaymentPage: React.FC = () => {
       return;
     }
 
-    const normalizedEmail = email.trim().toLowerCase();
-    const normalizedWhatsappPhone = normalizeIndiaMobileE164(whatsappPhone);
-    if (!normalizedWhatsappPhone) {
+    const phoneOptional = isStudentSignupPhoneOptional(schoolId);
+    const normalizedWhatsappPhone = whatsappPhone
+      ? normalizeIndiaMobileE164(whatsappPhone)
+      : null;
+    if (whatsappPhone && !normalizedWhatsappPhone) {
       toast({
         variant: 'destructive',
         title: 'Invalid WhatsApp number',
@@ -152,6 +155,16 @@ const StudentPaymentPage: React.FC = () => {
       navigate('/students/register');
       return;
     }
+    if (!phoneOptional && !normalizedWhatsappPhone) {
+      toast({
+        variant: 'destructive',
+        title: 'Session expired',
+        description: 'Please start registration again from step 1.',
+      });
+      navigate('/students/register');
+      return;
+    }
+    const normalizedEmail = email.trim().toLowerCase();
     const numericGrade = parseInt(grade, 10);
     if (Number.isNaN(numericGrade)) {
       toast({
@@ -182,7 +195,7 @@ const StudentPaymentPage: React.FC = () => {
         parent_name: '',
         parent_email: '',
         parent_phone: '',
-        phone_number: normalizedWhatsappPhone,
+        ...(normalizedWhatsappPhone && { phone_number: normalizedWhatsappPhone }),
         ...(dob && { date_of_birth: dob }),
         ...(cityState && { city_state: cityState }),
         ...(homeLanguage && { home_language: homeLanguage }),
@@ -340,7 +353,7 @@ const StudentPaymentPage: React.FC = () => {
     parent_name: '',
     parent_email: '',
     parent_phone: '',
-    phone_number: normalizedWhatsappPhoneForPayload,
+    ...(normalizedWhatsappPhoneForPayload && { phone_number: normalizedWhatsappPhoneForPayload }),
     ...(state.dob && { date_of_birth: state.dob }),
     ...(state.cityState && { city_state: state.cityState }),
     ...(state.homeLanguage && { home_language: state.homeLanguage }),

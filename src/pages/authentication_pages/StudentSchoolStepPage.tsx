@@ -11,6 +11,7 @@ import {
   normalizeStudentMembershipLevel,
 } from '../../utils/studentMembershipPricing';
 import { mergeSignupState, writeSignupDraft } from '../../utils/studentSignupDraft';
+import { isStudentSignupPhoneOptional } from '../../utils/studentSignupPhoneOptional';
 import SignupSelect from '../../components/authentication/SignupSelect';
 
 const GYS_BLUE = '#1e3a8a';
@@ -148,7 +149,18 @@ const StudentSchoolStepPage: React.FC = () => {
       section,
     } = base;
 
-    if (!email || !firstName || !lastName || !whatsappPhone || !grade) {
+    if (!email || !firstName || !lastName || !grade) {
+      toast({
+        variant: 'destructive',
+        title: 'Missing information',
+        description: 'Please complete Step 1 again.',
+      });
+      navigate('/students/register');
+      return;
+    }
+
+    const phoneOptional = isStudentSignupPhoneOptional(schoolIdForSignup);
+    if (!whatsappPhone && !phoneOptional) {
       toast({
         variant: 'destructive',
         title: 'Missing information',

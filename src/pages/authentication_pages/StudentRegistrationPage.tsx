@@ -2,12 +2,14 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { fetchSignInMethodsForEmail } from 'firebase/auth';
 import { checkEmailExists } from '../../db/emailMappingCollection';
+import { resolveRegistrationSchool } from '../../db/schoolCollection';
 import { auth } from '../../firebase/firebase';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
 import { useStudentSignupExit } from '../../contexts/StudentSignupExitContext';
 import { useStudentSignupExitGuard } from '../../hooks/useStudentSignupExitGuard';
 import { mergeSignupState, writeSignupDraft } from '../../utils/studentSignupDraft';
 import { normalizeIndiaMobileE164 } from '../../utils/indiaMobile';
+import { isStudentSignupPhoneOptional } from '../../utils/studentSignupPhoneOptional';
 import {
   normalizeStudentSection,
   STUDENT_SECTION_OTHER,
@@ -80,6 +82,14 @@ const StudentRegistrationPage: React.FC = () => {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isContinuing, setIsContinuing] = useState(false);
   const [whatsappPhoneError, setWhatsappPhoneError] = useState('');
+  /** Roster-matched school from email — used only to relax WhatsApp requirement for Elpro/JBCN. */
+  const [rosterSchoolId, setRosterSchoolId] = useState<string | null>(null);
+  const [emailInUseOpen, setEmailInUseOpen] = useState<boolean>(!!locationState?.emailInUse);
+  /** Which check blocked signup production Auth/Firestore are used even when the API runs on localhost. */
+  const [emailInUseReason, setEmailInUseReason] = useState<
+    'auth' | 'student' | 'schooladmin' | null
+  >(() => (locationState?.emailInUse ? 'auth' : null));
+  const phoneOptional = isStudentSignupPhoneOptional(rosterSchoolId);
 
   useEffect(() => {
     setFirstName(regInitial.firstName);
@@ -99,11 +109,29 @@ const StudentRegistrationPage: React.FC = () => {
     regInitial.grade,
     regInitial.section,
   ]);
-  const [emailInUseOpen, setEmailInUseOpen] = useState<boolean>(!!locationState?.emailInUse);
-  /** Which check blocked signup production Auth/Firestore are used even when the API runs on localhost. */
-  const [emailInUseReason, setEmailInUseReason] = useState<
-    'auth' | 'student' | 'schooladmin' | null
-  >(() => (locationState?.emailInUse ? 'auth' : null));
+
+  useEffect(() => {
+    const normalized = email.trim().toLowerCase();
+    if (!normalized || !normalized.includes('@')) {
+      setRosterSchoolId(null);
+      return;
+    }
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      void resolveRegistrationSchool(normalized)
+        .then((resolved) => {
+          if (cancelled) return;
+          setRosterSchoolId(resolved.schoolId ?? null);
+        })
+        .catch(() => {
+          if (!cancelled) setRosterSchoolId(null);
+        });
+    }, 350);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [email]);
 
   const { requestLeave } = useStudentSignupExit();
 
@@ -124,8 +152,24 @@ const StudentRegistrationPage: React.FC = () => {
     if (!acceptedTerms) return;
 
     const normalizedEmail = email.trim().toLowerCase();
-    const normalizedWhatsappPhone = normalizeIndiaMobileE164(`+91${whatsappPhone}`);
-    if (!normalizedWhatsappPhone) {
+    let matchedSchoolId = rosterSchoolId;
+    try {
+      const resolved = await resolveRegistrationSchool(normalizedEmail);
+      matchedSchoolId = resolved.schoolId ?? null;
+      setRosterSchoolId(matchedSchoolId);
+    } catch {
+      // Keep last known roster match; phone rule falls back to required if unknown.
+    }
+    const skipPhone = isStudentSignupPhoneOptional(matchedSchoolId);
+    const digits = whatsappPhone.trim();
+    const normalizedWhatsappPhone = digits
+      ? normalizeIndiaMobileE164(`+91${digits}`)
+      : null;
+    if (digits && !normalizedWhatsappPhone) {
+      setWhatsappPhoneError('Enter a valid 10-digit India WhatsApp number starting with 6-9.');
+      return;
+    }
+    if (!skipPhone && !normalizedWhatsappPhone) {
       setWhatsappPhoneError('Enter a valid 10-digit India WhatsApp number starting with 6-9.');
       return;
     }
@@ -167,7 +211,7 @@ const StudentRegistrationPage: React.FC = () => {
         lastName,
         email: normalizedEmail,
         emailLockedFromInvite,
-        whatsappPhone: normalizedWhatsappPhone,
+        ...(normalizedWhatsappPhone ? { whatsappPhone: normalizedWhatsappPhone } : { whatsappPhone: '' }),
         grade,
         section: normalizedSection,
         dob: undefined,
@@ -319,7 +363,11 @@ const StudentRegistrationPage: React.FC = () => {
 
             <div>
               <label className="block text-xs sm:text-sm font-bold text-slate-700">
-                WhatsApp Phone Number<span className="text-red-500"> *</span>
+                WhatsApp Phone Number
+                {!phoneOptional && <span className="text-red-500"> *</span>}
+                {phoneOptional && (
+                  <span className="ml-1 font-medium text-slate-500">(optional)</span>
+                )}
               </label>
               <div
                 className={`mt-1.5 flex w-full overflow-hidden rounded-lg border bg-white text-sm sm:text-base focus-within:outline-none focus-within:ring-1 ${
@@ -344,11 +392,13 @@ const StudentRegistrationPage: React.FC = () => {
                   placeholder="98765 43210"
                   autoComplete="tel-national"
                   maxLength={10}
-                  required
+                  required={!phoneOptional}
                 />
               </div>
               <p className="mt-1 text-xs text-slate-500">
-                If the student doesn&apos;t have a WhatsApp number, please share a parent&apos;s number.
+                {phoneOptional
+                  ? 'Optional for your school. You can add it later in Settings if you want.'
+                  : "If the student doesn't have a WhatsApp number, please share a parent's number."}
               </p>
               {whatsappPhoneError && (
                 <p className="mt-1.5 text-xs font-medium text-red-600" role="alert">
