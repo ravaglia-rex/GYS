@@ -34,6 +34,7 @@ export const UNLIMITED_OFFICIAL_EXAM_RETAKE_EMAILS = new Set([
  * Keep in sync with backend `OFFICIAL_LIVE_ASSESSMENT_IDS`.
  */
 export const OFFICIAL_LIVE_ASSESSMENT_IDS = new Set<string>([
+  'analytical_reasoning',
 ]);
 
 /**
@@ -41,6 +42,8 @@ export const OFFICIAL_LIVE_ASSESSMENT_IDS = new Set<string>([
  * Keep in sync with backend `OFFICIAL_LIVE_ASSESSMENT_TIERS`.
  */
 export const OFFICIAL_LIVE_ASSESSMENT_TIERS: Record<string, ReadonlySet<number>> = {
+  // Public launch: Analytical Level 1 only. L2+ stays locked even after L1 clear.
+  analytical_reasoning: new Set([1]),
 };
 
 /**
