@@ -1,4 +1,7 @@
 import { EXAM_FIGURE_MAX_HEIGHT_PX, EXAM_FIGURE_MAX_WIDTH_PX } from './ExamMarkdown';
+import {
+  arFigureSizeMultiplier,
+} from './arFigureDisplaySize';
 
 const MD_IMAGE = /!\[([^\]]*)\]\(([^)]+)\)/g;
 const HTML_IMG_TAG = /<img\b[^>]*\bsrc=["'][^"']+["'][^>]*>/gi;
@@ -17,7 +20,7 @@ export function isPlaceholderOptionText(text: string, index: number): boolean {
   return (
     new RegExp(`^${letter}\\.?$`, 'i').test(t) ||
     new RegExp(
-      `^(?:option|choice|network|figure|diagram|image|cover|tile|state)\\s+${letter}\\.?$`,
+      `^(?:option|choice|network|figure|diagram|image|cover|tile|state)\\s+${letter}\\b(?:\\s*\\([^)]*\\))?\\.?$`,
       'i'
     ).test(t)
   );
@@ -89,6 +92,79 @@ export function parseAbcdChoiceLines(block: string): string[] | null {
   return choices;
 }
 
+/**
+ * Side-by-side ascii option panels inside a code fence, e.g.
+ *   A.              B.
+ *   ★  ×  ×         ★  ◆  ×
+ *   …
+ *   C.              D.
+ *   …
+ */
+export function parseSideBySideAbcdAsciiPanel(block: string): string[] | null {
+  const lines = (block ?? '')
+    .replace(/\r\n/g, '\n')
+    .split('\n')
+    .map((l) => l.replace(/\t/g, '  '));
+  const headerRe = /^\s*([A-D])\.\s+([A-D])\.\s*$/i;
+  const pairs: Array<{ left: string; right: string; splitAt: number; body: string[] }> = [];
+  let i = 0;
+  while (i < lines.length && !lines[i].trim()) i += 1;
+  while (i < lines.length) {
+    const headerLine = lines[i];
+    const header = headerLine.match(headerRe);
+    if (!header) {
+      if (!headerLine.trim()) {
+        i += 1;
+        continue;
+      }
+      return null;
+    }
+    const left = header[1].toUpperCase();
+    const right = header[2].toUpperCase();
+    if (left.charCodeAt(0) + 1 !== right.charCodeAt(0)) return null;
+    const splitAt = headerLine.search(/[A-D]\.\s*$/i);
+    if (splitAt < 1) return null;
+    i += 1;
+    const body: string[] = [];
+    while (i < lines.length) {
+      const t = lines[i];
+      if (!t.trim()) {
+        i += 1;
+        break;
+      }
+      if (headerRe.test(t)) break;
+      body.push(t);
+      i += 1;
+    }
+    if (body.length < 1) return null;
+    pairs.push({ left, right, splitAt, body });
+  }
+  if (pairs.length < 1 || pairs.length > 2) return null;
+  if (pairs[0].left !== 'A') return null;
+  const choices: string[] = [];
+  let expected = 'A';
+  for (const pair of pairs) {
+    if (pair.left !== expected) return null;
+    const leftLines: string[] = [];
+    const rightLines: string[] = [];
+    for (const row of pair.body) {
+      const padded = row.length >= pair.splitAt ? row : row.padEnd(pair.splitAt, ' ');
+      leftLines.push(padded.slice(0, pair.splitAt).trimEnd());
+      rightLines.push(padded.slice(pair.splitAt).trim());
+    }
+    choices.push(leftLines.join('\n').trim());
+    choices.push(rightLines.join('\n').trim());
+    expected = String.fromCharCode(pair.right.charCodeAt(0) + 1);
+  }
+  if (choices.length < 2 || choices.length > 4) return null;
+  if (choices.some((c) => !c)) return null;
+  return choices;
+}
+
+function parseAbcdChoiceBlock(block: string): string[] | null {
+  return parseAbcdChoiceLines(block) ?? parseSideBySideAbcdAsciiPanel(block);
+}
+
 export function splitEmbeddedAbcdChoiceList(markdown: string): {
   stemMarkdown: string;
   choices: string[] | null;
@@ -104,7 +180,7 @@ export function splitEmbeddedAbcdChoiceList(markdown: string): {
   }
   for (let i = fences.length - 1; i >= 0; i--) {
     const hit = fences[i];
-    const parsed = parseAbcdChoiceLines(hit[1] ?? '');
+    const parsed = parseAbcdChoiceBlock(hit[1] ?? '');
     if (!parsed) continue;
     const idx = hit.index ?? 0;
     const stemMarkdown = `${raw.slice(0, idx)}${raw.slice(idx + hit[0].length)}`
@@ -120,7 +196,7 @@ export function splitEmbeddedAbcdChoiceList(markdown: string): {
   }
   for (let k = aIdxs.length - 1; k >= 0; k--) {
     const start = aIdxs[k];
-    const parsed = parseAbcdChoiceLines(lines.slice(start).join('\n'));
+    const parsed = parseAbcdChoiceBlock(lines.slice(start).join('\n'));
     if (!parsed) continue;
     const stemMarkdown = lines.slice(0, start).join('\n').replace(/\n{3,}/g, '\n\n').trim();
     return { stemMarkdown, choices: parsed };
@@ -233,9 +309,33 @@ function matrixChoicesFromRows(rows: string[][]): string[] | null {
   return choices;
 }
 
+function stemWithoutTrailingMarkdownTable(
+  lines: string[],
+  start: number,
+  end: number,
+  raw: string
+): string {
+  const trailing = !lines.slice(end + 1).join('\n').trim();
+  if (!trailing) return raw;
+  return [...lines.slice(0, start), ...lines.slice(end + 1)]
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function stemWithoutTrailingHtmlTable(raw: string, hit: RegExpExecArray): string {
+  const after = raw.slice((hit.index ?? 0) + hit[0].length).trim();
+  if (after) return raw;
+  return `${raw.slice(0, hit.index ?? 0)}${raw.slice((hit.index ?? 0) + hit[0].length)}`
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 /**
  * Markdown tables that are actually A–D choices: a compact 1–2 row label table,
  * or a matrix whose first column is A–D (e.g. Option | Room A | Room B | Room C).
+ * Trailing option tables are removed from the stem — the radio choices already
+ * show that content (e.g. "Room A: J, K; Room B: L, N; Room C: M, P").
  */
 export function splitEmbeddedOptionTable(markdown: string): {
   stemMarkdown: string;
@@ -249,14 +349,18 @@ export function splitEmbeddedOptionTable(markdown: string): {
     const { start, end, rows } = blocks[b];
     const compact = compactChoicesFromRows(rows);
     if (compact) {
-      const trailing = !lines.slice(end + 1).join('\n').trim();
-      const stemMarkdown = trailing
-        ? [...lines.slice(0, start), ...lines.slice(end + 1)].join('\n').replace(/\n{3,}/g, '\n\n').trim()
-        : raw;
-      return { stemMarkdown, choices: compact };
+      return {
+        stemMarkdown: stemWithoutTrailingMarkdownTable(lines, start, end, raw),
+        choices: compact,
+      };
     }
     const matrix = matrixChoicesFromRows(rows);
-    if (matrix) return { stemMarkdown: raw, choices: matrix };
+    if (matrix) {
+      return {
+        stemMarkdown: stemWithoutTrailingMarkdownTable(lines, start, end, raw),
+        choices: matrix,
+      };
+    }
   }
 
   const tableRe = /<table\b[^>]*>[\s\S]*?<\/table>/gi;
@@ -271,16 +375,18 @@ export function splitEmbeddedOptionTable(markdown: string): {
     if (!rows) continue;
     const compact = compactChoicesFromRows(rows);
     if (compact) {
-      const after = raw.slice((hit.index ?? 0) + hit[0].length).trim();
-      const stemMarkdown = after
-        ? raw
-        : `${raw.slice(0, hit.index ?? 0)}${raw.slice((hit.index ?? 0) + hit[0].length)}`
-            .replace(/\n{3,}/g, '\n\n')
-            .trim();
-      return { stemMarkdown, choices: compact };
+      return {
+        stemMarkdown: stemWithoutTrailingHtmlTable(raw, hit),
+        choices: compact,
+      };
     }
     const matrix = matrixChoicesFromRows(rows);
-    if (matrix) return { stemMarkdown: raw, choices: matrix };
+    if (matrix) {
+      return {
+        stemMarkdown: stemWithoutTrailingHtmlTable(raw, hit),
+        choices: matrix,
+      };
+    }
   }
   return { stemMarkdown: raw, choices: null };
 }
@@ -317,7 +423,15 @@ export function splitLearnerExamChoices(markdown: string): {
 } {
   const list = splitEmbeddedAbcdChoiceList(markdown);
   const listHasReal = Boolean(list.choices?.some((t, i) => t && !isPlaceholderOptionText(t, i)));
-  if (listHasReal) return list;
+  if (listHasReal) {
+    // List already owns the answers; drop a leftover Option|Room A|… matrix so
+    // learners don't see the same assignments twice.
+    const withoutTable = splitEmbeddedOptionTable(list.stemMarkdown);
+    if (withoutTable.choices) {
+      return { stemMarkdown: withoutTable.stemMarkdown, choices: list.choices };
+    }
+    return list;
+  }
   const table = splitEmbeddedOptionTable(list.stemMarkdown);
   if (table.choices) return table;
   return list;
@@ -513,37 +627,12 @@ export const AR_OPTION_SLICE_MAX_WIDTH_PX = 140;
 export const AR_OPTION_STEM_SLICE_MAX_HEIGHT_PX = 340;
 export const AR_OPTION_STEM_SLICE_MAX_WIDTH_PX = 560;
 
-const LARGER_OPTION_FIGURE_SIZE_EXCEPTIONS = [
-  'AR-L1-T3-05-P1',
-  'T3-05-P1',
-  'item_17_t3_05_plan_options',
-  'AR-L1-T4-06-P1',
-  'T4-06-P1',
-  'item_18_T4-06-P1',
-  'AR-L1-T4-08-P3',
-  'T4-08-P3',
-  'item_47_T4-08-P3',
-  'AR-L1-T5-02-P3',
-  'T5-02-P3',
-  'item_13_X2_scanner_options',
-  'AR-L1-T5-03-P2',
-  'T5-03-P2',
-  'item_22_X3_relay_options',
-  'AR-L1-T5-04-P3',
-  'T5-04-P3',
-  'item_06_X4_restoration_target_options',
-  'AR-L1-T5-05-P1',
-  'T5-05-P1',
-  'item_23_X5_station_network_options',
-] as const;
-
-function optionFigureSizeMultiplier(src: string | undefined): number {
-  const normalized = (src ?? '').toLowerCase();
-  return LARGER_OPTION_FIGURE_SIZE_EXCEPTIONS.some((key) =>
-    normalized.includes(key.toLowerCase())
-  )
-    ? 1.75
-    : 1;
+function optionFigureSizeMultiplier(
+  _src: string | undefined,
+  optionDisplaySize?: 'small' | 'medium' | 'large' | 'normal' | null
+): number {
+  // Bank presentation.option_display_size is the source of truth (default medium).
+  return arFigureSizeMultiplier(optionDisplaySize);
 }
 
 /**
@@ -562,29 +651,39 @@ export function arOptionFigureSliceDisplaySize(
   figH: number,
   fit: 'option' | 'exam' | 'stem' | 'crop',
   slice?: Pick<OptionFigureSliceRect, 'kind'> | null,
-  src?: string
+  src?: string,
+  optionDisplaySize?: 'small' | 'medium' | 'large' | 'normal' | null,
+  stemDisplaySize?: 'small' | 'medium' | 'large' | 'normal' | null
 ): { width: number; height: number } {
+  const stemCaps = {
+    width: EXAM_FIGURE_MAX_WIDTH_PX * arFigureSizeMultiplier(stemDisplaySize),
+    height: EXAM_FIGURE_MAX_HEIGHT_PX * arFigureSizeMultiplier(stemDisplaySize),
+  };
+  const stemCropCaps = {
+    width: AR_OPTION_STEM_SLICE_MAX_WIDTH_PX * arFigureSizeMultiplier(stemDisplaySize),
+    height: AR_OPTION_STEM_SLICE_MAX_HEIGHT_PX * arFigureSizeMultiplier(stemDisplaySize),
+  };
   const figureScale = Math.min(
-    EXAM_FIGURE_MAX_WIDTH_PX / Math.max(figW, 1),
-    EXAM_FIGURE_MAX_HEIGHT_PX / Math.max(figH, 1)
+    stemCaps.width / Math.max(figW, 1),
+    stemCaps.height / Math.max(figH, 1)
   );
   const scale =
     fit === 'exam'
       ? Math.min(
-          EXAM_FIGURE_MAX_WIDTH_PX / Math.max(natW, 1),
-          EXAM_FIGURE_MAX_HEIGHT_PX / Math.max(natH, 1)
+          stemCaps.width / Math.max(natW, 1),
+          stemCaps.height / Math.max(natH, 1)
         )
       : fit === 'stem'
         ? Math.min(
             figureScale,
-            AR_OPTION_STEM_SLICE_MAX_WIDTH_PX / Math.max(natW, 1),
-            AR_OPTION_STEM_SLICE_MAX_HEIGHT_PX / Math.max(natH, 1)
+            stemCropCaps.width / Math.max(natW, 1),
+            stemCropCaps.height / Math.max(natH, 1)
           )
         : figureScale;
   let width = Math.max(1, natW * scale);
   let height = Math.max(1, natH * scale);
   if (fit === 'option' || fit === 'crop') {
-    const multiplier = optionFigureSizeMultiplier(src);
+    const multiplier = optionFigureSizeMultiplier(src, optionDisplaySize);
     const maxWidth =
       (slice?.kind === 'grid' ? AR_OPTION_GRID_SLICE_MAX_WIDTH_PX : AR_OPTION_SLICE_MAX_WIDTH_PX) *
       multiplier;
@@ -726,11 +825,31 @@ function rowLayoutSlicesFromCards(
     .sort((a, b) => a.x - b.x);
   const ySpread = Math.max(...letterPts.map((p) => p.y)) - Math.min(...letterPts.map((p) => p.y));
   if (ySpread > 8) return null;
-  const sortedCards = [...cards].sort((a, b) => a.cx - b.cx);
-  if (sortedCards.length < order.length) return null;
+  // Ignore in-cell glyph rects (filled squares, etc.). Pair only peer-sized
+  // answer tiles — otherwise B/C become single symbols while A/D stay full cards.
+  const byArea = [...cards].sort((a, b) => b.area - a.area);
+  const largest = byArea[0]?.area || 0;
+  if (!(largest > 0)) return null;
+  const mains = byArea
+    .filter((c) => c.area >= largest * 0.45)
+    .sort((a, b) => a.cx - b.cx);
+  if (mains.length < order.length) return null;
+  const used = new Set<OptionFigureCard>();
+  const picked: OptionFigureCard[] = [];
+  for (const { x } of order) {
+    const next = mains
+      .filter((c) => !used.has(c))
+      .reduce<OptionFigureCard | null>((best, c) => {
+        if (!best) return c;
+        return Math.abs(c.cx - x) < Math.abs(best.cx - x) ? c : best;
+      }, null);
+    if (!next) return null;
+    used.add(next);
+    picked.push(next);
+  }
   const slices: OptionFigureSliceRect[] = [];
   for (let k = 0; k < order.length; k++) {
-    const card = sortedCards[k];
+    const card = picked[k];
     const pad = Math.max(3, Math.min(card.w, card.h) * 0.03);
     const x1 = Math.max(vb.x, card.x - pad);
     const y1 = Math.max(vb.y, card.y - pad);
@@ -1083,11 +1202,13 @@ export function optionFigureStemSliceFromOptionSlices(
   if (!slices?.length) return null;
   const minY = Math.min(...slices.map((s) => s.yPct));
   if (minY < OPTION_FIGURE_STEM_CONTENT_MIN_Y_PCT) return null;
+  // Options detected past the viewBox (yPct > 100) mean the SVG canvas was
+  // already cropped to stem-only — use the full frame, never invent headroom.
   return {
     xPct: 0,
     yPct: 0,
     wPct: 100,
-    hPct: Math.max(8, minY - 0.6),
+    hPct: Math.min(100, Math.max(8, minY - 0.6)),
     kind: 'wide',
   };
 }

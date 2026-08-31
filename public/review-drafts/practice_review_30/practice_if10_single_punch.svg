@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="500" viewBox="0 0 980 500" role="img" aria-labelledby="title desc">
+  <title id="title">One fold, one punch, and four possible unfolded sheets</title>
+  <desc id="desc">A two-row by four-column sheet folds at the vertical middle line, with the right half folding left. A hole is punched at the upper-left of the folded two-by-two sheet. Four unfolded hole patterns are labelled A through D.</desc>
+  <style>.sheet{fill:#fff;stroke:#263b53;stroke-width:3}.grid{stroke:#9aa8b7;stroke-width:2}.fold{stroke:#4f8ab5;stroke-width:4;stroke-dasharray:10 8}.arrow{stroke:#4f8ab5;stroke-width:4;fill:none;stroke-linecap:round;stroke-linejoin:round}.hole{fill:#17283e}.lab{font:700 22px Arial,sans-serif;fill:#1d3550;text-anchor:middle}.cap{font:600 18px Arial,sans-serif;fill:#53687d;text-anchor:middle}</style>
+  <rect width="980" height="500" fill="#fff"/>
+  <text class="cap" x="260" y="32">FOLD THE RIGHT HALF LEFT</text>
+  <g transform="translate(60 55)"><rect class="sheet" width="400" height="200"/><path class="grid" d="M100 0V200M200 0V200M300 0V200M0 100H400"/><line class="fold" x1="200" y1="0" x2="200" y2="200"/><path class="arrow" d="M390-15C340-55 275-55 225-15m14-6-14 6 7 14"/></g>
+  <text class="cap" x="650" y="32">PUNCH THE MARKED POSITION</text>
+  <g transform="translate(550 55)"><rect class="sheet" width="200" height="200"/><path class="grid" d="M100 0V200M0 100H200"/><circle class="hole" cx="50" cy="50" r="15"/></g>
+  <text class="cap" x="490" y="305">POSSIBLE UNFOLDED SHEETS</text>
+  <g transform="translate(35 330) scale(.42)"><rect class="sheet" width="400" height="200"/><path class="grid" d="M100 0V200M200 0V200M300 0V200M0 100H400"/><circle class="hole" cx="50" cy="50" r="15"/><circle class="hole" cx="350" cy="50" r="15"/></g><text class="lab" x="120" y="475">A</text>
+  <g transform="translate(275 330) scale(.42)"><rect class="sheet" width="400" height="200"/><path class="grid" d="M100 0V200M200 0V200M300 0V200M0 100H400"/><circle class="hole" cx="150" cy="50" r="15"/><circle class="hole" cx="250" cy="50" r="15"/></g><text class="lab" x="360" y="475">B</text>
+  <g transform="translate(515 330) scale(.42)"><rect class="sheet" width="400" height="200"/><path class="grid" d="M100 0V200M200 0V200M300 0V200M0 100H400"/><circle class="hole" cx="50" cy="50" r="15"/><circle class="hole" cx="350" cy="150" r="15"/></g><text class="lab" x="600" y="475">C</text>
+  <g transform="translate(755 330) scale(.42)"><rect class="sheet" width="400" height="200"/><path class="grid" d="M100 0V200M200 0V200M300 0V200M0 100H400"/><circle class="hole" cx="50" cy="50" r="15"/></g><text class="lab" x="840" y="475">D</text>
+</svg>

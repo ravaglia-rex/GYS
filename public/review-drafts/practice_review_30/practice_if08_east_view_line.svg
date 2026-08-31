@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="270" viewBox="0 0 900 270" role="img" aria-labelledby="title desc">
+  <title id="title">Four markers on a west-to-east rail with an observer at the east end</title>
+  <desc id="desc">From west to east the markers are triangle, circle, square, and diamond. An observer stands just east of the diamond and looks west.</desc>
+  <style>.rail{stroke:#8394a7;stroke-width:8;stroke-linecap:round}.tick{stroke:#52667d;stroke-width:3}.shape{font:700 48px Arial,sans-serif;fill:#17283e;text-anchor:middle;dominant-baseline:middle}.dir{font:700 18px Arial,sans-serif;fill:#52667d;text-anchor:middle}.person{stroke:#31485f;stroke-width:5;fill:#edf3f8}.sight{stroke:#b6463d;stroke-width:4;fill:none;stroke-linecap:round;stroke-linejoin:round}</style>
+  <rect width="900" height="270" fill="#fff"/>
+  <text class="dir" x="100" y="45">WEST</text><text class="dir" x="700" y="45">EAST</text>
+  <line class="rail" x1="100" y1="135" x2="700" y2="135"/>
+  <g><line class="tick" x1="160" y1="115" x2="160" y2="155"/><text class="shape" x="160" y="92">▲</text><line class="tick" x1="320" y1="115" x2="320" y2="155"/><text class="shape" x="320" y="92">●</text><line class="tick" x1="480" y1="115" x2="480" y2="155"/><text class="shape" x="480" y="92">■</text><line class="tick" x1="640" y1="115" x2="640" y2="155"/><text class="shape" x="640" y="92">◆</text></g>
+  <g transform="translate(790 110)"><circle class="person" cx="0" cy="-32" r="20"/><path class="person" d="M-28 48V8Q0-8 28 8V48"/></g>
+  <path class="sight" d="M755 82H690m18-12-18 12 18 12"/>
+  <text class="dir" x="790" y="205">OBSERVER</text>
+</svg>

@@ -2,7 +2,8 @@ import React from 'react';
 import { Box, FormControl, FormControlLabel, Radio, RadioGroup, Typography } from '@mui/material';
 import type { ExamQuestion } from '../../db/assessmentCollection';
 import { ArOptionFigureSlice, useArOptionFigureMeta } from './ArOptionFigure';
-import { ExamMarkdown, EXAM_FIGURE_MAX_HEIGHT_PX } from './ExamMarkdown';
+import { ExamMarkdown, EXAM_FIGURE_MAX_HEIGHT_PX, EXAM_FIGURE_MAX_WIDTH_PX } from './ExamMarkdown';
+import { scaleExamFigureCaps, isArTextOptionGrid2x2, looksLikeArAsciiGridOptionTexts, arFigureSizeMultiplier } from './arFigureDisplaySize';
 import { resolveLearnerExamOptions } from './resolveLearnerExamOptions';
 
 interface AnalyticalReasoningQuestionBodyProps {
@@ -45,19 +46,33 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
         : question.option_ids,
     assets: question.assets,
     optionFigure: question.option_figure,
+    displayMode: question.display_mode,
   });
   const optionIds =
     resolved.optionTexts.length >= 2 ? resolved.optionTexts : [...OPTION_LETTERS];
   const optionFigure = resolved.optionFigure;
   const stemMarkdown = resolved.stemMarkdown;
-  const pickOnFigure = resolved.pickOnFigure;
-  const letterKeysOnly = !pickOnFigure && !optionIds.some((t, i) => {
-    const letter = String.fromCharCode(65 + i);
-    return String(t ?? '').trim() && !isSameAsLetter(t, letter);
-  });
-  const showFigureOptions = pickOnFigure || letterKeysOnly;
+  // Bank display_mode only — no heuristic fallback when mode is missing.
+  const mode = resolved.displayMode;
+  const showFigureOptions = mode === 'figure_tiles' ? Boolean(optionFigure) : false;
+  const showLetterButtons =
+    mode === 'letter_buttons' ? !resolved.hasRealOptionText : false;
+  const textOptionsAsGrid2x2 =
+    isArTextOptionGrid2x2(question.option_layout) ||
+    looksLikeArAsciiGridOptionTexts(optionIds);
   const { layout, slices, stemSlice, includesStemContent, naturalWidth, naturalHeight } =
-    useArOptionFigureMeta(optionFigure?.src, optionIds.length);
+    useArOptionFigureMeta(optionFigure?.src, optionIds.length, question.option_crops);
+  const optionDisplaySize = question.option_display_size ?? null;
+  const stemDisplaySize = question.stem_display_size ?? null;
+  const stemCaps = scaleExamFigureCaps(
+    EXAM_FIGURE_MAX_WIDTH_PX,
+    EXAM_FIGURE_MAX_HEIGHT_PX,
+    stemDisplaySize
+  );
+  const optionTextScale = arFigureSizeMultiplier(optionDisplaySize);
+  const stemHasFigureMarkup = /!\[[^\]]*]\(|<img\b/i.test(stemMarkdown);
+  const showStemCrop =
+    Boolean(optionFigure && stemSlice) && (showFigureOptions || !stemHasFigureMarkup);
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -76,8 +91,13 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
         {hideQuestionTotal ? `Question ${questionNumber}` : `Question ${questionNumber} of ${totalQuestions}`}
       </Typography>
       <Box sx={{ mb: 2.5 }}>
-        <ExamMarkdown maxFigureHeight={EXAM_FIGURE_MAX_HEIGHT_PX}>{stemMarkdown}</ExamMarkdown>
-        {includesStemContent && optionFigure && stemSlice ? (
+        <ExamMarkdown
+          maxFigureWidth={stemCaps.maxWidth}
+          maxFigureHeight={stemCaps.maxHeight}
+        >
+          {stemMarkdown}
+        </ExamMarkdown>
+        {showStemCrop && includesStemContent && optionFigure && stemSlice ? (
           <Box sx={{ mt: 1.5 }}>
             <ArOptionFigureSlice
               figure={optionFigure}
@@ -88,6 +108,8 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
               naturalWidth={naturalWidth}
               naturalHeight={naturalHeight}
               fit="stem"
+              optionDisplaySize={optionDisplaySize}
+              stemDisplaySize={stemDisplaySize}
             />
           </Box>
         ) : null}
@@ -155,23 +177,27 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
                       {letter}
                     </Typography>
                   </Box>
-                  <ArOptionFigureSlice
-                    figure={optionFigure}
-                    index={idx}
-                    optionCount={optionIds.length}
-                    layout={layout}
-                    slice={slices?.[idx]}
-                    naturalWidth={naturalWidth}
-                    naturalHeight={naturalHeight}
-                    fit={includesStemContent ? 'crop' : 'option'}
-                  />
+                  <Box sx={{ minWidth: 0, maxWidth: '100%', display: 'flex' }}>
+                    <ArOptionFigureSlice
+                      figure={optionFigure}
+                      index={idx}
+                      optionCount={optionIds.length}
+                      layout={layout}
+                      slice={slices?.[idx]}
+                      naturalWidth={naturalWidth}
+                      naturalHeight={naturalHeight}
+                      fit={includesStemContent ? 'crop' : 'option'}
+                      optionDisplaySize={optionDisplaySize}
+                      stemDisplaySize={stemDisplaySize}
+                    />
+                  </Box>
                 </Box>
               );
             })}
           </Box>
           {footer}
         </>
-      ) : letterKeysOnly ? (
+      ) : showLetterButtons ? (
         <>
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: footer ? 1.5 : 0 }}>
             {optionIds.map((label, idx) => {
@@ -218,6 +244,17 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
                 if (selectionLocked) return;
                 onSelectOption(parseInt(e.target.value, 10));
               }}
+              sx={
+                textOptionsAsGrid2x2
+                  ? {
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                      alignItems: 'stretch',
+                      gap: 1.25,
+                      mb: footer ? 1.5 : 0,
+                    }
+                  : undefined
+              }
             >
               {optionIds.map((label, idx) => {
                 const selected = selectedOption === idx;
@@ -259,11 +296,17 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
                         </Box>
                         {showText ? (
                           <Typography
+                            component={String(label).includes('\n') ? 'pre' : 'span'}
                             sx={{
+                              m: 0,
                               color: selected ? '#0f172a' : '#475569',
-                              fontSize: '0.92rem',
+                              fontSize: `${0.92 * optionTextScale}rem`,
                               fontWeight: selected ? 700 : 500,
-                              lineHeight: 1.45,
+                              lineHeight: String(label).includes('\n') ? 1.35 : 1.45,
+                              fontFamily: String(label).includes('\n')
+                                ? 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace'
+                                : 'inherit',
+                              whiteSpace: String(label).includes('\n') ? 'pre' : 'normal',
                             }}
                           >
                             {label}
@@ -273,13 +316,14 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
                     }
                     sx={{
                       m: 0,
-                      mb: 1.25,
+                      mb: textOptionsAsGrid2x2 ? 0 : 1.25,
                       p: '14px 16px',
                       borderRadius: 2,
                       border: `2px solid ${rowBorder}`,
                       bgcolor: rowBg,
                       cursor: selectionLocked ? 'default' : 'pointer',
                       alignItems: 'center',
+                      height: textOptionsAsGrid2x2 ? '100%' : undefined,
                       transition: 'all 0.15s',
                       '&:hover': selectionLocked ? {} : { borderColor: `${primary}99` },
                     }}

@@ -2,14 +2,9 @@ import { cleanLearnerFacingExamMarkup } from './cleanLearnerFacingExamMarkup';
 import { resolveExamFigureSrc } from './examFigureSrc';
 import { mergeExamPromptMarkdown } from './ExamMarkdown';
 import {
-  allLetterKeyOptions,
   isPlaceholderOptionText,
-  looksLikeArOptionFigureHint,
   optionChoicesFromStimulus,
-  optionFigureFromAssets,
   splitArImageBySrc,
-  splitArOptionFigure,
-  splitLastArImageAsOptionFigure,
   splitLearnerExamChoices,
   type ArOptionFigureRef,
 } from './arOptionFigureModel';
@@ -18,13 +13,30 @@ function stripOptionLetterPrefix(option: string): string {
   return String(option ?? '').replace(/^[A-D][.)]\s+/i, '').trim();
 }
 
+/** Drop markdown code spans bank authors wrap around symbol rows (`▲ △ …`). */
+function stripWrappingCodeFence(option: string): string {
+  const t = String(option ?? '').trim();
+  const m = t.match(/^`([^`]+)`$/);
+  return m ? m[1].trim() : t;
+}
+
+function cleanOptionText(option: string): string {
+  return stripWrappingCodeFence(
+    stripOptionLetterPrefix(cleanLearnerFacingExamMarkup(option))
+  );
+}
+
 function hasRealChoiceText(texts: Array<string | undefined> | null | undefined): boolean {
   return Boolean(texts?.some((t, i) => t && !isPlaceholderOptionText(t, i)));
 }
 
-function looksLikeStoredOptionFigure(fig: { src: string; alt?: string } | null): boolean {
-  if (!fig) return false;
-  return looksLikeArOptionFigureHint(fig.src, fig.alt ?? '');
+function sameAssetPath(a: string, b: string): boolean {
+  const fileOf = (p: string) =>
+    p.trim().split('?')[0].split('#')[0].replace(/\\/g, '/').split('/').pop() || '';
+  const na = a.trim();
+  const nb = b.trim();
+  if (!na || !nb) return false;
+  return na === nb || fileOf(na) === fileOf(nb);
 }
 
 function assetAlreadyReferenced(markdown: string, path: string): boolean {
@@ -36,14 +48,17 @@ function assetAlreadyReferenced(markdown: string, path: string): boolean {
 
 function stemAssetMarkdown(
   assets: Array<{ path?: string; alt?: string }> | null | undefined,
-  existingMarkdown: string
+  existingMarkdown: string,
+  optionFigureSrc: string | null
 ): string {
   if (!assets?.length) return '';
   return assets
     .filter((asset) => {
       const path = asset.path?.trim();
       if (!path || assetAlreadyReferenced(existingMarkdown, path)) return false;
-      return !looksLikeStoredOptionFigure({ src: path, alt: asset.alt ?? '' });
+      // Skip the bank's explicit option figure — do not re-inject it into the stem.
+      if (optionFigureSrc && sameAssetPath(path, optionFigureSrc)) return false;
+      return true;
     })
     .map((asset) => `![${asset.alt ?? 'Question figure'}](${asset.path})`)
     .join('\n\n');
@@ -55,11 +70,12 @@ export type ResolvedLearnerExamOptions = {
   optionTexts: string[];
   pickOnFigure: boolean;
   hasRealOptionText: boolean;
+  displayMode: 'figure_tiles' | 'letter_buttons' | 'text_options' | null;
 };
 
 /**
  * Shared option/stem resolution for student exams, item bank, analytics, and reports.
- * New bank items that use A–D lists, option figures, or option tables go through this path.
+ * Bank fields are the source of truth: `display_mode` + `option_figure` (no filename heuristics).
  */
 export function resolveLearnerExamOptions(input: {
   markdown?: string | null;
@@ -68,33 +84,32 @@ export function resolveLearnerExamOptions(input: {
   bankOptions?: string[] | null;
   assets?: Array<{ path?: string; alt?: string }> | null;
   optionFigure?: { src: string; alt?: string } | null;
+  displayMode?: 'figure_tiles' | 'letter_buttons' | 'text_options' | null;
 }): ResolvedLearnerExamOptions {
   const rawPrompt = input.markdown ?? '';
   const merged = mergeExamPromptMarkdown(rawPrompt, input.stimulus, input.stimulusType);
-  const assetMarkdown = stemAssetMarkdown(input.assets, merged);
-  const combined = cleanLearnerFacingExamMarkup(
-    assetMarkdown ? `${merged}\n\n${assetMarkdown}` : merged
-  );
-  const splitFig = splitArOptionFigure(combined);
-  const fromAssets = optionFigureFromAssets(input.assets);
   const storedFig = input.optionFigure?.src
     ? { src: input.optionFigure.src, alt: input.optionFigure.alt ?? '' }
     : null;
-  const trustedStoredFig = looksLikeStoredOptionFigure(storedFig) ? storedFig : null;
-  let optionFigureRaw = trustedStoredFig ?? splitFig.optionFigure ?? fromAssets;
+  const assetMarkdown = stemAssetMarkdown(input.assets, merged, storedFig?.src ?? null);
+  const combined = cleanLearnerFacingExamMarkup(
+    assetMarkdown ? `${merged}\n\n${assetMarkdown}` : merged
+  );
+  const displayMode = input.displayMode ?? null;
+  // text_options: keep the full markdown figure in the stem. figure_tiles: peel
+  // the bank's option_figure out of the stem. Never invent an option figure.
+  const peelOptionFigure = displayMode === 'figure_tiles' && Boolean(storedFig?.src);
   let withoutFigure = combined;
-  if (optionFigureRaw?.src) {
-    const splitBySrc = splitArImageBySrc(combined, optionFigureRaw.src);
+  if (peelOptionFigure && storedFig?.src) {
+    const splitBySrc = splitArImageBySrc(combined, storedFig.src);
     if (splitBySrc.optionFigure) {
       withoutFigure = splitBySrc.stemMarkdown;
-    } else if (splitFig.optionFigure) {
-      withoutFigure = splitFig.stemMarkdown;
     }
   }
-  let splitChoices = splitLearnerExamChoices(withoutFigure);
+  const splitChoices = splitLearnerExamChoices(withoutFigure);
   const fromStimulus = optionChoicesFromStimulus(input.stimulus);
   const bank = (input.bankOptions ?? []).map((t, i) => {
-    const cleaned = stripOptionLetterPrefix(cleanLearnerFacingExamMarkup(t));
+    const cleaned = cleanOptionText(t);
     return cleaned && !isPlaceholderOptionText(cleaned, i) ? cleaned : '';
   });
   const embedded = hasRealChoiceText(splitChoices.choices)
@@ -103,27 +118,19 @@ export function resolveLearnerExamOptions(input: {
   const count = Math.max(bank.length, embedded?.length ?? 0, 2);
   const optionTexts = Array.from({ length: count }, (_, i) => {
     if (bank[i]) return bank[i];
-    return stripOptionLetterPrefix(cleanLearnerFacingExamMarkup(embedded?.[i] || ''));
+    return cleanOptionText(embedded?.[i] || '');
   });
   const realText = hasRealChoiceText(optionTexts);
-  const bankKeysOnly = allLetterKeyOptions(
-    (input.bankOptions?.length ? input.bankOptions : optionTexts).map(
-      (t, i) => t || String.fromCharCode(65 + i)
-    )
-  );
-  if (!optionFigureRaw && !realText && bankKeysOnly) {
-    const fallbackFig = splitLastArImageAsOptionFigure(combined);
-    if (fallbackFig.optionFigure) {
-      optionFigureRaw = fallbackFig.optionFigure;
-      withoutFigure = fallbackFig.stemMarkdown;
-      splitChoices = splitLearnerExamChoices(withoutFigure);
-    }
-  }
-  const optionFigure = optionFigureRaw
-    ? { ...optionFigureRaw, src: resolveExamFigureSrc(optionFigureRaw.src) }
-    : null;
-  const pickOnFigure = Boolean(optionFigure && !realText && bankKeysOnly);
-  const stemMarkdown = realText || pickOnFigure ? splitChoices.stemMarkdown : withoutFigure;
+  const optionFigure =
+    displayMode === 'figure_tiles' && storedFig
+      ? { ...storedFig, src: resolveExamFigureSrc(storedFig.src) }
+      : null;
+  const pickOnFigure = displayMode === 'figure_tiles' && Boolean(optionFigure);
+
+  // Always drop an extracted A–D list from the stem — including placeholder-only
+  // labels like "Cover A" / "Diagram B". Leaving them in shows a redundant
+  // bullet list under figures or ascii option panels (IF10 tray covers, etc.).
+  const stemMarkdown = splitChoices.choices ? splitChoices.stemMarkdown : withoutFigure;
 
   return {
     stemMarkdown,
@@ -131,6 +138,7 @@ export function resolveLearnerExamOptions(input: {
     optionTexts,
     pickOnFigure,
     hasRealOptionText: realText,
+    displayMode,
   };
 }
 

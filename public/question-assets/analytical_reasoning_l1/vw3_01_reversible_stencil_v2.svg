@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="620" viewBox="0 0 1100 620" role="img" aria-labelledby="title desc">
+  <title id="title">Test card and four stencil options</title>
+  <desc id="desc">A centered three-by-three test card has stars at upper-left and center and a circle at lower-left. Below it are four three-by-three stencil options, each with four openings and five solid-metal spaces.</desc>
+  <rect width="1100" height="620" fill="#ffffff"/>
+  <style>
+    .title{font:700 25px Arial,sans-serif;fill:#24334b;text-anchor:middle}
+    .label{font:700 21px Arial,sans-serif;fill:#24334b}
+    .note{font:17px Arial,sans-serif;fill:#53627a}
+    .cell{fill:#fff;stroke:#66758b;stroke-width:2}
+    .metal{fill:#44536a;stroke:#26354d;stroke-width:2}
+    .open{fill:#fff;stroke:#26354d;stroke-width:2}
+    .mark{font:32px Arial,sans-serif;fill:#17243a;text-anchor:middle;dominant-baseline:middle}
+  </style>
+
+  <text x="550" y="38" class="title">TEST CARD</text>
+  <g transform="translate(460 60)">
+    <path d="M0 0h180v180H0zM60 0v180M120 0v180M0 60h180M0 120h180" class="cell"/>
+    <text x="30" y="30" class="mark">★</text>
+    <text x="90" y="90" class="mark">★</text>
+    <text x="30" y="150" class="mark">●</text>
+  </g>
+
+  <text x="550" y="300" class="title">STENCIL OPTIONS</text>
+
+  <!-- A: openings TL, ML, C, BM -->
+  <text x="46" y="352" class="label">A</text>
+  <g transform="translate(75 320)">
+    <rect width="54" height="54" x="0" y="0" class="open"/><rect width="54" height="54" x="54" y="0" class="metal"/><rect width="54" height="54" x="108" y="0" class="metal"/>
+    <rect width="54" height="54" x="0" y="54" class="open"/><rect width="54" height="54" x="54" y="54" class="open"/><rect width="54" height="54" x="108" y="54" class="metal"/>
+    <rect width="54" height="54" x="0" y="108" class="metal"/><rect width="54" height="54" x="54" y="108" class="open"/><rect width="54" height="54" x="108" y="108" class="metal"/>
+  </g>
+
+  <!-- B: openings TR, C, MR, BM -->
+  <text x="316" y="352" class="label">B</text>
+  <g transform="translate(345 320)">
+    <rect width="54" height="54" x="0" y="0" class="metal"/><rect width="54" height="54" x="54" y="0" class="metal"/><rect width="54" height="54" x="108" y="0" class="open"/>
+    <rect width="54" height="54" x="0" y="54" class="metal"/><rect width="54" height="54" x="54" y="54" class="open"/><rect width="54" height="54" x="108" y="54" class="open"/>
+    <rect width="54" height="54" x="0" y="108" class="metal"/><rect width="54" height="54" x="54" y="108" class="open"/><rect width="54" height="54" x="108" y="108" class="metal"/>
+  </g>
+
+  <!-- C: openings TL, TR, ML, C -->
+  <text x="586" y="352" class="label">C</text>
+  <g transform="translate(615 320)">
+    <rect width="54" height="54" x="0" y="0" class="open"/><rect width="54" height="54" x="54" y="0" class="metal"/><rect width="54" height="54" x="108" y="0" class="open"/>
+    <rect width="54" height="54" x="0" y="54" class="open"/><rect width="54" height="54" x="54" y="54" class="open"/><rect width="54" height="54" x="108" y="54" class="metal"/>
+    <rect width="54" height="54" x="0" y="108" class="metal"/><rect width="54" height="54" x="54" y="108" class="metal"/><rect width="54" height="54" x="108" y="108" class="metal"/>
+  </g>
+
+  <!-- D: openings TL, TR, ML, MR -->
+  <text x="856" y="352" class="label">D</text>
+  <g transform="translate(885 320)">
+    <rect width="54" height="54" x="0" y="0" class="open"/><rect width="54" height="54" x="54" y="0" class="metal"/><rect width="54" height="54" x="108" y="0" class="open"/>
+    <rect width="54" height="54" x="0" y="54" class="open"/><rect width="54" height="54" x="54" y="54" class="metal"/><rect width="54" height="54" x="108" y="54" class="open"/>
+    <rect width="54" height="54" x="0" y="108" class="metal"/><rect width="54" height="54" x="54" y="108" class="metal"/><rect width="54" height="54" x="108" y="108" class="metal"/>
+  </g>
+
+  <rect x="430" y="555" width="20" height="20" class="open"/><text x="460" y="571" class="note">opening</text>
+  <rect x="565" y="555" width="20" height="20" class="metal"/><text x="595" y="571" class="note">solid metal</text>
+</svg>

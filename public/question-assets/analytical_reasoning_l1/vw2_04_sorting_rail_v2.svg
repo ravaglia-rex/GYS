@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="560" viewBox="0 0 1000 560" role="img" aria-labelledby="title desc">
+  <title id="title">Four states of six cards on a sorting rail</title>
+  <desc id="desc">State 1 cards triangle, hollow circle, square, hollow triangle, circle, hollow square with a right-pointing divider between cards 3 and 4. State 2 has cards triangle, hollow circle, hollow triangle, square, circle, hollow square with the divider between 4 and 5 pointing right. State 3 has the same order as State 2 with the divider between 3 and 4 pointing left. State 4 has triangle, hollow circle, circle, hollow triangle, square, hollow square with the divider between 2 and 3 pointing left.</desc>
+  <style>
+    .rail{stroke:#8290a2;stroke-width:7;stroke-linecap:round}
+    .card{fill:#fff;stroke:#263b58;stroke-width:3}
+    .sym{font:700 39px "DejaVu Sans",sans-serif;fill:#243a57;text-anchor:middle;dominant-baseline:middle}
+    .state{font:700 21px sans-serif;fill:#243a57}
+    .divider{stroke:#b34f2c;stroke-width:7;stroke-linecap:round}
+    .direction{stroke:#b34f2c;stroke-width:5;stroke-linecap:round;fill:none}
+    .note{font:600 17px sans-serif;fill:#607087}
+  </style>
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#b34f2c"/></marker>
+    <g id="slot"><rect class="card" width="104" height="74" rx="8"/></g>
+    <g id="divider-right"><line class="divider" x1="0" y1="0" x2="0" y2="92"/><line class="direction" x1="0" y1="0" x2="38" y2="0" marker-end="url(#arrowhead)"/></g>
+    <g id="divider-left"><line class="divider" x1="0" y1="0" x2="0" y2="92"/><line class="direction" x1="0" y1="0" x2="-38" y2="0" marker-end="url(#arrowhead)"/></g>
+  </defs>
+  <rect width="1000" height="560" fill="#fff"/>
+  <text class="note" x="170" y="32">The arrow attached to the divider shows its direction of travel.</text>
+
+  <g transform="translate(90 72)"><text class="state" x="0" y="47">STATE 1</text><line class="rail" x1="145" y1="78" x2="865" y2="78"/><g transform="translate(145 9)"><use href="#slot"/><text class="sym" x="52" y="39">▲</text></g><g transform="translate(255 9)"><use href="#slot"/><text class="sym" x="52" y="39">○</text></g><g transform="translate(365 9)"><use href="#slot"/><text class="sym" x="52" y="39">■</text></g><g transform="translate(475 9)"><use href="#slot"/><text class="sym" x="52" y="39">△</text></g><g transform="translate(585 9)"><use href="#slot"/><text class="sym" x="52" y="39">●</text></g><g transform="translate(695 9)"><use href="#slot"/><text class="sym" x="52" y="39">□</text></g><g transform="translate(472 0)"><use href="#divider-right"/></g></g>
+  <g transform="translate(90 190)"><text class="state" x="0" y="47">STATE 2</text><line class="rail" x1="145" y1="78" x2="865" y2="78"/><g transform="translate(145 9)"><use href="#slot"/><text class="sym" x="52" y="39">▲</text></g><g transform="translate(255 9)"><use href="#slot"/><text class="sym" x="52" y="39">○</text></g><g transform="translate(365 9)"><use href="#slot"/><text class="sym" x="52" y="39">△</text></g><g transform="translate(475 9)"><use href="#slot"/><text class="sym" x="52" y="39">■</text></g><g transform="translate(585 9)"><use href="#slot"/><text class="sym" x="52" y="39">●</text></g><g transform="translate(695 9)"><use href="#slot"/><text class="sym" x="52" y="39">□</text></g><g transform="translate(582 0)"><use href="#divider-right"/></g></g>
+  <g transform="translate(90 308)"><text class="state" x="0" y="47">STATE 3</text><line class="rail" x1="145" y1="78" x2="865" y2="78"/><g transform="translate(145 9)"><use href="#slot"/><text class="sym" x="52" y="39">▲</text></g><g transform="translate(255 9)"><use href="#slot"/><text class="sym" x="52" y="39">○</text></g><g transform="translate(365 9)"><use href="#slot"/><text class="sym" x="52" y="39">△</text></g><g transform="translate(475 9)"><use href="#slot"/><text class="sym" x="52" y="39">●</text></g><g transform="translate(585 9)"><use href="#slot"/><text class="sym" x="52" y="39">■</text></g><g transform="translate(695 9)"><use href="#slot"/><text class="sym" x="52" y="39">□</text></g><g transform="translate(472 0)"><use href="#divider-left"/></g></g>
+  <g transform="translate(90 426)"><text class="state" x="0" y="47">STATE 4</text><line class="rail" x1="145" y1="78" x2="865" y2="78"/><g transform="translate(145 9)"><use href="#slot"/><text class="sym" x="52" y="39">▲</text></g><g transform="translate(255 9)"><use href="#slot"/><text class="sym" x="52" y="39">○</text></g><g transform="translate(365 9)"><use href="#slot"/><text class="sym" x="52" y="39">●</text></g><g transform="translate(475 9)"><use href="#slot"/><text class="sym" x="52" y="39">△</text></g><g transform="translate(585 9)"><use href="#slot"/><text class="sym" x="52" y="39">■</text></g><g transform="translate(695 9)"><use href="#slot"/><text class="sym" x="52" y="39">□</text></g><g transform="translate(362 0)"><use href="#divider-left"/></g></g>
+</svg>

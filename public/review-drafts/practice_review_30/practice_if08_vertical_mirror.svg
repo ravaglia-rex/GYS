@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="500" viewBox="0 0 980 500" role="img" aria-labelledby="title desc">
+  <title id="title">Card beside a vertical mirror and four possible reflections</title>
+  <desc id="desc">The starting three-by-three card has a triangle at upper-left, a right arrow at center, and a hollow square at lower-right. A vertical mirror is to the right. Four possible reflected cards are labelled A through D.</desc>
+  <style>.grid{fill:#fff;stroke:#263b53;stroke-width:3}.line{stroke:#9aa9b8;stroke-width:2}.mirror{stroke:#4c8cbf;stroke-width:8}.label{font:700 23px Arial,sans-serif;fill:#1d3550;text-anchor:middle}.shape{font:700 30px Arial,sans-serif;fill:#17283e;text-anchor:middle;dominant-baseline:middle}.arrow{stroke:#17283e;stroke-width:5;stroke-linecap:round;stroke-linejoin:round;fill:none}.caption{font:600 18px Arial,sans-serif;fill:#53687d;text-anchor:middle}</style>
+  <rect width="980" height="500" fill="#fff"/>
+  <text class="caption" x="185" y="30">STARTING CARD</text><text class="caption" x="365" y="30">MIRROR</text>
+  <g transform="translate(80 55)"><rect class="grid" width="210" height="210"/><path class="line" d="M70 0V210M140 0V210M0 70H210M0 140H210"/><text class="shape" x="35" y="36">▲</text><text class="shape" x="175" y="176">□</text><path class="arrow" d="M86 105h38m-13-13 13 13-13 13"/></g>
+  <line class="mirror" x1="365" y1="50" x2="365" y2="270"/>
+  <text class="caption" x="490" y="320">POSSIBLE MIRROR IMAGES</text>
+  <!-- A: positions mirrored but arrow not mirrored. -->
+  <g transform="translate(30 350) scale(.48)"><rect class="grid" width="210" height="210"/><path class="line" d="M70 0V210M140 0V210M0 70H210M0 140H210"/><text class="shape" x="175" y="36">▲</text><text class="shape" x="35" y="176">□</text><path class="arrow" d="M86 105h38m-13-13 13 13-13 13"/></g><text class="label" x="80" y="485">A</text>
+  <!-- B: correct vertical reflection. -->
+  <g transform="translate(270 350) scale(.48)"><rect class="grid" width="210" height="210"/><path class="line" d="M70 0V210M140 0V210M0 70H210M0 140H210"/><text class="shape" x="175" y="36">▲</text><text class="shape" x="35" y="176">□</text><path class="arrow" d="M124 105H86m13-13-13 13 13 13"/></g><text class="label" x="320" y="485">B</text>
+  <!-- C: horizontal reflection. -->
+  <g transform="translate(510 350) scale(.48)"><rect class="grid" width="210" height="210"/><path class="line" d="M70 0V210M140 0V210M0 70H210M0 140H210"/><text class="shape" x="35" y="176">▲</text><text class="shape" x="175" y="36">□</text><path class="arrow" d="M86 105h38m-13-13 13 13-13 13"/></g><text class="label" x="560" y="485">C</text>
+  <!-- D: 180-degree turn. -->
+  <g transform="translate(750 350) scale(.48)"><rect class="grid" width="210" height="210"/><path class="line" d="M70 0V210M140 0V210M0 70H210M0 140H210"/><text class="shape" x="175" y="176">▲</text><text class="shape" x="35" y="36">□</text><path class="arrow" d="M124 105H86m13-13-13 13 13 13"/></g><text class="label" x="800" y="485">D</text>
+</svg>

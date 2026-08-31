@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="430" viewBox="0 0 680 430" role="img" aria-labelledby="title desc">
+  <title id="title">Task requirements table</title>
+  <desc id="desc">K and P have no requirements. J requires K. R requires P. M requires J and R. N requires J. L requires M and N.</desc>
+  <style>
+    .outer{fill:#fff;stroke:#263b53;stroke-width:3}.head{fill:#263b53}.h{fill:#fff;font:700 20px Arial,sans-serif;text-anchor:middle}.row1{fill:#fff}.row2{fill:#f2f6fa}.line{stroke:#aeb9c6;stroke-width:2}.task{fill:#182a40;font:700 24px Arial,sans-serif;text-anchor:middle;dominant-baseline:middle}.req{fill:#263b53;font:600 21px Arial,sans-serif;text-anchor:middle;dominant-baseline:middle}.note{fill:#5b6d82;font:600 16px Arial,sans-serif;text-anchor:middle}
+  </style>
+  <rect width="680" height="430" fill="#fff"/>
+  <rect class="outer" x="35" y="20" width="610" height="365" rx="10"/>
+  <path class="head" d="M45 20h590a10 10 0 0 1 10 10v45H35V30a10 10 0 0 1 10-10z"/>
+  <text class="h" x="155" y="56">TASK</text><text class="h" x="450" y="56">REQUIREMENTS</text>
+  <rect class="row2" x="37" y="75" width="606" height="44"/><rect class="row1" x="37" y="119" width="606" height="44"/>
+  <rect class="row2" x="37" y="163" width="606" height="44"/><rect class="row1" x="37" y="207" width="606" height="44"/>
+  <rect class="row2" x="37" y="251" width="606" height="44"/><rect class="row1" x="37" y="295" width="606" height="44"/>
+  <rect class="row2" x="37" y="339" width="606" height="44"/>
+  <path class="line" d="M265 75v308M37 119h606M37 163h606M37 207h606M37 251h606M37 295h606M37 339h606"/>
+  <g class="task"><text x="155" y="98">K</text><text x="155" y="142">P</text><text x="155" y="186">J</text><text x="155" y="230">R</text><text x="155" y="274">M</text><text x="155" y="318">N</text><text x="155" y="362">L</text></g>
+  <g class="req"><text x="450" y="98">None</text><text x="450" y="142">None</text><text x="450" y="186">K</text><text x="450" y="230">P</text><text x="450" y="274">J and R</text><text x="450" y="318">J</text><text x="450" y="362">M and N</text></g>
+  <text class="note" x="340" y="417">“None” means the task is available at the start.</text>
+</svg>

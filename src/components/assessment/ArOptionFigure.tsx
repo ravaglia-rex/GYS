@@ -15,13 +15,23 @@ import {
 } from './arOptionFigureModel';
 
 import { resolveExamFigureSrc } from './examFigureSrc';
-import { lookupSavedOptionFigureCrops } from './arOptionFigureCrops';
+import {
+  sanitizeOptionFigureCrops,
+  type SavedOptionFigureCrops,
+} from './arOptionFigureCrops';
 
 const borderMuted = '#e2e8f0';
 
+/**
+ * Crop / layout meta for option figures.
+ * Learner path: bank `option_crops` only (no FE catalog / SVG parse).
+ * Platform Admin may pass `allowRuntimeFallback` while authoring.
+ */
 export function useArOptionFigureMeta(
   src: string | undefined,
-  optionCount = 4
+  optionCount = 4,
+  bankCrops?: SavedOptionFigureCrops | null,
+  allowRuntimeFallback = false
 ): {
   layout: ArOptionFigureLayout;
   slices: OptionFigureSliceRect[] | null;
@@ -36,7 +46,7 @@ export function useArOptionFigureMeta(
   const [naturalHeight, setNaturalHeight] = useState(0);
   const layoutFromSvgRef = useRef(false);
 
-  const saved = lookupSavedOptionFigureCrops(src);
+  const saved = sanitizeOptionFigureCrops(bankCrops);
 
   useEffect(() => {
     let cancelled = false;
@@ -52,7 +62,7 @@ export function useArOptionFigureMeta(
     setSlices(null);
     setNaturalWidth(0);
     setNaturalHeight(0);
-    if (!src) return undefined;
+    if (!src || !allowRuntimeFallback) return undefined;
     const figureSrc = resolveExamFigureSrc(src);
 
     const applyAspect = () => {
@@ -99,9 +109,8 @@ export function useArOptionFigureMeta(
     return () => {
       cancelled = true;
     };
-  }, [src, optionCount, saved]);
+  }, [src, optionCount, saved, allowRuntimeFallback]);
 
-  const stemSlice = saved?.stemSlice ?? optionFigureStemSliceFromOptionSlices(slices);
   if (saved) {
     return {
       layout: saved.layout,
@@ -112,9 +121,12 @@ export function useArOptionFigureMeta(
       naturalHeight: saved.naturalHeight,
     };
   }
+  const stemSlice = allowRuntimeFallback
+    ? optionFigureStemSliceFromOptionSlices(slices)
+    : null;
   return {
     layout,
-    slices,
+    slices: allowRuntimeFallback ? slices : null,
     stemSlice,
     includesStemContent: Boolean(stemSlice),
     naturalWidth,
@@ -123,7 +135,7 @@ export function useArOptionFigureMeta(
 }
 
 export function useArOptionFigureLayout(src: string | undefined): ArOptionFigureLayout {
-  return useArOptionFigureMeta(src).layout;
+  return useArOptionFigureMeta(src, 4, null, true).layout;
 }
 
 export const ArOptionFigureSlice: React.FC<{
@@ -142,6 +154,9 @@ export const ArOptionFigureSlice: React.FC<{
    * crop. That keeps option glyphs on the same scale as the stem figure.
    */
   fit?: 'option' | 'exam' | 'stem' | 'crop';
+  /** Explicit bank size; falls back to filename exception list when unset. */
+  optionDisplaySize?: 'small' | 'medium' | 'large' | 'normal' | null;
+  stemDisplaySize?: 'small' | 'medium' | 'large' | 'normal' | null;
 }> = ({
   figure,
   index,
@@ -151,6 +166,8 @@ export const ArOptionFigureSlice: React.FC<{
   naturalWidth = 0,
   naturalHeight = 0,
   fit = 'option',
+  optionDisplaySize = null,
+  stemDisplaySize = null,
 }) => {
   const win = optionFigureSliceWindow(layout, index, optionCount);
   const crop = slice ?? {
@@ -170,35 +187,53 @@ export const ArOptionFigureSlice: React.FC<{
     figH,
     fit,
     slice,
-    figure.src
+    figure.src,
+    optionDisplaySize,
+    stemDisplaySize
   );
   const imgSrc = resolveExamFigureSrc(figure.src);
+  // Prefer an explicit pixel width. `min(100%, Npx)` collapses to 0 inside
+  // shrink-wrapped flex children (AdminExamOptionRow), which made Cover A–D
+  // figure slices invisible while the stem crop (block layout) still showed.
+  const boxWidth = Math.max(sliceWidth, 1);
+  const aspectPadPct = (Math.max(sliceHeight, 1) / boxWidth) * 100;
   return (
     <Box
       sx={{
-        flex: '0 0 auto',
-        width: sliceWidth,
-        height: sliceHeight,
+        flex: '0 1 auto',
+        width: boxWidth,
+        minWidth: 0,
         maxWidth: '100%',
-        overflow: 'hidden',
-        position: 'relative',
-        lineHeight: 0,
       }}
     >
       <Box
-        component="img"
-        src={imgSrc}
-        alt={figure.alt || `Option ${String.fromCharCode(65 + index)}`}
         sx={{
-          position: 'absolute',
-          display: 'block',
-          width: `${10000 / Math.max(crop.wPct, 0.01)}%`,
-          height: `${10000 / Math.max(crop.hPct, 0.01)}%`,
-          left: `${-(crop.xPct / Math.max(crop.wPct, 0.01)) * 100}%`,
-          top: `${-(crop.yPct / Math.max(crop.hPct, 0.01)) * 100}%`,
-          maxWidth: 'none',
+          position: 'relative',
+          width: '100%',
+          overflow: 'hidden',
+          lineHeight: 0,
+          '&::before': {
+            content: '""',
+            display: 'block',
+            paddingTop: `${aspectPadPct}%`,
+          },
         }}
-      />
+      >
+        <Box
+          component="img"
+          src={imgSrc}
+          alt={figure.alt || `Option ${String.fromCharCode(65 + index)}`}
+          sx={{
+            position: 'absolute',
+            display: 'block',
+            width: `${10000 / Math.max(crop.wPct, 0.01)}%`,
+            height: `${10000 / Math.max(crop.hPct, 0.01)}%`,
+            left: `${-(crop.xPct / Math.max(crop.wPct, 0.01)) * 100}%`,
+            top: `${-(crop.yPct / Math.max(crop.hPct, 0.01)) * 100}%`,
+            maxWidth: 'none',
+          }}
+        />
+      </Box>
     </Box>
   );
 };

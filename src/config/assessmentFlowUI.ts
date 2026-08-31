@@ -14,6 +14,7 @@ export type BeforeBeginIconKey =
   | 'block'
   | 'bolt'
   | 'chart'
+  | 'star'
   | 'headphones'
   | 'mic'
   | 'seat'
@@ -72,12 +73,17 @@ const NO_SKIP_BEFORE: BeforeBeginItem = {
   text: 'You cannot skip questions. If you are stuck, pick the closest answer you can and go to the next question.',
 };
 
+const WEIGHTED_DIFFICULTY_BEFORE: BeforeBeginItem = {
+  icon: 'star',
+  text: 'Harder questions are worth more points. Try to answer every question rather than skipping.',
+};
+
 const analyticalReasoningBefore: BeforeBeginItem[] = [
   FORWARD_ONLY_BEFORE,
   { icon: 'clock', text: 'You have a fixed time once you start - the timer cannot be paused.' },
-  { icon: 'block', text: 'No calculators, notes, or outside help. You can use pen and paper to scribble.' },
-  { icon: 'chart', text: 'National tier and percentile update weekly on Monday.' },
+  { icon: 'block', text: 'No calculators, notes, or outside help is allowed. You can use pen and paper to scribble.' },
   ONE_SITTING_BEFORE,
+  WEIGHTED_DIFFICULTY_BEFORE,
   NO_SKIP_BEFORE,
 ];
 
@@ -142,6 +148,7 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
       { icon: 'phone', text: 'Minimize distractions; you will need focused reading.' },
       { icon: 'block', text: 'No dictionaries, translators, or outside help.' },
       ONE_SITTING_BEFORE,
+      WEIGHTED_DIFFICULTY_BEFORE,
       NO_SKIP_BEFORE,
     ],
     theme: 'blue',
@@ -168,7 +175,7 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
       'Problem decomposition',
       'Visual-mathematical patterns',
     ],
-    beforeBegin: analyticalReasoningBefore.filter((b) => b.icon !== 'chart'),
+    beforeBegin: analyticalReasoningBefore,
     theme: 'blue',
     defaultQuestionInteraction: 'visual_mcq',
     useTimer: true,

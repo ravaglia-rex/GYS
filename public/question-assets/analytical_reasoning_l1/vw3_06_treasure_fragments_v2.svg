@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="580" viewBox="0 0 980 580" role="img" aria-labelledby="title desc">
+  <title id="title">Base treasure map and three rotatable fragments</title>
+  <desc id="desc">A seven-by-seven base map and three fragments all use fifty-pixel square cells. The base contains landmarks T and W and four numbered chambers. Fragment A contains B and T. Fragment B contains B, R, and W. Fragment C contains X, W, and R.</desc>
+  <rect width="980" height="650" fill="#faf5e8"/>
+  <style>
+    .title{font:700 25px Georgia,serif;fill:#4f3a25}
+    .lab{font:700 20px Georgia,serif;fill:#4f3a25;text-anchor:middle}
+    .grid{fill:#f4e6c7;stroke:#8a6a42;stroke-width:2}
+    .line{stroke:#b4976f;stroke-width:1}
+    .mark{font:700 22px Georgia,serif;fill:#3e2d1e;text-anchor:middle;dominant-baseline:middle}
+    .note{font:700 20px Georgia,serif;fill:#3e2d1e}
+    .ch{fill:#fff2a6;stroke:#7b5b2e;stroke-width:2}
+    .frag{fill:#ead7ae;stroke:#7d5b36;stroke-width:3;stroke-dasharray:8 5}
+  </style>
+
+  <text x="40" y="42" class="title">BASE MAP</text>
+  <g transform="translate(45 70)">
+    <rect width="350" height="350" class="grid"/>
+    <path d="M50 0v350M100 0v350M150 0v350M200 0v350M250 0v350M300 0v350M0 50h350M0 100h350M0 150h350M0 200h350M0 250h350M0 300h350" class="line"/>
+    <text x="125" y="75" class="mark">T</text>
+    <text x="175" y="175" class="mark">W</text>
+    <rect x="100" y="200" width="50" height="50" class="ch"/><text x="125" y="225" class="mark">1</text>
+    <rect x="200" y="200" width="50" height="50" class="ch"/><text x="225" y="225" class="mark">2</text>
+    <rect x="100" y="300" width="50" height="50" class="ch"/><text x="125" y="325" class="mark">3</text>
+    <rect x="200" y="300" width="50" height="50" class="ch"/><text x="225" y="325" class="mark">4</text>
+  </g>
+
+  <text x="500" y="42" class="title">FRAGMENTS</text>
+
+  <text x="575" y="92" class="lab">Fragment A</text>
+  <g transform="translate(500 110)">
+    <rect width="150" height="50" class="frag"/>
+    <path d="M50 0v50M100 0v50" class="line"/>
+    <text x="25" y="25" class="mark">B</text><text x="125" y="25" class="mark">T</text>
+  </g>
+
+  <text x="800" y="92" class="lab">Fragment B</text>
+  <g transform="translate(725 110)">
+    <rect width="150" height="100" class="frag"/>
+    <path d="M50 0v100M100 0v100M0 50h150" class="line"/>
+    <text x="125" y="25" class="mark">B</text><text x="25" y="75" class="mark">R</text><text x="125" y="75" class="mark">W</text>
+  </g>
+
+  <text x="687.5" y="287" class="lab">Fragment C</text>
+  <g transform="translate(612.5 305)">
+    <rect width="150" height="100" class="frag"/>
+    <path d="M50 0v100M100 0v100M0 50h150" class="line"/>
+    <text x="75" y="25" class="mark">X</text><text x="25" y="75" class="mark">W</text><text x="125" y="75" class="mark">R</text>
+  </g>
+
+  <text x="45" y="500" class="title">LANDMARKS</text>
+  <text x="45" y="540" class="note">T = tower   ·   W = well   ·   B = bridge   ·   R = rock</text>
+</svg>

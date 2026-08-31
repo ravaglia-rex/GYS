@@ -45,7 +45,7 @@ const FILTER_KEYS: OfficialItemBankFilterKey[] = [
   'band',
   'family',
   'mechanic',
-  'has_images',
+  'approved',
   'is_new',
 ];
 
@@ -56,14 +56,14 @@ const FILTER_LABELS: Record<OfficialItemBankFilterKey, string> = {
   family: 'Family',
   subconstruct: 'Subconstruct',
   mechanic: 'Mechanic',
-  has_images: 'Images',
+  approved: 'Approval',
   is_new: 'New',
 };
 
-const IMAGE_FILTER_LABELS: Record<string, string> = {
+const APPROVED_FILTER_LABELS: Record<string, string> = {
   all: 'All',
-  yes: 'With images',
-  no: 'Without images',
+  yes: 'Approved',
+  no: 'Not approved',
 };
 
 const NEW_FILTER_LABELS: Record<string, string> = {
@@ -87,10 +87,20 @@ function ItemBankVirtualList({
   questions,
   loading,
   renderMath = false,
+  examId = null,
+  level = null,
+  canApprove = false,
+  onApprovalChange,
+  onItemUpdated,
 }: {
   questions: OfficialQuestionStatRow[];
   loading: boolean;
   renderMath?: boolean;
+  examId?: string | null;
+  level?: number | null;
+  canApprove?: boolean;
+  onApprovalChange?: (itemId: string, deliveryAuthorized: boolean) => void;
+  onItemUpdated?: (itemId: string, next: OfficialQuestionStatRow) => void;
 }) {
   const [visible, setVisible] = useState(ITEM_BANK_PAGE_SIZE);
   useEffect(() => {
@@ -110,6 +120,13 @@ function ItemBankVirtualList({
           question={q}
           index={qi}
           renderMath={renderMath}
+          examId={examId}
+          level={level}
+          canApprove={canApprove}
+          onApproved={(itemId, deliveryAuthorized) =>
+            onApprovalChange?.(itemId, deliveryAuthorized)
+          }
+          onItemUpdated={onItemUpdated}
         />
       ))}
       {visible < questions.length ? (
@@ -234,6 +251,7 @@ export function PlatformAdminItemBankSection({
     let cancelled = false;
     if (bankKind === 'review') {
       // Fixed Analytical L0 packet — no exam-summary fetch needed.
+      // Drop Official/Practice taxonomy params (e.g. band=L0-S) that empty this packet.
       setSummaries([
         {
           exam_id: 'analytical_reasoning',
@@ -248,8 +266,19 @@ export function PlatformAdminItemBankSection({
         },
       ]);
       setSummariesLoading(false);
-      if (!examId) {
-        setQuery({ exam: 'analytical_reasoning', level: level || 1, filters });
+      const reviewFilters: OfficialItemBankFilters = {};
+      if (filters.approved) reviewFilters.approved = filters.approved;
+      if (filters.is_new) reviewFilters.is_new = filters.is_new;
+      const needsReset =
+        !examId ||
+        level !== 1 ||
+        Boolean(filters.band || filters.strand || filters.instruction_family || filters.family || filters.mechanic);
+      if (needsReset) {
+        setQuery({
+          exam: 'analytical_reasoning',
+          level: 1,
+          filters: reviewFilters,
+        });
       }
       return;
     }
@@ -351,33 +380,38 @@ export function PlatformAdminItemBankSection({
   const facets = bank?.facets;
   const visibleFilterKeys = FILTER_KEYS.filter((key) => {
     if (filters[key]) return true;
-    if (key === 'has_images' || key === 'is_new') return Boolean(bank);
+    if (key === 'approved' || key === 'is_new') return Boolean(bank);
     return (facets?.[key] || []).length > 0;
   });
   const row1FilterKeys = visibleFilterKeys.filter((key) => key === 'strand');
   const row2FilterKeys = visibleFilterKeys.filter((key) => key !== 'strand');
   const questions = useMemo(() => {
-    const rows = bank?.questions || [];
+    let rows = bank?.questions || [];
+    if (filters.approved === 'yes') {
+      rows = rows.filter((q) => q.delivery_authorized === true);
+    } else if (filters.approved === 'no') {
+      rows = rows.filter((q) => q.delivery_authorized !== true);
+    }
     if (!itemIdQuery.trim()) return rows;
     return rows.filter((q) => itemIdMatchesQuery(q.item_id, itemIdQuery));
-  }, [bank, itemIdQuery]);
+  }, [bank, itemIdQuery, filters.approved]);
 
   const renderFilter = (key: OfficialItemBankFilterKey) => {
     const options = facets?.[key] || [];
     const labels: Record<string, string> =
-      key === 'has_images'
-        ? { [ALL_VALUE]: IMAGE_FILTER_LABELS.all }
+      key === 'approved'
+        ? { [ALL_VALUE]: APPROVED_FILTER_LABELS.all }
         : key === 'is_new'
           ? { [ALL_VALUE]: NEW_FILTER_LABELS.all }
           : { [ALL_VALUE]: `All ${FILTER_LABELS[key].toLowerCase()}` };
-    if (key === 'has_images') {
+    if (key === 'approved') {
       const counts = Object.fromEntries(options.map((row) => [row.key, row.count]));
-      for (const imageKey of ['yes', 'no'] as const) {
-        const count = counts[imageKey];
-        labels[imageKey] =
+      for (const approvedKey of ['yes', 'no'] as const) {
+        const count = counts[approvedKey];
+        labels[approvedKey] =
           count != null
-            ? `${IMAGE_FILTER_LABELS[imageKey]} (${count})`
-            : IMAGE_FILTER_LABELS[imageKey];
+            ? `${APPROVED_FILTER_LABELS[approvedKey]} (${count})`
+            : APPROVED_FILTER_LABELS[approvedKey];
       }
     } else if (key === 'is_new') {
       const counts = Object.fromEntries(options.map((row) => [row.key, row.count]));
@@ -410,9 +444,40 @@ export function PlatformAdminItemBankSection({
     );
   };
 
+  const handleApprovalChange = useCallback((itemId: string, deliveryAuthorized: boolean) => {
+    setBank((prev) => {
+      if (!prev) return prev;
+      const questions = prev.questions.map((q) =>
+        q.item_id === itemId ? { ...q, delivery_authorized: deliveryAuthorized } : q
+      );
+      const approvedCount = questions.filter((q) => q.delivery_authorized === true).length;
+      return {
+        ...prev,
+        questions,
+        facets: {
+          ...prev.facets,
+          approved: [
+            { key: 'yes', label: 'Approved', count: approvedCount },
+            { key: 'no', label: 'Not approved', count: questions.length - approvedCount },
+          ],
+        },
+      };
+    });
+  }, []);
+
+  const handleItemUpdated = useCallback((itemId: string, next: OfficialQuestionStatRow) => {
+    setBank((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        questions: prev.questions.map((q) => (q.item_id === itemId ? { ...q, ...next } : q)),
+      };
+    });
+  }, []);
+
   const emptyCopy =
     bankKind === 'review'
-      ? 'No review-draft items for this level/filters. The gold parents packet is Level 1 only.'
+      ? 'No review-draft items for this level/filters. The practice_review_30 packet is Level 1 only.'
       : bankKind === 'practice'
         ? 'No practice items in this exam level for the current filters.'
         : 'No items in this exam level for the current filters.';
@@ -427,8 +492,9 @@ export function PlatformAdminItemBankSection({
 
       {bankKind === 'review' ? (
         <Alert severity="info" sx={{ mb: 2 }}>
-          Admin-only review of PRACTICE_GOLD_PARENTS_STUDENT.md — not in live practice_bank.
-          Figure SVGs were not bundled; stems include screen-reader text instead. No answer key.
+          Admin-only review of practice_review_30_2026-08-28-r1 (10 revised parents + 20
+          expansion candidates) — not in live practice_bank. Bound SVGs render from local
+          review-draft assets. No answer keys (blind review). Activation not authorized.
         </Alert>
       ) : null}
 
@@ -566,10 +632,25 @@ export function PlatformAdminItemBankSection({
               </Typography>
             ) : examId === 'mathematical_reasoning' ? (
               <MathJaxContext version={3} config={EXAM_MATHJAX_CONFIG}>
-                <ItemBankVirtualList questions={questions} loading={loading} renderMath />
+                <ItemBankVirtualList
+                  questions={questions}
+                  loading={loading}
+                  renderMath
+                  examId={examId}
+                  level={level}
+                  canApprove={false}
+                />
               </MathJaxContext>
             ) : (
-              <ItemBankVirtualList questions={questions} loading={loading} />
+              <ItemBankVirtualList
+                questions={questions}
+                loading={loading}
+                examId={examId}
+                level={level}
+                canApprove={bankKind === 'official' && examId === 'analytical_reasoning'}
+                onApprovalChange={handleApprovalChange}
+                onItemUpdated={handleItemUpdated}
+              />
             )}
           </PlatformAdminAnalyticsSection>
         </>

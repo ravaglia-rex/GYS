@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="540" viewBox="0 0 980 540" role="img" aria-labelledby="title desc">
+  <title id="title">An uncovered four-square shape and four possible covers</title>
+  <desc id="desc">The uncovered spaces form an L-shaped group of four squares: three in a vertical line with one square extending right from the bottom. Four possible four-square covers are labelled A through D.</desc>
+  <style>.cell{fill:#f7f9fc;stroke:#8fa0b2;stroke-width:2}.need{fill:#fff0cf;stroke:#9b5b00;stroke-width:3}.piece{fill:#d9ecf8;stroke:#174a78;stroke-width:3}.lab{font:700 24px Arial,sans-serif;fill:#1d3550;text-anchor:middle}.cap{font:600 19px Arial,sans-serif;fill:#53687d;text-anchor:middle}</style>
+  <rect width="980" height="540" fill="#fff"/>
+  <text class="cap" x="245" y="32">UNCOVERED SPACES</text>
+  <g transform="translate(155 55)"><rect class="cell" x="0" y="0" width="70" height="70"/><rect class="cell" x="70" y="0" width="70" height="70"/><rect class="cell" x="140" y="0" width="70" height="70"/><rect class="cell" x="0" y="70" width="70" height="70"/><rect class="cell" x="70" y="70" width="70" height="70"/><rect class="cell" x="140" y="70" width="70" height="70"/><rect class="cell" x="0" y="140" width="70" height="70"/><rect class="cell" x="70" y="140" width="70" height="70"/><rect class="cell" x="140" y="140" width="70" height="70"/><rect class="need" x="0" y="0" width="70" height="70"/><rect class="need" x="0" y="70" width="70" height="70"/><rect class="need" x="0" y="140" width="70" height="70"/><rect class="need" x="70" y="140" width="70" height="70"/></g>
+  <text class="cap" x="490" y="320">POSSIBLE COVERS — ROTATION ALLOWED, FLIPPING NOT ALLOWED</text>
+  <!-- A: mirror-J shape. -->
+  <g transform="translate(70 350)"><rect class="piece" x="70" y="0" width="55" height="55"/><rect class="piece" x="70" y="55" width="55" height="55"/><rect class="piece" x="70" y="110" width="55" height="55"/><rect class="piece" x="15" y="110" width="55" height="55"/></g><text class="lab" x="145" y="525">A</text>
+  <!-- B: L shape, correct under rotation. -->
+  <g transform="translate(300 350)"><rect class="piece" x="15" y="0" width="55" height="55"/><rect class="piece" x="15" y="55" width="55" height="55"/><rect class="piece" x="15" y="110" width="55" height="55"/><rect class="piece" x="70" y="110" width="55" height="55"/></g><text class="lab" x="375" y="525">B</text>
+  <!-- C: T tetromino. -->
+  <g transform="translate(530 378)"><rect class="piece" x="0" y="0" width="55" height="55"/><rect class="piece" x="55" y="0" width="55" height="55"/><rect class="piece" x="110" y="0" width="55" height="55"/><rect class="piece" x="55" y="55" width="55" height="55"/></g><text class="lab" x="605" y="525">C</text>
+  <!-- D: square tetromino. -->
+  <g transform="translate(785 378)"><rect class="piece" x="0" y="0" width="55" height="55"/><rect class="piece" x="55" y="0" width="55" height="55"/><rect class="piece" x="0" y="55" width="55" height="55"/><rect class="piece" x="55" y="55" width="55" height="55"/></g><text class="lab" x="840" y="525">D</text>
+</svg>

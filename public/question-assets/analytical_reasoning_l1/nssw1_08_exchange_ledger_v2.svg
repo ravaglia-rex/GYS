@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="275" viewBox="0 0 880 275" role="img" aria-labelledby="title desc">
+  <title id="title">Stations before and after a simultaneous token exchange</title>
+  <desc id="desc">Before: A has triangle and circle, B has square and diamond, C has star and pentagon, and D has hollow circle and hollow square. After: A has circle and hollow square, B has square and triangle, C has pentagon and diamond, and D has hollow circle and star.</desc>
+  <style>
+    .head{font:700 20px Arial,sans-serif;fill:#263b53;text-anchor:middle}
+    .station{fill:#fff;stroke:#52667d;stroke-width:3}
+    .after{fill:#edf5ed}
+    .name{fill:#263b53;font:700 22px Arial,sans-serif;text-anchor:middle}
+    .tokens{fill:#17283e;font:700 30px Arial,sans-serif;text-anchor:middle}
+  </style>
+  <text class="head" x="440" y="25">BEFORE</text>
+  <g transform="translate(35 40)">
+    <rect class="station" width="180" height="82" rx="10"/>
+    <text class="name" x="90" y="28">A</text>
+    <text class="tokens" x="90" y="65">▲  ●</text>
+  </g>
+  <g transform="translate(245 40)">
+    <rect class="station" width="180" height="82" rx="10"/>
+    <text class="name" x="90" y="28">B</text>
+    <text class="tokens" x="90" y="65">■  ◆</text>
+  </g>
+  <g transform="translate(455 40)">
+    <rect class="station" width="180" height="82" rx="10"/>
+    <text class="name" x="90" y="28">C</text>
+    <text class="tokens" x="90" y="65">★  ⬟</text>
+  </g>
+  <g transform="translate(665 40)">
+    <rect class="station" width="180" height="82" rx="10"/>
+    <text class="name" x="90" y="28">D</text>
+    <text class="tokens" x="90" y="65">○  □</text>
+  </g>
+  <text class="head" x="440" y="160">AFTER</text>
+  <g transform="translate(35 175)">
+    <rect class="station after" width="180" height="82" rx="10"/>
+    <text class="name" x="90" y="28">A</text>
+    <text class="tokens" x="90" y="65">●  □</text>
+  </g>
+  <g transform="translate(245 175)">
+    <rect class="station after" width="180" height="82" rx="10"/>
+    <text class="name" x="90" y="28">B</text>
+    <text class="tokens" x="90" y="65">■  ▲</text>
+  </g>
+  <g transform="translate(455 175)">
+    <rect class="station after" width="180" height="82" rx="10"/>
+    <text class="name" x="90" y="28">C</text>
+    <text class="tokens" x="90" y="65">⬟  ◆</text>
+  </g>
+  <g transform="translate(665 175)">
+    <rect class="station after" width="180" height="82" rx="10"/>
+    <text class="name" x="90" y="28">D</text>
+    <text class="tokens" x="90" y="65">○  ★</text>
+  </g>
+</svg>

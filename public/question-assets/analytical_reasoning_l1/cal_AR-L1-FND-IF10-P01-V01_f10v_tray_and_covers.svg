@@ -1,21 +1,33 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="760" height="460" viewBox="0 0 760 460" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="520" viewBox="0 0 820 520" role="img" aria-labelledby="title desc">
   <title id="title">Partly covered tray</title>
-  <desc id="desc">A three-by-three tray has an S-shaped set of four uncovered cells.</desc>
-  <rect width="760" height="460" fill="#fff"/>
-  <text x="380" y="34" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="20" font-weight="700" fill="#243247">Tray</text>
+  <desc id="desc">A three-by-three tray has an S-shaped set of four uncovered cells. Four possible four-square covers are labelled A through D.</desc>
+  <rect width="820" height="520" fill="#fff"/>
+  <text x="410" y="34" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="20" font-weight="700" fill="#243247">Tray</text>
   <g stroke="#243247" stroke-width="3">
-    <rect x="290" y="55" width="60" height="60" fill="#d8dee8"/><rect x="350" y="55" width="60" height="60" fill="#fff"/><rect x="410" y="55" width="60" height="60" fill="#fff"/>
-    <rect x="290" y="115" width="60" height="60" fill="#fff"/><rect x="350" y="115" width="60" height="60" fill="#fff"/><rect x="410" y="115" width="60" height="60" fill="#d8dee8"/>
-    <rect x="290" y="175" width="60" height="60" fill="#d8dee8"/><rect x="350" y="175" width="60" height="60" fill="#d8dee8"/><rect x="410" y="175" width="60" height="60" fill="#d8dee8"/>
+    <rect x="320" y="55" width="60" height="60" fill="#d8dee8"/><rect x="380" y="55" width="60" height="60" fill="#fff"/><rect x="440" y="55" width="60" height="60" fill="#fff"/>
+    <rect x="320" y="115" width="60" height="60" fill="#fff"/><rect x="380" y="115" width="60" height="60" fill="#fff"/><rect x="440" y="115" width="60" height="60" fill="#d8dee8"/>
+    <rect x="320" y="175" width="60" height="60" fill="#d8dee8"/><rect x="380" y="175" width="60" height="60" fill="#d8dee8"/><rect x="440" y="175" width="60" height="60" fill="#d8dee8"/>
   </g>
-  <g font-family="Arial,Helvetica,sans-serif" font-size="16" font-weight="700" fill="#526176"><text x="320" y="90" text-anchor="middle">C</text><text x="440" y="150" text-anchor="middle">C</text><text x="320" y="210" text-anchor="middle">C</text><text x="380" y="210" text-anchor="middle">C</text><text x="440" y="210" text-anchor="middle">C</text></g>
-  <line x1="60" y1="270" x2="700" y2="270" stroke="#d6deea" stroke-width="2"/>
-  <text x="380" y="302" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="20" font-weight="700" fill="#243247">Cover options</text>
-  <g font-family="Arial,Helvetica,sans-serif" font-size="18" font-weight="700" fill="#243247"><text x="70" y="338">A</text><text x="250" y="338">B</text><text x="430" y="338">C</text><text x="610" y="338">D</text></g>
+  <g font-family="Arial,Helvetica,sans-serif" font-size="16" font-weight="700" fill="#526176"><text x="350" y="90" text-anchor="middle">C</text><text x="470" y="150" text-anchor="middle">C</text><text x="350" y="210" text-anchor="middle">C</text><text x="410" y="210" text-anchor="middle">C</text><text x="470" y="210" text-anchor="middle">C</text></g>
+  <line x1="60" y1="270" x2="760" y2="270" stroke="#d6deea" stroke-width="2"/>
+  <text x="410" y="302" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="20" font-weight="700" fill="#243247">Cover options</text>
+  <g fill="#f2f5f9" stroke="#243247" stroke-width="4">
+    <rect x="35" y="320" width="160" height="170" rx="12"/>
+    <rect x="235" y="320" width="160" height="170" rx="12"/>
+    <rect x="435" y="320" width="160" height="170" rx="12"/>
+    <rect x="635" y="320" width="160" height="170" rx="12"/>
+  </g>
+  <g font-family="Arial,Helvetica,sans-serif" font-size="18" font-weight="700" fill="#243247">
+    <text x="50" y="345">A</text><text x="250" y="345">B</text><text x="450" y="345">C</text><text x="650" y="345">D</text>
+  </g>
   <g fill="#243247">
-    <rect x="95" y="325" width="38" height="38"/><rect x="95" y="363" width="38" height="38"/><rect x="133" y="363" width="38" height="38"/><rect x="133" y="401" width="38" height="38"/>
-    <rect x="313" y="325" width="38" height="38"/><rect x="275" y="363" width="38" height="38"/><rect x="313" y="363" width="38" height="38"/><rect x="275" y="401" width="38" height="38"/>
-    <rect x="455" y="344" width="38" height="38"/><rect x="493" y="344" width="38" height="38"/><rect x="531" y="344" width="38" height="38"/><rect x="493" y="382" width="38" height="38"/>
-    <rect x="635" y="344" width="38" height="38"/><rect x="673" y="344" width="38" height="38"/><rect x="635" y="382" width="38" height="38"/><rect x="673" y="382" width="38" height="38"/>
+    <!-- A: Z / S tetromino -->
+    <rect x="78" y="360" width="38" height="38"/><rect x="78" y="398" width="38" height="38"/><rect x="116" y="398" width="38" height="38"/><rect x="116" y="436" width="38" height="38"/>
+    <!-- B: mirror Z -->
+    <rect x="314" y="360" width="38" height="38"/><rect x="276" y="398" width="38" height="38"/><rect x="314" y="398" width="38" height="38"/><rect x="276" y="436" width="38" height="38"/>
+    <!-- C: T tetromino -->
+    <rect x="458" y="378" width="38" height="38"/><rect x="496" y="378" width="38" height="38"/><rect x="534" y="378" width="38" height="38"/><rect x="496" y="416" width="38" height="38"/>
+    <!-- D: square -->
+    <rect x="676" y="378" width="38" height="38"/><rect x="714" y="378" width="38" height="38"/><rect x="676" y="416" width="38" height="38"/><rect x="714" y="416" width="38" height="38"/>
   </g>
 </svg>

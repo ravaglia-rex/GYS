@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="190" viewBox="0 0 760 190" role="img" aria-labelledby="title desc">
+  <title id="title">Five positions in a straight line</title>
+  <desc id="desc">Five circular positions labelled A, B, C, D, and E are connected consecutively in one straight horizontal line.</desc>
+  <style>
+    .edge{stroke:#718399;stroke-width:8;stroke-linecap:round}
+    .position{fill:#f7f9fc;stroke:#22374f;stroke-width:4}
+    .label{font:700 30px Arial,sans-serif;fill:#17283e;text-anchor:middle;dominant-baseline:middle}
+  </style>
+  <rect width="760" height="190" fill="#fff"/>
+  <line class="edge" x1="105" y1="95" x2="655" y2="95"/>
+  <g>
+    <circle class="position" cx="105" cy="95" r="48"/><text class="label" x="105" y="97">A</text>
+    <circle class="position" cx="242.5" cy="95" r="48"/><text class="label" x="242.5" y="97">B</text>
+    <circle class="position" cx="380" cy="95" r="48"/><text class="label" x="380" y="97">C</text>
+    <circle class="position" cx="517.5" cy="95" r="48"/><text class="label" x="517.5" y="97">D</text>
+    <circle class="position" cx="655" cy="95" r="48"/><text class="label" x="655" y="97">E</text>
+  </g>
+</svg>

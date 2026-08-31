@@ -66,6 +66,8 @@ function BeforeBeginIcon({ k }: { k: BeforeBeginIconKey }) {
       return <BoltIcon sx={sx} />;
     case 'chart':
       return <BarChartIcon sx={sx} />;
+    case 'star':
+      return <StarIcon sx={sx} />;
     case 'headphones':
       return <HeadphonesIcon sx={sx} />;
     case 'mic':

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Box, CircularProgress, Typography } from '@mui/material';
@@ -98,7 +98,28 @@ const MarkdownImage: React.FC<{
   maxFigureWidth,
   maxFigureHeight,
 }) => {
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(src ? 'loading' : 'error');
+  const resolvedSrc = src ? resolveExamFigureSrc(src) : '';
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(
+    resolvedSrc ? 'loading' : 'error'
+  );
+
+  // Remount/retry when the resolved URL changes (e.g. bank path rewrite or
+  // cache refresh). Without this, a prior 404 sticks on the alt-text state
+  // forever because the <img> is unmounted once status === 'error'.
+  useEffect(() => {
+    setStatus(resolvedSrc ? 'loading' : 'error');
+  }, [resolvedSrc]);
+
+  // Cached images often fire load before React attaches onLoad, leaving the
+  // stem figure stuck on the empty bordered placeholder forever. Option tiles
+  // use a different img path without this gate, so only stems looked "missing".
+  const markReadyIfComplete = (el: HTMLImageElement | null) => {
+    if (!el || !resolvedSrc) return;
+    if (el.complete && el.naturalWidth > 0) {
+      setStatus('ready');
+    }
+  };
+
   return (
     <Box
       component="span"
@@ -112,7 +133,7 @@ const MarkdownImage: React.FC<{
         overflow: 'hidden',
         width: 'fit-content',
         maxWidth: '100%',
-        minHeight: status === 'loading' ? 72 : undefined,
+        minHeight: status === 'loading' || status === 'error' ? 72 : undefined,
       }}
     >
       {status === 'loading' ? (
@@ -133,23 +154,28 @@ const MarkdownImage: React.FC<{
         <Typography component="span" variant="caption" sx={{ display: 'block', color: '#64748b', p: 1.25 }}>
           {alt || 'Image failed to load'}
         </Typography>
-      ) : (
+      ) : null}
+      {resolvedSrc ? (
         <Box
+          key={resolvedSrc}
           component="img"
-          src={src ? resolveExamFigureSrc(src) : src}
+          src={resolvedSrc}
           alt={alt ?? ''}
+          ref={markReadyIfComplete}
           onLoad={() => setStatus('ready')}
           onError={() => setStatus('error')}
           sx={{
-            display: 'block',
+            // Keep the img in layout even while loading so cached-load races
+            // still occupy space; hide only once we know it failed.
+            display: status === 'error' ? 'none' : 'block',
+            visibility: status === 'ready' ? 'visible' : 'hidden',
             maxWidth: figureMaxWidthCss(compact, maxFigureWidth),
             maxHeight: maxFigureHeight ? `${maxFigureHeight}px` : undefined,
             width: 'auto',
             height: 'auto',
-            visibility: status === 'ready' ? 'visible' : 'hidden',
           }}
         />
-      )}
+      ) : null}
     </Box>
   );
 };

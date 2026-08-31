@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="520" viewBox="0 0 1100 520" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="380" viewBox="0 0 1100 380" role="img" aria-labelledby="title desc">
   <title id="title">Upper- and lower-level plans with an observer on the east side looking west</title>
   <desc id="desc">Two bordered two-by-two plans are shown from above. In the upper plan, the north-west position contains a star, the north-east position is blank, the south-west position contains a triangle, and the south-east position contains a square. In the lower plan, the north-west position contains a circle, the north-east position contains a pentagon, the south-west position is blank, and the south-east position contains a diamond. An observer stands east of the frame and looks west.</desc>
   <defs>
@@ -19,7 +19,7 @@
     .note { font:700 18px Arial,sans-serif; fill:#174a78; text-anchor:middle; }
     .direction { font:700 14px Arial,sans-serif; fill:#174a78; text-anchor:middle; letter-spacing:.3px; }
   </style>
-  <rect width="1100" height="520" fill="#fff"/>
+  <rect width="1100" height="380" fill="#fff"/>
   <text x="550" y="35" class="title" text-anchor="middle">PLANS SEEN FROM ABOVE</text>
 
   <!-- Upper plan -->
@@ -54,5 +54,4 @@
   <line x1="912" y1="180" x2="852" y2="180" class="look"/>
   <text x="882" y="151" class="direction">LOOKING WEST</text>
   <text x="950" y="265" class="note">EAST-SIDE OBSERVER</text>
-  <text x="550" y="475" class="axis" text-anchor="middle">Blank squares contain no block.</text>
 </svg>

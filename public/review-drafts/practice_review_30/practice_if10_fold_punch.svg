@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="700" viewBox="0 0 1040 700" role="img" aria-labelledby="title desc">
+  <title id="title">Fold and punch paper problem</title>
+  <desc id="desc">A two-by-four sheet folds vertically, two holes are punched in the folded paper, and four possible unfolded patterns are shown.</desc>
+  <defs>
+    <g id="wide">
+      <rect x="0" y="0" width="280" height="140" rx="4" fill="#fff" stroke="#596a80" stroke-width="3"/>
+      <path d="M70 0V140M140 0V140M210 0V140M0 70H280" fill="none" stroke="#aab5c3" stroke-width="2"/>
+    </g>
+    <g id="folded">
+      <rect x="0" y="0" width="140" height="140" rx="4" fill="#eef4fa" stroke="#596a80" stroke-width="3"/>
+      <path d="M70 0V140M0 70H140" fill="none" stroke="#aab5c3" stroke-width="2"/>
+    </g>
+    <circle id="hole" cx="0" cy="0" r="13" fill="#26364d"/>
+  </defs>
+  <rect width="1040" height="700" fill="#ffffff"/>
+  <g font-family="Arial, Helvetica, sans-serif" fill="#26364d">
+    <g font-size="22" font-weight="700" text-anchor="middle">
+      <text x="210" y="50">1. FOLD RIGHT HALF LEFT</text>
+      <text x="585" y="50">2. PUNCH TWO HOLES</text>
+    </g>
+    <g transform="translate(70 80)"><use href="#wide"/></g>
+    <line x1="210" y1="80" x2="210" y2="220" stroke="#3f84c5" stroke-width="4" stroke-dasharray="10 8"/>
+    <path d="M355 112 C415 112, 415 188, 355 188" fill="none" stroke="#d05a49" stroke-width="5" marker-end="url(#arrow)"/>
+    <defs>
+      <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+        <path d="M0,0 L0,6 L9,3 z" fill="#d05a49"/>
+      </marker>
+    </defs>
+    <g transform="translate(515 80)"><use href="#folded"/></g>
+    <use href="#hole" x="550" y="115"/><use href="#hole" x="620" y="185"/>
+
+    <text x="50" y="300" font-size="26" font-weight="700">OPTIONS AFTER UNFOLDING</text>
+    <g transform="translate(50 340)"><use href="#wide"/></g>
+    <g transform="translate(390 340)"><use href="#wide"/></g>
+    <g transform="translate(50 535)"><use href="#wide"/></g>
+    <g transform="translate(390 535)"><use href="#wide"/></g>
+    <g font-size="24" font-weight="700">
+      <text x="50" y="330">A</text><text x="390" y="330">B</text><text x="50" y="525">C</text><text x="390" y="525">D</text>
+    </g>
+    <g>
+      <!-- A: top columns 1,4; bottom columns 2,3 -->
+      <use href="#hole" x="85" y="375"/><use href="#hole" x="295" y="375"/>
+      <use href="#hole" x="155" y="445"/><use href="#hole" x="225" y="445"/>
+      <!-- B: diagonal translation -->
+      <use href="#hole" x="425" y="375"/><use href="#hole" x="495" y="375"/>
+      <use href="#hole" x="565" y="445"/><use href="#hole" x="635" y="445"/>
+      <!-- C: both rows outer columns -->
+      <use href="#hole" x="85" y="570"/><use href="#hole" x="295" y="570"/>
+      <use href="#hole" x="85" y="640"/><use href="#hole" x="295" y="640"/>
+      <!-- D: both rows inner columns -->
+      <use href="#hole" x="495" y="570"/><use href="#hole" x="565" y="570"/>
+      <use href="#hole" x="495" y="640"/><use href="#hole" x="565" y="640"/>
+    </g>
+  </g>
+</svg>

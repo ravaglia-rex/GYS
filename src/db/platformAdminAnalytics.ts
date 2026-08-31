@@ -826,6 +826,17 @@ export type OfficialQuestionStatRow = {
   stimulus_type: string | null;
   assets?: Array<{ path?: string; alt?: string }>;
   option_figure?: {src: string; alt?: string} | null;
+  display_mode?: 'figure_tiles' | 'letter_buttons' | 'text_options' | null;
+  stem_display_size?: 'small' | 'medium' | 'large' | 'normal' | null;
+  option_display_size?: 'small' | 'medium' | 'large' | 'normal' | null;
+  option_layout?: string | null;
+  option_crops?: {
+    layout: 'row' | 'stack' | 'grid';
+    naturalWidth: number;
+    naturalHeight: number;
+    slices: Array<{xPct: number; yPct: number; wPct: number; hPct: number; kind: 'grid' | 'wide'}>;
+    stemSlice: {xPct: number; yPct: number; wPct: number; hPct: number; kind: 'grid' | 'wide'} | null;
+  } | null;
   options: OfficialQuestionOptionStat[];
   correct_index: number | null;
   family: string | null;
@@ -843,6 +854,10 @@ export type OfficialQuestionStatRow = {
   avg_time_sec: number | null;
   imported_at?: string | null;
   is_new_in_latest_upload?: boolean;
+  delivery_authorized?: boolean;
+  lifecycle_status?: string | null;
+  parent_id?: string | null;
+  version?: string | null;
 };
 
 export type OfficialExamQuestionStats = {
@@ -925,7 +940,7 @@ export type OfficialItemBankFilterKey =
   | 'family'
   | 'subconstruct'
   | 'mechanic'
-  | 'has_images'
+  | 'approved'
   | 'is_new';
 
 export type OfficialItemBankFilters = Partial<Record<OfficialItemBankFilterKey, string>> & {
@@ -973,7 +988,7 @@ function parseItemBankFacets(raw: unknown): OfficialItemBankFacets {
     family: parse('family'),
     subconstruct: parse('subconstruct'),
     mechanic: parse('mechanic'),
-    has_images: parse('has_images'),
+    approved: parse('approved'),
     is_new: parse('is_new'),
   };
 }
@@ -1011,6 +1026,10 @@ export async function getPlatformAdminOfficialExamItemBank(
         option_figure: q.option_figure ?? null,
         options: Array.isArray(q.options) ? q.options : [],
         correct_index: typeof q.correct_index === 'number' ? q.correct_index : null,
+        delivery_authorized: q.delivery_authorized === true,
+        lifecycle_status: typeof q.lifecycle_status === 'string' ? q.lifecycle_status : null,
+        parent_id: typeof q.parent_id === 'string' ? q.parent_id : null,
+        version: typeof q.version === 'string' ? q.version : null,
       }))
     : [];
   return {
@@ -1027,6 +1046,123 @@ export async function getPlatformAdminOfficialExamItemBank(
     generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
     latest_upload_at:
       typeof res.data.latest_upload_at === 'string' ? res.data.latest_upload_at : null,
+  };
+}
+
+export async function approvePlatformAdminOfficialExamBankItem(opts: {
+  examId: string;
+  level: number;
+  itemId: string;
+}): Promise<{
+  item_id: string;
+  delivery_authorized: boolean;
+  lifecycle_status: string;
+  already_approved: boolean;
+}> {
+  const headers = await authHeaders();
+  const res = await axios.post(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAMS}/${encodeURIComponent(opts.examId)}/item-bank/${encodeURIComponent(opts.itemId)}/approve`,
+    {},
+    { headers, params: { level: opts.level } }
+  );
+  return {
+    item_id: typeof res.data.item_id === 'string' ? res.data.item_id : opts.itemId,
+    delivery_authorized: res.data.delivery_authorized === true,
+    lifecycle_status:
+      typeof res.data.lifecycle_status === 'string' ? res.data.lifecycle_status : 'APPROVED',
+    already_approved: res.data.already_approved === true,
+  };
+}
+
+export async function unapprovePlatformAdminOfficialExamBankItem(opts: {
+  examId: string;
+  level: number;
+  itemId: string;
+}): Promise<{
+  item_id: string;
+  delivery_authorized: boolean;
+  lifecycle_status: string;
+  already_unapproved: boolean;
+}> {
+  const headers = await authHeaders();
+  const res = await axios.post(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAMS}/${encodeURIComponent(opts.examId)}/item-bank/${encodeURIComponent(opts.itemId)}/unapprove`,
+    {},
+    { headers, params: { level: opts.level } }
+  );
+  return {
+    item_id: typeof res.data.item_id === 'string' ? res.data.item_id : opts.itemId,
+    delivery_authorized: res.data.delivery_authorized === true,
+    lifecycle_status:
+      typeof res.data.lifecycle_status === 'string' ? res.data.lifecycle_status : 'UNAPPROVED',
+    already_unapproved: res.data.already_unapproved === true,
+  };
+}
+
+export type OfficialExamBankItemEditPatch = {
+  body_markdown?: string;
+  option_texts?: string[];
+  correct_option_id?: 'A' | 'B' | 'C' | 'D';
+  band?: string;
+  instruction_family_id?: string;
+  primary_strand_id?: string;
+  representation_mode?: string;
+  stem_display_size?: 'small' | 'medium' | 'large';
+  option_display_size?: 'small' | 'medium' | 'large';
+};
+
+export async function updatePlatformAdminOfficialExamBankItem(opts: {
+  examId: string;
+  level: number;
+  itemId: string;
+  patch: OfficialExamBankItemEditPatch;
+}): Promise<{
+  item_id: string;
+  question: OfficialQuestionStatRow;
+}> {
+  const headers = await authHeaders();
+  const res = await axios.patch(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAMS}/${encodeURIComponent(opts.examId)}/item-bank/${encodeURIComponent(opts.itemId)}`,
+    opts.patch,
+    { headers, params: { level: opts.level } }
+  );
+  const q = res.data.question;
+  const question: OfficialQuestionStatRow = {
+    ...(q || {}),
+    item_id: typeof q?.item_id === 'string' ? q.item_id : opts.itemId,
+    prompt: typeof q?.prompt === 'string' ? q.prompt : q?.prompt_preview || '',
+    prompt_preview: typeof q?.prompt_preview === 'string' ? q.prompt_preview : '',
+    stimulus: q?.stimulus ?? null,
+    stimulus_type: typeof q?.stimulus_type === 'string' ? q.stimulus_type : null,
+    assets: Array.isArray(q?.assets) ? q.assets : [],
+    option_figure: q?.option_figure ?? null,
+    options: Array.isArray(q?.options) ? q.options : [],
+    correct_index: typeof q?.correct_index === 'number' ? q.correct_index : null,
+    family: typeof q?.family === 'string' ? q.family : null,
+    mechanic: typeof q?.mechanic === 'string' ? q.mechanic : null,
+    subconstruct: typeof q?.subconstruct === 'string' ? q.subconstruct : null,
+    strand: typeof q?.strand === 'string' ? q.strand : null,
+    instruction_family: typeof q?.instruction_family === 'string' ? q.instruction_family : null,
+    band: typeof q?.band === 'string' ? q.band : null,
+    times_seen: Number(q?.times_seen) || 0,
+    times_correct: Number(q?.times_correct) || 0,
+    times_incorrect: Number(q?.times_incorrect) || 0,
+    times_ungraded: Number(q?.times_ungraded) || 0,
+    accuracy_pct: typeof q?.accuracy_pct === 'number' ? q.accuracy_pct : null,
+    avg_time_ms: typeof q?.avg_time_ms === 'number' ? q.avg_time_ms : null,
+    avg_time_sec: typeof q?.avg_time_sec === 'number' ? q.avg_time_sec : null,
+    delivery_authorized: q?.delivery_authorized === true,
+    lifecycle_status: typeof q?.lifecycle_status === 'string' ? q.lifecycle_status : null,
+    parent_id: typeof q?.parent_id === 'string' ? q.parent_id : null,
+    version: typeof q?.version === 'string' ? q.version : null,
+    stem_display_size:
+      typeof q?.stem_display_size === 'string' ? q.stem_display_size : null,
+    option_display_size:
+      typeof q?.option_display_size === 'string' ? q.option_display_size : null,
+  };
+  return {
+    item_id: typeof res.data.item_id === 'string' ? res.data.item_id : opts.itemId,
+    question,
   };
 }
 

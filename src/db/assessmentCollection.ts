@@ -117,6 +117,22 @@ export interface ExamQuestion {
   option_ids?: string[];
   assets?: Array<{path?: string; alt?: string}>;
   option_figure?: {src: string; alt?: string} | null;
+  /**
+   * Explicit AR display hints from the bank (preferred over heuristics).
+   * display_mode: figure_tiles | letter_buttons | text_options
+   */
+  display_mode?: 'figure_tiles' | 'letter_buttons' | 'text_options';
+  stem_display_size?: 'small' | 'medium' | 'large' | 'normal';
+  option_display_size?: 'small' | 'medium' | 'large' | 'normal';
+  /** Per stem SVG filename → size (shrink one figure without changing others). */
+  stem_image_display_sizes?: Record<string, 'small' | 'medium' | 'large'> | null;
+  option_crops?: {
+    layout: 'row' | 'stack' | 'grid';
+    naturalWidth: number;
+    naturalHeight: number;
+    slices: Array<{xPct: number; yPct: number; wPct: number; hPct: number; kind: 'grid' | 'wide'}>;
+    stemSlice: {xPct: number; yPct: number; wPct: number; hPct: number; kind: 'grid' | 'wide'} | null;
+  } | null;
   /** Extra stem line from canonical `presentation.instruction`. */
   instruction?: string;
   /** Canonical pattern-logic payload for richer renderers (optional). */

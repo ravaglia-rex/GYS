@@ -1,5 +1,6 @@
 /**
- * Cut A–D crop boxes once from public AR SVGs and write arOptionFigureCrops.json.
+ * Cut A–D crop boxes once from public AR SVGs and write the backend importer catalog.
+ * Learner UI reads crops from bank `option_crops` only — not this file.
  *
  * Usage (from argus-frontend):
  *   npx --yes -p jsdom -p tsx tsx scripts/generateArOptionFigureCrops.ts
@@ -17,7 +18,15 @@ import {
 
 const ROOT = path.join(__dirname, '..');
 const ASSETS = path.join(ROOT, 'public', 'question-assets');
-const OUT = path.join(ROOT, 'src', 'components', 'assessment', 'arOptionFigureCrops.json');
+const OUT = path.join(
+  ROOT,
+  '..',
+  'argus-backend',
+  'functions',
+  'src',
+  'analyticalReasoning',
+  'arOptionFigureCrops.json'
+);
 
 function installDom(): void {
   const {window} = new JSDOM('<!DOCTYPE html><html><body></body></html>', {

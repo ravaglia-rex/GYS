@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="220" viewBox="0 0 820 220" role="img" aria-labelledby="title desc">
+  <title id="title">Four tray-cover options</title>
+  <desc id="desc">A is a J-shaped four-square cover. B is an L-shaped four-square cover. C is a T-shaped four-square cover. D is a straight four-square cover.</desc>
+  <rect width="820" height="220" fill="#ffffff"/>
+  <g fill="#f2f5f9" stroke="#243247" stroke-width="3">
+    <rect x="30" y="25" width="170" height="170" rx="12"/>
+    <rect x="230" y="25" width="170" height="170" rx="12"/>
+    <rect x="430" y="25" width="170" height="170" rx="12"/>
+    <rect x="630" y="25" width="170" height="170" rx="12"/>
+  </g>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#243247">
+    <text x="46" y="52">A</text>
+    <text x="246" y="52">B</text>
+    <text x="446" y="52">C</text>
+    <text x="646" y="52">D</text>
+  </g>
+  <g fill="#243247" stroke="#243247" stroke-width="1.5">
+    <!-- A: x # / x # / # # -->
+    <rect x="118" y="68" width="36" height="36"/>
+    <rect x="118" y="104" width="36" height="36"/>
+    <rect x="82" y="140" width="36" height="36"/>
+    <rect x="118" y="140" width="36" height="36"/>
+    <!-- B: # x / # x / # # -->
+    <rect x="282" y="68" width="36" height="36"/>
+    <rect x="282" y="104" width="36" height="36"/>
+    <rect x="282" y="140" width="36" height="36"/>
+    <rect x="318" y="140" width="36" height="36"/>
+    <!-- C: # # # / x # x -->
+    <rect x="466" y="86" width="36" height="36"/>
+    <rect x="502" y="86" width="36" height="36"/>
+    <rect x="538" y="86" width="36" height="36"/>
+    <rect x="502" y="122" width="36" height="36"/>
+    <!-- D: # # # # -->
+    <rect x="643" y="104" width="36" height="36"/>
+    <rect x="679" y="104" width="36" height="36"/>
+    <rect x="715" y="104" width="36" height="36"/>
+    <rect x="751" y="104" width="36" height="36"/>
+  </g>
+</svg>

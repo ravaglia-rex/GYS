@@ -1,5 +1,4 @@
 import type { ArOptionFigureLayout, OptionFigureSliceRect } from './arOptionFigureModel';
-import savedCrops from './arOptionFigureCrops.json';
 
 export type SavedOptionFigureCrops = {
   layout: ArOptionFigureLayout;
@@ -9,8 +8,6 @@ export type SavedOptionFigureCrops = {
   stemSlice: OptionFigureSliceRect | null;
 };
 
-const CATALOG = savedCrops as Record<string, SavedOptionFigureCrops>;
-
 /** Filename of a figure URL after query/hash strip (e.g. item_38_….svg). */
 export function optionFigureCropKey(src: string | undefined | null): string {
   if (!src) return '';
@@ -18,11 +15,22 @@ export function optionFigureCropKey(src: string | undefined | null): string {
   return path.split('/').pop() || '';
 }
 
-/** Precomputed A–D crop boxes for a public AR figure. Null if not in the catalog. */
-export function lookupSavedOptionFigureCrops(
-  src: string | undefined | null
+/** Clamp stem crop to the figure canvas (oversized hPct leaves empty gap under stems). */
+export function sanitizeOptionFigureCrops(
+  crops: SavedOptionFigureCrops | null | undefined
 ): SavedOptionFigureCrops | null {
-  const key = optionFigureCropKey(src);
-  if (!key) return null;
-  return CATALOG[key] ?? null;
+  if (!crops) return null;
+  const stem = crops.stemSlice;
+  if (!stem) return crops;
+  if (!(stem.hPct > 100) && !(stem.yPct < 0)) return crops;
+  const yPct = Math.max(0, Math.min(100, stem.yPct));
+  const hPct = Math.min(100, Math.max(8, stem.hPct));
+  return {
+    ...crops,
+    stemSlice: {
+      ...stem,
+      yPct,
+      hPct: Math.min(hPct, Math.max(8, 100 - yPct)),
+    },
+  };
 }

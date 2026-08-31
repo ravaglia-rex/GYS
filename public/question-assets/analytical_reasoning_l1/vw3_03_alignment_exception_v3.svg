@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1030" height="430" viewBox="0 0 1030 430" role="img" aria-labelledby="title desc">
+  <title id="title">Triangle and square positions across five steps</title>
+  <desc id="desc">The position cycle is 1, 2, 3, 4, 5, then back to 1. At Step 1 the solid triangle is at position 1 and the square at position 2. At Step 2 both are at position 3. At Step 3 the hollow triangle is at position 2 and the square at position 4. At Step 4 the hollow triangle is at position 4 and the square at position 5. At Step 5 both are at position 1.</desc>
+  <rect width="1030" height="430" fill="#ffffff"/>
+  <style>
+    .title{font:700 24px Arial,sans-serif;fill:#24334b}
+    .cycle{font:700 21px Arial,sans-serif;fill:#53627a}
+    .step{font:700 18px Arial,sans-serif;fill:#33445e;text-anchor:middle}
+    .card{fill:#f8fafc;stroke:#8090a6;stroke-width:2}
+    .symbol{font:34px Arial,sans-serif;fill:#1d2a40;text-anchor:middle}
+    .pos{font:18px Arial,sans-serif;fill:#53627a;text-anchor:middle}
+    .rowlabel{font:700 18px Arial,sans-serif;fill:#33445e}
+  </style>
+  <text x="40" y="42" class="title">POSITION CYCLE</text>
+  <text x="260" y="42" class="cycle">1 → 2 → 3 → 4 → 5 → 1</text>
+  <text x="40" y="90" class="title">STEPS 1–5</text>
+  <text x="28" y="192" class="rowlabel">Triangle</text>
+  <text x="35" y="310" class="rowlabel">Square</text>
+
+  <g transform="translate(145 112)"><rect width="150" height="245" rx="12" class="card"/><text x="75" y="30" class="step">STEP 1</text><text x="75" y="91" class="symbol">▲</text><text x="75" y="119" class="pos">position 1</text><text x="75" y="204" class="symbol">■</text><text x="75" y="231" class="pos">position 2</text></g>
+  <g transform="translate(315 112)"><rect width="150" height="245" rx="12" class="card"/><text x="75" y="30" class="step">STEP 2</text><text x="75" y="91" class="symbol">▲</text><text x="75" y="119" class="pos">position 3</text><text x="75" y="204" class="symbol">■</text><text x="75" y="231" class="pos">position 3</text></g>
+  <g transform="translate(485 112)"><rect width="150" height="245" rx="12" class="card"/><text x="75" y="30" class="step">STEP 3</text><text x="75" y="91" class="symbol">△</text><text x="75" y="119" class="pos">position 2</text><text x="75" y="204" class="symbol">■</text><text x="75" y="231" class="pos">position 4</text></g>
+  <g transform="translate(655 112)"><rect width="150" height="245" rx="12" class="card"/><text x="75" y="30" class="step">STEP 4</text><text x="75" y="91" class="symbol">△</text><text x="75" y="119" class="pos">position 4</text><text x="75" y="204" class="symbol">■</text><text x="75" y="231" class="pos">position 5</text></g>
+  <g transform="translate(825 112)"><rect width="150" height="245" rx="12" class="card"/><text x="75" y="30" class="step">STEP 5</text><text x="75" y="91" class="symbol">△</text><text x="75" y="119" class="pos">position 1</text><text x="75" y="204" class="symbol">■</text><text x="75" y="231" class="pos">position 1</text></g>
+</svg>

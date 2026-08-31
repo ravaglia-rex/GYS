@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="240" viewBox="0 0 1080 240" role="img" aria-labelledby="title desc">
+  <title id="title">Sequence of six two-arrow cards</title>
+  <desc id="desc">The first five cards show up and down, right and down-right, down and up-right, left and up, then up and left. The sixth card is unknown.</desc>
+  <style>
+    .card{fill:#fff;stroke:#263b58;stroke-width:3}
+    .num{font:600 17px sans-serif;fill:#607087;text-anchor:middle}
+    .q{font:700 30px sans-serif;fill:#243a57;text-anchor:middle;dominant-baseline:middle}
+    .shaft{stroke:#243a57;stroke-width:7;stroke-linecap:round}
+    .head{fill:#243a57}
+  </style>
+  <defs>
+    <g id="arrow-up">
+      <line class="shaft" x1="0" y1="23" x2="0" y2="-12"/>
+      <path class="head" d="M0 -30 L-13 -8 L13 -8 Z"/>
+    </g>
+    <g id="card"><rect class="card" y="18" width="150" height="130" rx="10"/></g>
+  </defs>
+  <rect width="1080" height="240" fill="#fff"/>
+  <g transform="translate(35 32)">
+    <g transform="translate(0)"><text class="num" x="75" y="0">CARD 1</text><use href="#card"/><g transform="translate(48 86)"><use href="#arrow-up"/></g><g transform="translate(103 86) rotate(180)"><use href="#arrow-up"/></g></g>
+    <g transform="translate(170)"><text class="num" x="75" y="0">CARD 2</text><use href="#card"/><g transform="translate(48 86) rotate(90)"><use href="#arrow-up"/></g><g transform="translate(103 86) rotate(135)"><use href="#arrow-up"/></g></g>
+    <g transform="translate(340)"><text class="num" x="75" y="0">CARD 3</text><use href="#card"/><g transform="translate(48 86) rotate(180)"><use href="#arrow-up"/></g><g transform="translate(103 86) rotate(45)"><use href="#arrow-up"/></g></g>
+    <g transform="translate(510)"><text class="num" x="75" y="0">CARD 4</text><use href="#card"/><g transform="translate(48 86) rotate(270)"><use href="#arrow-up"/></g><g transform="translate(103 86)"><use href="#arrow-up"/></g></g>
+    <g transform="translate(680)"><text class="num" x="75" y="0">CARD 5</text><use href="#card"/><g transform="translate(48 86)"><use href="#arrow-up"/></g><g transform="translate(103 86) rotate(270)"><use href="#arrow-up"/></g></g>
+    <g transform="translate(850)"><text class="num" x="75" y="0">CARD 6</text><rect class="card" y="18" width="150" height="130" rx="10" stroke-dasharray="9 7"/><text class="q" x="75" y="86">[?]</text></g>
+  </g>
+</svg>
