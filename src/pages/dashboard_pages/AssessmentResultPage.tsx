@@ -3,13 +3,12 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Box, Typography, Button, Chip } from '@mui/material';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
-import {
-  CheckCircle as CheckCircleIcon,
-} from '@mui/icons-material';
+import { CheckCircle as CheckCircleIcon } from '@mui/icons-material';
 import {
   getAssessmentFlowDefinition,
   unlockedItemsAfterAttempt,
 } from '../../config/assessmentFlowUI';
+import { STUDENT_EXAM_SHOW_SCORES_AND_COINS } from '../../constants/constants';
 import {
   EXAM_MAX_SCORE_POINTS,
   isLevelBasedAssessment,
@@ -61,6 +60,60 @@ const AssessmentResultPage: React.FC = () => {
   const isAiLiteracy = assessmentId === 'ai_literacy';
   const levelBased = isLevelBasedAssessment(assessmentId);
   const flow = getAssessmentFlowDefinition(assessmentId);
+  const examLabel = levelBased
+    ? `${flow.examTitleShort} Level ${tierNumber}`
+    : flow.examTitleShort;
+
+  if (!STUDENT_EXAM_SHOW_SCORES_AND_COINS) {
+    return (
+      <Box
+        sx={{
+          minHeight: '100dvh',
+          bgcolor: '#f8fafc',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          py: 4,
+          px: 2,
+        }}
+      >
+        <Box sx={{ maxWidth: 520, width: '100%', mx: 'auto', textAlign: 'center' }}>
+          <Typography sx={{ fontSize: '3rem', lineHeight: 1, mb: 1.5 }}>🎉</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 900, color: '#0f172a', mb: 1 }}>
+            Thank you — and congratulations!
+          </Typography>
+          <Typography sx={{ color: '#334155', fontSize: '1.05rem', fontWeight: 700, mb: 1.25 }}>
+            {examLabel} is complete.
+          </Typography>
+          <Typography sx={{ color: '#64748b', fontSize: '0.95rem', lineHeight: 1.6, px: 1, mb: 3 }}>
+            We have saved your answers. Keep an eye out for your results — they will show up in the
+            student portal when they are ready.
+          </Typography>
+
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+            <Button
+              fullWidth
+              variant="contained"
+              onClick={() => navigate('/assessments/available')}
+              sx={{ bgcolor: '#0d47a1', fontWeight: 800, py: 1.4, textTransform: 'none', borderRadius: 2 }}
+            >
+              Back to Assessments
+            </Button>
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<HomeOutlinedIcon />}
+              onClick={() => navigate('/dashboard')}
+              sx={{ borderColor: '#cbd5e1', color: '#475569', py: 1.3, textTransform: 'none', borderRadius: 2 }}
+            >
+              Go to Dashboard
+            </Button>
+          </Box>
+        </Box>
+      </Box>
+    );
+  }
+
   const displayScore = Math.round(scorePercent);
   const scorePoints = tierPercentToExamPoints(scorePercent);
   const unlockItems = unlockedItemsAfterAttempt({

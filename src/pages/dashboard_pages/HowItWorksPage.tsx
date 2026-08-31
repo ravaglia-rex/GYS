@@ -913,9 +913,10 @@ export const HowItWorksContent: React.FC = () => {
             sx={{ mb: 3, mt: 3 }}
           >
             <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.78)', lineHeight: 1.65, mb: 1.5, ...justifiedTextSx }}>
-              Individual exam scores appear under Completed &amp; Results as soon as you finish. Milestone PDF
-              reports are generated after you complete the exams in that package. Discovery (Entry) reports
-              usually appear within a few minutes of finishing Analytical Reasoning. Reasoning Triad and later
+              After you finish an exam, you will see a confirmation in the app — keep an eye out for your
+              results, which appear under Completed &amp; Results when they are ready. Milestone PDF reports
+              are generated after you complete the exams in that package. Discovery (Entry) reports usually
+              appear within a few minutes of finishing Analytical Reasoning. Reasoning Triad and later
               reports wait for the Monday national ranking, then the PDF is built the same day.
             </Typography>
             <Typography sx={{ color: 'white', fontWeight: 900, fontSize: '0.95rem', mb: 1 }}>

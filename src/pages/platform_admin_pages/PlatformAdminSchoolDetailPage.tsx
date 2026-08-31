@@ -49,6 +49,7 @@ import {
   deletePlatformAdminSchool,
   updatePlatformAdminSchoolBilling,
   updatePlatformAdminSchoolStudentCapOverride,
+  updatePlatformAdminSchoolRegistrationConfig,
   invitePlatformAdminSchoolAdmin,
   addPlatformAdminSchoolAdmin,
   deletePlatformAdminSchoolContact,
@@ -231,6 +232,8 @@ function PlatformAdminSchoolDetailPage() {
   const [studentCapInput, setStudentCapInput] = useState('');
   const [studentCapNote, setStudentCapNote] = useState('');
   const [studentCapSubmitting, setStudentCapSubmitting] = useState(false);
+  const [phoneOptionalOpen, setPhoneOptionalOpen] = useState(false);
+  const [phoneOptionalSubmitting, setPhoneOptionalSubmitting] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirmName, setDeleteConfirmName] = useState('');
   const [deleteAdminAuth, setDeleteAdminAuth] = useState(true);
@@ -531,6 +534,30 @@ function PlatformAdminSchoolDetailPage() {
       setError(apiErrorMessage(e, 'Failed to update student cap override.'));
     } finally {
       setStudentCapSubmitting(false);
+    }
+  };
+
+  const handleUpdatePhoneOptional = async () => {
+    if (!schoolId || !school) return;
+    const nextValue = school.phone_optional !== true;
+    setPhoneOptionalSubmitting(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      await updatePlatformAdminSchoolRegistrationConfig(schoolId, {
+        phone_optional: nextValue,
+      });
+      setPhoneOptionalOpen(false);
+      setSuccessMessage(
+        nextValue
+          ? 'WhatsApp phone field is now hidden on student signup for this school.'
+          : 'WhatsApp phone field is now required on student signup for this school.'
+      );
+      await load();
+    } catch (e: unknown) {
+      setError(apiErrorMessage(e, 'Failed to update registration settings.'));
+    } finally {
+      setPhoneOptionalSubmitting(false);
     }
   };
 
@@ -919,6 +946,25 @@ function PlatformAdminSchoolDetailPage() {
               label="Password setup complete"
               value={`${school.students_setup_complete ?? 0} of ${school.student_count}`}
             />
+            <DetailRow label="Skip phone on signup">
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                <PlatformAdminChip
+                  label={school.phone_optional === true ? 'Phone hidden' : 'Phone required'}
+                  tone={school.phone_optional === true ? 'warning' : 'info'}
+                />
+                {isSuperAdmin && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<EditIcon />}
+                    onClick={() => setPhoneOptionalOpen(true)}
+                    sx={platformAdminOutlinedButtonSx}
+                  >
+                    Change
+                  </Button>
+                )}
+              </Box>
+            </DetailRow>
             {school.billing_invoice_number && (
               <DetailRow label="Invoice" value={school.billing_invoice_number} />
             )}
@@ -1909,6 +1955,79 @@ function PlatformAdminSchoolDetailPage() {
             sx={platformAdminPrimaryButtonSx}
           >
             {studentCapSubmitting ? 'Saving…' : 'Save override'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={phoneOptionalOpen}
+        onClose={() => !phoneOptionalSubmitting && setPhoneOptionalOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        scroll="paper"
+        slotProps={{
+          backdrop: { sx: { bgcolor: 'rgba(15, 23, 42, 0.5)' } },
+        }}
+        PaperProps={{ sx: platformAdminDialogPaperSx }}
+      >
+        <DialogTitle
+          sx={{
+            fontWeight: 700,
+            color: ip.heading,
+            px: 3,
+            pt: 2.5,
+            pb: 2,
+            bgcolor: '#fff',
+          }}
+        >
+          Skip phone number on student signup
+        </DialogTitle>
+        <DialogContent
+          dividers
+          sx={{
+            px: 3,
+            py: 2.5,
+            bgcolor: '#fff',
+            borderColor: ip.cardBorder,
+            overflowY: 'auto',
+          }}
+        >
+          <Typography sx={{ color: ip.subtext, lineHeight: 1.55, fontSize: '0.9rem' }}>
+            {school.phone_optional === true ? (
+              <>
+                The WhatsApp phone field is currently <strong>hidden</strong> for students whose email
+                matches this school&apos;s invite list. Turn this off to show and require a phone number
+                again.
+              </>
+            ) : (
+              <>
+                WhatsApp phone is currently <strong>required</strong> on student self-signup. Turn this
+                on to hide the phone field for roster-matched students from this school.
+              </>
+            )}
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2, bgcolor: '#fff', gap: 1, flexWrap: 'wrap' }}>
+          <Box sx={{ flex: 1 }} />
+          <Button
+            disabled={phoneOptionalSubmitting}
+            onClick={() => setPhoneOptionalOpen(false)}
+            sx={platformAdminTextButtonSx}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            disabled={phoneOptionalSubmitting}
+            onClick={handleUpdatePhoneOptional}
+            startIcon={phoneOptionalSubmitting ? <CircularProgress size={16} color="inherit" /> : undefined}
+            sx={platformAdminPrimaryButtonSx}
+          >
+            {phoneOptionalSubmitting
+              ? 'Saving…'
+              : school.phone_optional === true
+                ? 'Show & require phone'
+                : 'Hide phone field'}
           </Button>
         </DialogActions>
       </Dialog>

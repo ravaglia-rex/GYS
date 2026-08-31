@@ -385,16 +385,14 @@ export function PlatformAdminItemBankSection({
   });
   const row1FilterKeys = visibleFilterKeys.filter((key) => key === 'strand');
   const row2FilterKeys = visibleFilterKeys.filter((key) => key !== 'strand');
+  // Approved / other taxonomy filters are applied by the API (or review loader).
+  // Only item-id search is client-side so we do not double-filter and empty
+  // stale Redis payloads that already match `approved=`.
   const questions = useMemo(() => {
-    let rows = bank?.questions || [];
-    if (filters.approved === 'yes') {
-      rows = rows.filter((q) => q.delivery_authorized === true);
-    } else if (filters.approved === 'no') {
-      rows = rows.filter((q) => q.delivery_authorized !== true);
-    }
+    const rows = bank?.questions || [];
     if (!itemIdQuery.trim()) return rows;
     return rows.filter((q) => itemIdMatchesQuery(q.item_id, itemIdQuery));
-  }, [bank, itemIdQuery, filters.approved]);
+  }, [bank, itemIdQuery]);
 
   const renderFilter = (key: OfficialItemBankFilterKey) => {
     const options = facets?.[key] || [];
@@ -444,26 +442,54 @@ export function PlatformAdminItemBankSection({
     );
   };
 
-  const handleApprovalChange = useCallback((itemId: string, deliveryAuthorized: boolean) => {
-    setBank((prev) => {
-      if (!prev) return prev;
-      const questions = prev.questions.map((q) =>
-        q.item_id === itemId ? { ...q, delivery_authorized: deliveryAuthorized } : q
-      );
-      const approvedCount = questions.filter((q) => q.delivery_authorized === true).length;
-      return {
-        ...prev,
-        questions,
-        facets: {
-          ...prev.facets,
-          approved: [
-            { key: 'yes', label: 'Approved', count: approvedCount },
-            { key: 'no', label: 'Not approved', count: questions.length - approvedCount },
-          ],
-        },
-      };
-    });
-  }, []);
+  const handleApprovalChange = useCallback(
+    (itemId: string, deliveryAuthorized: boolean) => {
+      setBank((prev) => {
+        if (!prev) return prev;
+        // Facet counts are for the unfiltered level; keep using the previous
+        // totals so Approve/Unapprove only nudges yes/no by ±1.
+        const prevApproved =
+          prev.facets?.approved?.find((row) => row.key === 'yes')?.count ??
+          prev.questions.filter((q) => q.delivery_authorized === true).length;
+        const prevNotApproved =
+          prev.facets?.approved?.find((row) => row.key === 'no')?.count ??
+          Math.max(0, (prev.total_items || prev.questions.length) - prevApproved);
+        const wasAuthorized =
+          prev.questions.find((q) => q.item_id === itemId)?.delivery_authorized === true;
+        let approvedCount = prevApproved;
+        let notApprovedCount = prevNotApproved;
+        if (wasAuthorized !== deliveryAuthorized) {
+          approvedCount = Math.max(0, prevApproved + (deliveryAuthorized ? 1 : -1));
+          notApprovedCount = Math.max(0, prevNotApproved + (deliveryAuthorized ? -1 : 1));
+        }
+
+        let questions = prev.questions.map((q) =>
+          q.item_id === itemId ? { ...q, delivery_authorized: deliveryAuthorized } : q
+        );
+        // Stay consistent with the active Approval filter without a refetch.
+        if (filters.approved === 'yes' && !deliveryAuthorized) {
+          questions = questions.filter((q) => q.item_id !== itemId);
+        } else if (filters.approved === 'no' && deliveryAuthorized) {
+          questions = questions.filter((q) => q.item_id !== itemId);
+        }
+
+        return {
+          ...prev,
+          questions,
+          total_items: questions.length,
+          served_items: questions.filter((q) => q.times_seen > 0).length,
+          facets: {
+            ...prev.facets,
+            approved: [
+              { key: 'yes', label: 'Approved', count: approvedCount },
+              { key: 'no', label: 'Not approved', count: notApprovedCount },
+            ],
+          },
+        };
+      });
+    },
+    [filters.approved]
+  );
 
   const handleItemUpdated = useCallback((itemId: string, next: OfficialQuestionStatRow) => {
     setBank((prev) => {

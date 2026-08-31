@@ -411,6 +411,8 @@ export type ResolveRegistrationSchoolResult = {
   schoolCoveredMembershipLevel?: number;
   complimentaryCoveredMembershipLevel?: number;
   coveredMembershipLevel?: number;
+  /** From school `registration_config.phone_optional` when roster-matched. */
+  phoneOptional?: boolean;
 };
 
 /** Matches signup email to this school’s `student_registration_emails` (and legacy allowlist). */
@@ -419,7 +421,7 @@ export const resolveRegistrationSchool = async (
 ): Promise<ResolveRegistrationSchoolResult> => {
   const normalized = email.trim().toLowerCase();
   if (!normalized) {
-    return { schoolId: null, schoolName: null };
+    return { schoolId: null, schoolName: null, phoneOptional: false };
   }
   try {
     const response = await axios.post(
@@ -443,6 +445,7 @@ export const resolveRegistrationSchool = async (
         typeof response.data?.coveredMembershipLevel === 'number'
           ? response.data.coveredMembershipLevel
           : 0,
+      phoneOptional: response.data?.phoneOptional === true,
     };
   } catch {
     throw new Error('Could not verify school for your email. Please contact globalyoungscholar@argus.ai');

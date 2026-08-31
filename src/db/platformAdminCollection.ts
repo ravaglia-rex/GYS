@@ -21,6 +21,7 @@ import {
   PLATFORM_ADMIN_MARK_SCHOOL_PAID,
   PLATFORM_ADMIN_UPDATE_SCHOOL_BILLING,
   PLATFORM_ADMIN_STUDENT_CAP_OVERRIDE,
+  PLATFORM_ADMIN_REGISTRATION_CONFIG,
   PLATFORM_ADMIN_DELETE_SCHOOL,
   PLATFORM_ADMIN_DELETE_STUDENT,
   PLATFORM_ADMIN_BILLING_INVOICE_DOWNLOAD_URL,
@@ -154,6 +155,8 @@ export type PlatformAdminSchoolDetail = PlatformAdminSchoolSummary & {
   plan_student_cap: number | null;
   /** Effective cap after override (`null` = unlimited). */
   student_cap: number | null;
+  /** When true, student self-signup may skip WhatsApp phone. */
+  phone_optional: boolean;
 };
 
 export type PlatformAdminPaymentHistoryItem = {
@@ -447,6 +450,7 @@ export async function getPlatformAdminSchool(schoolId: string): Promise<{
   return {
     school: {
       ...res.data.school,
+      phone_optional: res.data.school?.phone_optional === true,
       contact_emails: filterHiddenStaffSchoolAdminEmails(
         Array.isArray(res.data.school?.contact_emails) ? res.data.school.contact_emails : []
       ),
@@ -591,6 +595,23 @@ export async function updatePlatformAdminSchoolStudentCapOverride(
       typeof res.data?.student_cap_override === 'number' ? res.data.student_cap_override : null,
     plan_student_cap: typeof res.data?.plan_student_cap === 'number' ? res.data.plan_student_cap : null,
     student_cap: typeof res.data?.student_cap === 'number' ? res.data.student_cap : null,
+  };
+}
+
+export async function updatePlatformAdminSchoolRegistrationConfig(
+  schoolId: string,
+  body: {
+    phone_optional: boolean;
+  }
+): Promise<{ phone_optional: boolean }> {
+  const headers = await authHeaders();
+  const res = await axios.post(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_SCHOOLS}/${encodeURIComponent(schoolId)}${PLATFORM_ADMIN_REGISTRATION_CONFIG}`,
+    body,
+    { headers }
+  );
+  return {
+    phone_optional: res.data?.phone_optional === true,
   };
 }
 

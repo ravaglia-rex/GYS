@@ -10,7 +10,7 @@ import { useToast } from '../../components/ui/use-toast';
 import { LoadingSpinner as Spinner } from '../../components/ui/spinner';
 import analytics from '../../segment/segment';
 import { normalizeIndiaMobileE164 } from '../../utils/indiaMobile';
-import { isStudentSignupPhoneOptional } from '../../utils/studentSignupPhoneOptional';
+import { resolvePhoneOptional } from '../../utils/studentSignupPhoneOptional';
 import {
   formatInrFromPaise,
   normalizeStudentMembershipLevel,
@@ -28,6 +28,8 @@ interface SignupFlowState {
   lastName?: string;
   email?: string;
   whatsappPhone?: string;
+  /** From step 1 resolveRegistrationSchool / admin registration_config. */
+  signupPhoneOptional?: boolean;
   grade?: string;
   section?: string;
   dob?: string;
@@ -142,7 +144,7 @@ const StudentPaymentPage: React.FC = () => {
       return;
     }
 
-    const phoneOptional = isStudentSignupPhoneOptional(schoolId);
+    const phoneOptional = resolvePhoneOptional(schoolId, state.signupPhoneOptional === true);
     const normalizedWhatsappPhone = whatsappPhone
       ? normalizeIndiaMobileE164(whatsappPhone)
       : null;
@@ -470,9 +472,11 @@ const StudentPaymentPage: React.FC = () => {
                         ? ` · Section ${normalizedSectionForPayload}`
                         : ''}
                     </p>
-                    <p className="text-xs text-slate-600">
-                      WhatsApp: {state.whatsappPhone || 'not provided'}
-                    </p>
+                    {!resolvePhoneOptional(state.schoolId, state.signupPhoneOptional === true) && (
+                      <p className="text-xs text-slate-600">
+                        WhatsApp: {state.whatsappPhone || 'not provided'}
+                      </p>
+                    )}
                   </div>
                   <button
                     type="button"

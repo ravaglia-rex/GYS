@@ -11,7 +11,7 @@ import {
   normalizeStudentMembershipLevel,
 } from '../../utils/studentMembershipPricing';
 import { mergeSignupState, writeSignupDraft } from '../../utils/studentSignupDraft';
-import { isStudentSignupPhoneOptional } from '../../utils/studentSignupPhoneOptional';
+import { resolvePhoneOptional } from '../../utils/studentSignupPhoneOptional';
 import SignupSelect from '../../components/authentication/SignupSelect';
 
 const GYS_BLUE = '#1e3a8a';
@@ -21,6 +21,8 @@ interface LocationState {
   lastName: string;
   email: string;
   whatsappPhone?: string;
+  /** From step 1 resolveRegistrationSchool / admin registration_config. */
+  signupPhoneOptional?: boolean;
   grade: string;
   section?: string;
   dob?: string;
@@ -159,7 +161,7 @@ const StudentSchoolStepPage: React.FC = () => {
       return;
     }
 
-    const phoneOptional = isStudentSignupPhoneOptional(schoolIdForSignup);
+    const phoneOptional = resolvePhoneOptional(schoolIdForSignup, base.signupPhoneOptional === true);
     if (!whatsappPhone && !phoneOptional) {
       toast({
         variant: 'destructive',

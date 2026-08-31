@@ -381,12 +381,13 @@ const ReportsPage: React.FC = () => {
               }}
             >
               <Typography variant="h6" sx={{ color: 'white', fontWeight: 600, mb: 2 }}>
-                Where to see scores today
+                Where to see scores
               </Typography>
               <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.78)', mb: 2, lineHeight: 1.65 }}>
-                Per-exam scores and outcomes are available as soon as you finish an assessment under{' '}
-                <strong style={{ color: '#93c5fd' }}>Completed &amp; Results</strong>. National percentile,
-                achievement badge, and the narrative PDF above are updated on Monday every week.
+                After you finish an exam, keep an eye on{' '}
+                <strong style={{ color: '#93c5fd' }}>Completed &amp; Results</strong> — scores appear there
+                when they are ready. National percentile, achievement badge, and the narrative PDF above are
+                updated on Monday every week.
               </Typography>
               <Button variant="contained" onClick={() => navigate('/assessments/completed')} sx={{ mt: 1 }}>
                 Go to completed assessments

@@ -104,7 +104,7 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
     heroSubtitle: 'Your first assessment',
     statGrid: [
       { label: 'Duration', value: '45 min' },
-      { label: 'Questions', value: '32–40' },
+      { label: 'Questions', value: '32' },
       { label: 'Difficulty', value: 'Adaptive' },
       { label: 'Language', value: 'English' },
     ],

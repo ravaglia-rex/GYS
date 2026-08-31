@@ -14,9 +14,10 @@ export function mergeStatGridWithTier(
   for (const cell of grid) {
     const L = cell.label.toLowerCase();
     if (qc != null && (L === 'questions' || L.includes('question'))) {
-      // Keep authored ranges (e.g. Analytical Reasoning "32–40") - adaptive length varies.
-      const looksLikeRange = /\d\s*[–-]\s*\d/.test(cell.value);
-      if (!looksLikeRange) {
+      // Keep authored copy (e.g. Analytical "32", "~200"). Only fill placeholders from tier.
+      const authored = cell.value.trim();
+      const isPlaceholder = !authored || authored === '-' || authored === '—';
+      if (isPlaceholder) {
         cell.value = String(qc);
       }
     }

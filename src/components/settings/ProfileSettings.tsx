@@ -144,7 +144,15 @@ const ProfileSettings: React.FC = () => {
 
   const { data: userData } = useStudent(currentUser?.uid, Boolean(currentUser?.uid));
   const argusCoins = readGamificationFromStudent(userData).argus_coins;
-  const profileCompletion = useMemo(() => profileCompletionFromForm(formData), [formData]);
+  const profileCompletion = useMemo(
+    () =>
+      profileCompletionFromForm({
+        ...formData,
+        signupSchoolName:
+          typeof userData?.signup_school_name === 'string' ? userData.signup_school_name : '',
+      }),
+    [formData, userData?.signup_school_name]
+  );
   const schoolId =
     typeof userData?.school_id === 'string' && userData.school_id && userData.school_id !== 'not-listed'
       ? userData.school_id
@@ -162,6 +170,7 @@ const ProfileSettings: React.FC = () => {
     setFormData((prev) => ({
       ...prev,
       displayName: `${userData.first_name || ''} ${userData.last_name || ''}`.trim(),
+      email: (typeof userData.email === 'string' && userData.email) || prev.email,
       school: userData.school_id || '',
       grade: userData.grade ? `Class ${userData.grade}` : '',
       section: sectionValue,
@@ -281,7 +290,11 @@ const ProfileSettings: React.FC = () => {
         void queryClient.invalidateQueries({ queryKey: queryKeys.student(currentUser.uid) });
       }
 
-      const hitHundred = profileCompletionFromForm(formData).complete;
+      const hitHundred = profileCompletionFromForm({
+        ...formData,
+        signupSchoolName:
+          typeof userData?.signup_school_name === 'string' ? userData.signup_school_name : '',
+      }).complete;
       const message =
         coinsAwarded > 0
           ? `Profile complete! You earned ${coinsAwarded} Argus Coins.`

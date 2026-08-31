@@ -20,6 +20,7 @@ import {
   isLevelBasedAssessment,
 } from '../../utils/assessmentGating';
 import { timestampToMillis } from '../../utils/examAttemptCooldown';
+import { STUDENT_EXAM_SHOW_SCORES_AND_COINS } from '../../constants/constants';
 import { displayExamCoinsAwarded } from '../../utils/gamification';
 import { canonicalAssessmentId } from '../../utils/assessmentIdCompat';
 
@@ -61,6 +62,9 @@ function attemptSortMs(attempt: AttemptRecord): number {
 }
 
 function formatAttemptScore(attempt: AttemptRecord): string {
+  if (!STUDENT_EXAM_SHOW_SCORES_AND_COINS) {
+    return attempt.status === 'completed' ? 'Coming soon' : attempt.status === 'in_progress' ? 'Pending' : '--';
+  }
   if (typeof attempt.score !== 'number' || Number.isNaN(attempt.score)) {
     return attempt.status === 'in_progress' ? 'Pending' : '--';
   }
@@ -68,6 +72,7 @@ function formatAttemptScore(attempt: AttemptRecord): string {
 }
 
 function formatAttemptCoins(attempt: AttemptRecord): string {
+  if (!STUDENT_EXAM_SHOW_SCORES_AND_COINS) return '--';
   const coins = displayExamCoinsAwarded({
     assessmentId: attempt.assessment_id,
     coinsAwarded: attempt.coins_awarded,
@@ -133,7 +138,9 @@ const AssessmentAttemptHistorySection: React.FC<AssessmentAttemptHistorySectionP
           Detailed Results
         </Typography>
         <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.64)', mt: 0.5 }}>
-          Every official attempt is listed here, including levels from assessments that are still in progress.
+          {STUDENT_EXAM_SHOW_SCORES_AND_COINS
+            ? 'Every official attempt is listed here, including levels from assessments that are still in progress.'
+            : 'Every official attempt is listed here. Scores will appear when results are ready.'}
         </Typography>
       </Box>
 
@@ -206,9 +213,11 @@ const AssessmentAttemptHistorySection: React.FC<AssessmentAttemptHistorySectionP
                     </TableCell>
                     <TableCell>
                       {attempt.status === 'completed'
-                        ? attempt.passed === false
-                          ? 'Still in progress'
-                          : 'Complete'
+                        ? STUDENT_EXAM_SHOW_SCORES_AND_COINS
+                          ? attempt.passed === false
+                            ? 'Still in progress'
+                            : 'Complete'
+                          : 'Submitted'
                         : 'Still in progress'}
                     </TableCell>
                     <TableCell align="right" sx={{ fontWeight: 700, color: '#fcd34d' }}>

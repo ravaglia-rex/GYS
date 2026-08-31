@@ -25,6 +25,7 @@ export const PLATFORM_ADMIN_VERIFY_PASSWORD_SETUP = '/verifyPasswordSetup';
 export const PLATFORM_ADMIN_MARK_SCHOOL_PAID = '/mark-paid';
 export const PLATFORM_ADMIN_UPDATE_SCHOOL_BILLING = '/update-billing';
 export const PLATFORM_ADMIN_STUDENT_CAP_OVERRIDE = '/student-cap-override';
+export const PLATFORM_ADMIN_REGISTRATION_CONFIG = '/registration-config';
 export const PLATFORM_ADMIN_DELETE_SCHOOL = '/delete';
 export const PLATFORM_ADMIN_DELETE_STUDENT = '/delete';
 export const PLATFORM_ADMIN_BILLING_INVOICE_DOWNLOAD_URL = '/billing-invoice-download-url';
@@ -148,3 +149,9 @@ export const CHECK_EMAIL_EXISTS='/checkEmailExists';
 // (currently analytical_reasoning) so the dashboard feels like a real student.
 // Do not flip this or live ids without CAPS authorization.
 export const STUDENT_OFFICIAL_ASSESSMENTS_ENABLED = false;
+
+/**
+ * When false, students see thanks / “results coming” after an exam instead of
+ * score + Argus Coins. Server still scores for progression and reports.
+ */
+export const STUDENT_EXAM_SHOW_SCORES_AND_COINS = false;

@@ -22,6 +22,7 @@ import {
   tierPercentToExamPoints,
   type AssessmentChartRow,
 } from '../../utils/assessmentGating';
+import { STUDENT_EXAM_SHOW_SCORES_AND_COINS } from '../../constants/constants';
 import {
   ACHIEVEMENT_TIER_EXPLORER,
   formatAchievementTierLabel,
@@ -73,6 +74,7 @@ const ColumnChart: React.FC<{ data: AssessmentChartRow[] }> = ({ data }) => {
   const programBarPalette = [
     '#5eead4', '#93c5fd', '#fcd34d', '#f9a8d4', '#c4b5fd', '#67e8f9', '#86efac', '#fca5a5',
   ];
+  const showScores = STUDENT_EXAM_SHOW_SCORES_AND_COINS;
 
   const rows = data ?? [];
 
@@ -111,7 +113,9 @@ const ColumnChart: React.FC<{ data: AssessmentChartRow[] }> = ({ data }) => {
   return (
     <Box sx={{ p: { xs: 1.5, sm: 2 }, width: '100%', overflow: 'visible' }}>
       <Typography variant="h6" sx={{ color: 'white', mb: 2, textAlign: 'center' }}>
-        Latest level score by assessment (out of {EXAM_MAX_SCORE_POINTS})
+        {showScores
+          ? `Latest level score by assessment (out of ${EXAM_MAX_SCORE_POINTS})`
+          : 'Assessment progress — scores coming soon'}
       </Typography>
       <Box sx={{ width: '100%', pb: 0.5 }}>
         <Box
@@ -158,7 +162,7 @@ const ColumnChart: React.FC<{ data: AssessmentChartRow[] }> = ({ data }) => {
                       bottom: `${pct}%`,
                       right: 0,
                       transform: 'translateY(50%)',
-                      color: 'rgba(255, 255, 255, 0.5)',
+                      color: showScores ? 'rgba(255, 255, 255, 0.5)' : 'transparent',
                       fontSize: '0.7rem',
                       lineHeight: 1,
                     }}
@@ -184,7 +188,11 @@ const ColumnChart: React.FC<{ data: AssessmentChartRow[] }> = ({ data }) => {
           >
             {dataWithPoints.map((item, index) => {
               const locked = item.locked === true;
-              const barHeight = item.isNonCompetitive
+              const barHeight = !showScores
+                ? locked
+                  ? 0
+                  : Math.round(BAR_SCALE_HEIGHT * 0.55)
+                : item.isNonCompetitive
                 ? Math.round(BAR_SCALE_HEIGHT * 0.88)
                 : Math.min(
                     BAR_SCALE_HEIGHT,
@@ -248,15 +256,19 @@ const ColumnChart: React.FC<{ data: AssessmentChartRow[] }> = ({ data }) => {
                           <Typography
                             variant="caption"
                             sx={{
-                              color: item.isNonCompetitive ? 'rgba(255,255,255,0.75)' : 'white',
+                              color: item.isNonCompetitive || !showScores ? 'rgba(255,255,255,0.75)' : 'white',
                               fontWeight: 700,
-                              fontSize: item.isNonCompetitive ? '0.72rem' : '0.8rem',
+                              fontSize: item.isNonCompetitive || !showScores ? '0.72rem' : '0.8rem',
                               lineHeight: 1.2,
                               textAlign: 'center',
                               px: 0.25,
                             }}
                           >
-                            {item.isNonCompetitive ? 'Completed' : `${item.points}`}
+                            {!showScores
+                              ? 'Submitted'
+                              : item.isNonCompetitive
+                                ? 'Completed'
+                                : `${item.points}`}
                           </Typography>
                         </Box>
                         <Box
@@ -303,7 +315,7 @@ const ColumnChart: React.FC<{ data: AssessmentChartRow[] }> = ({ data }) => {
                         Level {item.chartLevel}
                       </Typography>
                     )}
-                    {!locked && !item.isNonCompetitive && item.chartScoreIsBestFallback && (
+                    {showScores && !locked && !item.isNonCompetitive && item.chartScoreIsBestFallback && (
                       <Typography
                         variant="caption"
                         component="div"

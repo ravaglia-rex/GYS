@@ -9,7 +9,7 @@ import { useStudentSignupExit } from '../../contexts/StudentSignupExitContext';
 import { useStudentSignupExitGuard } from '../../hooks/useStudentSignupExitGuard';
 import { mergeSignupState, writeSignupDraft } from '../../utils/studentSignupDraft';
 import { normalizeIndiaMobileE164 } from '../../utils/indiaMobile';
-import { isStudentSignupPhoneOptional } from '../../utils/studentSignupPhoneOptional';
+import { resolvePhoneOptional } from '../../utils/studentSignupPhoneOptional';
 import {
   normalizeStudentSection,
   STUDENT_SECTION_OTHER,
@@ -82,14 +82,15 @@ const StudentRegistrationPage: React.FC = () => {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isContinuing, setIsContinuing] = useState(false);
   const [whatsappPhoneError, setWhatsappPhoneError] = useState('');
-  /** Roster-matched school from email — used only to relax WhatsApp requirement for Elpro/JBCN. */
+  /** Roster-matched school from email — used to relax WhatsApp requirement via API flag / fallback. */
   const [rosterSchoolId, setRosterSchoolId] = useState<string | null>(null);
+  const [resolvedPhoneOptional, setResolvedPhoneOptional] = useState(false);
   const [emailInUseOpen, setEmailInUseOpen] = useState<boolean>(!!locationState?.emailInUse);
   /** Which check blocked signup production Auth/Firestore are used even when the API runs on localhost. */
   const [emailInUseReason, setEmailInUseReason] = useState<
     'auth' | 'student' | 'schooladmin' | null
   >(() => (locationState?.emailInUse ? 'auth' : null));
-  const phoneOptional = isStudentSignupPhoneOptional(rosterSchoolId);
+  const phoneOptional = resolvePhoneOptional(rosterSchoolId, resolvedPhoneOptional);
 
   useEffect(() => {
     setFirstName(regInitial.firstName);
@@ -114,6 +115,7 @@ const StudentRegistrationPage: React.FC = () => {
     const normalized = email.trim().toLowerCase();
     if (!normalized || !normalized.includes('@')) {
       setRosterSchoolId(null);
+      setResolvedPhoneOptional(false);
       return;
     }
     let cancelled = false;
@@ -122,9 +124,18 @@ const StudentRegistrationPage: React.FC = () => {
         .then((resolved) => {
           if (cancelled) return;
           setRosterSchoolId(resolved.schoolId ?? null);
+          const nextOptional = resolved.phoneOptional === true;
+          setResolvedPhoneOptional(nextOptional);
+          if (resolvePhoneOptional(resolved.schoolId ?? null, nextOptional)) {
+            setWhatsappPhone('');
+            setWhatsappPhoneError('');
+          }
         })
         .catch(() => {
-          if (!cancelled) setRosterSchoolId(null);
+          if (!cancelled) {
+            setRosterSchoolId(null);
+            setResolvedPhoneOptional(false);
+          }
         });
     }, 350);
     return () => {
@@ -153,15 +164,18 @@ const StudentRegistrationPage: React.FC = () => {
 
     const normalizedEmail = email.trim().toLowerCase();
     let matchedSchoolId = rosterSchoolId;
+    let matchedPhoneOptional = resolvedPhoneOptional;
     try {
       const resolved = await resolveRegistrationSchool(normalizedEmail);
       matchedSchoolId = resolved.schoolId ?? null;
+      matchedPhoneOptional = resolved.phoneOptional === true;
       setRosterSchoolId(matchedSchoolId);
+      setResolvedPhoneOptional(matchedPhoneOptional);
     } catch {
       // Keep last known roster match; phone rule falls back to required if unknown.
     }
-    const skipPhone = isStudentSignupPhoneOptional(matchedSchoolId);
-    const digits = whatsappPhone.trim();
+    const skipPhone = resolvePhoneOptional(matchedSchoolId, matchedPhoneOptional);
+    const digits = skipPhone ? '' : whatsappPhone.trim();
     const normalizedWhatsappPhone = digits
       ? normalizeIndiaMobileE164(`+91${digits}`)
       : null;
@@ -174,6 +188,9 @@ const StudentRegistrationPage: React.FC = () => {
       return;
     }
     setWhatsappPhoneError('');
+    if (skipPhone) {
+      setWhatsappPhone('');
+    }
 
     setIsContinuing(true);
     let didNavigate = false;
@@ -214,6 +231,7 @@ const StudentRegistrationPage: React.FC = () => {
         ...(normalizedWhatsappPhone ? { whatsappPhone: normalizedWhatsappPhone } : { whatsappPhone: '' }),
         grade,
         section: normalizedSection,
+        signupPhoneOptional: skipPhone,
         dob: undefined,
         cityState: undefined,
       };
@@ -361,13 +379,11 @@ const StudentRegistrationPage: React.FC = () => {
               </p>
             </div>
 
+            {!phoneOptional && (
             <div>
               <label className="block text-xs sm:text-sm font-bold text-slate-700">
                 WhatsApp Phone Number
-                {!phoneOptional && <span className="text-red-500"> *</span>}
-                {phoneOptional && (
-                  <span className="ml-1 font-medium text-slate-500">(optional)</span>
-                )}
+                <span className="text-red-500"> *</span>
               </label>
               <div
                 className={`mt-1.5 flex w-full overflow-hidden rounded-lg border bg-white text-sm sm:text-base focus-within:outline-none focus-within:ring-1 ${
@@ -392,13 +408,11 @@ const StudentRegistrationPage: React.FC = () => {
                   placeholder="98765 43210"
                   autoComplete="tel-national"
                   maxLength={10}
-                  required={!phoneOptional}
+                  required
                 />
               </div>
               <p className="mt-1 text-xs text-slate-500">
-                {phoneOptional
-                  ? 'Optional for your school. You can add it later in Settings if you want.'
-                  : "If the student doesn't have a WhatsApp number, please share a parent's number."}
+                If the student doesn&apos;t have a WhatsApp number, please share a parent&apos;s number.
               </p>
               {whatsappPhoneError && (
                 <p className="mt-1.5 text-xs font-medium text-red-600" role="alert">
@@ -406,6 +420,7 @@ const StudentRegistrationPage: React.FC = () => {
                 </p>
               )}
             </div>
+            )}
 
             <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 sm:gap-4">
               <div className="min-w-0">
