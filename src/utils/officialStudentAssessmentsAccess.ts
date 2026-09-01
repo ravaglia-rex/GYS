@@ -231,6 +231,30 @@ export function canStartOfficialAssessment(
   return false;
 }
 
+/** True when Firestore ops pause blocks this account from starting a new sit. */
+export function isOfficialExamNewStartBlocked(
+  newStartsPaused: boolean,
+  email: unknown
+): boolean {
+  if (!newStartsPaused) return false;
+  return !isOfficialAssessmentBetaTester(email);
+}
+
+/**
+ * Live gate + ops pause. Does not affect in-progress resume (backend only).
+ * Pass `newStartsPaused` from {@link getOfficialExamOps} / `useOfficialExamOps`.
+ */
+export function canStartOfficialAssessmentNow(
+  assessmentId: string,
+  email: unknown,
+  tierNumber: number | undefined,
+  schoolId: unknown,
+  newStartsPaused: boolean
+): boolean {
+  if (isOfficialExamNewStartBlocked(newStartsPaused, email)) return false;
+  return canStartOfficialAssessment(assessmentId, email, tierNumber, schoolId);
+}
+
 /** True when this email may start a restricted early-access exam (e.g. Verbal QA). */
 export function isRestrictedOfficialAssessmentStarter(
   assessmentId: string,

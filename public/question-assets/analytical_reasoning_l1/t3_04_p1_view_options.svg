@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="620" viewBox="0 0 1040 620" role="img" aria-labelledby="title desc">
+  <title id="title">Four possible views from the east-side observer</title>
+  <desc id="desc">Four answer choices labelled A through D. Each is a bordered two-by-two view whose columns are the observer's left and right and whose rows are the upper and lower levels. Option A shows star and square above pentagon and diamond. Option B shows triangle and star above diamond and circle. Option C shows square and star above pentagon and diamond. Option D shows square and star above diamond and pentagon.</desc>
+  <defs>
+    <symbol id="triangle" viewBox="-24 -24 48 48"><polygon points="0,-23 22,20 -22,20"/></symbol>
+    <symbol id="square" viewBox="-24 -24 48 48"><rect x="-21" y="-21" width="42" height="42" rx="2"/></symbol>
+    <symbol id="circle" viewBox="-24 -24 48 48"><circle r="21"/></symbol>
+    <symbol id="diamond" viewBox="-24 -24 48 48"><polygon points="0,-23 23,0 0,23 -23,0"/></symbol>
+    <symbol id="pentagon" viewBox="-24 -24 48 48"><polygon points="0,-23 22,-7 14,20 -14,20 -22,-7"/></symbol>
+    <symbol id="star" viewBox="-24 -24 48 48"><polygon points="0,-23 6.2,-8.5 21.9,-7.1 10,3.2 13.5,18.6 0,10 -13.5,18.6 -10,3.2 -21.9,-7.1 -6.2,-8.5"/></symbol>
+  </defs>
+  <style>
+    .title { font:700 20px Arial,sans-serif; fill:#174a78; letter-spacing:.4px; }
+    .option { font:700 26px Arial,sans-serif; fill:#174a78; }
+    .axis { font:700 13px Arial,sans-serif; fill:#536474; letter-spacing:.3px; }
+    .grid { fill:#fff; stroke:#263746; stroke-width:3; }
+    .line { stroke:#a9b6c2; stroke-width:2; }
+    .symbol { fill:#1c3144; }
+  </style>
+  <rect width="1040" height="620" fill="#fff"/>
+  <text x="520" y="28" class="title" text-anchor="middle">EACH OPTION SHOWS THE OBSERVER'S VIEW</text>
+
+  <text x="58" y="95" class="option">A</text>
+  <text x="205" y="65" class="axis" text-anchor="middle">OBSERVER'S LEFT</text>
+  <text x="365" y="65" class="axis" text-anchor="middle">OBSERVER'S RIGHT</text>
+  <text x="110" y="140" class="axis" text-anchor="end">UPPER</text>
+  <text x="110" y="250" class="axis" text-anchor="end">LOWER</text>
+  <rect x="125" y="80" width="320" height="220" rx="8" class="grid"/>
+  <line x1="285" y1="80" x2="285" y2="300" class="line"/>
+  <line x1="125" y1="190" x2="445" y2="190" class="line"/>
+  <use href="#star" x="181" y="111" width="48" height="48" class="symbol"/>
+  <use href="#square" x="341" y="111" width="48" height="48" class="symbol"/>
+  <use href="#pentagon" x="181" y="216" width="48" height="48" class="symbol"/>
+  <use href="#diamond" x="341" y="216" width="48" height="48" class="symbol"/>
+
+  <text x="568" y="95" class="option">B</text>
+  <text x="715" y="65" class="axis" text-anchor="middle">OBSERVER'S LEFT</text>
+  <text x="875" y="65" class="axis" text-anchor="middle">OBSERVER'S RIGHT</text>
+  <text x="620" y="140" class="axis" text-anchor="end">UPPER</text>
+  <text x="620" y="250" class="axis" text-anchor="end">LOWER</text>
+  <rect x="635" y="80" width="320" height="220" rx="8" class="grid"/>
+  <line x1="795" y1="80" x2="795" y2="300" class="line"/>
+  <line x1="635" y1="190" x2="955" y2="190" class="line"/>
+  <use href="#triangle" x="691" y="111" width="48" height="48" class="symbol"/>
+  <use href="#star" x="851" y="111" width="48" height="48" class="symbol"/>
+  <use href="#diamond" x="691" y="216" width="48" height="48" class="symbol"/>
+  <use href="#circle" x="851" y="216" width="48" height="48" class="symbol"/>
+
+  <text x="58" y="405" class="option">C</text>
+  <text x="205" y="375" class="axis" text-anchor="middle">OBSERVER'S LEFT</text>
+  <text x="365" y="375" class="axis" text-anchor="middle">OBSERVER'S RIGHT</text>
+  <text x="110" y="450" class="axis" text-anchor="end">UPPER</text>
+  <text x="110" y="560" class="axis" text-anchor="end">LOWER</text>
+  <rect x="125" y="390" width="320" height="220" rx="8" class="grid"/>
+  <line x1="285" y1="390" x2="285" y2="610" class="line"/>
+  <line x1="125" y1="500" x2="445" y2="500" class="line"/>
+  <use href="#square" x="181" y="421" width="48" height="48" class="symbol"/>
+  <use href="#star" x="341" y="421" width="48" height="48" class="symbol"/>
+  <use href="#pentagon" x="181" y="526" width="48" height="48" class="symbol"/>
+  <use href="#diamond" x="341" y="526" width="48" height="48" class="symbol"/>
+
+  <text x="568" y="405" class="option">D</text>
+  <text x="715" y="375" class="axis" text-anchor="middle">OBSERVER'S LEFT</text>
+  <text x="875" y="375" class="axis" text-anchor="middle">OBSERVER'S RIGHT</text>
+  <text x="620" y="450" class="axis" text-anchor="end">UPPER</text>
+  <text x="620" y="560" class="axis" text-anchor="end">LOWER</text>
+  <rect x="635" y="390" width="320" height="220" rx="8" class="grid"/>
+  <line x1="795" y1="390" x2="795" y2="610" class="line"/>
+  <line x1="635" y1="500" x2="955" y2="500" class="line"/>
+  <use href="#square" x="691" y="421" width="48" height="48" class="symbol"/>
+  <use href="#star" x="851" y="421" width="48" height="48" class="symbol"/>
+  <use href="#diamond" x="691" y="526" width="48" height="48" class="symbol"/>
+  <use href="#pentagon" x="851" y="526" width="48" height="48" class="symbol"/>
+</svg>

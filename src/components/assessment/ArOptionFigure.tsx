@@ -15,6 +15,7 @@ import {
 } from './arOptionFigureModel';
 
 import { resolveExamFigureSrc } from './examFigureSrc';
+import { type ArFigureDisplaySizeInput } from './arFigureDisplaySize';
 import {
   sanitizeOptionFigureCrops,
   type SavedOptionFigureCrops,
@@ -155,8 +156,8 @@ export const ArOptionFigureSlice: React.FC<{
    */
   fit?: 'option' | 'exam' | 'stem' | 'crop';
   /** Explicit bank size; falls back to filename exception list when unset. */
-  optionDisplaySize?: 'small' | 'medium' | 'large' | 'normal' | null;
-  stemDisplaySize?: 'small' | 'medium' | 'large' | 'normal' | null;
+  optionDisplaySize?: ArFigureDisplaySizeInput;
+  stemDisplaySize?: ArFigureDisplaySizeInput;
 }> = ({
   figure,
   index,

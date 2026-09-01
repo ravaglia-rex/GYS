@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="700" viewBox="0 0 1000 700" role="img" aria-labelledby="title desc">
+  <title id="title">Four possible final delivery states</title>
+  <desc id="desc">All options leave the left room empty. They differ in the loose item in the attic and in the inside, clipped, and loose items in the right room.</desc>
+  <style>
+    .card { fill:#f8fafc; stroke:#b7c4ce; stroke-width:2; }
+    .room { fill:#fff; stroke:#435765; stroke-width:2; }
+    .room-name { font:700 14px sans-serif; fill:#31434f; text-anchor:middle; }
+    .option { font:700 25px sans-serif; fill:#174a78; }
+    .box { fill:#e9f3fb; stroke:#173f63; stroke-width:2.3; }
+    .box-label { font:700 12px sans-serif; fill:#173f63; text-anchor:middle; }
+    .inside { font:700 23px "DejaVu Sans",sans-serif; fill:#173f63; text-anchor:middle; dominant-baseline:middle; }
+    .clip { fill:#fff8e8; stroke:#9b5b00; stroke-width:2; }
+    .clip-line { stroke:#9b5b00; stroke-width:3; }
+    .clip-symbol { font:700 18px "DejaVu Sans",sans-serif; fill:#7a4700; text-anchor:middle; dominant-baseline:middle; }
+    .loose { font:700 26px "DejaVu Sans",sans-serif; fill:#4b2c71; text-anchor:middle; dominant-baseline:middle; }
+    .state-label { font:13px sans-serif; fill:#536572; text-anchor:middle; }
+    .note { font:14px sans-serif; fill:#536572; }
+
+    /* Optical-size normalization: role controls color; shape controls apparent size. */
+    .shape-triangle { font-size:29px; }
+    .shape-circle { font-size:52px; }
+    .shape-square { font-size:68px; }
+    .shape-diamond { font-size:56px; }
+    .shape-star { font-size:31px; }
+  </style>
+  <rect width="1000" height="700" fill="#fff"/>
+  <text class="note" x="30" y="22">In every option, the LEFT ROOM is empty.</text>
+
+  <!-- A -->
+  <g transform="translate(25 35)"><rect class="card" width="460" height="305" rx="9"/><text class="option" x="18" y="34">A</text>
+    <rect class="room" x="45" y="62" width="150" height="210" rx="5"/><rect class="room" x="225" y="62" width="205" height="210" rx="5"/>
+    <text class="room-name" x="120" y="86">ATTIC</text><text class="room-name" x="327" y="86">RIGHT ROOM</text><text class="loose shape-triangle" x="120" y="160">▲</text><text class="state-label" x="120" y="190">loose</text>
+    <g transform="translate(250 118)"><rect class="box" width="88" height="76" rx="6"/><text class="box-label" x="44" y="17">INSIDE</text><text class="inside shape-diamond" x="44" y="48">◆</text><path class="clip-line" d="M88 22H102"/><rect class="clip" x="100" y="7" width="70" height="58" rx="5"/><text class="clip-symbol shape-circle" x="119" y="23">●</text></g><text class="loose shape-square" x="385" y="217">■</text><text class="state-label" x="385" y="245">loose</text>
+  </g>
+
+  <!-- B -->
+  <g transform="translate(515 35)"><rect class="card" width="460" height="305" rx="9"/><text class="option" x="18" y="34">B</text>
+    <rect class="room" x="45" y="62" width="150" height="210" rx="5"/><rect class="room" x="225" y="62" width="205" height="210" rx="5"/>
+    <text class="room-name" x="120" y="86">ATTIC</text><text class="room-name" x="327" y="86">RIGHT ROOM</text><text class="loose shape-triangle" x="120" y="160">▲</text><text class="state-label" x="120" y="190">loose</text>
+    <g transform="translate(250 118)"><rect class="box" width="88" height="76" rx="6"/><text class="box-label" x="44" y="17">INSIDE</text><text class="inside shape-circle" x="44" y="48">●</text><path class="clip-line" d="M88 22H102"/><rect class="clip" x="100" y="7" width="70" height="58" rx="5"/><text class="clip-symbol shape-square" x="119" y="23">■</text></g><text class="loose shape-triangle" x="385" y="217">▲</text><text class="state-label" x="385" y="245">loose</text>
+  </g>
+
+  <!-- C -->
+  <g transform="translate(25 370)"><rect class="card" width="460" height="305" rx="9"/><text class="option" x="18" y="34">C</text>
+    <rect class="room" x="45" y="62" width="150" height="210" rx="5"/><rect class="room" x="225" y="62" width="205" height="210" rx="5"/>
+    <text class="room-name" x="120" y="86">ATTIC</text><text class="room-name" x="327" y="86">RIGHT ROOM</text><text class="loose shape-diamond" x="120" y="160">◆</text><text class="state-label" x="120" y="190">loose</text>
+    <g transform="translate(250 118)"><rect class="box" width="88" height="76" rx="6"/><text class="box-label" x="44" y="17">INSIDE</text><text class="inside shape-triangle" x="44" y="48">▲</text><path class="clip-line" d="M88 22H102"/><rect class="clip" x="100" y="7" width="70" height="58" rx="5"/><text class="clip-symbol shape-circle" x="119" y="23">●</text></g><text class="loose shape-square" x="385" y="217">■</text><text class="state-label" x="385" y="245">loose</text>
+  </g>
+
+  <!-- D -->
+  <g transform="translate(515 370)"><rect class="card" width="460" height="305" rx="9"/><text class="option" x="18" y="34">D</text>
+    <rect class="room" x="45" y="62" width="150" height="210" rx="5"/><rect class="room" x="225" y="62" width="205" height="210" rx="5"/>
+    <text class="room-name" x="120" y="86">ATTIC</text><text class="room-name" x="327" y="86">RIGHT ROOM</text><text class="loose shape-triangle" x="120" y="160">▲</text><text class="state-label" x="120" y="190">loose</text>
+    <g transform="translate(250 118)"><rect class="box" width="88" height="76" rx="6"/><text class="box-label" x="44" y="17">INSIDE</text><text class="inside shape-diamond" x="44" y="48">◆</text><path class="clip-line" d="M88 22H102"/><rect class="clip" x="100" y="7" width="70" height="58" rx="5"/><text class="clip-symbol shape-square" x="119" y="23">■</text></g><text class="loose shape-circle" x="385" y="217">●</text><text class="state-label" x="385" y="245">loose</text>
+  </g>
+</svg>

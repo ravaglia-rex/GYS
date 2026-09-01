@@ -3,7 +3,7 @@ import { Alert, Box, Typography } from '@mui/material';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../firebase/firebase';
-import { useAssessmentConfig, useStudent } from '../../query/hooks';
+import { useAssessmentConfig, useOfficialExamOps, useStudent } from '../../query/hooks';
 import * as Sentry from '@sentry/react';
 import DashboardOverview from '../../components/dashboard/DashboardOverview';
 import {
@@ -22,7 +22,7 @@ import {
 import PageTutorial from '../../components/tutorial/PageTutorial';
 import {
   canAccessOfficialStudentAssessments,
-  canStartOfficialAssessment,
+  canStartOfficialAssessmentNow,
   officialAssessmentSchoolIdFromStudent,
 } from '../../utils/officialStudentAssessmentsAccess';
 import { canonicalAssessmentId, readAssessmentProgress } from '../../utils/assessmentIdCompat';
@@ -67,6 +67,8 @@ const Dashboard: React.FC = () => {
     error: studentErrorObj,
   } = useStudent(uid, Boolean(uid));
   const { data: configFromBackend = [], isLoading: configLoading } = useAssessmentConfig(Boolean(uid));
+  const { data: officialExamOps } = useOfficialExamOps(Boolean(uid));
+  const newStartsPaused = officialExamOps?.new_starts_paused === true;
 
   const loading = studentLoading || configLoading;
   const loadError = studentIsError
@@ -131,7 +133,7 @@ const Dashboard: React.FC = () => {
       }
       // Only treat exams as "available" when membership-unlocked and publicly live (or beta).
       if (
-        canStartOfficialAssessment(a.id, userEmail, undefined, officialSchoolId) &&
+        canStartOfficialAssessmentNow(a.id, userEmail, undefined, officialSchoolId, newStartsPaused) &&
         !gate.locked &&
         !isAssessmentFullyComplete(a, p)
       ) {
@@ -170,7 +172,7 @@ const Dashboard: React.FC = () => {
       backendNotificationEvents: dashboardNotificationEvents,
       assessmentScopeLine: `${tiersCompleted} of ${listedTotal} complete`,
     };
-  }, [student, configFromBackend, loading, userEmail, officialSchoolId]);
+  }, [student, configFromBackend, loading, userEmail, officialSchoolId, newStartsPaused]);
 
   const {
     stats,

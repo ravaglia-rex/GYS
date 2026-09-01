@@ -92,6 +92,7 @@ function ItemBankVirtualList({
   canApprove = false,
   onApprovalChange,
   onItemUpdated,
+  onItemDeleted,
 }: {
   questions: OfficialQuestionStatRow[];
   loading: boolean;
@@ -101,6 +102,7 @@ function ItemBankVirtualList({
   canApprove?: boolean;
   onApprovalChange?: (itemId: string, deliveryAuthorized: boolean) => void;
   onItemUpdated?: (itemId: string, next: OfficialQuestionStatRow) => void;
+  onItemDeleted?: (itemId: string) => void;
 }) {
   const [visible, setVisible] = useState(ITEM_BANK_PAGE_SIZE);
   useEffect(() => {
@@ -127,6 +129,7 @@ function ItemBankVirtualList({
             onApprovalChange?.(itemId, deliveryAuthorized)
           }
           onItemUpdated={onItemUpdated}
+          onItemDeleted={onItemDeleted}
         />
       ))}
       {visible < questions.length ? (
@@ -501,6 +504,38 @@ export function PlatformAdminItemBankSection({
     });
   }, []);
 
+  const handleItemDeleted = useCallback((itemId: string) => {
+    setBank((prev) => {
+      if (!prev) return prev;
+      const removed = prev.questions.find((q) => q.item_id === itemId);
+      const questions = prev.questions.filter((q) => q.item_id !== itemId);
+      const wasAuthorized = removed?.delivery_authorized === true;
+      const prevApproved =
+        prev.facets?.approved?.find((row) => row.key === 'yes')?.count ??
+        prev.questions.filter((q) => q.delivery_authorized === true).length;
+      const prevNotApproved =
+        prev.facets?.approved?.find((row) => row.key === 'no')?.count ??
+        Math.max(0, (prev.total_items || prev.questions.length) - prevApproved);
+      const approvedCount = wasAuthorized ? Math.max(0, prevApproved - 1) : prevApproved;
+      const notApprovedCount = wasAuthorized ? prevNotApproved : Math.max(0, prevNotApproved - 1);
+      return {
+        ...prev,
+        questions,
+        total_items: questions.length,
+        served_items: questions.filter((q) => q.times_seen > 0).length,
+        facets: prev.facets?.approved
+          ? {
+              ...prev.facets,
+              approved: [
+                { key: 'yes', label: 'Approved', count: approvedCount },
+                { key: 'no', label: 'Not approved', count: notApprovedCount },
+              ],
+            }
+          : prev.facets,
+      };
+    });
+  }, []);
+
   const emptyCopy =
     bankKind === 'review'
       ? 'No review-draft items for this level/filters. The practice_review_30 packet is Level 1 only.'
@@ -676,6 +711,7 @@ export function PlatformAdminItemBankSection({
                 canApprove={bankKind === 'official' && examId === 'analytical_reasoning'}
                 onApprovalChange={handleApprovalChange}
                 onItemUpdated={handleItemUpdated}
+                onItemDeleted={handleItemDeleted}
               />
             )}
           </PlatformAdminAnalyticsSection>

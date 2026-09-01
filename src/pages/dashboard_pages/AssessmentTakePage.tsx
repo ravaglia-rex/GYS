@@ -558,6 +558,10 @@ export default function AssessmentTakePage() {
           setError(
             `${err?.response?.data?.error ?? 'This assessment level is on cooldown.'} Available again: ${new Date(nextMs).toLocaleDateString()}.`
           );
+        } else if (code === 'official_exam_starts_paused') {
+          setError(
+            err?.response?.data?.error ?? 'This assessment is not available for your membership level.'
+          );
         } else {
           setError(err?.response?.data?.error ?? 'This assessment is not available for your membership level.');
         }

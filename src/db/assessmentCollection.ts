@@ -3,6 +3,7 @@ import type { TierProgressionConfig } from '../utils/tierProgression';
 import {
   ASSESSMENTS_APIS,
   GET_ASSESSMENT_CONFIG,
+  GET_OFFICIAL_EXAM_OPS,
   GET_STUDENT_ASSESSMENTS,
   INITIALIZE_EXAM,
   RECORD_ANSWER,
@@ -191,6 +192,22 @@ export const getAssessmentConfig = async (): Promise<AssessmentType[]> => {
   }
   // Exam 1 is expected to already be stored as analytical_reasoning.
   return canonicalizeAssessmentList(data as AssessmentType[]);
+};
+
+export type OfficialExamOps = {
+  new_starts_paused: boolean;
+};
+
+/** Public ops flag — short cache; toggled in Firestore app_config/official_exam_ops. */
+export const getOfficialExamOps = async (): Promise<OfficialExamOps> => {
+  const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS;
+  if (!base) {
+    return { new_starts_paused: false };
+  }
+  const response = await axios.get(`${base}${ASSESSMENTS_APIS}${GET_OFFICIAL_EXAM_OPS}`);
+  return {
+    new_starts_paused: response.data?.new_starts_paused === true,
+  };
 };
 
 // ─── Auth-required ────────────────────────────────────────────────────────────

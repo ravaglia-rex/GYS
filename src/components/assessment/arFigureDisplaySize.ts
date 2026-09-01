@@ -2,32 +2,55 @@
  * Per-item figure display sizes for AR stem + option tiles.
  * Mirrors backend `arFigureDisplaySize.ts`.
  */
-export type ArFigureDisplaySize = 'small' | 'medium' | 'large';
+export type ArFigureDisplaySize = 'xsmall' | 'small' | 'medium' | 'large' | 'xlarge';
+
+/** Bank / API value: canonical sizes plus legacy `normal` (= medium). */
+export type ArFigureDisplaySizeInput = ArFigureDisplaySize | 'normal' | null;
 
 export const AR_FIGURE_DISPLAY_SIZES: readonly ArFigureDisplaySize[] = [
+  'xsmall',
   'small',
   'medium',
   'large',
+  'xlarge',
 ] as const;
 
 /** Multipliers vs the default medium exam caps. */
 export const AR_FIGURE_SIZE_MULTIPLIER: Record<ArFigureDisplaySize, number> = {
+  xsmall: 0.5,
   small: 0.75,
   medium: 1,
-  large: 1.75,
+  large: 1.5,
+  xlarge: 2,
+};
+
+export const AR_FIGURE_SIZE_LABEL: Record<ArFigureDisplaySize, string> = {
+  xsmall: '0.5×',
+  small: '0.75×',
+  medium: '1×',
+  large: '1.5×',
+  xlarge: '2×',
 };
 
 export function normalizeArFigureDisplaySize(
   raw: unknown,
   fallback: ArFigureDisplaySize = 'medium'
 ): ArFigureDisplaySize {
-  if (raw === 'small' || raw === 'medium' || raw === 'large') return raw;
+  if (
+    raw === 'xsmall' ||
+    raw === 'small' ||
+    raw === 'medium' ||
+    raw === 'large' ||
+    raw === 'xlarge'
+  ) {
+    return raw;
+  }
   if (raw === 'normal') return 'medium';
   return fallback;
 }
 
 export function arFigureSizeMultiplier(
-  size: ArFigureDisplaySize | 'normal' | null | undefined
+  size: ArFigureDisplaySizeInput | undefined
 ): number {
   return AR_FIGURE_SIZE_MULTIPLIER[normalizeArFigureDisplaySize(size)];
 }
@@ -35,7 +58,7 @@ export function arFigureSizeMultiplier(
 export function scaleExamFigureCaps(
   baseWidth: number,
   baseHeight: number,
-  size: ArFigureDisplaySize | 'normal' | null | undefined
+  size: ArFigureDisplaySizeInput | undefined
 ): { maxWidth: number; maxHeight: number } {
   const m = arFigureSizeMultiplier(size);
   return {

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="790" height="390" viewBox="0 0 790 390" role="img" aria-labelledby="title desc">
+  <title id="title">Symbol board and sliding stencil</title>
+  <desc id="desc">A five-by-five symbol board has two stars and two triangles. A three-by-three stencil has labeled star and triangle windows plus two plain windows.</desc>
+  <style>.grid{fill:#fff;stroke:#52667d;stroke-width:2}.sym{font:700 28px Arial,sans-serif;fill:#182a40;text-anchor:middle;dominant-baseline:middle}.heading{font:700 20px Arial,sans-serif;fill:#263b53;text-anchor:middle}.mask{fill:#52667d;stroke:#263b53;stroke-width:2}.hole{fill:#fff;stroke:#182a40;stroke-width:3}.window{font:700 25px Arial,sans-serif;fill:#182a40;text-anchor:middle;dominant-baseline:middle}.note{font:600 16px Arial,sans-serif;fill:#5b6d82;text-anchor:middle}</style>
+  <text class="heading" x="205" y="30">BOARD</text><text class="heading" x="615" y="30">STENCIL — DO NOT TURN</text>
+  <g transform="translate(55 50)">
+    <rect class="grid" width="300" height="300"/>
+    <path class="grid" d="M60 0v300M120 0v300M180 0v300M240 0v300M0 60h300M0 120h300M0 180h300M0 240h300"/>
+    <g class="sym">
+      <text x="30" y="31">★</text><text x="90" y="31">■</text><text x="150" y="31">○</text><text x="210" y="31">⬟</text><text x="270" y="31">◆</text>
+      <text x="30" y="91">○</text><text x="90" y="91">★</text><text x="150" y="91">■</text><text x="210" y="91">●</text><text x="270" y="91">△</text>
+      <text x="30" y="151">■</text><text x="90" y="151">⬟</text><text x="150" y="151">◆</text><text x="210" y="151">▲</text><text x="270" y="151">○</text>
+      <text x="30" y="211">●</text><text x="90" y="211">■</text><text x="150" y="211">○</text><text x="210" y="211">▲</text><text x="270" y="211">◆</text>
+      <text x="30" y="271">◆</text><text x="90" y="271">△</text><text x="150" y="271">⬟</text><text x="210" y="271">■</text><text x="270" y="271">●</text>
+    </g>
+  </g>
+  <g transform="translate(525 90)">
+    <rect class="mask" width="180" height="180" rx="6"/>
+    <path d="M60 0v180M120 0v180M0 60h180M0 120h180" stroke="#9eabba" stroke-width="2"/>
+    <rect class="hole" x="6" y="6" width="48" height="48" rx="8"/><text class="window" x="30" y="31">★</text>
+    <rect class="hole" x="126" y="6" width="48" height="48" rx="8"/>
+    <rect class="hole" x="66" y="66" width="48" height="48" rx="8"/>
+    <rect class="hole" x="126" y="126" width="48" height="48" rx="8"/><text class="window" x="150" y="151">▲</text>
+  </g>
+  <text class="note" x="615" y="300">White squares are windows.</text>
+</svg>

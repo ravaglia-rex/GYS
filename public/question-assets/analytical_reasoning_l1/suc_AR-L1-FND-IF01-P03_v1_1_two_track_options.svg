@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="260" viewBox="0 0 900 260" role="img" aria-labelledby="title desc">
+  <title id="title">Four possible two-symbol cards</title><desc id="desc">A is a hollow circle with a solid triangle; B is a hollow circle with a solid star; C is a hollow diamond with a solid star; D is a hollow pentagon with a solid circle.</desc>
+  <style>.card{fill:#fff;stroke:#506575;stroke-width:2}.large{fill:#fff;stroke:#173f63;stroke-width:4}.small{fill:#4b2c71;stroke:#4b2c71;stroke-width:2}.lab{font:700 24px sans-serif;fill:#174a78}</style><rect width="900" height="260" fill="#fff"/>
+  <g transform="translate(20 28)"><rect class="card" width="200" height="200" rx="8"/><text class="lab" x="12" y="30">A</text><circle class="large" cx="65" cy="110" r="38"/><polygon class="small" points="150,89 129,131 171,131"/></g>
+  <g transform="translate(240 28)"><rect class="card" width="200" height="200" rx="8"/><text class="lab" x="12" y="30">B</text><circle class="large" cx="65" cy="110" r="38"/><polygon class="small" points="150,86 157,102 175,104 162,116 166,134 150,125 134,134 138,116 125,104 143,102"/></g>
+  <g transform="translate(460 28)"><rect class="card" width="200" height="200" rx="8"/><text class="lab" x="12" y="30">C</text><polygon class="large" points="65,70 105,110 65,150 25,110"/><polygon class="small" points="150,86 157,102 175,104 162,116 166,134 150,125 134,134 138,116 125,104 143,102"/></g>
+  <g transform="translate(680 28)"><rect class="card" width="200" height="200" rx="8"/><text class="lab" x="12" y="30">D</text><polygon class="large" points="65,70 105,99 90,146 40,146 25,99"/><circle class="small" cx="150" cy="110" r="18"/></g>
+</svg>

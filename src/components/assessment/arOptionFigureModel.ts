@@ -1,6 +1,7 @@
 import { EXAM_FIGURE_MAX_HEIGHT_PX, EXAM_FIGURE_MAX_WIDTH_PX } from './ExamMarkdown';
 import {
   arFigureSizeMultiplier,
+  type ArFigureDisplaySizeInput,
 } from './arFigureDisplaySize';
 
 const MD_IMAGE = /!\[([^\]]*)\]\(([^)]+)\)/g;
@@ -629,7 +630,7 @@ export const AR_OPTION_STEM_SLICE_MAX_WIDTH_PX = 560;
 
 function optionFigureSizeMultiplier(
   _src: string | undefined,
-  optionDisplaySize?: 'small' | 'medium' | 'large' | 'normal' | null
+  optionDisplaySize?: ArFigureDisplaySizeInput
 ): number {
   // Bank presentation.option_display_size is the source of truth (default medium).
   return arFigureSizeMultiplier(optionDisplaySize);
@@ -652,8 +653,8 @@ export function arOptionFigureSliceDisplaySize(
   fit: 'option' | 'exam' | 'stem' | 'crop',
   slice?: Pick<OptionFigureSliceRect, 'kind'> | null,
   src?: string,
-  optionDisplaySize?: 'small' | 'medium' | 'large' | 'normal' | null,
-  stemDisplaySize?: 'small' | 'medium' | 'large' | 'normal' | null
+  optionDisplaySize?: ArFigureDisplaySizeInput,
+  stemDisplaySize?: ArFigureDisplaySizeInput
 ): { width: number; height: number } {
   const stemCaps = {
     width: EXAM_FIGURE_MAX_WIDTH_PX * arFigureSizeMultiplier(stemDisplaySize),

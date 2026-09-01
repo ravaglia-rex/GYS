@@ -11,6 +11,8 @@ import {
   PLATFORM_ADMIN_ANALYTICS_TOP_QOD,
   PLATFORM_ADMIN_ANALYTICS_SCHOOL_ADMIN_ACTIVITY,
   PLATFORM_ADMIN_ANALYTICS_SITE_PAGE_HITS,
+  PLATFORM_ADMIN_ANALYTICS_LIVE_EXAMS,
+  PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAM_OPS,
   PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAMS,
   PLATFORM_ADMIN_ANALYTICS_OFFICIAL_DAILY,
 } from '../constants/constants';
@@ -363,6 +365,7 @@ export async function getPlatformAdminSchoolAdminActivity(
 export async function getPlatformAdminPageHits(): Promise<{
   pages: PlatformAdminPageHitRow[];
   total_hits: number;
+  pages_tracked: number;
   generated_at: string;
 }> {
   const headers = await authHeaders();
@@ -376,11 +379,98 @@ export async function getPlatformAdminPageHits(): Promise<{
       typeof res.data.total_hits === 'number' && Number.isFinite(res.data.total_hits)
         ? res.data.total_hits
         : 0,
+    pages_tracked:
+      typeof res.data.pages_tracked === 'number' && Number.isFinite(res.data.pages_tracked)
+        ? res.data.pages_tracked
+        : Array.isArray(res.data.pages)
+          ? res.data.pages.length
+          : 0,
     generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
   };
 }
 
 export const getSitePageHits = getPlatformAdminPageHits;
+
+export type LiveExamAttemptRow = {
+  attempt_id: string;
+  uid: string;
+  student_name: string;
+  email: string;
+  school_id: string | null;
+  school_name: string | null;
+  assessment_id: string;
+  assessment_label: string;
+  proficiency_tier: number | null;
+  current_question_index: number;
+  total_questions: number;
+  answers_count: number;
+  started_at: string | null;
+  exam_expires_at: string | null;
+  seconds_remaining: number | null;
+  expired: boolean;
+  clock_state: 'active' | 'stale';
+};
+
+export async function getPlatformAdminLiveExams(): Promise<{
+  attempts: LiveExamAttemptRow[];
+  active_count: number;
+  stale_count: number;
+  generated_at: string;
+}> {
+  const headers = await authHeaders();
+  const res = await axios.get(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_LIVE_EXAMS}`,
+    { headers }
+  );
+  return {
+    attempts: Array.isArray(res.data.attempts) ? res.data.attempts : [],
+    active_count:
+      typeof res.data.active_count === 'number' && Number.isFinite(res.data.active_count)
+        ? res.data.active_count
+        : 0,
+    stale_count:
+      typeof res.data.stale_count === 'number' && Number.isFinite(res.data.stale_count)
+        ? res.data.stale_count
+        : 0,
+    generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
+  };
+}
+
+export type PlatformAdminOfficialExamOps = {
+  new_starts_paused: boolean;
+  updated_at: string | null;
+  updated_by: string | null;
+};
+
+export async function getPlatformAdminOfficialExamOps(): Promise<PlatformAdminOfficialExamOps> {
+  const headers = await authHeaders();
+  const res = await axios.get(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAM_OPS}`,
+    { headers }
+  );
+  return {
+    new_starts_paused: res.data?.new_starts_paused === true,
+    updated_at: typeof res.data.updated_at === 'string' ? res.data.updated_at : null,
+    updated_by: typeof res.data.updated_by === 'string' ? res.data.updated_by : null,
+  };
+}
+
+export async function setPlatformAdminOfficialExamOps(
+  newStartsPaused: boolean
+): Promise<PlatformAdminOfficialExamOps & { message?: string }> {
+  const headers = await authHeaders();
+  const res = await axios.patch(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAM_OPS}`,
+    { new_starts_paused: newStartsPaused },
+    { headers }
+  );
+  return {
+    new_starts_paused: res.data?.new_starts_paused === true,
+    updated_at: typeof res.data.updated_at === 'string' ? res.data.updated_at : null,
+    updated_by: typeof res.data.updated_by === 'string' ? res.data.updated_by : null,
+    message: typeof res.data.message === 'string' ? res.data.message : undefined,
+  };
+}
 
 export type OfficialExamSummaryRow = {
   exam_id: string;
@@ -827,8 +917,8 @@ export type OfficialQuestionStatRow = {
   assets?: Array<{ path?: string; alt?: string }>;
   option_figure?: {src: string; alt?: string} | null;
   display_mode?: 'figure_tiles' | 'letter_buttons' | 'text_options' | null;
-  stem_display_size?: 'small' | 'medium' | 'large' | 'normal' | null;
-  option_display_size?: 'small' | 'medium' | 'large' | 'normal' | null;
+  stem_display_size?: 'xsmall' | 'small' | 'medium' | 'large' | 'xlarge' | 'normal' | null;
+  option_display_size?: 'xsmall' | 'small' | 'medium' | 'large' | 'xlarge' | 'normal' | null;
   option_layout?: string | null;
   option_crops?: {
     layout: 'row' | 'stack' | 'grid';
@@ -1099,6 +1189,26 @@ export async function unapprovePlatformAdminOfficialExamBankItem(opts: {
   };
 }
 
+export async function deletePlatformAdminOfficialExamBankItem(opts: {
+  examId: string;
+  level: number;
+  itemId: string;
+}): Promise<{
+  item_id: string;
+  deleted: boolean;
+}> {
+  const headers = await authHeaders();
+  const res = await axios.post(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAMS}/${encodeURIComponent(opts.examId)}/item-bank/${encodeURIComponent(opts.itemId)}/delete`,
+    {},
+    { headers, params: { level: opts.level } }
+  );
+  return {
+    item_id: typeof res.data.item_id === 'string' ? res.data.item_id : opts.itemId,
+    deleted: res.data.deleted === true,
+  };
+}
+
 export type OfficialExamBankItemEditPatch = {
   body_markdown?: string;
   option_texts?: string[];
@@ -1107,8 +1217,8 @@ export type OfficialExamBankItemEditPatch = {
   instruction_family_id?: string;
   primary_strand_id?: string;
   representation_mode?: string;
-  stem_display_size?: 'small' | 'medium' | 'large';
-  option_display_size?: 'small' | 'medium' | 'large';
+  stem_display_size?: 'xsmall' | 'small' | 'medium' | 'large' | 'xlarge';
+  option_display_size?: 'xsmall' | 'small' | 'medium' | 'large' | 'xlarge';
 };
 
 export async function updatePlatformAdminOfficialExamBankItem(opts: {
@@ -1232,6 +1342,17 @@ export type OfficialAttemptQuestionRow = {
   stimulus_type: string | null;
   assets?: Array<{ path?: string; alt?: string }>;
   option_figure?: { src: string; alt?: string } | null;
+  display_mode?: 'figure_tiles' | 'letter_buttons' | 'text_options' | null;
+  stem_display_size?: 'xsmall' | 'small' | 'medium' | 'large' | 'xlarge' | 'normal' | null;
+  option_display_size?: 'xsmall' | 'small' | 'medium' | 'large' | 'xlarge' | 'normal' | null;
+  option_layout?: string | null;
+  option_crops?: {
+    layout: 'row' | 'stack' | 'grid';
+    naturalWidth: number;
+    naturalHeight: number;
+    slices: Array<{ xPct: number; yPct: number; wPct: number; hPct: number; kind: 'grid' | 'wide' }>;
+    stemSlice: { xPct: number; yPct: number; wPct: number; hPct: number; kind: 'grid' | 'wide' } | null;
+  } | null;
   options: Array<{ letter: string; text: string }>;
   selected_index: number | null;
   selected_letter: string;
@@ -1290,6 +1411,18 @@ export async function getPlatformAdminOfficialExamAttemptDetail(
           stimulus_type: typeof q.stimulus_type === 'string' ? q.stimulus_type : null,
           assets: Array.isArray(q.assets) ? q.assets : [],
           option_figure: q.option_figure ?? null,
+          display_mode:
+            q.display_mode === 'figure_tiles' ||
+            q.display_mode === 'letter_buttons' ||
+            q.display_mode === 'text_options'
+              ? q.display_mode
+              : null,
+          stem_display_size:
+            typeof q.stem_display_size === 'string' ? q.stem_display_size : null,
+          option_display_size:
+            typeof q.option_display_size === 'string' ? q.option_display_size : null,
+          option_layout: typeof q.option_layout === 'string' ? q.option_layout : null,
+          option_crops: q.option_crops ?? null,
           options: Array.isArray(q.options) ? q.options : [],
         }))
       : [],

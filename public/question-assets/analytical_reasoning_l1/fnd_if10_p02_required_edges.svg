@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="620" height="330" viewBox="0 0 620 330" role="img" aria-labelledby="title desc">
+  <title id="title">Open center space with four required edge symbols</title>
+  <desc id="desc">The open square has a diamond required at its top edge, a circle at its right edge, a triangle at its bottom edge, and a square at its left edge.</desc>
+  <defs>
+    <symbol id="triangle" viewBox="-22 -22 44 44"><polygon points="0,-21 20,18 -20,18"/></symbol>
+    <symbol id="square" viewBox="-22 -22 44 44"><rect x="-19" y="-19" width="38" height="38" rx="2"/></symbol>
+    <symbol id="circle" viewBox="-22 -22 44 44"><circle r="19"/></symbol>
+    <symbol id="diamond" viewBox="-22 -22 44 44"><polygon points="0,-21 21,0 0,21 -21,0"/></symbol>
+  </defs>
+  <rect width="620" height="330" fill="#ffffff"/>
+  <text x="310" y="35" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" fill="#243247">Required edge symbols</text>
+  <rect x="235" y="95" width="150" height="150" rx="10" fill="#f8fafc" stroke="#243247" stroke-width="4" stroke-dasharray="9 7"/>
+  <text x="310" y="178" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#667085">OPEN SPACE</text>
+  <g stroke="#243247" stroke-width="4" stroke-linecap="round">
+    <line x1="310" y1="86" x2="310" y2="95"/>
+    <line x1="385" y1="170" x2="421" y2="170"/>
+    <line x1="310" y1="245" x2="310" y2="272"/>
+    <line x1="199" y1="170" x2="235" y2="170"/>
+  </g>
+  <g fill="#243247">
+    <use href="#diamond" x="289" y="44" width="42" height="42"/>
+    <use href="#circle" x="424" y="149" width="42" height="42"/>
+    <use href="#triangle" x="289" y="273" width="42" height="42"/>
+    <use href="#square" x="154" y="149" width="42" height="42"/>
+  </g>
+</svg>

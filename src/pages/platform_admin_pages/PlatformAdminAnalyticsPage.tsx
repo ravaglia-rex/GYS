@@ -13,6 +13,7 @@ import {
   MenuItem,
   Paper,
   Select,
+  Switch,
   Tab,
   Table,
   TableBody,
@@ -31,7 +32,8 @@ import QuizIcon from '@mui/icons-material/Quiz';
 import FormatListNumberedIcon from '@mui/icons-material/FormatListNumbered';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import TimelineIcon from '@mui/icons-material/Timeline';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import {
   Bar,
   BarChart,
@@ -56,6 +58,9 @@ import {
   getPlatformAdminQodStats,
   getPlatformAdminSchoolAdminActivity,
   getPlatformAdminPageHits,
+  getPlatformAdminLiveExams,
+  getPlatformAdminOfficialExamOps,
+  setPlatformAdminOfficialExamOps,
   getPlatformAdminTopCoins,
   getPlatformAdminTopQod,
   getPlatformAdminOfficialDailyStats,
@@ -74,6 +79,7 @@ import {
   type QodDailyStatRow,
   type SchoolAdminActivityRow,
   type PlatformAdminPageHitRow,
+  type LiveExamAttemptRow,
   type TopCoinsStudentRow,
   type TopQodStudentRow,
   type OfficialDailyStatRow,
@@ -112,6 +118,7 @@ import {
   PlatformAdminStatCard,
 } from './platformAdminComponents';
 import { PlatformAdminAttemptPaper } from './PlatformAdminExamQuestionCard';
+import type { RootState } from '../../state_data/reducer';
 
 type AnalyticsSection = 'official' | 'practice' | 'qod' | 'activity' | 'coins';
 
@@ -467,7 +474,7 @@ const ANALYTICS_SECTION_META: Record<
   },
   activity: {
     title: 'Overall Activity',
-    subtitle: 'User page hits across the product, plus school admin login activity.',
+    subtitle: 'Live official exams, site page hits, and school admin sign-ins.',
   },
   coins: {
     title: 'Coins',
@@ -479,9 +486,68 @@ function isAnalyticsSection(value: string | undefined): value is AnalyticsSectio
   return Boolean(value && ANALYTICS_SECTIONS.includes(value as AnalyticsSection));
 }
 
+const SITE_PAGE_HITS_CHART_TOP_N = 15;
+
+const examPauseToggleSwitchSx = {
+  width: 48,
+  height: 28,
+  p: 0,
+  '& .MuiSwitch-switchBase': {
+    p: 0,
+    m: '3px',
+    transitionDuration: '280ms',
+    '&.Mui-checked': {
+      transform: 'translateX(20px)',
+      color: '#fff',
+      '& + .MuiSwitch-track': {
+        bgcolor: '#22c55e',
+        opacity: 1,
+      },
+    },
+    '&.Mui-disabled + .MuiSwitch-track': {
+      opacity: 0.45,
+    },
+  },
+  '& .MuiSwitch-thumb': {
+    boxSizing: 'border-box',
+    width: 22,
+    height: 22,
+    boxShadow: '0 1px 4px rgba(15, 23, 42, 0.22)',
+  },
+  '& .MuiSwitch-track': {
+    borderRadius: 14,
+    bgcolor: '#94a3b8',
+    opacity: 1,
+    transition: 'background-color 280ms ease',
+  },
+} as const;
+
 /** Chart x-label from YYYY-MM-DD; never throw if a cached row is missing `date`. */
 function ymdChartLabel(date: unknown): string {
   return typeof date === 'string' && date.length >= 5 ? date.slice(5) : '';
+}
+
+function isActiveLiveExamAttempt(row: LiveExamAttemptRow): boolean {
+  return !row.expired;
+}
+
+function formatLiveExamTimeLeft(seconds: number | null, expired: boolean): string {
+  if (expired) return 'Expired';
+  if (seconds == null) return '—';
+  const minutes = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  if (minutes >= 60) {
+    const hours = Math.floor(minutes / 60);
+    const remMin = minutes % 60;
+    return `${hours}h ${remMin}m`;
+  }
+  return `${minutes}m ${secs}s`;
+}
+
+function liveExamProgressLabel(row: LiveExamAttemptRow): string {
+  const current = Math.min(row.current_question_index + 1, Math.max(row.total_questions, 1));
+  const total = row.total_questions > 0 ? row.total_questions : '?';
+  return `Q${current}/${total} · ${row.answers_count} answered`;
 }
 
 /** "Analytical Reasoning" → "Analytical"; leaves AI/English Proficiency unchanged. */
@@ -634,9 +700,22 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
   const [schoolAdmins, setSchoolAdmins] = useState<SchoolAdminActivityRow[]>([]);
   const [pageHits, setPageHits] = useState<PlatformAdminPageHitRow[]>([]);
   const [pageHitsTotal, setPageHitsTotal] = useState(0);
+  const [pageHitsTracked, setPageHitsTracked] = useState(0);
+  const [liveExams, setLiveExams] = useState<LiveExamAttemptRow[]>([]);
+  const [liveExamActiveCount, setLiveExamActiveCount] = useState(0);
+  const [liveExamsGeneratedAt, setLiveExamsGeneratedAt] = useState('');
+  const [liveExamsLoading, setLiveExamsLoading] = useState(false);
+  const [liveExamsError, setLiveExamsError] = useState<string | null>(null);
   const [activityGeneratedAt, setActivityGeneratedAt] = useState('');
   const [activityLoading, setActivityLoading] = useState(false);
   const [activityError, setActivityError] = useState<string | null>(null);
+  const [examOpsPaused, setExamOpsPaused] = useState(false);
+  const [examOpsLoading, setExamOpsLoading] = useState(false);
+  const [examOpsSaving, setExamOpsSaving] = useState(false);
+  const [examOpsError, setExamOpsError] = useState<string | null>(null);
+
+  const platformAdminRole = useSelector((state: RootState) => state.auth.platformAdminRole);
+  const isSuperAdmin = platformAdminRole === 'super';
 
   const loadOfficialOverview = useCallback(async (opts?: { refresh?: boolean }) => {
     setOfficialLoading(true);
@@ -1041,25 +1120,76 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
     }
   }, []);
 
+  const loadLiveExams = useCallback(async () => {
+    setLiveExamsLoading(true);
+    setLiveExamsError(null);
+    try {
+      const data = await getPlatformAdminLiveExams();
+      const activeAttempts = data.attempts.filter(isActiveLiveExamAttempt);
+      setLiveExams(activeAttempts);
+      setLiveExamActiveCount(
+        typeof data.active_count === 'number' ? data.active_count : activeAttempts.length
+      );
+      setLiveExamsGeneratedAt(data.generated_at);
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { error?: string } }; message?: string };
+      setLiveExamsError(err?.response?.data?.error || err?.message || 'Failed to load live exams');
+    } finally {
+      setLiveExamsLoading(false);
+    }
+  }, []);
+
   const loadActivity = useCallback(async (opts?: { refresh?: boolean }) => {
     setActivityLoading(true);
+    setExamOpsLoading(true);
     setActivityError(null);
+    setExamOpsError(null);
     try {
-      const [admins, hits] = await Promise.all([
-        getPlatformAdminSchoolAdminActivity(20, { refresh: opts?.refresh }),
+      const [admins, hits, ops] = await Promise.all([
+        getPlatformAdminSchoolAdminActivity(10, { refresh: opts?.refresh }),
         getPlatformAdminPageHits(),
+        getPlatformAdminOfficialExamOps(),
       ]);
       setSchoolAdmins(admins.admins);
-      setPageHits(hits.pages);
+      const allPages = hits.pages;
+      const trackedCount =
+        hits.pages_tracked > allPages.length ? hits.pages_tracked : allPages.length;
+      setPageHits(allPages.slice(0, SITE_PAGE_HITS_CHART_TOP_N));
       setPageHitsTotal(hits.total_hits);
+      setPageHitsTracked(trackedCount);
+      setExamOpsPaused(ops.new_starts_paused);
       setActivityGeneratedAt(hits.generated_at || admins.generated_at);
     } catch (e: unknown) {
       const err = e as { response?: { data?: { error?: string } }; message?: string };
       setActivityError(err?.response?.data?.error || err?.message || 'Failed to load activity analytics');
     } finally {
       setActivityLoading(false);
+      setExamOpsLoading(false);
     }
   }, []);
+
+  const handleExamOpsToggle = useCallback(
+    async (nextPaused: boolean) => {
+      if (!isSuperAdmin || examOpsSaving) return;
+      setExamOpsSaving(true);
+      setExamOpsError(null);
+      const prevPaused = examOpsPaused;
+      setExamOpsPaused(nextPaused);
+      try {
+        const ops = await setPlatformAdminOfficialExamOps(nextPaused);
+        setExamOpsPaused(ops.new_starts_paused);
+      } catch (e: unknown) {
+        setExamOpsPaused(prevPaused);
+        const err = e as { response?: { data?: { error?: string } }; message?: string };
+        setExamOpsError(
+          err?.response?.data?.error || err?.message || 'Failed to update exam start pause'
+        );
+      } finally {
+        setExamOpsSaving(false);
+      }
+    },
+    [examOpsPaused, examOpsSaving, isSuperAdmin]
+  );
 
   useEffect(() => {
     if (!isAnalyticsSection(sectionParam)) {
@@ -1071,9 +1201,20 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
     if (section === 'official') void loadOfficialOverview();
     if (section === 'practice') void loadPractice();
     if (section === 'qod') void loadQod();
-    if (section === 'activity') void loadActivity();
+    if (section === 'activity') {
+      void loadActivity();
+      void loadLiveExams();
+    }
     if (section === 'coins') void loadCoins();
-  }, [section, loadOfficialOverview, loadPractice, loadQod, loadActivity, loadCoins]);
+  }, [section, loadOfficialOverview, loadPractice, loadQod, loadActivity, loadLiveExams, loadCoins]);
+
+  useEffect(() => {
+    if (section !== 'activity') return;
+    const id = window.setInterval(() => {
+      void loadLiveExams();
+    }, 60_000);
+    return () => clearInterval(id);
+  }, [section, loadLiveExams]);
 
   useEffect(() => {
     if (section !== 'official' || !selectedOfficialExamId) return;
@@ -1130,6 +1271,7 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
     practiceDetailLoading ||
     qodLoading ||
     activityLoading ||
+    liveExamsLoading ||
     coinsLoading;
 
   const handleForceRefresh = () => {
@@ -1155,7 +1297,10 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
       if (selectedExamId) void loadPracticeDetail(selectedExamId, { refresh: true });
     }
     if (section === 'qod') void loadQod({ refresh: true });
-    if (section === 'activity') void loadActivity({ refresh: true });
+    if (section === 'activity') {
+      void loadActivity({ refresh: true });
+      void loadLiveExams();
+    }
     if (section === 'coins') void loadCoins({ refresh: true });
   };
 
@@ -1259,7 +1404,7 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
 
   const pageHitsChartData = useMemo(
     () =>
-      pageHits.map((row) => ({
+      pageHits.slice(0, SITE_PAGE_HITS_CHART_TOP_N).map((row) => ({
         label: row.label,
         hits: row.hits,
       })),
@@ -3124,24 +3269,122 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
 
       {section === 'activity' && (
         <>
-          {activityError && (
+          {(activityError || liveExamsError || examOpsError) && (
             <Alert severity="error" sx={{ mb: 2 }}>
-              {activityError}
+              {examOpsError || liveExamsError || activityError}
             </Alert>
           )}
           <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1.5 }}>
-            {staleHint(activityGeneratedAt)}
+            {liveExamsGeneratedAt
+              ? `Live exams refreshed ${formatDateTime(liveExamsGeneratedAt)} · auto-refresh every 60s`
+              : staleHint(activityGeneratedAt)}
           </Typography>
 
-          {activityLoading && schoolAdmins.length === 0 && pageHits.length === 0 ? (
+          {activityLoading && liveExamsLoading && examOpsLoading && schoolAdmins.length === 0 && pageHits.length === 0 && liveExams.length === 0 ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
               <CircularProgress sx={{ color: ip.navy }} />
             </Box>
           ) : (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
               <PlatformAdminAnalyticsSection
+                title="Live official exams"
+                subtitle={
+                  examOpsPaused
+                    ? `New starts paused · ${liveExamActiveCount === 1 ? '1 student mid-exam' : `${liveExamActiveCount} students mid-exam`}`
+                    : liveExamActiveCount === 1
+                      ? '1 student mid-exam now'
+                      : `${liveExamActiveCount} students mid-exam now`
+                }
+                accent="teal"
+                action={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flexShrink: 0 }}>
+                    <Typography sx={{ color: ip.subtext, fontSize: '0.85rem', fontWeight: 600 }}>
+                      Pause exams
+                    </Typography>
+                    <Switch
+                      checked={examOpsPaused}
+                      onChange={(e) => void handleExamOpsToggle(e.target.checked)}
+                      disabled={!isSuperAdmin || examOpsLoading || examOpsSaving}
+                      inputProps={{ 'aria-label': 'Pause new exam starts' }}
+                      sx={examPauseToggleSwitchSx}
+                    />
+                  </Box>
+                }
+              >
+                {liveExamsLoading && liveExams.length === 0 ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                    <CircularProgress size={28} sx={{ color: ip.navy }} />
+                  </Box>
+                ) : liveExams.length === 0 ? (
+                  <Typography sx={{ color: ip.subtext, py: 3, textAlign: 'center' }}>
+                    No students are mid-exam right now.
+                  </Typography>
+                ) : (
+                  <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
+                    <Table size="small" sx={platformAdminTableSx}>
+                      <TableHead>
+                        <TableRow sx={platformAdminTableHeadRowSx}>
+                          <TableCell>Student</TableCell>
+                          <TableCell>School</TableCell>
+                          <TableCell>Exam</TableCell>
+                          <TableCell>Progress</TableCell>
+                          <TableCell>Started</TableCell>
+                          <TableCell>Time left</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {liveExams.map((row) => (
+                          <TableRow key={row.attempt_id}>
+                            <TableCell>
+                              {row.uid ? (
+                                <Typography
+                                  component={RouterLink}
+                                  to={`/platform-admin/students/${row.uid}`}
+                                  sx={{
+                                    color: ip.navy,
+                                    fontWeight: 600,
+                                    textDecoration: 'none',
+                                    '&:hover': { textDecoration: 'underline' },
+                                  }}
+                                >
+                                  {row.student_name || row.email || row.uid}
+                                </Typography>
+                              ) : (
+                                row.student_name || row.email || '—'
+                              )}
+                              {row.email ? (
+                                <Typography variant="caption" sx={{ display: 'block', color: ip.subtext }}>
+                                  {row.email}
+                                </Typography>
+                              ) : null}
+                            </TableCell>
+                            <TableCell>{row.school_name ?? '—'}</TableCell>
+                            <TableCell>
+                              {row.assessment_label}
+                              {row.proficiency_tier != null ? ` · L${row.proficiency_tier}` : ''}
+                            </TableCell>
+                            <TableCell>{liveExamProgressLabel(row)}</TableCell>
+                            <TableCell>
+                              {row.started_at ? formatDateTime(row.started_at) : '—'}
+                            </TableCell>
+                            <TableCell>
+                              {formatLiveExamTimeLeft(row.seconds_remaining, row.expired)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                )}
+              </PlatformAdminAnalyticsSection>
+
+              <PlatformAdminAnalyticsSection
                 title="Site page hits"
-                subtitle={`Lifetime views on landing, signup, student, and school pages · ${pageHitsTotal.toLocaleString()} total.`}
+                subtitle={
+                  pageHitsTracked > SITE_PAGE_HITS_CHART_TOP_N
+                    ? `Top ${SITE_PAGE_HITS_CHART_TOP_N} pages · ${pageHitsTotal.toLocaleString()} total hits across ${pageHitsTracked.toLocaleString()} routes`
+                    : `Lifetime views on landing, signup, student, and school pages · ${pageHitsTotal.toLocaleString()} total.`
+                }
                 accent="navy"
               >
                 {pageHits.length === 0 ? (
@@ -3180,7 +3423,7 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
 
               <PlatformAdminAnalyticsSection
                 title="School admin sign-ins"
-                subtitle="Firebase Auth last sign-in. Also shown on each school detail page."
+                subtitle="Latest 10 by Firebase Auth last sign-in. Full history for each school is on that school's detail page."
                 accent="slate"
               >
                 <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>

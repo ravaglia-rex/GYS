@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="290" viewBox="0 0 760 290" role="img" aria-labelledby="title desc">
+  <title id="title">Whole-card movement example and target</title>
+  <desc id="desc">The example changes a card with a triangle in the upper-left, a right arrow in the center, and a square in the lower-right into a card with the square in the upper-right, an up arrow in the center, and the triangle in the lower-left. The target has a diamond in the upper-middle, a circle in the middle-left, and a down arrow in the lower-right.</desc>
+  <rect width="760" height="290" fill="#fff"/>
+  <style>.title{font:700 22px Arial,sans-serif;fill:#24334b}.cell{fill:#f9fbfe;stroke:#738299;stroke-width:2}.sym{font:31px Arial,sans-serif;fill:#1d2a40;text-anchor:middle;dominant-baseline:middle}.arrow{font:700 32px Arial,sans-serif;fill:#a34f22;text-anchor:middle;dominant-baseline:middle}.big{font:700 34px Arial,sans-serif;fill:#65738a;text-anchor:middle}</style>
+  <defs><g id="grid"><path d="M0 0h174v174H0zM58 0v174M116 0v174M0 58h174M0 116h174" class="cell"/></g></defs>
+  <text x="45" y="34" class="title">Example</text>
+  <g transform="translate(45 55)"><use href="#grid"/><text x="29" y="29" class="sym">▲</text><text x="87" y="87" class="arrow">→</text><text x="145" y="145" class="sym">■</text></g>
+  <text x="255" y="151" class="big">→</text>
+  <g transform="translate(295 55)"><use href="#grid"/><text x="145" y="29" class="sym">■</text><text x="87" y="87" class="arrow">↑</text><text x="29" y="145" class="sym">▲</text></g>
+  <text x="525" y="34" class="title">Target</text>
+  <g transform="translate(525 55)"><use href="#grid"/><text x="87" y="29" class="sym">◆</text><text x="29" y="87" class="sym">●</text><text x="145" y="145" class="arrow">↓</text></g>
+</svg>

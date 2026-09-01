@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="205" viewBox="0 0 360 205" role="img" aria-labelledby="title desc">
+  <title id="title">Arrangement D</title>
+  <desc id="desc">A two-by-four arrangement. Top row: A, G, B, H. Bottom row: D, C, F, E. Piece A is fixed in the upper-left corner.</desc>
+  <style>
+    .cell { fill:#fff; stroke:#333; stroke-width:2.5; }
+    .fixed { fill:#e9f3fb; stroke:#174a78; stroke-width:4; }
+    .letter { font:700 26px sans-serif; fill:#222; text-anchor:middle; dominant-baseline:middle; }
+  </style>
+  <rect width="360" height="205" fill="#fff"/>
+  <g transform="translate(36 30)">
+    <rect class="fixed" x="0" y="0" width="72" height="72"/>
+    <rect class="cell" x="72" y="0" width="72" height="72"/><rect class="cell" x="144" y="0" width="72" height="72"/><rect class="cell" x="216" y="0" width="72" height="72"/>
+    <rect class="cell" x="0" y="72" width="72" height="72"/><rect class="cell" x="72" y="72" width="72" height="72"/><rect class="cell" x="144" y="72" width="72" height="72"/><rect class="cell" x="216" y="72" width="72" height="72"/>
+    <text class="letter" x="36" y="36">A</text><text class="letter" x="108" y="36">G</text><text class="letter" x="180" y="36">B</text><text class="letter" x="252" y="36">H</text>
+    <text class="letter" x="36" y="108">D</text><text class="letter" x="108" y="108">C</text><text class="letter" x="180" y="108">F</text><text class="letter" x="252" y="108">E</text>
+  </g>
+</svg>

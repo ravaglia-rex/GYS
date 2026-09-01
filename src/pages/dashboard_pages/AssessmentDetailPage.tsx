@@ -26,7 +26,7 @@ import EventSeatIcon from '@mui/icons-material/EventSeat';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import * as Sentry from '@sentry/react';
 import { auth } from '../../firebase/firebase';
-import { useAssessmentConfig, useStudent } from '../../query/hooks';
+import { useAssessmentConfig, useOfficialExamOps, useStudent } from '../../query/hooks';
 import {
   computeGate,
   membershipLevelForAssessmentGate,
@@ -45,6 +45,7 @@ import {
 import { mergeStatGridWithTier } from '../../components/assessment/mergeStatGridWithTier';
 import {
   canStartOfficialAssessment,
+  canStartOfficialAssessmentNow,
   isRestrictedOfficialAssessmentStarter,
   officialAssessmentSchoolIdFromStudent,
 } from '../../utils/officialStudentAssessmentsAccess';
@@ -100,6 +101,8 @@ const AssessmentDetailPage: React.FC = () => {
     isError: configIsError,
     error: configErrorObj,
   } = useAssessmentConfig(Boolean(uid && assessmentId));
+  const { data: officialExamOps } = useOfficialExamOps(Boolean(uid && assessmentId));
+  const newStartsPaused = officialExamOps?.new_starts_paused === true;
 
   const loading = studentLoading || configLoading;
   const error =
@@ -154,13 +157,18 @@ const AssessmentDetailPage: React.FC = () => {
     ? nextEligibleAtMsForLevel(progressForAssessment, tier, viewerEmail)
     : null;
   const cooldownActive = !gate.locked && tierAttemptAllowed && cooldownNextEligibleMs != null;
+  const officialExamLive = Boolean(
+    assessmentId &&
+      canStartOfficialAssessment(assessmentId, viewerEmail, tier, officialSchoolId)
+  );
   const officialExamStartable = Boolean(
     assessmentId &&
-      canStartOfficialAssessment(
+      canStartOfficialAssessmentNow(
         assessmentId,
         viewerEmail,
         tier,
-        officialSchoolId
+        officialSchoolId,
+        newStartsPaused
       )
   );
 
@@ -630,7 +638,7 @@ const AssessmentDetailPage: React.FC = () => {
           >
             {studentLoading
               ? 'Loading…'
-              : !officialExamStartable
+              : !officialExamLive
               ? 'Official exams coming soon'
               : cooldownActive && cooldownNextEligibleMs != null
                 ? `Available ${formatCooldownDate(cooldownNextEligibleMs)}`
@@ -643,7 +651,7 @@ const AssessmentDetailPage: React.FC = () => {
               This exact assessment level can be retaken every 3 months. Try a new level or assessment, or return on {formatCooldownDate(cooldownNextEligibleMs)}.
             </Typography>
           )}
-          {!officialExamStartable && (
+          {!officialExamLive && (
             <Typography sx={{ textAlign: 'center', fontSize: '0.72rem', color: '#94a3b8', mt: 1.25 }}>
               Real exam question banks are being prepared. Practice mode remains available.
             </Typography>

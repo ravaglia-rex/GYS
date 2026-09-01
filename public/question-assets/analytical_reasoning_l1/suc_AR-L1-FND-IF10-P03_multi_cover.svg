@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="940" height="720" viewBox="0 0 940 720" role="img" aria-labelledby="title desc">
+  <title id="title">Empty tray and four two-cover sets</title>
+  <desc id="desc">A three-by-three empty tray appears above four answer panels. Every answer contains the same five-square blue cover and a different four-square gold cover.</desc>
+  <style>.grid{fill:#fff;stroke:#31434f;stroke-width:3}.line{stroke:#8797a2;stroke-width:2}.card{fill:#f8fafc;stroke:#b7c4ce;stroke-width:2}.p{fill:#d9ecf8;stroke:#174a78;stroke-width:2}.t{fill:#fff0cf;stroke:#9b5b00;stroke-width:2}.lab{font:700 25px sans-serif;fill:#174a78}.note{font:600 17px sans-serif;fill:#536572;text-anchor:middle}</style>
+  <rect width="940" height="720" fill="#fff"/><text class="note" x="470" y="28">3×3 tray</text><rect class="grid" x="380" y="44" width="180" height="180"/><path class="line" d="M440 44V224M500 44V224M380 104H560M380 164H560"/>
+  <!-- A: P pentomino plus O tetromino. -->
+  <g transform="translate(30 260)"><rect class="card" width="420" height="205" rx="9"/><text class="lab" x="18" y="34">A</text>
+    <g transform="translate(70 55)"><rect class="p" x="0" y="0" width="42" height="42"/><rect class="p" x="42" y="0" width="42" height="42"/><rect class="p" x="0" y="42" width="42" height="42"/><rect class="p" x="42" y="42" width="42" height="42"/><rect class="p" x="0" y="84" width="42" height="42"/></g>
+    <g transform="translate(260 70)"><rect class="t" x="0" y="0" width="42" height="42"/><rect class="t" x="42" y="0" width="42" height="42"/><rect class="t" x="0" y="42" width="42" height="42"/><rect class="t" x="42" y="42" width="42" height="42"/></g></g>
+  <!-- B: P pentomino plus mirror-L tetromino (reflection trap). -->
+  <g transform="translate(490 260)"><rect class="card" width="420" height="205" rx="9"/><text class="lab" x="18" y="34">B</text>
+    <g transform="translate(70 55)"><rect class="p" x="0" y="0" width="42" height="42"/><rect class="p" x="42" y="0" width="42" height="42"/><rect class="p" x="0" y="42" width="42" height="42"/><rect class="p" x="42" y="42" width="42" height="42"/><rect class="p" x="0" y="84" width="42" height="42"/></g>
+    <g transform="translate(270 48)"><rect class="t" x="0" y="0" width="42" height="42"/><rect class="t" x="42" y="0" width="42" height="42"/><rect class="t" x="42" y="42" width="42" height="42"/><rect class="t" x="42" y="84" width="42" height="42"/></g></g>
+  <!-- C: P pentomino plus J tetromino; this is the key. -->
+  <g transform="translate(30 490)"><rect class="card" width="420" height="205" rx="9"/><text class="lab" x="18" y="34">C</text>
+    <g transform="translate(70 55)"><rect class="p" x="0" y="0" width="42" height="42"/><rect class="p" x="42" y="0" width="42" height="42"/><rect class="p" x="0" y="42" width="42" height="42"/><rect class="p" x="42" y="42" width="42" height="42"/><rect class="p" x="0" y="84" width="42" height="42"/></g>
+    <g transform="translate(245 70)"><rect class="t" x="0" y="0" width="42" height="42"/><rect class="t" x="42" y="0" width="42" height="42"/><rect class="t" x="84" y="0" width="42" height="42"/><rect class="t" x="84" y="42" width="42" height="42"/></g></g>
+  <!-- D: P pentomino plus T tetromino. -->
+  <g transform="translate(490 490)"><rect class="card" width="420" height="205" rx="9"/><text class="lab" x="18" y="34">D</text>
+    <g transform="translate(70 55)"><rect class="p" x="0" y="0" width="42" height="42"/><rect class="p" x="42" y="0" width="42" height="42"/><rect class="p" x="0" y="42" width="42" height="42"/><rect class="p" x="42" y="42" width="42" height="42"/><rect class="p" x="0" y="84" width="42" height="42"/></g>
+    <g transform="translate(245 70)"><rect class="t" x="0" y="0" width="42" height="42"/><rect class="t" x="42" y="0" width="42" height="42"/><rect class="t" x="84" y="0" width="42" height="42"/><rect class="t" x="42" y="42" width="42" height="42"/></g></g>
+</svg>

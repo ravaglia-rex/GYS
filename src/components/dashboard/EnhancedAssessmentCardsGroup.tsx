@@ -13,7 +13,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { StudentProfileError } from '../../db/studentCollection';
 import { AssessmentType } from '../../db/assessmentCollection';
-import { useAssessmentConfig, useStudent } from '../../query/hooks';
+import { useAssessmentConfig, useOfficialExamOps, useStudent } from '../../query/hooks';
 import BigSpinner from '../ui/BigSpinner';
 import * as Sentry from '@sentry/react';
 import type { AssessmentProgress, GateResult } from '../../utils/assessmentGating';
@@ -35,7 +35,12 @@ import {
 import { canAttemptTier, countClearedTiersFromProgress } from '../../utils/tierProgression';
 import { getReasoningExamSubcategories } from '../../data/reasoningExamSubcategories';
 import { auth } from '../../firebase/firebase';
-import { canStartOfficialAssessment, officialAssessmentSchoolIdFromStudent } from '../../utils/officialStudentAssessmentsAccess';
+import {
+  canStartOfficialAssessment,
+  canStartOfficialAssessmentNow,
+  isOfficialExamNewStartBlocked,
+  officialAssessmentSchoolIdFromStudent,
+} from '../../utils/officialStudentAssessmentsAccess';
 import { STUDENT_EXAM_SHOW_SCORES_AND_COINS } from '../../constants/constants';
 import { formatCooldownDate, nextEligibleAtMsForLevel } from '../../utils/examAttemptCooldown';
 import { canonicalAssessmentId, canonicalizeProgressMap } from '../../utils/assessmentIdCompat';
@@ -163,6 +168,9 @@ interface AssessmentCardProps {
   previewSampleCtaHidden?: boolean;
   /** Live student gate while official question banks are not ready */
   officialStartPaused?: boolean;
+  /** Firestore ops pause — live exams temporarily blocked for new starts */
+  officialOpsPaused?: boolean;
+  officialSchoolId?: string | null;
   /** Per-level live gate (school-scoped / public tier allowlist). */
   isOfficialLevelStartable?: (level: number) => boolean;
 }
@@ -178,6 +186,8 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
   previewStartBlocked = false,
   previewSampleCtaHidden = false,
   officialStartPaused = false,
+  officialOpsPaused = false,
+  officialSchoolId = null,
   isOfficialLevelStartable,
 }) => {
   const navigate = useNavigate();
@@ -679,6 +689,43 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
               }
 
               if (isOfficialLevelStartable && !isOfficialLevelStartable(level)) {
+                const wouldBeLive = canStartOfficialAssessment(
+                  assessmentId,
+                  auth.currentUser?.email,
+                  level,
+                  officialSchoolId
+                );
+                if (wouldBeLive && officialOpsPaused) {
+                  const pausedRetake = hasAttempt && !onCooldown;
+                  return (
+                    <Button
+                      key={level}
+                      fullWidth
+                      variant={pausedRetake ? 'outlined' : 'contained'}
+                      disabled
+                      startIcon={pausedRetake ? <RefreshIcon /> : <PlayArrowIcon />}
+                      sx={{
+                        borderRadius: 1.5,
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        ...(pausedRetake
+                          ? {
+                              borderColor: '#334155',
+                              color: '#64748b',
+                              '&.Mui-disabled': { borderColor: '#334155', color: '#64748b' },
+                            }
+                          : {
+                              background: meta.gradient,
+                              color: '#fff',
+                              opacity: 0.55,
+                              '&.Mui-disabled': { color: '#fff', opacity: 0.55 },
+                            }),
+                      }}
+                    >
+                      {pausedRetake ? `Retake Level ${level}` : `Start Level ${level}`}
+                    </Button>
+                  );
+                }
                 return (
                   <Button
                     key={level}
@@ -902,9 +949,9 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
             fullWidth
             variant="contained"
             startIcon={attemptsCount > 0 ? <RefreshIcon /> : <PlayArrowIcon />}
-            aria-disabled={previewStartBlocked}
+            disabled={officialOpsPaused || previewStartBlocked}
             onClick={() => {
-              if (previewStartBlocked) return;
+              if (previewStartBlocked || officialOpsPaused) return;
               onStart(assessmentId, currentTier);
             }}
             sx={{
@@ -913,10 +960,12 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
               fontWeight: 700,
               borderRadius: 1.5,
               fontSize: '0.9rem',
-              ...(previewStartBlocked
+              ...(previewStartBlocked || officialOpsPaused
                 ? {
                     cursor: 'default',
-                    '&:hover': { opacity: 1 },
+                    opacity: 0.55,
+                    '&:hover': { opacity: 0.55 },
+                    '&.Mui-disabled': { color: '#fff', opacity: 0.55 },
                   }
                 : { '&:hover': { opacity: 0.88 } }),
             }}
@@ -953,6 +1002,8 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
     isError: configError,
     error: configErr,
   } = useAssessmentConfig(liveLoad && !skipConfigQuery);
+  const { data: officialExamOps } = useOfficialExamOps(liveLoad);
+  const newStartsPaused = officialExamOps?.new_starts_paused === true;
   const {
     data: studentFromQuery,
     isLoading: studentLoading,
@@ -1025,9 +1076,20 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
 
   const viewerEmail = auth.currentUser?.email;
   const officialSchoolId = officialAssessmentSchoolIdFromStudent(studentData);
+  const officialOpsPaused =
+    !previewBundle && isOfficialExamNewStartBlocked(newStartsPaused, viewerEmail);
 
   const handleStart = (assessmentId: string, tierNumber: number) => {
-    if (!previewBundle && !canStartOfficialAssessment(assessmentId, viewerEmail, tierNumber, officialSchoolId)) {
+    if (
+      !previewBundle &&
+      !canStartOfficialAssessmentNow(
+        assessmentId,
+        viewerEmail,
+        tierNumber,
+        officialSchoolId,
+        newStartsPaused
+      )
+    ) {
       return;
     }
     if (previewBundle?.previewDisableStartNavigation) {
@@ -1143,10 +1205,19 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
                 officialStartPaused={
                   !previewBundle && !canStartOfficialAssessment(assessment.id, viewerEmail, undefined, officialSchoolId)
                 }
+                officialOpsPaused={officialOpsPaused}
+                officialSchoolId={officialSchoolId}
                 isOfficialLevelStartable={
                   previewBundle
                     ? undefined
-                    : (level) => canStartOfficialAssessment(assessment.id, viewerEmail, level, officialSchoolId)
+                    : (level) =>
+                        canStartOfficialAssessmentNow(
+                          assessment.id,
+                          viewerEmail,
+                          level,
+                          officialSchoolId,
+                          newStartsPaused
+                        )
                 }
               />
             </Box>

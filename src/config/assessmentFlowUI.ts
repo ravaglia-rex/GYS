@@ -76,6 +76,7 @@ const NO_SKIP_BEFORE: BeforeBeginItem = {
 const WEIGHTED_DIFFICULTY_BEFORE: BeforeBeginItem = {
   icon: 'star',
   text: 'Harder questions are worth more points. Try to answer every question rather than skipping.',
+  emphasize: true,
 };
 
 const analyticalReasoningBefore: BeforeBeginItem[] = [

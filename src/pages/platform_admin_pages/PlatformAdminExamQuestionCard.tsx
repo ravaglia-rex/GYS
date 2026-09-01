@@ -18,12 +18,14 @@ import {
 import { ArOptionFigure, ArOptionFigureSlice, useArOptionFigureMeta } from '../../components/assessment/ArOptionFigure';
 import {
   AR_FIGURE_DISPLAY_SIZES,
+  AR_FIGURE_SIZE_LABEL,
   normalizeArFigureDisplaySize,
   arFigureSizeMultiplier,
   scaleExamFigureCaps,
   isArTextOptionGrid2x2,
   looksLikeArAsciiGridOptionTexts,
   type ArFigureDisplaySize,
+  type ArFigureDisplaySizeInput,
 } from '../../components/assessment/arFigureDisplaySize';
 import { resolveLearnerExamOptions } from '../../components/assessment/resolveLearnerExamOptions';
 import { ExamQuestionStimulus } from '../../components/assessment/ExamQuestionStimulus';
@@ -45,6 +47,7 @@ import type {
 } from '../../db/platformAdminAnalytics';
 import {
   approvePlatformAdminOfficialExamBankItem,
+  deletePlatformAdminOfficialExamBankItem,
   unapprovePlatformAdminOfficialExamBankItem,
   updatePlatformAdminOfficialExamBankItem,
 } from '../../db/platformAdminAnalytics';
@@ -87,11 +90,6 @@ const AR_EDIT_MODES = [
   'spatial_2d',
   'spatial_3d',
 ] as const;
-const AR_EDIT_SIZE_LABELS: Record<ArFigureDisplaySize, string> = {
-  small: 'Small',
-  medium: 'Medium',
-  large: 'Large',
-};
 const OPTION_LETTERS = ['A', 'B', 'C', 'D'] as const;
 
 function stripOptionLetterPrefix(option: string): string {
@@ -143,7 +141,7 @@ export function AdminExamQuestionStem({
     assets?: Array<{ path?: string; alt?: string }>;
     option_figure?: { src: string; alt?: string } | null;
     display_mode?: 'figure_tiles' | 'letter_buttons' | 'text_options' | null;
-    stem_display_size?: 'small' | 'medium' | 'large' | 'normal' | null;
+    stem_display_size?: ArFigureDisplaySize | 'normal' | null;
   };
   emptyLabel: string;
   hideOptionFigure?: boolean;
@@ -215,7 +213,7 @@ export function AdminExamOptionText({
 }: {
   text: string;
   renderMath?: boolean;
-  optionDisplaySize?: 'small' | 'medium' | 'large' | 'normal' | null;
+  optionDisplaySize?: ArFigureDisplaySizeInput;
 }) {
   const cleaned = cleanLearnerFacingExamMarkup(text);
   const multiline = cleaned.includes('\n');
@@ -275,8 +273,8 @@ export type AdminExamQuestionView = {
   assets?: Array<{ path?: string; alt?: string }>;
   option_figure?: { src: string; alt?: string } | null;
   display_mode?: 'figure_tiles' | 'letter_buttons' | 'text_options' | null;
-  stem_display_size?: 'small' | 'medium' | 'large' | 'normal' | null;
-  option_display_size?: 'small' | 'medium' | 'large' | 'normal' | null;
+  stem_display_size?: ArFigureDisplaySize | 'normal' | null;
+  option_display_size?: ArFigureDisplaySize | 'normal' | null;
   option_layout?: string | null;
   option_crops?: {
     layout: 'row' | 'stack' | 'grid';
@@ -401,10 +399,20 @@ export function AdminExamQuestionBody({
     displayMode: q.display_mode,
   });
   const optionFigure = resolved.optionFigure;
-  const optionCount = optionRows.length || resolved.optionTexts.length || 4;
+  const showFigureSlices = q.display_mode === 'figure_tiles' && Boolean(optionFigure);
+  const showLetterButtons = q.display_mode === 'letter_buttons';
+  // Mirror learner exam: figure/letter modes always render A–D even when bank option text is sparse.
+  const slotCount =
+    showFigureSlices || showLetterButtons
+      ? OPTION_LETTERS.length
+      : optionRows.length >= 2
+        ? optionRows.length
+        : resolved.optionTexts.length >= 2
+          ? resolved.optionTexts.length
+          : Math.max(optionRows.length, resolved.optionTexts.length, OPTION_LETTERS.length);
+  const optionCount = slotCount;
   const { layout, slices, stemSlice, includesStemContent, naturalWidth, naturalHeight } =
     useArOptionFigureMeta(optionFigure?.src, optionCount, q.option_crops, true);
-  const showFigureSlices = q.display_mode === 'figure_tiles' && Boolean(optionFigure);
   const optionDisplaySize = q.option_display_size ?? null;
   const stemDisplaySize = q.stem_display_size ?? null;
   // Combined stem+options SVGs: after stripping the option figure from markdown,
@@ -412,13 +420,10 @@ export function AdminExamQuestionBody({
   const stemHasFigureMarkup = /!\[[^\]]*]\(|<img\b/i.test(resolved.stemMarkdown);
   const showStemCrop =
     Boolean(optionFigure && stemSlice) && (showFigureSlices || !stemHasFigureMarkup);
-  const rows =
-    optionRows.length > 0
-      ? optionRows
-      : resolved.optionTexts.map((text, i) => ({
-          letter: String.fromCharCode(65 + i),
-          text,
-        }));
+  const rows = Array.from({ length: slotCount }, (_, i) => ({
+    letter: optionRows[i]?.letter || OPTION_LETTERS[i] || String.fromCharCode(65 + i),
+    text: optionRows[i]?.text || resolved.optionTexts[i] || '',
+  }));
   const textOptionsAsGrid2x2 =
     isArTextOptionGrid2x2(q.option_layout) ||
     looksLikeArAsciiGridOptionTexts(
@@ -517,6 +522,7 @@ export function PlatformAdminQuestionPerformanceCard({
   canApprove = false,
   onApproved,
   onItemUpdated,
+  onItemDeleted,
 }: {
   question: OfficialQuestionStatRow;
   index: number;
@@ -527,11 +533,15 @@ export function PlatformAdminQuestionPerformanceCard({
   canApprove?: boolean;
   onApproved?: (itemId: string, deliveryAuthorized: boolean) => void;
   onItemUpdated?: (itemId: string, next: OfficialQuestionStatRow) => void;
+  onItemDeleted?: (itemId: string) => void;
 }) {
   const [approving, setApproving] = useState(false);
   const [approveError, setApproveError] = useState<string | null>(null);
   const [localAuthorized, setLocalAuthorized] = useState<boolean | null>(null);
   const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [bodyMarkdown, setBodyMarkdown] = useState('');
@@ -640,6 +650,35 @@ export function PlatformAdminQuestionPerformanceCard({
     }
   };
 
+  const openDelete = () => {
+    if (!canEdit) return;
+    setDeleteError(null);
+    setDeleteOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!canEdit || !examId || !level || !question.item_id || deleting) return;
+    if (authorized) {
+      setDeleteError('Unapprove this item before deleting. Approved bank items are locked.');
+      return;
+    }
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await deletePlatformAdminOfficialExamBankItem({
+        examId,
+        level,
+        itemId: question.item_id,
+      });
+      setDeleteOpen(false);
+      onItemDeleted?.(question.item_id);
+    } catch (e) {
+      setDeleteError(apiErrorMessage(e, 'Delete failed'));
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <Box
       sx={{
@@ -678,6 +717,22 @@ export function PlatformAdminQuestionPerformanceCard({
         />
         {canApprove ? (
           <Box sx={{ ml: 'auto', display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <Button
+              size="small"
+              variant="outlined"
+              disabled={!canEdit || authorized}
+              onClick={openDelete}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 700,
+                borderColor: '#b91c1c',
+                color: '#b91c1c',
+                '&:hover': { borderColor: '#991b1b', bgcolor: 'rgba(185, 28, 28, 0.04)' },
+                '&.Mui-disabled': { borderColor: '#e2e8f0', color: '#94a3b8' },
+              }}
+            >
+              Delete
+            </Button>
             <Button
               size="small"
               variant="outlined"
@@ -799,7 +854,7 @@ export function PlatformAdminQuestionPerformanceCard({
                   >
                     {AR_FIGURE_DISPLAY_SIZES.map((size) => (
                       <ToggleButton key={size} value={size}>
-                        {AR_EDIT_SIZE_LABELS[size]}
+                        {AR_FIGURE_SIZE_LABEL[size]}
                       </ToggleButton>
                     ))}
                   </ToggleButtonGroup>
@@ -820,15 +875,15 @@ export function PlatformAdminQuestionPerformanceCard({
                   >
                     {AR_FIGURE_DISPLAY_SIZES.map((size) => (
                       <ToggleButton key={size} value={size}>
-                        {AR_EDIT_SIZE_LABELS[size]}
+                        {AR_FIGURE_SIZE_LABEL[size]}
                       </ToggleButton>
                     ))}
                   </ToggleButtonGroup>
                 </Box>
               </Box>
               <Typography sx={{ color: '#64748b', fontSize: 12, mt: -0.5 }}>
-                Controls figure scale in the learner exam (Small 0.75× · Medium 1× · Large
-                1.75×).
+                Controls figure scale in the learner exam (0.5× · 0.75× · 1× · 1.5× · 2× vs
+                medium caps).
               </Typography>
               <TextField
                 label="Prompt / body markdown"
@@ -1025,6 +1080,65 @@ export function PlatformAdminQuestionPerformanceCard({
               sx={{ textTransform: 'none', fontWeight: 700, bgcolor: ip.navy }}
             >
               {saving ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : 'Save to database'}
+            </Button>
+          ) : null}
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={deleteOpen}
+        onClose={() => (deleting ? null : setDeleteOpen(false))}
+        fullWidth
+        maxWidth="sm"
+        PaperProps={{ sx: platformAdminDialogPaperSx }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, color: ip.heading }}>Delete bank item</DialogTitle>
+        <DialogContent>
+          {authorized ? (
+            <Typography sx={{ color: '#64748b', fontSize: 14 }}>
+              Unapprove this item before deleting. Approved bank items stay locked so live
+              delivery is not accidentally removed.
+            </Typography>
+          ) : (
+            <>
+              <Typography sx={{ color: '#475569', fontSize: 14, mb: 1 }}>
+                Permanently remove <strong>{question.item_id}</strong> from the official item
+                bank? This cannot be undone.
+              </Typography>
+              {question.times_seen > 0 ? (
+                <Typography sx={{ color: '#b45309', fontSize: 13 }}>
+                  This item has been served {question.times_seen} time
+                  {question.times_seen === 1 ? '' : 's'}. Deleting removes its bank record and
+                  stats.
+                </Typography>
+              ) : null}
+            </>
+          )}
+          {deleteError ? (
+            <Typography sx={{ color: '#b91c1c', fontSize: 13, mt: 1.5 }}>{deleteError}</Typography>
+          ) : null}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button
+            onClick={() => setDeleteOpen(false)}
+            disabled={deleting}
+            sx={{ textTransform: 'none' }}
+          >
+            Cancel
+          </Button>
+          {!authorized ? (
+            <Button
+              variant="contained"
+              disabled={deleting}
+              onClick={() => void handleDelete()}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 700,
+                bgcolor: '#b91c1c',
+                '&:hover': { bgcolor: '#991b1b' },
+              }}
+            >
+              {deleting ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : 'Delete permanently'}
             </Button>
           ) : null}
         </DialogActions>

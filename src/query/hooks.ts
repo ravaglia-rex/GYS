@@ -3,6 +3,7 @@ import { getStudentCoinsLeaderboard, getStudentSchoolLeaderboard } from '../db/s
 import { getStudent, getStudentReports } from '../db/studentCollection';
 import {
   getAssessmentConfig,
+  getOfficialExamOps,
   getStudentAssessments,
   type AssessmentType,
   type AttemptRecord,
@@ -15,6 +16,7 @@ import { isVisibleSchoolRosterStudent } from '../utils/schoolAdminRosterUtils';
 import { queryKeys } from './queryKeys';
 
 const ASSESSMENT_CONFIG_STALE_MS = 15 * 60_000;
+const OFFICIAL_EXAM_OPS_STALE_MS = 30_000;
 const STUDENT_STALE_MS = 2 * 60_000;
 const SCHOOL_STALE_MS = 30 * 60_000;
 const PAYMENTS_STALE_MS = 5 * 60_000;
@@ -39,6 +41,16 @@ export function useAssessmentConfig(enabled = true) {
     queryFn: getAssessmentConfig,
     enabled,
     staleTime: ASSESSMENT_CONFIG_STALE_MS,
+  });
+}
+
+export function useOfficialExamOps(enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.officialExamOps(),
+    queryFn: getOfficialExamOps,
+    enabled,
+    staleTime: OFFICIAL_EXAM_OPS_STALE_MS,
+    refetchInterval: OFFICIAL_EXAM_OPS_STALE_MS,
   });
 }
 

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="300" viewBox="0 0 760 300" role="img" aria-labelledby="title desc">
+  <title id="title">Task dependency map</title>
+  <desc id="desc">A points to C. B points to D. C and D point to E. C also points to F. E and F point to G.</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#41546b"/></marker></defs>
+  <style>.edge{fill:none;stroke:#41546b;stroke-width:3;marker-end:url(#arrow)}.node{fill:#fff;stroke:#20344d;stroke-width:3}.start{fill:#e7f1ff}.goal{fill:#e8f5ea}.txt{font:700 25px Arial,sans-serif;fill:#17283e;text-anchor:middle;dominant-baseline:middle}.caption{font:600 17px Arial,sans-serif;fill:#53657b}</style>
+  <text class="caption" x="45" y="24">START AVAILABLE</text><text class="caption" x="640" y="24">GOAL</text>
+  <path class="edge" d="M105 82H220"/><path class="edge" d="M105 218H220"/>
+  <path class="edge" d="M280 82C340 82 345 140 405 145"/><path class="edge" d="M280 218C340 218 345 160 405 155"/>
+  <path class="edge" d="M280 82H405"/><path class="edge" d="M465 80C530 80 530 124 595 138"/><path class="edge" d="M465 150H595"/>
+  <circle class="node start" cx="75" cy="82" r="30"/><text class="txt" x="75" y="83">A</text>
+  <circle class="node start" cx="75" cy="218" r="30"/><text class="txt" x="75" y="219">B</text>
+  <circle class="node" cx="250" cy="82" r="30"/><text class="txt" x="250" y="83">C</text>
+  <circle class="node" cx="250" cy="218" r="30"/><text class="txt" x="250" y="219">D</text>
+  <circle class="node" cx="435" cy="150" r="30"/><text class="txt" x="435" y="151">E</text>
+  <circle class="node" cx="435" cy="80" r="30"/><text class="txt" x="435" y="81">F</text>
+  <circle class="node goal" cx="625" cy="145" r="30"/><text class="txt" x="625" y="146">G</text>
+</svg>

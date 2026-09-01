@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="410" viewBox="0 0 1000 410" role="img" aria-labelledby="title desc">
+  <title id="title">Initial state and two-move delivery route</title>
+  <desc id="desc">The box begins in the left room containing a triangle, with a square clipped outside. A diamond is loose in the attic and a circle is loose in the right room. The box first moves from the left room to the attic, then from the attic to the right room.</desc>
+  <style>
+    .room { fill:#fff; stroke:#435765; stroke-width:2.5; }
+    .room-name { font:700 16px sans-serif; fill:#31434f; text-anchor:middle; }
+    .box { fill:#e9f3fb; stroke:#173f63; stroke-width:2.5; }
+    .box-label { font:700 13px sans-serif; fill:#173f63; text-anchor:middle; }
+    .inside { font:700 25px "DejaVu Sans",sans-serif; fill:#173f63; text-anchor:middle; dominant-baseline:middle; }
+    .clip { fill:#fff8e8; stroke:#9b5b00; stroke-width:2.2; }
+    .clip-line { stroke:#9b5b00; stroke-width:3; }
+    .clip-symbol { font:700 19px "DejaVu Sans",sans-serif; fill:#7a4700; text-anchor:middle; dominant-baseline:middle; }
+    .loose { font:700 29px "DejaVu Sans",sans-serif; fill:#4b2c71; text-anchor:middle; dominant-baseline:middle; }
+    .state-label { font:14px sans-serif; fill:#536572; text-anchor:middle; }
+    .route { fill:none; stroke:#174a78; stroke-width:4; marker-end:url(#arrow); }
+    .step { fill:#174a78; }
+    .step-text { font:700 16px sans-serif; fill:#fff; text-anchor:middle; dominant-baseline:middle; }
+
+    /* Optical-size normalization: role controls color; shape controls apparent size. */
+    .shape-triangle { font-size:29px; }
+    .shape-circle { font-size:52px; }
+    .shape-square { font-size:68px; }
+    .shape-diamond { font-size:56px; }
+    .shape-star { font-size:31px; }
+  </style>
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#174a78"/></marker></defs>
+  <rect width="1000" height="410" fill="#fff"/>
+  <rect class="room" x="40" y="195" width="270" height="180" rx="7"/><rect class="room" x="365" y="30" width="270" height="180" rx="7"/><rect class="room" x="690" y="195" width="270" height="180" rx="7"/>
+  <text class="room-name" x="175" y="220">LEFT ROOM</text><text class="room-name" x="500" y="55">ATTIC</text><text class="room-name" x="825" y="220">RIGHT ROOM</text>
+  <g transform="translate(92 257)"><rect class="box" width="100" height="88" rx="6"/><text class="box-label" x="50" y="20">INSIDE</text><text class="inside shape-triangle" x="50" y="56">▲</text><path class="clip-line" d="M100 25H116"/><rect class="clip" x="114" y="8" width="74" height="62" rx="5"/><text class="clip-symbol shape-square" x="136" y="27">■</text><text class="state-label" x="136" y="81">clipped</text></g>
+  <text class="loose shape-diamond" x="500" y="116">◆</text><text class="state-label" x="500" y="149">loose</text>
+  <text class="loose shape-circle" x="825" y="286">●</text><text class="state-label" x="825" y="319">loose</text>
+  <path class="route" d="M255 190Q350 95 402 105"/><circle class="step" cx="330" cy="121" r="17"/><text class="step-text" x="330" y="122">1</text>
+  <path class="route" d="M635 105Q720 110 765 188"/><circle class="step" cx="708" cy="125" r="17"/><text class="step-text" x="708" y="126">2</text>
+</svg>
