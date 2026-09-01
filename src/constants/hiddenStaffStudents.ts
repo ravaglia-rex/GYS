@@ -6,9 +6,7 @@
  * multiple schools' invite lists and pick a login school.
  * Keep in sync with backend `HIDDEN_STAFF_STUDENT_EMAILS`.
  */
-export const HIDDEN_STAFF_STUDENT_EMAILS = new Set([
-  'srishti+student@argus.ai',
-]);
+export const HIDDEN_STAFF_STUDENT_EMAILS = new Set<string>([]);
 
 export function isHiddenStaffStudentEmail(raw: unknown): boolean {
   if (typeof raw !== 'string') return false;

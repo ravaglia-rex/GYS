@@ -10,7 +10,6 @@ import { canonicalAssessmentId } from './assessmentIdCompat';
  */
 export const OFFICIAL_STUDENT_ASSESSMENT_BETA_EMAILS = new Set([
   'srishti2k1@gmail.com',
-  'srishti+student@argus.ai',
   'michael+student@argus.ai',
   'masonfewel@gmail.com',
   'divyam.ew+1@gmail.com',
