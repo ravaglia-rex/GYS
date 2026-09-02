@@ -363,7 +363,7 @@ function PaperLengthDonut({ slices }: { slices: PaperLengthSlice[] }) {
                   {s.value.toLocaleString()} kids · {s.name}
                 </Typography>
                 <Typography variant="caption" sx={{ color: ip.subtext, display: 'block' }}>
-                  {pct}% of sits · avg answered {s.avgAnswered}
+                  {pct}% of sits · avg answered {s.avgAnswered}/{s.key}
                 </Typography>
               </Box>
             </Box>
@@ -542,6 +542,20 @@ function formatLiveExamTimeLeft(seconds: number | null, expired: boolean): strin
     return `${hours}h ${remMin}m`;
   }
   return `${minutes}m ${secs}s`;
+}
+
+function formatExamDuration(seconds: number | null | undefined): string | null {
+  if (seconds == null || !Number.isFinite(seconds) || seconds < 0) return null;
+  const total = Math.floor(seconds);
+  const minutes = Math.floor(total / 60);
+  const secs = total % 60;
+  if (minutes >= 60) {
+    const hours = Math.floor(minutes / 60);
+    const remMin = minutes % 60;
+    return remMin > 0 ? `${hours}h ${remMin}m` : `${hours}h`;
+  }
+  if (minutes <= 0) return `${secs}s`;
+  return secs > 0 ? `${minutes}m ${secs}s` : `${minutes}m`;
 }
 
 function liveExamProgressLabel(row: LiveExamAttemptRow): string {
@@ -2250,7 +2264,7 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
               {officialView === 'completions' && (
               <PlatformAdminAnalyticsSection
                 title="Search completions"
-                subtitle="Loads when you open this tab. Use filters and Search to refine. Questions is how many items they answered in the timed sit. Click a student to open their full exam paper (questions, choices, and answers) for that level."
+                subtitle="Loads when you open this tab. Use filters and Search to refine. Questions is correct / paper length (e.g. 15/32), with sit duration beside it. Click a student to open their full exam paper (questions, choices, and answers) for that level."
                 accent="violet"
               >
                   <Box sx={{ ...platformAdminFilterToolbarRowSx, mb: 2 }}>
@@ -2423,6 +2437,7 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                                 const key = `${row.uid}::${row.attempt_id}`;
                                 const selected = officialAttemptDetailKey === key;
                                 const sameStudentSits = officialRecent.filter((r) => r.uid === row.uid);
+                                const durationLabel = formatExamDuration(row.duration_sec);
                                 return (
                                   <React.Fragment key={row.attempt_id}>
                                   <TableRow
@@ -2459,7 +2474,6 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                                   </TableCell>
                                   <TableCell>{row.school_name ?? '-'}</TableCell>
                                   <TableCell align="right">{row.proficiency_tier ?? '-'}</TableCell>
-                                  <TableCell align="right">{row.questions_answered ?? '-'}</TableCell>
                                   <TableCell align="right">
                                     <Box
                                       sx={{
@@ -2469,15 +2483,18 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                                         justifyContent: 'flex-end',
                                       }}
                                     >
-                                      <PlatformAdminAccuracyChip pct={row.score_pct} />
-                                      <Typography
-                                        component="span"
-                                        variant="caption"
-                                        sx={{ color: ip.subtext, whiteSpace: 'nowrap' }}
-                                      >
-                                        ({row.score_points})
+                                      <Typography component="span" variant="body2" sx={{ fontWeight: 600 }}>
+                                        {typeof row.questions_total === 'number' && row.questions_total > 0
+                                          ? `${row.correct_count ?? 0}/${row.questions_total}`
+                                          : row.questions_answered ?? '-'}
                                       </Typography>
+                                      {durationLabel ? (
+                                        <PlatformAdminChip label={durationLabel} tone="warning" />
+                                      ) : null}
                                     </Box>
+                                  </TableCell>
+                                  <TableCell align="right">
+                                    {row.score_points ?? '-'}
                                   </TableCell>
                                   <TableCell align="right">
                                     <PlatformAdminChip

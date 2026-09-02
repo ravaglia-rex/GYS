@@ -624,6 +624,12 @@ export const AR_OPTION_GRID_SLICE_MAX_WIDTH_PX = 110;
 /** Display cap for larger image options such as tiles/cards with edge symbols. */
 export const AR_OPTION_SLICE_MAX_HEIGHT_PX = 104;
 export const AR_OPTION_SLICE_MAX_WIDTH_PX = 140;
+/**
+ * Full-width stack strips (IF-07 inspection rows, etc.). The 140px tile cap left
+ * these as tiny left-aligned bars inside wide option rows.
+ */
+export const AR_OPTION_STACK_SLICE_MAX_HEIGHT_PX = 120;
+export const AR_OPTION_STACK_SLICE_MAX_WIDTH_PX = 640;
 /** Stem crops from combined stem+options SVGs should not use the full exam cap. */
 export const AR_OPTION_STEM_SLICE_MAX_HEIGHT_PX = 340;
 export const AR_OPTION_STEM_SLICE_MAX_WIDTH_PX = 560;
@@ -639,11 +645,12 @@ function optionFigureSizeMultiplier(
 /**
  * When a combined stem+options SVG is scaled to the exam figure cap, a single
  * grid option slice can inherit the full figure height (~460px). Cap grid slices
- * so fold / card options stay the same size as standalone 2×2 option rows.
+ * at the medium tile size so fold / card options match standalone 2×2 rows, then
+ * scale by `option_display_size` (0.5×…2× vs that medium size).
  *
- * Stem crops stay on that same figure scale. Fitting the crop box itself to
- * 560×340 upscaled tight trays (IF10) to ~340px while every other exam figure
- * stayed at the 640×460 cap.
+ * Stem crops stay on stem figure scale. Fitting the crop box itself to 560×340
+ * upscaled tight trays (IF10) to ~340px while every other exam figure stayed at
+ * the 640×460 cap.
  */
 export function arOptionFigureSliceDisplaySize(
   natW: number,
@@ -654,7 +661,8 @@ export function arOptionFigureSliceDisplaySize(
   slice?: Pick<OptionFigureSliceRect, 'kind'> | null,
   src?: string,
   optionDisplaySize?: ArFigureDisplaySizeInput,
-  stemDisplaySize?: ArFigureDisplaySizeInput
+  stemDisplaySize?: ArFigureDisplaySizeInput,
+  layout?: ArOptionFigureLayout | null
 ): { width: number; height: number } {
   const stemCaps = {
     width: EXAM_FIGURE_MAX_WIDTH_PX * arFigureSizeMultiplier(stemDisplaySize),
@@ -684,22 +692,53 @@ export function arOptionFigureSliceDisplaySize(
   let width = Math.max(1, natW * scale);
   let height = Math.max(1, natH * scale);
   if (fit === 'option' || fit === 'crop') {
-    const multiplier = optionFigureSizeMultiplier(src, optionDisplaySize);
-    const maxWidth =
-      (slice?.kind === 'grid' ? AR_OPTION_GRID_SLICE_MAX_WIDTH_PX : AR_OPTION_SLICE_MAX_WIDTH_PX) *
-      multiplier;
-    const maxHeight =
-      (slice?.kind === 'grid' ? AR_OPTION_GRID_SLICE_MAX_HEIGHT_PX : AR_OPTION_SLICE_MAX_HEIGHT_PX) *
-      multiplier;
-    const capScale = Math.min(
-      maxWidth / width,
-      maxHeight / height,
+    // 1) Cap at medium tile size (never upscale here) so stem-matched glyphs
+    //    that already fit stay on the stem scale.
+    // 2) Then apply option_display_size (0.5×…2× vs medium). The old path
+    //    multiplied the caps but kept `Math.min(..., 1)`, so undersized crops
+    //    (common on tall combined stem+options SVGs like vw2_16) never grew
+    //    when bank size was set to large/xlarge.
+    const stackStrip = layout === 'stack';
+    const mediumMaxWidth = slice?.kind === 'grid'
+      ? AR_OPTION_GRID_SLICE_MAX_WIDTH_PX
+      : stackStrip
+        ? AR_OPTION_STACK_SLICE_MAX_WIDTH_PX
+        : AR_OPTION_SLICE_MAX_WIDTH_PX;
+    const mediumMaxHeight = slice?.kind === 'grid'
+      ? AR_OPTION_GRID_SLICE_MAX_HEIGHT_PX
+      : stackStrip
+        ? AR_OPTION_STACK_SLICE_MAX_HEIGHT_PX
+        : AR_OPTION_SLICE_MAX_HEIGHT_PX;
+    const mediumCapScale = Math.min(
+      mediumMaxWidth / width,
+      mediumMaxHeight / height,
       1
     );
-    width *= capScale;
-    height *= capScale;
+    width *= mediumCapScale;
+    height *= mediumCapScale;
+    const multiplier = optionFigureSizeMultiplier(src, optionDisplaySize);
+    width *= multiplier;
+    height *= multiplier;
   }
   return { width, height };
+}
+
+/** CSS grid for A–D figure option pickers (admin + learner). */
+export function optionFigurePickerGridSx(layout: ArOptionFigureLayout | null | undefined) {
+  if (layout === 'stack') {
+    return {
+      display: 'flex',
+      flexDirection: 'column' as const,
+      alignItems: 'stretch',
+      gap: 0.75,
+    };
+  }
+  return {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    alignItems: 'start',
+    gap: 0.75,
+  };
 }
 
 function svgLocalPoint(el: Element): { x: number; y: number } {
@@ -1196,20 +1235,80 @@ export function optionFigureIncludesStemContent(
   return Math.min(...slices.map((s) => s.yPct)) >= OPTION_FIGURE_STEM_CONTENT_MIN_Y_PCT;
 }
 
+/**
+ * Bottom of authored stem art above the option band (as % of viewBox height).
+ * Used to trim empty option-headroom from combined stem+options SVGs.
+ */
+export function optionFigureStemContentBottomYPct(
+  svgText: string,
+  optionMinYPct: number
+): number | null {
+  if (typeof DOMParser === 'undefined') return null;
+  if (!(optionMinYPct > 0 && optionMinYPct <= 100)) return null;
+  const doc = new DOMParser().parseFromString(svgText, 'image/svg+xml');
+  if (doc.querySelector('parsererror')) return null;
+  const vb = svgViewBox(doc);
+  if (!vb) return null;
+  const optionTopY = vb.y + (optionMinYPct / 100) * vb.h;
+  let maxBottom = -Infinity;
+
+  const cards = collectOptionFigureCards(doc, vb);
+  for (const card of cards) {
+    if (card.y + card.h <= optionTopY - 1) {
+      maxBottom = Math.max(maxBottom, card.y + card.h);
+    }
+  }
+
+  for (const text of Array.from(doc.querySelectorAll('text'))) {
+    if (isInsideDefs(text)) continue;
+    const pt = svgLocalPoint(text);
+    // text y is baseline; allow a small glyph descent below the anchor.
+    const bottom = pt.y + 12;
+    if (bottom <= optionTopY - 1) {
+      maxBottom = Math.max(maxBottom, bottom);
+    }
+  }
+
+  if (!(maxBottom > vb.y)) return null;
+  return ((maxBottom - vb.y) / vb.h) * 100;
+}
+
 /** Top of a combined stem+options figure (initial state, route), above the A–D rows. */
 export function optionFigureStemSliceFromOptionSlices(
-  slices: OptionFigureSliceRect[] | null
+  slices: OptionFigureSliceRect[] | null,
+  contentBottomYPct?: number | null
 ): OptionFigureSliceRect | null {
   if (!slices?.length) return null;
   const minY = Math.min(...slices.map((s) => s.yPct));
   if (minY < OPTION_FIGURE_STEM_CONTENT_MIN_Y_PCT) return null;
   // Options detected past the viewBox (yPct > 100) mean the SVG canvas was
   // already cropped to stem-only — use the full frame, never invent headroom.
+  if (minY > 100) {
+    return {
+      xPct: 0,
+      yPct: 0,
+      wPct: 100,
+      hPct: 100,
+      kind: 'wide',
+    };
+  }
+  const optionCap = Math.min(100, Math.max(8, minY - 0.6));
+  let hPct = optionCap;
+  // Prefer a tight crop under real stem content when the SVG reserves empty
+  // space between TARGET / route art and the A–D cards (machine composition, etc.).
+  if (
+    contentBottomYPct != null &&
+    Number.isFinite(contentBottomYPct) &&
+    contentBottomYPct > 0
+  ) {
+    const tight = Math.min(optionCap, Math.max(8, contentBottomYPct + 1.5));
+    if (tight < optionCap) hPct = tight;
+  }
   return {
     xPct: 0,
     yPct: 0,
     wPct: 100,
-    hPct: Math.min(100, Math.max(8, minY - 0.6)),
+    hPct,
     kind: 'wide',
   };
 }
@@ -1240,12 +1339,12 @@ export function optionFigureContentSlicesFromSvg(
     const rowSlices = rowLayoutSlicesFromCards(letterPts, cards, vb, segs);
     if (rowSlices) return rowSlices;
   }
+  // Stacked A–D sheets (options-only or stem+options): crop each letter's full
+  // horizontal band. Do not gate on stem Y — options-only rails often start
+  // near the top (~15–25%), and that gate wrongly fell through to single-card crops.
   if (letterPointsAreStacked(letterPts)) {
-    const minY = Math.min(...letterPts.map((p) => p.y));
-    if ((minY - vb.y) / vb.h >= OPTION_FIGURE_STEM_CONTENT_MIN_Y_PCT / 100) {
-      const stacked = stackedRowSlicesFromCards(letterPts, cards, vb);
-      if (stacked) return stacked;
-    }
+    const stacked = stackedRowSlicesFromCards(letterPts, cards, vb);
+    if (stacked) return stacked;
   }
   const grouped: Array<typeof cards> = Array.from({ length: n }, () => []);
   for (const card of cards) {

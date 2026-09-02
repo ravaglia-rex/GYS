@@ -12,6 +12,7 @@ import {
   layoutFromSvgText,
   optionFigureContentSlicesFromSvg,
   optionFigureIncludesStemContent,
+  optionFigureStemContentBottomYPct,
   optionFigureStemSliceFromOptionSlices,
   svgNaturalSizeFromText,
 } from '../src/components/assessment/arOptionFigureModel';
@@ -70,7 +71,13 @@ function main(): void {
     const size = svgNaturalSizeFromText(text);
     const layout = layoutFromSvgText(text) ?? 'grid';
     const stemSlice = optionFigureIncludesStemContent(layout, slices)
-      ? optionFigureStemSliceFromOptionSlices(slices)
+      ? optionFigureStemSliceFromOptionSlices(
+          slices,
+          optionFigureStemContentBottomYPct(
+            text,
+            Math.min(...slices.map((s) => s.yPct))
+          )
+        )
       : null;
     catalog[path.basename(file)] = {
       layout,

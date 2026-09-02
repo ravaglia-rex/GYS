@@ -16,6 +16,7 @@ import {
   Typography,
 } from '@mui/material';
 import { ArOptionFigure, ArOptionFigureSlice, useArOptionFigureMeta } from '../../components/assessment/ArOptionFigure';
+import { optionFigurePickerGridSx } from '../../components/assessment/arOptionFigureModel';
 import {
   AR_FIGURE_DISPLAY_SIZES,
   AR_FIGURE_SIZE_LABEL,
@@ -322,6 +323,8 @@ function AdminExamOptionRow({
         borderColor: isCorrect ? '#86efac' : picked ? '#fca5a5' : '#e2e8f0',
         bgcolor: isCorrect ? '#f0fdf4' : picked ? '#fef2f2' : '#f8fafc',
         position: 'relative',
+        minWidth: 0,
+        overflow: 'hidden',
       }}
     >
       {typeof pickPct === 'number' ? (
@@ -350,12 +353,13 @@ function AdminExamOptionRow({
           minWidth: 18,
           fontSize: 13,
           position: 'relative',
+          flexShrink: 0,
         }}
       >
         {letter}.
       </Typography>
-      {/* Shrink-wrap the figure; flex:1 made option rows stretch and left huge gaps. */}
-      <Box sx={{ minWidth: 0, maxWidth: '100%', position: 'relative' }}>{children}</Box>
+      {/* flex:1 gives the figure a definite width so slices can scale down in 2×2 cells. */}
+      <Box sx={{ flex: 1, minWidth: 0, position: 'relative' }}>{children}</Box>
       {caption ? (
         <Typography
           sx={{
@@ -439,7 +443,7 @@ export function AdminExamQuestionBody({
         renderMath={renderMath}
       />
       {showStemCrop && includesStemContent && optionFigure && stemSlice ? (
-        <Box sx={{ mb: 1.25 }}>
+        <Box sx={{ mb: 1.25, maxWidth: '100%', minWidth: 0 }}>
           <ArOptionFigureSlice
             figure={optionFigure}
             index={0}
@@ -457,14 +461,16 @@ export function AdminExamQuestionBody({
       {rows.length > 0 ? (
         <Box
           sx={
-            showFigureSlices || textOptionsAsGrid2x2
-              ? {
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                  alignItems: 'start',
-                  gap: 0.75,
-                }
-              : { display: 'flex', flexDirection: 'column', gap: 0.4 }
+            showFigureSlices
+              ? optionFigurePickerGridSx(layout)
+              : textOptionsAsGrid2x2
+                ? {
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                    alignItems: 'start',
+                    gap: 0.75,
+                  }
+                : { display: 'flex', flexDirection: 'column', gap: 0.4 }
           }
         >
           {rows.map((opt, optIdx) => {

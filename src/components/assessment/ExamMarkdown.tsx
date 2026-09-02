@@ -42,7 +42,9 @@ const markdownTableCellSx = {
 } as const;
 
 export function looksLikeExamMarkdown(s: string): boolean {
-  return /!\[[^\]]*]\(|^#{1,6}\s|```|<svg\b|<img\b|^\|.+\||\*\*[^*\n]+\*\*|__[^_\n]+__/m.test(s);
+  return /!\[[^\]]*]\(|^#{1,6}\s|```|<svg\b|<img\b|^\|.+\||\*\*[^*\n]+\*\*|__[^_\n]+__|^\s*[-*+]\s+\S|^\s*\d+\.\s+\S/m.test(
+    s
+  );
 }
 
 export function hasExamFigureMarkup(s: string): boolean {

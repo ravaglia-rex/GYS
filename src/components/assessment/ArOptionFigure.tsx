@@ -6,7 +6,9 @@ import {
   layoutFromSvgText,
   optionFigureContentSlicesFromSvg,
   optionFigureGridSx,
+  optionFigureIncludesStemContent,
   optionFigureSliceWindow,
+  optionFigureStemContentBottomYPct,
   optionFigureStemSliceFromOptionSlices,
   svgNaturalSizeFromText,
   type ArOptionFigureLayout,
@@ -26,7 +28,8 @@ const borderMuted = '#e2e8f0';
 /**
  * Crop / layout meta for option figures.
  * Learner path: bank `option_crops` only (no FE catalog / SVG parse).
- * Platform Admin may pass `allowRuntimeFallback` while authoring.
+ * Platform Admin may pass `allowRuntimeFallback` while authoring — and will
+ * re-parse the live SVG when stamped natural size no longer matches (asset edit).
  */
 export function useArOptionFigureMeta(
   src: string | undefined,
@@ -43,8 +46,10 @@ export function useArOptionFigureMeta(
 } {
   const [layout, setLayout] = useState<ArOptionFigureLayout>('grid');
   const [slices, setSlices] = useState<OptionFigureSliceRect[] | null>(null);
+  const [runtimeStemSlice, setRuntimeStemSlice] = useState<OptionFigureSliceRect | null>(null);
   const [naturalWidth, setNaturalWidth] = useState(0);
   const [naturalHeight, setNaturalHeight] = useState(0);
+  const [useRuntimeOverSaved, setUseRuntimeOverSaved] = useState(false);
   const layoutFromSvgRef = useRef(false);
 
   const saved = sanitizeOptionFigureCrops(bankCrops);
@@ -52,17 +57,31 @@ export function useArOptionFigureMeta(
   useEffect(() => {
     let cancelled = false;
     layoutFromSvgRef.current = false;
-    if (saved) {
+    setUseRuntimeOverSaved(false);
+
+    const applySaved = () => {
+      if (!saved) return;
       setLayout(saved.layout);
       setSlices(saved.slices);
+      setRuntimeStemSlice(saved.stemSlice);
       setNaturalWidth(saved.naturalWidth);
       setNaturalHeight(saved.naturalHeight);
+    };
+
+    if (saved && !allowRuntimeFallback) {
+      applySaved();
       return undefined;
     }
-    setLayout('grid');
-    setSlices(null);
-    setNaturalWidth(0);
-    setNaturalHeight(0);
+
+    if (saved) applySaved();
+    else {
+      setLayout('grid');
+      setSlices(null);
+      setRuntimeStemSlice(null);
+      setNaturalWidth(0);
+      setNaturalHeight(0);
+    }
+
     if (!src || !allowRuntimeFallback) return undefined;
     const figureSrc = resolveExamFigureSrc(src);
 
@@ -70,8 +89,9 @@ export function useArOptionFigureMeta(
       const img = new Image();
       img.onload = () => {
         if (cancelled) return;
-        setNaturalWidth(img.naturalWidth);
-        setNaturalHeight(img.naturalHeight);
+        // Prefer SVG viewBox size when already set; Image natural size is a fallback.
+        setNaturalWidth((w) => w || img.naturalWidth);
+        setNaturalHeight((h) => h || img.naturalHeight);
         if (!layoutFromSvgRef.current) {
           setLayout(layoutFromAspect(img.naturalWidth, img.naturalHeight));
         }
@@ -90,17 +110,41 @@ export function useArOptionFigureMeta(
       .then((res) => (res.ok ? res.text() : Promise.reject(new Error('svg fetch failed'))))
       .then((text) => {
         if (cancelled) return;
+        const size = svgNaturalSizeFromText(text);
+        const sizeMismatch =
+          Boolean(saved) &&
+          Boolean(size) &&
+          (Math.abs((size?.width || 0) - saved!.naturalWidth) > 2 ||
+            Math.abs((size?.height || 0) - saved!.naturalHeight) > 2);
+        const nextSlices = optionFigureContentSlicesFromSvg(text, optionCount);
+        const shouldUseRuntime = !saved || sizeMismatch || !saved.slices?.length;
+        if (!shouldUseRuntime || !nextSlices?.length) {
+          if (saved && size && sizeMismatch) {
+            // Keep option slices if parse failed, but refresh natural size for display.
+            setNaturalWidth(size.width);
+            setNaturalHeight(size.height);
+          }
+          applyAspect();
+          return;
+        }
         const parsed = layoutFromSvgText(text);
         if (parsed) {
           layoutFromSvgRef.current = true;
           setLayout(parsed);
         }
-        setSlices(optionFigureContentSlicesFromSvg(text, optionCount));
-        const size = svgNaturalSizeFromText(text);
+        setSlices(nextSlices);
+        if (optionFigureIncludesStemContent(parsed ?? 'grid', nextSlices)) {
+          const minY = Math.min(...nextSlices.map((s) => s.yPct));
+          const contentBottom = optionFigureStemContentBottomYPct(text, minY);
+          setRuntimeStemSlice(optionFigureStemSliceFromOptionSlices(nextSlices, contentBottom));
+        } else {
+          setRuntimeStemSlice(null);
+        }
         if (size) {
           setNaturalWidth(size.width);
           setNaturalHeight(size.height);
         }
+        setUseRuntimeOverSaved(true);
         applyAspect();
       })
       .catch(() => {
@@ -112,22 +156,20 @@ export function useArOptionFigureMeta(
     };
   }, [src, optionCount, saved, allowRuntimeFallback]);
 
-  if (saved) {
+  if (saved && !useRuntimeOverSaved) {
     return {
       layout: saved.layout,
       slices: saved.slices,
       stemSlice: saved.stemSlice,
       includesStemContent: Boolean(saved.stemSlice),
-      naturalWidth: saved.naturalWidth,
-      naturalHeight: saved.naturalHeight,
+      naturalWidth: naturalWidth || saved.naturalWidth,
+      naturalHeight: naturalHeight || saved.naturalHeight,
     };
   }
-  const stemSlice = allowRuntimeFallback
-    ? optionFigureStemSliceFromOptionSlices(slices)
-    : null;
+  const stemSlice = allowRuntimeFallback ? runtimeStemSlice : saved?.stemSlice ?? null;
   return {
     layout,
-    slices: allowRuntimeFallback ? slices : null,
+    slices: allowRuntimeFallback || useRuntimeOverSaved ? slices : saved?.slices ?? null,
     stemSlice,
     includesStemContent: Boolean(stemSlice),
     naturalWidth,
@@ -190,34 +232,38 @@ export const ArOptionFigureSlice: React.FC<{
     slice,
     figure.src,
     optionDisplaySize,
-    stemDisplaySize
+    stemDisplaySize,
+    layout
   );
   const imgSrc = resolveExamFigureSrc(figure.src);
-  // Prefer an explicit pixel width. `min(100%, Npx)` collapses to 0 inside
-  // shrink-wrapped flex children (AdminExamOptionRow), which made Cover A–D
-  // figure slices invisible while the stem crop (block layout) still showed.
+  // Cap at the authored display size, but always fill the parent when the
+  // parent is narrower (2×2 option cells + caption padding). Fixed `width: Npx`
+  // overflowed those cells and got clipped by page `overflowX: hidden`.
+  // Parent must have a definite width (`flex: 1; minWidth: 0`) — otherwise
+  // `width: 100%` can collapse to 0 in shrink-wrapped flex children.
+  //
+  // Use aspect-ratio + transform (not padding-top + top/height %). With the
+  // padding hack, abspos height/% top often resolve against an indefinite
+  // containing block and clip the bottom of square option crops.
   const boxWidth = Math.max(sliceWidth, 1);
-  const aspectPadPct = (Math.max(sliceHeight, 1) / boxWidth) * 100;
+  const boxHeight = Math.max(sliceHeight, 1);
+  const wPct = Math.max(crop.wPct, 0.01);
   return (
     <Box
       sx={{
-        flex: '0 1 auto',
-        width: boxWidth,
+        flex: '1 1 auto',
+        width: '100%',
         minWidth: 0,
-        maxWidth: '100%',
+        maxWidth: boxWidth,
       }}
     >
       <Box
         sx={{
           position: 'relative',
           width: '100%',
+          aspectRatio: `${boxWidth} / ${boxHeight}`,
           overflow: 'hidden',
           lineHeight: 0,
-          '&::before': {
-            content: '""',
-            display: 'block',
-            paddingTop: `${aspectPadPct}%`,
-          },
         }}
       >
         <Box
@@ -227,11 +273,14 @@ export const ArOptionFigureSlice: React.FC<{
           sx={{
             position: 'absolute',
             display: 'block',
-            width: `${10000 / Math.max(crop.wPct, 0.01)}%`,
-            height: `${10000 / Math.max(crop.hPct, 0.01)}%`,
-            left: `${-(crop.xPct / Math.max(crop.wPct, 0.01)) * 100}%`,
-            top: `${-(crop.yPct / Math.max(crop.hPct, 0.01)) * 100}%`,
+            width: `${10000 / wPct}%`,
+            height: 'auto',
             maxWidth: 'none',
+            left: 0,
+            top: 0,
+            // translate % is relative to the image itself, so xPct/yPct map
+            // directly onto the source figure regardless of crop aspect.
+            transform: `translate(${-crop.xPct}%, ${-crop.yPct}%)`,
           }}
         />
       </Box>

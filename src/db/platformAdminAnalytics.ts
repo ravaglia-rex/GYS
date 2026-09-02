@@ -526,6 +526,12 @@ export type OfficialExamRecentRow = {
   score_pct: number;
   score_points: number;
   questions_answered: number;
+  /** Items marked correct on the attempt. */
+  correct_count: number;
+  /** Assembled paper length (typically 32 or 40 for AR). */
+  questions_total: number;
+  /** Wall-clock sit duration in seconds (started_at → completed_at). */
+  duration_sec: number | null;
   passed: boolean;
   completed_at: string | null;
 };
@@ -761,7 +767,27 @@ export async function searchPlatformAdminOfficialExamCompletions(
   );
   return {
     exam_id: typeof res.data.exam_id === 'string' ? res.data.exam_id : examId,
-    results: Array.isArray(res.data.results) ? res.data.results : [],
+    results: Array.isArray(res.data.results)
+      ? res.data.results.map((row: OfficialExamRecentRow) => ({
+          ...row,
+          questions_answered:
+            typeof row.questions_answered === 'number' && Number.isFinite(row.questions_answered)
+              ? Math.max(0, Math.floor(row.questions_answered))
+              : 0,
+          correct_count:
+            typeof row.correct_count === 'number' && Number.isFinite(row.correct_count)
+              ? Math.max(0, Math.floor(row.correct_count))
+              : 0,
+          questions_total:
+            typeof row.questions_total === 'number' && Number.isFinite(row.questions_total)
+              ? Math.max(0, Math.floor(row.questions_total))
+              : 0,
+          duration_sec:
+            typeof row.duration_sec === 'number' && Number.isFinite(row.duration_sec)
+              ? Math.max(0, Math.floor(row.duration_sec))
+              : null,
+        }))
+      : [],
     matched: Number(res.data.matched) || 0,
     limit: Number(res.data.limit) || opts?.limit || 25,
     generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',

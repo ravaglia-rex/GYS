@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, FormControl, FormControlLabel, Radio, RadioGroup, Typography } from '@mui/material';
 import type { ExamQuestion } from '../../db/assessmentCollection';
 import { ArOptionFigureSlice, useArOptionFigureMeta } from './ArOptionFigure';
+import { optionFigurePickerGridSx } from './arOptionFigureModel';
 import { ExamMarkdown, EXAM_FIGURE_MAX_HEIGHT_PX, EXAM_FIGURE_MAX_WIDTH_PX } from './ExamMarkdown';
 import { scaleExamFigureCaps, isArTextOptionGrid2x2, looksLikeArAsciiGridOptionTexts, arFigureSizeMultiplier } from './arFigureDisplaySize';
 import { resolveLearnerExamOptions } from './resolveLearnerExamOptions';
@@ -98,7 +99,7 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
           {stemMarkdown}
         </ExamMarkdown>
         {showStemCrop && includesStemContent && optionFigure && stemSlice ? (
-          <Box sx={{ mt: 1.5 }}>
+          <Box sx={{ mt: 1.5, maxWidth: '100%', minWidth: 0 }}>
             <ArOptionFigureSlice
               figure={optionFigure}
               index={0}
@@ -118,9 +119,7 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
         <>
           <Box
             sx={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-              alignItems: 'start',
+              ...optionFigurePickerGridSx(layout),
               gap: 1.25,
               mb: footer ? 1.5 : 0,
             }}
@@ -177,7 +176,7 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
                       {letter}
                     </Typography>
                   </Box>
-                  <Box sx={{ minWidth: 0, maxWidth: '100%', display: 'flex' }}>
+                  <Box sx={{ flex: 1, minWidth: 0, display: 'flex' }}>
                     <ArOptionFigureSlice
                       figure={optionFigure}
                       index={idx}

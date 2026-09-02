@@ -7,9 +7,33 @@ import { rewriteExamMarkdownFigureUrls } from './examFigureSrc';
 
 const DETAILS_BLOCK = /<details\b[^>]*>[\s\S]*?<\/details>/gi;
 const DETAILS_OR_SUMMARY_TAG = /<\/?(?:details|summary)\b[^>]*>/gi;
+/** Leftover chrome after a screen-reader options block (e.g. "Which row…?" / "OPTIONS"). */
+const ORPHAN_OPTION_CAPTION =
+  /^(?:OPTIONS|Which\s+(?:row|option|choice|figure|diagram)\b[^?\n]*\??)\s*$/i;
+
+/**
+ * Drop a trailing option-intro line when the stem already asked a question and a
+ * `<details>` accessibility block was removed (IF-07 style: real Q + orphan "Which row…?").
+ */
+function stripOrphanOptionCaptionAfterDetails(text: string, removedDetails: boolean): string {
+  if (!removedDetails) return text;
+  const parts = text
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+    .split(/\n\n+/);
+  if (parts.length < 2) return text;
+  const last = (parts[parts.length - 1] || '').trim();
+  if (!ORPHAN_OPTION_CAPTION.test(last)) return text;
+  const before = parts.slice(0, -1).join('\n\n');
+  if (!/[?？]\s*$/.test(before.trim()) && !/[?？]/.test(before)) return text;
+  return before.trim();
+}
 
 export function cleanLearnerFacingExamMarkup(raw: string): string {
   if (!raw) return raw;
+
+  const hadDetails = DETAILS_BLOCK.test(raw) || /<details\b/i.test(raw);
+  DETAILS_BLOCK.lastIndex = 0;
 
   let withoutDetails = raw.replace(DETAILS_BLOCK, '');
   if (/<details\b/i.test(withoutDetails)) {
@@ -34,6 +58,7 @@ export function cleanLearnerFacingExamMarkup(raw: string): string {
       .replace(DETAILS_OR_SUMMARY_TAG, '');
   }
 
+  out = stripOrphanOptionCaptionAfterDetails(out, hadDetails);
   out = rewriteExamMarkdownFigureUrls(out.replace(/\n{3,}/g, '\n\n').trim());
   return out.length > 0 ? out : rewriteExamMarkdownFigureUrls(raw.trim());
 }
