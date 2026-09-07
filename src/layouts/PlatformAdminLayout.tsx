@@ -28,7 +28,6 @@ import {
   FitnessCenterOutlined as PracticeExamsIcon,
   RateReviewOutlined as ReviewDraftsIcon,
   TodayOutlined as QodIcon,
-  TimelineOutlined as ActivityIcon,
   MonetizationOnOutlined as CoinsIcon,
   Inventory2Outlined as ItemBankIcon,
 } from '@mui/icons-material';
@@ -66,11 +65,6 @@ const ANALYTICS_NAV_ITEM: NavItem = {
   path: '/platform-admin/analytics',
   icon: <AnalyticsIcon sx={{ color: '#2563eb', fontSize: SIDEBAR_ICON_SIZE }} />,
   children: [
-    {
-      title: 'Overall Activity',
-      path: '/platform-admin/analytics/activity',
-      icon: <ActivityIcon sx={{ color: '#2563eb', fontSize: CHILD_ICON_SIZE }} />,
-    },
     {
       title: 'Official Exams',
       path: '/platform-admin/analytics/official',
@@ -206,6 +200,14 @@ export default function PlatformAdminLayout({ children }: PlatformAdminLayoutPro
     setOpenSubmenus((prev) => ({ ...prev, [title]: !(prev[title] ?? false) }));
   };
 
+  const openSubmenu = (title: string) => {
+    setOpenSubmenus((prev) => (prev[title] === true ? prev : { ...prev, [title]: true }));
+  };
+
+  const setSubmenuOpen = (title: string, open: boolean) => {
+    setOpenSubmenus((prev) => (prev[title] === open ? prev : { ...prev, [title]: open }));
+  };
+
   /** Sibling switches under Item Bank / Analytics should keep exam/level filters. */
   const shouldKeepSearchOnNav = (path: string) =>
     path.startsWith('/platform-admin/item-bank/') ||
@@ -215,18 +217,21 @@ export default function PlatformAdminLayout({ children }: PlatformAdminLayoutPro
     const childActive = hasActiveChild(item);
     const active = level === 0 ? isPathActive(item.path) || childActive : location.pathname === item.path;
     const hasChildren = Boolean(item.children?.length);
-    // Include the parent path so /analytics → /analytics/activity does not close-then-open
+    // Include the parent path so /analytics → /analytics/official does not close-then-open
     // Collapse (that enter animation is what loops Transition on first load).
-    const submenuOpen =
-      openSubmenus[item.title] ?? (childActive || (hasChildren && isPathActive(item.path)));
+    // Explicit `false` means the user collapsed via the chevron/row while still on this section.
+    const routeImpliesOpen = childActive || (hasChildren && isPathActive(item.path));
+    const submenuOpen = openSubmenus[item.title] ?? routeImpliesOpen;
 
     return (
       <Box key={item.path}>
         <Box
           onClick={() => {
             if (hasChildren) {
-              toggleSubmenu(item.title);
-              if (!childActive && item.children?.[0]) {
+              const willOpen = !submenuOpen;
+              setSubmenuOpen(item.title, willOpen);
+              // Opening from outside the section → land on the first child.
+              if (willOpen && !routeImpliesOpen && item.children?.[0]) {
                 go(item.children[0].path, {
                   keepSearch: shouldKeepSearchOnNav(item.children[0].path),
                 });
@@ -267,9 +272,10 @@ export default function PlatformAdminLayout({ children }: PlatformAdminLayoutPro
           {hasChildren && (
             <IconButton
               size="small"
+              aria-label={submenuOpen ? `Collapse ${item.title}` : `Expand ${item.title}`}
               onClick={(e) => {
                 e.stopPropagation();
-                toggleSubmenu(item.title);
+                setSubmenuOpen(item.title, !submenuOpen);
               }}
               sx={{ color: active ? ip.sidebarActiveText : '#64748b', p: 0.25 }}
             >

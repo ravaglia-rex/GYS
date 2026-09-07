@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="250" viewBox="0 0 900 250" role="img" aria-labelledby="title desc">
+  <title id="title">An ordered pair passes through transformation T twice</title>
+  <desc id="desc">The ordered pair x comma y enters a transformation T that changes p comma q into p plus q comma p minus q. The output passes through the same transformation again.</desc>
+  <rect width="900" height="250" fill="white"/>
+  <g font-family="Arial, sans-serif" fill="#111" text-anchor="middle">
+    <text x="80" y="132" font-size="21">(x, y)</text>
+    <rect x="170" y="75" width="190" height="110" rx="12" fill="#f2f2f2" stroke="#111" stroke-width="2"/>
+    <text x="265" y="112" font-size="20" font-weight="700">T</text>
+    <text x="265" y="145" font-size="17">(p, q) →</text>
+    <text x="265" y="169" font-size="17">(p + q, p − q)</text>
+    <text x="435" y="105" font-size="18">first output</text>
+    <rect x="505" y="75" width="190" height="110" rx="12" fill="white" stroke="#111" stroke-width="2" stroke-dasharray="8 5"/>
+    <text x="600" y="112" font-size="20" font-weight="700">T again</text>
+    <text x="600" y="145" font-size="17">same rule</text>
+    <rect x="745" y="104" width="50" height="44" rx="8" fill="white" stroke="#111" stroke-width="2"/>
+    <text x="770" y="132" font-size="21">?</text>
+  </g>
+  <g stroke="#111" stroke-width="2" fill="none">
+    <line x1="115" y1="126" x2="165" y2="126"/>
+    <path d="M155 120 L165 126 L155 132"/>
+    <line x1="365" y1="126" x2="475" y2="126"/>
+    <path d="M465 120 L475 126 L465 132"/>
+    <line x1="700" y1="126" x2="750" y2="126"/>
+    <path d="M740 120 L750 126 L740 132"/>
+  </g>
+</svg>

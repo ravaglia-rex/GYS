@@ -629,7 +629,7 @@ const AppRouter: React.FC = () => {
             }
           />
         </Route>
-        <Route path="/platform-admin/analytics" element={<Navigate to="/platform-admin/analytics/activity" replace />} />
+        <Route path="/platform-admin/analytics" element={<Navigate to="/platform-admin/analytics/official" replace />} />
         <Route
           path="/platform-admin/analytics/item-bank"
           element={<PlatformAdminLegacyItemBankRedirect />}

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="300" viewBox="0 0 760 300" role="img" aria-labelledby="title desc">
+  <title id="title">Original and transformed rectangles</title>
+  <desc id="desc">The original rectangle has length L and width W. The new rectangle has length 3L and width W divided by 3.</desc>
+  <rect width="760" height="300" fill="white"/>
+  <g fill="none" stroke="#111" stroke-width="3">
+    <rect x="90" y="75" width="210" height="140"/>
+    <rect x="410" y="105" width="270" height="80"/>
+  </g>
+  <g font-family="Arial, sans-serif" font-size="18" fill="#111">
+    <text x="195" y="40" text-anchor="middle" font-weight="700">Original</text>
+    <text x="195" y="245" text-anchor="middle">length L</text>
+    <text x="52" y="150" text-anchor="middle" transform="rotate(-90 52 150)">width W</text>
+    <text x="545" y="70" text-anchor="middle" font-weight="700">New rectangle</text>
+    <text x="545" y="220" text-anchor="middle">length 3L</text>
+    <text x="382" y="150" text-anchor="middle" transform="rotate(-90 382 150)">width W/3</text>
+  </g>
+  <text x="380" y="280" text-anchor="middle" font-family="Arial, sans-serif" font-size="14">Diagrams not drawn to scale.</text>
+</svg>

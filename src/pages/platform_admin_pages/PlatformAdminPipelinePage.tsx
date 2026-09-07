@@ -36,13 +36,22 @@ import {
   type PipelineDefinition,
   type PipelineId,
 } from './platformAdminPipelineDefinitions';
+import { GLOBAL_REPORTS_AND_RANKING_PIPELINE_HELD } from '../../constants/constants';
 
 const PlatformAdminPipelinePage: React.FC = () => {
   const [pipelineRunning, setPipelineRunning] = useState<PipelineId | null>(null);
   const [pipelineMessage, setPipelineMessage] = useState<string | null>(null);
   const [confirmPipeline, setConfirmPipeline] = useState<PipelineDefinition | null>(null);
+  const pipelinesHeld = GLOBAL_REPORTS_AND_RANKING_PIPELINE_HELD;
 
   const runPipeline = async (pipeline: PipelineId) => {
+    if (pipelinesHeld) {
+      setConfirmPipeline(null);
+      setPipelineMessage(
+        'Pipelines are globally held. No reports or percentile updates until the hold is lifted.'
+      );
+      return;
+    }
     setConfirmPipeline(null);
     setPipelineRunning(pipeline);
     setPipelineMessage(null);
@@ -71,8 +80,15 @@ const PlatformAdminPipelinePage: React.FC = () => {
             these controls only when you need an off-schedule refresh.
           </Typography>
 
+          {pipelinesHeld && (
+            <Alert severity="warning" sx={{ mb: 2.5 }}>
+              Global hold is on: no student/school report PDFs, no national percentile updates, and no pipeline
+              runs until you lift <code>GLOBAL_REPORTS_AND_RANKING_PIPELINE_HELD</code> (CAPS).
+            </Alert>
+          )}
+
           {pipelineMessage && (
-            <Alert severity={pipelineMessage.includes('failed') ? 'error' : 'success'} sx={{ mb: 2.5 }}>
+            <Alert severity={pipelineMessage.includes('failed') || pipelineMessage.includes('held') ? 'error' : 'success'} sx={{ mb: 2.5 }}>
               {pipelineMessage}
             </Alert>
           )}
@@ -126,12 +142,12 @@ const PlatformAdminPipelinePage: React.FC = () => {
                   </Box>
                   <Button
                     variant="contained"
-                    disabled={anyRunning}
+                    disabled={anyRunning || pipelinesHeld}
                     onClick={() => setConfirmPipeline(pipeline)}
                     startIcon={isRunning ? <CircularProgress size={16} color="inherit" /> : <RunIcon />}
                     sx={{ ...platformAdminPrimaryButtonSx, alignSelf: { xs: 'stretch', md: 'flex-start' }, minWidth: 160 }}
                   >
-                    {isRunning ? 'Running…' : 'Run pipeline'}
+                    {pipelinesHeld ? 'Held' : isRunning ? 'Running…' : 'Run pipeline'}
                   </Button>
                 </Box>
               );

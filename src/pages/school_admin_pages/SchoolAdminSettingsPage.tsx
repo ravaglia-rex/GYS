@@ -24,13 +24,13 @@ import {
 import { useSelector, useDispatch } from 'react-redux';
 import { useLocation } from 'react-router-dom';
 import { RootState, AppDispatch } from '../../state_data/reducer';
-import { doc, getDoc } from 'firebase/firestore';
-import { db, auth } from '../../firebase/firebase';
+import { auth } from '../../firebase/firebase';
 import { checkUserRole } from '../../state_data/authSlice';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import { GREENFIELD_POC_EMAIL, GREENFIELD_SCHOOL_DISPLAY } from '../../data/schoolPreviewMock';
 import { isHiddenStaffSchoolAdminEmail } from '../../constants/hiddenStaffSchoolAdmins';
 import { putSchoolProfile } from '../../db/schoolAdminCollection';
+import { useSchoolAdminSummary } from '../../query/hooks';
 import PageTutorial from '../../components/tutorial/PageTutorial';
 import { SchoolAdminPageHeader, schoolAdminPageContainerSx } from './schoolAdminPageStyles';
 
@@ -282,8 +282,15 @@ const SchoolAdminSettingsPage: React.FC = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [hasTriedLoading, setHasTriedLoading] = useState(false);
+
+  const summaryQuery = useSchoolAdminSummary(
+    !isSchoolAdminPreview && schoolAdmin?.schoolId ? String(schoolAdmin.schoolId).trim() : undefined,
+    !isSchoolAdminPreview && Boolean(schoolAdmin?.schoolId)
+  );
+  const loading = isSchoolAdminPreview
+    ? false
+    : authLoading || (!schoolAdmin?.schoolId && !hasTriedLoading) || summaryQuery.isLoading;
 
   useEffect(() => {
     if (!isSchoolAdminPreview) return;
@@ -309,7 +316,6 @@ const SchoolAdminSettingsPage: React.FC = () => {
       additionalContactEmails: 'principal@greenfield.edu.in',
       subscriptionPlan,
     });
-    setLoading(false);
   }, [isSchoolAdminPreview]);
 
   // Ensure schoolAdmin is loaded
@@ -331,11 +337,9 @@ const SchoolAdminSettingsPage: React.FC = () => {
           await dispatch(checkUserRole(userEmail));
         } catch (error) {
           console.error('Error checking user role:', error);
-          setLoading(false);
         }
       } else if (!userEmail) {
-        // No user email, can't load schoolAdmin
-        setLoading(false);
+        setHasTriedLoading(true);
       }
     };
 
@@ -343,65 +347,33 @@ const SchoolAdminSettingsPage: React.FC = () => {
   }, [authLoading, schoolAdmin, user, dispatch, hasTriedLoading, isSchoolAdminPreview]);
 
   useEffect(() => {
-    const fetchSchoolData = async () => {
-      if (isSchoolAdminPreview) return;
+    if (isSchoolAdminPreview) return;
+    if (hasTriedLoading && !schoolAdmin?.schoolId) {
+      console.error('SchoolAdmin could not be loaded. Please ensure you are logged in as a school admin.');
+      return;
+    }
+    const summary = summaryQuery.data;
+    if (!summary) return;
 
-      // Wait for auth to finish loading
-      if (authLoading) {
-        return;
-      }
+    const docRecord = {
+      ...(summary.profile ?? {}),
+      school_name: summary.school_name ?? summary.profile?.school_name,
+      subscription_plan: summary.subscription_plan ?? summary.profile?.subscription_plan,
+      selected_plan_id: summary.selected_plan_id ?? summary.profile?.selected_plan_id,
+    } as Record<string, unknown>;
 
-      // If we've tried loading and schoolAdmin is still null, stop trying
-      if (hasTriedLoading && !schoolAdmin?.schoolId) {
-        console.error('SchoolAdmin could not be loaded. Please ensure you are logged in as a school admin.');
-        setLoading(false);
-        return;
-      }
-
-      // If schoolAdmin is still null, wait for it to load
-      if (!schoolAdmin?.schoolId) {
-        return;
-      }
-
-      try {
-        setLoading(true);
-        
-        // Fetch school document from Firestore
-        const schoolDoc = await getDoc(doc(db, 'schools', schoolAdmin.schoolId));
-        
-        if (!schoolDoc.exists()) {
-          console.error('School document does not exist for ID:', schoolAdmin.schoolId);
-          setLoading(false);
-          return;
-        }
-
-        const schoolDocData = schoolDoc.data();
-        if (schoolDocData) {
-          const docRecord = schoolDocData as Record<string, unknown>;
-          setSchoolInfo({
-            name: (typeof schoolDocData.school_name === 'string' && schoolDocData.school_name) || '',
-            contactEmail: primaryPocEmailFromSchoolDoc(docRecord),
-            phone: phoneFromSchoolDoc(docRecord),
-            website: typeof schoolDocData.website === 'string' ? schoolDocData.website : '',
-            verified: schoolDocData.verified === true,
-          });
-          setRegistration(registrationDisplayFromSchoolDoc(docRecord));
-        } else {
-          console.error('School document data is null or undefined');
-        }
-      } catch (error) {
-        console.error('Error fetching school data:', error);
-        console.error('Error details:', {
-          message: error instanceof Error ? error.message : 'Unknown error',
-          schoolId: schoolAdmin.schoolId
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSchoolData();
-  }, [schoolAdmin, authLoading, hasTriedLoading, isSchoolAdminPreview]);
+    setSchoolInfo({
+      name:
+        (typeof summary.school_name === 'string' && summary.school_name) ||
+        (typeof docRecord.school_name === 'string' && docRecord.school_name) ||
+        '',
+      contactEmail: primaryPocEmailFromSchoolDoc(docRecord),
+      phone: phoneFromSchoolDoc(docRecord),
+      website: typeof docRecord.website === 'string' ? docRecord.website : '',
+      verified: docRecord.verified === true,
+    });
+    setRegistration(registrationDisplayFromSchoolDoc(docRecord));
+  }, [isSchoolAdminPreview, hasTriedLoading, schoolAdmin?.schoolId, summaryQuery.data]);
 
   const handleSchoolInfoChange =
     (field: keyof typeof schoolInfo) => (event: React.ChangeEvent<HTMLInputElement>) => {

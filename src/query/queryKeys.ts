@@ -10,6 +10,14 @@ export const queryKeys = {
   redemptions: () => ['redemptions'] as const,
   schoolAdminSummary: (schoolId: string) => ['schoolAdminSummary', schoolId] as const,
   schoolAdminRoster: (schoolId: string) => ['schoolAdminRoster', schoolId] as const,
+  schoolAdminAnalyticsSummary: (schoolId: string) =>
+    ['schoolAdminAnalyticsSummary', schoolId] as const,
+  platformAdminOverview: () => ['platformAdminOverview'] as const,
+  platformAdminSchools: (filters: Record<string, string | number | undefined>) =>
+    ['platformAdminSchools', filters] as const,
+  platformAdminStudentStats: () => ['platformAdminStudentStats'] as const,
+  platformAdminStudents: (filters: Record<string, unknown>) =>
+    ['platformAdminStudents', filters] as const,
   coinsLeaderboard: (uid: string) => ['coinsLeaderboard', uid] as const,
   studentSchoolLeaderboard: () => ['studentSchoolLeaderboard'] as const,
   studentReports: (uid: string) => ['studentReports', uid] as const,

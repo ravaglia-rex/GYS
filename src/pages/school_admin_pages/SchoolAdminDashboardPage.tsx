@@ -728,15 +728,27 @@ const SchoolAdminDashboardPage: React.FC = () => {
           );
         }
 
-        try {
-          const lists = await getStudentRegistrationEmailLists(schoolId);
-          registrationEmails = filterHiddenStaffStudentEmails(lists.emails ?? []);
-        } catch (emailErr) {
-          console.warn('getStudentRegistrationEmailLists failed:', emailErr);
+        const [emailResult, quarterlyResult] = await Promise.all([
+          getStudentRegistrationEmailLists(schoolId)
+            .then((lists) => ({ok: true as const, lists}))
+            .catch((emailErr) => {
+              console.warn('getStudentRegistrationEmailLists failed:', emailErr);
+              return {ok: false as const};
+            }),
+          getQuarterlyReports(schoolId)
+            .then((qr) => ({ok: true as const, qr}))
+            .catch((e) => {
+              console.warn('getQuarterlyReports:', e);
+              return {ok: false as const};
+            }),
+        ]);
+
+        if (emailResult.ok) {
+          registrationEmails = filterHiddenStaffStudentEmails(emailResult.lists.emails ?? []);
         }
 
-        try {
-          const qr = await getQuarterlyReports(schoolId);
+        if (quarterlyResult.ok) {
+          const qr = quarterlyResult.qr;
           setQuarterlyS3Configured(qr.s3Configured !== false);
           const sorted = [...(qr.reports ?? [])].sort((a, b) => a.quarterKey.localeCompare(b.quarterKey));
           const pick =
@@ -744,8 +756,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
             [...sorted].reverse().find((r) => r.hasPdf) ??
             null;
           setLatestQuarterly(pick);
-        } catch (e) {
-          console.warn('getQuarterlyReports:', e);
+        } else {
           setLatestQuarterly(null);
         }
 

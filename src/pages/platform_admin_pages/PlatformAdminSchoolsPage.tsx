@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Typography,
@@ -31,12 +31,9 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import {
-  getPlatformAdminOverview,
-  listPlatformAdminSchools,
   formatInrFromPaise,
-  type PlatformAdminOverviewStats,
-  type PlatformAdminSchoolSummary,
 } from '../../db/platformAdminCollection';
+import { usePlatformAdminOverview, usePlatformAdminSchools } from '../../query/hooks';
 import {
   platformAdminCardSx,
   platformAdminClearFiltersButtonSx,
@@ -101,10 +98,7 @@ const PlatformAdminSchoolsPage: React.FC = () => {
   const initialVerified = (searchParams.get('verified') as VerifiedFilter) || 'all';
   const initialPlan = (searchParams.get('plan') as PlanFilter) || 'all';
 
-  const [schools, setSchools] = useState<PlatformAdminSchoolSummary[]>([]);
-  const [stats, setStats] = useState<PlatformAdminOverviewStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [search, setSearch] = useState('');
   const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>(
     ['all', 'paid', 'pending', 'wire'].includes(initialPayment) ? initialPayment : 'all'
@@ -150,34 +144,25 @@ const PlatformAdminSchoolsPage: React.FC = () => {
     setSearchParams(params, { replace: true });
   }, [paymentFilter, payeeFilter, verifiedFilter, planFilter, setSearchParams]);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [data, overview] = await Promise.all([
-        listPlatformAdminSchools({
-          payment: paymentFilter === 'all' ? undefined : paymentFilter,
-          payee: payeeFilter === 'all' ? undefined : payeeFilter,
-          verified: verifiedFilter === 'all' ? undefined : verifiedFilter,
-          plan: planFilter === 'all' ? undefined : planFilter,
-          search: search.trim() || undefined,
-          limit: 200,
-        }),
-        getPlatformAdminOverview(),
-      ]);
-      setSchools(data);
-      setStats(overview);
-    } catch {
-      setError('Failed to load schools.');
-    } finally {
-      setLoading(false);
-    }
-  }, [paymentFilter, payeeFilter, verifiedFilter, planFilter, search]);
-
   useEffect(() => {
-    const timer = setTimeout(load, search ? 300 : 0);
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), search ? 300 : 0);
     return () => clearTimeout(timer);
-  }, [load, search]);
+  }, [search]);
+
+  const overviewQuery = usePlatformAdminOverview();
+  const schoolsQuery = usePlatformAdminSchools({
+    payment: paymentFilter === 'all' ? undefined : paymentFilter,
+    payee: payeeFilter === 'all' ? undefined : payeeFilter,
+    verified: verifiedFilter === 'all' ? undefined : verifiedFilter,
+    plan: planFilter === 'all' ? undefined : planFilter,
+    search: debouncedSearch || undefined,
+    limit: 200,
+  });
+
+  const stats = overviewQuery.data ?? null;
+  const loading = schoolsQuery.isLoading;
+  const error = schoolsQuery.isError ? 'Failed to load schools.' : null;
+  const schools = schoolsQuery.data ?? [];
 
   const filteredSchools = useMemo(() => {
     const q = search.trim().toLowerCase();

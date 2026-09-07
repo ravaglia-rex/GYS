@@ -11,7 +11,13 @@ import {
 import { getSchoolDetails } from '../db/schoolCollection';
 import { getPayments } from '../db/studentPaymentMappings';
 import { fetchQod, fetchRewards, fetchRedemptions } from '../db/gamificationCollection';
-import { getSchoolStudentRoster, getSchoolSummary } from '../db/schoolAdminCollection';
+import { getSchoolAnalyticsSummary, getSchoolStudentRoster, getSchoolSummary } from '../db/schoolAdminCollection';
+import {
+  getPlatformAdminOverview,
+  getPlatformAdminStudentStats,
+  listPlatformAdminSchools,
+  listPlatformAdminStudents,
+} from '../db/platformAdminCollection';
 import { isVisibleSchoolRosterStudent } from '../utils/schoolAdminRosterUtils';
 import { queryKeys } from './queryKeys';
 
@@ -23,6 +29,8 @@ const PAYMENTS_STALE_MS = 5 * 60_000;
 const STUDENT_ASSESSMENTS_STALE_MS = 60_000;
 const SCHOOL_ADMIN_SUMMARY_STALE_MS = 60_000;
 const SCHOOL_ADMIN_ROSTER_STALE_MS = 60_000;
+const SCHOOL_ADMIN_ANALYTICS_SUMMARY_STALE_MS = 60_000;
+const PLATFORM_ADMIN_STALE_MS = 60_000;
 /** Coins boards refresh once/day server-side - keep client cache warm for most of a day. */
 const COINS_LEADERBOARD_STALE_MS = 12 * 60 * 60_000;
 
@@ -148,7 +156,8 @@ export function useSchoolAdminSummary(schoolId: string | undefined, enabled = tr
 
 /**
  * Shared, cached full-roster fetch (paginated server-side, see `getSchoolStudentRoster`). Shared
- * across Dashboard/Students/Analytics pages via the same query key.
+ * across Dashboard/Students pages via the same query key. Analytics uses
+ * `useSchoolAdminAnalyticsSummary` instead (pre-aggregated, no full roster transfer).
  */
 export function useSchoolAdminRoster(schoolId: string | undefined, enabled = true) {
   return useQuery({
@@ -158,6 +167,77 @@ export function useSchoolAdminRoster(schoolId: string | undefined, enabled = tru
     staleTime: SCHOOL_ADMIN_ROSTER_STALE_MS,
     // Runs on cached data too, so a stale cache from before staff-student filtering still hides them.
     select: (students) => students.filter(isVisibleSchoolRosterStudent),
+  });
+}
+
+/** Pre-aggregated Analytics page payload (one server scan). */
+export function useSchoolAdminAnalyticsSummary(schoolId: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.schoolAdminAnalyticsSummary(schoolId ?? ''),
+    queryFn: () => getSchoolAnalyticsSummary(schoolId!),
+    enabled: Boolean(schoolId) && enabled,
+    staleTime: SCHOOL_ADMIN_ANALYTICS_SUMMARY_STALE_MS,
+  });
+}
+
+export function usePlatformAdminOverview(enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.platformAdminOverview(),
+    queryFn: getPlatformAdminOverview,
+    enabled,
+    staleTime: PLATFORM_ADMIN_STALE_MS,
+  });
+}
+
+export function usePlatformAdminSchools(
+  params: Parameters<typeof listPlatformAdminSchools>[0] = {},
+  enabled = true
+) {
+  const p = params ?? {};
+  return useQuery({
+    queryKey: queryKeys.platformAdminSchools({
+      payment: p.payment,
+      payee: p.payee,
+      verified: p.verified,
+      plan: p.plan,
+      search: p.search,
+      limit: p.limit,
+    }),
+    queryFn: () => listPlatformAdminSchools(p),
+    enabled,
+    staleTime: PLATFORM_ADMIN_STALE_MS,
+  });
+}
+
+export function usePlatformAdminStudentStats(enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.platformAdminStudentStats(),
+    queryFn: getPlatformAdminStudentStats,
+    enabled,
+    staleTime: PLATFORM_ADMIN_STALE_MS,
+  });
+}
+
+export function usePlatformAdminStudents(
+  params: {
+    search?: string;
+    status?: 'approved' | 'pending' | 'all';
+    roster?: 'yes' | 'no' | 'all';
+    setup?: 'complete' | 'incomplete' | 'all';
+    payment?: 'self_paid' | 'membership_upgrade' | 'all';
+    account?: 'registered' | 'invite' | 'all';
+    grade?: string;
+    membership?: string;
+    school_ids?: 'all' | string[];
+    limit?: number;
+  },
+  enabled = true
+) {
+  return useQuery({
+    queryKey: queryKeys.platformAdminStudents(params as Record<string, unknown>),
+    queryFn: () => listPlatformAdminStudents(params),
+    enabled,
+    staleTime: PLATFORM_ADMIN_STALE_MS,
   });
 }
 
@@ -204,6 +284,7 @@ export function useInvalidateSchoolAdminQueries() {
   return (schoolId: string) => {
     void qc.invalidateQueries({ queryKey: queryKeys.schoolAdminSummary(schoolId) });
     void qc.invalidateQueries({ queryKey: queryKeys.schoolAdminRoster(schoolId) });
+    void qc.invalidateQueries({ queryKey: queryKeys.schoolAdminAnalyticsSummary(schoolId) });
   };
 }
 

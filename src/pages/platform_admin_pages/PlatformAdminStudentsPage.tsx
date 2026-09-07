@@ -47,14 +47,15 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
   createPlatformAdminComplimentaryInvite,
-  getPlatformAdminStudentStats,
-  listPlatformAdminSchools,
-  listPlatformAdminStudents,
   revokePlatformAdminComplimentaryInvite,
-  type PlatformAdminSchoolSummary,
-  type PlatformAdminStudentRow,
-  type PlatformAdminStudentStats,
 } from '../../db/platformAdminCollection';
+import {
+  usePlatformAdminSchools,
+  usePlatformAdminStudentStats,
+  usePlatformAdminStudents,
+} from '../../query/hooks';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '../../query/queryKeys';
 import {
   platformAdminCardSx,
   platformAdminClearFiltersButtonSx,
@@ -263,6 +264,7 @@ const PlatformStudentsVirtuosoComponents = {
 const PlatformAdminStudentsPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const platformAdminRole = useSelector((state: RootState) => state.auth.platformAdminRole);
   const isSuperAdmin = platformAdminRole === 'super';
   const [searchParams, setSearchParams] = useSearchParams();
@@ -275,18 +277,11 @@ const PlatformAdminStudentsPage: React.FC = () => {
   const initialMembership = (searchParams.get('membership') as MembershipFilter) || 'all';
   const initialSchool = parseInitialSchoolSelection(searchParams.get('schools'));
 
-  const [schools, setSchools] = useState<PlatformAdminSchoolSummary[]>([]);
-  const [schoolsLoading, setSchoolsLoading] = useState(true);
   const [allSchoolsSelected, setAllSchoolsSelected] = useState(initialSchool.allSchoolsSelected);
   const [selectedSchoolIds, setSelectedSchoolIds] = useState<string[]>(initialSchool.selectedSchoolIds);
 
-  const [students, setStudents] = useState<PlatformAdminStudentRow[]>([]);
-  /** Matches platform-wide; larger than `students.length` when the page limit clips the result. */
-  const [totalMatching, setTotalMatching] = useState(0);
-  const [stats, setStats] = useState<PlatformAdminStudentStats | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [sortKey, setSortKey] = useState<StudentSortKey>('joined');
   const [sortDir, setSortDir] = useState<StudentSortDir>('desc');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(
@@ -322,6 +317,63 @@ const PlatformAdminStudentsPage: React.FC = () => {
   const schoolSelected = allSchoolsSelected || selectedSchoolIds.length > 0;
   /** Unlinked students have no school_id - allow loading them without picking a school. */
   const canLoadStudents = schoolSelected || rosterFilter === 'no';
+
+  useEffect(() => {
+    const timer = setTimeout(
+      () => setDebouncedSearch(search.trim()),
+      search && canLoadStudents ? 300 : 0
+    );
+    return () => clearTimeout(timer);
+  }, [search, canLoadStudents]);
+
+  const schoolsQuery = usePlatformAdminSchools({ limit: 200 });
+  const statsQuery = usePlatformAdminStudentStats();
+  const studentListParams = useMemo(() => {
+    const school_ids =
+      rosterFilter === 'no' || allSchoolsSelected ? ('all' as const) : selectedSchoolIds;
+    return {
+      search: debouncedSearch || undefined,
+      status: statusFilter === 'all' ? undefined : statusFilter,
+      roster: rosterFilter === 'all' ? undefined : rosterFilter,
+      setup: setupFilter === 'all' ? undefined : setupFilter,
+      payment: paymentFilter === 'all' ? undefined : paymentFilter,
+      account: accountFilter === 'all' ? undefined : accountFilter,
+      grade: gradeFilter === 'all' ? undefined : gradeFilter,
+      membership: membershipFilter === 'all' ? undefined : membershipFilter,
+      school_ids,
+      limit: 500,
+    };
+  }, [
+    debouncedSearch,
+    statusFilter,
+    rosterFilter,
+    setupFilter,
+    paymentFilter,
+    accountFilter,
+    gradeFilter,
+    membershipFilter,
+    allSchoolsSelected,
+    selectedSchoolIds,
+  ]);
+  const studentsQuery = usePlatformAdminStudents(studentListParams, canLoadStudents);
+
+  const schools = schoolsQuery.data ?? [];
+  const schoolsLoading = schoolsQuery.isLoading;
+  const stats = statsQuery.data ?? null;
+  const students = canLoadStudents ? studentsQuery.data?.students ?? [] : [];
+  const totalMatching = canLoadStudents ? studentsQuery.data?.totalMatching ?? 0 : 0;
+  const loading = canLoadStudents && studentsQuery.isLoading;
+  const error =
+    schoolsQuery.isError
+      ? 'Failed to load schools.'
+      : canLoadStudents && studentsQuery.isError
+        ? 'Failed to load students.'
+        : null;
+
+  const invalidateStudentQueries = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ['platformAdminStudents'] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.platformAdminStudentStats() });
+  }, [queryClient]);
 
   const schoolNameById = useMemo(() => {
     const map = new Map<string, string>();
@@ -486,39 +538,6 @@ const PlatformAdminStudentsPage: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setSchoolsLoading(true);
-      try {
-        const rows = await listPlatformAdminSchools({ limit: 200 });
-        if (!cancelled) setSchools(rows);
-      } catch {
-        if (!cancelled) setError('Failed to load schools.');
-      } finally {
-        if (!cancelled) setSchoolsLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const studentStats = await getPlatformAdminStudentStats();
-        if (!cancelled) setStats(studentStats);
-      } catch {
-        // Stats are secondary; table errors are surfaced separately.
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   const openInviteDialog = () => {
     setInviteEmail('');
     setInviteLevel(1);
@@ -549,7 +568,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
             ? `Updated complimentary invite for ${email}, but the invitation email failed to send.`
             : `Complimentary invite saved for ${email}, but the invitation email failed to send.`
       );
-      await load();
+      await invalidateStudentQueries();
     } catch (e: unknown) {
       const err = e as { response?: { data?: { error?: string } }; message?: string };
       setComplimentaryError(
@@ -567,7 +586,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
     try {
       await revokePlatformAdminComplimentaryInvite(email);
       setComplimentaryMessage(`Revoked complimentary invite for ${email}.`);
-      await load();
+      await invalidateStudentQueries();
     } catch (e: unknown) {
       const err = e as { response?: { data?: { error?: string } }; message?: string };
       setComplimentaryError(
@@ -602,61 +621,6 @@ const PlatformAdminStudentsPage: React.FC = () => {
     membershipFilter,
     setSearchParams,
   ]);
-
-  const load = useCallback(async () => {
-    if (!canLoadStudents) {
-      setStudents([]);
-      setTotalMatching(0);
-      setLoading(false);
-      setError(null);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    try {
-      // "No school" students are never on a school list - always query across all schools.
-      const school_ids =
-        rosterFilter === 'no' || allSchoolsSelected ? 'all' : selectedSchoolIds;
-      const studentData = await listPlatformAdminStudents({
-        search: search.trim() || undefined,
-        status: statusFilter === 'all' ? undefined : statusFilter,
-        roster: rosterFilter === 'all' ? undefined : rosterFilter,
-        setup: setupFilter === 'all' ? undefined : setupFilter,
-        payment: paymentFilter === 'all' ? undefined : paymentFilter,
-        account: accountFilter === 'all' ? undefined : accountFilter,
-        grade: gradeFilter === 'all' ? undefined : gradeFilter,
-        membership: membershipFilter === 'all' ? undefined : membershipFilter,
-        school_ids,
-        limit: 500,
-      });
-      setStudents(studentData.students);
-      setTotalMatching(studentData.totalMatching);
-    } catch {
-      setStudents([]);
-      setTotalMatching(0);
-      setError('Failed to load students.');
-    } finally {
-      setLoading(false);
-    }
-  }, [
-    canLoadStudents,
-    search,
-    statusFilter,
-    rosterFilter,
-    setupFilter,
-    paymentFilter,
-    accountFilter,
-    gradeFilter,
-    membershipFilter,
-    allSchoolsSelected,
-    selectedSchoolIds,
-  ]);
-
-  useEffect(() => {
-    const timer = setTimeout(load, search && canLoadStudents ? 300 : 0);
-    return () => clearTimeout(timer);
-  }, [load, search, canLoadStudents]);
 
   const handleRosterFilterChange = (value: RosterFilter) => {
     setRosterFilter(value);

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { PREPARE_SIGN_UP_TRANSACTION, STUDENTS_APIS, SIGN_UP_TRANSACTION } from '../constants/constants';
+import { STUDENTS_APIS, SIGN_UP_TRANSACTION } from '../constants/constants';
 
 export type NewStudent = {
     uid?: string;
@@ -28,6 +28,7 @@ export type NewStudent = {
 };
 
 // No auth token needed - called during signup before the user has a verified token.
+// Free / school-covered signups only; paid signups go through Razorpay staged checkout.
 export const runSignUpTransaction = async (student: NewStudent) => {
     try {
         const config = {
@@ -48,32 +49,5 @@ export const runSignUpTransaction = async (student: NewStudent) => {
             }
         }
         throw new Error(`Error creating account for ${student.first_name} ${student.last_name}. Please contact globalyoungscholar@argus.ai`);
-    }
-};
-
-export const prepareSignUpTransaction = async (student: NewStudent): Promise<{uid: string}> => {
-    try {
-        const config = {
-            method: 'post',
-            url: `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${STUDENTS_APIS}${PREPARE_SIGN_UP_TRANSACTION}`,
-            data: { student },
-        };
-        const response = await axios.request(config);
-        const uid = (response.data as {uid?: unknown})?.uid;
-        if (typeof uid !== 'string' || !uid.trim()) {
-            throw new Error('Student signup could not be prepared.');
-        }
-        return { uid };
-    } catch (e: any) {
-        if (axios.isAxiosError(e) && e.response?.status === 409) {
-            throw new Error('An account with this information already exists.');
-        }
-        if (axios.isAxiosError(e) && (e.response?.status === 403 || e.response?.status === 400)) {
-            const msg = (e.response?.data as { message?: string })?.message;
-            if (typeof msg === 'string' && msg.trim()) {
-                throw new Error(msg);
-            }
-        }
-        throw new Error(`Error preparing account for ${student.first_name} ${student.last_name}. Please contact globalyoungscholar@argus.ai`);
     }
 };

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="330" viewBox="0 0 760 330" role="img" aria-labelledby="title desc">
+  <title id="title">Two right triangles with transformed leg lengths</title>
+  <desc id="desc">The first right triangle has perpendicular legs x and y and hypotenuse h. The second has perpendicular legs x plus y and the absolute value of x minus y, and hypotenuse H.</desc>
+  <rect width="760" height="330" fill="white"/>
+  <g stroke="#111" stroke-width="3" fill="none">
+    <path d="M90 260 L90 90 L290 260 Z"/>
+    <path d="M470 260 L470 70 L700 260 Z"/>
+    <path d="M90 240 L110 240 L110 260" stroke-width="2"/>
+    <path d="M470 240 L490 240 L490 260" stroke-width="2"/>
+  </g>
+  <g font-family="Arial, sans-serif" font-size="18" fill="#111">
+    <text x="180" y="294" text-anchor="middle">x</text>
+    <text x="58" y="180" text-anchor="middle">y</text>
+    <text x="205" y="160" transform="rotate(40 205 160)" text-anchor="middle">h</text>
+    <text x="585" y="294" text-anchor="middle">x + y</text>
+    <text x="425" y="170" text-anchor="middle">|x − y|</text>
+    <text x="600" y="153" transform="rotate(40 600 153)" text-anchor="middle">H</text>
+    <text x="190" y="32" text-anchor="middle" font-weight="700">First triangle</text>
+    <text x="585" y="32" text-anchor="middle" font-weight="700">Second triangle</text>
+  </g>
+</svg>

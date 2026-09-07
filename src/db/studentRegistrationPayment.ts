@@ -4,13 +4,13 @@ import {
   CREATE_STUDENT_REGISTRATION_ORDER,
   VERIFY_STUDENT_REGISTRATION_PAYMENT,
 } from '../constants/constants';
+import type { NewStudent } from './signupTransaction';
 
 export type CreateStudentRegistrationOrderResponse = {
   order_id: string;
   amount: number;
   currency: string;
   key_id: string;
-  student_uid: string;
   membership_level: number;
   school_covered_membership_level?: number;
   checkout_config_id?: string;
@@ -27,7 +27,7 @@ export type StudentRegistrationBillingDetails = {
 };
 
 export const createStudentRegistrationOrder = async (
-  studentUid: string,
+  student: NewStudent,
   membershipLevel: 1 | 2 | 3 | 4,
   billingDetails?: StudentRegistrationBillingDetails
 ): Promise<CreateStudentRegistrationOrderResponse> => {
@@ -39,7 +39,7 @@ export const createStudentRegistrationOrder = async (
     const response = await axios.post(
       `${base}${RAZORPAY_APIS}${CREATE_STUDENT_REGISTRATION_ORDER}`,
       {
-        student_uid: studentUid,
+        student,
         membership_level: membershipLevel,
         ...(billingDetails ? {billing_details: billingDetails} : {}),
       }
@@ -60,7 +60,6 @@ export const createStudentRegistrationOrder = async (
 };
 
 export const verifyStudentRegistrationPayment = async (body: {
-  student_uid: string;
   razorpay_order_id: string;
   razorpay_payment_id: string;
   razorpay_signature: string;

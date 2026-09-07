@@ -2,6 +2,7 @@ import axios from "axios";
 import {
   BILLING_INVOICE_DOWNLOAD_URL,
   FETCH_SCHOOL_ADMIN_DATA,
+  FETCH_SCHOOL_ANALYTICS_SUMMARY,
   FETCH_SCHOOL_SUMMARY,
   SCHOOL_STUDENTS_ROSTER,
   QUARTERLY_REPORT_DOWNLOAD_URL,
@@ -200,6 +201,8 @@ export interface SchoolSummaryResponse {
   board_label?: string;
   member_since_iso?: string | null;
   institutional_tier?: string | null;
+  /** Settings-page fields from the school doc (avoids client Firestore getDoc). */
+  profile?: Record<string, unknown>;
   live: {
     total_students: number;
     pending_approval: number;
@@ -598,6 +601,59 @@ export const getSchoolSummary = async (schoolId: string): Promise<SchoolSummaryR
     return response.data as SchoolSummaryResponse;
   } catch {
     throw new Error("Error fetching school summary. Please contact globalyoungscholar@argus.ai");
+  }
+};
+
+export type SchoolAnalyticsSummaryResponse = {
+  schoolId: string;
+  student_count: number;
+  grade_distribution: Array<{ grade: number; count: number; percentage: number }>;
+  national_tiers: {
+    counts: {
+      explorer: number;
+      bronze: number;
+      silver: number;
+      gold: number;
+      platinum: number;
+      diamond: number;
+    };
+    total: number;
+  };
+  exam_ids_with_activity: string[];
+  exam_grade_tiers: Record<
+    string,
+    Array<{ grade: number; tier1: number; tier2: number; tier3: number; total: number }>
+  >;
+  score_distribution: Array<{
+    examId: string;
+    subcategories: Array<{
+      name: string;
+      n: number;
+      meanPoints: number | null;
+      bands: Record<string, number>;
+    }>;
+    hasAnyScores: boolean;
+  }>;
+  exam_averages: Array<{ category: string; current: number; remainder: number }>;
+  personality_completion: { completed: number; total: number };
+};
+
+/** Pre-aggregated Analytics charts — one server scan, no full-roster client loop. */
+export const getSchoolAnalyticsSummary = async (
+  schoolId: string
+): Promise<SchoolAnalyticsSummaryResponse> => {
+  try {
+    const authToken = await authTokenHandler.getAuthToken();
+    const encodedSchoolId = encodeURIComponent(String(schoolId ?? "").trim());
+    const response = await axios.get(
+      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${FETCH_SCHOOL_ANALYTICS_SUMMARY}/${encodedSchoolId}`,
+      { headers: { Authorization: `Bearer ${authToken}` } }
+    );
+    return response.data as SchoolAnalyticsSummaryResponse;
+  } catch {
+    throw new Error(
+      "Error fetching school analytics summary. Please contact globalyoungscholar@argus.ai"
+    );
   }
 };
 

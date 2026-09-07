@@ -8,7 +8,7 @@ import {
   StudentRegistrationBillingDetails,
   verifyStudentRegistrationPayment,
 } from '../../db/studentRegistrationPayment';
-import { NewStudent, prepareSignUpTransaction } from '../../db/signupTransaction';
+import { NewStudent } from '../../db/signupTransaction';
 import { gysPaymentInvoiceNumberFromOrderId } from '../../utils/gysPaymentInvoiceNumber';
 import { RAZORPAY_CHECKOUT_METHOD } from '../../utils/razorpayCheckoutMethods';
 import { assertRazorpayCheckoutKeyAllowed } from '../../utils/razorpayTestMode';
@@ -74,9 +74,9 @@ const StudentRegistrationRazorpayCheckout: React.FC<StudentRegistrationRazorpayC
     setBusy(true);
     try {
       const normalizedStudentName = studentName.trim();
-      const prepared = await prepareSignUpTransaction(student);
+      // Stage signup in pending_student_checkouts; Auth/student docs are created only after verify.
       const order = await createStudentRegistrationOrder(
-        prepared.uid,
+        student,
         membershipLevel,
         billingDetails
       );
@@ -151,7 +151,6 @@ const StudentRegistrationRazorpayCheckout: React.FC<StudentRegistrationRazorpayC
               setConfirmingPayment(true);
             });
             await verifyStudentRegistrationPayment({
-              student_uid: order.student_uid,
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,

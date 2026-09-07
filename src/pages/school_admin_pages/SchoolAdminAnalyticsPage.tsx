@@ -38,11 +38,9 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { type StudentRow } from '../../db/schoolAdminCollection';
-import { useSchoolAdminRoster } from '../../query/hooks';
+import { useSchoolAdminAnalyticsSummary } from '../../query/hooks';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import {
-  allExamsWithAnyActivity,
   assessmentDisplayName,
   SCORE_BAND_ORDER,
   summarizeExamGradeTier123,
@@ -61,6 +59,7 @@ import { buildGreenfieldPreviewStudentRows } from '../../data/schoolPreviewMock'
 import { REASONING_EXAM_SUBCATEGORIES } from '../../data/reasoningExamSubcategories';
 import PageTutorial from '../../components/tutorial/PageTutorial';
 import { SchoolAdminPageHeader, schoolAdminPageContainerSx } from './schoolAdminPageStyles';
+import type { SchoolAnalyticsSummaryResponse, StudentRow } from '../../db/schoolAdminCollection';
 
 const SCORE_BAND_COLORS: Record<ScoreBandId, string> = {
   '900-1000': '#10b981',
@@ -158,6 +157,53 @@ function buildPersonalityCompletionStats(students: StudentRow[]): {
   return { completed, total: students.length };
 }
 
+function buildPreviewAnalyticsSummary(students: StudentRow[]): SchoolAnalyticsSummaryResponse {
+  const gradeCounts: Record<number, number> = {};
+  for (const s of students) {
+    const grade = typeof s.grade === 'number' && s.grade > 0 ? s.grade : 0;
+    if (grade > 0) gradeCounts[grade] = (gradeCounts[grade] || 0) + 1;
+  }
+  const totalStudents = students.length;
+  const grade_distribution = Object.entries(gradeCounts)
+    .map(([grade, count]) => ({
+      grade: parseInt(grade, 10),
+      count,
+      percentage: totalStudents > 0 ? Math.round((count / totalStudents) * 100) : 0,
+    }))
+    .sort((a, b) => a.grade - b.grade);
+
+  const national = summarizeNationalPerformanceTiers(students);
+  const examIds = [...SCHOOL_SCORED_ASSESSMENT_IDS].filter(id =>
+    students.some(s => {
+      const p = s.assessment_progress?.[id];
+      if (!p) return false;
+      const st = (p.status ?? '').toLowerCase();
+      return st === 'completed' || st === 'tier_advanced' || Number(p.attempts_count) > 0;
+    })
+  );
+
+  const exam_grade_tiers: SchoolAnalyticsSummaryResponse['exam_grade_tiers'] = {};
+  for (const examId of SCHOOL_SCORED_ASSESSMENT_IDS) {
+    exam_grade_tiers[examId] = summarizeExamGradeTier123(students, examId);
+  }
+
+  return {
+    schoolId: 'preview',
+    student_count: totalStudents,
+    grade_distribution,
+    national_tiers: national,
+    exam_ids_with_activity: examIds.filter(isSchoolScoredAssessment),
+    exam_grade_tiers,
+    score_distribution: summarizeScoreDistributionByExam(
+      students,
+      SCORE_DISTRIBUTION_EXAMS,
+      EXAM_MAX_SCORE_POINTS
+    ),
+    exam_averages: buildExamAverageChartRows(students),
+    personality_completion: buildPersonalityCompletionStats(students),
+  };
+}
+
 interface AnalyticsData {
   gradeDistribution: Array<{
     grade: number;
@@ -176,33 +222,37 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
   const location = useLocation();
   const isSchoolAdminPreview = location.pathname.startsWith('/for-schools/preview');
   const { schoolAdmin } = useSelector((state: RootState) => state.auth);
-  const [tierAnalyticsStudents, setTierAnalyticsStudents] = useState<StudentRow[]>([]);
   const [examBreakdownId, setExamBreakdownId] = useState<string>('');
 
+  const analyticsQuery = useSchoolAdminAnalyticsSummary(
+    schoolAdmin?.schoolId ? String(schoolAdmin.schoolId).trim() : undefined,
+    !isSchoolAdminPreview
+  );
+
+  const summary = useMemo((): SchoolAnalyticsSummaryResponse | null => {
+    if (isSchoolAdminPreview) {
+      return buildPreviewAnalyticsSummary(buildGreenfieldPreviewStudentRows());
+    }
+    return analyticsQuery.data ?? null;
+  }, [isSchoolAdminPreview, analyticsQuery.data]);
+
   const nationalPerfTiersSummary = useMemo(
-    () => summarizeNationalPerformanceTiers(tierAnalyticsStudents),
-    [tierAnalyticsStudents]
+    () =>
+      summary?.national_tiers ?? {
+        counts: { explorer: 0, bronze: 0, silver: 0, gold: 0, platinum: 0, diamond: 0 },
+        total: 0,
+      },
+    [summary]
   );
   const examIdsWithActivity = useMemo(
-    () => allExamsWithAnyActivity(tierAnalyticsStudents).filter(isSchoolScoredAssessment),
-    [tierAnalyticsStudents]
+    () => (summary?.exam_ids_with_activity ?? []).filter(isSchoolScoredAssessment),
+    [summary]
   );
   const examGradeTierRows = useMemo(
-    () =>
-      examBreakdownId
-        ? summarizeExamGradeTier123(tierAnalyticsStudents, examBreakdownId)
-        : [],
-    [tierAnalyticsStudents, examBreakdownId]
+    () => (examBreakdownId && summary ? summary.exam_grade_tiers[examBreakdownId] ?? [] : []),
+    [summary, examBreakdownId]
   );
-  const scoreDistribution = useMemo(
-    () =>
-      summarizeScoreDistributionByExam(
-        tierAnalyticsStudents,
-        SCORE_DISTRIBUTION_EXAMS,
-        EXAM_MAX_SCORE_POINTS
-      ),
-    [tierAnalyticsStudents]
-  );
+  const scoreDistribution = useMemo(() => summary?.score_distribution ?? [], [summary]);
   const scoreDistributionHasAny = scoreDistribution.some(block => block.hasAnyScores);
 
   useEffect(() => {
@@ -213,55 +263,17 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
     setExamBreakdownId(prev => (prev && examIdsWithActivity.includes(prev) ? prev : examIdsWithActivity[0]!));
   }, [examIdsWithActivity]);
 
-  // Shared, cached roster fetch (see query/hooks.ts) - Dashboard/Students pages loading the same
-  // school's roster within the staleTime window serve this straight from the React Query cache
-  // instead of each page re-reading the full student collection.
-  const rosterQuery = useSchoolAdminRoster(
-    schoolAdmin?.schoolId ? String(schoolAdmin.schoolId).trim() : undefined,
-    !isSchoolAdminPreview
-  );
+  const loading = isSchoolAdminPreview ? false : analyticsQuery.isLoading;
 
-  useEffect(() => {
-    if (isSchoolAdminPreview) {
-      setTierAnalyticsStudents(buildGreenfieldPreviewStudentRows());
-      return;
-    }
-    if (rosterQuery.data) {
-      setTierAnalyticsStudents(rosterQuery.data);
-    } else if (rosterQuery.isError) {
-      console.warn('School roster fetch failed (tier analytics)', rosterQuery.error);
-      setTierAnalyticsStudents([]);
-    }
-  }, [isSchoolAdminPreview, rosterQuery.data, rosterQuery.isError, rosterQuery.error]);
-
-  const loading = isSchoolAdminPreview ? false : rosterQuery.isLoading;
-
-  // Grade distribution and exam averages are both derivable from the same roster fetch above -
-  // no need for a second, separate full-roster read just for grade counts.
-  const analyticsData = useMemo<AnalyticsData>(() => {
-    const gradeCounts: Record<number, number> = {};
-    for (const s of tierAnalyticsStudents) {
-      const grade = typeof s.grade === 'number' && s.grade > 0 ? s.grade : 0;
-      if (grade > 0) {
-        gradeCounts[grade] = (gradeCounts[grade] || 0) + 1;
-      }
-    }
-    const totalStudents = tierAnalyticsStudents.length;
-    const gradeDistribution = Object.entries(gradeCounts)
-      .map(([grade, count]) => ({
-        grade: parseInt(grade, 10),
-        count,
-        percentage: totalStudents > 0 ? Math.round((count / totalStudents) * 100) : 0,
-      }))
-      .sort((a, b) => a.grade - b.grade);
-
+  const analyticsData = useMemo<AnalyticsData | null>(() => {
+    if (!summary) return null;
     return {
-      gradeDistribution,
-      qualificationStats: { total: totalStudents },
-      examAverages: buildExamAverageChartRows(tierAnalyticsStudents),
-      personalityCompletion: buildPersonalityCompletionStats(tierAnalyticsStudents),
+      gradeDistribution: summary.grade_distribution,
+      qualificationStats: { total: summary.student_count },
+      examAverages: summary.exam_averages,
+      personalityCompletion: summary.personality_completion,
     };
-  }, [tierAnalyticsStudents]);
+  }, [summary]);
 
   const gradePieData = useMemo(
     () =>
@@ -280,7 +292,6 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
   const hasAnyAnalyticsData = Boolean(
     analyticsData &&
       (analyticsData.qualificationStats.total > 0 ||
-        tierAnalyticsStudents.length > 0 ||
         gradePieData.length > 0 ||
         examIdsWithActivity.length > 0)
   );
@@ -381,22 +392,16 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                   </Typography>
                 ) : (
                   <Box sx={{ width: '100%', height: 280, minHeight: 260 }}>
-                    {/*
-                      ResponsiveContainer defaults initialDimension to -1/-1, so Recharts renders nothing
-                      until after useEffect + ResizeObserver - feels like labels “load late”.
-                      Positive initialDimension draws pie + labels on first paint; observer then corrects size.
-                    */}
                     <ResponsiveContainer
                       width="100%"
                       height="100%"
-                      initialDimension={{ width: 520, height: 280 }}
+                      initialDimension={{ width: 480, height: 260 }}
                     >
                       <PieChart>
                         <Pie
                           data={gradePieData}
                           cx="50%"
                           cy="50%"
-                          labelLine={false}
                           isAnimationActive={false}
                           label={({ name, count }) => `${name}: ${count} students`}
                           outerRadius={88}
@@ -434,7 +439,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                 National performance tiers (GYS)
               </Typography>
               <Typography variant="body2" sx={{ color: '#94a3b8', mb: 2, lineHeight: 1.55 }}>
-                Explorer → Diamond: normed tiers from each student&apos;s profile. 
+                Explorer → Diamond: normed tiers from each student&apos;s profile.
               </Typography>
               <NationalPerformanceTierOverview
                 counts={nationalPerfTiersSummary.counts}
@@ -553,7 +558,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
             </CardContent>
           </Card>
 
-          {/* Score Distribution - /1000 sub-strand bands from construct scores on the roster */}
+          {/* Score Distribution - /1000 sub-strand bands from construct scores */}
           <Card
             sx={{
               bgcolor: '#ffffff',
@@ -577,7 +582,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
               <Typography variant="caption" sx={{ color: '#94a3b8', display: 'block', mb: 1.5 }}>
                 {scoreDistributionHasAny
                   ? 'Bars show share of students in each score band for that sub-strand.'
-                  : 'No sectional scores on the roster yet - bars stay empty until students complete section-scored exams.'}
+                  : 'No sectional scores yet - bars stay empty until students complete section-scored exams.'}
               </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25, alignItems: 'center', mb: 2 }}>
                 {SCORE_BAND_ORDER.map(r => (
@@ -637,7 +642,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                           title={`${row.n} student${row.n === 1 ? '' : 's'}`}
                         >
                           {SCORE_BAND_ORDER.map(band => {
-                            const count = row.bands[band];
+                            const count = Number(row.bands[band] ?? 0);
                             if (count <= 0) return null;
                             const pct = (count / row.n) * 100;
                             return (

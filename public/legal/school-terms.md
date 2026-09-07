@@ -7,7 +7,7 @@
 
 These Terms govern access to the Global Young Scholar website, school registration flow, and school-procured assessment platform in India (together, the “**Services**”).
 
-For a participating school, these Terms supplement the school’s order form or services agreement. If there is a conflict, the signed order form or services agreement controls, followed by the Data Processing Addendum, followed by these Terms.
+For a participating school, these Terms supplement the school’s order form or services agreement. If there is a conflict, the signed order form or services agreement controls, followed by the School Data Processing Terms, followed by these Terms.
 
 A school representative who registers a school, places an order, or administers an account confirms that the representative is authorised to act for the school.
 
@@ -54,7 +54,7 @@ The school will:
 4. give students, parents, and lawful guardians the required notices;
 5. determine each participating student’s age status from reliable school records;
 6. obtain and record all legally required consent, including verifiable parental consent for a student under 18;
-7. provide GYS the school attestation and age-status information required by the Data Processing Addendum;
+7. provide GYS the school attestation and age-status information required by the School Data Processing Terms;
 8. avoid uploading information that is not needed for the selected Services;
 9. restrict access to personnel with an educational or administrative need to know;
 10. use results fairly, with appropriate human review and educational context;
@@ -156,7 +156,7 @@ During the service period, GYS grants the school a limited, non-exclusive, non-t
 
 The school may not commercialise, publicly distribute, modify, create derivative works from, or use GYS materials to build or validate a competing assessment without written permission.
 
-The school retains its rights in data and materials it provides. The school grants GYS the limited rights needed to process them under the services agreement and Data Processing Addendum.
+The school retains its rights in data and materials it provides. The school grants GYS the limited rights needed to process them under the services agreement and School Data Processing Terms.
 
 ## 11. Privacy and data protection
 
@@ -168,13 +168,13 @@ GYS will not use identifiable school-service student data to train a general-pur
 
 The Services may link to or interoperate with third-party services. A third party’s own terms apply when the school or user chooses to use that service. GYS is not responsible for an unrelated third-party service it does not control.
 
-Where a third party processes student personal data on GYS’s behalf to provide the school Services, that provider will be treated as a subprocessor under the Data Processing Addendum rather than merely as an external link.
+Where a third party processes student personal data on GYS’s behalf to provide the school Services, that provider will be treated as a subprocessor under the School Data Processing Terms rather than merely as an external link.
 
 ## 13. Availability and support
 
 GYS will use commercially reasonable efforts to provide the Services during the purchased term, subject to maintenance, security events, internet conditions, school systems, and events beyond reasonable control.
 
-Support contact: **globalyoungscholar@argus.ai**.
+Support contact: **gys@argus.ai**.
 
 ## 14. Suspension
 
@@ -195,7 +195,7 @@ On termination of the entire school relationship, including any longitudinal arc
 
 - user access ends;
 - the school may request an export during the 30 days after termination or expiry;
-- student personal data is returned or deleted under the Data Processing Addendum; and
+- student personal data is returned or deleted under the School Data Processing Terms; and
 - provisions that by their nature should survive will survive, including payment obligations, confidentiality, intellectual property, disclaimers, liability limits, and dispute terms.
 
 ## 16. Confidentiality
@@ -238,7 +238,7 @@ If the event giving rise to the first claim occurs before 12 months of the affec
 Each party’s total aggregate liability for the following matters will not exceed two times the amount calculated under section 18.2:
 
 - breach of section 16 (Confidentiality);
-- breach of the Data Processing Addendum or a party’s contractual data-protection or security obligations;
+- breach of the School Data Processing Terms or a party’s contractual data-protection or security obligations;
 - reasonable direct breach-response costs described in section 18.1; and
 - that party’s indemnification obligations under section 19, including Argus’s intellectual-property indemnity.
 
@@ -268,7 +268,7 @@ Each party will take reasonable steps to mitigate a loss for which it seeks reco
 Argus will defend the school and its officers and employees against a third-party claim, action, or proceeding, and indemnify them against damages, settlements, and reasonable external legal costs finally awarded or agreed in an approved settlement, to the extent the claim alleges that:
 
 - the school’s authorised use of the Services infringes that third party’s patent, copyright, trademark, or other intellectual-property right; or
-- Argus’s material breach of the Data Processing Addendum, section 16 (Confidentiality), or its contractual security obligations caused the unauthorised disclosure or processing of student personal data.
+- Argus’s material breach of the School Data Processing Terms, section 16 (Confidentiality), or its contractual security obligations caused the unauthorised disclosure or processing of student personal data.
 
 Argus has no obligation for an intellectual-property claim to the extent it results from:
 
@@ -286,7 +286,7 @@ The school will defend Argus and its officers and employees against a third-part
 
 - school data, materials, specifications, or instructions that infringe a third party’s rights or that the school was not authorised to provide;
 - the school’s failure to provide a required notice, obtain or record required consent, verify age or parental authority as required, or otherwise establish a lawful basis for an instruction given to Argus;
-- processing or disclosure performed by Argus in accordance with a school instruction that violates applicable law, unless Argus knew the instruction was unlawful and failed to notify the school as required by the Data Processing Addendum; or
+- processing or disclosure performed by Argus in accordance with a school instruction that violates applicable law, unless Argus knew the instruction was unlawful and failed to notify the school as required by the School Data Processing Terms; or
 - the school’s unauthorised use or disclosure of GYS assessment content, reports, or student data, or its use of a GYS result as the sole basis for a material decision about a student contrary to these Terms.
 
 The school has no indemnification obligation to the extent the claim was caused by Argus’s breach of the applicable agreement, negligence, wilful misconduct, or processing outside the school’s documented lawful instructions.
@@ -333,6 +333,6 @@ GYS may update these Terms prospectively. A material change affecting a current 
 
 ## 22. Contact
 
-Legal notices: **globalyoungscholar@argus.ai; Argus Futures, Inc., 2261 Market Street, Suite 4230, San Francisco, California 94114, USA**  
-Support: **globalyoungscholar@argus.ai**  
-Privacy and grievances: **globalyoungscholar@argus.ai**
+Legal notices: **gys@argus.ai; Argus Futures, Inc., 2261 Market Street, Suite 4230, San Francisco, California 94114, USA**  
+Support: **gys@argus.ai**  
+Privacy and grievances: **gys@argus.ai**

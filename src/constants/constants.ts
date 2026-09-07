@@ -67,7 +67,6 @@ export const RESOLVE_REGISTRATION_SCHOOL = '/resolveRegistrationSchool';
 
 // Students
 export const SIGN_UP_TRANSACTION='/runSignUpTransaction';
-export const PREPARE_SIGN_UP_TRANSACTION='/prepareSignUpTransaction';
 export const FETCH_STUDENT_DATA='/getStudentDetails';
 export const UPDATE_STUDENT_DATA='/updateStudentDetails';
 export const MARK_STUDENT_PASSWORD_SETUP_COMPLETE='/markPasswordSetupComplete';
@@ -83,6 +82,7 @@ export const SEND_NOTIFICATION_EMAILS='/sendNotificationEmails';
 // School admins
 export const FETCH_SCHOOL_ADMIN_DATA='/getSchoolAdminDetails';
 export const FETCH_SCHOOL_SUMMARY='/getSchoolSummary';
+export const FETCH_SCHOOL_ANALYTICS_SUMMARY='/getSchoolAnalyticsSummary';
 export const SCHOOL_STUDENTS_ROSTER='/students';
 export const STUDENT_REGISTRATION_EMAILS='/studentRegistrationEmails';
 export const UPDATE_SCHOOL_PROFILE='/schoolProfile';
@@ -158,3 +158,10 @@ export const STUDENT_OFFICIAL_ASSESSMENTS_ENABLED = false;
  * score + Argus Coins. Server still scores for progression and reports.
  */
 export const STUDENT_EXAM_SHOW_SCORES_AND_COINS = false;
+
+/**
+ * Keep in sync with backend `GLOBAL_REPORTS_AND_RANKING_PIPELINE_HELD`.
+ * When true, Platform Admin pipeline buttons are disabled; scheduled jobs and
+ * report minting no-op until CAPS lift on the backend flag.
+ */
+export const GLOBAL_REPORTS_AND_RANKING_PIPELINE_HELD = true;

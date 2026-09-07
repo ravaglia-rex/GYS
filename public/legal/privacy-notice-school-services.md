@@ -1,7 +1,7 @@
 # Global Young Scholar Privacy Notice - India school services
 
 **Effective date:** 1 July 2026 
-**Draft updated:** 29 July 2026
+**Last updated:** 29 July 2026
 
 
 ## 1. Who we are
@@ -17,7 +17,7 @@ GYS is presented with Access USA and EducationWorld. The organisations have dist
 Questions about this Notice may be sent to our privacy contact:
 
 - Privacy and grievance contact: **GYS Privacy and Grievance Contact**
-- Email: **globalyoungscholar@argus.ai**
+- Email: **gys@argus.ai**
 - Postal address: **Argus Futures, Inc., 2261 Market Street, Suite 4230, San Francisco, California 94114, USA**
 
 ## 2. Scope
@@ -186,7 +186,7 @@ The retention periods below are maximum periods, not minimum periods, except whe
 | Current roster details, such as name, contact details, class, and section, that are not needed for continuing account access or an enabled longitudinal profile | Until 90 days after the end of the applicable academic year |
 | Minimal account information and the mapping between a student and a randomly generated GYS longitudinal identifier, where a longitudinal profile is enabled | Until 12 months after the school-recorded completion of Grade 12; normally no more than eight years after the first assessment, or up to nine years only if the school records a revised completion year |
 | Raw assessment answers, item-level responses, response times, adaptive paths, and detailed assessment-event data | Until 24 months after the applicable result becomes final |
-| Scores and reports where a longitudinal profile is not enabled | For the school service term, followed by the return and deletion periods in the Data Processing Addendum |
+| Scores and reports where a longitudinal profile is not enabled | For the school service term, followed by the return and deletion periods in the School Data Processing Terms |
 | Scores, reports, and derived longitudinal profiles where the feature is enabled | Until 12 months after the school-recorded completion of Grade 12; normally no more than eight years after the first assessment, or up to nine years only if the school records a revised completion year |
 | AI-proctoring recordings, if enabled | Until 30 days after the result becomes final; if an integrity review or appeal is opened, until 30 days after it closes; in all cases no more than 180 days after the assessment unless a legal hold applies |
 | Proctoring flags and appeal records, if enabled | Rolling 12 months after the flag is resolved or the appeal closes |
@@ -196,7 +196,7 @@ The retention periods below are maximum periods, not minimum periods, except whe
 | Contract, invoice, tax, and legal records | Eight years after the relevant transaction or end of the relationship, or longer if applicable law requires; these records are not intended to contain student assessment data |
 | Backups after deletion from active systems | Overwritten or deleted within 90 days after production deletion and not restored to ordinary use |
 
-These periods apply only while the school continues to instruct GYS to provide the applicable service. A school that wants Grade 6–12 continuity must keep the longitudinal feature active through its GYS agreement or a documented longitudinal archive arrangement. When the entire school relationship, including any such arrangement, ends, we provide the school’s export period and delete student data on the earlier timetable stated in the Data Processing Addendum. We do not retain a former school’s student data merely because it might be useful in the future.
+These periods apply only while the school continues to instruct GYS to provide the applicable service. A school that wants Grade 6–12 continuity must keep the longitudinal feature active through its GYS agreement or a documented longitudinal archive arrangement. When the entire school relationship, including any such arrangement, ends, we provide the school’s export period and delete student data on the earlier timetable stated in the School Data Processing Terms. We do not retain a former school’s student data merely because it might be useful in the future.
 
 For a longitudinal profile, we separate direct identity information from the assessment record where reasonably practicable. The longitudinal record is designed to use a randomly generated identifier and retain only the grade and academic year, school and curriculum information, assessment dates, scores, report content, and derived progress measures needed for the selected service. Raw item responses, detailed assessment events, device data, and support records do not remain in the longitudinal profile after their shorter periods expire.
 
@@ -223,7 +223,7 @@ No system is completely secure. The school and users must protect their credenti
 
 ## 11. Personal-data breaches
 
-If we become aware of a personal-data breach affecting data processed for a school, we will notify the school without undue delay in accordance with the Data Processing Addendum, provide available information, and support the school’s response. The school, as Data Fiduciary, is responsible for notifications to affected Data Principals and the Data Protection Board of India, unless applicable law requires us to notify directly.
+If we become aware of a personal-data breach affecting data processed for a school, we will notify the school without undue delay in accordance with the School Data Processing Terms, provide available information, and support the school’s response. The school, as Data Fiduciary, is responsible for notifications to affected Data Principals and the Data Protection Board of India, unless applicable law requires us to notify directly.
 
 ## 12. Your choices and rights
 
@@ -238,7 +238,7 @@ Subject to applicable law, a Data Principal may have rights to:
 
 For student data controlled by a school, contact the school using the privacy details in the school’s notice. We will assist the school with verified requests.
 
-For data for which the GYS Operator is the Data Fiduciary, contact **globalyoungscholar@argus.ai**. We may request information reasonably necessary to verify the requester and locate the relevant records. Our grievance-response period is **60 days**.
+For data for which the GYS Operator is the Data Fiduciary, contact **gys@argus.ai**. We may request information reasonably necessary to verify the requester and locate the relevant records. Our grievance-response period is **60 days**.
 
 If a grievance is not resolved through the applicable Data Fiduciary’s process, the Data Principal may use the complaint process made available by the Data Protection Board of India when the relevant provisions are in force.
 
@@ -273,6 +273,6 @@ We may update this Notice to reflect changes in the services, law, or our data p
 
 ## 15. Contact
 
-Privacy or rights requests: **globalyoungscholar@argus.ai**  
-Security reports: **globalyoungscholar@argus.ai**  
+Privacy or rights requests: **gys@argus.ai**  
+Security reports: **gys@argus.ai**  
 Postal address: **Argus Futures, Inc., 2261 Market Street, Suite 4230, San Francisco, California 94114, USA**
