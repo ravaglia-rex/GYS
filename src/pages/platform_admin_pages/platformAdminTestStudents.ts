@@ -6,6 +6,7 @@ import { isHiddenStaffStudentEmail } from '../../constants/hiddenStaffStudents';
  */
 export const PLATFORM_ADMIN_TEST_STUDENT_EMAILS = new Set([
   'srishti2k1@gmail.com',
+  'vv@accessmca.com',
 ]);
 
 /** Greenfield seed cohort emails (hidden from the platform admin student list). */

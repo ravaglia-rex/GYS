@@ -357,10 +357,13 @@ const PlatformAdminStudentsPage: React.FC = () => {
   ]);
   const studentsQuery = usePlatformAdminStudents(studentListParams, canLoadStudents);
 
-  const schools = schoolsQuery.data ?? [];
+  const schools = useMemo(() => schoolsQuery.data ?? [], [schoolsQuery.data]);
   const schoolsLoading = schoolsQuery.isLoading;
   const stats = statsQuery.data ?? null;
-  const students = canLoadStudents ? studentsQuery.data?.students ?? [] : [];
+  const students = useMemo(
+    () => (canLoadStudents ? studentsQuery.data?.students ?? [] : []),
+    [canLoadStudents, studentsQuery.data?.students]
+  );
   const totalMatching = canLoadStudents ? studentsQuery.data?.totalMatching ?? 0 : 0;
   const loading = canLoadStudents && studentsQuery.isLoading;
   const error =

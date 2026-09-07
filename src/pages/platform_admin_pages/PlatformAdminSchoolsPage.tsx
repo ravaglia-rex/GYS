@@ -162,7 +162,7 @@ const PlatformAdminSchoolsPage: React.FC = () => {
   const stats = overviewQuery.data ?? null;
   const loading = schoolsQuery.isLoading;
   const error = schoolsQuery.isError ? 'Failed to load schools.' : null;
-  const schools = schoolsQuery.data ?? [];
+  const schools = useMemo(() => schoolsQuery.data ?? [], [schoolsQuery.data]);
 
   const filteredSchools = useMemo(() => {
     const q = search.trim().toLowerCase();

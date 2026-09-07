@@ -196,14 +196,6 @@ export default function PlatformAdminLayout({ children }: PlatformAdminLayoutPro
     setMobileOpen(false);
   };
 
-  const toggleSubmenu = (title: string) => {
-    setOpenSubmenus((prev) => ({ ...prev, [title]: !(prev[title] ?? false) }));
-  };
-
-  const openSubmenu = (title: string) => {
-    setOpenSubmenus((prev) => (prev[title] === true ? prev : { ...prev, [title]: true }));
-  };
-
   const setSubmenuOpen = (title: string, open: boolean) => {
     setOpenSubmenus((prev) => (prev[title] === open ? prev : { ...prev, [title]: open }));
   };

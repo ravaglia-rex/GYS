@@ -299,6 +299,8 @@ function AdminExamOptionRow({
   picked,
   caption,
   pickPct,
+  /** Figure tiles already paint A–D in the SVG crop — don't repeat the letter. */
+  hideLetter = false,
   children,
 }: {
   letter: string;
@@ -306,18 +308,22 @@ function AdminExamOptionRow({
   picked?: boolean;
   caption?: string;
   pickPct?: number;
+  hideLetter?: boolean;
   children: ReactNode;
 }) {
   return (
     <Box
       sx={{
         display: 'flex',
-        gap: 0.75,
-        alignItems: 'flex-start',
-        px: 1,
-        py: 0.45,
-        // Keep room for the absolute pick/correct caption so figure crops are not covered.
-        pr: caption ? '5.75rem' : 1,
+        gap: hideLetter ? 0 : 0.75,
+        alignItems: 'center',
+        justifyContent: hideLetter ? 'center' : 'flex-start',
+        px: hideLetter ? 1.5 : 1,
+        // Figure tiles: pad so the crop isn't cramped left and the pick/correct
+        // caption sits in the top-right without eating horizontal content space.
+        py: hideLetter ? 1.25 : 0.45,
+        pt: hideLetter && caption ? 2.75 : undefined,
+        pr: !hideLetter && caption ? '5.75rem' : undefined,
         borderRadius: 1,
         border: '1px solid',
         borderColor: isCorrect ? '#86efac' : picked ? '#fca5a5' : '#e2e8f0',
@@ -346,20 +352,43 @@ function AdminExamOptionRow({
           />
         </Box>
       ) : null}
-      <Typography
+      {!hideLetter ? (
+        <Typography
+          sx={{
+            fontWeight: 800,
+            color: ip.heading,
+            minWidth: 18,
+            fontSize: 13,
+            position: 'relative',
+            flexShrink: 0,
+          }}
+        >
+          {letter}.
+        </Typography>
+      ) : null}
+      {/* flex:1 gives the figure a definite width so slices can scale down in 2×2 cells. */}
+      <Box
         sx={{
-          fontWeight: 800,
-          color: ip.heading,
-          minWidth: 18,
-          fontSize: 13,
+          flex: 1,
+          minWidth: 0,
           position: 'relative',
-          flexShrink: 0,
+          display: 'flex',
+          justifyContent: hideLetter ? 'center' : 'flex-start',
+          alignItems: 'center',
+          // Figure crops size to their authored max; center the leftover cell space
+          // instead of leaving a left-cramped diagram + empty right gutter.
+          ...(hideLetter
+            ? {
+                '& > *': {
+                  flex: '0 1 auto',
+                  mx: 'auto',
+                },
+              }
+            : null),
         }}
       >
-        {letter}.
-      </Typography>
-      {/* flex:1 gives the figure a definite width so slices can scale down in 2×2 cells. */}
-      <Box sx={{ flex: 1, minWidth: 0, position: 'relative' }}>{children}</Box>
+        {children}
+      </Box>
       {caption ? (
         <Typography
           sx={{
@@ -485,6 +514,7 @@ export function AdminExamQuestionBody({
                 picked={status.picked}
                 caption={status.caption}
                 pickPct={status.pickPct}
+                hideLetter={showFigureSlices}
               >
                 {showFigureSlices && optionFigure ? (
                   <ArOptionFigureSlice
