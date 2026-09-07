@@ -1313,6 +1313,77 @@ export function optionFigureStemSliceFromOptionSlices(
   };
 }
 
+/**
+ * Drop A–D option-head glyphs from a content crop. UI already shows A–D outside
+ * each choice; leaving the authored label inside the tile looks like a duplicate
+ * and eats left/top padding that should belong to the diagram.
+ */
+function trimOptionLetterFromSlice(
+  slice: OptionFigureSliceRect,
+  letterPt: { x: number; y: number },
+  vb: { x: number; y: number; w: number; h: number }
+): OptionFigureSliceRect {
+  const x1 = vb.x + (slice.xPct / 100) * vb.w;
+  const y1 = vb.y + (slice.yPct / 100) * vb.h;
+  const x2 = x1 + (slice.wPct / 100) * vb.w;
+  const y2 = y1 + (slice.hPct / 100) * vb.h;
+  const w = Math.max(1, x2 - x1);
+  const h = Math.max(1, y2 - y1);
+  const pad = Math.max(6, Math.min(w, h) * 0.04);
+  if (
+    letterPt.x < x1 - pad ||
+    letterPt.x > x2 + pad ||
+    letterPt.y < y1 - pad ||
+    letterPt.y > y2 + pad
+  ) {
+    return slice;
+  }
+
+  let nx1 = x1;
+  let ny1 = y1;
+  const inLeftBand = letterPt.x <= x1 + w * 0.38;
+  const inTopBand = letterPt.y <= y1 + h * 0.38;
+  // Glyph advance past the text anchor (A–D are single capitals).
+  const clearX = Math.max(18, Math.min(36, w * 0.12));
+  const clearY = Math.max(16, Math.min(32, h * 0.12));
+
+  if (inLeftBand) {
+    nx1 = Math.max(nx1, Math.min(x2 - w * 0.5, letterPt.x + clearX));
+  }
+  // Header-style labels sit above the diagram inside the same card.
+  if (inTopBand && (inLeftBand || letterPt.x <= x1 + w * 0.55)) {
+    ny1 = Math.max(ny1, Math.min(y2 - h * 0.5, letterPt.y + clearY));
+  }
+
+  if (x2 - nx1 < w * 0.5 || y2 - ny1 < h * 0.5) return slice;
+  return {
+    ...slice,
+    xPct: ((nx1 - vb.x) / vb.w) * 100,
+    yPct: ((ny1 - vb.y) / vb.h) * 100,
+    wPct: ((x2 - nx1) / vb.w) * 100,
+    hPct: ((y2 - ny1) / vb.h) * 100,
+  };
+}
+
+export function trimOptionLabelsFromSlices(
+  svgText: string,
+  slices: OptionFigureSliceRect[],
+  optionCount = 4
+): OptionFigureSliceRect[] | null {
+  if (typeof DOMParser === 'undefined' || !slices.length) return null;
+  const doc = new DOMParser().parseFromString(svgText, 'image/svg+xml');
+  if (doc.querySelector('parsererror')) return null;
+  const vb = svgViewBox(doc);
+  if (!vb) return null;
+  const n = Math.min(slices.length, Math.min(4, Math.max(2, optionCount)));
+  const labels = optionLabelEls(doc, n);
+  if (!labels || labels.length < n) return null;
+  const letterPts = labels.map((el) => svgLocalPoint(el));
+  return slices.map((slice, i) =>
+    i < letterPts.length ? trimOptionLetterFromSlice(slice, letterPts[i], vb) : slice
+  );
+}
+
 export function optionFigureContentSlicesFromSvg(
   svgText: string,
   optionCount: number
@@ -1335,16 +1406,22 @@ export function optionFigureContentSlicesFromSvg(
     Math.max(...letterPts.map((p) => p.x)) - Math.min(...letterPts.map((p) => p.x));
   const ySpread =
     Math.max(...letterPts.map((p) => p.y)) - Math.min(...letterPts.map((p) => p.y));
+
+  const finish = (raw: OptionFigureSliceRect[] | null): OptionFigureSliceRect[] | null => {
+    if (!raw?.length) return null;
+    return raw.map((slice, i) => trimOptionLetterFromSlice(slice, letterPts[i], vb));
+  };
+
   if (xSpread >= 8 && xSpread > ySpread * 0.35) {
     const rowSlices = rowLayoutSlicesFromCards(letterPts, cards, vb, segs);
-    if (rowSlices) return rowSlices;
+    if (rowSlices) return finish(rowSlices);
   }
   // Stacked A–D sheets (options-only or stem+options): crop each letter's full
   // horizontal band. Do not gate on stem Y — options-only rails often start
   // near the top (~15–25%), and that gate wrongly fell through to single-card crops.
   if (letterPointsAreStacked(letterPts)) {
     const stacked = stackedRowSlicesFromCards(letterPts, cards, vb);
-    if (stacked) return stacked;
+    if (stacked) return finish(stacked);
   }
   const grouped: Array<typeof cards> = Array.from({ length: n }, () => []);
   for (const card of cards) {
@@ -1395,7 +1472,7 @@ export function optionFigureContentSlicesFromSvg(
       kind: classifyOptionFigureKind(main, segs, grouped[i]),
     });
   }
-  return slices;
+  return finish(slices);
 }
 
 export function layoutFromSvgText(svgText: string): ArOptionFigureLayout | null {

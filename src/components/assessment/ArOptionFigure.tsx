@@ -11,6 +11,7 @@ import {
   optionFigureStemContentBottomYPct,
   optionFigureStemSliceFromOptionSlices,
   svgNaturalSizeFromText,
+  trimOptionLabelsFromSlices,
   type ArOptionFigureLayout,
   type ArOptionFigureRef,
   type OptionFigureSliceRect,
@@ -118,9 +119,18 @@ export function useArOptionFigureMeta(
             Math.abs((size?.height || 0) - saved!.naturalHeight) > 2);
         const nextSlices = optionFigureContentSlicesFromSvg(text, optionCount);
         const shouldUseRuntime = !saved || sizeMismatch || !saved.slices?.length;
-        if (!shouldUseRuntime || !nextSlices?.length) {
-          if (saved && size && sizeMismatch) {
-            // Keep option slices if parse failed, but refresh natural size for display.
+        if (!shouldUseRuntime) {
+          // Keep bank crops, but still strip A–D glyphs that sit inside each tile
+          // (UI already labels options outside the box).
+          if (saved?.slices?.length) {
+            const trimmed = trimOptionLabelsFromSlices(text, saved.slices, optionCount);
+            if (trimmed?.length) setSlices(trimmed);
+          }
+          applyAspect();
+          return;
+        }
+        if (!nextSlices?.length) {
+          if (saved && size) {
             setNaturalWidth(size.width);
             setNaturalHeight(size.height);
           }
@@ -159,7 +169,8 @@ export function useArOptionFigureMeta(
   if (saved && !useRuntimeOverSaved) {
     return {
       layout: saved.layout,
-      slices: saved.slices,
+      // Prefer in-memory slices so letter-trim of bank crops can take effect.
+      slices: slices ?? saved.slices,
       stemSlice: saved.stemSlice,
       includesStemContent: Boolean(saved.stemSlice),
       naturalWidth: naturalWidth || saved.naturalWidth,
