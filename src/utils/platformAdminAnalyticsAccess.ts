@@ -2,6 +2,7 @@
 export const PLATFORM_ADMIN_ANALYTICS_EMAILS = new Set([
   'srishti@argus.ai',
   'michael@argus.ai',
+  'divyam.ew@gmail.com',
 ]);
 
 export function canAccessPlatformAdminAnalytics(email: unknown): boolean {
@@ -10,7 +11,7 @@ export function canAccessPlatformAdminAnalytics(email: unknown): boolean {
   return Boolean(normalized) && PLATFORM_ADMIN_ANALYTICS_EMAILS.has(normalized);
 }
 
-/** Same allowlist as Analytics (`srishti@argus.ai`, `michael@argus.ai`). */
+/** Same allowlist as Analytics (`srishti@argus.ai`, `michael@argus.ai`, `divyam.ew@gmail.com`). */
 export function canAccessPlatformAdminQuestionReports(email: unknown): boolean {
   return canAccessPlatformAdminAnalytics(email);
 }
