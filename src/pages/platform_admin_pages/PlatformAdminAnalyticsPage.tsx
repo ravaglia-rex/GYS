@@ -1012,75 +1012,6 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
     }
   }, []);
 
-  const loadPractice = useCallback(async (opts?: { refresh?: boolean }) => {
-    setPracticeLoading(true);
-    setPracticeError(null);
-    setPracticeIndexesBuilding(false);
-    void loadPracticeMonthly(opts);
-    try {
-      const [daily, dailyByExam, summariesInitial] = await Promise.all([
-        getPlatformAdminPracticeDailyStats(30, { refresh: opts?.refresh }),
-        getPlatformAdminPracticeDailyStatsByExam(30, { refresh: opts?.refresh }),
-        getPlatformAdminPracticeExamSummaries({ refresh: opts?.refresh }),
-      ]);
-      setPracticeDaily(daily.days);
-      setPracticeDailyToday(daily.today);
-      setPracticeDailyByExam(dailyByExam.days);
-      setPracticeDailyExamIds(dailyByExam.exam_ids);
-      let summaries = summariesInitial;
-      // Stale cache from before session backfill: attempts exist but sessions are all 0.
-      const staleSessions =
-        !opts?.refresh &&
-        summaries.exams.some(
-          (e) => (e.total_attempts ?? 0) > 0 && (e.total_sessions ?? 0) === 0
-        );
-      if (staleSessions) {
-        summaries = await getPlatformAdminPracticeExamSummaries({ refresh: true });
-      }
-      setPracticeSummaries(summaries.exams);
-      setPracticeGeneratedAt(daily.generated_at || summaries.generated_at);
-      setPracticeIndexesBuilding(summaries.indexes_building === true);
-
-      // Prefetch first exam detail with the overview so the practice tab isn't a two-phase waterfall.
-      const firstExamId = summaries.exams[0]?.exam_id || '';
-      setSelectedExamId((prev) => prev || firstExamId);
-      if (firstExamId) {
-        practiceOverviewDetailExamRef.current = firstExamId;
-        setPracticeDetailLoading(true);
-        try {
-          const detail = await getPlatformAdminPracticeExamDetail(firstExamId, {
-            limit: 10,
-            sortBy,
-            refresh: opts?.refresh,
-          });
-          setByGrade(detail.by_grade);
-          setTopStudents(detail.top_students);
-          setPracticeGeneratedAt((prev) => detail.generated_at || prev);
-          if (detail.indexes_building) setPracticeIndexesBuilding(true);
-        } catch {
-          // Detail error is non-fatal for the overview; user can reselect the exam.
-          setByGrade([]);
-          setTopStudents([]);
-        } finally {
-          setPracticeDetailLoading(false);
-        }
-      }
-    } catch (e: unknown) {
-      const err = e as { response?: { data?: { error?: string } }; message?: string };
-      const msg = err?.response?.data?.error || err?.message || 'Failed to load practice analytics';
-      const lower = msg.toLowerCase();
-      if (lower.includes('index') || lower.includes('failed_precondition')) {
-        setPracticeError(
-          'Firestore indexes for practice analytics are still building. Check the Firebase console Indexes tab - usually a few minutes. Refresh after they show Enabled.'
-        );
-      } else {
-        setPracticeError(msg);
-      }
-    } finally {
-      setPracticeLoading(false);
-    }
-  }, [loadPracticeMonthly, sortBy]);
-
   const loadPracticeDetail = useCallback(async (examId: string, opts?: { refresh?: boolean }) => {
     if (!examId) return;
     const req = ++practiceDetailReqRef.current;
@@ -1116,6 +1047,58 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
       if (req === practiceDetailReqRef.current) setPracticeDetailLoading(false);
     }
   }, [sortBy]);
+
+  const loadPractice = useCallback(async (opts?: { refresh?: boolean }) => {
+    setPracticeLoading(true);
+    setPracticeError(null);
+    setPracticeIndexesBuilding(false);
+    void loadPracticeMonthly(opts);
+    try {
+      const [daily, dailyByExam, summariesInitial] = await Promise.all([
+        getPlatformAdminPracticeDailyStats(30, { refresh: opts?.refresh }),
+        getPlatformAdminPracticeDailyStatsByExam(30, { refresh: opts?.refresh }),
+        getPlatformAdminPracticeExamSummaries({ refresh: opts?.refresh }),
+      ]);
+      setPracticeDaily(daily.days);
+      setPracticeDailyToday(daily.today);
+      setPracticeDailyByExam(dailyByExam.days);
+      setPracticeDailyExamIds(dailyByExam.exam_ids);
+      let summaries = summariesInitial;
+      // Stale cache from before session backfill: attempts exist but sessions are all 0.
+      const staleSessions =
+        !opts?.refresh &&
+        summaries.exams.some(
+          (e) => (e.total_attempts ?? 0) > 0 && (e.total_sessions ?? 0) === 0
+        );
+      if (staleSessions) {
+        summaries = await getPlatformAdminPracticeExamSummaries({ refresh: true });
+      }
+      setPracticeSummaries(summaries.exams);
+      setPracticeGeneratedAt(daily.generated_at || summaries.generated_at);
+      setPracticeIndexesBuilding(summaries.indexes_building === true);
+
+      // Prefetch first exam detail without blocking overview charts / setPracticeLoading(false).
+      const firstExamId = summaries.exams[0]?.exam_id || '';
+      setSelectedExamId((prev) => prev || firstExamId);
+      if (firstExamId) {
+        practiceOverviewDetailExamRef.current = firstExamId;
+        void loadPracticeDetail(firstExamId, opts);
+      }
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { error?: string } }; message?: string };
+      const msg = err?.response?.data?.error || err?.message || 'Failed to load practice analytics';
+      const lower = msg.toLowerCase();
+      if (lower.includes('index') || lower.includes('failed_precondition')) {
+        setPracticeError(
+          'Firestore indexes for practice analytics are still building. Check the Firebase console Indexes tab - usually a few minutes. Refresh after they show Enabled.'
+        );
+      } else {
+        setPracticeError(msg);
+      }
+    } finally {
+      setPracticeLoading(false);
+    }
+  }, [loadPracticeMonthly, loadPracticeDetail]);
 
   const loadQod = useCallback(async (opts?: { refresh?: boolean }) => {
     setQodLoading(true);

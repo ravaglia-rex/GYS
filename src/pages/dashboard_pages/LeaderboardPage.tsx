@@ -8,6 +8,7 @@ import { LoadingSpinner } from '../../components/ui/spinner';
 import { useStudentSchoolLeaderboard } from '../../query/hooks';
 import PageTutorial from '../../components/tutorial/PageTutorial';
 import { studentPageSubtitleSx, studentPageTitleSx } from '../../styles/studentTypography';
+import { STUDENT_EXAM_SHOW_SCORES_AND_COINS } from '../../constants/constants';
 
 const LeaderboardPage: React.FC = () => {
   const { data, isLoading: loading, isError, error: queryError } = useStudentSchoolLeaderboard();
@@ -17,6 +18,9 @@ const LeaderboardPage: React.FC = () => {
   const error = isError
     ? 'Could not load official school leaderboard data. Please try again later.'
     : '';
+  const scoresDeferred =
+    !STUDENT_EXAM_SHOW_SCORES_AND_COINS ||
+    (data as { scores_deferred?: boolean } | undefined)?.scores_deferred === true;
 
   useEffect(() => {
     if (!isError || !queryError) return;
@@ -42,51 +46,33 @@ const LeaderboardPage: React.FC = () => {
               mb: 3,
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 2 }, minWidth: 0, width: '100%' }}>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', minWidth: 0 }}>
               <Avatar
                 sx={{
-                  width: 64,
-                  height: 64,
-                  background: 'linear-gradient(135deg, #f59e0b, #8b5cf6)',
-                  color: 'white',
-                  flexShrink: 0,
+                  bgcolor: 'rgba(245, 158, 11, 0.18)',
+                  color: '#fbbf24',
+                  width: 48,
+                  height: 48,
                 }}
               >
-                <EmojiEvents sx={{ fontSize: 36 }} />
+                <EmojiEvents />
               </Avatar>
               <Box sx={{ minWidth: 0 }}>
-                <Typography
-                  variant="h4"
-                  sx={{
-                    ...studentPageTitleSx,
-                    minWidth: 0,
-                  }}
-                >
-                  School Leaderboard
-                </Typography>
-                <Typography variant="h6" sx={studentPageSubtitleSx}>
-                  See how students at your school compare on each exam, by class.
+                <Typography sx={studentPageTitleSx}>School leaderboard</Typography>
+                <Typography sx={studentPageSubtitleSx}>
+                  {scoresDeferred
+                    ? 'Official exam standings will appear here once results are released.'
+                    : 'Top performers by exam and class at your school.'}
                 </Typography>
               </Box>
             </Box>
-          
           </Box>
 
-          <Box
-            data-tutorial-id="student-leaderboard-panel"
-            sx={{
-              p: 3,
-              borderRadius: 2,
-              bgcolor: 'rgba(30, 41, 59, 0.55)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-            }}
-          >
+          <Box data-tutorial-id="student-leaderboard-panel">
             {loading ? (
               <Box
-                role="status"
-                aria-live="polite"
                 sx={{
-                  minHeight: { xs: 360, md: 'calc(100vh - 260px)' },
+                  minHeight: 280,
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
@@ -108,12 +94,19 @@ const LeaderboardPage: React.FC = () => {
                     {error}
                   </Alert>
                 )}
-                <StudentLeaderboardPanel
-                  initialGrade={initialGrade}
-                  sections={sections}
-                  sectionsByGrade={data?.sectionsByGrade}
-                  lastUpdatedISO={lastUpdatedISO}
-                />
+                {scoresDeferred ? (
+                  <Alert severity="info" sx={{ mb: 2 }}>
+                    Scores and rankings are not available yet. Keep an eye on the portal — your
+                    results will show up when they are ready.
+                  </Alert>
+                ) : (
+                  <StudentLeaderboardPanel
+                    initialGrade={initialGrade}
+                    sections={sections}
+                    sectionsByGrade={data?.sectionsByGrade}
+                    lastUpdatedISO={lastUpdatedISO}
+                  />
+                )}
               </>
             )}
           </Box>

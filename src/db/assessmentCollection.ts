@@ -164,14 +164,16 @@ export interface RecordAnswerResponse {
 
 export interface CompleteExamResponse {
   attempt_id: string;
-  score_percent: number;
+  /** Present only when student score reveal is enabled on the server. */
+  score_percent?: number;
   score_points?: number;
-  correct: number;
-  total: number;
-  passed: boolean;
-  next_tier: number | null;
+  correct?: number;
+  total?: number;
+  passed?: boolean;
+  next_tier?: number | null;
   coins_awarded?: number;
   already_completed?: boolean;
+  results_pending?: boolean;
 }
 
 // ─── Public (no auth) ────────────────────────────────────────────────────────

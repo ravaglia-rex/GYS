@@ -11,6 +11,7 @@ import ShareIcon from '@mui/icons-material/Share';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import { getAssessmentFlowDefinition } from '../../config/assessmentFlowUI';
 import { nextAssessmentNudge } from '../../config/assessmentResultDetail';
+import { STUDENT_EXAM_SHOW_SCORES_AND_COINS } from '../../constants/constants';
 import {
   EXAM_MAX_SCORE_POINTS,
   isLevelBasedAssessment,
@@ -21,12 +22,13 @@ interface ResultState {
   attemptId: string;
   assessmentId: string;
   tierNumber: number;
-  scorePercent: number;
-  correct: number;
-  total: number;
-  passed: boolean;
+  scorePercent?: number;
+  correct?: number;
+  total?: number;
+  passed?: boolean;
   nextTier?: number | null;
   completedAt?: string;
+  coinsAwarded?: number;
 }
 
 const AssessmentResultDetailPage: React.FC = () => {
@@ -39,7 +41,12 @@ const AssessmentResultDetailPage: React.FC = () => {
     return null;
   }
 
-  const { assessmentId, tierNumber, scorePercent, correct, total, passed, completedAt } = state;
+  if (!STUDENT_EXAM_SHOW_SCORES_AND_COINS) {
+    navigate(`/assessments/${state.assessmentId}/result`, { replace: true, state });
+    return null;
+  }
+
+  const { assessmentId, tierNumber, scorePercent = 0, correct = 0, total = 0, passed = false, completedAt } = state;
   const flow = getAssessmentFlowDefinition(assessmentId);
   const levelBased = isLevelBasedAssessment(assessmentId);
   const scorePoints = tierPercentToExamPoints(scorePercent);

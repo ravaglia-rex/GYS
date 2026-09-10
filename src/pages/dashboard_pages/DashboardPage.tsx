@@ -138,7 +138,10 @@ const Dashboard: React.FC = () => {
         !isAssessmentFullyComplete(a, p)
       ) {
         availableAssessments++;
-        const hasAttemptedThisAssessment = (p.attempts_count ?? 0) > 0 || p.best_score !== null;
+        const hasAttemptedThisAssessment =
+          (p.attempts_count ?? 0) > 0 ||
+          p.latest_attempt_level != null ||
+          p.best_score !== null;
         const hasPrerequisite = (COMPLETION_PREREQUISITES[a.id] ?? []).length > 0;
         if (!hasAttemptedThisAssessment && hasPrerequisite) {
           unlockedForNotifications.push({

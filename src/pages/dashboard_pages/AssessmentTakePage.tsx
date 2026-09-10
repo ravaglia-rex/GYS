@@ -48,6 +48,7 @@ import {
 } from '../../utils/officialStudentAssessmentsAccess';
 import { getExamDeviceFingerprint } from '../../utils/examDeviceFingerprint';
 import { isLevelBasedAssessment } from '../../utils/assessmentGating';
+import { STUDENT_EXAM_SHOW_SCORES_AND_COINS } from '../../constants/constants';
 import { assessmentIdsEqual, ANALYTICAL_REASONING_ASSESSMENT_ID, canonicalAssessmentId } from '../../utils/assessmentIdCompat';
 import {
   isProctoringActive,
@@ -389,18 +390,24 @@ export default function AssessmentTakePage() {
       examEndedRef.current = true;
       finishingForTimeRef.current = true;
       setStage('complete');
+      const reveal = STUDENT_EXAM_SHOW_SCORES_AND_COINS && result.results_pending !== true;
       navigate(`/assessments/${assessmentId}/result`, {
         state: {
           attemptId: aid,
           assessmentId,
           tierNumber: tier,
-          scorePercent: result.score_points != null ? result.score_points / 10 : result.score_percent,
-          correct: result.correct,
-          total: result.total,
-          passed: result.passed,
-          nextTier: result.next_tier,
+          ...(reveal
+            ? {
+                scorePercent:
+                  result.score_points != null ? result.score_points / 10 : result.score_percent,
+                correct: result.correct,
+                total: result.total,
+                passed: result.passed,
+                nextTier: result.next_tier,
+                coinsAwarded: result.coins_awarded ?? 0,
+              }
+            : {}),
           completedAt: new Date().toISOString(),
-          coinsAwarded: result.coins_awarded ?? 0,
         },
         replace: true,
       });

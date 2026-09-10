@@ -156,6 +156,7 @@ export const STUDENT_OFFICIAL_ASSESSMENTS_ENABLED = false;
 /**
  * When false, students see thanks / “results coming” after an exam instead of
  * score + Argus Coins. Server still scores for progression and reports.
+ * Keep in sync with backend `STUDENT_EXAM_REVEAL_SCORES` (studentExamScoreReveal.ts).
  */
 export const STUDENT_EXAM_SHOW_SCORES_AND_COINS = false;
 

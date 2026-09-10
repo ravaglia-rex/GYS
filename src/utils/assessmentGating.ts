@@ -396,16 +396,22 @@ export function buildDashboardExamChartRows(
     const p = progress[id] ?? defaultAssessmentProgress;
     const gate = a ? computeGate(id, membershipLevel, progress, studentGrade, sorted) : { locked: true as const };
     const picked = pickLatestOrBestAssessmentScore(p);
-    const showBar = !!a && !gate.locked && picked != null;
+    const hasAttemptEvidence =
+      (p.attempts_count ?? 0) > 0 ||
+      p.latest_attempt_level != null ||
+      p.status === 'completed' ||
+      Object.values(p.tiers_cleared ?? {}).some(Boolean);
+    // When scores are redacted server-side, still show a submitted bar (UI hides numbers).
+    const showBar = !!a && !gate.locked && (picked != null || hasAttemptEvidence);
 
-    if (showBar && picked) {
+    if (showBar) {
       return {
         subject,
-        score: picked.score0to100,
+        score: picked?.score0to100 ?? 0,
         assessmentId: id,
         locked: false,
-        chartLevel: picked.chartLevel,
-        chartScoreIsBestFallback: picked.chartScoreIsBestFallback,
+        chartLevel: picked?.chartLevel ?? p.latest_attempt_level ?? null,
+        chartScoreIsBestFallback: picked?.chartScoreIsBestFallback ?? false,
       };
     }
     return {
