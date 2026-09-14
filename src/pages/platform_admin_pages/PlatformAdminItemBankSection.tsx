@@ -31,6 +31,7 @@ import {
   PlatformAdminFilterControl,
 } from './platformAdminComponents';
 import { PlatformAdminQuestionPerformanceCard } from './PlatformAdminExamQuestionCard';
+import { createTtlMemoryCache } from './platformAdminMemoryCache';
 
 /**
  * Subconstruct is hidden for now: on current AR banks it is the strand label
@@ -45,7 +46,6 @@ const FILTER_KEYS: OfficialItemBankFilterKey[] = [
   'family',
   'mechanic',
   'approved',
-  'is_new',
 ];
 
 const FILTER_LABELS: Record<OfficialItemBankFilterKey, string> = {
@@ -56,7 +56,6 @@ const FILTER_LABELS: Record<OfficialItemBankFilterKey, string> = {
   subconstruct: 'Subconstruct',
   mechanic: 'Mechanic',
   approved: 'Approval',
-  is_new: 'New',
 };
 
 const APPROVED_FILTER_LABELS: Record<string, string> = {
@@ -65,20 +64,46 @@ const APPROVED_FILTER_LABELS: Record<string, string> = {
   no: 'Not approved',
 };
 
-const NEW_FILTER_LABELS: Record<string, string> = {
-  all: 'All',
-  yes: 'Latest upload only',
-};
-
 const LEVELS = [1, 2, 3];
 const ALL_VALUE = 'all';
 const ITEM_BANK_PAGE_SIZE = 40;
+
+/** Survives route remounts (Question Reports ↔ Item Bank). */
+const itemBankSessionCache = createTtlMemoryCache<OfficialExamItemBank>({
+  maxEntries: 12,
+  defaultTtlMs: 10 * 60 * 1000,
+});
+const examSummariesSessionCache = createTtlMemoryCache<OfficialExamSummaryRow[]>({
+  maxEntries: 4,
+  defaultTtlMs: 10 * 60 * 1000,
+});
+const EXAM_SUMMARIES_CACHE_KEY = 'official-exam-summaries';
 
 type ItemBankKind = 'official' | 'practice';
 
 function readBankKind(raw: string | undefined): ItemBankKind {
   if (raw === 'practice') return 'practice';
   return 'official';
+}
+
+function itemBankCacheKey(
+  bankKind: ItemBankKind,
+  examId: string,
+  level: number,
+  filters: OfficialItemBankFilters
+): string {
+  const filterPart = FILTER_KEYS.map((key) => `${key}=${filters[key] || ''}`).join('&');
+  return `${bankKind}|${examId}|${level}|${filterPart}`;
+}
+
+function bankMatchesRequest(
+  bank: OfficialExamItemBank | null,
+  examId: string,
+  level: number,
+  filters: OfficialItemBankFilters
+): boolean {
+  if (!bank || bank.exam_id !== examId || bank.level !== level) return false;
+  return filtersEqual(bank.filters || {}, filters);
 }
 
 function ItemBankVirtualList({
@@ -208,13 +233,6 @@ export function PlatformAdminItemBankSection({
   const navigate = useNavigate();
   const { bank: bankParam } = useParams<{ bank?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [summaries, setSummaries] = useState<OfficialExamSummaryRow[]>([]);
-  const [bank, setBank] = useState<OfficialExamItemBank | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [summariesLoading, setSummariesLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const reqRef = useRef(0);
-  const appliedRefreshRef = useRef(0);
 
   const bankKind = readBankKind(bankParam);
   const examId = searchParams.get('exam') || '';
@@ -223,6 +241,38 @@ export function PlatformAdminItemBankSection({
   const taxonomyParamKey = FILTER_KEYS.map((key) => `${key}:${searchParams.get(key) || ''}`).join('|');
   const filters = useMemo(() => readFilters(searchParams), [taxonomyParamKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const itemIdQuery = searchParams.get('item_id') || '';
+  const bankCacheKey = useMemo(
+    () => (examId ? itemBankCacheKey(bankKind, examId, level, filters) : ''),
+    [bankKind, examId, level, filters]
+  );
+
+  const [summaries, setSummaries] = useState<OfficialExamSummaryRow[]>(
+    () => examSummariesSessionCache.get(EXAM_SUMMARIES_CACHE_KEY) ?? []
+  );
+  const [bank, setBank] = useState<OfficialExamItemBank | null>(() => {
+    const kind = readBankKind(bankParam);
+    const exam = searchParams.get('exam') || '';
+    if (!exam) return null;
+    const lvlRaw = Number(searchParams.get('level'));
+    const lvl = Number.isFinite(lvlRaw) && lvlRaw > 0 ? Math.floor(lvlRaw) : 1;
+    return itemBankSessionCache.get(itemBankCacheKey(kind, exam, lvl, readFilters(searchParams)));
+  });
+  const [loading, setLoading] = useState(() => {
+    const exam = searchParams.get('exam') || '';
+    if (!exam) return false;
+    const kind = readBankKind(bankParam);
+    const lvlRaw = Number(searchParams.get('level'));
+    const lvl = Number.isFinite(lvlRaw) && lvlRaw > 0 ? Math.floor(lvlRaw) : 1;
+    return !itemBankSessionCache.get(itemBankCacheKey(kind, exam, lvl, readFilters(searchParams)));
+  });
+  const [summariesLoading, setSummariesLoading] = useState(
+    () => !examSummariesSessionCache.get(EXAM_SUMMARIES_CACHE_KEY)
+  );
+  const [error, setError] = useState<string | null>(null);
+  const reqRef = useRef(0);
+  const appliedRefreshRef = useRef(0);
+  const bankCacheKeyRef = useRef(bankCacheKey);
+  bankCacheKeyRef.current = bankCacheKey;
 
   const setQuery = useCallback(
     (patch: {
@@ -259,13 +309,35 @@ export function PlatformAdminItemBankSection({
     }
   }, [bankParam, navigate, searchParams]);
 
+  // Drop legacy `is_new` URL param (removed filter; Approval is enough).
+  useEffect(() => {
+    if (!searchParams.has('is_new')) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete('is_new');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
+
   useEffect(() => {
     let cancelled = false;
     const refresh = refreshNonce > appliedRefreshRef.current;
+    if (!refresh) {
+      const cached = examSummariesSessionCache.get(EXAM_SUMMARIES_CACHE_KEY);
+      if (cached) {
+        setSummaries(cached);
+        setSummariesLoading(false);
+        if (!examId && cached[0]?.exam_id) {
+          setQuery({ exam: cached[0].exam_id, level, filters });
+        }
+        return () => {
+          cancelled = true;
+        };
+      }
+    }
     setSummariesLoading(true);
     void getPlatformAdminOfficialExamSummaries({ refresh })
       .then((data) => {
         if (cancelled) return;
+        examSummariesSessionCache.set(EXAM_SUMMARIES_CACHE_KEY, data.exams);
         setSummaries(data.exams);
         if (!examId && data.exams[0]?.exam_id) {
           setQuery({ exam: data.exams[0].exam_id, level, filters });
@@ -292,17 +364,35 @@ export function PlatformAdminItemBankSection({
   }, [examId, summaries, level, filters, setQuery]);
 
   useEffect(() => {
-    if (!examId) {
+    if (!examId || !bankCacheKey) {
       setBank(null);
       return;
     }
     const req = ++reqRef.current;
-    setLoading(true);
-    setBank(null);
-    setError(null);
-    onLoadingChange?.(true);
     const refresh = refreshNonce > appliedRefreshRef.current;
     appliedRefreshRef.current = refreshNonce;
+
+    if (!refresh) {
+      const cached = itemBankSessionCache.get(bankCacheKey);
+      if (cached) {
+        setBank(cached);
+        setLoading(false);
+        setError(null);
+        onLoadingChange?.(false);
+        return;
+      }
+    } else {
+      itemBankSessionCache.delete(bankCacheKey);
+    }
+
+    setError(null);
+    // Keep current questions visible when they already match this request.
+    setBank((prev) => {
+      if (bankMatchesRequest(prev, examId, level, filters)) return prev;
+      return null;
+    });
+    setLoading(true);
+    onLoadingChange?.(true);
 
     const load =
       bankKind === 'practice'
@@ -315,6 +405,7 @@ export function PlatformAdminItemBankSection({
     })
       .then((data) => {
         if (req !== reqRef.current) return;
+        itemBankSessionCache.set(bankCacheKey, data);
         setBank(data);
       })
       .catch((e: unknown) => {
@@ -334,7 +425,14 @@ export function PlatformAdminItemBankSection({
         setLoading(false);
         onLoadingChange?.(false);
       });
-  }, [bankKind, examId, level, filters, refreshNonce, onLoadingChange]);
+  }, [bankKind, examId, level, filters, bankCacheKey, refreshNonce, onLoadingChange]);
+
+  // Write-through so Approve / edit / delete survive remount.
+  useEffect(() => {
+    if (!bank || !bankCacheKeyRef.current) return;
+    if (bank.exam_id !== examId || bank.level !== level) return;
+    itemBankSessionCache.set(bankCacheKeyRef.current, bank);
+  }, [bank, examId, level]);
 
   const selectedExam = summaries.find((e) => e.exam_id === examId) ?? null;
   const facets = bank?.facets;
@@ -357,9 +455,7 @@ export function PlatformAdminItemBankSection({
     const labels: Record<string, string> =
       key === 'approved'
         ? { [ALL_VALUE]: APPROVED_FILTER_LABELS.all }
-        : key === 'is_new'
-          ? { [ALL_VALUE]: NEW_FILTER_LABELS.all }
-          : { [ALL_VALUE]: `All ${FILTER_LABELS[key].toLowerCase()}` };
+        : { [ALL_VALUE]: `All ${FILTER_LABELS[key].toLowerCase()}` };
     if (key === 'approved') {
       const counts = Object.fromEntries(options.map((row) => [row.key, row.count]));
       for (const approvedKey of ['yes', 'no'] as const) {
@@ -369,11 +465,6 @@ export function PlatformAdminItemBankSection({
             ? `${APPROVED_FILTER_LABELS[approvedKey]} (${count})`
             : APPROVED_FILTER_LABELS[approvedKey];
       }
-    } else if (key === 'is_new') {
-      const counts = Object.fromEntries(options.map((row) => [row.key, row.count]));
-      const count = counts.yes;
-      labels.yes =
-        count != null ? `${NEW_FILTER_LABELS.yes} (${count})` : NEW_FILTER_LABELS.yes;
     } else {
       for (const row of options) {
         labels[row.key] = `${row.label} (${row.count})`;
@@ -389,7 +480,7 @@ export function PlatformAdminItemBankSection({
         labels={labels}
         value={current || ALL_VALUE}
         fullWidth
-        minWidth={key === 'strand' ? 380 : key === 'instruction_family' ? 240 : key === 'is_new' ? 220 : 160}
+        minWidth={key === 'strand' ? 380 : key === 'instruction_family' ? 240 : 160}
         onChange={(value) => {
           const next = { ...filters };
           if (value === ALL_VALUE) delete next[key];

@@ -129,7 +129,7 @@ const AssessmentDetailPage: React.FC = () => {
     [assessmentTypes, assessmentId]
   );
   const tierConfig = useMemo(
-    () => (levelBased ? assessment?.tiers.find((t) => t.tier_number === tier) : undefined),
+    () => (levelBased ? assessment?.tiers?.find((t) => t.tier_number === tier) : undefined),
     [assessment, levelBased, tier]
   );
 

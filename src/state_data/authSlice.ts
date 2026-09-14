@@ -30,7 +30,7 @@ const initialState: AuthState = {
 
 export const checkUserRole = createAsyncThunk(
     'auth/checkUserRole',
-    async (email: string, { getState }) => {
+    async (email: string, { getState, rejectWithValue }) => {
         try {
             const state = getState() as { auth?: AuthState };
             const preferredSchoolId = state.auth?.schoolAdmin?.schoolId;
@@ -54,8 +54,10 @@ export const checkUserRole = createAsyncThunk(
             }
             return { role: 'student' as const, schoolAdmin: null };
         } catch (error) {
-            // Default to student if there's an error
-            return { role: 'student' as const, schoolAdmin: null };
+            // Do not fail open to student — transient API errors must not demote school admins.
+            const message =
+              error instanceof Error ? error.message : 'Failed to check user role';
+            return rejectWithValue(message);
         }
     }
 );
@@ -104,9 +106,12 @@ const authSlice = createSlice({
             })
             .addCase(checkUserRole.rejected, (state, action) => {
                 state.loading = false;
-                state.error = action.error.message || 'Failed to check user role';
-                // Default to student role on error
-                state.role = 'student';
+                state.error =
+                  (typeof action.payload === 'string' && action.payload) ||
+                  action.error.message ||
+                  'Failed to check user role';
+                // Leave role unknown — callers must not treat this as a confirmed student.
+                state.role = null;
                 state.schoolAdmin = null;
             });
     },

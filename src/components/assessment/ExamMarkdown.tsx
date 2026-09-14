@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { cleanLearnerFacingExamMarkup } from './cleanLearnerFacingExamMarkup';
 import { resolveExamFigureSrc } from './examFigureSrc';
+import { useExamFigureImageLoad } from './useExamFigureImageLoad';
 import { ExamMathText } from './ExamMathText';
 import { useExamMathTypeset } from './useExamMathTypeset';
 
@@ -101,26 +102,8 @@ const MarkdownImage: React.FC<{
   maxFigureHeight,
 }) => {
   const resolvedSrc = src ? resolveExamFigureSrc(src) : '';
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(
-    resolvedSrc ? 'loading' : 'error'
-  );
-
-  // Remount/retry when the resolved URL changes (e.g. bank path rewrite or
-  // cache refresh). Without this, a prior 404 sticks on the alt-text state
-  // forever because the <img> is unmounted once status === 'error'.
-  useEffect(() => {
-    setStatus(resolvedSrc ? 'loading' : 'error');
-  }, [resolvedSrc]);
-
-  // Cached images often fire load before React attaches onLoad, leaving the
-  // stem figure stuck on the empty bordered placeholder forever. Option tiles
-  // use a different img path without this gate, so only stems looked "missing".
-  const markReadyIfComplete = (el: HTMLImageElement | null) => {
-    if (!el || !resolvedSrc) return;
-    if (el.complete && el.naturalWidth > 0) {
-      setStatus('ready');
-    }
-  };
+  const { status, displaySrc, isRetrying, onLoad, onError, markReadyIfComplete } =
+    useExamFigureImageLoad(resolvedSrc);
 
   return (
     <Box
@@ -145,11 +128,18 @@ const MarkdownImage: React.FC<{
             position: 'absolute',
             inset: 0,
             display: 'flex',
+            flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
+            gap: 0.5,
           }}
         >
           <CircularProgress size={22} sx={{ color: '#10408b' }} />
+          {isRetrying ? (
+            <Typography component="span" variant="caption" sx={{ color: '#64748b' }}>
+              Retrying…
+            </Typography>
+          ) : null}
         </Box>
       ) : null}
       {status === 'error' ? (
@@ -157,15 +147,15 @@ const MarkdownImage: React.FC<{
           {alt || 'Image failed to load'}
         </Typography>
       ) : null}
-      {resolvedSrc ? (
+      {displaySrc ? (
         <Box
-          key={resolvedSrc}
+          key={displaySrc}
           component="img"
-          src={resolvedSrc}
+          src={displaySrc}
           alt={alt ?? ''}
           ref={markReadyIfComplete}
-          onLoad={() => setStatus('ready')}
-          onError={() => setStatus('error')}
+          onLoad={onLoad}
+          onError={onError}
           sx={{
             // Keep the img in layout even while loading so cached-load races
             // still occupy space; hide only once we know it failed.

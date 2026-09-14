@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Alert,
   Box,
@@ -52,9 +53,27 @@ import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import { MathJaxContext } from 'better-react-mathjax';
 import { EXAM_MATHJAX_CONFIG } from '../../components/assessment/examMathJaxConfig';
 import { AdminExamQuestionBody } from './PlatformAdminExamQuestionCard';
+import { createTtlMemoryCache } from './platformAdminMemoryCache';
 
 type SourceFilter = 'all' | 'official' | 'practice';
 type StatusFilter = 'open' | 'archived';
+
+type QuestionReportsCachePayload = {
+  reports: PlatformAdminQuestionProblemReport[];
+  official_count: number;
+  practice_count: number;
+  open_count: number;
+  archived_count: number;
+};
+
+const questionReportsSessionCache = createTtlMemoryCache<QuestionReportsCachePayload>({
+  maxEntries: 8,
+  defaultTtlMs: 5 * 60 * 1000,
+});
+
+function questionReportsCacheKey(source: SourceFilter, status: StatusFilter): string {
+  return `${source}|${status}`;
+}
 
 const toggleGroupSx = {
   bgcolor: '#fff',
@@ -103,15 +122,63 @@ function ReportedQuestionBody({ item }: { item: PlatformAdminQuestionProblemRepo
   );
 }
 
+function reportStudentMetaLine(row: {
+  reported_at: string | null;
+  reporter_name: string;
+  reporter_email: string;
+  school_name: string | null;
+}): string {
+  const parts = [
+    formatDateTime(row.reported_at),
+    `${row.reporter_name || 'Unknown'}${row.reporter_email ? ` (${row.reporter_email})` : ''}`,
+    row.school_name || null,
+  ].filter(Boolean);
+  return parts.join(' · ');
+}
+
+function itemBankPathForReport(row: {
+  source: 'official' | 'practice';
+  exam_id: string;
+  tier_or_level: number | string | null;
+  item_id: string;
+}): string | null {
+  const examId = row.exam_id?.trim();
+  const itemId = row.item_id?.trim();
+  if (!examId || !itemId) return null;
+  const level =
+    row.tier_or_level == null || row.tier_or_level === ''
+      ? '1'
+      : String(row.tier_or_level);
+  const params = new URLSearchParams();
+  params.set('exam', examId);
+  params.set('level', level);
+  params.set('item_id', itemId);
+  const bank = row.source === 'practice' ? 'practice' : 'official';
+  return `/platform-admin/item-bank/${bank}?${params.toString()}`;
+}
+
 const PlatformAdminQuestionReportsPage: React.FC = () => {
-  const [reports, setReports] = useState<PlatformAdminQuestionProblemReport[]>([]);
-  const [officialCount, setOfficialCount] = useState(0);
-  const [practiceCount, setPracticeCount] = useState(0);
-  const [openCount, setOpenCount] = useState(0);
-  const [archivedCount, setArchivedCount] = useState(0);
+  const navigate = useNavigate();
   const [source, setSource] = useState<SourceFilter>('all');
   const [status, setStatus] = useState<StatusFilter>('open');
-  const [loading, setLoading] = useState(true);
+  const [reports, setReports] = useState<PlatformAdminQuestionProblemReport[]>(() => {
+    return questionReportsSessionCache.get(questionReportsCacheKey('all', 'open'))?.reports ?? [];
+  });
+  const [officialCount, setOfficialCount] = useState(
+    () => questionReportsSessionCache.get(questionReportsCacheKey('all', 'open'))?.official_count ?? 0
+  );
+  const [practiceCount, setPracticeCount] = useState(
+    () => questionReportsSessionCache.get(questionReportsCacheKey('all', 'open'))?.practice_count ?? 0
+  );
+  const [openCount, setOpenCount] = useState(
+    () => questionReportsSessionCache.get(questionReportsCacheKey('all', 'open'))?.open_count ?? 0
+  );
+  const [archivedCount, setArchivedCount] = useState(
+    () => questionReportsSessionCache.get(questionReportsCacheKey('all', 'open'))?.archived_count ?? 0
+  );
+  const [loading, setLoading] = useState(
+    () => !questionReportsSessionCache.get(questionReportsCacheKey('all', 'open'))
+  );
   const [error, setError] = useState<string | null>(null);
 
   const [selectedReport, setSelectedReport] = useState<PlatformAdminQuestionProblemReport | null>(null);
@@ -124,16 +191,39 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
     row: PlatformAdminQuestionProblemReport;
   } | null>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (opts?: { force?: boolean }) => {
+    const key = questionReportsCacheKey(source, status);
+    if (!opts?.force) {
+      const cached = questionReportsSessionCache.get(key);
+      if (cached) {
+        setReports(cached.reports);
+        setOfficialCount(cached.official_count);
+        setPracticeCount(cached.practice_count);
+        setOpenCount(cached.open_count);
+        setArchivedCount(cached.archived_count);
+        setLoading(false);
+        setError(null);
+        return;
+      }
+    }
     setLoading(true);
     setError(null);
+    setReports([]);
     try {
       const data = await listPlatformAdminQuestionProblemReports({ limit: 300, source, status });
-      setReports(data.reports);
-      setOfficialCount(data.official_count);
-      setPracticeCount(data.practice_count);
-      setOpenCount(data.open_count);
-      setArchivedCount(data.archived_count);
+      const payload: QuestionReportsCachePayload = {
+        reports: data.reports,
+        official_count: data.official_count,
+        practice_count: data.practice_count,
+        open_count: data.open_count,
+        archived_count: data.archived_count,
+      };
+      questionReportsSessionCache.set(key, payload);
+      setReports(payload.reports);
+      setOfficialCount(payload.official_count);
+      setPracticeCount(payload.practice_count);
+      setOpenCount(payload.open_count);
+      setArchivedCount(payload.archived_count);
     } catch (e) {
       console.error(e);
       setError('Could not load question reports. Try again.');
@@ -175,6 +265,24 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
     setItemLoading(false);
   }, []);
 
+  const itemBankPath = useMemo(() => {
+    if (itemDetail) {
+      return itemBankPathForReport({
+        source: itemDetail.source,
+        exam_id: itemDetail.exam_id,
+        tier_or_level: itemDetail.tier_or_level,
+        item_id: itemDetail.item_id,
+      });
+    }
+    return selectedReport ? itemBankPathForReport(selectedReport) : null;
+  }, [itemDetail, selectedReport]);
+
+  const goToItemBank = useCallback(() => {
+    if (!itemBankPath) return;
+    closeReport();
+    navigate(itemBankPath);
+  }, [closeReport, itemBankPath, navigate]);
+
   const applyArchiveChange = useCallback(
     async (row: PlatformAdminQuestionProblemReport, archived: boolean) => {
       setActionBusyId(row.id);
@@ -183,7 +291,8 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
         await setPlatformAdminQuestionProblemReportArchived({ reportId: row.id, archived });
         if (selectedReport?.id === row.id) closeReport();
         setConfirmAction(null);
-        await load();
+        questionReportsSessionCache.clear();
+        await load({ force: true });
       } catch (e) {
         console.error(e);
         setError(archived ? 'Could not archive this report.' : 'Could not restore this report.');
@@ -202,7 +311,8 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
         await deletePlatformAdminQuestionProblemReport(row.id);
         if (selectedReport?.id === row.id) closeReport();
         setConfirmAction(null);
-        await load();
+        questionReportsSessionCache.clear();
+        await load({ force: true });
       } catch (e) {
         console.error(e);
         setError('Could not delete this report.');
@@ -232,7 +342,7 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
         action={
           <Button
             startIcon={<RefreshIcon />}
-            onClick={() => void load()}
+            onClick={() => void load({ force: true })}
             disabled={loading}
             sx={platformAdminPrimaryButtonSx}
           >
@@ -521,50 +631,40 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
         <DialogContent sx={{ px: 3, pt: 1, pb: 2 }}>
           {selectedReport ? (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Box
-                sx={{
-                  p: 1.75,
-                  borderRadius: 1.5,
-                  border: `1px solid ${ip.cardBorder}`,
-                  bgcolor: '#f8fafc',
-                }}
-              >
-                <Typography sx={{ fontWeight: 800, color: ip.heading, fontSize: 14, mb: 0.75 }}>
-                  Student report
-                </Typography>
-                <Typography
-                  sx={{
-                    fontSize: 14,
-                    color: '#334155',
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word',
-                    mb: 1.25,
-                  }}
-                >
-                  {selectedReport.text || '-'}
-                </Typography>
-                <Typography sx={{ fontSize: 12.5, color: '#64748b', lineHeight: 1.55 }}>
-                  {formatDateTime(selectedReport.reported_at)}
-                  {' · '}
-                  {selectedReport.reporter_name || 'Unknown'}
-                  {selectedReport.reporter_email ? ` (${selectedReport.reporter_email})` : ''}
-                  {selectedReport.school_name ? ` · ${selectedReport.school_name}` : ''}
-                  {' · '}
-                  {selectedReport.exam_title || selectedReport.exam_id}
-                  {` · ${selectedReport.source === 'official' ? 'Level' : 'Practice level'} ${
-                    selectedReport.tier_or_level ?? '-'
-                  }`}
-                  {selectedReport.item_id ? ` · ${selectedReport.item_id}` : ''}
-                </Typography>
-              </Box>
-
               {itemLoading ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}>
                   <CircularProgress size={34} sx={{ color: ip.navy }} />
                 </Box>
               ) : null}
 
-              {itemError ? <Alert severity="error">{itemError}</Alert> : null}
+              {itemError ? (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+                  <Alert severity="error">{itemError}</Alert>
+                  <Box
+                    sx={{
+                      px: 1.25,
+                      py: 0.85,
+                      borderRadius: 1,
+                      bgcolor: '#fff7ed',
+                      border: '1px solid #fed7aa',
+                    }}
+                  >
+                    <Typography
+                      sx={{
+                        fontSize: 13,
+                        color: '#475569',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
+                      }}
+                    >
+                      {selectedReport.text || '-'}
+                    </Typography>
+                    <Typography sx={{ fontSize: 12, color: '#64748b', lineHeight: 1.5, mt: 0.65 }}>
+                      {reportStudentMetaLine(selectedReport)}
+                    </Typography>
+                  </Box>
+                </Box>
+              ) : null}
 
               {itemDetail ? (
                 <Box>
@@ -572,7 +672,11 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
                     Question
                   </Typography>
                   <Typography sx={{ color: '#475569', fontSize: 12, mb: 1, fontFamily: 'monospace' }}>
-                    {itemDetail.item_id}
+                    {itemDetail.exam_title || itemDetail.exam_id}
+                    {` · ${itemDetail.source === 'official' ? 'Level' : 'Practice level'} ${
+                      itemDetail.tier_or_level || '-'
+                    }`}
+                    {` · ${itemDetail.item_id}`}
                     {itemDetail.family || itemDetail.subconstruct || itemDetail.mechanic_class_derived
                       ? ` · ${[
                           itemDetail.family,
@@ -625,30 +729,70 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
                     </Box>
                   ) : null}
 
-                  {itemDetail.problem_report_texts.length > 0 ? (
+                  {(itemDetail.problem_reports?.length ?? 0) > 0 ||
+                  itemDetail.problem_report_texts.length > 0 ? (
                     <Box>
                       <Typography sx={{ fontWeight: 700, color: ip.heading, fontSize: 13, mb: 0.5 }}>
-                        All reports on this item ({itemDetail.problem_report_count})
+                        All reports on this item (
+                        {itemDetail.problem_reports?.length
+                          ? itemDetail.problem_reports.length
+                          : itemDetail.problem_report_count}
+                        )
                       </Typography>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-                        {itemDetail.problem_report_texts.map((text, idx) => (
-                          <Typography
-                            key={`${itemDetail.item_id}-rpt-${idx}`}
-                            sx={{
-                              fontSize: 13,
-                              color: '#475569',
-                              whiteSpace: 'pre-wrap',
-                              wordBreak: 'break-word',
-                              px: 1.25,
-                              py: 0.85,
-                              borderRadius: 1,
-                              bgcolor: '#fff7ed',
-                              border: '1px solid #fed7aa',
-                            }}
-                          >
-                            {text}
-                          </Typography>
-                        ))}
+                        {(itemDetail.problem_reports?.length
+                          ? itemDetail.problem_reports
+                          : itemDetail.problem_report_texts.map((text) => ({
+                              id: text,
+                              text,
+                              reported_at: null as string | null,
+                              reporter_name: '',
+                              reporter_email: '',
+                              school_name: null as string | null,
+                              exam_title: itemDetail.exam_title,
+                              exam_id: itemDetail.exam_id,
+                              source: itemDetail.source,
+                              tier_or_level: itemDetail.tier_or_level,
+                              item_id: itemDetail.item_id,
+                            }))
+                        ).map((row) => {
+                          const isSelected =
+                            selectedReport &&
+                            'id' in row &&
+                            typeof row.id === 'string' &&
+                            row.id === selectedReport.id;
+                          const hasMeta = Boolean(row.reporter_name || row.reporter_email || row.reported_at);
+                          return (
+                            <Box
+                              key={`${itemDetail.item_id}-rpt-${row.id}`}
+                              sx={{
+                                px: 1.25,
+                                py: 0.85,
+                                borderRadius: 1,
+                                bgcolor: isSelected ? '#ffedd5' : '#fff7ed',
+                                border: `1px solid ${isSelected ? '#fb923c' : '#fed7aa'}`,
+                              }}
+                            >
+                              <Typography
+                                sx={{
+                                  fontSize: 13,
+                                  color: '#475569',
+                                  whiteSpace: 'pre-wrap',
+                                  wordBreak: 'break-word',
+                                }}
+                              >
+                                {row.text || '-'}
+                              </Typography>
+                              {hasMeta ? (
+                                <Typography
+                                  sx={{ fontSize: 12, color: '#64748b', lineHeight: 1.5, mt: 0.65 }}
+                                >
+                                  {reportStudentMetaLine(row)}
+                                </Typography>
+                              ) : null}
+                            </Box>
+                          );
+                        })}
                       </Box>
                     </Box>
                   ) : null}
@@ -686,9 +830,16 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
               </Button>
             ) : null}
           </Box>
-          <Button onClick={closeReport} sx={platformAdminTextButtonSx}>
-            Close
-          </Button>
+          <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+            {itemBankPath ? (
+              <Button onClick={goToItemBank} sx={platformAdminTextButtonSx}>
+                Go to question
+              </Button>
+            ) : null}
+            <Button onClick={closeReport} sx={platformAdminTextButtonSx}>
+              Close
+            </Button>
+          </Box>
         </DialogActions>
       </Dialog>
 

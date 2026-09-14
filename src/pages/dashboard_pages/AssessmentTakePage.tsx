@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef, Suspense } from 'react';
 import { lazyWithRetry as lazy } from '../../utils/lazyWithRetry';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -314,7 +314,10 @@ export default function AssessmentTakePage() {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
+  /** Fatal start/init failures — replaces the exam shell with Back. */
   const [error, setError] = useState<string | null>(null);
+  /** Mid-exam Next/submit failures — keep the question on screen so students can retry. */
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
@@ -602,7 +605,9 @@ export default function AssessmentTakePage() {
       setSecondsLeft((s) => (s === null ? s : Math.max(0, s - 1)));
     }, 1000);
     return () => clearInterval(id);
-  }, [secondsLeft, stage]);
+    // Depend only on stage / whether a timer is active — not the tick value itself.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- secondsLeft intentionally omitted
+  }, [stage, secondsLeft === null, secondsLeft !== null && secondsLeft > 0]);
 
   useEffect(() => {
     if (stage !== 'taking' || !flow.useTimer || secondsLeft !== 0 || !attemptId || isSubmitting) return;
@@ -727,6 +732,7 @@ export default function AssessmentTakePage() {
 
     const timeSpentMs = Date.now() - questionStartTimeRef.current;
     setIsSubmitting(true);
+    setSubmitError(null);
 
     try {
       const response = await recordAnswer(
@@ -745,15 +751,15 @@ export default function AssessmentTakePage() {
       }
 
       if (!response.next_question) {
-        setError(
+        setSubmitError(
           response.already_recorded
-            ? 'Your answer was saved, but the next question could not be loaded. Tap Next again - do not refresh.'
-            : 'Could not load the next question. Please go back and start again if this persists.'
+            ? 'Your answer was saved, but the next question could not be loaded. Tap Next again — do not refresh.'
+            : 'Could not load the next question. Tap Next again — do not refresh.'
         );
         return;
       }
 
-      setError(null);
+      setSubmitError(null);
 
       setSelectedOption(null);
       setCurrentQuestion(response.next_question);
@@ -771,19 +777,19 @@ export default function AssessmentTakePage() {
         return;
       }
       if (err?.code === 'ECONNABORTED' || /timeout/i.test(String(err?.message ?? ''))) {
-        setError(
-          'Submitting timed out while loading the next set (often after question 24). Your answer may already be saved - tap Next again. Do not refresh.'
+        setSubmitError(
+          'Submitting timed out while loading the next set (often after question 24). Your answer may already be saved — tap Next again. Do not refresh.'
         );
         return;
       }
       if (err?.response?.data?.code === 'section_inventory_timeout' || err?.response?.status === 503) {
-        setError(
+        setSubmitError(
           err?.response?.data?.error ??
-            'Could not load the next section. Wait a moment and tap Next again - avoid refreshing.'
+            'Could not load the next section. Wait a moment and tap Next again — avoid refreshing.'
         );
         return;
       }
-      setError('Failed to submit answer. Please check your connection and try again.');
+      setSubmitError('Failed to submit answer. Check your connection and tap Next again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -818,8 +824,7 @@ export default function AssessmentTakePage() {
   );
 
   if (!assessmentId) {
-    navigate('/assessments');
-    return null;
+    return <Navigate to="/assessments" replace />;
   }
 
   if (studentLoading) {
@@ -1040,6 +1045,16 @@ export default function AssessmentTakePage() {
       {showOfflineBar && (
         <Alert severity="warning" sx={{ flexShrink: 0, borderRadius: 0 }} onClose={() => setShowOfflineBar(false)}>
           You appear to be offline. Stay on this page to keep your attempt.
+        </Alert>
+      )}
+
+      {submitError && (
+        <Alert
+          severity="error"
+          sx={{ flexShrink: 0, borderRadius: 0 }}
+          onClose={() => setSubmitError(null)}
+        >
+          {submitError}
         </Alert>
       )}
 

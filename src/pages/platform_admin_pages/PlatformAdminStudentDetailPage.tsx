@@ -453,17 +453,9 @@ const PlatformAdminStudentDetailPage: React.FC = () => {
             <DetailRow label="Heard from" value={student.heard_from || ' - '} />
             <DetailRow label="Joined" value={formatDate(student.created_at)} />
             <DetailRow label="Updated" value={formatDate(student.updated_at)} />
-          </CardContent>
-        </Card>
-
-        <Card sx={platformAdminCardSx}>
-          <CardContent>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: ip.heading, mb: 2 }}>
-              Parent / guardian
-            </Typography>
-            <DetailRow label="Name" value={student.parent_name || ' - '} />
-            <DetailRow label="Email" value={student.parent_email || ' - '} />
-            <DetailRow label="Phone" value={student.parent_phone || ' - '} />
+            <DetailRow label="Parent / guardian" value={student.parent_name || ' - '} />
+            <DetailRow label="Parent email" value={student.parent_email || ' - '} />
+            <DetailRow label="Parent phone" value={student.parent_phone || ' - '} />
           </CardContent>
         </Card>
 

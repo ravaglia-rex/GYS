@@ -826,20 +826,32 @@ export function PlatformAdminQuestionPerformanceCard({
               variant="contained"
               disabled={approving}
               onClick={() => void handleApprovalToggle()}
+              startIcon={
+                approving ? (
+                  <CircularProgress size={14} thickness={5} sx={{ color: 'inherit' }} />
+                ) : undefined
+              }
               sx={{
                 textTransform: 'none',
                 fontWeight: 700,
+                minWidth: 118,
                 bgcolor: authorized ? '#b91c1c' : ip.navy,
+                color: '#fff',
                 '&:hover': { bgcolor: authorized ? '#991b1b' : ip.navy },
+                '&.Mui-disabled': {
+                  bgcolor: authorized ? '#b91c1c' : ip.navy,
+                  color: '#fff',
+                  opacity: 0.85,
+                },
               }}
             >
-              {approving ? (
-                <CircularProgress size={16} sx={{ color: '#fff' }} />
-              ) : authorized ? (
-                'Unapprove'
-              ) : (
-                'Approve'
-              )}
+              {approving
+                ? authorized
+                  ? 'Unapproving…'
+                  : 'Approving…'
+                : authorized
+                  ? 'Unapprove'
+                  : 'Approve'}
             </Button>
           </Box>
         ) : null}
@@ -1160,9 +1172,25 @@ export function PlatformAdminQuestionPerformanceCard({
               variant="contained"
               disabled={saving}
               onClick={() => void handleSaveEdit()}
-              sx={{ textTransform: 'none', fontWeight: 700, bgcolor: ip.navy }}
+              startIcon={
+                saving ? (
+                  <CircularProgress size={14} thickness={5} sx={{ color: 'inherit' }} />
+                ) : undefined
+              }
+              sx={{
+                textTransform: 'none',
+                fontWeight: 700,
+                minWidth: 160,
+                bgcolor: ip.navy,
+                color: '#fff',
+                '&.Mui-disabled': {
+                  bgcolor: ip.navy,
+                  color: '#fff',
+                  opacity: 0.85,
+                },
+              }}
             >
-              {saving ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : 'Save to database'}
+              {saving ? 'Saving…' : 'Save to database'}
             </Button>
           ) : null}
         </DialogActions>
@@ -1214,14 +1242,26 @@ export function PlatformAdminQuestionPerformanceCard({
               variant="contained"
               disabled={deleting}
               onClick={() => void handleDelete()}
+              startIcon={
+                deleting ? (
+                  <CircularProgress size={14} thickness={5} sx={{ color: 'inherit' }} />
+                ) : undefined
+              }
               sx={{
                 textTransform: 'none',
                 fontWeight: 700,
+                minWidth: 168,
                 bgcolor: '#b91c1c',
+                color: '#fff',
                 '&:hover': { bgcolor: '#991b1b' },
+                '&.Mui-disabled': {
+                  bgcolor: '#b91c1c',
+                  color: '#fff',
+                  opacity: 0.85,
+                },
               }}
             >
-              {deleting ? <CircularProgress size={16} sx={{ color: '#fff' }} /> : 'Delete permanently'}
+              {deleting ? 'Deleting…' : 'Delete permanently'}
             </Button>
           ) : null}
         </DialogActions>

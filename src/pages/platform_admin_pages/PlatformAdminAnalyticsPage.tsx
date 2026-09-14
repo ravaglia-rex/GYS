@@ -25,11 +25,9 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import CorrectIcon from '@mui/icons-material/CheckCircleOutline';
 import PeopleIcon from '@mui/icons-material/PeopleOutline';
 import QuizIcon from '@mui/icons-material/Quiz';
-import FormatListNumberedIcon from '@mui/icons-material/FormatListNumbered';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
@@ -655,6 +653,46 @@ const examPickerTabsSx = {
 } as const;
 
 const PlatformAdminAnalyticsPageInner: React.FC = () => {
+  // Surfaces mixed-up / HMR-broken imports as a clear error instead of React's opaque
+  // "Element type is invalid … got: undefined".
+  if (process.env.NODE_ENV === 'development') {
+    const importChecks: Record<string, unknown> = {
+      PlatformAdminPageHeader,
+      PlatformAdminAnalyticsSection,
+      PlatformAdminStatCard,
+      PlatformAdminAccuracyChip,
+      PlatformAdminChip,
+      CorrectIcon,
+      PeopleIcon,
+      QuizIcon,
+      RefreshIcon,
+      TimelineIcon,
+      RouterLink,
+      ResponsiveContainer,
+      LineChart,
+      BarChart,
+      PieChart,
+      Pie,
+      Cell,
+      Bar,
+      Line,
+      Legend,
+      Tooltip,
+      XAxis,
+      YAxis,
+      CartesianGrid,
+      Paper,
+      LinearProgress,
+      Switch,
+    };
+    const missing = Object.entries(importChecks)
+      .filter(([, value]) => value == null)
+      .map(([name]) => name);
+    if (missing.length > 0) {
+      throw new Error(`PlatformAdminAnalyticsPage missing imports: ${missing.join(', ')}`);
+    }
+  }
+
   const navigate = useNavigate();
   const { section: sectionParam } = useParams<{ section?: string }>();
   const section: AnalyticsSection = isAnalyticsSection(sectionParam) ? sectionParam : 'official';
@@ -1451,7 +1489,7 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
   }, [qodDays]);
 
   const staleHint = (iso: string) =>
-    iso ? `Cached as of ${formatDateTime(iso)} · refreshes ~6 hours` : 'Cached · not realtime';
+    iso ? `Cached as of ${formatDateTime(iso)} · refreshes ~30 min` : 'Cached · not realtime';
 
   return (
     <Box
@@ -1547,7 +1585,6 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                     gridTemplateColumns: {
                       xs: '1fr 1fr',
                       sm: 'repeat(3, 1fr)',
-                      lg: 'repeat(5, 1fr)',
                     },
                   }}
                 >
@@ -1557,13 +1594,6 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                     icon={<CorrectIcon sx={{ color: '#059669' }} />}
                     accent="#059669"
                     onClick={() => openOfficialTab('completions')}
-                  />
-                  <PlatformAdminStatCard
-                    title="Students"
-                    value={officialTotals.students.toLocaleString()}
-                    icon={<PeopleIcon sx={{ color: '#0f766e' }} />}
-                    accent="#0f766e"
-                    onClick={() => openOfficialTab('grade-school')}
                   />
                   <PlatformAdminStatCard
                     title="Avg score"
@@ -1578,14 +1608,6 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                     icon={<QuizIcon sx={{ color: '#0d47a1' }} />}
                     accent="#0d47a1"
                     onClick={() => openOfficialTab('exam-snapshots')}
-                  />
-                  <PlatformAdminStatCard
-                    title="Avg questions"
-                    value={officialTotals.avgQuestions.toLocaleString()}
-                    subtitle="Answered per kid in the timed sit"
-                    icon={<FormatListNumberedIcon sx={{ color: '#6d28d9' }} />}
-                    accent="#6d28d9"
-                    onClick={() => openOfficialTab('completions')}
                   />
                 </Box>
                 <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.75 }}>
@@ -2660,7 +2682,13 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                                           label={row.passed ? 'Passed' : 'Not passed'}
                                           tone={row.passed ? 'success' : 'neutral'}
                                         />
-                                        <ArrowForwardIcon sx={{ fontSize: 16, color: ip.subtext }} />
+                                        <Typography
+                                          component="span"
+                                          sx={{ color: ip.subtext, fontSize: 14, lineHeight: 1 }}
+                                          aria-hidden
+                                        >
+                                          →
+                                        </Typography>
                                       </Box>
                                     </TableCell>
                                   </TableRow>

@@ -183,10 +183,32 @@ export default function PlatformAdminLayout({ children }: PlatformAdminLayoutPro
   const hasActiveChild = (item: NavItem): boolean =>
     item.children?.some((child) => isPathActive(child.path) || hasActiveChild(child)) ?? false;
 
+  /**
+   * Sibling nav under Item Bank keeps exam + level only (not item search /
+   * taxonomy filters — those must not leak Official ↔ Practice).
+   * Analytics siblings keep the full query string.
+   */
+  const searchForSiblingNav = (path: string): string => {
+    if (!location.search) return '';
+    if (path.startsWith('/platform-admin/item-bank/')) {
+      const params = new URLSearchParams(location.search);
+      const next = new URLSearchParams();
+      const exam = params.get('exam')?.trim();
+      const level = params.get('level')?.trim();
+      if (exam) next.set('exam', exam);
+      if (level) next.set('level', level);
+      const qs = next.toString();
+      return qs ? `?${qs}` : '';
+    }
+    if (path.startsWith('/platform-admin/analytics/')) {
+      return location.search;
+    }
+    return '';
+  };
+
   const go = (path: string, opts?: { keepSearch?: boolean }) => {
-    const target =
-      opts?.keepSearch && location.search ? `${path}${location.search}` : path;
-    navigate(target);
+    const kept = opts?.keepSearch ? searchForSiblingNav(path) : '';
+    navigate(kept ? `${path}${kept}` : path);
     setMobileOpen(false);
   };
 
@@ -194,7 +216,6 @@ export default function PlatformAdminLayout({ children }: PlatformAdminLayoutPro
     setOpenSubmenus((prev) => (prev[title] === open ? prev : { ...prev, [title]: open }));
   };
 
-  /** Sibling switches under Item Bank / Analytics should keep exam/level filters. */
   const shouldKeepSearchOnNav = (path: string) =>
     path.startsWith('/platform-admin/item-bank/') ||
     path.startsWith('/platform-admin/analytics/');

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Box } from '@mui/material';
+import { Box, CircularProgress, Typography } from '@mui/material';
 import {
   arOptionFigureSliceDisplaySize,
   layoutFromAspect,
@@ -18,6 +18,7 @@ import {
 } from './arOptionFigureModel';
 
 import { resolveExamFigureSrc } from './examFigureSrc';
+import { useExamFigureImageLoad } from './useExamFigureImageLoad';
 import { type ArFigureDisplaySizeInput } from './arFigureDisplaySize';
 import {
   sanitizeOptionFigureCrops,
@@ -247,6 +248,9 @@ export const ArOptionFigureSlice: React.FC<{
     layout
   );
   const imgSrc = resolveExamFigureSrc(figure.src);
+  const { status: imgStatus, displaySrc, isRetrying, onLoad, onError, markReadyIfComplete } =
+    useExamFigureImageLoad(imgSrc);
+
   // Cap at the authored display size, but always fill the parent when the
   // parent is narrower (2×2 option cells + caption padding). Fixed `width: Npx`
   // overflowed those cells and got clipped by page `overflowX: hidden`.
@@ -275,25 +279,74 @@ export const ArOptionFigureSlice: React.FC<{
           aspectRatio: `${boxWidth} / ${boxHeight}`,
           overflow: 'hidden',
           lineHeight: 0,
+          bgcolor: imgStatus === 'ready' ? 'transparent' : '#f8fafc',
+          border: imgStatus === 'ready' ? 'none' : `1px solid ${borderMuted}`,
+          borderRadius: 1,
         }}
       >
-        <Box
-          component="img"
-          src={imgSrc}
-          alt={figure.alt || `Option ${String.fromCharCode(65 + index)}`}
-          sx={{
-            position: 'absolute',
-            display: 'block',
-            width: `${10000 / wPct}%`,
-            height: 'auto',
-            maxWidth: 'none',
-            left: 0,
-            top: 0,
-            // translate % is relative to the image itself, so xPct/yPct map
-            // directly onto the source figure regardless of crop aspect.
-            transform: `translate(${-crop.xPct}%, ${-crop.yPct}%)`,
-          }}
-        />
+        {imgStatus === 'loading' ? (
+          <Box
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 0.5,
+              zIndex: 1,
+              px: 0.5,
+            }}
+          >
+            <CircularProgress size={18} sx={{ color: '#10408b' }} />
+            {isRetrying ? (
+              <Typography variant="caption" sx={{ color: '#64748b', lineHeight: 1.1, textAlign: 'center' }}>
+                Retrying…
+              </Typography>
+            ) : null}
+          </Box>
+        ) : null}
+        {imgStatus === 'error' ? (
+          <Box
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              px: 0.75,
+              zIndex: 1,
+            }}
+          >
+            <Typography variant="caption" sx={{ color: '#64748b', textAlign: 'center', lineHeight: 1.2 }}>
+              Image failed to load
+            </Typography>
+          </Box>
+        ) : null}
+        {displaySrc ? (
+          <Box
+            key={displaySrc}
+            component="img"
+            src={displaySrc}
+            alt={figure.alt || `Option ${String.fromCharCode(65 + index)}`}
+            ref={markReadyIfComplete}
+            onLoad={onLoad}
+            onError={onError}
+            sx={{
+              position: 'absolute',
+              display: imgStatus === 'error' ? 'none' : 'block',
+              visibility: imgStatus === 'ready' ? 'visible' : 'hidden',
+              width: `${10000 / wPct}%`,
+              height: 'auto',
+              maxWidth: 'none',
+              left: 0,
+              top: 0,
+              // translate % is relative to the image itself, so xPct/yPct map
+              // directly onto the source figure regardless of crop aspect.
+              transform: `translate(${-crop.xPct}%, ${-crop.yPct}%)`,
+            }}
+          />
+        ) : null}
       </Box>
     </Box>
   );

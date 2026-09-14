@@ -156,16 +156,6 @@ export function PlatformAdminItemScoreAnalyticsPanel({
                 ) : null}
               </Box>
 
-              {disc && (disc.low_n > 0 || disc.high_n > 0) ? (
-                <Typography sx={{ color: '#64748b', fontSize: 12 }}>
-                  Low band ({disc.low_label}): {formatPct(disc.low_accuracy_pct)} correct
-                  {disc.low_n ? ` · n=${disc.low_n}` : ''}
-                  {' · '}
-                  High band ({disc.high_label}): {formatPct(disc.high_accuracy_pct)} correct
-                  {disc.high_n ? ` · n=${disc.high_n}` : ''}
-                </Typography>
-              ) : null}
-
               <Box sx={{ overflowX: 'auto' }}>
                 <Table size="small" sx={{ minWidth: 420 }}>
                   <TableHead>

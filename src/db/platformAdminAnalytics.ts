@@ -1174,8 +1174,7 @@ export type OfficialItemBankFilterKey =
   | 'family'
   | 'subconstruct'
   | 'mechanic'
-  | 'approved'
-  | 'is_new';
+  | 'approved';
 
 export type OfficialItemBankFilters = Partial<Record<OfficialItemBankFilterKey, string>> & {
   item_id?: string;
@@ -1223,7 +1222,6 @@ function parseItemBankFacets(raw: unknown): OfficialItemBankFacets {
     subconstruct: parse('subconstruct'),
     mechanic: parse('mechanic'),
     approved: parse('approved'),
-    is_new: parse('is_new'),
   };
 }
 

@@ -3,7 +3,7 @@
  * Runtime may override stat values from AssessmentType tier config.
  */
 
-import { ASSESSMENT_NAMES, LEVEL_CLEAR_THRESHOLD_PERCENT } from '../utils/assessmentGating';
+import { ASSESSMENT_NAMES } from '../utils/assessmentGating';
 import { canonicalAssessmentId } from '../utils/assessmentIdCompat';
 
 export type AssessmentThemeMode = 'blue' | 'purple';
@@ -155,7 +155,7 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
     theme: 'blue',
     defaultQuestionInteraction: 'passage_mcq',
     useTimer: true,
-    adaptiveForwardOnly: false,
+    adaptiveForwardOnly: true,
   },
   mathematical_reasoning: {
     examOrdinal: 3,
@@ -337,18 +337,6 @@ export function getAssessmentFlowDefinition(assessmentId: string): AssessmentFlo
   return ASSESSMENT_FLOW_UI[id] ?? { ...DEFAULT_FLOW, examTitleShort: ASSESSMENT_NAMES[id] ?? 'Assessment' };
 }
 
-/** @deprecated Do not use for UI - invents a fake “percentile” from raw score. National percentiles come from the Monday pipeline. */
-export function estimatedPercentileFromScore(scorePercent: number): number {
-  return Math.min(99, Math.max(5, Math.round(12 + scorePercent * 0.82)));
-}
-
-/** @deprecated Do not use for UI - invents Gold/Silver/Bronze from raw score. Real achievement tiers come from the Monday national ranking. */
-export function performanceTierFromScore(scorePercent: number): { label: string; tone: 'gold' | 'silver' | 'bronze' } {
-  if (scorePercent >= LEVEL_CLEAR_THRESHOLD_PERCENT) return { label: 'Gold Tier', tone: 'gold' };
-  if (scorePercent >= 55) return { label: 'Silver Tier', tone: 'silver' };
-  return { label: 'Bronze Tier', tone: 'bronze' };
-}
-
 /**
  * Labels for items newly available after finishing this attempt.
  * Example after Analytical L1 pass: Analytical Reasoning Level 2, Verbal Reasoning Level 1.
@@ -377,16 +365,4 @@ export function unlockedItemsAfterAttempt(params: {
   }
 
   return items;
-}
-
-/** @deprecated Prefer {@link unlockedItemsAfterAttempt}. */
-export function unlockNoticeForAssessment(assessmentId: string, passed: boolean): string | null {
-  if (!passed) return null;
-  const items = unlockedItemsAfterAttempt({
-    assessmentId,
-    completedTier: 1,
-    passed: true,
-    nextTier: 2,
-  });
-  return items.length > 0 ? items.join('; ') : null;
 }

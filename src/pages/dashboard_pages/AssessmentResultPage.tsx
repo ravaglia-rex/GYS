@@ -1,5 +1,5 @@
 import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { Box, Typography, Button, Chip } from '@mui/material';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
@@ -43,8 +43,7 @@ const AssessmentResultPage: React.FC = () => {
   const state = location.state as ResultState | undefined;
 
   if (!state) {
-    navigate('/assessments', { replace: true });
-    return null;
+    return <Navigate to="/assessments" replace />;
   }
 
   const {

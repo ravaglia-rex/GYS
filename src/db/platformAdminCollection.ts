@@ -1262,6 +1262,17 @@ export type PlatformAdminQuestionProblemReportItem = {
   stimulus_type?: string | null;
   assets?: Array<{ path?: string; alt?: string }>;
   option_figure?: { src: string; alt?: string } | null;
+  display_mode?: 'figure_tiles' | 'letter_buttons' | 'text_options' | null;
+  stem_display_size?: 'small' | 'medium' | 'large' | 'normal' | null;
+  option_display_size?: 'small' | 'medium' | 'large' | 'normal' | null;
+  option_layout?: string | null;
+  option_crops?: {
+    layout: 'row' | 'stack' | 'grid';
+    naturalWidth: number;
+    naturalHeight: number;
+    slices: Array<{ xPct: number; yPct: number; wPct: number; hPct: number; kind: 'grid' | 'wide' }>;
+    stemSlice: { xPct: number; yPct: number; wPct: number; hPct: number; kind: 'grid' | 'wide' } | null;
+  } | null;
   options: Array<{ letter: string; text: string }>;
   correct_index: number | null;
   correct_letter: string | null;
@@ -1271,6 +1282,8 @@ export type PlatformAdminQuestionProblemReportItem = {
   mechanic_class_derived: string | null;
   problem_report_count: number;
   problem_report_texts: string[];
+  /** Ledger rows with student meta for each report on this item (preferred over texts-only). */
+  problem_reports?: PlatformAdminQuestionProblemReport[];
 };
 
 export async function getPlatformAdminQuestionProblemReportItem(opts: {

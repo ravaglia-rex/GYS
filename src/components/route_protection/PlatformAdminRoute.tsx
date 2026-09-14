@@ -23,33 +23,39 @@ const PlatformAdminRoute: React.FC<PlatformAdminRouteProps> = ({ children }) => 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (!firebaseUser) {
+        setLoading(false);
         navigate('/login?redirect=/platform-admin/schools');
         return;
       }
 
-      dispatch(
-        setUser({
-          uid: firebaseUser.uid,
-          email: firebaseUser.email || '',
-          displayName: firebaseUser.displayName || undefined,
-          photoURL: firebaseUser.photoURL || undefined,
-        })
-      );
+      try {
+        dispatch(
+          setUser({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            displayName: firebaseUser.displayName || undefined,
+            photoURL: firebaseUser.photoURL || undefined,
+          })
+        );
 
-      const token = await firebaseUser.getIdToken();
-      authTokenHandler.setAuthToken(token);
+        const token = await firebaseUser.getIdToken();
+        authTokenHandler.setAuthToken(token);
 
-      const me = await getPlatformAdminMe();
-      if (!me?.ok) {
+        const me = await getPlatformAdminMe();
+        if (!me?.ok) {
+          setForbidden(true);
+          return;
+        }
+
+        dispatch(setRole('platformadmin'));
+        dispatch(setPlatformAdminRole(me.role));
+        dispatch(setPlatformAdminPermissions(Array.isArray(me.permissions) ? me.permissions : []));
+      } catch (err) {
+        console.error('PlatformAdminRoute auth check failed:', err);
         setForbidden(true);
+      } finally {
         setLoading(false);
-        return;
       }
-
-      dispatch(setRole('platformadmin'));
-      dispatch(setPlatformAdminRole(me.role));
-      dispatch(setPlatformAdminPermissions(Array.isArray(me.permissions) ? me.permissions : []));
-      setLoading(false);
     });
 
     return () => unsubscribe();

@@ -6,6 +6,7 @@ import PlatformAdminRoute from '../components/route_protection/PlatformAdminRout
 import PlatformAdminSuperRoute from '../components/route_protection/PlatformAdminSuperRoute';
 import PlatformAdminAnalyticsRoute from '../components/route_protection/PlatformAdminAnalyticsRoute';
 import NotFoundPage from '../pages/NotFoundPage';
+import LocalStorageErrorPage from '../pages/LocalStorageErrorPage';
 import BigSpinner from '../components/ui/BigSpinner';
 import StudentRegistrationFlowLayout from '../layouts/StudentRegistrationFlowLayout';
 import { lazyWithRetry as lazy } from '../utils/lazyWithRetry';
@@ -174,7 +175,6 @@ const AppRouter: React.FC = () => {
               <LandingPage />
             </Suspense>
           }
-          errorElement={<NotFoundPage />}
         />
         <Route
           path="/students"
@@ -183,7 +183,6 @@ const AppRouter: React.FC = () => {
               <StudentPathPage />
             </Suspense>
           }
-          errorElement={<NotFoundPage />}
         />
         <Route
           path="/about/assessments"
@@ -192,9 +191,8 @@ const AppRouter: React.FC = () => {
               <PublicAssessmentsPage />
             </Suspense>
           }
-          errorElement={<NotFoundPage />}
         />
-        <Route path="/about" element={<Navigate to="/" replace />} errorElement={<NotFoundPage />} />
+        <Route path="/about" element={<Navigate to="/" replace />} />
         <Route
           path="/login"
           element={
@@ -202,7 +200,6 @@ const AppRouter: React.FC = () => {
               <LoginPage />
             </Suspense>
           }
-          errorElement={<NotFoundPage />}
         />
         <Route
           path="/signup"
@@ -211,12 +208,10 @@ const AppRouter: React.FC = () => {
               <SignupChoicePage />
             </Suspense>
           }
-          errorElement={<NotFoundPage />}
         />
         <Route
           path="/students/register"
           element={<StudentRegistrationFlowLayout />}
-          errorElement={<NotFoundPage />}
         >
           <Route
             index
@@ -258,7 +253,6 @@ const AppRouter: React.FC = () => {
               <StudentWelcomePage />
             </Suspense>
           }
-          errorElement={<NotFoundPage />}
         />
         <Route
           path="/students/preview"
@@ -267,7 +261,6 @@ const AppRouter: React.FC = () => {
               <StudentPreviewLayout />
             </Suspense>
           }
-          errorElement={<NotFoundPage />}
         >
           <Route index element={<Navigate to="/students/preview/dashboard" replace />} />
           <Route
@@ -350,7 +343,6 @@ const AppRouter: React.FC = () => {
               <ForSchoolsPage />
             </Suspense>
           }
-          errorElement={<NotFoundPage />}
         />
         <Route
           path="/for-schools/register"
@@ -359,7 +351,6 @@ const AppRouter: React.FC = () => {
               <SchoolRegistrationPage />
             </Suspense>
           }
-          errorElement={<NotFoundPage />}
         />
         <Route
           path="/in/privacy/schools"
@@ -368,7 +359,6 @@ const AppRouter: React.FC = () => {
               <SchoolLegalDocumentPage />
             </Suspense>
           }
-          errorElement={<NotFoundPage />}
         />
         <Route
           path="/in/terms/schools"
@@ -377,7 +367,6 @@ const AppRouter: React.FC = () => {
               <SchoolLegalDocumentPage />
             </Suspense>
           }
-          errorElement={<NotFoundPage />}
         />
         <Route
           path="/in/data-processing/schools"
@@ -386,7 +375,6 @@ const AppRouter: React.FC = () => {
               <SchoolLegalDocumentPage />
             </Suspense>
           }
-          errorElement={<NotFoundPage />}
         />
         <Route
           path="/for-schools/payment"
@@ -395,11 +383,10 @@ const AppRouter: React.FC = () => {
               <SchoolPaymentPage />
             </Suspense>
           }
-          errorElement={<NotFoundPage />}
         />
 
         {/* Hub has no sidebar; workspace routes use SchoolPreviewLayout */}
-        <Route path="/for-schools/preview" element={<Outlet />} errorElement={<NotFoundPage />}>
+        <Route path="/for-schools/preview" element={<Outlet />}>
           <Route
             index
             element={
@@ -504,7 +491,6 @@ const AppRouter: React.FC = () => {
               <ResetPasswordPage />
             </Suspense>
           }
-          errorElement={<NotFoundPage />}
         />
 
         <Route 
@@ -514,7 +500,6 @@ const AppRouter: React.FC = () => {
               <AuthActionPage />
             </Suspense>
           }
-          errorElement={<NotFoundPage />}
         />
         
         <Route 
@@ -524,12 +509,11 @@ const AppRouter: React.FC = () => {
               <VerifyEmailErrorPage />
             </Suspense>
           }
-          errorElement={<NotFoundPage />}
         />
 
         {/* ------------------------------ SIGNUP AND LOGIN ROUTES END ------------------------------ */}
         {/* DASHBOARD ROUTES */}
-        <Route element={<StudentProtectedShell />} errorElement={<NotFoundPage />}>
+        <Route element={<StudentProtectedShell />}>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/how-it-works" element={<HowItWorksPage />} />
@@ -559,7 +543,7 @@ const AppRouter: React.FC = () => {
         <Route path="/exams/completed" element={<Navigate to="/assessments/completed" replace />} />
 
         {/* ------------------------------ SCHOOL ADMIN ROUTES HERE ---------------------- */}
-        <Route element={<SchoolAdminShell />} errorElement={<NotFoundPage />}>
+        <Route element={<SchoolAdminShell />}>
           <Route path="/school-admin/dashboard" element={<SchoolAdminDashboardPage />} />
           <Route path="/school-admin/students" element={<SchoolAdminStudentsPage />} />
           <Route path="/school-admin/students/:studentId" element={<SchoolAdminStudentDetailPage />} />
@@ -575,11 +559,25 @@ const AppRouter: React.FC = () => {
 
         {/* ------------------------------ PLATFORM ADMIN ROUTES ---------------------- */}
         <Route path="/platform-admin/dashboard" element={<Navigate to="/platform-admin/schools" replace />} />
-        <Route element={<PlatformAdminShell />} errorElement={<NotFoundPage />}>
+        <Route element={<PlatformAdminShell />}>
           <Route path="/platform-admin/schools" element={<PlatformAdminSchoolsPage />} />
           <Route path="/platform-admin/schools/:schoolId" element={<PlatformAdminSchoolDetailPage />} />
-          <Route path="/platform-admin/rewards" element={<PlatformAdminRewardsPage />} />
-          <Route path="/platform-admin/students" element={<PlatformAdminStudentsPage />} />
+          <Route
+            path="/platform-admin/rewards"
+            element={
+              <PlatformAdminSuperRoute nested>
+                <PlatformAdminRewardsPage />
+              </PlatformAdminSuperRoute>
+            }
+          />
+          <Route
+            path="/platform-admin/students"
+            element={
+              <PlatformAdminSuperRoute nested>
+                <PlatformAdminStudentsPage />
+              </PlatformAdminSuperRoute>
+            }
+          />
           <Route
             path="/platform-admin/analytics/:section"
             element={
@@ -642,6 +640,7 @@ const AppRouter: React.FC = () => {
         {/* ------------------------------ PLATFORM ADMIN ROUTES END ---------------------- */}
         
         {/* ------------------------------   ANY OTHER ROUTES HERE    ---------------------- */}
+        <Route path="/local-storage-error" element={<LocalStorageErrorPage />} />
         <Route path="*" element={<NotFoundPage/>} />
         {/* ------------------------------   ANY OTHER ROUTES END HERE    ---------------------- */}
       </Routes>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, Navigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -37,13 +37,17 @@ const AssessmentResultDetailPage: React.FC = () => {
   const state = location.state as ResultState | undefined;
 
   if (!state) {
-    navigate('/assessments', { replace: true });
-    return null;
+    return <Navigate to="/assessments" replace />;
   }
 
   if (!STUDENT_EXAM_SHOW_SCORES_AND_COINS) {
-    navigate(`/assessments/${state.assessmentId}/result`, { replace: true, state });
-    return null;
+    return (
+      <Navigate
+        to={`/assessments/${state.assessmentId}/result`}
+        replace
+        state={state}
+      />
+    );
   }
 
   const { assessmentId, tierNumber, scorePercent = 0, correct = 0, total = 0, passed = false, completedAt } = state;

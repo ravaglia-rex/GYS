@@ -16,6 +16,7 @@ const SchoolAdminRoute: React.FC<SchoolAdminRouteProps> = ({ children }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
   const [loading, setLoading] = useState(true);
+  const [roleError, setRoleError] = useState<string | null>(null);
 
   const isLocalStorageAvailable = () => {
     try {
@@ -40,6 +41,14 @@ const SchoolAdminRoute: React.FC<SchoolAdminRouteProps> = ({ children }) => {
 
         if (firebaseUser.email) {
           const result = await dispatch(checkUserRole(firebaseUser.email));
+          if (checkUserRole.rejected.match(result)) {
+            setRoleError(
+              (typeof result.payload === 'string' && result.payload) ||
+                'Could not verify school admin access. Please try again.'
+            );
+            setLoading(false);
+            return;
+          }
           if (
             !checkUserRole.fulfilled.match(result) ||
             result.payload.role !== 'schooladmin'
@@ -52,6 +61,7 @@ const SchoolAdminRoute: React.FC<SchoolAdminRouteProps> = ({ children }) => {
           return;
         }
 
+        setRoleError(null);
         setLoading(false);
       } else {
         navigate('/');
@@ -69,6 +79,17 @@ const SchoolAdminRoute: React.FC<SchoolAdminRouteProps> = ({ children }) => {
 
   if (loading) {
     return <BigSpinner />;
+  }
+
+  if (roleError) {
+    return (
+      <div style={{ maxWidth: 480, margin: '64px auto', padding: 24, textAlign: 'center' }}>
+        <p style={{ marginBottom: 16 }}>{roleError}</p>
+        <button type="button" onClick={() => window.location.reload()}>
+          Retry
+        </button>
+      </div>
+    );
   }
 
   return <IdleTimeoutGuard enabled>{children}</IdleTimeoutGuard>;
