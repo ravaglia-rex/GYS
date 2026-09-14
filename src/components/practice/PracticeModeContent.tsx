@@ -32,20 +32,18 @@ import {
   Science as ScienceIcon,
 } from '@mui/icons-material';
 import type { AssessmentProgress } from '../../utils/assessmentGating';
-import type { PracticeAssessmentGateInput, PracticeLevel } from './practiceModeConfig';
+import type { PracticeAssessmentGateInput } from './practiceModeConfig';
 import {
   PRACTICE_ELIGIBLE_EXAM_IDS,
   PRACTICE_EXAM_CARD_STYLE,
+  PRACTICE_POOL_LEVEL,
   firstUnlockedPracticeEligibleExamId,
   isInteractivePracticeExam,
-  maxUnlockedPracticeLevel,
   practiceExamGate,
   practiceExamIsUnlocked,
   practiceExamLockedTooltip,
   getAssessmentDisplayName,
   getPracticeStats,
-  recommendedLevelLabel,
-  recommendedPracticeLevel,
   clearPracticeTakeSession,
   resetLocalPracticeProgress,
   resolvePracticeHubSelection,
@@ -71,15 +69,13 @@ export interface PracticeModeContentProps {
   /** When true, omit outer max-width padding tweaks used inside preview layout. */
   embedded?: boolean;
   /**
-   * When omitted, only Level 1 practice is offered (safe default). Pass profile + config tier
-   * counts so unlock matches official tier progression for each exam.
+   * Exam unlock still applies; practice itself has no difficulty levels.
    */
   practiceUnlock?: PracticeUnlockContext;
   /** Firebase uid for authenticated features (e.g. report problem). Omit in landing preview. */
   studentUid?: string;
 }
 
-const LEVELS: PracticeLevel[] = [1, 2, 3];
 
 /** Bold step label + title used for Step 1 / Step 2 section rails */
 function PracticeSectionHeading({ step, title }: { step: number; title: string }) {
@@ -138,7 +134,6 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const recLevel = useMemo(() => recommendedPracticeLevel(grade), [grade]);
   const assessmentGate = practiceUnlock?.assessmentGate;
 
   const hubSelectionFromLocation = useMemo((): PracticeHubSelection | null => {
@@ -170,7 +165,7 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
   );
 
   const [selectedExamId, setSelectedExamId] = useState<string>(() => initialHubSelection.examId);
-  const [selectedLevel, setSelectedLevel] = useState<PracticeLevel>(() => initialHubSelection.level);
+  const selectedLevel = PRACTICE_POOL_LEVEL;
 
   useEffect(() => {
     if (!assessmentGate) return;
@@ -182,7 +177,7 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
   const [sessionRev, setSessionRev] = useState(0);
   /** Live counts per level from Firestore `practice_bank/{examId}` (when API succeeds). */
   const [livePoolByLevel, setLivePoolByLevel] = useState<Partial<
-    Record<PracticeLevel, number>
+    Record<1 | 2 | 3, number>
   > | null>(null);
   const [livePoolCountsFailed, setLivePoolCountsFailed] = useState(false);
 
@@ -205,11 +200,11 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
       .then((res) => {
         if (cancelled) return;
         const c = res.counts ?? {};
-        setLivePoolByLevel({
-          1: Number(c['1'] ?? 0),
-          2: Number(c['2'] ?? 0),
-          3: Number(c['3'] ?? 0),
-        });
+        const total =
+          typeof (res as { total?: number }).total === 'number'
+            ? Number((res as { total?: number }).total)
+            : Number(c['1'] ?? 0) + Number(c['2'] ?? 0) + Number(c['3'] ?? 0);
+        setLivePoolByLevel({ 1: total, 2: 0, 3: 0 });
       })
       .catch(() => {
         if (!cancelled) {
@@ -223,17 +218,6 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
   }, [selectedExamId, selectedExamHasPracticeBank]);
 
   const fullPracticeUnlock = Boolean(assessmentGate?.fullUnlock);
-
-  const maxUnlocked = useMemo((): PracticeLevel => {
-    if (!practiceUnlock) return fullPracticeUnlock ? 3 : 1;
-    const officialTiers = practiceUnlock.officialTierCountByExam[selectedExamId] ?? 3;
-    const prog = practiceUnlock.progressByExam[selectedExamId];
-    return maxUnlockedPracticeLevel(prog, officialTiers, { fullUnlock: fullPracticeUnlock });
-  }, [practiceUnlock, selectedExamId, fullPracticeUnlock]);
-
-  useEffect(() => {
-    setSelectedLevel((prev) => (prev <= maxUnlocked ? prev : maxUnlocked) as PracticeLevel);
-  }, [maxUnlocked]);
 
   useEffect(() => {
     saveLastPracticeSelection(storageScope, { examId: selectedExamId, level: selectedLevel });
@@ -270,7 +254,6 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
   const [resetting, setResetting] = useState(false);
 
   const performStartPractice = useCallback(() => {
-    if (selectedLevel > maxUnlocked) return;
     clearPracticeTakeSession(storageScope, selectedExamId, selectedLevel);
     saveLastPracticeSelection(storageScope, { examId: selectedExamId, level: selectedLevel });
     setActivePracticeSession(storageScope, {
@@ -284,7 +267,7 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
         setToast('Sign in to open the full-page practice session.');
         return;
       }
-      navigate(`/practice-test/session/${selectedExamId}/${selectedLevel}`, {
+      navigate(`/practice-test/session/${selectedExamId}`, {
         state: { storageScope },
       });
       setToast(null);
@@ -292,7 +275,6 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
     }
     setToast('Practice session saved. Full-page interactive drills are not available for this exam yet.');
   }, [
-    maxUnlocked,
     navigate,
     refreshStorage,
     selectedExamId,
@@ -302,7 +284,6 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
   ]);
 
   const handleStartPractice = () => {
-    if (selectedLevel > maxUnlocked) return;
     if (isInteractivePracticeExam(selectedExamId)) {
       setStartConfirmOpen(true);
       return;
@@ -311,18 +292,16 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
   };
 
   const confirmStartPractice = () => {
-    if (selectedLevel > maxUnlocked) return;
     setStartConfirmOpen(false);
     performStartPractice();
   };
 
   const handleResetProgressClick = () => {
-    if (selectedLevel > maxUnlocked) return;
     setResetDialogOpen(true);
   };
 
   const confirmResetProgress = async () => {
-    if (selectedLevel > maxUnlocked || resetting) return;
+    if (resetting) return;
     setResetting(true);
     try {
       if (isInteractivePracticeExam(selectedExamId)) {
@@ -413,7 +392,7 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
           What practice is for
         </Typography>
         <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.78)', lineHeight: 1.55 }}>
-          Use practice to learn the format, pacing, and skills each exam targets. Practice levels unlocked for each exam matches your levels unlocked on the corresponding official exam. Nothing here affects your official
+          Use practice to learn the format, pacing, and skills each exam targets. Nothing here affects your official
           scores, school reports, or rankings. There is{' '}
           <strong>no overall time limit</strong> for a practice session. Each question shows a{' '}
           <strong>per-question timer</strong> so you can monitor how long you spend on each question. 
@@ -626,149 +605,6 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
         </Box>
       </Box>
 
-      <Box data-tutorial-id="student-practice-level-picker">
-        <PracticeSectionHeading step={2} title="Difficulty level" />
-        {practiceUnlock && !fullPracticeUnlock && maxUnlocked < 3 && (
-          <Alert
-            severity="info"
-            sx={{
-              mb: 2,
-              bgcolor: 'rgba(99, 102, 241, 0.08)',
-              border: '1px solid rgba(129, 140, 248, 0.28)',
-              color: 'rgba(255,255,255,0.88)',
-              '& .MuiAlert-icon': { color: '#a5b4fc' },
-            }}
-          >
-            <Typography variant="body2" sx={{ lineHeight: 1.55 }}>
-              For <strong>{getAssessmentDisplayName(selectedExamId)}</strong>, you can practice official difficulty levels{' '}
-              <strong>1 through {maxUnlocked}</strong> - matching what you&apos;ve unlocked on the real exam. Advance your
-              official level to unlock the next practice level (you can still practice every unlocked level even before you
-              attempt the next level officially).
-            </Typography>
-          </Alert>
-        )}
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-            gap: 1,
-            mb: 2,
-            width: '100%',
-          }}
-        >
-        {LEVELS.map((lvl) => {
-          const isRec = lvl === recLevel;
-          const selected = selectedLevel === lvl;
-          const locked = lvl > maxUnlocked;
-          const btn = (
-            <Button
-              fullWidth
-              variant={selected ? 'contained' : 'outlined'}
-              disabled={locked}
-              onClick={() => {
-                if (!locked) setSelectedLevel(lvl);
-              }}
-              sx={{
-                minWidth: 0,
-                width: '100%',
-                height: '100%',
-                borderRadius: 2,
-                textTransform: 'none',
-                fontWeight: 700,
-                px: { xs: 0.75, sm: 1.25 },
-                py: 1.25,
-                borderColor: selected ? 'transparent' : 'rgba(255,255,255,0.2)',
-                color: selected ? '#0f172a' : locked ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.85)',
-                bgcolor: selected ? 'linear-gradient(90deg, #a78bfa, #38bdf8)' : 'transparent',
-                background: selected ? 'linear-gradient(90deg, #c4b5fd, #7dd3fc)' : undefined,
-                '&:hover': {
-                  borderColor: 'rgba(255,255,255,0.35)',
-                  bgcolor: selected ? undefined : 'rgba(255,255,255,0.06)',
-                },
-              }}
-            >
-              <Stack alignItems="center" spacing={0.35} sx={{ width: '100%', minWidth: 0, textAlign: 'center', py: 0.25 }}>
-                <Typography
-                  component="span"
-                  sx={{
-                    fontWeight: 800,
-                    fontSize: '0.95rem',
-                    lineHeight: 1.2,
-                    color: selected ? '#0f172a' : locked ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.88)',
-                  }}
-                >
-                  Level {lvl}
-                </Typography>
-                {locked && (
-                  <Chip
-                    size="small"
-                    label="Locked"
-                    sx={{
-                      height: 20,
-                      fontSize: '0.6rem',
-                      fontWeight: 700,
-                      bgcolor: 'rgba(0,0,0,0.25)',
-                      color: 'rgba(255,255,255,0.45)',
-                      maxWidth: '100%',
-                    }}
-                  />
-                )}
-                {isRec && !locked && (
-                  <Tooltip title="We suggest this level based on your class; you can still pick any unlocked level." arrow>
-                    <Typography
-                      component="span"
-                      variant="caption"
-                      sx={{
-                        fontSize: '0.58rem',
-                        fontWeight: 700,
-                        lineHeight: 1.2,
-                        letterSpacing: 0.03,
-                        textTransform: 'uppercase',
-                        color: selected ? 'rgba(15,23,42,0.65)' : '#7dd3fc',
-                        cursor: 'help',
-                        borderBottom: selected ? '1px dotted rgba(15,23,42,0.35)' : '1px dotted rgba(125,211,252,0.45)',
-                      }}
-                    >
-                      Suggested for you
-                    </Typography>
-                  </Tooltip>
-                )}
-                <Typography
-                  variant="caption"
-                  sx={{
-                    display: 'block',
-                    fontWeight: 500,
-                    fontSize: '0.62rem',
-                    lineHeight: 1.25,
-                    px: 0.25,
-                    color: selected ? 'rgba(15,23,42,0.72)' : 'rgba(255,255,255,0.48)',
-                  }}
-                >
-                  {recommendedLevelLabel(lvl)}
-                </Typography>
-              </Stack>
-            </Button>
-          );
-          return locked ? (
-            <Tooltip
-              key={lvl}
-              title="Unlock this practice level by advancing your official level on this exam (same progression as your dashboard)."
-              arrow
-              placement="top"
-            >
-              <Box component="span" sx={{ display: 'block', minWidth: 0, width: '100%' }}>
-                {btn}
-              </Box>
-            </Tooltip>
-          ) : (
-            <Box key={lvl} sx={{ minWidth: 0, width: '100%', display: 'flex' }}>
-              {btn}
-            </Box>
-          );
-        })}
-        </Box>
-      </Box>
-
       <Card
         data-tutorial-id="student-practice-start-card"
         elevation={0}
@@ -788,10 +624,10 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
           >
             <Box sx={{ flex: 1 }}>
               <Typography variant="overline" sx={{ color: 'rgba(255,255,255,0.45)', letterSpacing: 1 }}>
-                Question pool · selected focus
+                Question pool
               </Typography>
               <Typography variant="h6" sx={{ color: 'white', fontWeight: 700, mt: 0.5 }}>
-                {getAssessmentDisplayName(selectedExamId)} · Level {selectedLevel}
+                {getAssessmentDisplayName(selectedExamId)} · Practice
               </Typography>
               <Stack direction="row" spacing={3} sx={{ mt: 2 }} flexWrap="wrap" useFlexGap>
                 <Box sx={{ minWidth: { xs: 112, sm: 128 } }}>
@@ -871,17 +707,14 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
                 variant="contained"
                 size="large"
                 startIcon={<PlayArrowIcon />}
-                disabled={selectedLevel > maxUnlocked}
+                disabled={false}
                 onClick={handleStartPractice}
                 sx={{
                   py: 1.25,
                   fontWeight: 700,
                   borderRadius: 2,
-                  background:
-                    selectedLevel <= maxUnlocked
-                    ? 'linear-gradient(90deg, #6366f1, #38bdf8)'
-                    : 'rgba(255,255,255,0.12)',
-                  color: selectedLevel <= maxUnlocked ? 'white' : 'rgba(255,255,255,0.35)',
+                  background: 'linear-gradient(90deg, #6366f1, #38bdf8)',
+                  color: 'white',
                 }}
               >
                 Start practice
@@ -891,7 +724,7 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
                 size="large"
                 startIcon={resetting ? <CircularProgress size={18} color="inherit" /> : <RestartAltIcon />}
                 onClick={handleResetProgressClick}
-                disabled={selectedLevel > maxUnlocked || resetting}
+                disabled={resetting}
                 sx={{
                   py: 1.25,
                   fontWeight: 700,
@@ -958,10 +791,8 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
                 Questions are drawn 10 at a time from a <strong>practice pool</strong>, outcomes stay out of official scoring.
               </Typography>
               <Typography component="li" variant="body2">
-                Levels <strong>1 - 3</strong> align broadly with {recommendedLevelLabel(1)},{' '}
-                {recommendedLevelLabel(2)}, and {recommendedLevelLabel(3)} respectively.
+                Each exam has one shared practice pool — no separate difficulty levels.
               </Typography>
-             
             </Stack>
           </CardContent>
         </Card>

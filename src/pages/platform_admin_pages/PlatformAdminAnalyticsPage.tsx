@@ -25,7 +25,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import CorrectIcon from '@mui/icons-material/CheckCircleOutline';
 import PeopleIcon from '@mui/icons-material/PeopleOutline';
 import QuizIcon from '@mui/icons-material/Quiz';
@@ -68,7 +68,6 @@ import {
   getPlatformAdminOfficialExamAbandons,
   getPlatformAdminOfficialExamSummaries,
   searchPlatformAdminOfficialExamCompletions,
-  getPlatformAdminOfficialExamAttemptDetail,
   type PracticeDailyByExamStatRow,
   type PracticeDailyStatRow,
   type PracticeExamSummaryRow,
@@ -88,7 +87,6 @@ import {
   type OfficialExamRecentRow,
   type OfficialExamSchoolRow,
   type OfficialExamSummaryRow,
-  type OfficialExamAttemptDetail,
   type OfficialQuestionTagType,
   type OfficialTagAggRow,
   type OfficialCrossSplitRow,
@@ -115,7 +113,6 @@ import {
   PlatformAdminPageHeader,
   PlatformAdminStatCard,
 } from './platformAdminComponents';
-import { PlatformAdminAttemptPaper } from './PlatformAdminExamQuestionCard';
 import type { RootState } from '../../state_data/reducer';
 
 type AnalyticsSection = 'official' | 'practice' | 'qod' | 'coins';
@@ -558,18 +555,52 @@ function liveExamProgressLabel(row: LiveExamAttemptRow): string {
   return `Q${current}/${total} · ${row.answers_count} answered`;
 }
 
+function formatClientDeviceType(
+  deviceType: 'mobile' | 'tablet' | 'desktop' | 'unknown' | null | undefined
+): string {
+  if (deviceType === 'mobile') return 'Phone';
+  if (deviceType === 'tablet') return 'Tablet';
+  if (deviceType === 'desktop') return 'Laptop/Desktop';
+  return '—';
+}
+
+function formatClientBrowser(userAgent: string | null | undefined): string {
+  if (!userAgent) return '—';
+  const ua = userAgent;
+  if (/Edg\//i.test(ua)) return 'Edge';
+  if (/OPR\/|Opera/i.test(ua)) return 'Opera';
+  if (/Chrome\//i.test(ua) && !/Chromium/i.test(ua)) return 'Chrome';
+  if (/CriOS\//i.test(ua)) return 'Chrome';
+  if (/Firefox\//i.test(ua) || /FxiOS\//i.test(ua)) return 'Firefox';
+  if (/Safari\//i.test(ua) && !/Chrome\//i.test(ua) && !/CriOS\//i.test(ua)) return 'Safari';
+  return 'Other';
+}
+
+function formatClientSessionMeta(opts: {
+  deviceType?: 'mobile' | 'tablet' | 'desktop' | 'unknown' | null;
+  userAgent?: string | null;
+  ip?: string | null;
+}): { primary: string; secondary: string | null } {
+  const device = formatClientDeviceType(opts.deviceType);
+  const browser = formatClientBrowser(opts.userAgent);
+  const hasDevice = device !== '—';
+  const hasBrowser = browser !== '—';
+  if (!hasDevice && !hasBrowser && !opts.ip) {
+    return { primary: 'Not captured', secondary: null };
+  }
+  const primary = [hasDevice ? device : null, hasBrowser ? browser : null]
+    .filter(Boolean)
+    .join(' · ');
+  return {
+    primary: primary || '—',
+    secondary: opts.ip || null,
+  };
+}
+
 /** "Analytical Reasoning" → "Analytical"; leaves AI/English Proficiency unchanged. */
 function shortOfficialExamLabel(label: string): string {
   return label.replace(/\s+Reasoning$/i, '').trim() || label;
 }
-
-const selectedTagRowSx = {
-  cursor: 'pointer' as const,
-  bgcolor: 'rgba(15, 118, 110, 0.08)',
-  '& td:first-of-type': {
-    boxShadow: `inset 3px 0 0 #0f766e`,
-  },
-};
 
 const analyticsTabRailSx = {
   mb: 2.5,
@@ -651,12 +682,6 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
   const [officialDrillLevel, setOfficialDrillLevel] = useState<'all' | number>('all');
   const [gradeSchoolStrandSplit, setGradeSchoolStrandSplit] =
     useState<GradeSchoolStrandSplit | null>(null);
-  const [officialAttemptDetail, setOfficialAttemptDetail] =
-    useState<OfficialExamAttemptDetail | null>(null);
-  const [officialAttemptDetailLoading, setOfficialAttemptDetailLoading] = useState(false);
-  const [officialAttemptDetailKey, setOfficialAttemptDetailKey] = useState<string | null>(null);
-  const officialAttemptDetailReqRef = useRef(0);
-  const officialAttemptDetailPanelRef = useRef<HTMLDivElement | null>(null);
   const [officialGeneratedAt, setOfficialGeneratedAt] = useState('');
   const [officialIndexesBuilding, setOfficialIndexesBuilding] = useState(false);
   const [officialLoading, setOfficialLoading] = useState(false);
@@ -804,8 +829,6 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
         setOfficialRecent(data.results);
         setOfficialRecentMatched(data.matched);
         setOfficialRecentSearched(true);
-        setOfficialAttemptDetail(null);
-        setOfficialAttemptDetailKey(null);
       } catch (e: unknown) {
         if (req !== officialCompletionsReqRef.current) return;
         const err = e as { response?: { data?: { error?: string } }; message?: string };
@@ -819,8 +842,6 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
     },
     [completionQ, completionFrom, completionTo, completionLevel, completionLimit]
   );
-  const searchOfficialCompletionsRef = useRef(searchOfficialCompletions);
-  searchOfficialCompletionsRef.current = searchOfficialCompletions;
 
   const loadOfficialDrilldown = useCallback(
     async (examId: string, level: 'all' | number, opts?: { refresh?: boolean }) => {
@@ -873,44 +894,6 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
     },
     []
   );
-
-  const loadOfficialAttemptDetail = useCallback(
-    async (examId: string, row: OfficialExamRecentRow) => {
-      const key = `${row.uid}::${row.attempt_id}`;
-      if (officialAttemptDetailKey === key) {
-        setOfficialAttemptDetail(null);
-        setOfficialAttemptDetailKey(null);
-        return;
-      }
-      const req = ++officialAttemptDetailReqRef.current;
-      setOfficialAttemptDetailKey(key);
-      setOfficialAttemptDetailLoading(true);
-      setOfficialAttemptDetail(null);
-      setOfficialError(null);
-      try {
-        const data = await getPlatformAdminOfficialExamAttemptDetail(examId, {
-          uid: row.uid,
-          attemptId: row.attempt_id,
-        });
-        if (req !== officialAttemptDetailReqRef.current) return;
-        setOfficialAttemptDetail(data);
-      } catch (e: unknown) {
-        if (req !== officialAttemptDetailReqRef.current) return;
-        const err = e as { response?: { data?: { error?: string } }; message?: string };
-        setOfficialError(err?.response?.data?.error || err?.message || 'Failed to load attempt detail');
-        setOfficialAttemptDetail(null);
-        setOfficialAttemptDetailKey(null);
-      } finally {
-        if (req === officialAttemptDetailReqRef.current) setOfficialAttemptDetailLoading(false);
-      }
-    },
-    [officialAttemptDetailKey]
-  );
-
-  useEffect(() => {
-    if (!officialAttemptDetailKey) return;
-    officialAttemptDetailPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }, [officialAttemptDetailKey, officialAttemptDetailLoading, officialAttemptDetail]);
 
   const openItemBankForTag = (tagType: OfficialQuestionTagType, tag: string) => {
     if (!selectedOfficialExamId) return;
@@ -1263,11 +1246,6 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
   }, [section, officialView, selectedOfficialExamId, officialAbandonLevel, loadOfficialAbandons]);
 
   useEffect(() => {
-    if (section !== 'official' || officialView !== 'completions' || !selectedOfficialExamId) return;
-    void searchOfficialCompletionsRef.current(selectedOfficialExamId);
-  }, [section, officialView, selectedOfficialExamId]);
-
-  useEffect(() => {
     if (section !== 'practice' || !selectedExamId) return;
     if (practiceOverviewDetailExamRef.current === selectedExamId) {
       practiceOverviewDetailExamRef.current = '';
@@ -1282,7 +1260,6 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
     officialDrillLoading ||
     officialCompletionsLoading ||
     officialAbandonsLoading ||
-    officialAttemptDetailLoading ||
     practiceLoading ||
     practiceMonthlyLoading ||
     practiceDetailLoading ||
@@ -1693,12 +1670,19 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                             <TableCell>School</TableCell>
                             <TableCell>Exam</TableCell>
                             <TableCell>Progress</TableCell>
+                            <TableCell>Device</TableCell>
                             <TableCell>Started</TableCell>
                             <TableCell>Time left</TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
-                          {liveExams.map((row) => (
+                          {liveExams.map((row) => {
+                            const session = formatClientSessionMeta({
+                              deviceType: row.client_device_type,
+                              userAgent: row.client_user_agent,
+                              ip: row.client_ip,
+                            });
+                            return (
                             <TableRow key={row.attempt_id}>
                               <TableCell>
                                 {row.uid ? (
@@ -1730,13 +1714,26 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                               </TableCell>
                               <TableCell>{liveExamProgressLabel(row)}</TableCell>
                               <TableCell>
+                                <Typography sx={{ fontSize: 13 }}>{session.primary}</Typography>
+                                {session.secondary ? (
+                                  <Typography
+                                    variant="caption"
+                                    sx={{ display: 'block', color: ip.subtext, fontFamily: 'monospace' }}
+                                    title={row.client_user_agent || undefined}
+                                  >
+                                    {session.secondary}
+                                  </Typography>
+                                ) : null}
+                              </TableCell>
+                              <TableCell>
                                 {row.started_at ? formatDateTime(row.started_at) : '—'}
                               </TableCell>
                               <TableCell>
                                 {formatLiveExamTimeLeft(row.seconds_remaining, row.expired)}
                               </TableCell>
                             </TableRow>
-                          ))}
+                            );
+                          })}
                         </TableBody>
                       </Table>
                     </TableContainer>
@@ -2417,7 +2414,7 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
               {officialView === 'completions' && (
               <PlatformAdminAnalyticsSection
                 title="Search completions"
-                subtitle="Loads when you open this tab. Use filters and Search to refine. Questions is correct / paper length (e.g. 15/32), with sit duration beside it. Click a student to open their full exam paper (questions, choices, and answers) for that level."
+                subtitle="Click Search to load. Click a student to open their profile and exam attempts. Limit controls how many rows return (10–100, or All)."
                 accent="violet"
               >
                   <Box sx={{ ...platformAdminFilterToolbarRowSx, mb: 2 }}>
@@ -2519,6 +2516,7 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                             {n}
                           </MenuItem>
                         ))}
+                        <MenuItem value={0}>All</MenuItem>
                       </Select>
                     </FormControl>
                     <Button
@@ -2538,8 +2536,7 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                     </Button>
                   </Box>
 
-                  {officialCompletionsLoading ||
-                  (Boolean(selectedOfficialExamId) && !officialRecentSearched) ? (
+                  {officialCompletionsLoading ? (
                     <Box
                       sx={{
                         display: 'flex',
@@ -2557,13 +2554,16 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                     </Box>
                   ) : !officialRecentSearched ? (
                     <Typography variant="body2" sx={{ color: ip.subtext, py: 2 }}>
-                      Select an exam, then click Search to load completions.
+                      Select filters (optional), then click Search to load completions.
                     </Typography>
                   ) : (
                     <>
                       <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1 }}>
-                        Showing {officialRecent.length.toLocaleString()} of{' '}
-                        {officialRecentMatched.toLocaleString()} matched
+                        {officialRecentMatched > officialRecent.length
+                          ? `Showing ${officialRecent.length.toLocaleString()} of ${officialRecentMatched.toLocaleString()} matched`
+                          : officialRecent.length === 0
+                            ? 'No completions matched these filters.'
+                            : `Showing ${officialRecent.length.toLocaleString()} most recent`}
                       </Typography>
                       <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
                         <Table size="small" sx={platformAdminTableSx}>
@@ -2587,178 +2587,83 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                               </TableRow>
                             ) : (
                               officialRecent.map((row) => {
-                                const key = `${row.uid}::${row.attempt_id}`;
-                                const selected = officialAttemptDetailKey === key;
-                                const sameStudentSits = officialRecent.filter((r) => r.uid === row.uid);
                                 const durationLabel = formatExamDuration(row.duration_sec);
                                 return (
-                                  <React.Fragment key={row.attempt_id}>
                                   <TableRow
+                                    key={row.attempt_id}
                                     hover
                                     onClick={() => {
-                                      if (!selectedOfficialExamId) return;
-                                      void loadOfficialAttemptDetail(selectedOfficialExamId, row);
+                                      if (!row.uid) return;
+                                      navigate(
+                                        `/platform-admin/students/${encodeURIComponent(row.uid)}?attempt=${encodeURIComponent(row.attempt_id)}`
+                                      );
                                     }}
-                                    sx={selected ? selectedTagRowSx : { cursor: 'pointer' }}
+                                    sx={{ cursor: 'pointer' }}
                                   >
-                                  <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                                    {formatDateTime(row.completed_at)}
-                                    {selected ? ' · open' : ''}
-                                  </TableCell>
-                                  <TableCell sx={{ fontWeight: 600 }}>
-                                    <Typography
-                                      component="span"
-                                      sx={{
-                                        color: ip.navy,
-                                        fontWeight: 700,
-                                        textDecoration: 'underline',
-                                        textUnderlineOffset: '3px',
-                                      }}
-                                    >
-                                      {[row.first_name, row.last_name].filter(Boolean).join(' ') ||
-                                        row.email}
-                                    </Typography>
-                                    <Typography
-                                      variant="caption"
-                                      sx={{ display: 'block', color: ip.subtext }}
-                                    >
-                                      {row.email}
-                                    </Typography>
-                                  </TableCell>
-                                  <TableCell>{row.school_name ?? '-'}</TableCell>
-                                  <TableCell align="right">{row.proficiency_tier ?? '-'}</TableCell>
-                                  <TableCell align="right">
-                                    <Box
-                                      sx={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: 0.75,
-                                        justifyContent: 'flex-end',
-                                      }}
-                                    >
-                                      <Typography component="span" variant="body2" sx={{ fontWeight: 600 }}>
-                                        {typeof row.questions_total === 'number' && row.questions_total > 0
-                                          ? `${row.correct_count ?? 0}/${row.questions_total}`
-                                          : row.questions_answered ?? '-'}
+                                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                                      {formatDateTime(row.completed_at)}
+                                    </TableCell>
+                                    <TableCell sx={{ fontWeight: 600 }}>
+                                      <Typography
+                                        component="span"
+                                        sx={{
+                                          color: ip.navy,
+                                          fontWeight: 700,
+                                          textDecoration: 'underline',
+                                          textUnderlineOffset: '3px',
+                                        }}
+                                      >
+                                        {[row.first_name, row.last_name].filter(Boolean).join(' ') ||
+                                          row.email}
                                       </Typography>
-                                      {durationLabel ? (
-                                        <PlatformAdminChip label={durationLabel} tone="warning" />
-                                      ) : null}
-                                    </Box>
-                                  </TableCell>
-                                  <TableCell align="right">
-                                    {row.score_points ?? '-'}
-                                  </TableCell>
-                                  <TableCell align="right">
-                                    <PlatformAdminChip
-                                      label={row.passed ? 'Passed' : 'Not passed'}
-                                      tone={row.passed ? 'success' : 'neutral'}
-                                    />
-                                  </TableCell>
-                                </TableRow>
-                                {selected ? (
-                                  <TableRow>
-                                    <TableCell
-                                      colSpan={7}
-                                      sx={{ p: 0, bgcolor: '#f8fafc', verticalAlign: 'top' }}
-                                    >
-                                      <Box ref={officialAttemptDetailPanelRef} sx={{ p: 2 }}>
-                                        {sameStudentSits.length > 1 ? (
-                                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1.5 }}>
-                                            {sameStudentSits.map((sit) => {
-                                              const sitKey = `${sit.uid}::${sit.attempt_id}`;
-                                              const sitOpen = officialAttemptDetailKey === sitKey;
-                                              return (
-                                                <Button
-                                                  key={sit.attempt_id}
-                                                  size="small"
-                                                  variant={sitOpen ? 'contained' : 'outlined'}
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    if (!selectedOfficialExamId) return;
-                                                    void loadOfficialAttemptDetail(selectedOfficialExamId, sit);
-                                                  }}
-                                                  sx={{
-                                                    ...platformAdminOutlinedButtonSx,
-                                                    textTransform: 'none',
-                                                    ...(sitOpen
-                                                      ? {
-                                                          bgcolor: ip.navy,
-                                                          color: '#fff',
-                                                          '&:hover': { bgcolor: ip.navy },
-                                                        }
-                                                      : {}),
-                                                  }}
-                                                >
-                                                  Level {sit.proficiency_tier ?? '-'}
-                                                  {sit.score_pct != null ? ` · ${sit.score_pct}%` : ''}
-                                                </Button>
-                                              );
-                                            })}
-                                          </Box>
+                                      <Typography
+                                        variant="caption"
+                                        sx={{ display: 'block', color: ip.subtext }}
+                                      >
+                                        {row.email}
+                                      </Typography>
+                                    </TableCell>
+                                    <TableCell>{row.school_name ?? '-'}</TableCell>
+                                    <TableCell align="right">{row.proficiency_tier ?? '-'}</TableCell>
+                                    <TableCell align="right">
+                                      <Box
+                                        sx={{
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: 0.75,
+                                          justifyContent: 'flex-end',
+                                        }}
+                                      >
+                                        <Typography component="span" variant="body2" sx={{ fontWeight: 600 }}>
+                                          {typeof row.questions_total === 'number' && row.questions_total > 0
+                                            ? `${row.correct_count ?? 0}/${row.questions_total}`
+                                            : row.questions_answered ?? '-'}
+                                        </Typography>
+                                        {durationLabel ? (
+                                          <PlatformAdminChip label={durationLabel} tone="warning" />
                                         ) : null}
-                                        {officialAttemptDetailLoading ? (
-                                          <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-                                            <CircularProgress size={28} sx={{ color: ip.navy }} />
-                                          </Box>
-                                        ) : officialAttemptDetail ? (
-                                          <Box>
-                                            <Box
-                                              sx={{
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                gap: 1,
-                                                flexWrap: 'wrap',
-                                                mb: 1.5,
-                                              }}
-                                            >
-                                              <Box>
-                                                <Typography sx={{ fontWeight: 800, color: ip.heading, fontSize: 15 }}>
-                                                  Level {officialAttemptDetail.proficiency_tier ?? '-'} exam ·{' '}
-                                                  {officialAttemptDetail.questions.length} questions
-                                                </Typography>
-                                                <Typography variant="caption" sx={{ color: ip.subtext }}>
-                                                  {officialAttemptDetail.scoring_mode || 'scoring unknown'}
-                                                  {officialAttemptDetail.score_pct != null
-                                                    ? ` · ${officialAttemptDetail.score_pct}% (${officialAttemptDetail.score_points}/1000)`
-                                                    : ''}
-                                                </Typography>
-                                              </Box>
-                                              <Button
-                                                size="small"
-                                                startIcon={<ArrowBackIcon />}
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  setOfficialAttemptDetail(null);
-                                                  setOfficialAttemptDetailKey(null);
-                                                }}
-                                                sx={platformAdminOutlinedButtonSx}
-                                              >
-                                                Close
-                                              </Button>
-                                            </Box>
-                                            {officialAttemptDetail.questions.length === 0 ? (
-                                              <Typography variant="body2" sx={{ color: ip.subtext }}>
-                                                This attempt has no stored question queue, so the paper cannot be reconstructed.
-                                              </Typography>
-                                            ) : (
-                                              <PlatformAdminAttemptPaper
-                                                questions={officialAttemptDetail.questions}
-                                                attemptId={officialAttemptDetail.attempt_id}
-                                                examId={selectedOfficialExamId}
-                                              />
-                                            )}
-                                          </Box>
-                                        ) : (
-                                          <Typography variant="body2" sx={{ color: ip.subtext }}>
-                                            Could not load this exam paper. Try Refresh data, then click the student again.
-                                          </Typography>
-                                        )}
+                                      </Box>
+                                    </TableCell>
+                                    <TableCell align="right">
+                                      {row.score_points ?? '-'}
+                                    </TableCell>
+                                    <TableCell align="right">
+                                      <Box
+                                        sx={{
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: 0.75,
+                                          justifyContent: 'flex-end',
+                                        }}
+                                      >
+                                        <PlatformAdminChip
+                                          label={row.passed ? 'Passed' : 'Not passed'}
+                                          tone={row.passed ? 'success' : 'neutral'}
+                                        />
+                                        <ArrowForwardIcon sx={{ fontSize: 16, color: ip.subtext }} />
                                       </Box>
                                     </TableCell>
                                   </TableRow>
-                                ) : null}
-                                  </React.Fragment>
                                 );
                               })
                             )}

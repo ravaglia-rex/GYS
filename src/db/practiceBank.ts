@@ -17,12 +17,13 @@ export const PRACTICE_SESSION_BATCH_SIZE = 10;
 
 export interface PracticePoolCountsResponse {
   exam_id: string;
+  total?: number;
   counts: Record<string, number>;
 }
 
 export interface PracticeQuestionsResponse {
   exam_id: string;
-  level: number;
+  level?: number;
   total_in_level: number;
   returned: number;
   draw_seen_count?: number;
@@ -30,7 +31,7 @@ export interface PracticeQuestionsResponse {
   questions: ExamQuestion[];
 }
 
-/** Live pool sizes per official difficulty level (1–3) from Firestore practice_bank summary. */
+/** Live pool size for an exam (flat practice pool). */
 export async function fetchPracticePoolCounts(examId: string): Promise<PracticePoolCountsResponse> {
   const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS;
   if (!base) {
@@ -51,7 +52,7 @@ export async function fetchPracticePoolCounts(examId: string): Promise<PracticeP
 /** Random sample of practice questions (stem/options only; solutions via {@link revealPracticeSolutions}). */
 export async function fetchPracticeQuestions(
   examId: string,
-  level: 1 | 2 | 3,
+  _level: 1 | 2 | 3 = 1,
   limit = PRACTICE_SESSION_BATCH_SIZE
 ): Promise<PracticeQuestionsResponse> {
   const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS;
@@ -66,7 +67,7 @@ export async function fetchPracticeQuestions(
   authTokenHandler.setAuthToken(authToken);
   const response = await axios.get(`${base}${PRACTICE_APIS}${GET_PRACTICE_QUESTIONS}`, {
     headers: { Authorization: `Bearer ${authToken}` },
-    params: { exam_id: examId, level: String(level), limit },
+    params: { exam_id: examId, limit },
   });
   return response.data;
 }

@@ -409,6 +409,9 @@ export type LiveExamAttemptRow = {
   seconds_remaining: number | null;
   expired: boolean;
   clock_state: 'active' | 'stale';
+  client_ip: string | null;
+  client_user_agent: string | null;
+  client_device_type: 'mobile' | 'tablet' | 'desktop' | 'unknown' | null;
 };
 
 export async function getPlatformAdminLiveExams(): Promise<{
@@ -423,7 +426,21 @@ export async function getPlatformAdminLiveExams(): Promise<{
     { headers }
   );
   return {
-    attempts: Array.isArray(res.data.attempts) ? res.data.attempts : [],
+    attempts: Array.isArray(res.data.attempts)
+      ? res.data.attempts.map((row: LiveExamAttemptRow) => ({
+          ...row,
+          client_ip: typeof row.client_ip === 'string' ? row.client_ip : null,
+          client_user_agent:
+            typeof row.client_user_agent === 'string' ? row.client_user_agent : null,
+          client_device_type:
+            row.client_device_type === 'mobile' ||
+            row.client_device_type === 'tablet' ||
+            row.client_device_type === 'desktop' ||
+            row.client_device_type === 'unknown'
+              ? row.client_device_type
+              : null,
+        }))
+      : [],
     active_count:
       typeof res.data.active_count === 'number' && Number.isFinite(res.data.active_count)
         ? res.data.active_count
@@ -644,6 +661,7 @@ export type OfficialItemExposureStudent = {
   attempt_id: string;
   is_correct: boolean | null;
   time_spent_ms: number | null;
+  score_points?: number | null;
   grade: number | null;
   school_id: string | null;
   completed_at_ms: number;
@@ -658,6 +676,58 @@ export type OfficialExamItemExposures = {
   item_id: string;
   level_filter: number | null;
   students: OfficialItemExposureStudent[];
+  generated_at: string;
+};
+
+export type OfficialItemScoreBandRow = {
+  bucket: string;
+  min_points: number;
+  max_points: number;
+  times_seen: number;
+  times_correct: number;
+  accuracy_pct: number;
+  avg_time_ms: number | null;
+  avg_time_sec: number | null;
+};
+
+export type OfficialItemScoreDensityBin = {
+  min_points: number;
+  max_points: number;
+  label: string;
+  times_seen: number;
+  times_correct: number;
+  times_incorrect: number;
+  accuracy_pct: number;
+  avg_time_ms: number | null;
+  avg_time_sec: number | null;
+};
+
+export type OfficialItemScoreDiscrimination = {
+  low_label: string;
+  high_label: string;
+  low_accuracy_pct: number | null;
+  high_accuracy_pct: number | null;
+  delta_pp: number | null;
+  low_n: number;
+  high_n: number;
+};
+
+export type OfficialItemScoreAnalytics = {
+  times_seen: number;
+  times_correct: number;
+  accuracy_pct: number;
+  avg_time_ms: number | null;
+  avg_time_sec: number | null;
+  by_score_band: OfficialItemScoreBandRow[];
+  discrimination: OfficialItemScoreDiscrimination;
+  density: OfficialItemScoreDensityBin[];
+};
+
+export type OfficialExamItemScoreAnalytics = {
+  exam_id: string;
+  item_id: string;
+  level_filter: number | null;
+  analytics: OfficialItemScoreAnalytics;
   generated_at: string;
 };
 
@@ -744,6 +814,7 @@ export async function searchPlatformAdminOfficialExamCompletions(
     from?: string;
     to?: string;
     level?: number | null;
+    /** 1–100 page size; pass 0 for all matched rows. */
     limit?: number;
   }
 ): Promise<{
@@ -755,7 +826,7 @@ export async function searchPlatformAdminOfficialExamCompletions(
 }> {
   const headers = await authHeaders();
   const params: Record<string, string | number> = {
-    limit: opts?.limit ?? 25,
+    limit: typeof opts?.limit === 'number' ? opts.limit : 25,
   };
   if (opts?.q?.trim()) params.q = opts.q.trim();
   if (opts?.from) params.from = opts.from;
@@ -890,6 +961,53 @@ export async function getPlatformAdminOfficialExamItemExposures(
     item_id: typeof res.data.item_id === 'string' ? res.data.item_id : opts.itemId,
     level_filter: typeof res.data.level_filter === 'number' ? res.data.level_filter : null,
     students: Array.isArray(res.data.students) ? res.data.students : [],
+    generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
+  };
+}
+
+export async function getPlatformAdminOfficialExamItemScoreAnalytics(
+  examId: string,
+  opts: { itemId: string; level?: number | null; refresh?: boolean }
+): Promise<OfficialExamItemScoreAnalytics> {
+  const headers = await authHeaders();
+  const params: Record<string, string | number> = { ...refreshParams(opts.refresh) };
+  if (typeof opts.level === 'number' && opts.level > 0) params.level = opts.level;
+  const res = await axios.get(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAMS}/${encodeURIComponent(examId)}/item-score-analytics/${encodeURIComponent(opts.itemId)}`,
+    { headers, params }
+  );
+  const raw = res.data?.analytics && typeof res.data.analytics === 'object' ? res.data.analytics : {};
+  const discrimination =
+    raw.discrimination && typeof raw.discrimination === 'object' ? raw.discrimination : {};
+  return {
+    exam_id: typeof res.data.exam_id === 'string' ? res.data.exam_id : examId,
+    item_id: typeof res.data.item_id === 'string' ? res.data.item_id : opts.itemId,
+    level_filter: typeof res.data.level_filter === 'number' ? res.data.level_filter : null,
+    analytics: {
+      times_seen: Number(raw.times_seen) || 0,
+      times_correct: Number(raw.times_correct) || 0,
+      accuracy_pct: Number(raw.accuracy_pct) || 0,
+      avg_time_ms: typeof raw.avg_time_ms === 'number' ? raw.avg_time_ms : null,
+      avg_time_sec: typeof raw.avg_time_sec === 'number' ? raw.avg_time_sec : null,
+      by_score_band: Array.isArray(raw.by_score_band) ? raw.by_score_band : [],
+      discrimination: {
+        low_label: typeof discrimination.low_label === 'string' ? discrimination.low_label : '0–499',
+        high_label:
+          typeof discrimination.high_label === 'string' ? discrimination.high_label : '800–1000',
+        low_accuracy_pct:
+          typeof discrimination.low_accuracy_pct === 'number'
+            ? discrimination.low_accuracy_pct
+            : null,
+        high_accuracy_pct:
+          typeof discrimination.high_accuracy_pct === 'number'
+            ? discrimination.high_accuracy_pct
+            : null,
+        delta_pp: typeof discrimination.delta_pp === 'number' ? discrimination.delta_pp : null,
+        low_n: Number(discrimination.low_n) || 0,
+        high_n: Number(discrimination.high_n) || 0,
+      },
+      density: Array.isArray(raw.density) ? raw.density : [],
+    },
     generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
   };
 }
@@ -1335,6 +1453,10 @@ export async function getPlatformAdminPracticeExamItemBank(
         option_figure: q.option_figure ?? null,
         options: Array.isArray(q.options) ? q.options : [],
         correct_index: typeof q.correct_index === 'number' ? q.correct_index : null,
+        delivery_authorized: q.delivery_authorized === true,
+        lifecycle_status: typeof q.lifecycle_status === 'string' ? q.lifecycle_status : null,
+        parent_id: typeof q.parent_id === 'string' ? q.parent_id : null,
+        version: typeof q.version === 'string' ? q.version : null,
       }))
     : [];
   return {
@@ -1351,6 +1473,111 @@ export async function getPlatformAdminPracticeExamItemBank(
     generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
     latest_upload_at:
       typeof res.data.latest_upload_at === 'string' ? res.data.latest_upload_at : null,
+  };
+}
+
+export async function approvePlatformAdminPracticeExamBankItem(opts: {
+  examId: string;
+  level: number;
+  itemId: string;
+}): Promise<{
+  item_id: string;
+  delivery_authorized: boolean;
+  lifecycle_status: string;
+  already_approved: boolean;
+}> {
+  const headers = await authHeaders();
+  const res = await axios.post(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_PRACTICE_EXAMS}/${encodeURIComponent(opts.examId)}/item-bank/${encodeURIComponent(opts.itemId)}/approve`,
+    {},
+    { headers, params: { level: opts.level } }
+  );
+  return {
+    item_id: typeof res.data.item_id === 'string' ? res.data.item_id : opts.itemId,
+    delivery_authorized: res.data.delivery_authorized === true,
+    lifecycle_status:
+      typeof res.data.lifecycle_status === 'string' ? res.data.lifecycle_status : 'APPROVED',
+    already_approved: res.data.already_approved === true,
+  };
+}
+
+export async function unapprovePlatformAdminPracticeExamBankItem(opts: {
+  examId: string;
+  level: number;
+  itemId: string;
+}): Promise<{
+  item_id: string;
+  delivery_authorized: boolean;
+  lifecycle_status: string;
+  already_unapproved: boolean;
+}> {
+  const headers = await authHeaders();
+  const res = await axios.post(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_PRACTICE_EXAMS}/${encodeURIComponent(opts.examId)}/item-bank/${encodeURIComponent(opts.itemId)}/unapprove`,
+    {},
+    { headers, params: { level: opts.level } }
+  );
+  return {
+    item_id: typeof res.data.item_id === 'string' ? res.data.item_id : opts.itemId,
+    delivery_authorized: res.data.delivery_authorized === true,
+    lifecycle_status:
+      typeof res.data.lifecycle_status === 'string' ? res.data.lifecycle_status : 'UNAPPROVED',
+    already_unapproved: res.data.already_unapproved === true,
+  };
+}
+
+export async function deletePlatformAdminPracticeExamBankItem(opts: {
+  examId: string;
+  level: number;
+  itemId: string;
+}): Promise<{
+  item_id: string;
+  deleted: boolean;
+}> {
+  const headers = await authHeaders();
+  const res = await axios.post(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_PRACTICE_EXAMS}/${encodeURIComponent(opts.examId)}/item-bank/${encodeURIComponent(opts.itemId)}/delete`,
+    {},
+    { headers, params: { level: opts.level } }
+  );
+  return {
+    item_id: typeof res.data.item_id === 'string' ? res.data.item_id : opts.itemId,
+    deleted: res.data.deleted === true,
+  };
+}
+
+export async function updatePlatformAdminPracticeExamBankItem(opts: {
+  examId: string;
+  level: number;
+  itemId: string;
+  patch: OfficialExamBankItemEditPatch;
+}): Promise<{
+  item_id: string;
+  question: OfficialQuestionStatRow;
+}> {
+  const headers = await authHeaders();
+  const res = await axios.patch(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_PRACTICE_EXAMS}/${encodeURIComponent(opts.examId)}/item-bank/${encodeURIComponent(opts.itemId)}`,
+    opts.patch,
+    { headers, params: { level: opts.level } }
+  );
+  const q = res.data.question || {};
+  const question: OfficialQuestionStatRow = {
+    ...q,
+    prompt: typeof q.prompt === 'string' ? q.prompt : q.prompt_preview || '',
+    prompt_preview: typeof q.prompt_preview === 'string' ? q.prompt_preview : '',
+    stimulus: q.stimulus ?? null,
+    stimulus_type: typeof q.stimulus_type === 'string' ? q.stimulus_type : null,
+    assets: Array.isArray(q.assets) ? q.assets : [],
+    option_figure: q.option_figure ?? null,
+    options: Array.isArray(q.options) ? q.options : [],
+    correct_index: typeof q.correct_index === 'number' ? q.correct_index : null,
+    delivery_authorized: q.delivery_authorized === true,
+    lifecycle_status: typeof q.lifecycle_status === 'string' ? q.lifecycle_status : null,
+  };
+  return {
+    item_id: typeof res.data.item_id === 'string' ? res.data.item_id : opts.itemId,
+    question,
   };
 }
 
@@ -1402,6 +1629,9 @@ export type OfficialExamAttemptDetail = {
   instruction_family_scores: unknown;
   band_scores: unknown;
   questions: OfficialAttemptQuestionRow[];
+  client_ip: string | null;
+  client_user_agent: string | null;
+  client_device_type: 'mobile' | 'tablet' | 'desktop' | 'unknown' | null;
   generated_at: string;
 };
 
@@ -1452,6 +1682,16 @@ export async function getPlatformAdminOfficialExamAttemptDetail(
           options: Array.isArray(q.options) ? q.options : [],
         }))
       : [],
+    client_ip: typeof res.data.client_ip === 'string' ? res.data.client_ip : null,
+    client_user_agent:
+      typeof res.data.client_user_agent === 'string' ? res.data.client_user_agent : null,
+    client_device_type:
+      res.data.client_device_type === 'mobile' ||
+      res.data.client_device_type === 'tablet' ||
+      res.data.client_device_type === 'desktop' ||
+      res.data.client_device_type === 'unknown'
+        ? res.data.client_device_type
+        : null,
     generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
   };
 }

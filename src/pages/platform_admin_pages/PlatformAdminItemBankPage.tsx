@@ -12,8 +12,7 @@ import { PlatformAdminItemBankSection } from './PlatformAdminItemBankSection';
 
 const PlatformAdminItemBankPage: React.FC = () => {
   const { bank: bankParam } = useParams<{ bank?: string }>();
-  const bankKind =
-    bankParam === 'practice' ? 'practice' : bankParam === 'review' ? 'review' : 'official';
+  const bankKind = bankParam === 'practice' ? 'practice' : 'official';
   const [loading, setLoading] = useState(false);
   const [refreshNonce, setRefreshNonce] = useState(0);
 
@@ -32,7 +31,7 @@ const PlatformAdminItemBankPage: React.FC = () => {
     >
       <PlatformAdminPageHeader
         title="Item Bank"
-        subtitle="Official and practice pools by exam and level, with options and correct answers. Official also shows pick rates. Data is Redis-cached and not realtime."
+        subtitle="Official pools by exam and level; practice is a single pool per exam. Official also shows pick rates. Data is Redis-cached and not realtime."
         action={
           <Button
             variant="outlined"

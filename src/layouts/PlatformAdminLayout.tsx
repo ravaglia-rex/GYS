@@ -26,7 +26,6 @@ import {
   ExpandMore,
   FactCheckOutlined as OfficialExamsIcon,
   FitnessCenterOutlined as PracticeExamsIcon,
-  RateReviewOutlined as ReviewDraftsIcon,
   TodayOutlined as QodIcon,
   MonetizationOnOutlined as CoinsIcon,
   Inventory2Outlined as ItemBankIcon,
@@ -108,11 +107,6 @@ const ITEM_BANK_NAV_ITEM: NavItem = {
       title: 'Practice',
       path: '/platform-admin/item-bank/practice',
       icon: <PracticeExamsIcon sx={{ color: '#2563eb', fontSize: CHILD_ICON_SIZE }} />,
-    },
-    {
-      title: 'Review drafts',
-      path: '/platform-admin/item-bank/review',
-      icon: <ReviewDraftsIcon sx={{ color: '#2563eb', fontSize: CHILD_ICON_SIZE }} />,
     },
   ],
 };

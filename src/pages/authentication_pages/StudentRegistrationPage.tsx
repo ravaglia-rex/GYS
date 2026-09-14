@@ -199,13 +199,13 @@ const StudentRegistrationPage: React.FC = () => {
       let blockReason: 'auth' | 'student' | 'schooladmin' | null = null;
 
       const emailCheck = await checkEmailExists(normalizedEmail);
-      if (emailCheck.exists && emailCheck.registrationStatus !== 'pending_payment') {
+      if (emailCheck.exists && emailCheck.pendingPaymentResume !== true) {
         blockReason = emailCheck.type === 'schooladmin' ? 'schooladmin' : 'student';
       }
 
       // A pending paid signup owns a Firebase Auth user before payment completes.
       // Let that email continue the register flow so users can finish checkout.
-      if (!blockReason && emailCheck.registrationStatus !== 'pending_payment') {
+      if (!blockReason && emailCheck.pendingPaymentResume !== true) {
         try {
           const methods = await fetchSignInMethodsForEmail(auth, normalizedEmail);
           if (methods && methods.length > 0) {

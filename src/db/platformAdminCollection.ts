@@ -790,6 +790,59 @@ export async function getPlatformAdminStudentCoinEvents(
   return Array.isArray(res.data?.events) ? res.data.events : [];
 }
 
+export type PlatformAdminStudentExamAttemptRow = {
+  attempt_id: string;
+  attempt_number: number;
+  assessment_id: string;
+  assessment_label: string;
+  proficiency_tier: number | null;
+  status: string;
+  score_pct: number | null;
+  score_points: number | null;
+  passed: boolean | null;
+  questions_answered: number;
+  questions_total: number;
+  correct_count: number;
+  started_at: string | null;
+  completed_at: string | null;
+  failed_at: string | null;
+  client_ip: string | null;
+  client_user_agent: string | null;
+  client_device_type: 'mobile' | 'tablet' | 'desktop' | 'unknown' | null;
+};
+
+export async function getPlatformAdminStudentExamAttempts(
+  studentUid: string
+): Promise<PlatformAdminStudentExamAttemptRow[]> {
+  const headers = await authHeaders();
+  const res = await axios.get(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_STUDENTS}/${encodeURIComponent(studentUid)}/exam-attempts`,
+    { headers }
+  );
+  const rows = Array.isArray(res.data?.attempts) ? res.data.attempts : [];
+  return rows.map((row: PlatformAdminStudentExamAttemptRow) => ({
+    ...row,
+    attempt_number:
+      typeof row.attempt_number === 'number' && Number.isFinite(row.attempt_number)
+        ? Math.max(1, Math.floor(row.attempt_number))
+        : 0,
+    questions_answered:
+      typeof row.questions_answered === 'number' ? row.questions_answered : 0,
+    questions_total: typeof row.questions_total === 'number' ? row.questions_total : 0,
+    correct_count: typeof row.correct_count === 'number' ? row.correct_count : 0,
+    client_ip: typeof row.client_ip === 'string' ? row.client_ip : null,
+    client_user_agent:
+      typeof row.client_user_agent === 'string' ? row.client_user_agent : null,
+    client_device_type:
+      row.client_device_type === 'mobile' ||
+      row.client_device_type === 'tablet' ||
+      row.client_device_type === 'desktop' ||
+      row.client_device_type === 'unknown'
+        ? row.client_device_type
+        : null,
+  }));
+}
+
 export async function getPlatformAdminStudent(studentUid: string): Promise<PlatformAdminStudentDetail> {
   const headers = await authHeaders();
   const res = await axios.get(

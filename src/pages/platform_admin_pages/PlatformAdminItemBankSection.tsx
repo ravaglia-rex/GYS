@@ -22,7 +22,6 @@ import {
   type OfficialItemBankFilters,
   type OfficialQuestionStatRow,
 } from '../../db/platformAdminAnalytics';
-import { loadPracticeGoldParentsReviewBank } from '../../data/practiceGoldParentsReviewBank';
 import { MathJaxContext } from 'better-react-mathjax';
 import { EXAM_MATHJAX_CONFIG } from '../../components/assessment/examMathJaxConfig';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
@@ -75,11 +74,10 @@ const LEVELS = [1, 2, 3];
 const ALL_VALUE = 'all';
 const ITEM_BANK_PAGE_SIZE = 40;
 
-type ItemBankKind = 'official' | 'practice' | 'review';
+type ItemBankKind = 'official' | 'practice';
 
 function readBankKind(raw: string | undefined): ItemBankKind {
   if (raw === 'practice') return 'practice';
-  if (raw === 'review') return 'review';
   return 'official';
 }
 
@@ -90,6 +88,8 @@ function ItemBankVirtualList({
   examId = null,
   level = null,
   canApprove = false,
+  canEditContent = false,
+  bankKind = 'official',
   onApprovalChange,
   onItemUpdated,
   onItemDeleted,
@@ -100,6 +100,9 @@ function ItemBankVirtualList({
   examId?: string | null;
   level?: number | null;
   canApprove?: boolean;
+  /** Content edit dialog (AR taxonomy schema). Separate from approve/delete. */
+  canEditContent?: boolean;
+  bankKind?: ItemBankKind;
   onApprovalChange?: (itemId: string, deliveryAuthorized: boolean) => void;
   onItemUpdated?: (itemId: string, next: OfficialQuestionStatRow) => void;
   onItemDeleted?: (itemId: string) => void;
@@ -125,6 +128,8 @@ function ItemBankVirtualList({
           examId={examId}
           level={level}
           canApprove={canApprove}
+          canEditContent={canEditContent}
+          bankKind={bankKind}
           onApproved={(itemId, deliveryAuthorized) =>
             onApprovalChange?.(itemId, deliveryAuthorized)
           }
@@ -245,46 +250,17 @@ export function PlatformAdminItemBankSection({
   );
 
   useEffect(() => {
-    if (bankParam && bankParam !== 'official' && bankParam !== 'practice' && bankParam !== 'review') {
+    if (bankParam === 'review') {
+      navigate(`/platform-admin/item-bank/practice?${searchParams.toString()}`, { replace: true });
+      return;
+    }
+    if (bankParam && bankParam !== 'official' && bankParam !== 'practice') {
       navigate(`/platform-admin/item-bank/official?${searchParams.toString()}`, { replace: true });
     }
   }, [bankParam, navigate, searchParams]);
 
   useEffect(() => {
     let cancelled = false;
-    if (bankKind === 'review') {
-      // Fixed Analytical L0 packet — no exam-summary fetch needed.
-      // Drop Official/Practice taxonomy params (e.g. band=L0-S) that empty this packet.
-      setSummaries([
-        {
-          exam_id: 'analytical_reasoning',
-          label: 'Analytical Reasoning',
-          completed_attempts: 0,
-          unique_students: 0,
-          avg_score_pct: 0,
-          avg_score_points: 0,
-          avg_questions_answered: 0,
-          passed_attempts: 0,
-          pass_rate_pct: 0,
-        },
-      ]);
-      setSummariesLoading(false);
-      const reviewFilters: OfficialItemBankFilters = {};
-      if (filters.approved) reviewFilters.approved = filters.approved;
-      if (filters.is_new) reviewFilters.is_new = filters.is_new;
-      const needsReset =
-        !examId ||
-        level !== 1 ||
-        Boolean(filters.band || filters.strand || filters.instruction_family || filters.family || filters.mechanic);
-      if (needsReset) {
-        setQuery({
-          exam: 'analytical_reasoning',
-          level: 1,
-          filters: reviewFilters,
-        });
-      }
-      return;
-    }
     const refresh = refreshNonce > appliedRefreshRef.current;
     setSummariesLoading(true);
     void getPlatformAdminOfficialExamSummaries({ refresh })
@@ -312,8 +288,8 @@ export function PlatformAdminItemBankSection({
   useEffect(() => {
     if (examId || summaries.length === 0) return;
     const first = summaries[0]?.exam_id;
-    if (first) setQuery({ exam: first, level: bankKind === 'review' ? 1 : level, filters });
-  }, [examId, summaries, level, filters, setQuery, bankKind]);
+    if (first) setQuery({ exam: first, level, filters });
+  }, [examId, summaries, level, filters, setQuery]);
 
   useEffect(() => {
     if (!examId) {
@@ -327,25 +303,6 @@ export function PlatformAdminItemBankSection({
     onLoadingChange?.(true);
     const refresh = refreshNonce > appliedRefreshRef.current;
     appliedRefreshRef.current = refreshNonce;
-
-    if (bankKind === 'review') {
-      try {
-        const data = loadPracticeGoldParentsReviewBank({ level, filters });
-        if (req !== reqRef.current) return;
-        setBank(data);
-      } catch (e: unknown) {
-        if (req !== reqRef.current) return;
-        const err = e as { message?: string };
-        setError(err?.message || 'Failed to load review packet');
-        setBank(null);
-      } finally {
-        if (req === reqRef.current) {
-          setLoading(false);
-          onLoadingChange?.(false);
-        }
-      }
-      return;
-    }
 
     const load =
       bankKind === 'practice'
@@ -381,14 +338,12 @@ export function PlatformAdminItemBankSection({
 
   const selectedExam = summaries.find((e) => e.exam_id === examId) ?? null;
   const facets = bank?.facets;
-  const visibleFilterKeys = FILTER_KEYS.filter((key) => {
-    if (filters[key]) return true;
-    if (key === 'approved' || key === 'is_new') return Boolean(bank);
-    return (facets?.[key] || []).length > 0;
-  });
+  // Always show the same filter controls for every exam / bank. Empty facets
+  // still render as "All …" so Verbal/Math match Analytical chrome.
+  const visibleFilterKeys = FILTER_KEYS;
   const row1FilterKeys = visibleFilterKeys.filter((key) => key === 'strand');
   const row2FilterKeys = visibleFilterKeys.filter((key) => key !== 'strand');
-  // Approved / other taxonomy filters are applied by the API (or review loader).
+  // Approved / other taxonomy filters are applied by the API.
   // Only item-id search is client-side so we do not double-filter and empty
   // stale Redis payloads that already match `approved=`.
   const questions = useMemo(() => {
@@ -536,26 +491,24 @@ export function PlatformAdminItemBankSection({
     });
   }, []);
 
+  useEffect(() => {
+    if (bankKind !== 'practice') return;
+    if (level !== 1) setQuery({ level: 1 });
+  }, [bankKind, level, setQuery]);
+
   const emptyCopy =
-    bankKind === 'review'
-      ? 'No review-draft items for this level/filters. The practice_review_30 packet is Level 1 only.'
-      : bankKind === 'practice'
-        ? 'No practice items in this exam level for the current filters.'
-        : 'No items in this exam level for the current filters.';
+    bankKind === 'practice'
+      ? 'No practice items for this exam for the current filters.'
+      : 'No items in this exam level for the current filters.';
+
+  const canApprove = Boolean(examId);
+  const canEditContent = Boolean(examId);
 
   return (
     <>
       {error ? (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
-        </Alert>
-      ) : null}
-
-      {bankKind === 'review' ? (
-        <Alert severity="info" sx={{ mb: 2 }}>
-          Admin-only review of practice_review_30_2026-08-28-r1 (10 revised parents + 20
-          expansion candidates) — not in live practice_bank. Bound SVGs render from local
-          review-draft assets. No answer keys (blind review). Activation not authorized.
         </Alert>
       ) : null}
 
@@ -584,7 +537,10 @@ export function PlatformAdminItemBankSection({
           <Tabs
             value={level}
             onChange={(_e, value: number) => setQuery({ level: value })}
-            sx={examPickerTabsSx}
+            sx={{
+              ...examPickerTabsSx,
+              display: bankKind === 'practice' ? 'none' : undefined,
+            }}
           >
             {LEVELS.map((lvl) => (
               <Tab key={lvl} value={lvl} label={`Level ${lvl}`} />
@@ -594,18 +550,12 @@ export function PlatformAdminItemBankSection({
           <PlatformAdminAnalyticsSection
             title={
               selectedExam
-                ? `${shortOfficialExamLabel(selectedExam.label)} · Level ${level} · ${
-                    bankKind === 'review'
-                      ? 'Review drafts'
-                      : bankKind === 'practice'
-                        ? 'Practice'
-                        : 'Official'
+                ? `${shortOfficialExamLabel(selectedExam.label)}${
+                    bankKind === 'practice' ? ' · Practice' : ` · Level ${level} · Official`
                   }`
-                : bankKind === 'review'
-                  ? 'Review drafts'
-                  : bankKind === 'practice'
-                    ? 'Practice bank'
-                    : 'Official bank'
+                : bankKind === 'practice'
+                  ? 'Practice bank'
+                  : 'Official bank'
             }
             subtitle={
               bank
@@ -613,22 +563,20 @@ export function PlatformAdminItemBankSection({
                     itemIdQuery.trim()
                       ? questions.filter((q) => q.times_seen > 0).length
                       : bank.served_items
-                  ).toLocaleString()} served. Search by item ID or combine filters.${
+                  ).toLocaleString()} served. Same filters and Approve / Edit / Delete on every exam.${
                     bankKind === 'official' ? ' Unserved items stay visible.' : ''
                   }${
-                    bankKind === 'review'
-                      ? ' Keyless review packet — not authorized for practice or scored delivery.'
+                    bankKind === 'practice'
+                      ? ' Approve items before students can draw them in practice.'
                       : ''
                   }${
                     bank.latest_upload_at
                       ? ` Latest upload: ${new Date(bank.latest_upload_at).toLocaleString()}.`
                       : ''
                   }`
-                : bankKind === 'review'
-                  ? 'Browse the gold practice parent review packet with stems and options.'
-                  : bankKind === 'practice'
-                    ? 'Browse every practice-bank item with options and the correct answer.'
-                    : 'Browse every official bank item with options, the correct answer, and pick rates.'
+                : bankKind === 'practice'
+                  ? 'Browse the practice pool with options and the correct answer.'
+                  : 'Browse every official bank item with options, the correct answer, and pick rates.'
             }
             accent="teal"
           >
@@ -647,7 +595,11 @@ export function PlatformAdminItemBankSection({
                 <TextField
                   id="item-bank-item-id"
                   size="small"
-                  placeholder="Search item ID (AR-L1-T5-05-P1:v1)"
+                  placeholder={
+                    bankKind === 'practice'
+                      ? 'Search item ID'
+                      : 'Search item ID (AR-L1-T5-05-P1:v1)'
+                  }
                   value={itemIdQuery}
                   onChange={(e) => setQuery({ itemIdQuery: e.target.value })}
                   InputProps={{
@@ -699,7 +651,12 @@ export function PlatformAdminItemBankSection({
                   renderMath
                   examId={examId}
                   level={level}
-                  canApprove={false}
+                  canApprove={canApprove}
+                  canEditContent={canEditContent}
+                  bankKind={bankKind}
+                  onApprovalChange={handleApprovalChange}
+                  onItemUpdated={handleItemUpdated}
+                  onItemDeleted={handleItemDeleted}
                 />
               </MathJaxContext>
             ) : (
@@ -708,7 +665,9 @@ export function PlatformAdminItemBankSection({
                 loading={loading}
                 examId={examId}
                 level={level}
-                canApprove={bankKind === 'official' && examId === 'analytical_reasoning'}
+                canApprove={canApprove}
+                canEditContent={canEditContent}
+                bankKind={bankKind}
                 onApprovalChange={handleApprovalChange}
                 onItemUpdated={handleItemUpdated}
                 onItemDeleted={handleItemDeleted}

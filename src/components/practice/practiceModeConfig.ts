@@ -78,13 +78,25 @@ export function practiceExamLockedTooltip(gateResult: GateResult): string {
 
 export type PracticeLevel = 1 | 2 | 3;
 
-/** Placeholder pool sizes until the backend exposes counts (varied for realism). */
+/** Flat practice pool — storage/session key is always level 1. */
+export const PRACTICE_POOL_LEVEL: PracticeLevel = 1;
+
+/** Placeholder pool sizes until the backend exposes counts (flat total). */
+export const PRACTICE_POOL_BY_EXAM: Record<string, number> = {
+  analytical_reasoning: 185,
+  verbal_reasoning: 210,
+  mathematical_reasoning: 198,
+  english_proficiency: 220,
+  ai_literacy: 160,
+};
+
+/** @deprecated Use PRACTICE_POOL_BY_EXAM — levels collapsed. */
 export const PRACTICE_POOL_BY_EXAM_LEVEL: Record<string, Record<PracticeLevel, number>> = {
-  analytical_reasoning: { 1: 185, 2: 165, 3: 150 },
-  verbal_reasoning: { 1: 210, 2: 195, 3: 175 },
-  mathematical_reasoning: { 1: 198, 2: 182, 3: 168 },
-  english_proficiency: { 1: 220, 2: 205, 3: 190 },
-  ai_literacy: { 1: 160, 2: 148, 3: 135 },
+  analytical_reasoning: { 1: 185, 2: 0, 3: 0 },
+  verbal_reasoning: { 1: 210, 2: 0, 3: 0 },
+  mathematical_reasoning: { 1: 198, 2: 0, 3: 0 },
+  english_proficiency: { 1: 220, 2: 0, 3: 0 },
+  ai_literacy: { 1: 160, 2: 0, 3: 0 },
 };
 
 export function recommendedPracticeLevel(grade: number): PracticeLevel {
@@ -173,10 +185,8 @@ function load(scope: string): PracticeModePersisted {
       v: 1,
       completedByKey: { ...parsed.completedByKey },
       activeSession:
-        parsed.activeSession &&
-        typeof parsed.activeSession.examId === 'string' &&
-        [1, 2, 3].includes(parsed.activeSession.level as number)
-          ? parsed.activeSession
+        parsed.activeSession && typeof parsed.activeSession.examId === 'string'
+          ? { examId: parsed.activeSession.examId, level: PRACTICE_POOL_LEVEL, startedAt: parsed.activeSession.startedAt || new Date().toISOString() }
           : null,
       lastSelection,
     };
@@ -189,9 +199,8 @@ function parsePracticeHubSelection(raw: unknown): PracticeHubSelection | null {
   if (!raw || typeof raw !== 'object') return null;
   const o = raw as Record<string, unknown>;
   const examId = typeof o.examId === 'string' ? o.examId.trim() : '';
-  const level = o.level;
-  if (!examId || !(level === 1 || level === 2 || level === 3)) return null;
-  return { examId, level };
+  if (!examId) return null;
+  return { examId, level: PRACTICE_POOL_LEVEL };
 }
 
 export function getLastPracticeSelection(scope: string): PracticeHubSelection | null {
@@ -207,43 +216,21 @@ export function saveLastPracticeSelection(scope: string, selection: PracticeHubS
 export function isValidPracticeHubSelection(
   selection: PracticeHubSelection,
   gate: PracticeAssessmentGateInput | undefined,
-  progressByExam: Record<string, AssessmentProgress | { proficiency_tier?: number }> | undefined,
-  officialTierCountByExam: Record<string, number> | undefined
+  _progressByExam?: Record<string, AssessmentProgress | { proficiency_tier?: number }>,
+  _officialTierCountByExam?: Record<string, number>
 ): boolean {
   if (!(PRACTICE_ELIGIBLE_EXAM_IDS as readonly string[]).includes(selection.examId)) return false;
   if (gate && !practiceExamIsUnlocked(selection.examId, gate)) return false;
-  const maxLevel =
-    progressByExam != null
-      ? maxUnlockedPracticeLevel(
-          progressByExam[selection.examId],
-          officialTierCountByExam?.[selection.examId] ?? 3,
-          { fullUnlock: gate?.fullUnlock }
-        )
-      : gate?.fullUnlock
-        ? 3
-        : 1;
-  return selection.level >= 1 && selection.level <= maxLevel;
+  return true;
 }
 
 export function defaultPracticeHubSelection(
   gate: PracticeAssessmentGateInput | undefined,
-  grade: number,
-  progressByExam?: Record<string, AssessmentProgress | { proficiency_tier?: number }>,
-  officialTierCountByExam?: Record<string, number>
+  _grade?: number,
+  _progressByExam?: Record<string, AssessmentProgress | { proficiency_tier?: number }>,
+  _officialTierCountByExam?: Record<string, number>
 ): PracticeHubSelection {
-  const examId = firstUnlockedPracticeEligibleExamId(gate);
-  const max0 =
-    progressByExam != null
-      ? maxUnlockedPracticeLevel(
-          progressByExam[examId],
-          officialTierCountByExam?.[examId] ?? 3,
-          { fullUnlock: gate?.fullUnlock }
-        )
-      : gate?.fullUnlock
-        ? 3
-        : 1;
-  const level = Math.min(recommendedPracticeLevel(grade), max0) as PracticeLevel;
-  return { examId, level };
+  return { examId: firstUnlockedPracticeEligibleExamId(gate), level: PRACTICE_POOL_LEVEL };
 }
 
 /** Prefer navigation state, then persisted hub selection, then program defaults. */
@@ -275,15 +262,15 @@ function save(scope: string, data: PracticeModePersisted): void {
   }
 }
 
-export function storageKeyForExamLevel(examId: string, level: PracticeLevel): string {
-  return `${examId}_L${level}`;
+export function storageKeyForExamLevel(examId: string, _level?: PracticeLevel): string {
+  return `${examId}_practice`;
 }
 
 export function getPracticeStats(
   scope: string,
   examId: string,
-  level: PracticeLevel,
-  /** When set (e.g. practice_bank loaded from API), overrides placeholder PRACTICE_POOL_BY_EXAM_LEVEL. */
+  _level?: PracticeLevel,
+  /** When set (e.g. practice_bank loaded from API), overrides placeholder pool size. */
   livePoolByLevel?: Partial<Record<PracticeLevel, number>> | null
 ): {
   pool: number;
@@ -291,15 +278,20 @@ export function getPracticeStats(
   activeSession: PracticeActiveSession | null;
 } {
   const persisted = load(scope);
-  const staticPool = PRACTICE_POOL_BY_EXAM_LEVEL[examId]?.[level] ?? 0;
+  const staticPool = PRACTICE_POOL_BY_EXAM[examId] ?? PRACTICE_POOL_BY_EXAM_LEVEL[examId]?.[1] ?? 0;
   const pool =
-    livePoolByLevel != null && typeof livePoolByLevel[level] === 'number'
-      ? livePoolByLevel[level]!
+    livePoolByLevel != null && typeof livePoolByLevel[1] === 'number'
+      ? livePoolByLevel[1]!
       : staticPool;
-  const completed = persisted.completedByKey[storageKeyForExamLevel(examId, level)] ?? 0;
+  const completedKey = storageKeyForExamLevel(examId);
+  const legacyCompleted =
+    (persisted.completedByKey[`${examId}_L1`] ?? 0) +
+    (persisted.completedByKey[`${examId}_L2`] ?? 0) +
+    (persisted.completedByKey[`${examId}_L3`] ?? 0);
+  const completed = persisted.completedByKey[completedKey] ?? legacyCompleted;
   return {
     pool,
-    completed: Math.min(completed, pool),
+    completed: Math.min(completed, pool > 0 ? pool : completed),
     activeSession: persisted.activeSession,
   };
 }

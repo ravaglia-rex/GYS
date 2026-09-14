@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Box,
   Typography,
@@ -28,7 +28,7 @@ import {
   DeleteOutline as DeleteIcon,
   FileDownload as DownloadIcon,
 } from '@mui/icons-material';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import {
   deletePlatformAdminStudent,
@@ -37,15 +37,22 @@ import {
   formatInrFromPaise,
   getPlatformAdminStudent,
   getPlatformAdminStudentCoinEvents,
+  getPlatformAdminStudentExamAttempts,
   getPlatformAdminStudentInvoiceDownloadUrl,
   type PlatformAdminCoinEventRow,
   type PlatformAdminStudentDetail,
+  type PlatformAdminStudentExamAttemptRow,
 } from '../../db/platformAdminCollection';
+import {
+  getPlatformAdminOfficialExamAttemptDetail,
+  type OfficialExamAttemptDetail,
+} from '../../db/platformAdminAnalytics';
 import {
   platformAdminCardSx,
   platformAdminDialogFieldLabelSx,
   platformAdminDialogPaperSx,
   platformAdminDialogTextFieldSx,
+  platformAdminOutlinedButtonSx,
   platformAdminPageContainerSx,
   platformAdminTableHeadRowSx,
   platformAdminTablePaperSx,
@@ -53,6 +60,7 @@ import {
 } from './platformAdminPageStyles';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import { PlatformAdminChip } from './platformAdminComponents';
+import { PlatformAdminAttemptPaper } from './PlatformAdminExamQuestionCard';
 import { isPlatformAdminTestStudent } from './platformAdminTestStudents';
 import { MEMBERSHIP_LEVEL_LABEL } from '../../utils/studentMembershipPricing';
 
@@ -107,11 +115,44 @@ function coinReasonLabel(reason: string): string {
   }
 }
 
+function attemptStatusTone(
+  status: string
+): 'success' | 'warning' | 'neutral' | 'info' {
+  if (status === 'completed') return 'success';
+  if (status === 'in_progress') return 'info';
+  if (status === 'failed' || status === 'abandoned') return 'warning';
+  return 'neutral';
+}
+
+function formatClientDevice(
+  deviceType: PlatformAdminStudentExamAttemptRow['client_device_type']
+): string {
+  if (deviceType === 'mobile') return 'Phone';
+  if (deviceType === 'tablet') return 'Tablet';
+  if (deviceType === 'desktop') return 'Laptop/Desktop';
+  return '—';
+}
+
+function attemptLabel(row: PlatformAdminStudentExamAttemptRow): string {
+  const level =
+    row.proficiency_tier != null ? `L${row.proficiency_tier}` : 'level ?';
+  return `Attempt ${row.attempt_number} (${row.assessment_label} · ${level})`;
+}
+
 const PlatformAdminStudentDetailPage: React.FC = () => {
   const { studentId } = useParams<{ studentId: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const [student, setStudent] = useState<PlatformAdminStudentDetail | null>(null);
   const [coinEvents, setCoinEvents] = useState<PlatformAdminCoinEventRow[]>([]);
+  const [examAttempts, setExamAttempts] = useState<PlatformAdminStudentExamAttemptRow[]>([]);
+  const [attemptsLoading, setAttemptsLoading] = useState(false);
+  const [selectedAttemptId, setSelectedAttemptId] = useState<string | null>(null);
+  const [attemptDetail, setAttemptDetail] = useState<OfficialExamAttemptDetail | null>(null);
+  const [attemptDetailLoading, setAttemptDetailLoading] = useState(false);
+  const attemptDetailReqRef = useRef(0);
+  const attemptPanelRef = useRef<HTMLDivElement | null>(null);
+  const autoOpenedAttemptRef = useRef<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -125,25 +166,101 @@ const PlatformAdminStudentDetailPage: React.FC = () => {
     if (!studentId) return;
     setLoading(true);
     setError(null);
+    setAttemptsLoading(true);
     try {
-      const [data, events] = await Promise.all([
+      const [data, events, attempts] = await Promise.all([
         getPlatformAdminStudent(studentId),
         getPlatformAdminStudentCoinEvents(studentId, 50).catch(() => [] as PlatformAdminCoinEventRow[]),
+        getPlatformAdminStudentExamAttempts(studentId).catch(() => [] as PlatformAdminStudentExamAttemptRow[]),
       ]);
       setStudent(data);
       setCoinEvents(events);
+      setExamAttempts(attempts);
     } catch {
       setStudent(null);
       setCoinEvents([]);
+      setExamAttempts([]);
       setError('Failed to load student details.');
     } finally {
       setLoading(false);
+      setAttemptsLoading(false);
     }
   }, [studentId]);
 
   useEffect(() => {
     void load();
+    setSelectedAttemptId(null);
+    setAttemptDetail(null);
+    autoOpenedAttemptRef.current = null;
   }, [load]);
+
+  const openAttempt = useCallback(
+    async (row: PlatformAdminStudentExamAttemptRow) => {
+      if (!studentId) return;
+      if (selectedAttemptId === row.attempt_id) {
+        setSelectedAttemptId(null);
+        setAttemptDetail(null);
+        setSearchParams(
+          (prev) => {
+            const next = new URLSearchParams(prev);
+            next.delete('attempt');
+            return next;
+          },
+          { replace: true }
+        );
+        return;
+      }
+      const req = ++attemptDetailReqRef.current;
+      setSelectedAttemptId(row.attempt_id);
+      setAttemptDetailLoading(true);
+      setAttemptDetail(null);
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set('attempt', row.attempt_id);
+          return next;
+        },
+        { replace: true }
+      );
+      try {
+        if (row.status !== 'completed') {
+          if (req === attemptDetailReqRef.current) {
+            setAttemptDetail(null);
+          }
+          return;
+        }
+        const data = await getPlatformAdminOfficialExamAttemptDetail(row.assessment_id, {
+          uid: studentId,
+          attemptId: row.attempt_id,
+        });
+        if (req !== attemptDetailReqRef.current) return;
+        setAttemptDetail(data);
+      } catch {
+        if (req !== attemptDetailReqRef.current) return;
+        setAttemptDetail(null);
+        setError('Failed to load exam paper for this attempt.');
+      } finally {
+        if (req === attemptDetailReqRef.current) setAttemptDetailLoading(false);
+      }
+    },
+    [selectedAttemptId, setSearchParams, studentId]
+  );
+
+  // Deep-link from Search completions: ?attempt=<id>
+  useEffect(() => {
+    const focusId = searchParams.get('attempt');
+    if (!focusId || examAttempts.length === 0) return;
+    if (autoOpenedAttemptRef.current === focusId) return;
+    const row = examAttempts.find((a) => a.attempt_id === focusId);
+    if (!row) return;
+    autoOpenedAttemptRef.current = focusId;
+    void openAttempt(row);
+  }, [examAttempts, openAttempt, searchParams]);
+
+  useEffect(() => {
+    if (!selectedAttemptId) return;
+    attemptPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [selectedAttemptId, attemptDetailLoading, attemptDetail]);
 
   const openDeleteDialog = () => {
     if (!student) return;
@@ -541,6 +658,170 @@ const PlatformAdminStudentDetailPage: React.FC = () => {
           </CardContent>
         </Card>
       </Box>
+
+      <Card sx={{ ...platformAdminCardSx, mt: 2.5 }} ref={attemptPanelRef}>
+        <CardContent>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
+            Official exam attempts
+          </Typography>
+          <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 2 }}>
+            Attempt 1 is the earliest sit. Click a row to open the exam paper when available.
+          </Typography>
+          {attemptsLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress size={28} sx={{ color: ip.navy }} />
+            </Box>
+          ) : examAttempts.length === 0 ? (
+            <Typography variant="body2" sx={{ color: ip.subtext }}>
+              No official exam attempts yet.
+            </Typography>
+          ) : (
+            <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
+              <Table size="small" sx={platformAdminTableSx}>
+                <TableHead>
+                  <TableRow sx={platformAdminTableHeadRowSx}>
+                    <TableCell>Attempt</TableCell>
+                    <TableCell>When</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell align="right">Questions</TableCell>
+                    <TableCell align="right">Score</TableCell>
+                    <TableCell>Device</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {examAttempts.map((row) => {
+                    const open = selectedAttemptId === row.attempt_id;
+                    const when =
+                      row.completed_at || row.failed_at || row.started_at
+                        ? formatDateTime(row.completed_at || row.failed_at || row.started_at)
+                        : '—';
+                    return (
+                      <React.Fragment key={row.attempt_id}>
+                        <TableRow
+                          hover
+                          onClick={() => void openAttempt(row)}
+                          sx={{
+                            cursor: 'pointer',
+                            bgcolor: open ? 'rgba(16, 64, 139, 0.06)' : undefined,
+                          }}
+                        >
+                          <TableCell sx={{ fontWeight: 700, color: ip.navy, minWidth: 220 }}>
+                            {attemptLabel(row)}
+                            {open ? ' · open' : ''}
+                          </TableCell>
+                          <TableCell sx={{ whiteSpace: 'nowrap' }}>{when}</TableCell>
+                          <TableCell>
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, alignItems: 'center' }}>
+                              <PlatformAdminChip
+                                label={row.status.replace(/_/g, ' ')}
+                                tone={attemptStatusTone(row.status)}
+                              />
+                              {row.passed === true ? (
+                                <PlatformAdminChip label="Passed" tone="success" />
+                              ) : null}
+                            </Box>
+                          </TableCell>
+                          <TableCell align="right">
+                            {row.questions_total > 0
+                              ? `${row.correct_count}/${row.questions_total}`
+                              : row.questions_answered || '—'}
+                          </TableCell>
+                          <TableCell align="right">
+                            {row.score_points != null
+                              ? `${row.score_points}${row.score_pct != null ? ` (${row.score_pct}%)` : ''}`
+                              : '—'}
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" sx={{ fontSize: 13 }}>
+                              {formatClientDevice(row.client_device_type)}
+                            </Typography>
+                            {row.client_ip ? (
+                              <Typography
+                                variant="caption"
+                                sx={{ display: 'block', color: ip.subtext, fontFamily: 'monospace' }}
+                                title={row.client_user_agent || undefined}
+                              >
+                                {row.client_ip}
+                              </Typography>
+                            ) : null}
+                          </TableCell>
+                        </TableRow>
+                        {open ? (
+                          <TableRow>
+                            <TableCell colSpan={6} sx={{ p: 0, bgcolor: '#f8fafc' }}>
+                              <Box sx={{ p: 2 }}>
+                                {attemptDetailLoading ? (
+                                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+                                    <CircularProgress size={28} sx={{ color: ip.navy }} />
+                                  </Box>
+                                ) : row.status !== 'completed' ? (
+                                  <Typography variant="body2" sx={{ color: ip.subtext }}>
+                                    Exam paper is only available for completed attempts.
+                                  </Typography>
+                                ) : attemptDetail ? (
+                                  <Box>
+                                    <Box
+                                      sx={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        gap: 1,
+                                        flexWrap: 'wrap',
+                                        mb: 1.5,
+                                      }}
+                                    >
+                                      <Box>
+                                        <Typography sx={{ fontWeight: 800, color: ip.heading, fontSize: 15 }}>
+                                          {attemptLabel(row)} · {attemptDetail.questions.length} questions
+                                        </Typography>
+                                        <Typography variant="caption" sx={{ color: ip.subtext }}>
+                                          {attemptDetail.scoring_mode || 'scoring unknown'}
+                                          {attemptDetail.score_pct != null
+                                            ? ` · ${attemptDetail.score_pct}% (${attemptDetail.score_points}/1000)`
+                                            : ''}
+                                        </Typography>
+                                      </Box>
+                                      <Button
+                                        size="small"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          void openAttempt(row);
+                                        }}
+                                        sx={platformAdminOutlinedButtonSx}
+                                      >
+                                        Close
+                                      </Button>
+                                    </Box>
+                                    {attemptDetail.questions.length === 0 ? (
+                                      <Typography variant="body2" sx={{ color: ip.subtext }}>
+                                        This attempt has no stored question queue, so the paper cannot be
+                                        reconstructed.
+                                      </Typography>
+                                    ) : (
+                                      <PlatformAdminAttemptPaper
+                                        questions={attemptDetail.questions}
+                                        attemptId={attemptDetail.attempt_id}
+                                        examId={row.assessment_id}
+                                      />
+                                    )}
+                                  </Box>
+                                ) : (
+                                  <Typography variant="body2" sx={{ color: ip.subtext }}>
+                                    Could not load this exam paper.
+                                  </Typography>
+                                )}
+                              </Box>
+                            </TableCell>
+                          </TableRow>
+                        ) : null}
+                      </React.Fragment>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </CardContent>
+      </Card>
 
       <Card sx={{ ...platformAdminCardSx, mt: 2.5 }}>
         <CardContent>

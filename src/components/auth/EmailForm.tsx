@@ -164,7 +164,7 @@ const EmailEntryForm: React.FC = () => {
       const result = await checkEmailExists(normalizedEmail);
       setEmail(normalizedEmail);
   
-      if (result.type === 'student' && result.registrationStatus === 'pending_payment') {
+      if (result.type === 'student' && result.pendingPaymentResume === true) {
         analytics.track('[DIRECT] Pending Student Signup Resume', { email: normalizedEmail });
         navigate('/students/register', { state: { prefill: { email: normalizedEmail } } });
       } else if (result.type === 'platformadmin') {

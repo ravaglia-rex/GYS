@@ -16,8 +16,6 @@ const SchoolAdminRoute: React.FC<SchoolAdminRouteProps> = ({ children }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
   const [loading, setLoading] = useState(true);
-  // User, role, and authLoading are managed by Redux but not needed directly here
-  // since we use onAuthStateChanged to handle auth state
 
   const isLocalStorageAvailable = () => {
     try {
@@ -31,25 +29,31 @@ const SchoolAdminRoute: React.FC<SchoolAdminRouteProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    // Set up auth state listener to populate user in Redux
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        // Set user in Redux
         dispatch(setUser({
           uid: firebaseUser.uid,
           email: firebaseUser.email || '',
           displayName: firebaseUser.displayName || undefined,
           photoURL: firebaseUser.photoURL || undefined,
         }));
-        
-        // Check user role if not already set
+
         if (firebaseUser.email) {
-          await dispatch(checkUserRole(firebaseUser.email));
+          const result = await dispatch(checkUserRole(firebaseUser.email));
+          if (
+            !checkUserRole.fulfilled.match(result) ||
+            result.payload.role !== 'schooladmin'
+          ) {
+            navigate('/dashboard');
+            return;
+          }
+        } else {
+          navigate('/dashboard');
+          return;
         }
-        
+
         setLoading(false);
       } else {
-        // No user, redirect to home
         navigate('/');
       }
     });

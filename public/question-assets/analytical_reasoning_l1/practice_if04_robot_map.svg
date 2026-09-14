@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="340" height="340" viewBox="0 0 340 340">
+  <rect x="0" y="0" width="340" height="340" fill="#ffffff"/>
+  <!-- 3x3 grid: cells 100px, margin 20 -->
+  <g stroke="#333333" stroke-width="2" fill="none">
+    <rect x="20" y="20" width="300" height="300"/>
+    <line x1="120" y1="20" x2="120" y2="320"/>
+    <line x1="220" y1="20" x2="220" y2="320"/>
+    <line x1="20" y1="120" x2="320" y2="120"/>
+    <line x1="20" y1="220" x2="320" y2="220"/>
+  </g>
+  <!-- top-left: hollow triangle -->
+  <polygon points="70,42 44,94 96,94" fill="none" stroke="#333333" stroke-width="3"/>
+  <!-- top-center: solid circle -->
+  <circle cx="170" cy="70" r="26" fill="#333333"/>
+  <!-- top-right: solid square -->
+  <rect x="246" y="46" width="48" height="48" fill="#333333"/>
+  <!-- middle-right: solid diamond -->
+  <polygon points="270,142 298,170 270,198 242,170" fill="#333333"/>
+  <!-- robot: bottom-center cell, body + upward arrow -->
+  <circle cx="170" cy="292" r="14" fill="#555555"/>
+  <line x1="170" y1="288" x2="170" y2="240" stroke="#555555" stroke-width="6"/>
+  <polygon points="170,228 156,250 184,250" fill="#555555"/>
+</svg>

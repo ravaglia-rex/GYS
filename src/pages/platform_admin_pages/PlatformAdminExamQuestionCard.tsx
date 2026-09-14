@@ -48,14 +48,19 @@ import type {
 } from '../../db/platformAdminAnalytics';
 import {
   approvePlatformAdminOfficialExamBankItem,
+  approvePlatformAdminPracticeExamBankItem,
   deletePlatformAdminOfficialExamBankItem,
+  deletePlatformAdminPracticeExamBankItem,
   unapprovePlatformAdminOfficialExamBankItem,
+  unapprovePlatformAdminPracticeExamBankItem,
   updatePlatformAdminOfficialExamBankItem,
+  updatePlatformAdminPracticeExamBankItem,
 } from '../../db/platformAdminAnalytics';
 import { MathJaxContext } from 'better-react-mathjax';
 import { EXAM_MATHJAX_CONFIG } from '../../components/assessment/examMathJaxConfig';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import { PlatformAdminAccuracyChip, PlatformAdminChip } from './platformAdminComponents';
+import { PlatformAdminItemScoreAnalyticsPanel } from './PlatformAdminItemScoreAnalyticsPanel';
 import {
   platformAdminDialogFieldLabelSx,
   platformAdminDialogPaperSx,
@@ -549,6 +554,8 @@ export function PlatformAdminQuestionPerformanceCard({
   examId = null,
   level = null,
   canApprove = false,
+  canEditContent = false,
+  bankKind = 'official',
   onApproved,
   onItemUpdated,
   onItemDeleted,
@@ -558,8 +565,11 @@ export function PlatformAdminQuestionPerformanceCard({
   renderMath?: boolean;
   examId?: string | null;
   level?: number | null;
-  /** Official Analytical Reasoning item bank only. */
+  /** Approve / unapprove / delete controls. */
   canApprove?: boolean;
+  /** Content edit dialog (AR schema). Defaults off unless caller enables. */
+  canEditContent?: boolean;
+  bankKind?: 'official' | 'practice';
   onApproved?: (itemId: string, deliveryAuthorized: boolean) => void;
   onItemUpdated?: (itemId: string, next: OfficialQuestionStatRow) => void;
   onItemDeleted?: (itemId: string) => void;
@@ -589,7 +599,8 @@ export function PlatformAdminQuestionPerformanceCard({
 
   const authorized =
     localAuthorized != null ? localAuthorized : question.delivery_authorized === true;
-  const canEdit = Boolean(canApprove && examId && level && question.item_id);
+  const canMutate = Boolean(canApprove && examId && level && question.item_id);
+  const canEdit = Boolean(canEditContent && examId && level && question.item_id);
   const taxonomy = [question.strand, question.instruction_family, question.band]
     .filter(Boolean)
     .join(' · ');
@@ -635,12 +646,20 @@ export function PlatformAdminQuestionPerformanceCard({
       if (instructionFamily) patch.instruction_family_id = instructionFamily;
       if (strand) patch.primary_strand_id = strand;
       if (representationMode) patch.representation_mode = representationMode;
-      const result = await updatePlatformAdminOfficialExamBankItem({
-        examId,
-        level,
-        itemId: question.item_id,
-        patch,
-      });
+      const result =
+        bankKind === 'practice'
+          ? await updatePlatformAdminPracticeExamBankItem({
+              examId,
+              level,
+              itemId: question.item_id,
+              patch,
+            })
+          : await updatePlatformAdminOfficialExamBankItem({
+              examId,
+              level,
+              itemId: question.item_id,
+              patch,
+            });
       onItemUpdated?.(question.item_id, result.question);
       setEditOpen(false);
     } catch (e) {
@@ -656,19 +675,35 @@ export function PlatformAdminQuestionPerformanceCard({
     setApproveError(null);
     try {
       if (authorized) {
-        await unapprovePlatformAdminOfficialExamBankItem({
-          examId,
-          level,
-          itemId: question.item_id,
-        });
+        if (bankKind === 'practice') {
+          await unapprovePlatformAdminPracticeExamBankItem({
+            examId,
+            level,
+            itemId: question.item_id,
+          });
+        } else {
+          await unapprovePlatformAdminOfficialExamBankItem({
+            examId,
+            level,
+            itemId: question.item_id,
+          });
+        }
         setLocalAuthorized(false);
         onApproved?.(question.item_id, false);
       } else {
-        await approvePlatformAdminOfficialExamBankItem({
-          examId,
-          level,
-          itemId: question.item_id,
-        });
+        if (bankKind === 'practice') {
+          await approvePlatformAdminPracticeExamBankItem({
+            examId,
+            level,
+            itemId: question.item_id,
+          });
+        } else {
+          await approvePlatformAdminOfficialExamBankItem({
+            examId,
+            level,
+            itemId: question.item_id,
+          });
+        }
         setLocalAuthorized(true);
         onApproved?.(question.item_id, true);
       }
@@ -680,13 +715,13 @@ export function PlatformAdminQuestionPerformanceCard({
   };
 
   const openDelete = () => {
-    if (!canEdit) return;
+    if (!canMutate) return;
     setDeleteError(null);
     setDeleteOpen(true);
   };
 
   const handleDelete = async () => {
-    if (!canEdit || !examId || !level || !question.item_id || deleting) return;
+    if (!canMutate || !examId || !level || !question.item_id || deleting) return;
     if (authorized) {
       setDeleteError('Unapprove this item before deleting. Approved bank items are locked.');
       return;
@@ -694,11 +729,19 @@ export function PlatformAdminQuestionPerformanceCard({
     setDeleting(true);
     setDeleteError(null);
     try {
-      await deletePlatformAdminOfficialExamBankItem({
-        examId,
-        level,
-        itemId: question.item_id,
-      });
+      if (bankKind === 'practice') {
+        await deletePlatformAdminPracticeExamBankItem({
+          examId,
+          level,
+          itemId: question.item_id,
+        });
+      } else {
+        await deletePlatformAdminOfficialExamBankItem({
+          examId,
+          level,
+          itemId: question.item_id,
+        });
+      }
       setDeleteOpen(false);
       onItemDeleted?.(question.item_id);
     } catch (e) {
@@ -749,7 +792,7 @@ export function PlatformAdminQuestionPerformanceCard({
             <Button
               size="small"
               variant="outlined"
-              disabled={!canEdit || authorized}
+              disabled={!canMutate || authorized}
               onClick={openDelete}
               sx={{
                 textTransform: 'none',
@@ -762,20 +805,22 @@ export function PlatformAdminQuestionPerformanceCard({
             >
               Delete
             </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              disabled={!canEdit}
-              onClick={openEdit}
-              sx={{
-                textTransform: 'none',
-                fontWeight: 700,
-                borderColor: ip.navy,
-                color: ip.navy,
-              }}
-            >
-              Edit
-            </Button>
+            {canEdit ? (
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={!canEdit}
+                onClick={openEdit}
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  borderColor: ip.navy,
+                  color: ip.navy,
+                }}
+              >
+                Edit
+              </Button>
+            ) : null}
             <Button
               size="small"
               variant="contained"
@@ -824,6 +869,15 @@ export function PlatformAdminQuestionPerformanceCard({
           };
         }}
       />
+
+      {examId && question.item_id && question.times_seen > 0 ? (
+        <PlatformAdminItemScoreAnalyticsPanel
+          examId={examId}
+          itemId={question.item_id}
+          level={level}
+          timesSeen={question.times_seen}
+        />
+      ) : null}
 
       <Dialog
         open={editOpen}

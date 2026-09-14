@@ -5,7 +5,8 @@ import { EMAIL_CHECK_APIS, CHECK_EMAIL_EXISTS } from '../constants/constants';
 export type EmailExistsResult = {
   exists: boolean;
   type: string | null;
-  registrationStatus?: string | null;
+  /** True only for unfinished paid student signup (resume checkout). */
+  pendingPaymentResume?: boolean;
   /** Present when type is platformadmin - personal password already created. */
   passwordSetupComplete?: boolean;
 };

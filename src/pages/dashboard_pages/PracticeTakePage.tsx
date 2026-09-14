@@ -46,10 +46,9 @@ import {
   type PracticeTakePendingOutcome,
 } from '../../components/practice/practiceModeConfig';
 
-function parsePracticeLevel(raw: string | undefined): 1 | 2 | 3 | null {
-  const n = parseInt(raw ?? '', 10);
-  if (n === 1 || n === 2 || n === 3) return n;
-  return null;
+function parsePracticeLevel(_raw: string | undefined): 1 {
+  // Practice is a flat pool; legacy /session/:examId/:level URLs still work.
+  return 1;
 }
 
 interface PracticeQuestionPage {
@@ -250,8 +249,8 @@ export default function PracticeTakePage() {
           const seenCount = typeof res.draw_seen_count === 'number' ? res.draw_seen_count : 0;
           setError(
             seenCount > 0
-              ? 'You have completed all unseen questions for this level. Reset progress from Practice Mode to draw from the full pool again.'
-              : 'No practice questions are available for this level right now. Try another level, or ask your school to contact support if this continues.'
+              ? 'You have completed all unseen questions in this practice pool. Reset progress from Practice Mode to draw from the full pool again.'
+              : 'No practice questions are available right now. Ask your school to contact support if this continues.'
           );
         }
       })
@@ -259,7 +258,7 @@ export default function PracticeTakePage() {
         Sentry.captureException(e);
         if (cancelled) return;
         if (axios.isAxiosError(e) && e.response?.status === 404) {
-          setError('No practice questions are available for this level yet.');
+          setError('No practice questions are available yet.');
           return;
         }
         setError('Could not load practice questions. Try again later.');
@@ -822,7 +821,7 @@ export default function PracticeTakePage() {
             Practice · Exam {flow.examOrdinal}: {examShortTitle}
           </Typography>
           <Typography sx={{ fontSize: '0.62rem', opacity: 0.88, fontWeight: 600, lineHeight: 1.2 }}>
-            Level {practiceLevel}
+            Practice
             <Box component="span" sx={{ opacity: 0.75, mx: 0.75 }}>
               ·
             </Box>

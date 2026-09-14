@@ -533,7 +533,11 @@ const AppRouter: React.FC = () => {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/how-it-works" element={<HowItWorksPage />} />
-          <Route path="/practice-test/session/:examId/:level" element={<PracticeTakePage />} />
+          <Route path="/practice-test/session/:examId" element={<PracticeTakePage />} />
+          <Route
+            path="/practice-test/session/:examId/:level"
+            element={<PracticeTakePage />}
+          />
           <Route path="/practice-test" element={<PracticeTestPage />} />
           <Route path="/question-of-the-day" element={<QuestionOfTheDayPage />} />
           <Route path="/rewards" element={<RewardsShopPage />} />
