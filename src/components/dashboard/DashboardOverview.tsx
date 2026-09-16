@@ -852,7 +852,8 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
   const showStudentMeta =
     !loading &&
-    (studentGrade || schoolName || membershipLevel || membershipExpiry || achievementTierId);
+    (studentGrade || schoolName || membershipLevel || membershipExpiry ||
+      (STUDENT_EXAM_SHOW_SCORES_AND_COINS && achievementTierId));
 
   const tierLabel = formatAchievementTierLabel(achievementTierId);
   const tierEmoji =
@@ -885,7 +886,8 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                 ? { bgcolor: '#ede9fe', border: '1px solid #a78bfa', color: '#5b21b6' }
                 : { bgcolor: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.22)', color: '#e2e8f0' };
 
-  const renderTierBadge = (containerSx: Record<string, unknown> = {}) => showStudentMeta && (
+  const renderTierBadge = (containerSx: Record<string, unknown> = {}) =>
+    STUDENT_EXAM_SHOW_SCORES_AND_COINS && showStudentMeta && (
     <Box sx={{ flexShrink: 0, ...containerSx }}>
       <Box
         sx={{

@@ -1,6 +1,6 @@
 import React, { ReactNode, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '../../firebase/firebase';
 import BigSpinner from '../ui/BigSpinner';
 import IdleTimeoutGuard from '../auth/IdleTimeoutGuard';
@@ -9,6 +9,13 @@ import authTokenHandler from '../../functions/auth_token/auth_token_handler';
 import { recordDailyLogin } from '../../db/gamificationCollection';
 import StreakBrokenModal from '../gamification/StreakBrokenModal';
 import { hasRecordedDailyLoginToday, markDailyLoginRecorded } from '../../utils/dailyLoginGuard';
+import { getStudent, StudentProfileError } from '../../db/studentCollection';
+import { toast } from '../ui/use-toast';
+import {
+  isStudentLoginBlockedStudent,
+  STUDENT_LOGIN_BLOCKED_BODY,
+  STUDENT_LOGIN_BLOCKED_TITLE,
+} from '../../utils/studentLoginSchoolBlocks';
 
 interface ProtectedProps {
   children: ReactNode;
@@ -19,6 +26,7 @@ const Protected: React.FC<ProtectedProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [streakBreak, setStreakBreak] = useState<{ previous_streak: number } | null>(null);
   const loginCalledRef = useRef(false);
+  const schoolBlockCheckedRef = useRef<string | null>(null);
 
   const isLocalStorageAvailable = () => {
     try {
@@ -40,6 +48,51 @@ const Protected: React.FC<ProtectedProps> = ({ children }) => {
         } catch {
           /* Handler refresh on API calls still works via getAuthToken */
         }
+
+        // Kick out students from login-blocked schools (existing sessions included).
+        if (schoolBlockCheckedRef.current !== user.uid) {
+          schoolBlockCheckedRef.current = user.uid;
+          try {
+            const student = await getStudent(user.uid);
+            if (isStudentLoginBlockedStudent(student as Record<string, unknown>)) {
+              toast({
+                variant: 'destructive',
+                title: STUDENT_LOGIN_BLOCKED_TITLE,
+                description: STUDENT_LOGIN_BLOCKED_BODY,
+              });
+              try {
+                await signOut(auth);
+              } catch {
+                /* ignore */
+              }
+              authTokenHandler.clearToken();
+              navigate('/login');
+              setLoading(false);
+              return;
+            }
+          } catch (err) {
+            if (
+              err instanceof StudentProfileError &&
+              err.code === 'SCHOOL_ACCESS_SUSPENDED'
+            ) {
+              toast({
+                variant: 'destructive',
+                title: err.title || STUDENT_LOGIN_BLOCKED_TITLE,
+                description: err.message || STUDENT_LOGIN_BLOCKED_BODY,
+              });
+              try {
+                await signOut(auth);
+              } catch {
+                /* ignore */
+              }
+              authTokenHandler.clearToken();
+              navigate('/login');
+              setLoading(false);
+              return;
+            }
+          }
+        }
+
         analytics.identify(user.uid, {
           email: user.email,
         });
@@ -62,6 +115,7 @@ const Protected: React.FC<ProtectedProps> = ({ children }) => {
       } else {
         authTokenHandler.clearToken();
         loginCalledRef.current = false;
+        schoolBlockCheckedRef.current = null;
         setStreakBreak(null);
         navigate('/login');
       }

@@ -80,6 +80,9 @@ const ReportsPage: React.FC = () => {
     (a, b) => (b.milestone ?? 0) - (a.milestone ?? 0)
   );
   const s3Configured = reportsQuery.data?.s3Configured !== false;
+  const reportsDeferred =
+    reportsQuery.data?.reports_deferred === true ||
+    reportsQuery.data?.scores_deferred === true;
   const loading = reportsQuery.isLoading;
   const error = reportsQuery.isError
     ? ((reportsQuery.error as Error)?.message ?? 'Could not load reports.')
@@ -267,9 +270,9 @@ const ReportsPage: React.FC = () => {
                 </Box>
               ) : reports.length === 0 ? (
                 <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.78)', py: 2, lineHeight: 1.65 }}>
-                  No milestone PDF is ready yet. Finish the exams included in your package (at your grade level).
-                  Discovery reports usually appear within a few minutes of finishing Analytical Reasoning. 
-                 
+                  {reportsDeferred
+                    ? 'Student score reports are deferred for now. Your PDFs will appear here when student reports are released.'
+                    : 'No milestone PDF is ready yet. Finish the exams included in your package (at your grade level). Discovery reports usually appear within a few minutes of finishing Analytical Reasoning.'}
                 </Typography>
               ) : (
                 <TableContainer

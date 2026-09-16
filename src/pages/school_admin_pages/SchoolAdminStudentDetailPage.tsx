@@ -33,6 +33,7 @@ import {
   normalizeMembershipLevel,
   tierPercentToExamPoints,
 } from '../../utils/assessmentGating';
+import { STUDENT_EXAM_SHOW_SCORES_AND_COINS } from '../../constants/constants';
 import { formatAchievementTierLabel, normalizeAchievementTierId } from '../../utils/achievementTier';
 import {
   INSTITUTIONAL_PLAN_COVERED_MEMBERSHIP_LEVEL,
@@ -349,7 +350,11 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
         </Box>
         <Box
           component="section"
-          aria-label={`Achievement tier: ${tierLabel}`}
+          aria-label={
+            STUDENT_EXAM_SHOW_SCORES_AND_COINS
+              ? `Achievement tier: ${tierLabel}`
+              : 'Achievement tier pending'
+          }
           sx={{
             display: 'flex',
             flexDirection: 'column',
@@ -363,9 +368,17 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
             borderRadius: '16px',
             textAlign: 'center',
             flexShrink: 0,
-            ...tierChipSx,
+            ...(STUDENT_EXAM_SHOW_SCORES_AND_COINS
+              ? tierChipSx
+              : {
+                  bgcolor: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  color: ip.heading,
+                }),
           }}
         >
+          {STUDENT_EXAM_SHOW_SCORES_AND_COINS ? (
+            <>
           <Typography component="span" aria-hidden sx={{ fontSize: '1.35rem', lineHeight: 1, color: 'inherit' }}>
             {tierEmoji}
           </Typography>
@@ -375,6 +388,15 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
           >
             {tierLabel}
           </Typography>
+            </>
+          ) : (
+            <Typography
+              component="span"
+              sx={{ fontWeight: 700, fontSize: '0.72rem', lineHeight: 1.2, color: 'inherit' }}
+            >
+              Pending
+            </Typography>
+          )}
         </Box>
       </Box>
 
@@ -466,7 +488,10 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
               All seven program exams are listed. Tracks outside this student&apos;s membership package show as{' '}
               <strong>Locked</strong>. Personality and Interest (and Career Discovery) stay completion-only for
               schools - results remain private. Slots with a score or advanced status count as completed:{' '}
-              <strong>{completedSlots}</strong>. Best score is points out of {EXAM_MAX_SCORE_POINTS} where shown.
+              <strong>{completedSlots}</strong>.
+              {STUDENT_EXAM_SHOW_SCORES_AND_COINS
+                ? ` Best score is points out of ${EXAM_MAX_SCORE_POINTS} where shown.`
+                : ' Numeric exam scores are deferred for schools right now - they will appear here when results are released.'}
             </Typography>
             <TableContainer
               component={Paper}
@@ -559,7 +584,13 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
                           />
                         </TableCell>
                         <TableCell sx={{ color: ip.heading, fontVariantNumeric: 'tabular-nums' }}>
-                          {!inPackage ? '-' : completionOnly ? 'Private' : formatBestScore(p.best_score)}
+                          {!inPackage
+                            ? '-'
+                            : completionOnly
+                              ? 'Private'
+                              : !STUDENT_EXAM_SHOW_SCORES_AND_COINS
+                                ? 'Pending'
+                                : formatBestScore(p.best_score)}
                         </TableCell>
                         <TableCell sx={{ color: ip.heading, fontVariantNumeric: 'tabular-nums' }}>
                           {!inPackage || completionOnly ? '-' : p.attempts_count ?? 0}

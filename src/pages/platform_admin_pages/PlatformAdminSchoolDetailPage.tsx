@@ -65,6 +65,7 @@ import {
   type PlatformAdminSchoolDetail,
   type PlatformAdminSchoolRegistrant,
 } from '../../db/platformAdminCollection';
+import { createTtlMemoryCache } from './platformAdminMemoryCache';
 import {
   platformAdminCardSx,
   platformAdminPageContainerSx,
@@ -98,6 +99,20 @@ import {
   type RegisterPlanId,
 } from '../../utils/schoolRegistrationPlans';
 import { isPlatformAdminTestSchool } from './platformAdminTestSchools';
+
+type SchoolDetailCachePayload = {
+  school: PlatformAdminSchoolDetail;
+  payment_history: PlatformAdminPaymentHistoryItem[];
+  analytics: Record<string, unknown> | null;
+  poc_accounts: PlatformAdminPocAccountRow[];
+  email_activity: PlatformAdminEmailActivityRow[];
+  registrant: PlatformAdminSchoolRegistrant | null;
+};
+
+const schoolDetailSessionCache = createTtlMemoryCache<SchoolDetailCachePayload>({
+  maxEntries: 12,
+  defaultTtlMs: 3 * 60 * 1000,
+});
 
 /** Local copy avoids pulling school-admin roster utils into this lazy chunk. */
 function parseEmailsFromBulkText(text: string): string[] {
@@ -272,18 +287,50 @@ function PlatformAdminSchoolDetailPage() {
     return fallback;
   };
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (opts?: { force?: boolean }) => {
     if (!schoolId) return;
+    if (!opts?.force) {
+      const cached = schoolDetailSessionCache.get(schoolId);
+      if (cached) {
+        setSchool(cached.school);
+        setPaymentHistory(cached.payment_history);
+        setAnalytics(cached.analytics);
+        setPocAccounts(cached.poc_accounts);
+        setEmailActivity(cached.email_activity);
+        setRegistrant(cached.registrant);
+        setLoading(false);
+        setError(null);
+        return;
+      }
+    }
     setLoading(true);
     setError(null);
     try {
       const data = await getPlatformAdminSchool(schoolId);
-      setSchool(data.school ?? null);
-      setPaymentHistory(Array.isArray(data.payment_history) ? data.payment_history : []);
-      setAnalytics(data.analytics ?? null);
-      setPocAccounts(Array.isArray(data.poc_accounts) ? data.poc_accounts : []);
-      setEmailActivity(Array.isArray(data.email_activity) ? data.email_activity : []);
-      setRegistrant(data.registrant ?? null);
+      const schoolRow = data.school ?? null;
+      const payment_history = Array.isArray(data.payment_history) ? data.payment_history : [];
+      const analyticsRow = data.analytics ?? null;
+      const poc_accounts = Array.isArray(data.poc_accounts) ? data.poc_accounts : [];
+      const email_activity = Array.isArray(data.email_activity) ? data.email_activity : [];
+      const registrantRow = data.registrant ?? null;
+      if (schoolRow) {
+        schoolDetailSessionCache.set(schoolId, {
+          school: schoolRow,
+          payment_history,
+          analytics: analyticsRow,
+          poc_accounts,
+          email_activity,
+          registrant: registrantRow,
+        });
+      } else {
+        schoolDetailSessionCache.delete(schoolId);
+      }
+      setSchool(schoolRow);
+      setPaymentHistory(payment_history);
+      setAnalytics(analyticsRow);
+      setPocAccounts(poc_accounts);
+      setEmailActivity(email_activity);
+      setRegistrant(registrantRow);
     } catch {
       setSchool(null);
       setPaymentHistory([]);
@@ -297,8 +344,13 @@ function PlatformAdminSchoolDetailPage() {
     }
   }, [schoolId]);
 
+  const reloadSchool = useCallback(async () => {
+    if (schoolId) schoolDetailSessionCache.delete(schoolId);
+    await load({ force: true });
+  }, [load, schoolId]);
+
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   useEffect(() => {
@@ -366,7 +418,7 @@ function PlatformAdminSchoolDetailPage() {
       );
       setAddStudentsOpen(false);
       setBulkStudentEmails('');
-      await load();
+      await reloadSchool();
     } catch (e: unknown) {
       setAddStudentsError(apiErrorMessage(e, 'Failed to add student emails.'));
     } finally {
@@ -384,7 +436,7 @@ function PlatformAdminSchoolDetailPage() {
       setSuccessMessage(
         `Account setup link sent to ${email}. The link is valid for about 1 hour; you can resend anytime if they need a new one.`
       );
-      await load();
+      await reloadSchool();
     } catch (e: unknown) {
       setError(apiErrorMessage(e, 'Failed to send account setup link.'));
     } finally {
@@ -429,7 +481,7 @@ function PlatformAdminSchoolDetailPage() {
             : `Added ${result.email} as school admin.`
         );
       }
-      await load();
+      await reloadSchool();
     } catch (e: unknown) {
       setAddAdminError(apiErrorMessage(e, 'Failed to add school admin.'));
     } finally {
@@ -457,7 +509,7 @@ function PlatformAdminSchoolDetailPage() {
           : '';
       setSuccessMessage(`Deleted school admin ${result.email}.${authNote}`);
       setDeleteContactEmail(null);
-      await load();
+      await reloadSchool();
     } catch (e: unknown) {
       setDeleteContactError(apiErrorMessage(e, 'Failed to delete school admin.'));
     } finally {
@@ -529,7 +581,7 @@ function PlatformAdminSchoolDetailPage() {
           ? 'Student cap override cleared. Package default applies again.'
           : `Student cap override set to ${nextOverride}.`
       );
-      await load();
+      await reloadSchool();
     } catch (e: unknown) {
       setError(apiErrorMessage(e, 'Failed to update student cap override.'));
     } finally {
@@ -553,7 +605,7 @@ function PlatformAdminSchoolDetailPage() {
           ? 'WhatsApp phone field is now hidden on student signup for this school.'
           : 'WhatsApp phone field is now required on student signup for this school.'
       );
-      await load();
+      await reloadSchool();
     } catch (e: unknown) {
       setError(apiErrorMessage(e, 'Failed to update registration settings.'));
     } finally {
@@ -595,7 +647,7 @@ function PlatformAdminSchoolDetailPage() {
           ? 'Package and billing updated.'
           : 'Package updated. The school checkout and any new payment will use the corrected package.'
       );
-      await load();
+      await reloadSchool();
     } catch (e: unknown) {
       const msg =
         typeof e === 'object' && e !== null && 'response' in e
@@ -702,7 +754,7 @@ function PlatformAdminSchoolDetailPage() {
               : ' Confirmation email queued (no invoice attached).'
             : '')
       );
-      await load();
+      await reloadSchool();
     } catch (e: unknown) {
       setError(apiErrorMessage(e, 'Failed to mark school as paid.'));
     } finally {

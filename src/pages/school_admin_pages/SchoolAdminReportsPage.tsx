@@ -37,6 +37,7 @@ const SchoolAdminReportsPage: React.FC = () => {
   const schoolId = useSelector((state: RootState) => state.auth.schoolAdmin?.schoolId ?? '').trim();
   const [reports, setReports] = useState<QuarterlyReportListItem[]>([]);
   const [s3Configured, setS3Configured] = useState(true);
+  const [reportsDeferred, setReportsDeferred] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [rowError, setRowError] = useState<string | null>(null);
@@ -46,6 +47,7 @@ const SchoolAdminReportsPage: React.FC = () => {
     if (isSchoolAdminPreview) {
       setReports([...GREENFIELD_QUARTERLY_REPORTS].sort((a, b) => b.quarterKey.localeCompare(a.quarterKey)));
       setS3Configured(false);
+      setReportsDeferred(false);
       setLoading(false);
       setError(null);
       return;
@@ -54,6 +56,7 @@ const SchoolAdminReportsPage: React.FC = () => {
       setLoading(false);
       setError('School context is missing. Please sign in again.');
       setReports([]);
+      setReportsDeferred(false);
       return;
     }
     setLoading(true);
@@ -64,9 +67,11 @@ const SchoolAdminReportsPage: React.FC = () => {
         [...(data.reports ?? [])].sort((a, b) => b.quarterKey.localeCompare(a.quarterKey))
       );
       setS3Configured(data.s3Configured !== false);
+      setReportsDeferred(data.reports_deferred === true || data.scores_deferred === true);
     } catch (e) {
       setError((e as Error).message ?? 'Could not load reports.');
       setReports([]);
+      setReportsDeferred(false);
     } finally {
       setLoading(false);
     }
@@ -139,6 +144,11 @@ const SchoolAdminReportsPage: React.FC = () => {
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
               <CircularProgress size={36} sx={{ color: ip.navy }} />
             </Box>
+          ) : reportsDeferred ? (
+            <Alert severity="info">
+              Institutional reports are deferred until school reports are released. They will appear here
+              automatically when that bucket goes live.
+            </Alert>
           ) : reports.length === 0 ? (
             <Typography variant="body2" sx={{ color: ip.subtext, py: 2 }}>
               No quarterly reports are available yet.

@@ -740,10 +740,20 @@ export type OfficialExamAbandons = {
   recent: Array<{
     attempt_id: string;
     uid: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    school_id: string | null;
+    school_name: string | null;
     proficiency_tier: number | null;
     abandon_reason: string | null;
     failed_at: string | null;
     questions_answered: number;
+    correct_count: number;
+    questions_total: number;
+    duration_sec: number | null;
+    score_points: number | null;
+    passed: boolean;
   }>;
   generated_at: string;
   indexes_building?: boolean;
@@ -1029,7 +1039,37 @@ export async function getPlatformAdminOfficialExamAbandons(
     attempts_analyzed: Number(res.data.attempts_analyzed) || 0,
     unique_students: Number(res.data.unique_students) || 0,
     by_reason: Array.isArray(res.data.by_reason) ? res.data.by_reason : [],
-    recent: Array.isArray(res.data.recent) ? res.data.recent : [],
+    recent: Array.isArray(res.data.recent)
+      ? res.data.recent.map((row: OfficialExamAbandons['recent'][number]) => ({
+          ...row,
+          first_name: typeof row.first_name === 'string' ? row.first_name : '',
+          last_name: typeof row.last_name === 'string' ? row.last_name : '',
+          email: typeof row.email === 'string' ? row.email : '',
+          school_id: typeof row.school_id === 'string' ? row.school_id : null,
+          school_name: typeof row.school_name === 'string' ? row.school_name : null,
+          questions_answered:
+            typeof row.questions_answered === 'number' && Number.isFinite(row.questions_answered)
+              ? Math.max(0, Math.floor(row.questions_answered))
+              : 0,
+          correct_count:
+            typeof row.correct_count === 'number' && Number.isFinite(row.correct_count)
+              ? Math.max(0, Math.floor(row.correct_count))
+              : 0,
+          questions_total:
+            typeof row.questions_total === 'number' && Number.isFinite(row.questions_total)
+              ? Math.max(0, Math.floor(row.questions_total))
+              : 0,
+          duration_sec:
+            typeof row.duration_sec === 'number' && Number.isFinite(row.duration_sec)
+              ? Math.max(0, Math.floor(row.duration_sec))
+              : null,
+          score_points:
+            typeof row.score_points === 'number' && Number.isFinite(row.score_points)
+              ? Math.max(0, Math.floor(row.score_points))
+              : null,
+          passed: row.passed === true,
+        }))
+      : [],
     generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
     indexes_building: res.data.indexes_building === true,
   };

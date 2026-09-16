@@ -15,7 +15,7 @@ import {
   ToggleButtonGroup,
   Typography,
 } from '@mui/material';
-import { ArOptionFigure, ArOptionFigureSlice, useArOptionFigureMeta } from '../../components/assessment/ArOptionFigure';
+import { ArOptionFigureSlice, useArOptionFigureMeta } from '../../components/assessment/ArOptionFigure';
 import { optionFigurePickerGridSx } from '../../components/assessment/arOptionFigureModel';
 import {
   AR_FIGURE_DISPLAY_SIZES,
@@ -31,7 +31,6 @@ import {
 import { resolveLearnerExamOptions } from '../../components/assessment/resolveLearnerExamOptions';
 import { ExamQuestionStimulus } from '../../components/assessment/ExamQuestionStimulus';
 import { cleanLearnerFacingExamMarkup } from '../../components/assessment/cleanLearnerFacingExamMarkup';
-import { isPlaceholderOptionText } from '../../components/assessment/arOptionFigureModel';
 import {
   ExamMarkdown,
   ExamRichPrompt,
@@ -98,10 +97,6 @@ const AR_EDIT_MODES = [
 ] as const;
 const OPTION_LETTERS = ['A', 'B', 'C', 'D'] as const;
 
-function stripOptionLetterPrefix(option: string): string {
-  return String(option ?? '').replace(/^[A-D][.)]\s+/i, '').trim();
-}
-
 function apiErrorMessage(e: unknown, fallback: string): string {
   if (e && typeof e === 'object' && 'response' in e) {
     const msg = String(
@@ -134,7 +129,6 @@ export function toAdminStimulusExamQuestion(q: {
 export function AdminExamQuestionStem({
   q,
   emptyLabel,
-  hideOptionFigure,
   renderMath = false,
 }: {
   q: {
@@ -150,8 +144,6 @@ export function AdminExamQuestionStem({
     stem_display_size?: ArFigureDisplaySize | 'normal' | null;
   };
   emptyLabel: string;
-  hideOptionFigure?: boolean;
-  hideEmbeddedChoices?: boolean;
   /** Requires MathJaxContext ancestor (Mathematical Reasoning). */
   renderMath?: boolean;
 }) {
@@ -165,18 +157,6 @@ export function AdminExamQuestionStem({
     displayMode: q.display_mode,
   });
   const stemMarkdown = resolved.stemMarkdown;
-  const optionFigure = resolved.optionFigure;
-  // Some item-bank payloads include real option text, but `resolveLearnerExamOptions`
-  // may fail to parse it from markdown/stimulus and can incorrectly mark `realText=false`.
-  // In that case we still want to hide the option-image strip because the text
-  // choices are available in `q.options[].text`.
-  const hasRealOptionTextInBank = Boolean(
-    (q.options || []).some((o, i) => {
-      const cleaned = stripOptionLetterPrefix(cleanLearnerFacingExamMarkup(o.text));
-      return Boolean(cleaned && !isPlaceholderOptionText(cleaned, i));
-    })
-  );
-  const hasAnyRealOptionText = resolved.hasRealOptionText || hasRealOptionTextInBank;
   const stemCaps = scaleExamFigureCaps(
     EXAM_FIGURE_MAX_WIDTH_PX,
     EXAM_FIGURE_MAX_HEIGHT_PX,
@@ -201,11 +181,6 @@ export function AdminExamQuestionStem({
             variant="light"
             unboundedHeight
           />
-        </Box>
-      ) : null}
-      {optionFigure && !hideOptionFigure && !hasAnyRealOptionText ? (
-        <Box sx={{ mb: 1.25 }}>
-          <ArOptionFigure figure={optionFigure} />
         </Box>
       ) : null}
     </>
@@ -442,8 +417,9 @@ export function AdminExamQuestionBody({
           ? resolved.optionTexts.length
           : Math.max(optionRows.length, resolved.optionTexts.length, OPTION_LETTERS.length);
   const optionCount = slotCount;
+  // Live parity: stamped option_crops only (no runtime SVG parse / letter-trim).
   const { layout, slices, stemSlice, includesStemContent, naturalWidth, naturalHeight } =
-    useArOptionFigureMeta(optionFigure?.src, optionCount, q.option_crops, true);
+    useArOptionFigureMeta(optionFigure?.src, optionCount, q.option_crops);
   const optionDisplaySize = q.option_display_size ?? null;
   const stemDisplaySize = q.stem_display_size ?? null;
   // Combined stem+options SVGs: after stripping the option figure from markdown,
@@ -465,8 +441,6 @@ export function AdminExamQuestionBody({
       <AdminExamQuestionStem
         q={q}
         emptyLabel={emptyLabel}
-        hideOptionFigure={showFigureSlices}
-        hideEmbeddedChoices
         renderMath={renderMath}
       />
       {showStemCrop && includesStemContent && optionFigure && stemSlice ? (
@@ -882,7 +856,7 @@ export function PlatformAdminQuestionPerformanceCard({
         }}
       />
 
-      {examId && question.item_id && question.times_seen > 0 ? (
+      {examId && question.item_id && question.times_seen > 0 && bankKind === 'official' ? (
         <PlatformAdminItemScoreAnalyticsPanel
           examId={examId}
           itemId={question.item_id}

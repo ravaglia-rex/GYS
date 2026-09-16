@@ -242,6 +242,10 @@ export interface QuarterlyReportsResponse {
   schoolId: string;
   reports: QuarterlyReportListItem[];
   s3Configured: boolean;
+  /** Present when SCHOOL_REPORTS_REVEAL is false. */
+  reports_deferred?: boolean;
+  /** @deprecated Prefer reports_deferred */
+  scores_deferred?: boolean;
 }
 
 export interface SchoolAdminNotificationEventSource {
@@ -636,6 +640,19 @@ export type SchoolAnalyticsSummaryResponse = {
   }>;
   exam_averages: Array<{ category: string; current: number; remainder: number }>;
   personality_completion: { completed: number; total: number };
+  /** Live Performance-overview metrics from the same roster scan. */
+  attempt_rate?: number;
+  assessments_completed?: number;
+  tier123?: { tier1: number; tier2: number; tier3: number; total: number };
+  proficiency_by_exam?: Array<{
+    examId: string;
+    tier1: number;
+    tier2: number;
+    tier3: number;
+    total: number;
+  }>;
+  /** Present when STUDENT_EXAM_REVEAL_SCORES is false — score charts are emptied server-side. */
+  scores_deferred?: boolean;
 };
 
 /** Pre-aggregated Analytics charts — one server scan, no full-roster client loop. */

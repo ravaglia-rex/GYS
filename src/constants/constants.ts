@@ -154,15 +154,31 @@ export const CHECK_EMAIL_EXISTS='/checkEmailExists';
 export const STUDENT_OFFICIAL_ASSESSMENTS_ENABLED = false;
 
 /**
- * When false, students see thanks / “results coming” after an exam instead of
- * score + Argus Coins. Server still scores for progression and reports.
- * Keep in sync with backend `STUDENT_EXAM_REVEAL_SCORES` (studentExamScoreReveal.ts).
+ * Bucket 1 — scores / standing (not PDF reports).
+ * Keep in sync with backend `STUDENT_EXAM_REVEAL_SCORES`.
+ * When false: students + school admins hide numeric scores, coins-on-result,
+ * percentiles, leaderboards, GYS tiers / ranks. Platform Admin still sees scores.
  */
 export const STUDENT_EXAM_SHOW_SCORES_AND_COINS = false;
 
 /**
+ * Bucket 2 — student PDF reports.
+ * Keep in sync with backend `STUDENT_REPORTS_REVEAL`.
+ * Independent of score reveal: can keep reports hidden after scores go live.
+ */
+export const STUDENT_REPORTS_VISIBLE = false;
+
+/**
+ * Bucket 3 — school quarterly PDF reports.
+ * Keep in sync with backend `SCHOOL_REPORTS_REVEAL`.
+ * Independent of score reveal and student reports.
+ */
+export const SCHOOL_REPORTS_VISIBLE = false;
+
+/**
  * Keep in sync with backend `GLOBAL_REPORTS_AND_RANKING_PIPELINE_HELD`.
  * When true, Platform Admin pipeline buttons are disabled; scheduled jobs and
- * report minting no-op until CAPS lift on the backend flag.
+ * report *minting* no-op until CAPS lift on the backend flag.
+ * This is generation hold — not the same as STUDENT_REPORTS_VISIBLE / SCHOOL_REPORTS_VISIBLE.
  */
 export const GLOBAL_REPORTS_AND_RANKING_PIPELINE_HELD = true;

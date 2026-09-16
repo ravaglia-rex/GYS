@@ -90,6 +90,7 @@ import {
   type OfficialCrossSplitRow,
 } from '../../db/platformAdminAnalytics';
 import { formatDateTime } from '../../db/platformAdminCollection';
+import { createTtlMemoryCache } from './platformAdminMemoryCache';
 import {
   platformAdminCardSx,
   platformAdminFilterSelectSx,
@@ -112,6 +113,16 @@ import {
   PlatformAdminStatCard,
 } from './platformAdminComponents';
 import type { RootState } from '../../state_data/reducer';
+
+/** Remount-safe cache for analytics section payloads (5 min). */
+const analyticsSessionCache = createTtlMemoryCache<unknown>({
+  maxEntries: 48,
+  defaultTtlMs: 5 * 60 * 1000,
+});
+
+function analyticsCacheGet<T>(key: string): T | null {
+  return analyticsSessionCache.get(key) as T | null;
+}
 
 type AnalyticsSection = 'official' | 'practice' | 'qod' | 'coins';
 
@@ -790,6 +801,27 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
   const isSuperAdmin = platformAdminRole === 'super';
 
   const loadOfficialOverview = useCallback(async (opts?: { refresh?: boolean }) => {
+    const cacheKey = 'official-overview';
+    if (!opts?.refresh) {
+      const cached = analyticsCacheGet<{
+        exams: OfficialExamSummaryRow[];
+        days: OfficialDailyStatRow[];
+        exam_ids: string[];
+        generated_at: string;
+        indexes_building: boolean;
+      }>(cacheKey);
+      if (cached) {
+        setOfficialSummaries(cached.exams);
+        setOfficialDaily(cached.days);
+        setOfficialDailyExamIds(cached.exam_ids);
+        setOfficialGeneratedAt(cached.generated_at);
+        setOfficialIndexesBuilding(cached.indexes_building);
+        setSelectedOfficialExamId((prev) => prev || cached.exams[0]?.exam_id || '');
+        setOfficialLoading(false);
+        setOfficialError(null);
+        return;
+      }
+    }
     setOfficialLoading(true);
     setOfficialError(null);
     setOfficialIndexesBuilding(false);
@@ -798,11 +830,19 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
         getPlatformAdminOfficialExamSummaries({ refresh: opts?.refresh }),
         getPlatformAdminOfficialDailyStats(30, { refresh: opts?.refresh }),
       ]);
-      setOfficialSummaries(summaries.exams);
-      setOfficialDaily(daily.days);
-      setOfficialDailyExamIds(daily.exam_ids);
-      setOfficialGeneratedAt(summaries.generated_at || daily.generated_at);
-      setOfficialIndexesBuilding(summaries.indexes_building === true);
+      const payload = {
+        exams: summaries.exams,
+        days: daily.days,
+        exam_ids: daily.exam_ids,
+        generated_at: summaries.generated_at || daily.generated_at,
+        indexes_building: summaries.indexes_building === true,
+      };
+      analyticsSessionCache.set(cacheKey, payload);
+      setOfficialSummaries(payload.exams);
+      setOfficialDaily(payload.days);
+      setOfficialDailyExamIds(payload.exam_ids);
+      setOfficialGeneratedAt(payload.generated_at);
+      setOfficialIndexesBuilding(payload.indexes_building);
       setSelectedOfficialExamId((prev) => prev || summaries.exams[0]?.exam_id || '');
     } catch (e: unknown) {
       const err = e as { response?: { data?: { error?: string } }; message?: string };
@@ -822,6 +862,25 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
 
   const loadOfficialDetail = useCallback(async (examId: string, opts?: { refresh?: boolean }) => {
     if (!examId) return;
+    const cacheKey = `official-detail|${examId}`;
+    if (!opts?.refresh) {
+      const cached = analyticsCacheGet<{
+        by_level: OfficialExamLevelRow[];
+        by_grade: OfficialExamGradeRow[];
+        by_school: OfficialExamSchoolRow[];
+        generated_at: string;
+        indexes_building: boolean;
+      }>(cacheKey);
+      if (cached) {
+        setOfficialByLevel(cached.by_level);
+        setOfficialByGrade(cached.by_grade);
+        setOfficialBySchool(cached.by_school);
+        setOfficialGeneratedAt((prev) => cached.generated_at || prev);
+        if (cached.indexes_building) setOfficialIndexesBuilding(true);
+        setOfficialDetailLoading(false);
+        return;
+      }
+    }
     const req = ++officialDetailReqRef.current;
     setOfficialDetailLoading(true);
     setOfficialByLevel([]);
@@ -832,11 +891,19 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
         refresh: opts?.refresh,
       });
       if (req !== officialDetailReqRef.current) return;
-      setOfficialByLevel(detail.by_level);
-      setOfficialByGrade(detail.by_grade);
-      setOfficialBySchool(detail.by_school);
-      setOfficialGeneratedAt((prev) => detail.generated_at || prev);
-      if (detail.indexes_building) setOfficialIndexesBuilding(true);
+      const payload = {
+        by_level: detail.by_level,
+        by_grade: detail.by_grade,
+        by_school: detail.by_school,
+        generated_at: detail.generated_at,
+        indexes_building: detail.indexes_building === true,
+      };
+      analyticsSessionCache.set(cacheKey, payload);
+      setOfficialByLevel(payload.by_level);
+      setOfficialByGrade(payload.by_grade);
+      setOfficialBySchool(payload.by_school);
+      setOfficialGeneratedAt((prev) => payload.generated_at || prev);
+      if (payload.indexes_building) setOfficialIndexesBuilding(true);
     } catch (e: unknown) {
       if (req !== officialDetailReqRef.current) return;
       const err = e as { response?: { data?: { error?: string } }; message?: string };
@@ -884,6 +951,16 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
   const loadOfficialDrilldown = useCallback(
     async (examId: string, level: 'all' | number, opts?: { refresh?: boolean }) => {
       if (!examId) return;
+      const cacheKey = `official-drill|${examId}|${level}`;
+      if (!opts?.refresh) {
+        const cached = analyticsCacheGet<OfficialExamDrilldown>(cacheKey);
+        if (cached) {
+          setOfficialDrilldown(cached);
+          if (cached.indexes_building) setOfficialIndexesBuilding(true);
+          setOfficialDrillLoading(false);
+          return;
+        }
+      }
       const req = ++officialDrillReqRef.current;
       setOfficialDrillLoading(true);
       setOfficialDrilldown(null);
@@ -893,6 +970,7 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
           refresh: opts?.refresh,
         });
         if (req !== officialDrillReqRef.current) return;
+        analyticsSessionCache.set(cacheKey, data);
         setOfficialDrilldown(data);
         if (data.indexes_building) setOfficialIndexesBuilding(true);
       } catch (e: unknown) {
@@ -1070,6 +1148,37 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
   }, [sortBy]);
 
   const loadPractice = useCallback(async (opts?: { refresh?: boolean }) => {
+    const cacheKey = 'practice-overview';
+    if (!opts?.refresh) {
+      const cached = analyticsCacheGet<{
+        days: PracticeDailyStatRow[];
+        today: PracticeDailyStatRow | null;
+        daysByExam: PracticeDailyByExamStatRow[];
+        exam_ids: string[];
+        exams: PracticeExamSummaryRow[];
+        generated_at: string;
+        indexes_building: boolean;
+      }>(cacheKey);
+      if (cached) {
+        setPracticeDaily(cached.days);
+        setPracticeDailyToday(cached.today);
+        setPracticeDailyByExam(cached.daysByExam);
+        setPracticeDailyExamIds(cached.exam_ids);
+        setPracticeSummaries(cached.exams);
+        setPracticeGeneratedAt(cached.generated_at);
+        setPracticeIndexesBuilding(cached.indexes_building);
+        setSelectedExamId((prev) => prev || cached.exams[0]?.exam_id || '');
+        setPracticeLoading(false);
+        setPracticeError(null);
+        void loadPracticeMonthly(opts);
+        const firstExamId = cached.exams[0]?.exam_id || '';
+        if (firstExamId) {
+          practiceOverviewDetailExamRef.current = firstExamId;
+          void loadPracticeDetail(firstExamId, opts);
+        }
+        return;
+      }
+    }
     setPracticeLoading(true);
     setPracticeError(null);
     setPracticeIndexesBuilding(false);
@@ -1094,6 +1203,15 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
       if (staleSessions) {
         summaries = await getPlatformAdminPracticeExamSummaries({ refresh: true });
       }
+      analyticsSessionCache.set(cacheKey, {
+        days: daily.days,
+        today: daily.today,
+        daysByExam: dailyByExam.days,
+        exam_ids: dailyByExam.exam_ids,
+        exams: summaries.exams,
+        generated_at: daily.generated_at || summaries.generated_at,
+        indexes_building: summaries.indexes_building === true,
+      });
       setPracticeSummaries(summaries.exams);
       setPracticeGeneratedAt(daily.generated_at || summaries.generated_at);
       setPracticeIndexesBuilding(summaries.indexes_building === true);
@@ -1122,6 +1240,24 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
   }, [loadPracticeMonthly, loadPracticeDetail]);
 
   const loadQod = useCallback(async (opts?: { refresh?: boolean }) => {
+    const cacheKey = 'qod';
+    if (!opts?.refresh) {
+      const cached = analyticsCacheGet<{
+        days: QodDailyStatRow[];
+        today: QodDailyStatRow | null;
+        students: TopQodStudentRow[];
+        generated_at: string;
+      }>(cacheKey);
+      if (cached) {
+        setQodDays(cached.days);
+        setQodToday(cached.today);
+        setTopQod(cached.students);
+        setQodGeneratedAt(cached.generated_at);
+        setQodLoading(false);
+        setQodError(null);
+        return;
+      }
+    }
     setQodLoading(true);
     setQodError(null);
     try {
@@ -1129,10 +1265,17 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
         getPlatformAdminQodStats(30, { refresh: opts?.refresh }),
         getPlatformAdminTopQod(10, { refresh: opts?.refresh }),
       ]);
-      setQodDays(stats.days);
-      setQodToday(stats.today);
-      setTopQod(top.students);
-      setQodGeneratedAt(stats.generated_at || top.generated_at);
+      const payload = {
+        days: stats.days,
+        today: stats.today,
+        students: top.students,
+        generated_at: stats.generated_at || top.generated_at,
+      };
+      analyticsSessionCache.set(cacheKey, payload);
+      setQodDays(payload.days);
+      setQodToday(payload.today);
+      setTopQod(payload.students);
+      setQodGeneratedAt(payload.generated_at);
     } catch (e: unknown) {
       const err = e as { response?: { data?: { error?: string } }; message?: string };
       setQodError(err?.response?.data?.error || err?.message || 'Failed to load QoD analytics');
@@ -1142,13 +1285,35 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
   }, []);
 
   const loadCoins = useCallback(async (opts?: { refresh?: boolean }) => {
+    const cacheKey = 'coins';
+    if (!opts?.refresh) {
+      const cached = analyticsCacheGet<{
+        by_balance: TopCoinsStudentRow[];
+        by_lifetime: TopCoinsStudentRow[];
+        generated_at: string;
+      }>(cacheKey);
+      if (cached) {
+        setTopCoinsByBalance(cached.by_balance);
+        setTopCoinsByLifetime(cached.by_lifetime);
+        setCoinsGeneratedAt(cached.generated_at);
+        setCoinsLoading(false);
+        setCoinsError(null);
+        return;
+      }
+    }
     setCoinsLoading(true);
     setCoinsError(null);
     try {
       const coins = await getPlatformAdminTopCoins(10, { refresh: opts?.refresh });
-      setTopCoinsByBalance(coins.by_balance);
-      setTopCoinsByLifetime(coins.by_lifetime);
-      setCoinsGeneratedAt(coins.generated_at);
+      const payload = {
+        by_balance: coins.by_balance,
+        by_lifetime: coins.by_lifetime,
+        generated_at: coins.generated_at,
+      };
+      analyticsSessionCache.set(cacheKey, payload);
+      setTopCoinsByBalance(payload.by_balance);
+      setTopCoinsByLifetime(payload.by_lifetime);
+      setCoinsGeneratedAt(payload.generated_at);
     } catch (e: unknown) {
       const err = e as { response?: { data?: { error?: string } }; message?: string };
       setCoinsError(err?.response?.data?.error || err?.message || 'Failed to load coins analytics');
@@ -1177,6 +1342,28 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
   }, []);
 
   const loadActivity = useCallback(async (opts?: { refresh?: boolean }) => {
+    const cacheKey = 'activity';
+    if (!opts?.refresh) {
+      const cached = analyticsCacheGet<{
+        pages: PlatformAdminPageHitRow[];
+        total_hits: number;
+        pages_tracked: number;
+        new_starts_paused: boolean;
+        generated_at: string;
+      }>(cacheKey);
+      if (cached) {
+        setPageHits(cached.pages);
+        setPageHitsTotal(cached.total_hits);
+        setPageHitsTracked(cached.pages_tracked);
+        setExamOpsPaused(cached.new_starts_paused);
+        setActivityGeneratedAt(cached.generated_at);
+        setActivityLoading(false);
+        setExamOpsLoading(false);
+        setActivityError(null);
+        setExamOpsError(null);
+        return;
+      }
+    }
     setActivityLoading(true);
     setExamOpsLoading(true);
     setActivityError(null);
@@ -1189,7 +1376,15 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
       const allPages = hits.pages;
       const trackedCount =
         hits.pages_tracked > allPages.length ? hits.pages_tracked : allPages.length;
-      setPageHits(allPages.slice(0, SITE_PAGE_HITS_CHART_TOP_N));
+      const pages = allPages.slice(0, SITE_PAGE_HITS_CHART_TOP_N);
+      analyticsSessionCache.set(cacheKey, {
+        pages,
+        total_hits: hits.total_hits,
+        pages_tracked: trackedCount,
+        new_starts_paused: ops.new_starts_paused,
+        generated_at: hits.generated_at,
+      });
+      setPageHits(pages);
       setPageHitsTotal(hits.total_hits);
       setPageHitsTracked(trackedCount);
       setExamOpsPaused(ops.new_starts_paused);
@@ -2339,7 +2534,9 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                                   >
                                     <TableCell sx={{ fontWeight: 700 }}>{label}</TableCell>
                                     <TableCell align="right">{row.completed_attempts}</TableCell>
-                                    <TableCell align="right">{row.unique_students}</TableCell>
+                                    <TableCell align="right">
+                                      {row.unique_students > 0 ? row.unique_students : '—'}
+                                    </TableCell>
                                     <TableCell align="right">
                                       <PlatformAdminAccuracyChip pct={row.avg_score_pct} />
                                     </TableCell>
@@ -2404,7 +2601,10 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                                   >
                                     <TableCell sx={{ fontWeight: 600 }}>{row.school_name}</TableCell>
                                     <TableCell align="right">{row.completed_attempts}</TableCell>
-                                    <TableCell align="right">{row.unique_students}</TableCell>
+                                    <TableCell align="right">
+                                      {/* Tier analytics do not track unique students yet — avoid a fake 0. */}
+                                      {row.unique_students > 0 ? row.unique_students : '—'}
+                                    </TableCell>
                                     <TableCell align="right">
                                       <PlatformAdminAccuracyChip pct={row.avg_score_pct} />
                                     </TableCell>
@@ -2791,34 +2991,92 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                       <Table size="small" sx={platformAdminTableSx}>
                         <TableHead>
                           <TableRow sx={platformAdminTableHeadRowSx}>
-                            <TableCell>Attempt</TableCell>
-                            <TableCell>UID</TableCell>
+                            <TableCell>When</TableCell>
+                            <TableCell>Student</TableCell>
+                            <TableCell>School</TableCell>
                             <TableCell align="right">Level</TableCell>
                             <TableCell>Reason</TableCell>
-                            <TableCell align="right">Answered</TableCell>
-                            <TableCell align="right">When</TableCell>
+                            <TableCell align="right">Time</TableCell>
+                            <TableCell align="right">Passed</TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
                           {officialAbandons.recent.length === 0 ? (
                             <TableRow>
-                              <TableCell colSpan={6} align="center" sx={{ py: 2, color: ip.subtext }}>
+                              <TableCell colSpan={7} align="center" sx={{ py: 2, color: ip.subtext }}>
                                 No recent abandons.
                               </TableCell>
                             </TableRow>
                           ) : (
-                            officialAbandons.recent.map((r) => (
-                              <TableRow key={r.attempt_id}>
-                                <TableCell sx={{ fontFamily: 'monospace', fontSize: 12 }}>{r.attempt_id}</TableCell>
-                                <TableCell sx={{ fontFamily: 'monospace', fontSize: 12 }}>{r.uid}</TableCell>
-                                <TableCell align="right">{r.proficiency_tier ?? '-'}</TableCell>
-                                <TableCell>{r.abandon_reason || '-'}</TableCell>
-                                <TableCell align="right">{r.questions_answered}</TableCell>
-                                <TableCell align="right">
+                            officialAbandons.recent.map((r) => {
+                              const durationLabel = formatExamDuration(r.duration_sec);
+                              return (
+                              <TableRow
+                                key={r.attempt_id}
+                                hover
+                                onClick={() => {
+                                  if (!r.uid) return;
+                                  navigate(
+                                    `/platform-admin/students/${encodeURIComponent(r.uid)}?attempt=${encodeURIComponent(r.attempt_id)}`
+                                  );
+                                }}
+                                sx={{ cursor: r.uid ? 'pointer' : 'default' }}
+                              >
+                                <TableCell sx={{ whiteSpace: 'nowrap' }}>
                                   {r.failed_at ? formatDateTime(r.failed_at) : '-'}
                                 </TableCell>
+                                <TableCell sx={{ fontWeight: 600 }}>
+                                  <Typography
+                                    component="span"
+                                    sx={{
+                                      color: ip.navy,
+                                      fontWeight: 700,
+                                      textDecoration: 'underline',
+                                      textUnderlineOffset: '3px',
+                                    }}
+                                  >
+                                    {[r.first_name, r.last_name].filter(Boolean).join(' ') ||
+                                      r.email ||
+                                      r.uid}
+                                  </Typography>
+                                  {r.email ? (
+                                    <Typography
+                                      variant="caption"
+                                      sx={{ display: 'block', color: ip.subtext }}
+                                    >
+                                      {r.email}
+                                    </Typography>
+                                  ) : null}
+                                </TableCell>
+                                <TableCell>{r.school_name ?? '-'}</TableCell>
+                                <TableCell align="right">{r.proficiency_tier ?? '-'}</TableCell>
+                                <TableCell>{r.abandon_reason || '-'}</TableCell>
+                                <TableCell align="right">{durationLabel ?? '-'}</TableCell>
+                                <TableCell align="right">
+                                  <Box
+                                    sx={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 0.75,
+                                      justifyContent: 'flex-end',
+                                    }}
+                                  >
+                                    <PlatformAdminChip
+                                      label={r.passed ? 'Passed' : 'Not passed'}
+                                      tone={r.passed ? 'success' : 'neutral'}
+                                    />
+                                    <Typography
+                                      component="span"
+                                      sx={{ color: ip.subtext, fontSize: 14, lineHeight: 1 }}
+                                      aria-hidden
+                                    >
+                                      →
+                                    </Typography>
+                                  </Box>
+                                </TableCell>
                               </TableRow>
-                            ))
+                              );
+                            })
                           )}
                         </TableBody>
                       </Table>

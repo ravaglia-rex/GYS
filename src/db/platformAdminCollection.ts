@@ -362,13 +362,30 @@ export type PlatformAdminMe = {
   password_setup_complete?: boolean;
 };
 
-export async function getPlatformAdminMe(): Promise<PlatformAdminMe | null> {
+/** Session cache so remounting PlatformAdminRoute does not re-block on /me. */
+let platformAdminMeCache: { value: PlatformAdminMe; expiresAt: number } | null = null;
+const PLATFORM_ADMIN_ME_TTL_MS = 5 * 60 * 1000;
+
+export function invalidatePlatformAdminMeCache(): void {
+  platformAdminMeCache = null;
+}
+
+export async function getPlatformAdminMe(opts?: { force?: boolean }): Promise<PlatformAdminMe | null> {
+  if (!opts?.force && platformAdminMeCache && Date.now() < platformAdminMeCache.expiresAt) {
+    return platformAdminMeCache.value;
+  }
   try {
     const headers = await authHeaders();
     const res = await axios.get(`${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ME}`, { headers });
-    if (res.data?.ok !== true) return null;
-    return res.data as PlatformAdminMe;
+    if (res.data?.ok !== true) {
+      platformAdminMeCache = null;
+      return null;
+    }
+    const me = res.data as PlatformAdminMe;
+    platformAdminMeCache = { value: me, expiresAt: Date.now() + PLATFORM_ADMIN_ME_TTL_MS };
+    return me;
   } catch {
+    platformAdminMeCache = null;
     return null;
   }
 }
@@ -1173,6 +1190,8 @@ export function paymentStatusChipColor(status: string): 'success' | 'warning' | 
   return 'default';
 }
 
+export type PlatformAdminQuestionProblemReportArchiveResolution = 'solved' | 'ignored';
+
 export type PlatformAdminQuestionProblemReport = {
   id: string;
   source: 'official' | 'practice';
@@ -1191,6 +1210,13 @@ export type PlatformAdminQuestionProblemReport = {
   archived: boolean;
   archived_at: string | null;
   archived_by: string;
+  archive_resolution: PlatformAdminQuestionProblemReportArchiveResolution | null;
+  /** Exact Firestore path when known; null on older ledger rows. */
+  bank_item_path?: string | null;
+  /** Inbox list: how many ledger submissions are collapsed into this question. */
+  report_count?: number;
+  /** Inbox list: all ledger ids for this question (archive/delete clears the row). */
+  report_ids?: string[];
 };
 
 export async function listPlatformAdminQuestionProblemReports(options?: {
@@ -1228,11 +1254,18 @@ export async function listPlatformAdminQuestionProblemReports(options?: {
 export async function setPlatformAdminQuestionProblemReportArchived(opts: {
   reportId: string;
   archived: boolean;
+  /** Required when archived=true. */
+  archive_resolution?: PlatformAdminQuestionProblemReportArchiveResolution;
 }): Promise<PlatformAdminQuestionProblemReport> {
   const res = await withAuthRetry((headers) =>
     axios.post(
       `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_QUESTION_PROBLEM_REPORTS}/${encodeURIComponent(opts.reportId)}/archive`,
-      { archived: opts.archived },
+      {
+        archived: opts.archived,
+        ...(opts.archived && opts.archive_resolution
+          ? { archive_resolution: opts.archive_resolution }
+          : {}),
+      },
       { headers }
     )
   );
@@ -1291,12 +1324,16 @@ export async function getPlatformAdminQuestionProblemReportItem(opts: {
   exam_id: string;
   tier_or_level: number | string | null;
   item_id: string;
+  bank_item_path?: string | null;
 }): Promise<PlatformAdminQuestionProblemReportItem> {
   const params = new URLSearchParams();
   params.set('source', opts.source);
   params.set('exam_id', opts.exam_id);
   params.set('tier_or_level', opts.tier_or_level == null ? '' : String(opts.tier_or_level));
   params.set('item_id', opts.item_id);
+  if (opts.bank_item_path) {
+    params.set('bank_item_path', opts.bank_item_path);
+  }
   const res = await withAuthRetry((headers) =>
     axios.get(
       `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_QUESTION_PROBLEM_REPORTS}/item?${params.toString()}`,

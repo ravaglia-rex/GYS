@@ -15,6 +15,8 @@ import {
 import {
   listSchoolsForStudentEmail,
   setStudentActiveSchool,
+  getStudent,
+  StudentProfileError,
   type StudentSchoolOption,
 } from '../../db/studentCollection';
 import { isHiddenStaffStudentEmail } from '../../constants/hiddenStaffStudents';
@@ -24,6 +26,11 @@ import { AppDispatch } from '../../state_data/reducer';
 
 
 import authTokenHandler from '../../functions/auth_token/auth_token_handler';
+import {
+  isStudentLoginBlockedStudent,
+  STUDENT_LOGIN_BLOCKED_BODY,
+  STUDENT_LOGIN_BLOCKED_TITLE,
+} from '../../utils/studentLoginSchoolBlocks';
 
 import {
     Form,
@@ -169,6 +176,34 @@ const SignInForm: React.FC<SignInFormProps> = ({ email, isSchoolAdmin }) => {
           });
           await revertPartialStudentSignIn();
           return false;
+        }
+
+        try {
+          const student = await getStudent(userCredential.user.uid);
+          if (isStudentLoginBlockedStudent(student as Record<string, unknown>)) {
+            toast({
+              variant: 'destructive',
+              title: STUDENT_LOGIN_BLOCKED_TITLE,
+              description: STUDENT_LOGIN_BLOCKED_BODY,
+            });
+            await revertPartialStudentSignIn();
+            return false;
+          }
+        } catch (profileErr) {
+          if (
+            profileErr instanceof StudentProfileError &&
+            profileErr.code === 'SCHOOL_ACCESS_SUSPENDED'
+          ) {
+            toast({
+              variant: 'destructive',
+              title: profileErr.title || STUDENT_LOGIN_BLOCKED_TITLE,
+              description: profileErr.message || STUDENT_LOGIN_BLOCKED_BODY,
+            });
+            await revertPartialStudentSignIn();
+            return false;
+          }
+          // Other profile load failures: still allow sign-in; dashboard will surface them.
+          console.warn('getStudent during sign-in failed:', profileErr);
         }
 
         if (isHiddenStaffStudentEmail(signedInEmail)) {

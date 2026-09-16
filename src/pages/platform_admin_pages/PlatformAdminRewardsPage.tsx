@@ -38,6 +38,7 @@ import {
   type PlatformAdminRedemptionHistoryEntry,
   type PlatformAdminRedemptionHistorySummary,
 } from '../../db/platformAdminCollection';
+import { createTtlMemoryCache } from './platformAdminMemoryCache';
 import {
   platformAdminPageContainerSx,
   platformAdminPrimaryButtonSx,
@@ -47,6 +48,18 @@ import {
 } from './platformAdminPageStyles';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import { PlatformAdminPageHeader, PlatformAdminStatCard, PlatformAdminTableSection } from './platformAdminComponents';
+
+type RewardsCachePayload = {
+  pending: PlatformAdminPendingRedemption[];
+  summary: PlatformAdminRedemptionHistorySummary;
+  history: PlatformAdminRedemptionHistoryEntry[];
+};
+
+const rewardsSessionCache = createTtlMemoryCache<RewardsCachePayload>({
+  maxEntries: 2,
+  defaultTtlMs: 2 * 60 * 1000,
+});
+const REWARDS_CACHE_KEY = 'rewards';
 
 function formatFirestoreTimestamp(
   ts?: { seconds?: number; _seconds?: number } | null
@@ -86,7 +99,18 @@ const PlatformAdminRewardsPage: React.FC = () => {
   const [voucherCode, setVoucherCode] = useState('');
   const [rejectNote, setRejectNote] = useState('');
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (opts?: { force?: boolean }) => {
+    if (!opts?.force) {
+      const cached = rewardsSessionCache.get(REWARDS_CACHE_KEY);
+      if (cached) {
+        setPending(cached.pending);
+        setSummary(cached.summary);
+        setHistory(cached.history);
+        setLoading(false);
+        setError(null);
+        return;
+      }
+    }
     setLoading(true);
     setError(null);
     try {
@@ -94,6 +118,11 @@ const PlatformAdminRewardsPage: React.FC = () => {
         listPlatformAdminPendingRedemptions(),
         getPlatformAdminRedemptionHistory(),
       ]);
+      rewardsSessionCache.set(REWARDS_CACHE_KEY, {
+        pending: pendingData,
+        summary: historyData.summary,
+        history: historyData.history,
+      });
       setPending(pendingData);
       setSummary(historyData.summary);
       setHistory(historyData.history);
@@ -104,8 +133,13 @@ const PlatformAdminRewardsPage: React.FC = () => {
     }
   }, []);
 
+  const reloadRewards = useCallback(async () => {
+    rewardsSessionCache.delete(REWARDS_CACHE_KEY);
+    await load({ force: true });
+  }, [load]);
+
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   const handleFulfill = async () => {
@@ -122,7 +156,7 @@ const PlatformAdminRewardsPage: React.FC = () => {
       });
       setFulfillDialog(null);
       setVoucherCode('');
-      await load();
+      await reloadRewards();
     } catch (e: unknown) {
       const msg =
         typeof e === 'object' && e !== null && 'response' in e
@@ -146,7 +180,7 @@ const PlatformAdminRewardsPage: React.FC = () => {
       });
       setRejectDialog(null);
       setRejectNote('');
-      await load();
+      await reloadRewards();
     } catch (e: unknown) {
       const msg =
         typeof e === 'object' && e !== null && 'response' in e

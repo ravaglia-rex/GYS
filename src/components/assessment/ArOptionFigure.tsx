@@ -11,7 +11,6 @@ import {
   optionFigureStemContentBottomYPct,
   optionFigureStemSliceFromOptionSlices,
   svgNaturalSizeFromText,
-  trimOptionLabelsFromSlices,
   type ArOptionFigureLayout,
   type ArOptionFigureRef,
   type OptionFigureSliceRect,
@@ -29,9 +28,10 @@ const borderMuted = '#e2e8f0';
 
 /**
  * Crop / layout meta for option figures.
- * Learner path: bank `option_crops` only (no FE catalog / SVG parse).
- * Platform Admin may pass `allowRuntimeFallback` while authoring — and will
- * re-parse the live SVG when stamped natural size no longer matches (asset edit).
+ * Default / live exam: bank `option_crops` only (no FE catalog / SVG parse / letter-trim).
+ * `allowRuntimeFallback` is only for explicit authoring (recompute after asset edit).
+ * When stamped crops still match the SVG, keep them verbatim — never letter-trim
+ * bank slices (that diverged admin preview from live on in-tile A–D labels).
  */
 export function useArOptionFigureMeta(
   src: string | undefined,
@@ -121,12 +121,7 @@ export function useArOptionFigureMeta(
         const nextSlices = optionFigureContentSlicesFromSvg(text, optionCount);
         const shouldUseRuntime = !saved || sizeMismatch || !saved.slices?.length;
         if (!shouldUseRuntime) {
-          // Keep bank crops, but still strip A–D glyphs that sit inside each tile
-          // (UI already labels options outside the box).
-          if (saved?.slices?.length) {
-            const trimmed = trimOptionLabelsFromSlices(text, saved.slices, optionCount);
-            if (trimmed?.length) setSlices(trimmed);
-          }
+          // Stamped crops still match the asset — keep them exactly as live does.
           applyAspect();
           return;
         }
@@ -170,7 +165,6 @@ export function useArOptionFigureMeta(
   if (saved && !useRuntimeOverSaved) {
     return {
       layout: saved.layout,
-      // Prefer in-memory slices so letter-trim of bank crops can take effect.
       slices: slices ?? saved.slices,
       stemSlice: saved.stemSlice,
       includesStemContent: Boolean(saved.stemSlice),

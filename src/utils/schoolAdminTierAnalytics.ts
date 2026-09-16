@@ -21,10 +21,11 @@ function numericProficiencyTier(raw: unknown): number {
   return 1;
 }
 
+/** Bar + legend colors for proficiency levels 1–3 (high contrast when stacked). */
 export const PROF_TIER_COLORS = {
-  tier1: '#2563eb',
-  tier2: '#7c3aed',
-  tier3: '#059669',
+  tier1: '#1d4ed8', // blue-700
+  tier2: '#ea580c', // orange-600 — warm vs cool so thin L2 slices stay visible
+  tier3: '#15803d', // green-700
 } as const;
 
 export function isActiveAssessmentProgress(p: Progress | undefined): p is Progress {

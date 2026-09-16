@@ -36,6 +36,7 @@ import {
   listPlatformAdminQuestionProblemReports,
   setPlatformAdminQuestionProblemReportArchived,
   type PlatformAdminQuestionProblemReport,
+  type PlatformAdminQuestionProblemReportArchiveResolution,
   type PlatformAdminQuestionProblemReportItem,
 } from '../../db/platformAdminCollection';
 import {
@@ -69,6 +70,11 @@ type QuestionReportsCachePayload = {
 const questionReportsSessionCache = createTtlMemoryCache<QuestionReportsCachePayload>({
   maxEntries: 8,
   defaultTtlMs: 5 * 60 * 1000,
+});
+
+const questionReportItemSessionCache = createTtlMemoryCache<PlatformAdminQuestionProblemReportItem>({
+  maxEntries: 24,
+  defaultTtlMs: 10 * 60 * 1000,
 });
 
 function questionReportsCacheKey(source: SourceFilter, status: StatusFilter): string {
@@ -136,6 +142,14 @@ function reportStudentMetaLine(row: {
   return parts.join(' · ');
 }
 
+function archiveResolutionLabel(
+  resolution: PlatformAdminQuestionProblemReportArchiveResolution | null | undefined
+): string {
+  if (resolution === 'solved') return 'Solved';
+  if (resolution === 'ignored') return 'Ignored';
+  return '—';
+}
+
 function itemBankPathForReport(row: {
   source: 'official' | 'practice';
   exam_id: string;
@@ -155,6 +169,31 @@ function itemBankPathForReport(row: {
   params.set('item_id', itemId);
   const bank = row.source === 'practice' ? 'practice' : 'official';
   return `/platform-admin/item-bank/${bank}?${params.toString()}`;
+}
+
+/** Inbox rows collapse multiple submissions per question; fall back to the row id. */
+function reportIdsForInboxRow(row: PlatformAdminQuestionProblemReport): string[] {
+  if (Array.isArray(row.report_ids) && row.report_ids.length > 0) {
+    return row.report_ids.filter((id) => typeof id === 'string' && id.trim().length > 0);
+  }
+  return row.id ? [row.id] : [];
+}
+
+function reportCountForInboxRow(row: PlatformAdminQuestionProblemReport): number {
+  if (typeof row.report_count === 'number' && Number.isFinite(row.report_count) && row.report_count > 0) {
+    return Math.floor(row.report_count);
+  }
+  return reportIdsForInboxRow(row).length || 1;
+}
+
+/** Inbox shows only the category line (e.g. "Something else"); details live in the modal. */
+function reportInboxHeading(text: string | null | undefined): string {
+  const raw = typeof text === 'string' ? text.trim() : '';
+  if (!raw) return '-';
+  const firstLine = raw.split(/\r?\n/, 1)[0]?.trim() || raw;
+  const max = 48;
+  if (firstLine.length <= max) return firstLine;
+  return `${firstLine.slice(0, max - 1).trimEnd()}…`;
 }
 
 const PlatformAdminQuestionReportsPage: React.FC = () => {
@@ -239,8 +278,20 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
 
   const openReport = useCallback(async (row: PlatformAdminQuestionProblemReport) => {
     setSelectedReport(row);
-    setItemDetail(null);
     setItemError(null);
+    const cacheKey = [
+      row.source,
+      row.exam_id,
+      row.tier_or_level ?? '',
+      row.item_id,
+    ].join('|');
+    const cached = questionReportItemSessionCache.get(cacheKey);
+    if (cached) {
+      setItemDetail(cached);
+      setItemLoading(false);
+      return;
+    }
+    setItemDetail(null);
     setItemLoading(true);
     try {
       const item = await getPlatformAdminQuestionProblemReportItem({
@@ -248,7 +299,9 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
         exam_id: row.exam_id,
         tier_or_level: row.tier_or_level,
         item_id: row.item_id,
+        bank_item_path: row.bank_item_path,
       });
+      questionReportItemSessionCache.set(cacheKey, item);
       setItemDetail(item);
     } catch (e) {
       console.error(e);
@@ -284,43 +337,63 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
   }, [closeReport, itemBankPath, navigate]);
 
   const applyArchiveChange = useCallback(
-    async (row: PlatformAdminQuestionProblemReport, archived: boolean) => {
+    async (
+      row: PlatformAdminQuestionProblemReport,
+      archived: boolean,
+      archive_resolution?: PlatformAdminQuestionProblemReportArchiveResolution
+    ) => {
+      const ids = reportIdsForInboxRow(row);
+      if (ids.length === 0) return;
       setActionBusyId(row.id);
       setError(null);
       try {
-        await setPlatformAdminQuestionProblemReportArchived({ reportId: row.id, archived });
-        if (selectedReport?.id === row.id) closeReport();
+        await Promise.all(
+          ids.map((reportId) =>
+            setPlatformAdminQuestionProblemReportArchived({
+              reportId,
+              archived,
+              ...(archived && archive_resolution ? { archive_resolution } : {}),
+            })
+          )
+        );
+        if (selectedReport && ids.includes(selectedReport.id)) closeReport();
         setConfirmAction(null);
         questionReportsSessionCache.clear();
         await load({ force: true });
       } catch (e) {
         console.error(e);
-        setError(archived ? 'Could not archive this report.' : 'Could not restore this report.');
+        setError(
+          archived
+            ? 'Could not archive reports for this question.'
+            : 'Could not restore reports for this question.'
+        );
       } finally {
         setActionBusyId(null);
       }
     },
-    [closeReport, load, selectedReport?.id]
+    [closeReport, load, selectedReport]
   );
 
   const applyDelete = useCallback(
     async (row: PlatformAdminQuestionProblemReport) => {
+      const ids = reportIdsForInboxRow(row);
+      if (ids.length === 0) return;
       setActionBusyId(row.id);
       setError(null);
       try {
-        await deletePlatformAdminQuestionProblemReport(row.id);
-        if (selectedReport?.id === row.id) closeReport();
+        await Promise.all(ids.map((reportId) => deletePlatformAdminQuestionProblemReport(reportId)));
+        if (selectedReport && ids.includes(selectedReport.id)) closeReport();
         setConfirmAction(null);
         questionReportsSessionCache.clear();
         await load({ force: true });
       } catch (e) {
         console.error(e);
-        setError('Could not delete this report.');
+        setError('Could not delete reports for this question.');
       } finally {
         setActionBusyId(null);
       }
     },
-    [closeReport, load, selectedReport?.id]
+    [closeReport, load, selectedReport]
   );
 
   const emptyMessage = useMemo(() => {
@@ -338,7 +411,7 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
     <Box sx={platformAdminPageContainerSx}>
       <PlatformAdminPageHeader
         title="Question reports"
-        subtitle="Problems students flag on official exams and practice. Archive to hide from the open inbox, or delete to remove the report permanently."
+        subtitle="Problems students flag on official exams and practice. Each question appears once; open it to see every report. When archiving, note whether you solved or ignored it."
         action={
           <Button
             startIcon={<RefreshIcon />}
@@ -429,7 +502,9 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
         </Alert>
       )}
 
-      <PlatformAdminTableSection countLabel={`${reports.length} report${reports.length === 1 ? '' : 's'}`}>
+      <PlatformAdminTableSection
+        countLabel={`${reports.length} question${reports.length === 1 ? '' : 's'}`}
+      >
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
             <CircularProgress size={36} sx={{ color: ip.navy }} />
@@ -438,13 +513,16 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
           <Typography sx={{ color: '#64748b', py: 4, textAlign: 'center' }}>{emptyMessage}</Typography>
         ) : (
           <TableContainer component={Paper} sx={platformAdminTablePaperSx}>
-            <Table sx={{ ...platformAdminTableSx, minWidth: 920, tableLayout: 'fixed' }} size="small">
+            <Table sx={{ ...platformAdminTableSx, minWidth: status === 'archived' ? 1020 : 920, tableLayout: 'fixed' }} size="small">
               <TableHead>
                 <TableRow sx={platformAdminTableHeadRowSx}>
                   <TableCell sx={{ width: 112 }}>When</TableCell>
                   <TableCell sx={{ width: 104 }}>Source</TableCell>
                   <TableCell sx={{ width: 168 }}>Exam / level</TableCell>
                   <TableCell>Report</TableCell>
+                  {status === 'archived' ? (
+                    <TableCell sx={{ width: 96 }}>Resolution</TableCell>
+                  ) : null}
                   <TableCell sx={{ width: 168 }}>Student</TableCell>
                   <TableCell sx={{ width: 168 }}>School</TableCell>
                   <TableCell align="right" sx={{ width: 88 }}> </TableCell>
@@ -453,7 +531,7 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
               <TableBody>
                 {reports.map((row) => (
                   <TableRow
-                    key={row.id}
+                    key={`${row.source}|${row.exam_id}|${row.item_id}|${row.id}`}
                     hover
                     onClick={() => void openReport(row)}
                     sx={{ cursor: 'pointer' }}
@@ -493,13 +571,50 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
                           fontWeight: 600,
                           color: ip.heading,
                           lineHeight: 1.45,
-                          whiteSpace: 'pre-wrap',
-                          overflowWrap: 'break-word',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
                         }}
+                        title={row.text || undefined}
                       >
-                        {row.text || '-'}
+                        {reportInboxHeading(row.text)}
                       </Typography>
+                      {reportCountForInboxRow(row) > 1 ? (
+                        <Typography sx={{ fontSize: '0.75rem', color: '#64748b', mt: 0.5, fontWeight: 600 }}>
+                          {reportCountForInboxRow(row)} reports on this question
+                        </Typography>
+                      ) : null}
                     </TableCell>
+                    {status === 'archived' ? (
+                      <TableCell sx={{ verticalAlign: 'top' }}>
+                        <Chip
+                          size="small"
+                          label={archiveResolutionLabel(row.archive_resolution)}
+                          sx={{
+                            fontWeight: 700,
+                            bgcolor:
+                              row.archive_resolution === 'solved'
+                                ? 'rgba(22, 163, 74, 0.12)'
+                                : row.archive_resolution === 'ignored'
+                                  ? '#f1f5f9'
+                                  : '#fff7ed',
+                            color:
+                              row.archive_resolution === 'solved'
+                                ? '#166534'
+                                : row.archive_resolution === 'ignored'
+                                  ? '#475569'
+                                  : '#9a3412',
+                            border: '1px solid',
+                            borderColor:
+                              row.archive_resolution === 'solved'
+                                ? '#86efac'
+                                : row.archive_resolution === 'ignored'
+                                  ? '#cbd5e1'
+                                  : '#fdba74',
+                          }}
+                        />
+                      </TableCell>
+                    ) : null}
                     <TableCell sx={{ verticalAlign: 'top', width: 168, maxWidth: 168 }}>
                       <Typography
                         sx={{
@@ -802,15 +917,44 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
           ) : null}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5, justifyContent: 'space-between' }}>
-          <Box sx={{ display: 'flex', gap: 0.5 }}>
+          <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', flexWrap: 'wrap' }}>
             {selectedReport?.archived ? (
-              <Button
-                onClick={() => void applyArchiveChange(selectedReport, false)}
-                disabled={actionBusyId === selectedReport.id}
-                sx={platformAdminTextButtonSx}
-              >
-                Restore
-              </Button>
+              <>
+                <Chip
+                  size="small"
+                  label={archiveResolutionLabel(selectedReport.archive_resolution)}
+                  sx={{
+                    fontWeight: 700,
+                    mr: 0.5,
+                    bgcolor:
+                      selectedReport.archive_resolution === 'solved'
+                        ? 'rgba(22, 163, 74, 0.12)'
+                        : selectedReport.archive_resolution === 'ignored'
+                          ? '#f1f5f9'
+                          : '#fff7ed',
+                    color:
+                      selectedReport.archive_resolution === 'solved'
+                        ? '#166534'
+                        : selectedReport.archive_resolution === 'ignored'
+                          ? '#475569'
+                          : '#9a3412',
+                    border: '1px solid',
+                    borderColor:
+                      selectedReport.archive_resolution === 'solved'
+                        ? '#86efac'
+                        : selectedReport.archive_resolution === 'ignored'
+                          ? '#cbd5e1'
+                          : '#fdba74',
+                  }}
+                />
+                <Button
+                  onClick={() => void applyArchiveChange(selectedReport, false)}
+                  disabled={actionBusyId === selectedReport.id}
+                  sx={platformAdminTextButtonSx}
+                >
+                  Restore
+                </Button>
+              </>
             ) : selectedReport ? (
               <Button
                 onClick={() => setConfirmAction({ kind: 'archive', row: selectedReport })}
@@ -849,13 +993,23 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
         PaperProps={{ sx: platformAdminDialogPaperSx }}
       >
         <DialogTitle sx={{ fontWeight: 700, color: ip.heading }}>
-          {confirmAction?.kind === 'delete' ? 'Delete this report?' : 'Archive this report?'}
+          {confirmAction?.kind === 'delete'
+            ? reportCountForInboxRow(confirmAction.row) > 1
+              ? `Delete all ${reportCountForInboxRow(confirmAction.row)} reports on this question?`
+              : 'Delete this report?'
+            : confirmAction && reportCountForInboxRow(confirmAction.row) > 1
+              ? 'Archive all reports on this question?'
+              : 'Archive this report?'}
         </DialogTitle>
         <DialogContent>
           <Typography sx={{ color: '#475569', fontSize: 14, lineHeight: 1.55 }}>
             {confirmAction?.kind === 'delete'
-              ? 'This removes the report from the inbox permanently. You cannot restore it. Matching text on the question history is also removed.'
-              : 'It leaves the open inbox. You can restore it from Archived. The question item-level report history is kept.'}
+              ? reportCountForInboxRow(confirmAction.row) > 1
+                ? 'This removes every report on this question from the inbox permanently. You cannot restore them. Matching text on the question history is also removed.'
+                : 'This removes the report from the inbox permanently. You cannot restore it. Matching text on the question history is also removed.'
+              : confirmAction && reportCountForInboxRow(confirmAction.row) > 1
+                ? 'Did you solve this issue, or are you ignoring it? The note is kept on every archived report for this question. You can still restore them later.'
+                : 'Did you solve this issue, or are you ignoring it? The note is kept on the archived report. You can still restore it later.'}
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
@@ -871,13 +1025,26 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
               Delete
             </Button>
           ) : (
-            <Button
-              onClick={() => confirmAction && void applyArchiveChange(confirmAction.row, true)}
-              disabled={!confirmAction || actionBusyId === confirmAction.row.id}
-              sx={platformAdminTextButtonSx}
-            >
-              Archive
-            </Button>
+            <>
+              <Button
+                onClick={() =>
+                  confirmAction && void applyArchiveChange(confirmAction.row, true, 'ignored')
+                }
+                disabled={!confirmAction || actionBusyId === confirmAction.row.id}
+                sx={platformAdminTextButtonSx}
+              >
+                Ignored
+              </Button>
+              <Button
+                onClick={() =>
+                  confirmAction && void applyArchiveChange(confirmAction.row, true, 'solved')
+                }
+                disabled={!confirmAction || actionBusyId === confirmAction.row.id}
+                sx={platformAdminPrimaryButtonSx}
+              >
+                Solved
+              </Button>
+            </>
           )}
         </DialogActions>
       </Dialog>

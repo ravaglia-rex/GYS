@@ -43,6 +43,7 @@ import {
   type PlatformAdminStudentDetail,
   type PlatformAdminStudentExamAttemptRow,
 } from '../../db/platformAdminCollection';
+import { createTtlMemoryCache } from './platformAdminMemoryCache';
 import {
   getPlatformAdminOfficialExamAttemptDetail,
   type OfficialExamAttemptDetail,
@@ -63,6 +64,17 @@ import { PlatformAdminChip } from './platformAdminComponents';
 import { PlatformAdminAttemptPaper } from './PlatformAdminExamQuestionCard';
 import { isPlatformAdminTestStudent } from './platformAdminTestStudents';
 import { MEMBERSHIP_LEVEL_LABEL } from '../../utils/studentMembershipPricing';
+
+type StudentDetailCachePayload = {
+  student: PlatformAdminStudentDetail;
+  coinEvents: PlatformAdminCoinEventRow[];
+  examAttempts: PlatformAdminStudentExamAttemptRow[];
+};
+
+const studentDetailSessionCache = createTtlMemoryCache<StudentDetailCachePayload>({
+  maxEntries: 20,
+  defaultTtlMs: 3 * 60 * 1000,
+});
 
 function studentDisplayName(student: PlatformAdminStudentDetail): string {
   return [student.first_name, student.last_name].filter(Boolean).join(' ').trim() || student.email || student.uid;
@@ -124,13 +136,31 @@ function attemptStatusTone(
   return 'neutral';
 }
 
+function formatClientBrowser(userAgent: string | null | undefined): string | null {
+  if (!userAgent) return null;
+  const ua = userAgent;
+  if (/Edg\//i.test(ua)) return 'Edge';
+  if (/OPR\/|Opera/i.test(ua)) return 'Opera';
+  if (/Chrome\//i.test(ua) && !/Chromium/i.test(ua)) return 'Chrome';
+  if (/CriOS\//i.test(ua)) return 'Chrome';
+  if (/Firefox\//i.test(ua) || /FxiOS\//i.test(ua)) return 'Firefox';
+  if (/Safari\//i.test(ua) && !/Chrome\//i.test(ua) && !/CriOS\//i.test(ua)) return 'Safari';
+  return 'Other';
+}
+
 function formatClientDevice(
-  deviceType: PlatformAdminStudentExamAttemptRow['client_device_type']
+  deviceType: PlatformAdminStudentExamAttemptRow['client_device_type'],
+  userAgent?: string | null
 ): string {
-  if (deviceType === 'mobile') return 'Phone';
-  if (deviceType === 'tablet') return 'Tablet';
-  if (deviceType === 'desktop') return 'Laptop/Desktop';
-  return '—';
+  let device = '—';
+  if (deviceType === 'mobile') device = 'Phone';
+  else if (deviceType === 'tablet') device = 'Tablet';
+  else if (deviceType === 'desktop') device = 'Laptop/Desktop';
+  const browser = formatClientBrowser(userAgent);
+  if (device === '—' && !browser) return '—';
+  if (device === '—') return `(${browser})`;
+  if (!browser) return device;
+  return `${device} (${browser})`;
 }
 
 function attemptLabel(row: PlatformAdminStudentExamAttemptRow): string {
@@ -162,8 +192,20 @@ const PlatformAdminStudentDetailPage: React.FC = () => {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [invoiceDownloadingKey, setInvoiceDownloadingKey] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (opts?: { force?: boolean }) => {
     if (!studentId) return;
+    if (!opts?.force) {
+      const cached = studentDetailSessionCache.get(studentId);
+      if (cached) {
+        setStudent(cached.student);
+        setCoinEvents(cached.coinEvents);
+        setExamAttempts(cached.examAttempts);
+        setLoading(false);
+        setAttemptsLoading(false);
+        setError(null);
+        return;
+      }
+    }
     setLoading(true);
     setError(null);
     setAttemptsLoading(true);
@@ -173,6 +215,11 @@ const PlatformAdminStudentDetailPage: React.FC = () => {
         getPlatformAdminStudentCoinEvents(studentId, 50).catch(() => [] as PlatformAdminCoinEventRow[]),
         getPlatformAdminStudentExamAttempts(studentId).catch(() => [] as PlatformAdminStudentExamAttemptRow[]),
       ]);
+      studentDetailSessionCache.set(studentId, {
+        student: data,
+        coinEvents: events,
+        examAttempts: attempts,
+      });
       setStudent(data);
       setCoinEvents(events);
       setExamAttempts(attempts);
@@ -211,6 +258,8 @@ const PlatformAdminStudentDetailPage: React.FC = () => {
         return;
       }
       const req = ++attemptDetailReqRef.current;
+      // Mark as handled so the deep-link effect doesn't re-fire and immediately toggle closed.
+      autoOpenedAttemptRef.current = row.attempt_id;
       setSelectedAttemptId(row.attempt_id);
       setAttemptDetailLoading(true);
       setAttemptDetail(null);
@@ -285,6 +334,7 @@ const PlatformAdminStudentDetailPage: React.FC = () => {
         confirm_email: deleteConfirmEmail.trim(),
         delete_auth: deleteAuth,
       });
+      studentDetailSessionCache.delete(studentId);
       const name = studentDisplayName(student);
       setDeleteOpen(false);
       navigate('/platform-admin/students', {
@@ -725,7 +775,10 @@ const PlatformAdminStudentDetailPage: React.FC = () => {
                           </TableCell>
                           <TableCell>
                             <Typography variant="body2" sx={{ fontSize: 13 }}>
-                              {formatClientDevice(row.client_device_type)}
+                              {formatClientDevice(
+                                row.client_device_type,
+                                row.client_user_agent
+                              )}
                             </Typography>
                             {row.client_ip ? (
                               <Typography

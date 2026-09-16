@@ -32,6 +32,7 @@ import {
   downloadPdfFromUrl,
   downloadQuarterlyReportPdf,
   getQuarterlyReports,
+  getSchoolAnalyticsSummary,
   getSchoolStudentRoster,
   getSchoolSummary,
   getStudentRegistrationEmailLists,
@@ -52,7 +53,12 @@ import {
 import { SCHOOL_SCORED_ASSESSMENT_IDS } from '../../utils/assessmentGating';
 import { normalizeTierSlugForDashboard, parseInstitutionalTierSlug } from '../../utils/achievementTier';
 import { displaySubscriptionPlan } from '../../utils/displaySubscriptionPlan';
-import { normalizeRosterEmail, filterHiddenStaffStudentEmails, isVisibleSchoolRosterStudent, countAssessmentsFromProgress } from '../../utils/schoolAdminRosterUtils';
+import {
+  normalizeRosterEmail,
+  filterHiddenStaffStudentEmails,
+  isVisibleSchoolRosterStudent,
+  countAssessmentsFromProgress,
+} from '../../utils/schoolAdminRosterUtils';
 import { ProficiencyTier123Overview } from '../../components/school_admin/ProficiencyTier123Overview';
 import { NationalPerformanceTierOverview } from '../../components/school_admin/NationalPerformanceTierOverview';
 import {
@@ -63,6 +69,7 @@ import {
 } from '../../data/schoolPreviewMock';
 import PageTutorial from '../../components/tutorial/PageTutorial';
 import { SCHOOL_ADMIN_PAGE_MAX_WIDTH } from './schoolAdminPageStyles';
+import { STUDENT_EXAM_SHOW_SCORES_AND_COINS } from '../../constants/constants';
 
 // ─── Tier config ─────────────────────────────────────────────────────────────
 const SCHOOL_ADMIN_HELP_HREF =
@@ -284,9 +291,13 @@ const InstitutionHeroStrip = React.memo(function InstitutionHeroStrip(props: {
     performance,
   } = props;
 
-  const tierLabel = institutionalTierCfg?.label ?? '-';
+  const tierLabel = STUDENT_EXAM_SHOW_SCORES_AND_COINS
+    ? (institutionalTierCfg?.label ?? '-')
+    : 'Pending';
   const rankShort =
-    institutionalRank != null && institutionalRank > 0 ? ordinal(institutionalRank) : '-';
+    STUDENT_EXAM_SHOW_SCORES_AND_COINS && institutionalRank != null && institutionalRank > 0
+      ? `#${institutionalRank}`
+      : '-';
 
   return (
     <Box
@@ -386,7 +397,7 @@ const InstitutionHeroStrip = React.memo(function InstitutionHeroStrip(props: {
               }}
             >
               <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 0.75, justifyContent: 'center', flexWrap: 'wrap' }}>
-                {institutionalTierCfg ? (
+                {STUDENT_EXAM_SHOW_SCORES_AND_COINS && institutionalTierCfg ? (
                   <Typography
                     component="span"
                     sx={{
@@ -485,9 +496,11 @@ const InstitutionHeroStrip = React.memo(function InstitutionHeroStrip(props: {
                 School rank
               </Typography>
               <HeroRankTrend
-                institutionalRank={institutionalRank}
-                rankChangeQ1={rankChangeQ1}
-                avgPercentileChange={performance.avgPercentileChange}
+                institutionalRank={STUDENT_EXAM_SHOW_SCORES_AND_COINS ? institutionalRank : null}
+                rankChangeQ1={STUDENT_EXAM_SHOW_SCORES_AND_COINS ? rankChangeQ1 : null}
+                avgPercentileChange={
+                  STUDENT_EXAM_SHOW_SCORES_AND_COINS ? performance.avgPercentileChange : 0
+                }
               />
             </Box>
           </Box>
@@ -628,41 +641,30 @@ const SchoolAdminDashboardPage: React.FC = () => {
         setLoading(true);
         setDashboardApiError(null);
 
-        let allStudents: StudentRow[] = [];
         let analyticsData: Record<string, any> = {};
-        let registrationEmails: string[] = [];
         let institutionalTier: string | null = null;
-        let usedHistograms = false;
+        let usedLiveAnalyticsSummary = false;
+        let primaryFetchFailed = false;
+
         try {
-          // Single summary call also covers the school "header" fields (name/city/board/member
-          // since/institutional tier) that used to require a separate client-side
-          // `getDoc(schools/{id})` - the summary endpoint already reads that same doc
-          // server-side for billing/plan data.
-          // `ensureQueryData` reads/populates the same React Query cache entries the
-          // Students/Analytics/Subscription pages read via `useSchoolAdminSummary` /
-          // `useSchoolAdminRoster` - navigating between pages within staleTime reuses the
-          // cached result instead of re-fetching.
-          const summaryData = await queryClient.ensureQueryData({
-            queryKey: queryKeys.schoolAdminSummary(schoolId),
-            queryFn: () => getSchoolSummary(schoolId),
-            staleTime: SCHOOL_ADMIN_QUERY_STALE_MS,
-          });
+          // Header + billing from lightweight summary; Performance overview from the same
+          // one-scan analytics summary Analytics uses (live attempt rate / proficiency).
+          // Avoid shipping the full paginated roster just to draw four stat cards.
+          const [summaryData, analyticsSummary] = await Promise.all([
+            queryClient.ensureQueryData({
+              queryKey: queryKeys.schoolAdminSummary(schoolId),
+              queryFn: () => getSchoolSummary(schoolId),
+              staleTime: SCHOOL_ADMIN_QUERY_STALE_MS,
+            }),
+            queryClient.ensureQueryData({
+              queryKey: queryKeys.schoolAdminAnalyticsSummary(schoolId),
+              queryFn: () => getSchoolAnalyticsSummary(schoolId),
+              staleTime: SCHOOL_ADMIN_QUERY_STALE_MS,
+            }),
+          ]);
+
           analyticsData = summaryData.analytics ?? {};
           institutionalTier = summaryData.institutional_tier ?? null;
-          const histograms = analyticsData.dashboard_histograms as
-            | {
-                student_count?: number;
-                initialized_count?: number;
-                assessments_completed?: number;
-                attempt_rate?: number;
-                tier123?: { tier1: number; tier2: number; tier3: number; total: number };
-                national_tiers?: {
-                  counts: Record<string, number>;
-                  total: number;
-                };
-                proficiency_by_exam?: ExamProficiencySummary[];
-              }
-            | undefined;
 
           setSchoolName(summaryData.school_name || 'Your School');
           setSchoolCity(summaryData.city || '');
@@ -672,80 +674,65 @@ const SchoolAdminDashboardPage: React.FC = () => {
           );
           setMemberSinceLabel(formatMemberSince(summaryData.member_since_iso));
 
-          if (histograms && typeof histograms.student_count === 'number') {
-            usedHistograms = true;
-            setTotalAssessmentsCompleted(histograms.assessments_completed ?? 0);
-            setStudentCount(histograms.student_count);
-            setInitializedStudentCount(histograms.initialized_count ?? histograms.student_count);
-            if (histograms.tier123) {
-              setProficiencyByExam(histograms.proficiency_by_exam ?? []);
-              setNationalPerfTiers({
-                counts: {
-                  explorer: histograms.national_tiers?.counts?.explorer ?? 0,
-                  bronze: histograms.national_tiers?.counts?.bronze ?? 0,
-                  silver: histograms.national_tiers?.counts?.silver ?? 0,
-                  gold: histograms.national_tiers?.counts?.gold ?? 0,
-                  platinum: histograms.national_tiers?.counts?.platinum ?? 0,
-                  diamond: histograms.national_tiers?.counts?.diamond ?? 0,
-                },
-                total: histograms.national_tiers?.total ?? histograms.student_count,
-              });
-            }
-            const rankParsed = parseOptionalInt(
-              analyticsData.institutional_rank ?? analyticsData.school_rank ?? analyticsData.national_rank
+          const liveTier123 = analyticsSummary.tier123;
+          const liveAttemptRate = analyticsSummary.attempt_rate;
+          if (
+            liveTier123 &&
+            typeof liveAttemptRate === 'number' &&
+            typeof analyticsSummary.student_count === 'number'
+          ) {
+            usedLiveAnalyticsSummary = true;
+            setStudentCount(analyticsSummary.student_count);
+            setInitializedStudentCount(
+              typeof summaryData.live?.total_students === 'number' && summaryData.live.total_students > 0
+                ? summaryData.live.total_students
+                : analyticsSummary.student_count
             );
-            setInstitutionalRank(rankParsed != null && rankParsed > 0 ? rankParsed : null);
-            const rankDeltaParsed = parseOptionalInt(analyticsData.rank_change_q1 ?? analyticsData.rank_delta_q1);
-            setRankChangeQ1(rankDeltaParsed);
-            const t123 = histograms.tier123 ?? { tier1: 0, tier2: 0, tier3: 0, total: histograms.student_count };
+            setTotalAssessmentsCompleted(analyticsSummary.assessments_completed ?? 0);
+            setProficiencyByExam(
+              (analyticsSummary.proficiency_by_exam ?? []).filter((e) => e.total > 0)
+            );
+            setNationalPerfTiers({
+              counts: {
+                explorer: analyticsSummary.national_tiers?.counts?.explorer ?? 0,
+                bronze: analyticsSummary.national_tiers?.counts?.bronze ?? 0,
+                silver: analyticsSummary.national_tiers?.counts?.silver ?? 0,
+                gold: analyticsSummary.national_tiers?.counts?.gold ?? 0,
+                platinum: analyticsSummary.national_tiers?.counts?.platinum ?? 0,
+                diamond: analyticsSummary.national_tiers?.counts?.diamond ?? 0,
+              },
+              total: analyticsSummary.national_tiers?.total ?? analyticsSummary.student_count,
+            });
             setPerformance({
               avgPercentile:
                 analyticsData.avg_percentile_source === 'national' ? analyticsData.avg_percentile ?? 0 : 0,
-              atLevel3Count: t123.tier3,
-              clearedLevel1Count: t123.tier2 + t123.tier3,
-              rosterTotal: t123.total,
-              attemptRate: histograms.attempt_rate ?? 0,
+              atLevel3Count: liveTier123.tier3,
+              clearedLevel1Count: liveTier123.tier2 + liveTier123.tier3,
+              rosterTotal: liveTier123.total,
+              attemptRate: liveAttemptRate,
               avgPercentileChange:
-                analyticsData.avg_percentile_source === 'national' ?
-                  analyticsData.perf_change_percentile ?? 0 :
-                  0,
+                analyticsData.avg_percentile_source === 'national'
+                  ? analyticsData.perf_change_percentile ?? 0
+                  : 0,
               completionChange: analyticsData.perf_change_completion ?? 0,
             });
-          } else {
-            const rosterData = await queryClient.ensureQueryData({
-              queryKey: queryKeys.schoolAdminRoster(schoolId),
-              queryFn: () => getSchoolStudentRoster(schoolId),
-              staleTime: SCHOOL_ADMIN_QUERY_STALE_MS,
-            });
-            allStudents = (rosterData ?? []).filter(isVisibleSchoolRosterStudent);
           }
         } catch (apiErr) {
-          console.error('School summary/roster fetch failed:', apiErr);
+          primaryFetchFailed = true;
+          console.error('School summary/analytics fetch failed:', apiErr);
           setDashboardApiError(
-            'Could not load the student roster from the API (getSchoolSummary/getSchoolStudentRoster). ' +
+            'Could not load school dashboard data (getSchoolSummary/getSchoolAnalyticsSummary). ' +
               'Confirm REACT_APP_GOOGLE_CLOUD_FUNCTIONS points at the same Firebase project you seeded, ' +
               'and that functions are deployed or your local emulator is running with the latest build.'
           );
         }
 
-        const [emailResult, quarterlyResult] = await Promise.all([
-          getStudentRegistrationEmailLists(schoolId)
-            .then((lists) => ({ok: true as const, lists}))
-            .catch((emailErr) => {
-              console.warn('getStudentRegistrationEmailLists failed:', emailErr);
-              return {ok: false as const};
-            }),
-          getQuarterlyReports(schoolId)
-            .then((qr) => ({ok: true as const, qr}))
-            .catch((e) => {
-              console.warn('getQuarterlyReports:', e);
-              return {ok: false as const};
-            }),
-        ]);
-
-        if (emailResult.ok) {
-          registrationEmails = filterHiddenStaffStudentEmails(emailResult.lists.emails ?? []);
-        }
+        const quarterlyResult = await getQuarterlyReports(schoolId)
+          .then((qr) => ({ ok: true as const, qr }))
+          .catch((e) => {
+            console.warn('getQuarterlyReports:', e);
+            return { ok: false as const };
+          });
 
         if (quarterlyResult.ok) {
           const qr = quarterlyResult.qr;
@@ -768,15 +755,6 @@ const SchoolAdminDashboardPage: React.FC = () => {
           )
         );
 
-        if (!usedHistograms) {
-        setTotalAssessmentsCompleted(countAssessmentsCompleted(allStudents));
-        setStudentCount(allStudents.length);
-        setInitializedStudentCount(countInitializedStudents(allStudents, registrationEmails));
-
-        const tier123 = summarizeSchoolTier123(allStudents);
-        setProficiencyByExam(summarizeProficiencyByExam(allStudents, SCHOOL_SCORED_ASSESSMENT_IDS));
-        setNationalPerfTiers(summarizeNationalPerformanceTiers(allStudents));
-
         const rankParsed = parseOptionalInt(
           analyticsData.institutional_rank ?? analyticsData.school_rank ?? analyticsData.national_rank
         );
@@ -784,21 +762,42 @@ const SchoolAdminDashboardPage: React.FC = () => {
         const rankDeltaParsed = parseOptionalInt(analyticsData.rank_change_q1 ?? analyticsData.rank_delta_q1);
         setRankChangeQ1(rankDeltaParsed);
 
-        setPerformance({
-          avgPercentile:
-            analyticsData.avg_percentile_source === 'national' ? analyticsData.avg_percentile ?? 0 : 0,
-          atLevel3Count: tier123.tier3,
-          clearedLevel1Count: tier123.tier2 + tier123.tier3,
-          rosterTotal: tier123.total,
-          attemptRate: computeAttemptRatePct(allStudents),
-          avgPercentileChange:
-            analyticsData.avg_percentile_source === 'national' ?
-              analyticsData.perf_change_percentile ?? 0 :
-              0,
-          completionChange: analyticsData.perf_change_completion ?? 0,
-        });
+        // Older backends without live dashboard fields on analytics summary: fall back to roster once.
+        if (!usedLiveAnalyticsSummary && !primaryFetchFailed) {
+          try {
+            const [rosterData, emailLists] = await Promise.all([
+              queryClient.ensureQueryData({
+                queryKey: queryKeys.schoolAdminRoster(schoolId),
+                queryFn: () => getSchoolStudentRoster(schoolId),
+                staleTime: SCHOOL_ADMIN_QUERY_STALE_MS,
+              }),
+              getStudentRegistrationEmailLists(schoolId).catch(() => null),
+            ]);
+            const allStudents = (rosterData ?? []).filter(isVisibleSchoolRosterStudent);
+            const registrationEmails = filterHiddenStaffStudentEmails(emailLists?.emails ?? []);
+            setTotalAssessmentsCompleted(countAssessmentsCompleted(allStudents));
+            setStudentCount(allStudents.length);
+            setInitializedStudentCount(countInitializedStudents(allStudents, registrationEmails));
+            const tier123 = summarizeSchoolTier123(allStudents);
+            setProficiencyByExam(summarizeProficiencyByExam(allStudents, SCHOOL_SCORED_ASSESSMENT_IDS));
+            setNationalPerfTiers(summarizeNationalPerformanceTiers(allStudents));
+            setPerformance({
+              avgPercentile:
+                analyticsData.avg_percentile_source === 'national' ? analyticsData.avg_percentile ?? 0 : 0,
+              atLevel3Count: tier123.tier3,
+              clearedLevel1Count: tier123.tier2 + tier123.tier3,
+              rosterTotal: tier123.total,
+              attemptRate: computeAttemptRatePct(allStudents),
+              avgPercentileChange:
+                analyticsData.avg_percentile_source === 'national'
+                  ? analyticsData.perf_change_percentile ?? 0
+                  : 0,
+              completionChange: analyticsData.perf_change_completion ?? 0,
+            });
+          } catch (rosterErr) {
+            console.error('School roster fallback failed:', rosterErr);
+          }
         }
-
       } catch (err) {
         console.error('Dashboard fetch error:', err);
       } finally {
@@ -1063,7 +1062,9 @@ const SchoolAdminDashboardPage: React.FC = () => {
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 1 }}>
                 <Typography sx={{ color: ip.subtext, fontSize: '0.68rem', fontWeight: 500 }}>Avg. percentile</Typography>
                 <Typography sx={{ color: ip.heading, fontSize: '0.8rem', fontWeight: 700 }}>
-                  {performance.avgPercentile > 0 ? ordinal(performance.avgPercentile) : '-'}
+                  {STUDENT_EXAM_SHOW_SCORES_AND_COINS && performance.avgPercentile > 0
+                    ? ordinal(performance.avgPercentile)
+                    : '-'}
                 </Typography>
               </Box>
             </Box>
@@ -1165,11 +1166,17 @@ const SchoolAdminDashboardPage: React.FC = () => {
             <Typography variant="body2" sx={{ color: ip.heading, fontWeight: 600, mb: 0.5 }}>
               National performance tiers (GYS)
             </Typography>
+            {!STUDENT_EXAM_SHOW_SCORES_AND_COINS ? (
+              <Alert severity="info">
+                GYS performance tiers are deferred for schools until exam scores are released.
+              </Alert>
+            ) : (
             <NationalPerformanceTierOverview
               counts={nationalPerfTiers.counts}
               total={nationalPerfTiers.total}
               subtitle="Each student is counted once, by their current GYS performance tier from the roster (achievement_tier on each student profile). Same roster as below."
             />
+            )}
           </Box>
           <Typography variant="body2" sx={{ color: ip.subtext, mb: 1, lineHeight: 1.55 }}>
             Headline stats use each student’s <strong>highest</strong> proficiency level across assessments they have
@@ -1183,9 +1190,21 @@ const SchoolAdminDashboardPage: React.FC = () => {
           <Box data-tutorial-id="school-dashboard-stats" sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
             <StatCard
               label="Avg. Percentile"
-              value={performance.avgPercentile > 0 ? ordinal(performance.avgPercentile) : '-'}
-              description="Mean national composite percentile among students who have a GYS triad standing. Discovery-only schools show a dash until Reasoning Triad norms exist."
-              change={performance.avgPercentileChange !== 0 ? { value: performance.avgPercentileChange, label: 'pts from Q1' } : undefined}
+              value={
+                STUDENT_EXAM_SHOW_SCORES_AND_COINS && performance.avgPercentile > 0
+                  ? ordinal(performance.avgPercentile)
+                  : '-'
+              }
+              description={
+                STUDENT_EXAM_SHOW_SCORES_AND_COINS
+                  ? 'Mean national composite percentile among students who have a GYS triad standing. Discovery-only schools show a dash until Reasoning Triad norms exist.'
+                  : 'National percentiles are deferred for schools until exam scores are released.'
+              }
+              change={
+                STUDENT_EXAM_SHOW_SCORES_AND_COINS && performance.avgPercentileChange !== 0
+                  ? { value: performance.avgPercentileChange, label: 'pts from Q1' }
+                  : undefined
+              }
               accent={ip.statBlue}
               icon={<MiniBarChartIcon sx={{ fontSize: '1.15rem', color: ip.statBlue }} />}
             />

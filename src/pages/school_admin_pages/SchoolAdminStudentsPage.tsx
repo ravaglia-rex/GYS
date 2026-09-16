@@ -66,6 +66,7 @@ import {
 } from '../../utils/schoolRegistrationPlans';
 import PageTutorial from '../../components/tutorial/PageTutorial';
 import { SchoolAdminPageHeader, schoolAdminPageContainerSx } from './schoolAdminPageStyles';
+import { STUDENT_EXAM_SHOW_SCORES_AND_COINS } from '../../constants/constants';
 
 type RosterRegistered = {
   kind: 'registered';
@@ -1554,10 +1555,20 @@ const SchoolAdminStudentsPage: React.FC = () => {
                         >
                           <Chip
                             size="small"
-                            label={formatAchievementTierLabel(r.achievementTier)}
+                            label={
+                              STUDENT_EXAM_SHOW_SCORES_AND_COINS
+                                ? formatAchievementTierLabel(r.achievementTier)
+                                : 'Pending'
+                            }
                             sx={{
                               fontWeight: 600,
-                              ...getAchievementTierChipSx(r.achievementTier),
+                              ...(STUDENT_EXAM_SHOW_SCORES_AND_COINS
+                                ? getAchievementTierChipSx(r.achievementTier)
+                                : {
+                                    border: '1px solid #64748b',
+                                    color: ip.heading,
+                                    bgcolor: '#fff',
+                                  }),
                             }}
                           />
                         </TableCell>

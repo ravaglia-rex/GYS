@@ -13,15 +13,26 @@ import {
 import authTokenHandler from "../functions/auth_token/auth_token_handler";
 import { downloadPdfFromUrl } from "./schoolAdminCollection";
 import type { CompletedAssessmentNotificationSource } from "../utils/dashboardNotifications";
+import {
+  STUDENT_LOGIN_BLOCKED_BODY,
+  STUDENT_LOGIN_BLOCKED_CODE,
+  STUDENT_LOGIN_BLOCKED_TITLE,
+} from "../utils/studentLoginSchoolBlocks";
 
 /** Thrown from getStudent so callers can show specific UI (404 = no Firestore profile, etc.). */
 export class StudentProfileError extends Error {
-  readonly code: 'NO_TOKEN' | 'NOT_FOUND' | 'UNAUTHORIZED' | 'SERVER' | 'NETWORK';
+  readonly code: 'NO_TOKEN' | 'NOT_FOUND' | 'UNAUTHORIZED' | 'SERVER' | 'NETWORK' | 'SCHOOL_ACCESS_SUSPENDED';
+  readonly title?: string;
 
-  constructor(code: StudentProfileError['code'], message: string) {
+  constructor(
+    code: StudentProfileError['code'],
+    message: string,
+    title?: string
+  ) {
     super(message);
     this.name = 'StudentProfileError';
     this.code = code;
+    this.title = title;
   }
 }
 
@@ -49,13 +60,30 @@ export const getStudent = async (userId: string) => {
   } catch (error) {
     if (axios.isAxiosError(error)) {
       const status = error.response?.status;
+      const data = error.response?.data as
+        | { code?: unknown; message?: unknown; error?: unknown; title?: unknown }
+        | undefined;
+      if (
+        status === 403 &&
+        typeof data?.code === 'string' &&
+        data.code === STUDENT_LOGIN_BLOCKED_CODE
+      ) {
+        const message =
+          (typeof data.message === 'string' && data.message.trim()) ||
+          (typeof data.error === 'string' && data.error.trim()) ||
+          STUDENT_LOGIN_BLOCKED_BODY;
+        const title =
+          (typeof data.title === 'string' && data.title.trim()) ||
+          STUDENT_LOGIN_BLOCKED_TITLE;
+        throw new StudentProfileError('SCHOOL_ACCESS_SUSPENDED', message, title);
+      }
       if (status === 404) {
         throw new StudentProfileError(
           'NOT_FOUND',
           'No student profile found for your account. If you just registered, wait a minute and refresh. Otherwise contact globalyoungscholar@argus.ai.'
         );
       }
-      if (status === 401) {
+      if (status === 401 || status === 403) {
         throw new StudentProfileError(
           'UNAUTHORIZED',
           'Your session expired or is invalid. Please sign out and sign in again.'
@@ -251,6 +279,10 @@ export interface StudentReportListItem {
 export interface StudentReportsResponse {
   reports: StudentReportListItem[];
   s3Configured: boolean;
+  /** Present when STUDENT_REPORTS_REVEAL is false. */
+  reports_deferred?: boolean;
+  /** @deprecated Prefer reports_deferred */
+  scores_deferred?: boolean;
 }
 
 export const getStudentReports = async (uid: string): Promise<StudentReportsResponse> => {

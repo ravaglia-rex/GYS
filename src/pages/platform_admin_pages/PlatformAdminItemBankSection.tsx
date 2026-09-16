@@ -371,18 +371,32 @@ export function PlatformAdminItemBankSection({
     const req = ++reqRef.current;
     const refresh = refreshNonce > appliedRefreshRef.current;
     appliedRefreshRef.current = refreshNonce;
+    const itemIdTrimmed = itemIdQuery.trim();
+    const slimCacheKey = itemIdTrimmed ? `${bankCacheKey}|item=${itemIdTrimmed}` : '';
 
     if (!refresh) {
-      const cached = itemBankSessionCache.get(bankCacheKey);
-      if (cached) {
-        setBank(cached);
+      // Prefer a full bank already in session (instant client-side item filter).
+      const fullCached = itemBankSessionCache.get(bankCacheKey);
+      if (fullCached) {
+        setBank(fullCached);
         setLoading(false);
         setError(null);
         onLoadingChange?.(false);
         return;
       }
+      if (slimCacheKey) {
+        const slimCached = itemBankSessionCache.get(slimCacheKey);
+        if (slimCached) {
+          setBank(slimCached);
+          setLoading(false);
+          setError(null);
+          onLoadingChange?.(false);
+          return;
+        }
+      }
     } else {
       itemBankSessionCache.delete(bankCacheKey);
+      if (slimCacheKey) itemBankSessionCache.delete(slimCacheKey);
     }
 
     setError(null);
@@ -398,14 +412,24 @@ export function PlatformAdminItemBankSection({
       bankKind === 'practice'
         ? getPlatformAdminPracticeExamItemBank
         : getPlatformAdminOfficialExamItemBank;
+    const loadFilters: OfficialItemBankFilters = itemIdTrimmed
+      ? { ...filters, item_id: itemIdTrimmed }
+      : filters;
     void load(examId, {
       level,
-      filters,
+      filters: loadFilters,
       refresh,
     })
       .then((data) => {
         if (req !== reqRef.current) return;
-        itemBankSessionCache.set(bankCacheKey, data);
+        // Never write a deep-link slim payload over the full-bank cache key.
+        if (itemIdTrimmed && data.questions.length <= 20) {
+          itemBankSessionCache.set(slimCacheKey, data);
+        } else if (!itemIdTrimmed) {
+          itemBankSessionCache.set(bankCacheKey, data);
+        } else {
+          itemBankSessionCache.set(bankCacheKey, data);
+        }
         setBank(data);
       })
       .catch((e: unknown) => {
@@ -425,14 +449,19 @@ export function PlatformAdminItemBankSection({
         setLoading(false);
         onLoadingChange?.(false);
       });
-  }, [bankKind, examId, level, filters, bankCacheKey, refreshNonce, onLoadingChange]);
+  }, [bankKind, examId, level, filters, bankCacheKey, itemIdQuery, refreshNonce, onLoadingChange]);
 
-  // Write-through so Approve / edit / delete survive remount.
+  // Write-through so Approve / edit / delete survive remount (full-bank keys only).
   useEffect(() => {
     if (!bank || !bankCacheKeyRef.current) return;
     if (bank.exam_id !== examId || bank.level !== level) return;
+    // Slim deep-link payloads must not overwrite the full level cache.
+    if (itemIdQuery.trim() && bank.questions.length <= 20 && bank.total_items <= 20) {
+      itemBankSessionCache.set(`${bankCacheKeyRef.current}|item=${itemIdQuery.trim()}`, bank);
+      return;
+    }
     itemBankSessionCache.set(bankCacheKeyRef.current, bank);
-  }, [bank, examId, level]);
+  }, [bank, examId, level, itemIdQuery]);
 
   const selectedExam = summaries.find((e) => e.exam_id === examId) ?? null;
   const facets = bank?.facets;
@@ -666,7 +695,7 @@ export function PlatformAdminItemBankSection({
                       : ''
                   }`
                 : bankKind === 'practice'
-                  ? 'Browse the practice pool with options and the correct answer.'
+                  ? 'Browse the practice pool with options, the correct answer, and pick rates when served.'
                   : 'Browse every official bank item with options, the correct answer, and pick rates.'
             }
             accent="teal"

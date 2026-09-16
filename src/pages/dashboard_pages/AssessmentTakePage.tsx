@@ -13,6 +13,7 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  TextField,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -324,7 +325,9 @@ export default function AssessmentTakePage() {
   const [abandoning, setAbandoning] = useState(false);
   const [showOfflineBar, setShowOfflineBar] = useState(false);
   const [integrityGateOk, setIntegrityGateOk] = useState(needsPreExamStep);
+  const [rulesAckInput, setRulesAckInput] = useState('');
   const [screenshotNudge, setScreenshotNudge] = useState(false);
+  const rulesAcknowledged = rulesAckInput.trim().toLowerCase() === 'i understand';
   const questionStartTimeRef = useRef<number>(Date.now());
   /** True after submit, confirmed leave, integrity abandon, or tab-unload beacon - skips duplicate fail-on-unload. */
   const examEndedRef = useRef(false);
@@ -895,10 +898,21 @@ export default function AssessmentTakePage() {
               <Typography component="p" sx={{ mb: 1.5, textAlign: 'justify' }}>
                 Your activity is monitored. Do not exit fullscreen, switch away from this window, open other apps or tabs, or leave the exam environment. Ensure you have a stable internet connection. Violating these rules can terminate your exam immediately and may invalidate your results.
               </Typography>
-              <Typography component="p" sx={{ textAlign: 'justify' }}>
+              <Typography component="p" sx={{ mb: 2, textAlign: 'justify' }}>
                 Your browser may ask for fullscreen permission, allow it before you begin.
               </Typography>
             </DialogContentText>
+            <TextField
+              autoFocus
+              fullWidth
+              size="small"
+              label='Type "I understand" to continue'
+              placeholder="I understand"
+              value={rulesAckInput}
+              onChange={(e) => setRulesAckInput(e.target.value)}
+              inputProps={{ 'aria-label': 'Type I understand to continue', autoComplete: 'off', spellCheck: false }}
+              sx={{ mt: 0.5 }}
+            />
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
             <Button onClick={() => navigate(`/assessments/${assessmentId}/tier/${tier}/detail`)} color="inherit">
@@ -906,12 +920,13 @@ export default function AssessmentTakePage() {
             </Button>
             <Button
               variant="contained"
+              disabled={!rulesAcknowledged}
               onClick={() => {
                 void document.documentElement.requestFullscreen?.().catch(() => {});
                 setIntegrityGateOk(true);
               }}
             >
-              I understand - begin
+              Begin
             </Button>
           </DialogActions>
         </Dialog>

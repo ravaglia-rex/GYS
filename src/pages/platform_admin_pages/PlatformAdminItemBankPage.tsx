@@ -31,7 +31,7 @@ const PlatformAdminItemBankPage: React.FC = () => {
     >
       <PlatformAdminPageHeader
         title="Item Bank"
-        subtitle="Official pools by exam and level; practice is a single pool per exam. Official also shows pick rates. Data is Redis-cached and not realtime."
+        subtitle="Official pools by exam and level; practice is a single pool per exam. Both show accuracy and option pick rates when served. Data is Redis-cached and not realtime."
         action={
           <Button
             variant="outlined"

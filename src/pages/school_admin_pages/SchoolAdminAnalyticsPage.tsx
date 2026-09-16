@@ -16,6 +16,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Alert,
 } from '@mui/material';
 import {
   People as PeopleIcon,
@@ -46,6 +47,9 @@ import {
   summarizeExamGradeTier123,
   summarizeNationalPerformanceTiers,
   summarizeScoreDistributionByExam,
+  summarizeSchoolTier123,
+  summarizeProficiencyByExam,
+  computeAttemptRatePct,
   type ScoreBandId,
 } from '../../utils/schoolAdminTierAnalytics';
 import {
@@ -58,9 +62,10 @@ import { NationalPerformanceTierOverview } from '../../components/school_admin/N
 import { buildGreenfieldPreviewStudentRows } from '../../data/schoolPreviewMock';
 import { REASONING_EXAM_SUBCATEGORIES } from '../../data/reasoningExamSubcategories';
 import PageTutorial from '../../components/tutorial/PageTutorial';
+import { STUDENT_EXAM_SHOW_SCORES_AND_COINS } from '../../constants/constants';
 import { SchoolAdminPageHeader, schoolAdminPageContainerSx } from './schoolAdminPageStyles';
 import type { SchoolAnalyticsSummaryResponse, StudentRow } from '../../db/schoolAdminCollection';
-
+import { countAssessmentsFromProgress } from '../../utils/schoolAdminRosterUtils';
 const SCORE_BAND_COLORS: Record<ScoreBandId, string> = {
   '900-1000': '#10b981',
   '800-899': '#3b82f6',
@@ -201,6 +206,13 @@ function buildPreviewAnalyticsSummary(students: StudentRow[]): SchoolAnalyticsSu
     ),
     exam_averages: buildExamAverageChartRows(students),
     personality_completion: buildPersonalityCompletionStats(students),
+    attempt_rate: computeAttemptRatePct(students),
+    assessments_completed: students.reduce(
+      (n, s) => n + countAssessmentsFromProgress(s.assessment_progress),
+      0
+    ),
+    tier123: summarizeSchoolTier123(students),
+    proficiency_by_exam: summarizeProficiencyByExam(students, SCHOOL_SCORED_ASSESSMENT_IDS),
   };
 }
 
@@ -438,6 +450,12 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
               <Typography variant="h6" sx={{ fontWeight: 600, color: '#1E293B', mb: 0.5 }}>
                 National performance tiers (GYS)
               </Typography>
+              {!STUDENT_EXAM_SHOW_SCORES_AND_COINS ? (
+                <Alert severity="info" sx={{ mt: 1 }}>
+                  GYS performance tiers are deferred for schools until exam scores are released.
+                </Alert>
+              ) : (
+                <>
               <Typography variant="body2" sx={{ color: '#94a3b8', mb: 2, lineHeight: 1.55 }}>
                 Explorer → Diamond: normed tiers from each student&apos;s profile.
               </Typography>
@@ -447,6 +465,8 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                 subtitle="Each student counted once by current GYS performance tier (achievement_tier on each profile). Same roster as proficiency analytics."
                 barHeight={36}
               />
+                </>
+              )}
             </CardContent>
           </Card>
 
@@ -571,6 +591,13 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
               <Typography variant="h6" sx={{ fontWeight: 600, color: '#1E293B', mb: 0.5 }}>
                 Score Distribution
               </Typography>
+              {!STUDENT_EXAM_SHOW_SCORES_AND_COINS ? (
+                <Alert severity="info" sx={{ mt: 1 }}>
+                  Numeric exam scores are deferred for schools right now. Score bands will appear here when results are
+                  released.
+                </Alert>
+              ) : (
+                <>
               <Typography variant="body2" sx={{ color: '#94a3b8', mb: 2, lineHeight: 1.55 }}>
                 How students scored on each reasoning sub-strand (points out of {EXAM_MAX_SCORE_POINTS}). Empty tracks
                 mean that exam has no sectional scores yet for this school.
@@ -675,6 +702,8 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                   ))}
                 </Box>
               ))}
+                </>
+              )}
             </CardContent>
           </Card>
 
@@ -745,6 +774,13 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                   Average best score by assessment
                 </Typography>
               </Box>
+              {!STUDENT_EXAM_SHOW_SCORES_AND_COINS ? (
+                <Alert severity="info">
+                  Numeric exam scores are deferred for schools right now. Average score charts will appear here when
+                  results are released.
+                </Alert>
+              ) : (
+                <>
               <Typography variant="body2" sx={{ color: '#94a3b8', mb: 3, lineHeight: 1.6 }}>
                 For each exam, we pool students across all classes, rank them by their personal best score on that exam,
                 take the top {TOP_STUDENTS_PER_EXAM_FOR_AVG} performers, and plot the average of those scores. Charts
@@ -810,6 +846,8 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                   </BarChart>
                 </ResponsiveContainer>
               </Box>
+                </>
+              )}
             </CardContent>
           </Card>
         </>
