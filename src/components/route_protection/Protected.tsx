@@ -12,6 +12,7 @@ import { hasRecordedDailyLoginToday, markDailyLoginRecorded } from '../../utils/
 import { getStudent, StudentProfileError } from '../../db/studentCollection';
 import { toast } from '../ui/use-toast';
 import {
+  isStudentLoginBlockedEmail,
   isStudentLoginBlockedStudent,
   STUDENT_LOGIN_BLOCKED_BODY,
   STUDENT_LOGIN_BLOCKED_TITLE,
@@ -49,9 +50,25 @@ const Protected: React.FC<ProtectedProps> = ({ children }) => {
           /* Handler refresh on API calls still works via getAuthToken */
         }
 
-        // Kick out students from login-blocked schools (existing sessions included).
+        // Kick out students from login-blocked schools / QA emails (existing sessions included).
         if (schoolBlockCheckedRef.current !== user.uid) {
           schoolBlockCheckedRef.current = user.uid;
+          if (isStudentLoginBlockedEmail(user.email)) {
+            toast({
+              variant: 'destructive',
+              title: STUDENT_LOGIN_BLOCKED_TITLE,
+              description: STUDENT_LOGIN_BLOCKED_BODY,
+            });
+            try {
+              await signOut(auth);
+            } catch {
+              /* ignore */
+            }
+            authTokenHandler.clearToken();
+            navigate('/login');
+            setLoading(false);
+            return;
+          }
           try {
             const student = await getStudent(user.uid);
             if (isStudentLoginBlockedStudent(student as Record<string, unknown>)) {

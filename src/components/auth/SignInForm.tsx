@@ -27,6 +27,7 @@ import { AppDispatch } from '../../state_data/reducer';
 
 import authTokenHandler from '../../functions/auth_token/auth_token_handler';
 import {
+  isStudentLoginBlockedEmail,
   isStudentLoginBlockedStudent,
   STUDENT_LOGIN_BLOCKED_BODY,
   STUDENT_LOGIN_BLOCKED_TITLE,
@@ -173,6 +174,16 @@ const SignInForm: React.FC<SignInFormProps> = ({ email, isSchoolAdmin }) => {
             title: 'Use the school official sign-in',
             description:
               'This email is registered for a school official account and cannot be used to enter the student dashboard.',
+          });
+          await revertPartialStudentSignIn();
+          return false;
+        }
+
+        if (isStudentLoginBlockedEmail(signedInEmail)) {
+          toast({
+            variant: 'destructive',
+            title: STUDENT_LOGIN_BLOCKED_TITLE,
+            description: STUDENT_LOGIN_BLOCKED_BODY,
           });
           await revertPartialStudentSignIn();
           return false;
