@@ -8,7 +8,18 @@ import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
 import { useStudentSignupExit } from '../../contexts/StudentSignupExitContext';
 import { useStudentSignupExitGuard } from '../../hooks/useStudentSignupExitGuard';
 import { mergeSignupState, writeSignupDraft } from '../../utils/studentSignupDraft';
-import { normalizeIndiaMobileE164 } from '../../utils/indiaMobile';
+import PhoneDialCodeSelect from '../../components/authentication/PhoneDialCodeSelect';
+import SignupSelect from '../../components/authentication/SignupSelect';
+import {
+  isValidSchoolRegistrationMobile,
+  schoolPhoneDialForCountry,
+  schoolPhoneDialFromE164,
+  schoolPhoneMaxNationalDigits,
+  schoolPhoneValidationMessage,
+  toSchoolMobileNationalDigits,
+  withSchoolCountryCode,
+  type SchoolPhoneDialCode,
+} from '../../utils/indiaMobile';
 import { resolvePhoneOptional } from '../../utils/studentSignupPhoneOptional';
 import {
   normalizeStudentSection,
@@ -18,16 +29,8 @@ import {
   studentSectionToUi,
   type StudentSectionUiChoice,
 } from '../../utils/studentSection';
-import SignupSelect from '../../components/authentication/SignupSelect';
 
 const GYS_BLUE = '#1e3a8a';
-
-function toIndiaMobileLocalDigits(raw: unknown): string {
-  const digits = String(raw ?? '').replace(/\D/g, '');
-  if (digits.startsWith('91') && digits.length >= 12) return digits.slice(2, 12);
-  if (digits.startsWith('0') && digits.length >= 11) return digits.slice(1, 11);
-  return digits.slice(0, 10);
-}
 
 function inviteEmailFromSearchParams(searchParams: URLSearchParams): string {
   const raw = searchParams.get('email');
@@ -55,12 +58,20 @@ const StudentRegistrationPage: React.FC = () => {
     // Invite-link ?email= wins so roster email cannot be overwritten by a stale draft typo.
     const emailFromState = String(m.email ?? p.email ?? '');
     const lockedFromState = m.emailLockedFromInvite === true;
+    const rawPhone = String(m.whatsappPhone ?? p.whatsappPhone ?? '');
+    const dialFromPhone = schoolPhoneDialFromE164(rawPhone);
+    const countryFromState =
+      m.country === 'Qatar' || p.country === 'Qatar' ? 'Qatar' : 'India';
+    const dial =
+      dialFromPhone === '974' || countryFromState === 'Qatar' ? '974' : '91';
     return {
       firstName: String(m.firstName ?? p.firstName ?? ''),
       lastName: String(m.lastName ?? p.lastName ?? ''),
       email: inviteEmail || emailFromState,
       emailLockedFromInvite: Boolean(inviteEmail) || lockedFromState,
-      whatsappPhone: toIndiaMobileLocalDigits(m.whatsappPhone ?? p.whatsappPhone),
+      whatsappPhone: toSchoolMobileNationalDigits(rawPhone, dial),
+      phoneDialCode: dial as SchoolPhoneDialCode,
+      country: countryFromState as 'India' | 'Qatar',
       grade: String(m.grade ?? p.grade ?? ''),
       section: normalizeStudentSection(m.section ?? p.section),
     };
@@ -71,7 +82,11 @@ const StudentRegistrationPage: React.FC = () => {
   const [firstName, setFirstName] = useState(regInitial.firstName);
   const [lastName, setLastName] = useState(regInitial.lastName);
   const [email, setEmail] = useState(regInitial.email);
+  const [phoneDialCode, setPhoneDialCode] = useState<SchoolPhoneDialCode>(
+    regInitial.phoneDialCode
+  );
   const [whatsappPhone, setWhatsappPhone] = useState(regInitial.whatsappPhone);
+  const [signupCountry, setSignupCountry] = useState<'India' | 'Qatar'>(regInitial.country);
   const [grade, setGrade] = useState(regInitial.grade);
   const [sectionChoice, setSectionChoice] = useState<StudentSectionUiChoice>(
     () => studentSectionToUi(regInitial.section).choice
@@ -96,7 +111,9 @@ const StudentRegistrationPage: React.FC = () => {
     setFirstName(regInitial.firstName);
     setLastName(regInitial.lastName);
     setEmail(regInitial.email);
+    setPhoneDialCode(regInitial.phoneDialCode);
     setWhatsappPhone(regInitial.whatsappPhone);
+    setSignupCountry(regInitial.country);
     setGrade(regInitial.grade);
     const ui = studentSectionToUi(regInitial.section);
     setSectionChoice(ui.choice);
@@ -106,7 +123,9 @@ const StudentRegistrationPage: React.FC = () => {
     regInitial.firstName,
     regInitial.lastName,
     regInitial.email,
+    regInitial.phoneDialCode,
     regInitial.whatsappPhone,
+    regInitial.country,
     regInitial.grade,
     regInitial.section,
   ]);
@@ -126,6 +145,11 @@ const StudentRegistrationPage: React.FC = () => {
           setRosterSchoolId(resolved.schoolId ?? null);
           const nextOptional = resolved.phoneOptional === true;
           setResolvedPhoneOptional(nextOptional);
+          const nextCountry = resolved.country === 'Qatar' ? 'Qatar' : 'India';
+          setSignupCountry(nextCountry);
+          const nextDial = schoolPhoneDialForCountry(nextCountry);
+          setPhoneDialCode(nextDial);
+          setWhatsappPhone((prev) => toSchoolMobileNationalDigits(prev, nextDial));
           if (resolvePhoneOptional(resolved.schoolId ?? null, nextOptional)) {
             setWhatsappPhone('');
             setWhatsappPhoneError('');
@@ -165,26 +189,34 @@ const StudentRegistrationPage: React.FC = () => {
     const normalizedEmail = email.trim().toLowerCase();
     let matchedSchoolId = rosterSchoolId;
     let matchedPhoneOptional = resolvedPhoneOptional;
+    let matchedCountry = signupCountry;
+    let matchedDial = phoneDialCode;
     try {
       const resolved = await resolveRegistrationSchool(normalizedEmail);
       matchedSchoolId = resolved.schoolId ?? null;
       matchedPhoneOptional = resolved.phoneOptional === true;
+      matchedCountry = resolved.country === 'Qatar' ? 'Qatar' : 'India';
+      matchedDial = schoolPhoneDialForCountry(matchedCountry);
       setRosterSchoolId(matchedSchoolId);
       setResolvedPhoneOptional(matchedPhoneOptional);
+      setSignupCountry(matchedCountry);
+      setPhoneDialCode(matchedDial);
     } catch {
       // Keep last known roster match; phone rule falls back to required if unknown.
     }
     const skipPhone = resolvePhoneOptional(matchedSchoolId, matchedPhoneOptional);
-    const digits = skipPhone ? '' : whatsappPhone.trim();
+    const digits = skipPhone
+      ? ''
+      : toSchoolMobileNationalDigits(whatsappPhone, matchedDial);
     const normalizedWhatsappPhone = digits
-      ? normalizeIndiaMobileE164(`+91${digits}`)
+      ? withSchoolCountryCode(digits, matchedDial)
       : null;
-    if (digits && !normalizedWhatsappPhone) {
-      setWhatsappPhoneError('Enter a valid 10-digit India WhatsApp number starting with 6-9.');
+    if (digits && !isValidSchoolRegistrationMobile(digits, matchedDial)) {
+      setWhatsappPhoneError(schoolPhoneValidationMessage(matchedDial));
       return;
     }
     if (!skipPhone && !normalizedWhatsappPhone) {
-      setWhatsappPhoneError('Enter a valid 10-digit India WhatsApp number starting with 6-9.');
+      setWhatsappPhoneError(schoolPhoneValidationMessage(matchedDial));
       return;
     }
     setWhatsappPhoneError('');
@@ -229,6 +261,7 @@ const StudentRegistrationPage: React.FC = () => {
         email: normalizedEmail,
         emailLockedFromInvite,
         ...(normalizedWhatsappPhone ? { whatsappPhone: normalizedWhatsappPhone } : { whatsappPhone: '' }),
+        country: matchedCountry,
         grade,
         section: normalizedSection,
         signupPhoneOptional: skipPhone,
@@ -386,28 +419,36 @@ const StudentRegistrationPage: React.FC = () => {
                 <span className="text-red-500"> *</span>
               </label>
               <div
-                className={`mt-1.5 flex w-full overflow-hidden rounded-lg border bg-white text-sm sm:text-base focus-within:outline-none focus-within:ring-1 ${
+                className={`mt-1.5 flex w-full rounded-lg border bg-white text-sm sm:text-base focus-within:outline-none focus-within:ring-1 ${
                   whatsappPhoneError
                     ? 'border-red-400 bg-red-50/50 focus:border-red-400 focus:ring-red-300'
                     : 'border-slate-200 focus:border-slate-400 focus:ring-slate-400'
                 }`}
               >
-                <span className="flex items-center border-r border-slate-200 bg-slate-50 px-3.5 py-2.5 font-medium text-slate-600">
-                  +91
-                </span>
+                <PhoneDialCodeSelect
+                  value={phoneDialCode}
+                  onChange={(next) => {
+                    setPhoneDialCode(next);
+                    setSignupCountry(next === '974' ? 'Qatar' : 'India');
+                    setWhatsappPhone((prev) => toSchoolMobileNationalDigits(prev, next));
+                    if (whatsappPhoneError) setWhatsappPhoneError('');
+                  }}
+                />
                 <input
                   type="tel"
                   inputMode="numeric"
                   value={whatsappPhone}
                   onChange={(event) => {
-                    setWhatsappPhone(event.target.value.replace(/\D/g, '').slice(0, 10));
+                    setWhatsappPhone(
+                      toSchoolMobileNationalDigits(event.target.value, phoneDialCode)
+                    );
                     if (whatsappPhoneError) setWhatsappPhoneError('');
                   }}
                   aria-invalid={Boolean(whatsappPhoneError)}
-                  className="w-full px-3.5 py-2.5 text-slate-900 placeholder:text-slate-400 focus:outline-none"
-                  placeholder="98765 43210"
+                  className="w-full rounded-r-lg px-3.5 py-2.5 text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                  placeholder={phoneDialCode === '974' ? '5012 3456' : '98765 43210'}
                   autoComplete="tel-national"
-                  maxLength={10}
+                  maxLength={schoolPhoneMaxNationalDigits(phoneDialCode)}
                   required
                 />
               </div>

@@ -548,6 +548,21 @@ const PlatformAdminSchoolsPage: React.FC = () => {
                             mt: 0.25,
                           }}
                         >
+                          {school.country === 'Qatar' ? 'Qatar' : 'India'}
+                          {school.city ? ` · ${school.city}` : ''}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: ip.subtext,
+                            display: 'block',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            maxWidth: 260,
+                            mt: 0.25,
+                          }}
+                        >
                           {school.id}
                         </Typography>
                       </TableCell>

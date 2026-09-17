@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { sendPasswordResetEmail } from 'firebase/auth';
-import { auth, getAuthActionCodeSettings } from '../../firebase/firebase';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -11,6 +9,7 @@ import { LoadingSpinner as Spinner } from '../ui/spinner';
 import { useToast } from '../ui/use-toast';
 import SignInForm from './SignInForm';
 import { verifySchoolAdminAndSendPasswordSetup } from '../../db/schoolAdminCollection';
+import { requestPasswordResetEmail } from '../../db/passwordResetCollection';
 
 const schoolSelectSchema = z.object({
   school: z.string().min(1, 'School is required'),
@@ -48,7 +47,7 @@ const SchoolAdminSchoolSelect: React.FC<SchoolAdminSchoolSelectProps> = ({ email
       // Backend validates email + schoolId and ensures user exists in Firebase Auth
       await verifySchoolAdminAndSendPasswordSetup(email, data.school);
 
-      await sendPasswordResetEmail(auth, email, getAuthActionCodeSettings());
+      await requestPasswordResetEmail(email);
 
       setLinkSent(true);
       toast({

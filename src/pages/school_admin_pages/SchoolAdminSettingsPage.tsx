@@ -11,7 +11,8 @@ import {
   Paper,
   Avatar,
   Chip,
-  CircularProgress
+  CircularProgress,
+  MenuItem,
 } from '@mui/material';
 import {
   Security as SecurityIcon,
@@ -104,6 +105,7 @@ export type SchoolRegistrationDisplay = {
   referralSource: string;
   addressLine1: string;
   addressLine2: string;
+  country: 'India' | 'Qatar';
   city: string;
   state: string;
   postalCode: string;
@@ -129,6 +131,7 @@ function registrationDisplayFromSchoolDoc(data: Record<string, unknown>): School
       (typeof data.address === 'string' && data.address.trim()) ||
       '',
     addressLine2: typeof data.address_line2 === 'string' ? data.address_line2.trim() : '',
+    country: data.country === 'Qatar' ? 'Qatar' : 'India',
     city: typeof data.city === 'string' ? data.city.trim() : '',
     state: typeof data.state === 'string' ? data.state.trim() : '',
     postalCode: postal,
@@ -273,6 +276,7 @@ const SchoolAdminSettingsPage: React.FC = () => {
     referralSource: '',
     addressLine1: '',
     addressLine2: '',
+    country: 'India',
     city: '',
     state: '',
     postalCode: '',
@@ -310,6 +314,7 @@ const SchoolAdminSettingsPage: React.FC = () => {
       referralSource: 'EducationWorld',
       addressLine1: '12 Brigade Road',
       addressLine2: 'Koramangala',
+      country: 'India',
       city: city ?? 'Bangalore',
       state: state ?? 'Karnataka',
       postalCode: '560034',
@@ -416,7 +421,8 @@ const SchoolAdminSettingsPage: React.FC = () => {
           address_line1: registration.addressLine1.trim(),
           address_line2: registration.addressLine2.trim(),
           city: registration.city.trim(),
-          state: registration.state.trim(),
+          state: registration.country === 'Qatar' ? '' : registration.state.trim(),
+          country: registration.country,
           postal_code: registration.postalCode.trim(),
           additional_contact_emails: splitContactEmails(registration.additionalContactEmails),
         },
@@ -613,6 +619,40 @@ const SchoolAdminSettingsPage: React.FC = () => {
                 onChange={handleRegistrationChange('addressLine2')}
                 gridColumn={{ xs: '1', md: '1 / -1' }}
               />
+              <Box sx={{ gridColumn: { xs: '1', md: '1 / -1' } }}>
+                <Typography
+                  component="label"
+                  htmlFor="school-settings-country"
+                  sx={{
+                    display: 'block',
+                    mb: 0.75,
+                    color: ip.heading,
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.01em',
+                  }}
+                >
+                  Country
+                </Typography>
+                <TextField
+                  id="school-settings-country"
+                  select
+                  fullWidth
+                  value={registration.country}
+                  onChange={(event) => {
+                    const next = event.target.value === 'Qatar' ? 'Qatar' : 'India';
+                    setRegistration((prev) => ({
+                      ...prev,
+                      country: next,
+                      state: next === 'Qatar' ? '' : prev.state,
+                    }));
+                  }}
+                  sx={settingsFieldSx}
+                >
+                  <MenuItem value="India">India</MenuItem>
+                  <MenuItem value="Qatar">Qatar</MenuItem>
+                </TextField>
+              </Box>
               <SettingsField
                 label="City"
                 value={registration.city}
@@ -622,6 +662,12 @@ const SchoolAdminSettingsPage: React.FC = () => {
                 label="State"
                 value={registration.state}
                 onChange={handleRegistrationChange('state')}
+                readOnly={registration.country === 'Qatar'}
+                helperText={
+                  registration.country === 'Qatar'
+                    ? 'Not applicable for Qatar schools.'
+                    : undefined
+                }
               />
               <SettingsField
                 label="PIN / postal code"

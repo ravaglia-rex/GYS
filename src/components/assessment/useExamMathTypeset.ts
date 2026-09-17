@@ -1,27 +1,53 @@
-import { useContext, useEffect, useRef } from 'react';
+import { useContext, useLayoutEffect, useRef } from 'react';
 import { MathJaxBaseContext } from 'better-react-mathjax';
 
 /**
- * Typeset TeX once per contentKey under MathJaxContext.
- * Skips re-typeset on unrelated React re-renders and swallows DOM races on unmount
- * (better-react-mathjax `dynamic` re-typesets every render and throws on stale nodes).
+ * Typeset TeX under MathJaxContext.
+ *
+ * Runs after every layout commit while enabled so React reconciliations
+ * (markdown re-renders, image state, parent card updates) that restore raw
+ * `$...$` / `\\(...\\)` source get typeset again. better-react-mathjax's
+ * `dynamic` mode re-typesets every render and races detached nodes; this keeps
+ * a single scoped typesetPromise on the host element instead.
  */
 export function useExamMathTypeset(contentKey: string, enabled = true) {
   const ref = useRef<HTMLElement | null>(null);
   const ctx = useContext(MathJaxBaseContext);
+  const contentRef = useRef(contentKey);
+  contentRef.current = contentKey;
+  const enabledRef = useRef(enabled);
+  enabledRef.current = enabled;
 
-  useEffect(() => {
-    if (!enabled || !contentKey.trim()) return;
+  useLayoutEffect(() => {
     const el = ref.current;
-    if (!el || !ctx?.promise || ctx.version !== 3) return;
+    const key = contentRef.current;
+    const on = enabledRef.current;
+    if (!on || !key.trim() || !el || !ctx?.promise || ctx.version !== 3) return;
 
     let cancelled = false;
+
+    // ExamMathText owns its text via textContent so React children cannot wipe MathJax.
+    if (el.dataset.examMathOwn === '1') {
+      el.textContent = key;
+    }
 
     ctx.promise
       .then((mjx) => {
         if (cancelled || !ref.current) return null;
-        mjx.typesetClear([ref.current]);
-        return mjx.typesetPromise([ref.current]);
+        const node = ref.current;
+        if (node.dataset.examMathOwn === '1') {
+          node.textContent = contentRef.current;
+        }
+        try {
+          mjx.typesetClear([node]);
+        } catch {
+          // Node may already be detached.
+        }
+        if (cancelled || !ref.current) return null;
+        if (node.dataset.examMathOwn === '1') {
+          node.textContent = contentRef.current;
+        }
+        return mjx.typesetPromise([node]);
       })
       .catch((err) => {
         if (!cancelled && process.env.NODE_ENV !== 'production') {
@@ -31,17 +57,8 @@ export function useExamMathTypeset(contentKey: string, enabled = true) {
 
     return () => {
       cancelled = true;
-      ctx.promise
-        ?.then((mjx) => {
-          try {
-            mjx.typesetClear([el]);
-          } catch {
-            // Node may already be detached during React unmount.
-          }
-        })
-        .catch(() => {});
     };
-  }, [ctx, enabled, contentKey]);
+  });
 
   return ref;
 }

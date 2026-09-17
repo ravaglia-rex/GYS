@@ -7,6 +7,7 @@ export const PRACTICE_APIS = '/practice';
 export const GAMIFICATION_APIS = '/gamification';
 export const RAZORPAY_APIS = '/razorpay';
 export const EMAIL_CHECK_APIS = '/emailCheck';
+export const PASSWORD_RESET_APIS = '/passwordReset';
 export const PLATFORM_ADMIN_APIS = '/platform-admin';
 
 // Platform admin portal
@@ -85,6 +86,7 @@ export const FETCH_SCHOOL_SUMMARY='/getSchoolSummary';
 export const FETCH_SCHOOL_ANALYTICS_SUMMARY='/getSchoolAnalyticsSummary';
 export const SCHOOL_STUDENTS_ROSTER='/students';
 export const STUDENT_REGISTRATION_EMAILS='/studentRegistrationEmails';
+export const INCOMPLETE_STUDENT_INVITATION='/incompleteStudentInvitation';
 export const UPDATE_SCHOOL_PROFILE='/schoolProfile';
 export const DISMISS_SCHOOL_TUTORIAL='/tutorialDismissal';
 export const QUARTERLY_REPORTS='/quarterlyReports';

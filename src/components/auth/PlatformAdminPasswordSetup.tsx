@@ -1,32 +1,19 @@
 import React, { useState } from 'react';
-import { sendPasswordResetEmail } from 'firebase/auth';
-import { auth, getAuthActionCodeSettings } from '../../firebase/firebase';
 import { Button } from '../ui/button';
 import { LoadingSpinner as Spinner } from '../ui/spinner';
 import { useToast } from '../ui/use-toast';
 import PlatformAdminSignInForm from './PlatformAdminSignInForm';
 import { verifyPlatformAdminAndSendPasswordSetup } from '../../db/platformAdminCollection';
+import { requestPasswordResetEmail } from '../../db/passwordResetCollection';
 
 interface PlatformAdminPasswordSetupProps {
   email: string;
 }
 
-function getFirebaseAuthErrorCode(error: unknown): string {
-  return typeof error === 'object' && error !== null && 'code' in error
-    ? String((error as { code?: unknown }).code)
-    : '';
-}
-
 function describeSendError(error: unknown): string {
-  const code = getFirebaseAuthErrorCode(error);
-  if (code === 'auth/unauthorized-continue-uri' || code === 'auth/invalid-continue-uri') {
-    return 'Password setup URL is not allowed in Firebase Auth. Add this site’s domain under Authentication → Settings → Authorized domains, and set the email template action URL to /auth/action.';
-  }
-  if (code === 'auth/user-not-found') {
-    return 'Auth user could not be prepared for this email. Confirm the backend verifyAndSendPasswordSetup call succeeded.';
-  }
-  if (code === 'auth/too-many-requests') {
-    return 'Too many attempts. Wait a few minutes, then try again.';
+  if (typeof error === 'object' && error !== null && 'response' in error) {
+    const data = (error as { response?: { data?: { error?: string } } }).response?.data;
+    if (data?.error) return data.error;
   }
   if (error instanceof Error && error.message.trim()) {
     return error.message;
@@ -46,7 +33,7 @@ const PlatformAdminPasswordSetup: React.FC<PlatformAdminPasswordSetupProps> = ({
       setIsSubmitting(true);
       setLastError(null);
       await verifyPlatformAdminAndSendPasswordSetup(email);
-      await sendPasswordResetEmail(auth, email, getAuthActionCodeSettings());
+      await requestPasswordResetEmail(email);
       setLinkSent(true);
       toast({
         title: 'Setup link sent',

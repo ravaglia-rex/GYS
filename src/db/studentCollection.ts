@@ -140,6 +140,7 @@ export type UpdateStudentPayload = {
     section?: string;
     date_of_birth?: string;
     city_state?: string;
+    country?: 'India' | 'Qatar';
     home_language?: string;
     aspiration?: string;
     heard_from?: string;

@@ -21,14 +21,15 @@ type PaymentLocationState = {
   schoolId?: string;
   checkoutSecret?: string;
   schoolName?: string;
+  country?: 'India' | 'Qatar';
   city?: string;
   state?: string;
   planName?: string;
   planPriceInr?: number;
 };
 
-function formatSchoolLocation(city: string, state: string): string | null {
-  const parts = [city.trim(), state.trim()].filter(Boolean);
+function formatSchoolLocation(city: string, state: string, country: string): string | null {
+  const parts = [city.trim(), state.trim(), country.trim()].filter(Boolean);
   return parts.length > 0 ? parts.join(', ') : null;
 }
 
@@ -54,6 +55,9 @@ const SchoolPaymentPage: React.FC = () => {
   const [schoolId, setSchoolId] = useState<string | null>(navState.schoolId ?? null);
   const [checkoutSecret, setCheckoutSecret] = useState<string | null>(navState.checkoutSecret ?? null);
   const [schoolName, setSchoolName] = useState(navState.schoolName ?? '');
+  const [schoolCountry, setSchoolCountry] = useState<'India' | 'Qatar'>(
+    navState.country === 'Qatar' ? 'Qatar' : 'India'
+  );
   const [schoolCity, setSchoolCity] = useState(navState.city ?? '');
   const [schoolState, setSchoolState] = useState(navState.state ?? '');
   const [pocEmail, setPocEmail] = useState(navState.pocEmail ?? initialRegistrationEmail);
@@ -69,8 +73,8 @@ const SchoolPaymentPage: React.FC = () => {
   );
 
   const schoolLocationDisplay = useMemo(
-    () => formatSchoolLocation(schoolCity, schoolState),
-    [schoolCity, schoolState]
+    () => formatSchoolLocation(schoolCity, schoolState, schoolCountry),
+    [schoolCity, schoolState, schoolCountry]
   );
 
   const resetToEmailStep = () => {
@@ -79,6 +83,7 @@ const SchoolPaymentPage: React.FC = () => {
     setCheckoutSecret(null);
     setSchoolId(null);
     setSchoolName('');
+    setSchoolCountry('India');
     setSchoolCity('');
     setSchoolState('');
     setPlanName('');
@@ -103,6 +108,7 @@ const SchoolPaymentPage: React.FC = () => {
       setRegistrationEmail(result.registrationEmail);
       setSchoolId(result.schoolId);
       setSchoolName(result.schoolName);
+      setSchoolCountry(result.country);
       setSchoolCity(result.city);
       setSchoolState(result.state);
       setPocEmail(result.pocEmail);
@@ -217,6 +223,7 @@ const SchoolPaymentPage: React.FC = () => {
               schoolName={schoolName}
               pocEmail={pocEmail}
               planName={planName}
+              country={schoolCountry}
               onSuccess={() => setStep('complete')}
             />
             <p className="mt-3 text-xs text-slate-500 leading-relaxed">

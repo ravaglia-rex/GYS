@@ -95,7 +95,11 @@ const AR_EDIT_MODES = [
   'spatial_2d',
   'spatial_3d',
 ] as const;
-const OPTION_LETTERS = ['A', 'B', 'C', 'D'] as const;
+const AR_OPTION_LETTERS = ['A', 'B', 'C', 'D'] as const;
+/** Edit dialog supports A–F (Mathematical Reasoning IF uses A–E). */
+const BANK_EDIT_OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'] as const;
+type BankEditOptionLetter = (typeof BANK_EDIT_OPTION_LETTERS)[number];
+const OPTION_LETTERS = AR_OPTION_LETTERS;
 
 function apiErrorMessage(e: unknown, fallback: string): string {
   if (e && typeof e === 'object' && 'response' in e) {
@@ -180,6 +184,7 @@ export function AdminExamQuestionStem({
             border="#cbd5e1"
             variant="light"
             unboundedHeight
+            renderMath={renderMath}
           />
         </Box>
       ) : null}
@@ -559,7 +564,10 @@ export function PlatformAdminQuestionPerformanceCard({
   const [editError, setEditError] = useState<string | null>(null);
   const [bodyMarkdown, setBodyMarkdown] = useState('');
   const [optionTexts, setOptionTexts] = useState<string[]>(['', '', '', '']);
-  const [correctLetter, setCorrectLetter] = useState<'A' | 'B' | 'C' | 'D'>('A');
+  const [baselineOptionTexts, setBaselineOptionTexts] = useState<string[]>([]);
+  const [correctLetter, setCorrectLetter] = useState<BankEditOptionLetter>('A');
+  const [baselineCorrectLetter, setBaselineCorrectLetter] =
+    useState<BankEditOptionLetter>('A');
   const [band, setBand] = useState('');
   const [instructionFamily, setInstructionFamily] = useState('');
   const [strand, setStrand] = useState('');
@@ -588,13 +596,23 @@ export function PlatformAdminQuestionPerformanceCard({
     }
     setEditError(null);
     setBodyMarkdown(question.prompt || '');
-    const texts = OPTION_LETTERS.map((_, i) => question.options[i]?.text || '');
+    const existingCount = Math.min(
+      BANK_EDIT_OPTION_LETTERS.length,
+      Math.max(question.options?.length || 0, AR_OPTION_LETTERS.length)
+    );
+    const texts = BANK_EDIT_OPTION_LETTERS.slice(0, existingCount).map(
+      (_, i) => question.options[i]?.text || ''
+    );
     setOptionTexts(texts);
+    setBaselineOptionTexts(texts);
     const correctIdx =
       typeof question.correct_index === 'number' && question.correct_index >= 0
         ? question.correct_index
         : 0;
-    setCorrectLetter(OPTION_LETTERS[Math.min(correctIdx, 3)] || 'A');
+    const nextCorrect =
+      BANK_EDIT_OPTION_LETTERS[Math.min(correctIdx, existingCount - 1)] || 'A';
+    setCorrectLetter(nextCorrect);
+    setBaselineCorrectLetter(nextCorrect);
     setBand(question.band || '');
     setInstructionFamily(question.instruction_family || '');
     setStrand(question.strand || '');
@@ -609,13 +627,19 @@ export function PlatformAdminQuestionPerformanceCard({
     setSaving(true);
     setEditError(null);
     try {
+      const optionsChanged =
+        optionTexts.length !== baselineOptionTexts.length ||
+        optionTexts.some((t, i) => (t || '') !== (baselineOptionTexts[i] || ''));
+      const correctChanged = correctLetter !== baselineCorrectLetter;
       const patch: Parameters<typeof updatePlatformAdminOfficialExamBankItem>[0]['patch'] = {
         body_markdown: bodyMarkdown,
-        option_texts: optionTexts,
-        correct_option_id: correctLetter,
         stem_display_size: stemDisplaySize,
         option_display_size: optionDisplaySize,
       };
+      // Only rewrite options when the editor actually changed them — otherwise
+      // stem-only saves used to drop trailing IF choice E (dialog historically A–D).
+      if (optionsChanged) patch.option_texts = optionTexts;
+      if (correctChanged || optionsChanged) patch.correct_option_id = correctLetter;
       if (band) patch.band = band;
       if (instructionFamily) patch.instruction_family_id = instructionFamily;
       if (strand) patch.primary_strand_id = strand;
@@ -963,7 +987,9 @@ export function PlatformAdminQuestionPerformanceCard({
                 fullWidth
                 sx={platformAdminDialogTextFieldSx}
               />
-              {OPTION_LETTERS.map((letter, i) => (
+              {optionTexts.map((_text, i) => {
+                const letter = BANK_EDIT_OPTION_LETTERS[i] || String.fromCharCode(65 + i);
+                return (
                 <TextField
                   key={letter}
                   label={`Option ${letter}`}
@@ -976,7 +1002,8 @@ export function PlatformAdminQuestionPerformanceCard({
                   fullWidth
                   sx={platformAdminDialogTextFieldSx}
                 />
-              ))}
+                );
+              })}
               <Box>
                 <Typography
                   sx={platformAdminDialogFieldLabelSx}
@@ -991,16 +1018,19 @@ export function PlatformAdminQuestionPerformanceCard({
                   size="small"
                   value={correctLetter}
                   onChange={(e) =>
-                    setCorrectLetter(e.target.value as 'A' | 'B' | 'C' | 'D')
+                    setCorrectLetter(e.target.value as BankEditOptionLetter)
                   }
                   MenuProps={{ PaperProps: { sx: platformAdminSelectMenuPaperSx } }}
                   sx={platformAdminDialogSelectSx}
                 >
-                  {OPTION_LETTERS.map((letter) => (
-                    <MenuItem key={letter} value={letter}>
-                      {letter}
-                    </MenuItem>
-                  ))}
+                  {optionTexts.map((_t, i) => {
+                    const letter = BANK_EDIT_OPTION_LETTERS[i] || String.fromCharCode(65 + i);
+                    return (
+                      <MenuItem key={letter} value={letter}>
+                        {letter}
+                      </MenuItem>
+                    );
+                  })}
                 </Select>
               </Box>
               <Box

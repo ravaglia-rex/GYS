@@ -951,6 +951,16 @@ function PlatformAdminSchoolDetailPage() {
             <Typography variant="subtitle1" sx={{ fontWeight: 700, color: ip.heading, mb: 2 }}>
               Registration & payment
             </Typography>
+            <DetailRow
+              label="Country"
+              value={school.country === 'Qatar' ? 'Qatar' : 'India'}
+            />
+            <DetailRow
+              label="Location"
+              value={[school.city, school.state, school.country === 'Qatar' ? 'Qatar' : 'India']
+                .filter(Boolean)
+                .join(', ') || ' - '}
+            />
             <DetailRow label="Payment status">
               <PlatformAdminChip
                 label={formatPaymentStatusLabel(school.payment_status)}
@@ -998,7 +1008,7 @@ function PlatformAdminSchoolDetailPage() {
               label="Password setup complete"
               value={`${school.students_setup_complete ?? 0} of ${school.student_count}`}
             />
-            <DetailRow label="Skip phone on signup">
+            <DetailRow label="Skip student phone on signup">
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                 <PlatformAdminChip
                   label={school.phone_optional === true ? 'Phone hidden' : 'Phone required'}

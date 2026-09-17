@@ -43,6 +43,7 @@ import {
   getSchoolStudentRoster,
   getSchoolSummary,
   getStudentRegistrationEmailLists,
+  postIncompleteStudentInvitation,
   putStudentRegistrationEmails,
   type StudentRow,
 } from '../../db/schoolAdminCollection';
@@ -204,7 +205,7 @@ const rosterSelectMenuPaperSx = {
 const SCHOOL_ROSTER_VIRTUOSO_HEIGHT = 560;
 
 /** Fixed roster columns - widths must not flex with cell content. */
-const ROSTER_COL_WIDTHS = ['30%', '13%', '9%', '15%', '12%', '21%'] as const;
+const ROSTER_COL_WIDTHS = ['28%', '12%', '9%', '14%', '10%', '27%'] as const;
 
 const rosterTableLayoutSx = {
   bgcolor: '#fff',
@@ -487,6 +488,10 @@ const SchoolAdminStudentsPage: React.FC = () => {
   const [resendingEmail, setResendingEmail] = useState<string | null>(null);
   const [revokeConfirmEmail, setRevokeConfirmEmail] = useState<string | null>(null);
   const [resendConfirmEmail, setResendConfirmEmail] = useState<string | null>(null);
+  const [incompleteRevokeConfirmEmail, setIncompleteRevokeConfirmEmail] = useState<string | null>(null);
+  const [incompleteReinviteConfirmEmail, setIncompleteReinviteConfirmEmail] = useState<string | null>(
+    null
+  );
   const [rosterScrollerEl, setRosterScrollerEl] = useState<HTMLElement | null>(null);
 
   const refreshRegistrationEmails = useCallback(async () => {
@@ -760,6 +765,58 @@ const SchoolAdminStudentsPage: React.FC = () => {
       await loadRoster();
     } catch (e) {
       setRegistrationError((e as Error).message ?? 'Could not resend invitation.');
+    } finally {
+      setResendingEmail(null);
+    }
+  };
+
+  const invalidateRosterQueries = useCallback(async () => {
+    if (!activeSchoolId) return;
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.schoolAdminRoster(activeSchoolId) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.schoolAdminSummary(activeSchoolId) }),
+    ]);
+  }, [activeSchoolId, queryClient]);
+
+  const handleIncompleteRevoke = async (email: string) => {
+    const target = normalizeRosterEmail(email);
+    if (!target || !activeSchoolId) return;
+    setRevokingEmail(target);
+    setRegistrationError(null);
+    setUploadNotice(null);
+    try {
+      await postIncompleteStudentInvitation(activeSchoolId, target, 'revoke');
+      setUploadNotice(
+        `Revoked invitation for ${target}. Their incomplete account was removed so they can be invited again later.`
+      );
+      setIncompleteRevokeConfirmEmail(null);
+      await invalidateRosterQueries();
+      await refreshRegistrationEmails();
+      await loadRoster();
+    } catch (e) {
+      setRegistrationError((e as Error).message ?? 'Could not revoke invitation.');
+    } finally {
+      setRevokingEmail(null);
+    }
+  };
+
+  const handleIncompleteReinvite = async (email: string) => {
+    const target = normalizeRosterEmail(email);
+    if (!target || !activeSchoolId) return;
+    setResendingEmail(target);
+    setRegistrationError(null);
+    setUploadNotice(null);
+    try {
+      await postIncompleteStudentInvitation(activeSchoolId, target, 'reinvite');
+      setUploadNotice(
+        `Re-invited ${target}. Their incomplete account was removed and a new invitation email will be sent.`
+      );
+      setIncompleteReinviteConfirmEmail(null);
+      await invalidateRosterQueries();
+      await refreshRegistrationEmails();
+      await loadRoster();
+    } catch (e) {
+      setRegistrationError((e as Error).message ?? 'Could not re-invite student.');
     } finally {
       setResendingEmail(null);
     }
@@ -1589,21 +1646,70 @@ const SchoolAdminStudentsPage: React.FC = () => {
                             bgcolor: index % 2 === 1 ? ip.cardMutedBg : '#fff',
                           }}
                         >
-                          <Button
-                            size="small"
-                            endIcon={<OpenInNewIcon sx={{ fontSize: '1rem !important' }} />}
-                            onClick={() =>
-                              navigate(`${routeBase}/students/${encodeURIComponent(r.uid)}`, {
-                                state: {
-                                  studentRow: r.dashboardRow,
-                                  email: r.email,
-                                },
-                              })
-                            }
-                            sx={{ color: ip.statBlue, fontWeight: 600, textTransform: 'none' }}
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              flexWrap: 'wrap',
+                              justifyContent: 'flex-end',
+                              gap: 0.5,
+                              alignItems: 'center',
+                            }}
                           >
-                            View
-                          </Button>
+                            {!r.passwordSetupComplete && r.email ? (
+                              <>
+                                <Button
+                                  size="small"
+                                  color="error"
+                                  disabled={
+                                    revokingEmail === normalizeRosterEmail(r.email) ||
+                                    resendingEmail === normalizeRosterEmail(r.email)
+                                  }
+                                  onClick={() =>
+                                    setIncompleteRevokeConfirmEmail(normalizeRosterEmail(r.email))
+                                  }
+                                  sx={{ fontWeight: 600, textTransform: 'none' }}
+                                >
+                                  {revokingEmail === normalizeRosterEmail(r.email)
+                                    ? 'Revoking...'
+                                    : 'Revoke invitation'}
+                                </Button>
+                                <Button
+                                  size="small"
+                                  disabled={
+                                    revokingEmail === normalizeRosterEmail(r.email) ||
+                                    resendingEmail === normalizeRosterEmail(r.email)
+                                  }
+                                  onClick={() =>
+                                    setIncompleteReinviteConfirmEmail(normalizeRosterEmail(r.email))
+                                  }
+                                  sx={{
+                                    color: ip.statBlue,
+                                    fontWeight: 600,
+                                    textTransform: 'none',
+                                  }}
+                                >
+                                  {resendingEmail === normalizeRosterEmail(r.email)
+                                    ? 'Sending...'
+                                    : 'Re-invite'}
+                                </Button>
+                              </>
+                            ) : null}
+                            <Button
+                              size="small"
+                              endIcon={<OpenInNewIcon sx={{ fontSize: '1rem !important' }} />}
+                              onClick={() =>
+                                navigate(`${routeBase}/students/${encodeURIComponent(r.uid)}`, {
+                                  state: {
+                                    studentRow: r.dashboardRow,
+                                    email: r.email,
+                                  },
+                                })
+                              }
+                              sx={{ color: ip.statBlue, fontWeight: 600, textTransform: 'none' }}
+                            >
+                              View
+                            </Button>
+                          </Box>
                         </TableCell>
                       </>
                     ) : (
@@ -1949,6 +2055,125 @@ const SchoolAdminStudentsPage: React.FC = () => {
             }}
           >
             {resendingEmail ? 'Sending...' : 'Resend invitation'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={!!incompleteRevokeConfirmEmail}
+        onClose={() => !revokingEmail && setIncompleteRevokeConfirmEmail(null)}
+        maxWidth="xs"
+        fullWidth
+        slotProps={{
+          paper: {
+            sx: {
+              bgcolor: '#ffffff',
+              color: ip.heading,
+              borderRadius: 2,
+              border: `1px solid ${ip.cardBorder}`,
+            },
+          },
+        }}
+      >
+        <DialogTitle sx={{ color: ip.heading, fontWeight: 700 }}>
+          Revoke invitation?
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ color: ip.subtext, lineHeight: 1.6 }}>
+            {incompleteRevokeConfirmEmail} started signup but has not set a password yet. Revoking will delete their
+            incomplete account and remove them from your active invite list. They will not be able to register under
+            your school unless you resend the invitation.
+          </Typography>
+          {revokingEmail && (
+            <LinearProgress
+              sx={{
+                mt: 2,
+                borderRadius: 1,
+                bgcolor: ip.cardMutedBg,
+                '& .MuiLinearProgress-bar': { bgcolor: ip.navy },
+              }}
+            />
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+          <Button
+            onClick={() => setIncompleteRevokeConfirmEmail(null)}
+            disabled={!!revokingEmail}
+            sx={{ textTransform: 'none', fontWeight: 600, color: ip.heading }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            disabled={!incompleteRevokeConfirmEmail || !!revokingEmail}
+            onClick={() =>
+              incompleteRevokeConfirmEmail && void handleIncompleteRevoke(incompleteRevokeConfirmEmail)
+            }
+            sx={{ textTransform: 'none', fontWeight: 600, boxShadow: 'none' }}
+          >
+            {revokingEmail ? 'Revoking...' : 'Revoke invitation'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={!!incompleteReinviteConfirmEmail}
+        onClose={() => !resendingEmail && setIncompleteReinviteConfirmEmail(null)}
+        maxWidth="xs"
+        fullWidth
+        slotProps={{
+          paper: {
+            sx: {
+              bgcolor: '#ffffff',
+              color: ip.heading,
+              borderRadius: 2,
+              border: `1px solid ${ip.cardBorder}`,
+            },
+          },
+        }}
+      >
+        <DialogTitle sx={{ color: ip.heading, fontWeight: 700 }}>
+          Re-invite student?
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ color: ip.subtext, lineHeight: 1.6 }}>
+            {incompleteReinviteConfirmEmail} has an account without a password. Re-inviting will delete that incomplete
+            account and send a fresh invitation email so they can create their account and set a password again.
+          </Typography>
+          {resendingEmail && (
+            <LinearProgress
+              sx={{
+                mt: 2,
+                borderRadius: 1,
+                bgcolor: ip.cardMutedBg,
+                '& .MuiLinearProgress-bar': { bgcolor: ip.navy },
+              }}
+            />
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+          <Button
+            onClick={() => setIncompleteReinviteConfirmEmail(null)}
+            disabled={!!resendingEmail}
+            sx={{ textTransform: 'none', fontWeight: 600, color: ip.heading }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            disabled={!incompleteReinviteConfirmEmail || !!resendingEmail}
+            onClick={() =>
+              incompleteReinviteConfirmEmail &&
+              void handleIncompleteReinvite(incompleteReinviteConfirmEmail)
+            }
+            sx={{
+              textTransform: 'none',
+              fontWeight: 600,
+              bgcolor: ip.navy,
+              boxShadow: 'none',
+              '&:hover': { bgcolor: '#0c356f', boxShadow: 'none' },
+            }}
+          >
+            {resendingEmail ? 'Sending...' : 'Re-invite'}
           </Button>
         </DialogActions>
       </Dialog>

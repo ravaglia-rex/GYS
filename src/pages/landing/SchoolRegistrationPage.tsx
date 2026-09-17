@@ -27,6 +27,7 @@ import PageFooter from '../../components/layout/LandingSiteFooter';
 import PublicHomeNavButton from '../../components/layout/PublicHomeNavButton';
 import { LandingHeaderScrollProgress } from '../../components/landing/LandingScrollChrome';
 import SignupSelect from '../../components/authentication/SignupSelect';
+import PhoneDialCodeSelect from '../../components/authentication/PhoneDialCodeSelect';
 import { useLandingScrollProgress } from '../../hooks/useLandingPageScroll';
 import {
   SCHOOL_REGISTRATION_PLANS as PLANS,
@@ -37,9 +38,13 @@ import {
   SCHOOL_TERMS_ACCEPTANCE_VERSION,
 } from '../../constants/schoolLegal';
 import {
-  isValidIndiaMobile,
-  toIndiaMobileNationalDigits,
-  withIndiaCountryCode,
+  isValidSchoolRegistrationMobile,
+  schoolPhoneDialForCountry,
+  schoolPhoneMaxNationalDigits,
+  schoolPhoneValidationMessage,
+  toSchoolMobileNationalDigits,
+  withSchoolCountryCode,
+  type SchoolPhoneDialCode,
 } from '../../utils/indiaMobile';
 
 const GYS_BLUE = '#1e3a8a';
@@ -53,6 +58,9 @@ const BOARDS = [
   'State Board',
   'Other',
 ];
+
+const COUNTRIES = ['India', 'Qatar'] as const;
+type SchoolRegistrationCountry = (typeof COUNTRIES)[number];
 
 const INDIAN_STATES = [
   'Andhra Pradesh',
@@ -111,6 +119,7 @@ const STEP1_FIELD_ORDER = ['schoolName', 'schoolBranch', 'confirmSchoolName'] as
 const STEP2_FIELD_ORDER = [
   'board',
   'stateBoardState',
+  'country',
   'city',
   'addressState',
   'referralSource',
@@ -172,14 +181,17 @@ const SchoolRegistrationPage: React.FC = () => {
   const [boardDropdownOpen, setBoardDropdownOpen] = useState(false);
   const boardDropdownRef = useRef<HTMLDivElement>(null);
   const [stateBoardState, setStateBoardState] = useState('');
+  const [country, setCountry] = useState<SchoolRegistrationCountry>('India');
   const [city, setCity] = useState('');
   const [addressState, setAddressState] = useState('');
   const [referralSource, setReferralSource] = useState('');
+  const isQatar = country === 'Qatar';
 
   // Step 3: Registrant details + Point of Contact Emails
   const [registrantFirstName, setRegistrantFirstName] = useState('');
   const [registrantLastName, setRegistrantLastName] = useState('');
   const [registrantDesignation, setRegistrantDesignation] = useState('');
+  const [phoneDialCode, setPhoneDialCode] = useState<SchoolPhoneDialCode>('91');
   const [registrantPhone, setRegistrantPhone] = useState('');
   const [emails, setEmails] = useState<string[]>(['']);
 
@@ -272,6 +284,9 @@ const SchoolRegistrationPage: React.FC = () => {
       newErrors.board = 'Please select at least one board / curriculum.';
     if (boards.includes('State Board') && !stateBoardState)
       newErrors.stateBoardState = 'Please select your state board.';
+    if (!COUNTRIES.includes(country)) {
+      newErrors.country = 'Please select your country.';
+    }
     const cityTrim = city.trim();
     if (!cityTrim) {
       newErrors.city = 'City is required.';
@@ -280,10 +295,12 @@ const SchoolRegistrationPage: React.FC = () => {
     } else if (!cityOk(cityTrim)) {
       newErrors.city = 'City may only contain English letters and spaces.';
     }
-    if (!addressState) {
-      newErrors.addressState = 'Please select your state.';
-    } else if (!stateOk(addressState)) {
-      newErrors.addressState = `State must be ${RAZORPAY_STATE_MIN}-${RAZORPAY_STATE_MAX} English letters and spaces.`;
+    if (!isQatar) {
+      if (!addressState) {
+        newErrors.addressState = 'Please select your state.';
+      } else if (!stateOk(addressState)) {
+        newErrors.addressState = `State must be ${RAZORPAY_STATE_MIN}-${RAZORPAY_STATE_MAX} English letters and spaces.`;
+      }
     }
     if (!referralSource) newErrors.referralSource = 'Please let us know how you heard about GYS.';
     return newErrors;
@@ -322,8 +339,8 @@ const SchoolRegistrationPage: React.FC = () => {
     }
     if (!registrantPhone.trim()) {
       newErrors.registrantPhone = 'Please enter your mobile number.';
-    } else if (!isValidIndiaMobile(registrantPhone)) {
-      newErrors.registrantPhone = 'Enter a valid 10-digit Indian mobile number starting with 6–9.';
+    } else if (!isValidSchoolRegistrationMobile(registrantPhone, phoneDialCode)) {
+      newErrors.registrantPhone = schoolPhoneValidationMessage(phoneDialCode);
     }
     const filled = emails.filter((e) => e.trim() !== '');
     if (filled.length === 0) {
@@ -459,13 +476,14 @@ const SchoolRegistrationPage: React.FC = () => {
         udise_code: udiseCode.trim(),
         boards,
         state_board_state: boards.includes('State Board') ? stateBoardState : '',
+        country,
         city: city.trim(),
-        state: addressState,
+        state: isQatar ? '' : addressState,
         referral_source: referralSource,
         registrant_first_name: registrantFirstName.trim(),
         registrant_last_name: registrantLastName.trim(),
         registrant_designation: registrantDesignation.trim(),
-        poc_phone: withIndiaCountryCode(registrantPhone),
+        poc_phone: withSchoolCountryCode(registrantPhone, phoneDialCode),
         contact_emails: filledEmails,
         selected_plan_id: selectedPlan,
         gst_registration_status: validatedGstRegistrationStatus,
@@ -581,7 +599,8 @@ const SchoolRegistrationPage: React.FC = () => {
                     checkoutSecret: registeredCheckoutSecret ?? undefined,
                     schoolName: storedSchoolName,
                     city: city.trim(),
-                    state: addressState,
+                    state: isQatar ? '' : addressState,
+                    country,
                     planName: currentPlan.name,
                     planPriceInr: currentPlan.priceNum,
                   },
@@ -947,6 +966,44 @@ const SchoolRegistrationPage: React.FC = () => {
                 </div>
 
                 {/* Location */}
+                <div id="field-country">
+                  <label className="block text-xs sm:text-sm font-bold text-slate-700">
+                    Country<span className="text-red-500"> *</span>
+                  </label>
+                  <SignupSelect
+                    value={country}
+                    onChange={(e) => {
+                      const next = e.target.value as SchoolRegistrationCountry;
+                      setCountry(next);
+                      const nextDial = schoolPhoneDialForCountry(next);
+                      setPhoneDialCode(nextDial);
+                      setRegistrantPhone((prev) =>
+                        toSchoolMobileNationalDigits(prev, nextDial)
+                      );
+                      if (next === 'Qatar') {
+                        setAddressState('');
+                        clearError('addressState');
+                      }
+                      clearError('country');
+                      clearError('registrantPhone');
+                    }}
+                    className={
+                      errors.country
+                        ? 'border-red-400 focus:border-red-400 focus:ring-red-300'
+                        : ''
+                    }
+                    required
+                    aria-label="Country"
+                  >
+                    {COUNTRIES.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </SignupSelect>
+                  {errors.country && (
+                    <p className="mt-1 text-xs text-red-600">{errors.country}</p>
+                  )}
+                </div>
+
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div id="field-city">
                     <label className="block text-xs sm:text-sm font-bold text-slate-700">
@@ -964,7 +1021,7 @@ const SchoolRegistrationPage: React.FC = () => {
                           ? 'border-red-400 focus:border-red-400 focus:ring-red-300'
                           : 'border-slate-200 focus:border-slate-400 focus:ring-slate-400'
                       }`}
-                      placeholder="City"
+                      placeholder={isQatar ? 'e.g. Doha' : 'City'}
                       autoComplete="address-level2"
                     />
                     {errors.city && (
@@ -973,8 +1030,13 @@ const SchoolRegistrationPage: React.FC = () => {
                   </div>
 
                   <div id="field-addressState">
-                    <label className="block text-xs sm:text-sm font-bold text-slate-700">
-                      State / Union Territory<span className="text-red-500"> *</span>
+                    <label
+                      className={`block text-xs sm:text-sm font-bold ${
+                        isQatar ? 'text-slate-400' : 'text-slate-700'
+                      }`}
+                    >
+                      State / Union Territory
+                      {!isQatar && <span className="text-red-500"> *</span>}
                     </label>
                     <SignupSelect
                       value={addressState}
@@ -987,10 +1049,13 @@ const SchoolRegistrationPage: React.FC = () => {
                           ? 'border-red-400 focus:border-red-400 focus:ring-red-300'
                           : ''
                       }
-                      required
+                      required={!isQatar}
+                      disabled={isQatar}
                       aria-label="State or union territory"
                     >
-                      <option value="">Select state</option>
+                      <option value="">
+                        {isQatar ? 'Not applicable' : 'Select state'}
+                      </option>
                       {INDIAN_STATES.map((s) => (
                         <option key={s} value={s}>{s}</option>
                       ))}
@@ -1151,27 +1216,36 @@ const SchoolRegistrationPage: React.FC = () => {
                     Your mobile number<span className="text-red-500"> *</span>
                   </label>
                   <div
-                    className={`mt-1.5 flex w-full overflow-hidden rounded-lg border bg-white text-sm sm:text-base focus-within:outline-none focus-within:ring-1 ${
+                    className={`mt-1.5 flex w-full rounded-lg border bg-white text-sm sm:text-base focus-within:outline-none focus-within:ring-1 ${
                       errors.registrantPhone
                         ? 'border-red-400 focus-within:border-red-400 focus-within:ring-red-300'
                         : 'border-slate-200 focus-within:border-slate-400 focus-within:ring-slate-400'
                     }`}
                   >
-                    <span className="flex items-center border-r border-slate-200 bg-slate-50 px-3.5 py-2.5 font-medium text-slate-600">
-                      +91
-                    </span>
+                    <PhoneDialCodeSelect
+                      value={phoneDialCode}
+                      onChange={(next) => {
+                        setPhoneDialCode(next);
+                        setRegistrantPhone((prev) =>
+                          toSchoolMobileNationalDigits(prev, next)
+                        );
+                        clearError('registrantPhone');
+                      }}
+                    />
                     <input
                       type="tel"
                       inputMode="numeric"
                       value={registrantPhone}
                       onChange={(e) => {
-                        setRegistrantPhone(toIndiaMobileNationalDigits(e.target.value));
+                        setRegistrantPhone(
+                          toSchoolMobileNationalDigits(e.target.value, phoneDialCode)
+                        );
                         clearError('registrantPhone');
                       }}
-                      className="w-full px-3.5 py-2.5 text-slate-900 placeholder:text-slate-400 focus:outline-none"
-                      placeholder="98765 43210"
+                      className="w-full rounded-r-lg px-3.5 py-2.5 text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                      placeholder={phoneDialCode === '974' ? '5012 3456' : '98765 43210'}
                       autoComplete="tel-national"
-                      maxLength={10}
+                      maxLength={schoolPhoneMaxNationalDigits(phoneDialCode)}
                     />
                   </div>
                   {errors.registrantPhone && (
@@ -1356,7 +1430,7 @@ const SchoolRegistrationPage: React.FC = () => {
                   <p className="mt-1 text-xs text-slate-500">UDISE: {udiseCode}</p>
                 )}
                 <p className="mt-1 text-xs text-slate-500">
-                  {city}, {addressState}
+                  {[city, isQatar ? null : addressState, country].filter(Boolean).join(', ')}
                 </p>
                 <div className="mt-3 space-y-1.5 border-t border-slate-200 pt-2 text-sm">
                   <div className="flex justify-between gap-3 text-slate-700">

@@ -4,6 +4,7 @@ import * as Sentry from "@sentry/react";
 import { verifyPasswordResetCode } from "firebase/auth";
 import VerifyEmail from "../../components/auth/VerifyEmailComponent";
 import NewPasswordForm from "../../components/auth/NewPasswordForm";
+import CustomTokenPasswordForm from "../../components/auth/CustomTokenPasswordForm";
 import InvalidAuthAction from "./InvalidAuthAction";
 import SchoolAdminPasswordSetupFromLink from "../../components/auth/SchoolAdminPasswordSetupFromLink";
 import PasswordActionLayout from "../../components/auth/PasswordActionLayout";
@@ -21,24 +22,29 @@ function isExpiredOrInvalidActionCode(error: unknown): boolean {
 const AuthActionPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { mode, oobCode } = useMemo(
+  const { mode, oobCode, token } = useMemo(
     () => parseFirebaseAuthActionParams(location.search, location.hash),
     [location.search, location.hash]
   );
 
+  const hasCustomToken = Boolean(token);
   const hasCode = Boolean(oobCode);
   const verifyEmailPage = mode === "verifyEmail" && hasCode;
   const resetPasswordPage = mode === "resetPassword" && hasCode;
   const setupPasswordPage = mode === "setupPassword" && hasCode;
   const isPasswordAction = resetPasswordPage || setupPasswordPage;
+  const isCustomTokenPasswordAction =
+    hasCustomToken && (mode === "resetPassword" || mode === "setupPassword" || !mode);
 
   const [passwordCodeStatus, setPasswordCodeStatus] = useState<
     "idle" | "checking" | "valid" | "redirecting" | "failed"
   >(isPasswordAction ? "checking" : "idle");
 
   useEffect(() => {
-    if (!isPasswordAction || !oobCode) {
-      setPasswordCodeStatus("idle");
+    if (isCustomTokenPasswordAction || !isPasswordAction || !oobCode) {
+      if (!isCustomTokenPasswordAction) {
+        setPasswordCodeStatus(isPasswordAction ? "checking" : "idle");
+      }
       return;
     }
 
@@ -70,10 +76,10 @@ const AuthActionPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [isPasswordAction, oobCode, mode, navigate]);
+  }, [isCustomTokenPasswordAction, isPasswordAction, oobCode, mode, navigate]);
 
   // After confirmPasswordReset(), Firebase can remove oobCode from the URL while async work continues.
-  if (isPasswordResetInProgress() && !hasCode) {
+  if (isPasswordResetInProgress() && !hasCode && !hasCustomToken) {
     return (
       <PasswordActionLayout
         title="Finishing your password setup"
@@ -83,6 +89,27 @@ const AuthActionPage: React.FC = () => {
           <Spinner />
         </div>
       </PasswordActionLayout>
+    );
+  }
+
+  if (isCustomTokenPasswordAction && token) {
+    return (
+      <Sentry.ErrorBoundary
+        beforeCapture={(scope) => {
+          scope.setTag("location", "CustomTokenPasswordForm");
+        }}
+      >
+        <PasswordActionLayout
+          title="Create your password"
+          description={
+            mode === "setupPassword"
+              ? "Create a password for your account. You’ll use it whenever you sign in."
+              : undefined
+          }
+        >
+          <CustomTokenPasswordForm token={token} />
+        </PasswordActionLayout>
+      </Sentry.ErrorBoundary>
     );
   }
 

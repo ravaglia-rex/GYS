@@ -3,7 +3,7 @@
  * Counts all profile fields shown on Personal Information (except Argus Coins).
  */
 
-import {isValidIndiaMobile} from './indiaMobile';
+import {isValidAnyRegistrationMobile} from './indiaMobile';
 import {GAMIFICATION_CONFIG_PROFILE_COMPLETION_COINS} from './gamification';
 
 export const PROFILE_COMPLETION_FIELD_KEYS = [
@@ -75,9 +75,9 @@ export function isProfileCompletionFieldFilled(
   if (!student) return false;
   if (key === 'first_name') return isFilledFullName(student);
   if (key === 'email') return isFilledEmail(student.email);
-  if (key === 'phone_number') return isValidIndiaMobile(String(student.phone_number ?? ''));
+  if (key === 'phone_number') return isValidAnyRegistrationMobile(String(student.phone_number ?? ''));
   if (key === 'parent_email') return isFilledEmail(student.parent_email);
-  if (key === 'parent_phone') return isValidIndiaMobile(String(student.parent_phone ?? ''));
+  if (key === 'parent_phone') return isValidAnyRegistrationMobile(String(student.parent_phone ?? ''));
   if (key === 'grade') return isFilledGrade(student.grade);
   if (key === 'school_id') return isFilledSchool(student);
   return isNonEmptyString(student[key]);

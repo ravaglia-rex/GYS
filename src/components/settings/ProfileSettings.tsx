@@ -31,7 +31,15 @@ import { useSchoolDetails, useStudent } from '../../query/hooks';
 import { queryClient } from '../../query/queryClient';
 import { queryKeys } from '../../query/queryKeys';
 import { studentSectionHeadingSx } from '../../styles/studentTypography';
-import { toIndiaMobileNationalDigits, withIndiaCountryCode } from '../../utils/indiaMobile';
+import {
+  schoolPhoneDialForCountry,
+  schoolPhoneDialFromE164,
+  schoolPhoneMaxNationalDigits,
+  toSchoolMobileNationalDigits,
+  withSchoolCountryCode,
+  type SchoolPhoneDialCode,
+} from '../../utils/indiaMobile';
+import PhoneDialCodeSelect from '../authentication/PhoneDialCodeSelect';
 import { readGamificationFromStudent } from '../../utils/gamification';
 import { profileCompletionFromForm } from '../../utils/profileCompletion';
 import {
@@ -122,6 +130,7 @@ const ProfileSettings: React.FC = () => {
     section: '',
     dateOfBirth: '',
     cityState: '',
+    country: 'India' as 'India' | 'Qatar',
     homeLanguage: '',
     aspiration: '',
     heardFrom: '',
@@ -130,6 +139,8 @@ const ProfileSettings: React.FC = () => {
     parentEmail: '',
     parentPhone: '',
     phoneNumber: '',
+    phoneDialCode: '91' as SchoolPhoneDialCode,
+    parentPhoneDialCode: '91' as SchoolPhoneDialCode,
     isPublic: true,
     emailNotifications: true,
     examReminders: true
@@ -176,17 +187,42 @@ const ProfileSettings: React.FC = () => {
       section: sectionValue,
       dateOfBirth: userData.date_of_birth || '',
       cityState: userData.city_state || '',
+      country: userData.country === 'Qatar' ? 'Qatar' : 'India',
       homeLanguage: userData.home_language || '',
       aspiration: userData.aspiration || '',
       heardFrom: userData.heard_from || '',
       about: userData.about_me || '',
       parentName: userData.parent_name || '',
       parentEmail: userData.parent_email || '',
-      parentPhone: toIndiaMobileNationalDigits(userData.parent_phone || ''),
-      phoneNumber: toIndiaMobileNationalDigits(userData.phone_number || ''),
+      parentPhone: toSchoolMobileNationalDigits(
+        userData.parent_phone || '',
+        schoolPhoneDialFromE164(userData.parent_phone || '')
+      ),
+      parentPhoneDialCode: schoolPhoneDialFromE164(userData.parent_phone || ''),
+      phoneNumber: toSchoolMobileNationalDigits(
+        userData.phone_number || '',
+        schoolPhoneDialFromE164(userData.phone_number || '')
+      ),
+      phoneDialCode: schoolPhoneDialFromE164(userData.phone_number || ''),
     }));
     setProfileHydrated(true);
   }, [userData, profileHydrated]);
+
+  useEffect(() => {
+    if (!profileHydrated || userData?.country === 'Qatar' || userData?.country === 'India') {
+      return;
+    }
+    if (!schoolData || typeof schoolData !== 'object') return;
+    const schoolCountry =
+      (schoolData as { country?: string }).country === 'Qatar' ? 'Qatar' : null;
+    if (!schoolCountry) return;
+    setFormData((prev) => ({
+      ...prev,
+      country: schoolCountry,
+      phoneDialCode: schoolPhoneDialForCountry(schoolCountry),
+      parentPhoneDialCode: schoolPhoneDialForCountry(schoolCountry),
+    }));
+  }, [schoolData, userData?.country, profileHydrated]);
 
   useEffect(() => {
     if (typeof userData?.signup_school_name === 'string' && userData.signup_school_name.trim()) {
@@ -251,15 +287,22 @@ const ProfileSettings: React.FC = () => {
         updates.first_name = firstName;
         updates.last_name = lastNameParts.join(' ');
       }
-      updates.phone_number = withIndiaCountryCode(formData.phoneNumber);
+      updates.phone_number = withSchoolCountryCode(
+        formData.phoneNumber,
+        formData.phoneDialCode
+      );
       updates.date_of_birth = formData.dateOfBirth;
       updates.city_state = formData.cityState.trim();
+      updates.country = formData.country;
       updates.home_language = formData.homeLanguage.trim();
       updates.aspiration = formData.aspiration.trim();
       updates.heard_from = formData.heardFrom;
       updates.parent_name = formData.parentName.trim();
       updates.parent_email = formData.parentEmail.trim();
-      updates.parent_phone = withIndiaCountryCode(formData.parentPhone);
+      updates.parent_phone = withSchoolCountryCode(
+        formData.parentPhone,
+        formData.parentPhoneDialCode
+      );
       if (formData.about !== undefined) updates.about_me = formData.about;
 
       if (originalGrade !== null) {
@@ -481,20 +524,55 @@ const ProfileSettings: React.FC = () => {
                     label="WhatsApp Number"
                     type="tel"
                     value={formData.phoneNumber}
-                    onChange={(e) => handleInputChange('phoneNumber', toIndiaMobileNationalDigits(e.target.value))}
+                    onChange={(e) =>
+                      handleInputChange(
+                        'phoneNumber',
+                        toSchoolMobileNationalDigits(e.target.value, formData.phoneDialCode)
+                      )
+                    }
                     disabled={!isEditing}
-                    placeholder={isEditing ? '10-digit mobile' : 'Not set'}
+                    placeholder={
+                      isEditing
+                        ? formData.phoneDialCode === '974'
+                          ? '8-digit mobile'
+                          : '10-digit mobile'
+                        : 'Not set'
+                    }
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start" sx={{ gap: 0.75 }}>
                           <Phone size={20} color="rgba(255, 255, 255, 0.7)" />
-                          <Typography component="span" sx={{ color: 'rgba(255, 255, 255, 0.8)', fontWeight: 600 }}>
-                            +91
-                          </Typography>
+                          {isEditing ? (
+                            <PhoneDialCodeSelect
+                              variant="dark"
+                              value={formData.phoneDialCode}
+                              onChange={(next) => {
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  phoneDialCode: next,
+                                  phoneNumber: toSchoolMobileNationalDigits(
+                                    prev.phoneNumber,
+                                    next
+                                  ),
+                                  country: next === '974' ? 'Qatar' : prev.country,
+                                }));
+                              }}
+                            />
+                          ) : (
+                            <Typography
+                              component="span"
+                              sx={{ color: 'rgba(255, 255, 255, 0.8)', fontWeight: 600 }}
+                            >
+                              +{formData.phoneDialCode}
+                            </Typography>
+                          )}
                         </InputAdornment>
                       ),
                     }}
-                    inputProps={{ inputMode: 'numeric', maxLength: 10 }}
+                    inputProps={{
+                      inputMode: 'numeric',
+                      maxLength: schoolPhoneMaxNationalDigits(formData.phoneDialCode),
+                    }}
                     sx={profileFieldSx}
                   />
                 </Box>
@@ -571,11 +649,43 @@ const ProfileSettings: React.FC = () => {
                 <Box>
                   <TextField
                     fullWidth
+                    select
+                    label="Country"
+                    value={formData.country}
+                    onChange={(e) => {
+                      const next = e.target.value === 'Qatar' ? 'Qatar' : 'India';
+                      const nextDial = schoolPhoneDialForCountry(next);
+                      setFormData((prev) => ({
+                        ...prev,
+                        country: next,
+                        phoneDialCode: nextDial,
+                        parentPhoneDialCode: nextDial,
+                        phoneNumber: toSchoolMobileNationalDigits(prev.phoneNumber, nextDial),
+                        parentPhone: toSchoolMobileNationalDigits(prev.parentPhone, nextDial),
+                      }));
+                    }}
+                    disabled={!isEditing}
+                    sx={profileFieldSx}
+                  >
+                    <MenuItem value="India">India</MenuItem>
+                    <MenuItem value="Qatar">Qatar</MenuItem>
+                  </TextField>
+                </Box>
+
+                <Box>
+                  <TextField
+                    fullWidth
                     label="City / State"
                     value={formData.cityState}
                     onChange={(e) => handleInputChange('cityState', e.target.value)}
                     disabled={!isEditing}
-                    placeholder={isEditing ? 'e.g. Bengaluru, Karnataka' : 'Not set'}
+                    placeholder={
+                      isEditing
+                        ? formData.country === 'Qatar'
+                          ? 'e.g. Doha'
+                          : 'e.g. Bengaluru, Karnataka'
+                        : 'Not set'
+                    }
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
@@ -814,20 +924,54 @@ const ProfileSettings: React.FC = () => {
                     label="Parent Phone"
                     type="tel"
                     value={formData.parentPhone}
-                    onChange={(e) => handleInputChange('parentPhone', toIndiaMobileNationalDigits(e.target.value))}
+                    onChange={(e) =>
+                      handleInputChange(
+                        'parentPhone',
+                        toSchoolMobileNationalDigits(e.target.value, formData.parentPhoneDialCode)
+                      )
+                    }
                     disabled={!isEditing}
-                    placeholder={isEditing ? '10-digit mobile' : 'Not set'}
+                    placeholder={
+                      isEditing
+                        ? formData.parentPhoneDialCode === '974'
+                          ? '8-digit mobile'
+                          : '10-digit mobile'
+                        : 'Not set'
+                    }
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start" sx={{ gap: 0.75 }}>
                           <Phone size={20} color="rgba(255, 255, 255, 0.7)" />
-                          <Typography component="span" sx={{ color: 'rgba(255, 255, 255, 0.8)', fontWeight: 600 }}>
-                            +91
-                          </Typography>
+                          {isEditing ? (
+                            <PhoneDialCodeSelect
+                              variant="dark"
+                              value={formData.parentPhoneDialCode}
+                              onChange={(next) => {
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  parentPhoneDialCode: next,
+                                  parentPhone: toSchoolMobileNationalDigits(
+                                    prev.parentPhone,
+                                    next
+                                  ),
+                                }));
+                              }}
+                            />
+                          ) : (
+                            <Typography
+                              component="span"
+                              sx={{ color: 'rgba(255, 255, 255, 0.8)', fontWeight: 600 }}
+                            >
+                              +{formData.parentPhoneDialCode}
+                            </Typography>
+                          )}
                         </InputAdornment>
                       ),
                     }}
-                    inputProps={{ inputMode: 'numeric', maxLength: 10 }}
+                    inputProps={{
+                      inputMode: 'numeric',
+                      maxLength: schoolPhoneMaxNationalDigits(formData.parentPhoneDialCode),
+                    }}
                     sx={profileFieldSx}
                   />
                 </Box>

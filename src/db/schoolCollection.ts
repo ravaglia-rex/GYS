@@ -28,14 +28,17 @@ export type RegisterSchoolPayload = {
   /** One or more curriculum options from the registration BOARDS list. */
   boards: string[];
   state_board_state: string;
+  /** School country — currently India or Qatar. */
+  country: 'India' | 'Qatar';
   city: string;
+  /** Required for India; empty string when country is Qatar. */
   state: string;
   referral_source: string;
   registrant_first_name: string;
   registrant_last_name: string;
   registrant_designation: string;
   contact_emails: string[];
-  /** India mobile (E.164, e.g. +919876543210) for the registrant / POC. */
+  /** India or Qatar mobile (E.164, e.g. +919876543210 or +97450123456) for the registrant / POC. */
   poc_phone: string;
   selected_plan_id: string;
   gst_registration_status: 'yes' | 'no' | 'not_sure';
@@ -72,6 +75,7 @@ function pickCheckoutSecret(data: Record<string, unknown>): string {
 export type SchoolRegistrationPaymentLookupResponse = {
   schoolId: string;
   schoolName: string;
+  country: 'India' | 'Qatar';
   city: string;
   state: string;
   pocEmail: string;
@@ -80,6 +84,10 @@ export type SchoolRegistrationPaymentLookupResponse = {
   planPriceInr: number;
   registrationEmail: string;
 };
+
+function parseSchoolCountry(raw: unknown): 'India' | 'Qatar' {
+  return raw === 'Qatar' ? 'Qatar' : 'India';
+}
 
 export const lookupSchoolRegistrationPayment = async (
   registrationEmail: string
@@ -102,6 +110,7 @@ export const lookupSchoolRegistrationPayment = async (
     return {
       schoolId,
       schoolName: typeof data.schoolName === "string" ? data.schoolName : "Your school",
+      country: parseSchoolCountry(data.country),
       city: typeof data.city === "string" ? data.city : "",
       state: typeof data.state === "string" ? data.state : "",
       pocEmail: typeof data.pocEmail === "string" ? data.pocEmail : registrationEmail.trim().toLowerCase(),
@@ -413,6 +422,8 @@ export type ResolveRegistrationSchoolResult = {
   coveredMembershipLevel?: number;
   /** From school `registration_config.phone_optional` when roster-matched. */
   phoneOptional?: boolean;
+  /** School country when roster-matched; defaults to India. */
+  country?: 'India' | 'Qatar';
 };
 
 /** Matches signup email to this school’s `student_registration_emails` (and legacy allowlist). */
@@ -421,7 +432,7 @@ export const resolveRegistrationSchool = async (
 ): Promise<ResolveRegistrationSchoolResult> => {
   const normalized = email.trim().toLowerCase();
   if (!normalized) {
-    return { schoolId: null, schoolName: null, phoneOptional: false };
+    return { schoolId: null, schoolName: null, phoneOptional: false, country: 'India' };
   }
   try {
     const response = await axios.post(
@@ -446,6 +457,7 @@ export const resolveRegistrationSchool = async (
           ? response.data.coveredMembershipLevel
           : 0,
       phoneOptional: response.data?.phoneOptional === true,
+      country: response.data?.country === 'Qatar' ? 'Qatar' : 'India',
     };
   } catch {
     throw new Error('Could not verify school for your email. Please contact globalyoungscholar@argus.ai');

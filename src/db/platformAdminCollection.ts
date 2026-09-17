@@ -110,6 +110,9 @@ export type PlatformAdminSchoolSummary = {
   id: string;
   school_name: string;
   poc_email: string;
+  country: 'India' | 'Qatar';
+  city: string | null;
+  state: string | null;
   verified: boolean;
   payment_status: string;
   payment_method: string | null;

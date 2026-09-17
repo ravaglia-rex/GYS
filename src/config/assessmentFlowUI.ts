@@ -162,9 +162,9 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
     examTitleShort: 'Mathematical Reasoning',
     heroSubtitle: 'Quantitative and logical thinking',
     statGrid: [
-      { label: 'Duration', value: '40 min' },
+      { label: 'Duration', value: '45 min' },
       { label: 'Format', value: 'Multiple choice' },
-      { label: 'Difficulty', value: 'Adaptive' },
+      { label: 'Questions', value: '32' },
       { label: 'Language', value: 'English' },
     ],
     bodyDescription:

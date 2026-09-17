@@ -5,7 +5,6 @@ import { Box, CircularProgress, Typography } from '@mui/material';
 import { cleanLearnerFacingExamMarkup } from './cleanLearnerFacingExamMarkup';
 import { resolveExamFigureSrc } from './examFigureSrc';
 import { useExamFigureImageLoad } from './useExamFigureImageLoad';
-import { ExamMathText } from './ExamMathText';
 import { useExamMathTypeset } from './useExamMathTypeset';
 
 const borderMuted = '#e2e8f0';
@@ -46,6 +45,28 @@ export function looksLikeExamMarkdown(s: string): boolean {
   return /!\[[^\]]*]\(|^#{1,6}\s|```|<svg\b|<img\b|^\|.+\||\*\*[^*\n]+\*\*|__[^_\n]+__|^\s*[-*+]\s+\S|^\s*\d+\.\s+\S/m.test(
     s
   );
+}
+
+/**
+ * ReactMarkdown collapses single newlines; ExamMathText used `white-space: pre-wrap`.
+ * When a math stem has no markdown markers (e.g. "Statement 1:" instead of "1."),
+ * keep soft line breaks so switching labels does not also reflow the stem.
+ */
+export function preserveExamMarkdownSoftBreaks(src: string): string {
+  if (!src) return src;
+  return src.replace(/([^\n])\n(?!\n)/g, '$1  \n');
+}
+
+/**
+ * ReactMarkdown treats `\[` / `\(` as escaped brackets/parens and strips the
+ * backslash, which leaves bare `[...]` / `(...)` that MathJax will not typeset.
+ * Normalize to `$` / `$$` forms before markdown parse when math rendering is on.
+ */
+export function normalizeExamMathDelimitersForMarkdown(src: string): string {
+  if (!src) return src;
+  return src
+    .replace(/\\\[([\s\S]*?)\\\]/g, (_m, inner: string) => `$$${inner}$$`)
+    .replace(/\\\(([\s\S]*?)\\\)/g, (_m, inner: string) => `$${inner}$`);
 }
 
 export function hasExamFigureMarkup(s: string): boolean {
@@ -200,32 +221,22 @@ export const ExamRichPrompt: React.FC<{
   renderMath = false,
 }) => {
   const body = mergeExamPromptMarkdown(prompt, stimulus, stimulusType);
-  if (looksLikeExamMarkdown(body)) {
+  // Numbered stems (`1.` / `2.`) match looksLikeExamMarkdown and use ExamMarkdown.
+  // Plain "Statement 1:" labels do not — without this branch the whole stem flipped
+  // to ExamMathText (different size/weight/color). Keep one renderer for math exams.
+  if (renderMath || looksLikeExamMarkdown(body)) {
+    const markdownBody =
+      renderMath && body && !looksLikeExamMarkdown(body)
+        ? preserveExamMarkdownSoftBreaks(body)
+        : body;
     return (
       <ExamMarkdown
         maxFigureWidth={maxFigureWidth}
         maxFigureHeight={maxFigureHeight}
         renderMath={renderMath}
       >
-        {body || emptyLabel}
+        {markdownBody || emptyLabel}
       </ExamMarkdown>
-    );
-  }
-  if (renderMath) {
-    return (
-      <ExamMathText
-        inline={false}
-        sx={{
-          color: '#0f172a',
-          fontSize: 14,
-          mb: 1,
-          lineHeight: 1.45,
-          whiteSpace: 'pre-wrap',
-          display: 'block',
-        }}
-      >
-        {prompt || emptyLabel}
-      </ExamMathText>
     );
   }
   return (
@@ -251,8 +262,11 @@ export const ExamMarkdown: React.FC<{
   /** Requires a MathJaxContext ancestor (e.g. Mathematical Reasoning item bank). */
   renderMath?: boolean;
 }> = ({ children, compact = false, maxFigureWidth, maxFigureHeight, renderMath = false }) => {
-  const markdown = cleanLearnerFacingExamMarkup(children);
+  const cleaned = cleanLearnerFacingExamMarkup(children);
+  const markdown = renderMath ? normalizeExamMathDelimitersForMarkdown(cleaned) : cleaned;
   const figureHeightCap = maxFigureHeight ?? (compact ? undefined : EXAM_FIGURE_MAX_HEIGHT_PX);
+  // Re-typeset after every commit: ReactMarkdown reconciliation restores raw `$...$`
+  // when the card re-renders (options keep working via ExamMathText's owned textContent).
   const mathRef = useExamMathTypeset(markdown, renderMath);
   if (!markdown.trim()) return null;
 
@@ -272,7 +286,9 @@ export const ExamMarkdown: React.FC<{
           mb: 1,
           mt: compact ? 1 : 2,
         },
-        '& ul, & ol': { pl: 2.5, mb: 1.5 },
+        // Tailwind Preflight sets list-style: none on ol/ul; restore markers for exam stems.
+        '& ul': { pl: 2.5, mb: 1.5, listStyleType: 'disc', listStylePosition: 'outside' },
+        '& ol': { pl: 2.5, mb: 1.5, listStyleType: 'decimal', listStylePosition: 'outside' },
         '& li': { mb: 0.5 },
         '& code': { fontSize: '0.88em', bgcolor: '#f1f5f9', px: 0.5, borderRadius: 0.5 },
         '& pre': {

@@ -86,6 +86,11 @@ export const OFFICIAL_RESTRICTED_STARTABLE_ASSESSMENT_EMAILS: Record<
     'divyam.ew+1@gmail.com',
     'vv@accessmca.com',
   ]),
+  // DPS test accounts only — not a public or school-wide launch.
+  mathematical_reasoning: new Set([
+    'divyam.ew+1@gmail.com',
+    'vv@accessmca.com',
+  ]),
 };
 
 /**
@@ -98,6 +103,8 @@ export const OFFICIAL_RESTRICTED_STARTABLE_ASSESSMENT_TIERS: Record<
   ReadonlySet<number>
 > = {
   verbal_reasoning: new Set([1, 2]),
+  // L1 bank only (platform-test candidates); no L2+ bank yet.
+  mathematical_reasoning: new Set([1]),
 };
 
 /**

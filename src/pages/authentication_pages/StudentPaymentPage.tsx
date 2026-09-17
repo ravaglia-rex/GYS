@@ -9,7 +9,7 @@ import { runSignUpTransaction } from '../../db/signupTransaction';
 import { useToast } from '../../components/ui/use-toast';
 import { LoadingSpinner as Spinner } from '../../components/ui/spinner';
 import analytics from '../../segment/segment';
-import { normalizeIndiaMobileE164 } from '../../utils/indiaMobile';
+import { normalizeIndiaMobileE164, normalizeQatarMobileE164 } from '../../utils/indiaMobile';
 import { resolvePhoneOptional } from '../../utils/studentSignupPhoneOptional';
 import {
   formatInrFromPaise,
@@ -34,6 +34,7 @@ interface SignupFlowState {
   section?: string;
   dob?: string;
   cityState?: string;
+  country?: 'India' | 'Qatar';
   schoolId?: string;
   schoolName?: string;
   /** Free-text school from step 2 when email did not match any school list (school_id is not-listed). */
@@ -126,6 +127,7 @@ const StudentPaymentPage: React.FC = () => {
       section,
       dob,
       cityState,
+      country,
       schoolId,
       signupSchoolName,
       homeLanguage,
@@ -146,13 +148,13 @@ const StudentPaymentPage: React.FC = () => {
 
     const phoneOptional = resolvePhoneOptional(schoolId, state.signupPhoneOptional === true);
     const normalizedWhatsappPhone = whatsappPhone
-      ? normalizeIndiaMobileE164(whatsappPhone)
+      ? (normalizeIndiaMobileE164(whatsappPhone) ?? normalizeQatarMobileE164(whatsappPhone))
       : null;
     if (whatsappPhone && !normalizedWhatsappPhone) {
       toast({
         variant: 'destructive',
         title: 'Invalid WhatsApp number',
-        description: 'Please go back and enter a valid India WhatsApp number.',
+        description: 'Please go back and enter a valid India (+91) or Qatar (+974) WhatsApp number.',
       });
       navigate('/students/register');
       return;
@@ -200,6 +202,7 @@ const StudentPaymentPage: React.FC = () => {
         ...(normalizedWhatsappPhone && { phone_number: normalizedWhatsappPhone }),
         ...(dob && { date_of_birth: dob }),
         ...(cityState && { city_state: cityState }),
+        ...(country === 'Qatar' || country === 'India' ? { country } : {}),
         ...(homeLanguage && { home_language: homeLanguage }),
         ...(aspiration && { aspiration }),
         ...(heardFrom && { heard_from: heardFrom }),
@@ -343,7 +346,10 @@ const StudentPaymentPage: React.FC = () => {
 
   const signupState = mergeSignupState(location.state);
   const studentName = [state.firstName, state.lastName].filter(Boolean).join(' ') || 'Not provided';
-  const normalizedWhatsappPhoneForPayload = normalizeIndiaMobileE164(state.whatsappPhone || '') || '';
+  const normalizedWhatsappPhoneForPayload =
+    normalizeIndiaMobileE164(state.whatsappPhone || '') ||
+    normalizeQatarMobileE164(state.whatsappPhone || '') ||
+    '';
   const normalizedSectionForPayload = normalizeStudentSection(state.section);
   const signupStudentPayload = {
     first_name: state.firstName || '',
@@ -358,6 +364,9 @@ const StudentPaymentPage: React.FC = () => {
     ...(normalizedWhatsappPhoneForPayload && { phone_number: normalizedWhatsappPhoneForPayload }),
     ...(state.dob && { date_of_birth: state.dob }),
     ...(state.cityState && { city_state: state.cityState }),
+    ...(state.country === 'Qatar' || state.country === 'India'
+      ? { country: state.country }
+      : {}),
     ...(state.homeLanguage && { home_language: state.homeLanguage }),
     ...(state.aspiration && { aspiration: state.aspiration }),
     ...(state.heardFrom && { heard_from: state.heardFrom }),
@@ -365,7 +374,9 @@ const StudentPaymentPage: React.FC = () => {
     membership_level: numericLevel,
   };
   const normalizedRazorpayContact =
-    normalizeIndiaMobileE164(state.billingPhone || state.whatsappPhone || '') || '';
+    normalizeIndiaMobileE164(state.billingPhone || state.whatsappPhone || '') ||
+    normalizeQatarMobileE164(state.billingPhone || state.whatsappPhone || '') ||
+    '';
   const razorpayBillingDetails = {
     ...(normalizedRazorpayContact ? { contact: normalizedRazorpayContact } : {}),
   };

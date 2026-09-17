@@ -1394,7 +1394,7 @@ export async function deletePlatformAdminOfficialExamBankItem(opts: {
 export type OfficialExamBankItemEditPatch = {
   body_markdown?: string;
   option_texts?: string[];
-  correct_option_id?: 'A' | 'B' | 'C' | 'D';
+  correct_option_id?: 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
   band?: string;
   instruction_family_id?: string;
   primary_strand_id?: string;

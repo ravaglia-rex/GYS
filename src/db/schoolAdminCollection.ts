@@ -11,6 +11,7 @@ import {
   SCHOOLS_APIS,
   SCHOOLS_FOR_ADMIN_EMAIL,
   STUDENT_REGISTRATION_EMAILS,
+  INCOMPLETE_STUDENT_INVITATION,
   UPDATE_SCHOOL_PROFILE,
   DISMISS_SCHOOL_TUTORIAL,
   SCHOOL_NOTIFICATIONS,
@@ -380,6 +381,7 @@ export type UpdateSchoolProfilePayload = {
   referral_source?: string;
   address_line1?: string;
   address_line2?: string;
+  country?: 'India' | 'Qatar';
   city?: string;
   state?: string;
   postal_code?: string;
@@ -445,6 +447,42 @@ export const putStudentRegistrationEmails = async (
       throw new Error(String(error.response.data.error));
     }
     throw new Error("Could not save student registration emails.");
+  }
+};
+
+export type IncompleteStudentInvitationAction = 'revoke' | 'reinvite';
+
+export type IncompleteStudentInvitationResult = {
+  ok: boolean;
+  action: IncompleteStudentInvitationAction;
+  email: string;
+  studentDeleted: boolean;
+  invitationQueued: number;
+};
+
+/** Revoke or re-invite a password-not-setup student (deletes incomplete account). */
+export const postIncompleteStudentInvitation = async (
+  schoolId: string,
+  email: string,
+  action: IncompleteStudentInvitationAction
+): Promise<IncompleteStudentInvitationResult> => {
+  try {
+    const authToken = await authTokenHandler.getAuthToken();
+    const response = await axios.post(
+      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${INCOMPLETE_STUDENT_INVITATION}`,
+      { schoolId, email, action },
+      { headers: { Authorization: `Bearer ${authToken}` } }
+    );
+    return response.data as IncompleteStudentInvitationResult;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data?.error) {
+      throw new Error(String(error.response.data.error));
+    }
+    throw new Error(
+      action === 'reinvite'
+        ? 'Could not re-invite this student.'
+        : 'Could not revoke this invitation.'
+    );
   }
 };
 

@@ -11,6 +11,9 @@ type ExamMathTextProps = {
 /**
  * Renders plain text or TeX when wrapped in \( \) or $ $ delimiters.
  * Must be under MathJaxContext (see AssessmentTakePage for mathematical_reasoning).
+ *
+ * Text is applied via textContent (not React children) so parent re-renders cannot
+ * wipe MathJax output and leave raw `$...$` visible.
  */
 export const ExamMathText: React.FC<ExamMathTextProps> = ({ children, inline = true, sx }) => {
   const text = children ?? '';
@@ -21,6 +24,7 @@ export const ExamMathText: React.FC<ExamMathTextProps> = ({ children, inline = t
     <Box
       ref={mathRef}
       component="span"
+      data-exam-math-own="1"
       sx={{
         color: 'inherit',
         fontSize: 'inherit',
@@ -29,9 +33,7 @@ export const ExamMathText: React.FC<ExamMathTextProps> = ({ children, inline = t
         display: inline ? 'inline' : 'block',
         ...sx,
       }}
-    >
-      {text}
-    </Box>
+    />
   );
 };
 
@@ -45,10 +47,9 @@ export const ExamMathBlock: React.FC<{ children: string; sx?: SxProps<Theme> }> 
       <Box
         ref={mathRef}
         component="div"
+        data-exam-math-own="1"
         sx={{ fontSize: '0.92rem', lineHeight: 1.65, color: '#334155', fontStyle: 'italic' }}
-      >
-        {text}
-      </Box>
+      />
     </Box>
   );
 };
