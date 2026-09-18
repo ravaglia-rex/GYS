@@ -582,6 +582,7 @@ const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
         footer={problemReportBlockEarly}
         selectionLocked={selectionLocked}
         hideQuestionTotal={hideQuestionTotal}
+        renderMath={renderMath}
       />
     );
   }

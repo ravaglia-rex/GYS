@@ -22,6 +22,7 @@ import {
   ASSESSMENT_NAMES,
   assessmentDisplayName,
   computeGate,
+  gateWithRestrictedStarterBypass,
   membershipLevelForAssessmentGate,
   defaultAssessmentProgress,
   isAssessmentFullyComplete,
@@ -1109,10 +1110,13 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
     navigate(`/assessments/${assessmentId}/tier/${tierNumber}/detail`);
   };
 
-  // Build gated assessments
+  // Build gated assessments (restricted Math/Verbal QA accounts skip sequence locks).
   const gatedAssessments = assessmentTypes.map((a) => {
     const progress = progressMap[a.id] ?? defaultAssessmentProgress;
-    const gate = computeGate(a.id, membershipLevel, progressMap, studentGrade, assessmentTypes);
+    const rawGate = computeGate(a.id, membershipLevel, progressMap, studentGrade, assessmentTypes);
+    const gate = previewBundle
+      ? rawGate
+      : gateWithRestrictedStarterBypass(a.id, rawGate, viewerEmail);
     return { assessment: a, progress, gate };
   });
 

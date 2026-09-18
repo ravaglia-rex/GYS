@@ -4,6 +4,7 @@ import type { ExamQuestion } from '../../db/assessmentCollection';
 import { ArOptionFigureSlice, useArOptionFigureMeta } from './ArOptionFigure';
 import { optionFigurePickerGridSx } from './arOptionFigureModel';
 import { ExamMarkdown, EXAM_FIGURE_MAX_HEIGHT_PX, EXAM_FIGURE_MAX_WIDTH_PX } from './ExamMarkdown';
+import { ExamMathText } from './ExamMathText';
 import { scaleExamFigureCaps, isArTextOptionGrid2x2, looksLikeArAsciiGridOptionTexts, arFigureSizeMultiplier } from './arFigureDisplaySize';
 import { resolveLearnerExamOptions } from './resolveLearnerExamOptions';
 
@@ -18,6 +19,8 @@ interface AnalyticalReasoningQuestionBodyProps {
   selectionLocked?: boolean;
   /** When true (adaptive exams), omit "of N" because length can change mid-attempt. */
   hideQuestionTotal?: boolean;
+  /** Requires MathJaxContext ancestor (Mathematical Reasoning). */
+  renderMath?: boolean;
 }
 
 const OPTION_LETTERS = ['A', 'B', 'C', 'D'] as const;
@@ -32,6 +35,7 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
   footer,
   selectionLocked = false,
   hideQuestionTotal = false,
+  renderMath = false,
 }) => {
   const primary = theme === 'purple' ? '#7b1fa2' : '#0d47a1';
   const primarySoft = theme === 'purple' ? 'rgba(123,31,162,0.08)' : 'rgba(13,71,161,0.06)';
@@ -95,6 +99,7 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
         <ExamMarkdown
           maxFigureWidth={stemCaps.maxWidth}
           maxFigureHeight={stemCaps.maxHeight}
+          renderMath={renderMath}
         >
           {stemMarkdown}
         </ExamMarkdown>
@@ -294,22 +299,37 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
                           </Typography>
                         </Box>
                         {showText ? (
-                          <Typography
-                            component={String(label).includes('\n') ? 'pre' : 'span'}
-                            sx={{
-                              m: 0,
-                              color: selected ? '#0f172a' : '#475569',
-                              fontSize: `${0.92 * optionTextScale}rem`,
-                              fontWeight: selected ? 700 : 500,
-                              lineHeight: String(label).includes('\n') ? 1.35 : 1.45,
-                              fontFamily: String(label).includes('\n')
-                                ? 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace'
-                                : 'inherit',
-                              whiteSpace: String(label).includes('\n') ? 'pre' : 'normal',
-                            }}
-                          >
-                            {label}
-                          </Typography>
+                          renderMath ? (
+                            <ExamMathText
+                              inline
+                              sx={{
+                                color: selected ? '#0f172a' : '#475569',
+                                fontSize: `${0.92 * optionTextScale}rem`,
+                                fontWeight: selected ? 700 : 500,
+                                lineHeight: String(label).includes('\n') ? 1.35 : 1.45,
+                                whiteSpace: String(label).includes('\n') ? 'pre' : 'normal',
+                              }}
+                            >
+                              {label}
+                            </ExamMathText>
+                          ) : (
+                            <Typography
+                              component={String(label).includes('\n') ? 'pre' : 'span'}
+                              sx={{
+                                m: 0,
+                                color: selected ? '#0f172a' : '#475569',
+                                fontSize: `${0.92 * optionTextScale}rem`,
+                                fontWeight: selected ? 700 : 500,
+                                lineHeight: String(label).includes('\n') ? 1.35 : 1.45,
+                                fontFamily: String(label).includes('\n')
+                                  ? 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace'
+                                  : 'inherit',
+                                whiteSpace: String(label).includes('\n') ? 'pre' : 'normal',
+                              }}
+                            >
+                              {label}
+                            </Typography>
+                          )
                         ) : null}
                       </Box>
                     }

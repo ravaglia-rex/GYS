@@ -887,22 +887,6 @@ function PlatformAdminSchoolDetailPage() {
         )}
       </Box>
 
-      {isSuperAdmin && canMarkPaid && (
-        <Alert
-          severity="warning"
-          sx={{
-            mb: 2,
-            bgcolor: ip.pendingBg,
-            color: '#92400e',
-            '& .MuiAlert-icon': { color: '#d97706' },
-          }}
-        >
-          Payment not captured yet. If they picked the wrong package, use{' '}
-          <strong>Update package & billing</strong> to fix it before they pay. Use{' '}
-          <strong>Mark as paid</strong> when an off-platform payment is received.
-        </Alert>
-      )}
-
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
           {error}
@@ -911,21 +895,6 @@ function PlatformAdminSchoolDetailPage() {
       {successMessage && (
         <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccessMessage(null)}>
           {successMessage}
-        </Alert>
-      )}
-
-      {isSuperAdmin && canMarkPaid && school.pending_wire_capture && (
-        <Alert severity="info" sx={{ mb: 2, bgcolor: 'rgba(16, 64, 139, 0.08)', color: ip.navy }}>
-          Wire/offline payment is on file but not captured yet. Use <strong>Mark as paid</strong> above.
-        </Alert>
-      )}
-
-      {!isSuperAdmin && !school.payment_satisfied && (
-        <Alert
-          severity="warning"
-          sx={{ mb: 2, bgcolor: ip.pendingBg, color: '#92400e', '& .MuiAlert-icon': { color: '#d97706' } }}
-        >
-          Payment not captured yet.
         </Alert>
       )}
 

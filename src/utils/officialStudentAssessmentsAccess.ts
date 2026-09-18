@@ -10,6 +10,7 @@ import { canonicalAssessmentId } from './assessmentIdCompat';
  */
 export const OFFICIAL_STUDENT_ASSESSMENT_BETA_EMAILS = new Set([
   'srishti2k1@gmail.com',
+  'srishti+student@argus.ai',
   'michael+student@argus.ai',
   'masonfewel@gmail.com',
   'divyam.ew+1@gmail.com',
@@ -86,10 +87,11 @@ export const OFFICIAL_RESTRICTED_STARTABLE_ASSESSMENT_EMAILS: Record<
     'divyam.ew+1@gmail.com',
     'vv@accessmca.com',
   ]),
-  // DPS test accounts only — not a public or school-wide launch.
+  // Test accounts only — not a public or school-wide launch.
   mathematical_reasoning: new Set([
     'divyam.ew+1@gmail.com',
     'vv@accessmca.com',
+    'srishti+student@argus.ai',
   ]),
 };
 
@@ -102,7 +104,8 @@ export const OFFICIAL_RESTRICTED_STARTABLE_ASSESSMENT_TIERS: Record<
   string,
   ReadonlySet<number>
 > = {
-  verbal_reasoning: new Set([1, 2]),
+  // All official verbal items staged under L1 for now (bands still carry L2-*).
+  verbal_reasoning: new Set([1]),
   // L1 bank only (platform-test candidates); no L2+ bank yet.
   mathematical_reasoning: new Set([1]),
 };

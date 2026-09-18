@@ -12,6 +12,7 @@ import {
   PROGRAM_EXAM_COUNT,
   assessmentDisplayName,
   computeGate,
+  gateWithRestrictedStarterBypass,
   membershipLevelForAssessmentGate,
   defaultAssessmentProgress,
   isAssessmentFullyComplete,
@@ -122,7 +123,11 @@ const Dashboard: React.FC = () => {
         ...defaultAssessmentProgress,
         ...(readAssessmentProgress(progress, a.id) as Partial<AssessmentProgress>),
       };
-      const gate = computeGate(a.id, membershipLevel, progress, studentGrade, sorted);
+      const gate = gateWithRestrictedStarterBypass(
+        a.id,
+        computeGate(a.id, membershipLevel, progress, studentGrade, sorted),
+        userEmail
+      );
       const done = isAssessmentFullyComplete(a, p);
       if (done) {
         tiersCompleted++;

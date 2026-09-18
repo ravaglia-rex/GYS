@@ -223,7 +223,6 @@ const SchoolPaymentPage: React.FC = () => {
               schoolName={schoolName}
               pocEmail={pocEmail}
               planName={planName}
-              country={schoolCountry}
               onSuccess={() => setStep('complete')}
             />
             <p className="mt-3 text-xs text-slate-500 leading-relaxed">

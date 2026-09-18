@@ -29,6 +29,7 @@ import { auth } from '../../firebase/firebase';
 import { useAssessmentConfig, useOfficialExamOps, useStudent } from '../../query/hooks';
 import {
   computeGate,
+  gateWithRestrictedStarterBypass,
   membershipLevelForAssessmentGate,
   defaultAssessmentProgress,
   ASSESSMENT_NAMES,
@@ -134,9 +135,14 @@ const AssessmentDetailPage: React.FC = () => {
   );
 
   const flow = assessmentId ? getAssessmentFlowDefinition(assessmentId) : getAssessmentFlowDefinition('');
-  const gate = assessmentId
+  const viewerEmail = auth.currentUser?.email;
+  const rawGate = assessmentId
     ? computeGate(assessmentId, membershipLevel, progressMap as any, studentGrade, assessmentTypes)
     : { locked: true, reason: 'membership' as const, requiredMembershipLevel: 3 };
+  // Restricted early-access starters (e.g. Math L1 for Divyam/Vishrut) ignore sequence prereqs.
+  const gate = assessmentId
+    ? gateWithRestrictedStarterBypass(assessmentId, rawGate, viewerEmail, tier)
+    : rawGate;
 
   const progressForAssessment = assessmentId
     ? {
@@ -145,7 +151,6 @@ const AssessmentDetailPage: React.FC = () => {
       }
     : defaultAssessmentProgress;
   const maxTierCount = levelBased ? assessment?.tiers?.length ?? 1 : 0;
-  const viewerEmail = auth.currentUser?.email;
   const officialSchoolId = officialAssessmentSchoolIdFromStudent(student);
   const tierAttemptAllowed =
     !!assessment &&

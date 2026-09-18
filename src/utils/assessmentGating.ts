@@ -4,6 +4,7 @@ import {
   examSequencePrereqMet,
 } from './tierProgression';
 import { canonicalAssessmentId } from './assessmentIdCompat';
+import { isRestrictedOfficialAssessmentStarter } from './officialStudentAssessmentsAccess';
 
 /**
  * Canonical assessment order for sorting and gating (wired assessment ids from Firestore).
@@ -231,6 +232,26 @@ export function computeGate(
   }
 
   return { locked: false, reason: null };
+}
+
+/**
+ * Restricted early-access starters (e.g. Math L1 QA accounts) may skip sequence
+ * prerequisites in the student UI. Membership locks still apply.
+ */
+export function gateWithRestrictedStarterBypass(
+  assessmentId: string,
+  gate: GateResult,
+  email: unknown,
+  tierNumber?: number
+): GateResult {
+  if (
+    gate.locked &&
+    gate.reason === 'prerequisite' &&
+    isRestrictedOfficialAssessmentStarter(assessmentId, email, tierNumber)
+  ) {
+    return { locked: false, reason: null };
+  }
+  return gate;
 }
 
 export function isAssessmentFullyComplete(

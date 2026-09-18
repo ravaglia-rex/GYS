@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { createPortal, flushSync } from 'react-dom';
 import { useToast } from '../ui/use-toast';
 import { LoadingSpinner } from '../ui/spinner';
@@ -76,14 +76,13 @@ export type SchoolRazorpayCheckoutProps = {
   schoolName: string;
   pocEmail: string;
   planName: string;
-  /** When Qatar, Razorpay is hidden — wire / already paid only. */
-  country?: 'India' | 'Qatar';
   onSuccess: () => void;
 };
 
 /**
  * Import Flow: phone collected here → POST createSchoolOrder with customer + customer_details.
  * Razorpay US/cross-border: avoid dummy contacts (all same digits); use plausible numbers for tests.
+ * INR Razorpay is offered for all school countries (including Qatar); wire / already-paid remain available.
  */
 const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
   schoolId,
@@ -91,10 +90,8 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
   schoolName,
   pocEmail,
   planName,
-  country = 'India',
   onSuccess,
 }) => {
-  const razorpayAvailable = country !== 'Qatar';
   const [busy, setBusy] = useState(false);
   /** Full-screen overlay while the Razorpay modal is gone but we are verifying / handing off to success UI. */
   const [confirmingPayment, setConfirmingPayment] = useState(false);
@@ -110,12 +107,6 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
   const wireRecordInFlightRef = useRef(false);
   const alreadyPaidRecordedRef = useRef(false);
   const { toast } = useToast();
-
-  useEffect(() => {
-    if (!razorpayAvailable && paymentStep === 'razorpay') {
-      setPaymentStep('select');
-    }
-  }, [razorpayAvailable, paymentStep]);
 
   const validateCheckoutPhone = (): string | undefined => {
     return checkoutPhone.trim().length === 0
@@ -479,18 +470,16 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
       {paymentStep === 'select' && (
         <div className="space-y-3">
           <p className="text-sm font-semibold text-slate-900">Choose how you want to pay</p>
-          {razorpayAvailable && (
-            <button
-              type="button"
-              onClick={() => setPaymentStep('razorpay')}
-              className="w-full rounded-xl border border-slate-200 bg-white p-4 text-left transition hover:border-blue-300 hover:bg-blue-50/40"
-            >
-              <span className="block text-sm font-semibold text-slate-900">Pay with Razorpay</span>
-              <span className="mt-1 block text-xs leading-relaxed text-slate-600">
-                Use UPI, cards, net banking, or other Razorpay checkout methods.
-              </span>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => setPaymentStep('razorpay')}
+            className="w-full rounded-xl border border-slate-200 bg-white p-4 text-left transition hover:border-blue-300 hover:bg-blue-50/40"
+          >
+            <span className="block text-sm font-semibold text-slate-900">Pay with Razorpay (INR)</span>
+            <span className="mt-1 block text-xs leading-relaxed text-slate-600">
+              Use UPI, cards, net banking, or other Razorpay checkout methods. Amount is charged in Indian Rupees.
+            </span>
+          </button>
           <button
             type="button"
             onClick={openWireTransfer}
@@ -510,15 +499,13 @@ const SchoolRazorpayCheckout: React.FC<SchoolRazorpayCheckoutProps> = ({
           >
             <span className="block text-sm font-semibold text-slate-900">Already paid</span>
             <span className="mt-1 block text-xs leading-relaxed text-slate-600">
-              {razorpayAvailable
-                ? 'Choose this if your school paid through a direct Razorpay link or through a group/chain payment.'
-                : 'Choose this if your school already paid through a group/chain payment or other direct arrangement.'}
+              Choose this if your school paid through a direct Razorpay link or through a group/chain payment.
             </span>
           </button>
         </div>
       )}
 
-      {paymentStep === 'razorpay' && razorpayAvailable && (
+      {paymentStep === 'razorpay' && (
         <div className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
