@@ -13,6 +13,8 @@ export const queryKeys = {
   schoolAdminAnalyticsSummary: (schoolId: string) =>
     ['schoolAdminAnalyticsSummary', schoolId] as const,
   platformAdminOverview: () => ['platformAdminOverview'] as const,
+  platformAdminOpenQuestionReportsCount: () =>
+    ['platformAdminOpenQuestionReportsCount'] as const,
   platformAdminSchools: (filters: Record<string, string | number | undefined>) =>
     ['platformAdminSchools', filters] as const,
   platformAdminStudentStats: () => ['platformAdminStudentStats'] as const,

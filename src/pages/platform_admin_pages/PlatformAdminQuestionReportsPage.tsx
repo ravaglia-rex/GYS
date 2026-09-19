@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Alert,
   Box,
@@ -39,6 +40,7 @@ import {
   type PlatformAdminQuestionProblemReportArchiveResolution,
   type PlatformAdminQuestionProblemReportItem,
 } from '../../db/platformAdminCollection';
+import { queryKeys } from '../../query/queryKeys';
 import {
   platformAdminDangerTextButtonSx,
   platformAdminDialogPaperSx,
@@ -198,6 +200,7 @@ function reportInboxHeading(text: string | null | undefined): string {
 
 const PlatformAdminQuestionReportsPage: React.FC = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [source, setSource] = useState<SourceFilter>('all');
   const [status, setStatus] = useState<StatusFilter>('open');
   const [reports, setReports] = useState<PlatformAdminQuestionProblemReport[]>(() => {
@@ -240,6 +243,10 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
         setPracticeCount(cached.practice_count);
         setOpenCount(cached.open_count);
         setArchivedCount(cached.archived_count);
+        queryClient.setQueryData(
+          queryKeys.platformAdminOpenQuestionReportsCount(),
+          cached.open_count
+        );
         setLoading(false);
         setError(null);
         return;
@@ -263,6 +270,10 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
       setPracticeCount(payload.practice_count);
       setOpenCount(payload.open_count);
       setArchivedCount(payload.archived_count);
+      queryClient.setQueryData(
+        queryKeys.platformAdminOpenQuestionReportsCount(),
+        payload.open_count
+      );
     } catch (e) {
       console.error(e);
       setError('Could not load question reports. Try again.');
@@ -270,7 +281,7 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [source, status]);
+  }, [queryClient, source, status]);
 
   useEffect(() => {
     void load();
@@ -359,6 +370,9 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
         if (selectedReport && ids.includes(selectedReport.id)) closeReport();
         setConfirmAction(null);
         questionReportsSessionCache.clear();
+        void queryClient.invalidateQueries({
+          queryKey: queryKeys.platformAdminOpenQuestionReportsCount(),
+        });
         await load({ force: true });
       } catch (e) {
         console.error(e);
@@ -371,7 +385,7 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
         setActionBusyId(null);
       }
     },
-    [closeReport, load, selectedReport]
+    [closeReport, load, queryClient, selectedReport]
   );
 
   const applyDelete = useCallback(
@@ -385,6 +399,9 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
         if (selectedReport && ids.includes(selectedReport.id)) closeReport();
         setConfirmAction(null);
         questionReportsSessionCache.clear();
+        void queryClient.invalidateQueries({
+          queryKey: queryKeys.platformAdminOpenQuestionReportsCount(),
+        });
         await load({ force: true });
       } catch (e) {
         console.error(e);
@@ -393,7 +410,7 @@ const PlatformAdminQuestionReportsPage: React.FC = () => {
         setActionBusyId(null);
       }
     },
-    [closeReport, load, selectedReport]
+    [closeReport, load, queryClient, selectedReport]
   );
 
   const emptyMessage = useMemo(() => {

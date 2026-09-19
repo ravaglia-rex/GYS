@@ -41,6 +41,15 @@ import {
   canAccessPlatformAdminAnalytics,
   canAccessPlatformAdminQuestionReports,
 } from '../utils/platformAdminAnalyticsAccess';
+import {
+  usePlatformAdminOpenQuestionReportsCount,
+  usePlatformAdminOverview,
+} from '../query/hooks';
+
+function formatNavBadgeCount(count: number): string {
+  if (count > 99) return '99+';
+  return String(count);
+}
 
 const HEADER_NAVY = '#002147';
 const DRAWER_WIDTH = 260;
@@ -142,6 +151,21 @@ export default function PlatformAdminLayout({ children }: PlatformAdminLayoutPro
   const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({});
   const userEmail = useSelector((state: RootState) => state.auth.user?.email) ?? auth.currentUser?.email ?? '';
   const platformAdminRole = useSelector((state: RootState) => state.auth.platformAdminRole);
+  const canSeeQuestionReports = canAccessPlatformAdminQuestionReports(userEmail);
+
+  const overviewQuery = usePlatformAdminOverview();
+  const openQuestionReportsQuery = usePlatformAdminOpenQuestionReportsCount(canSeeQuestionReports);
+  const pendingRewardsCount = overviewQuery.data?.pending_redemptions ?? 0;
+  const openQuestionReportsCount = openQuestionReportsQuery.data ?? 0;
+
+  const navBadgeByPath = useMemo(() => {
+    const badges: Record<string, number> = {};
+    if (pendingRewardsCount > 0) badges['/platform-admin/rewards'] = pendingRewardsCount;
+    if (canSeeQuestionReports && openQuestionReportsCount > 0) {
+      badges['/platform-admin/question-reports'] = openQuestionReportsCount;
+    }
+    return badges;
+  }, [canSeeQuestionReports, openQuestionReportsCount, pendingRewardsCount]);
 
   const navItems = useMemo(() => {
     const mid: NavItem[] = [];
@@ -149,7 +173,7 @@ export default function PlatformAdminLayout({ children }: PlatformAdminLayoutPro
       mid.push(ANALYTICS_NAV_ITEM);
       mid.push(ITEM_BANK_NAV_ITEM);
     }
-    if (canAccessPlatformAdminQuestionReports(userEmail)) mid.push(QUESTION_REPORTS_NAV_ITEM);
+    if (canSeeQuestionReports) mid.push(QUESTION_REPORTS_NAV_ITEM);
     const base = [
       BASE_NAV_ITEMS[0],
       BASE_NAV_ITEMS[1],
@@ -157,7 +181,7 @@ export default function PlatformAdminLayout({ children }: PlatformAdminLayoutPro
       BASE_NAV_ITEMS[2],
     ];
     return platformAdminRole === 'super' ? [...base, PIPELINE_NAV_ITEM, ADMINS_NAV_ITEM] : base;
-  }, [platformAdminRole, userEmail]);
+  }, [canSeeQuestionReports, platformAdminRole, userEmail]);
 
   const avatarInitials = useMemo(() => {
     const raw = (userEmail || '?').trim();
@@ -229,6 +253,7 @@ export default function PlatformAdminLayout({ children }: PlatformAdminLayoutPro
     // Explicit `false` means the user collapsed via the chevron/row while still on this section.
     const routeImpliesOpen = childActive || (hasChildren && isPathActive(item.path));
     const submenuOpen = openSubmenus[item.title] ?? routeImpliesOpen;
+    const badgeCount = navBadgeByPath[item.path] ?? 0;
 
     return (
       <Box key={item.path}>
@@ -276,6 +301,27 @@ export default function PlatformAdminLayout({ children }: PlatformAdminLayoutPro
           >
             {item.title}
           </Typography>
+          {badgeCount > 0 && (
+            <Box
+              component="span"
+              aria-label={`${badgeCount} pending`}
+              sx={{
+                minWidth: 20,
+                height: 20,
+                px: 0.6,
+                borderRadius: 999,
+                bgcolor: '#dc2626',
+                color: '#fff',
+                fontSize: '0.72rem',
+                fontWeight: 800,
+                lineHeight: '20px',
+                textAlign: 'center',
+                flexShrink: 0,
+              }}
+            >
+              {formatNavBadgeCount(badgeCount)}
+            </Box>
+          )}
           {hasChildren && (
             <IconButton
               size="small"

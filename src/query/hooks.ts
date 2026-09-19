@@ -15,6 +15,7 @@ import { getSchoolAnalyticsSummary, getSchoolStudentRoster, getSchoolSummary } f
 import {
   getPlatformAdminOverview,
   getPlatformAdminStudentStats,
+  listPlatformAdminQuestionProblemReports,
   listPlatformAdminSchools,
   listPlatformAdminStudents,
 } from '../db/platformAdminCollection';
@@ -184,6 +185,23 @@ export function usePlatformAdminOverview(enabled = true) {
   return useQuery({
     queryKey: queryKeys.platformAdminOverview(),
     queryFn: getPlatformAdminOverview,
+    enabled,
+    staleTime: PLATFORM_ADMIN_STALE_MS,
+  });
+}
+
+/** Open Q Reports (not archived / deleted) for platform-admin sidebar badge. */
+export function usePlatformAdminOpenQuestionReportsCount(enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.platformAdminOpenQuestionReportsCount(),
+    queryFn: async () => {
+      const data = await listPlatformAdminQuestionProblemReports({
+        limit: 1,
+        source: 'all',
+        status: 'open',
+      });
+      return data.open_count;
+    },
     enabled,
     staleTime: PLATFORM_ADMIN_STALE_MS,
   });

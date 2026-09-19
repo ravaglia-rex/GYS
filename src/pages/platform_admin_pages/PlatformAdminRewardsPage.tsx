@@ -27,6 +27,7 @@ import {
   HourglassEmpty as PendingIcon,
   MonetizationOn as CoinsIcon,
 } from '@mui/icons-material';
+import { useQueryClient } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../state_data/reducer';
 import {
@@ -48,6 +49,7 @@ import {
 } from './platformAdminPageStyles';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import { PlatformAdminPageHeader, PlatformAdminStatCard, PlatformAdminTableSection } from './platformAdminComponents';
+import { queryKeys } from '../../query/queryKeys';
 
 type RewardsCachePayload = {
   pending: PlatformAdminPendingRedemption[];
@@ -86,6 +88,7 @@ const EMPTY_SUMMARY: PlatformAdminRedemptionHistorySummary = {
 };
 
 const PlatformAdminRewardsPage: React.FC = () => {
+  const queryClient = useQueryClient();
   const platformAdminRole = useSelector((state: RootState) => state.auth.platformAdminRole);
   const isSuperAdmin = platformAdminRole === 'super';
   const [pending, setPending] = useState<PlatformAdminPendingRedemption[]>([]);
@@ -106,6 +109,11 @@ const PlatformAdminRewardsPage: React.FC = () => {
         setPending(cached.pending);
         setSummary(cached.summary);
         setHistory(cached.history);
+        queryClient.setQueryData(
+          queryKeys.platformAdminOverview(),
+          (old: { pending_redemptions?: number } | undefined) =>
+            old ? { ...old, pending_redemptions: cached.pending.length } : old
+        );
         setLoading(false);
         setError(null);
         return;
@@ -126,17 +134,23 @@ const PlatformAdminRewardsPage: React.FC = () => {
       setPending(pendingData);
       setSummary(historyData.summary);
       setHistory(historyData.history);
+      queryClient.setQueryData(
+        queryKeys.platformAdminOverview(),
+        (old: { pending_redemptions?: number } | undefined) =>
+          old ? { ...old, pending_redemptions: pendingData.length } : old
+      );
     } catch {
       setError('Failed to load rewards data.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [queryClient]);
 
   const reloadRewards = useCallback(async () => {
     rewardsSessionCache.delete(REWARDS_CACHE_KEY);
     await load({ force: true });
-  }, [load]);
+    void queryClient.invalidateQueries({ queryKey: queryKeys.platformAdminOverview() });
+  }, [load, queryClient]);
 
   useEffect(() => {
     void load();

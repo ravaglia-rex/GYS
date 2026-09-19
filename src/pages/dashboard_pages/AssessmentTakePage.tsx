@@ -970,8 +970,9 @@ export default function AssessmentTakePage() {
 
   // Warm the next screen while the student reads / answers the current one.
   // For multi-item passages, server peeks past the whole group.
+  const currentQuestionId = currentQuestion?.id;
   useEffect(() => {
-    if (stage !== 'taking' || !uid || !attemptId || !currentQuestion || isSubmitting) return;
+    if (stage !== 'taking' || !uid || !attemptId || !currentQuestionId || isSubmitting) return;
     let cancelled = false;
     const fromIndex = currentIndex;
     const aid = attemptId;
@@ -996,7 +997,7 @@ export default function AssessmentTakePage() {
     return () => {
       cancelled = true;
     };
-  }, [stage, uid, attemptId, currentQuestion?.id, currentIndex, isSubmitting, passageGroup?.group_start_index]);
+  }, [stage, uid, attemptId, currentQuestionId, currentIndex, isSubmitting, passageGroup?.group_start_index]);
 
   useEffect(() => {
     if (stage !== 'taking') return;
