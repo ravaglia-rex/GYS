@@ -4,7 +4,9 @@
  */
 
 import {isValidAnyRegistrationMobile} from './indiaMobile';
-import {GAMIFICATION_CONFIG_PROFILE_COMPLETION_COINS} from './gamification';
+
+/** Mirrors backend `GAMIFICATION_CONFIG.profileCompletion.coins`. */
+const PROFILE_COMPLETION_REWARD_COINS = 100;
 
 export const PROFILE_COMPLETION_FIELD_KEYS = [
   'first_name',
@@ -97,7 +99,7 @@ export function computeProfileCompletion(
     filled,
     total,
     complete: filled >= total,
-    reward_coins: GAMIFICATION_CONFIG_PROFILE_COMPLETION_COINS,
+    reward_coins: PROFILE_COMPLETION_REWARD_COINS,
   };
 }
 

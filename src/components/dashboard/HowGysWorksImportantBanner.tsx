@@ -58,7 +58,15 @@ const HowGysWorksImportantBanner: React.FC<HowGysWorksImportantBannerProps> = ({
             </Typography>
           </Box>
         </Box>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 1.5,
+            width: { xs: '100%', sm: 'auto' },
+            justifyContent: { xs: 'center', sm: 'flex-start' },
+          }}
+        >
           <Button
             variant="contained"
             onClick={() => navigate('/how-it-works')}

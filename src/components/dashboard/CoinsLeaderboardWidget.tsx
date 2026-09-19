@@ -12,6 +12,8 @@ import {
   TableHead,
   TableRow,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import { Coins } from 'lucide-react';
 import { useCoinsLeaderboard } from '../../query/hooks';
@@ -35,6 +37,14 @@ function displayName(entry: CoinsLeaderboardEntry): string {
   const first = entry.first_name?.trim() || 'Student';
   const initial = entry.last_initial?.trim();
   return initial ? `${first} ${initial}.` : first;
+}
+
+/** Phone: first word + "…"; desktop: full name. */
+function schoolDisplayLabel(name: string | null | undefined, compact: boolean): string {
+  const full = name?.trim() || '-';
+  if (!compact || full === '-') return full;
+  const firstWord = full.split(/\s+/)[0] ?? full;
+  return firstWord.length < full.length ? `${firstWord}...` : firstWord;
 }
 
 function formatGeneratedAt(iso: string | null | undefined): string | null {
@@ -63,7 +73,11 @@ const MiniBoard: React.FC<{
   viewerUid?: string;
   mode: 'global' | 'school';
   emptyMessage: string;
-}> = ({ title, subtitle, entries, viewerUid, mode, emptyMessage }) => (
+}> = ({ title, subtitle, entries, viewerUid, mode, emptyMessage }) => {
+  const theme = useTheme();
+  const isPhone = useMediaQuery(theme.breakpoints.down('sm'));
+
+  return (
   <Card
     sx={{
       background: 'rgba(30, 41, 59, 0.8)',
@@ -119,6 +133,7 @@ const MiniBoard: React.FC<{
               {entries.map((row, index) => {
                 const rank = index + 1;
                 const isSelf = Boolean(viewerUid && row.uid === viewerUid);
+                const fullSchool = row.school_name?.trim() || '-';
                 return (
                   <TableRow
                     key={row.uid || rank}
@@ -138,9 +153,16 @@ const MiniBoard: React.FC<{
                       {displayName(row)}
                       {isSelf ? ' (you)' : ''}
                     </TableCell>
-                    <TableCell sx={{ color: 'rgba(226,232,240,0.85)', fontSize: '0.8125rem' }}>
+                    <TableCell
+                      title={mode === 'global' ? fullSchool : undefined}
+                      sx={{
+                        color: 'rgba(226,232,240,0.85)',
+                        fontSize: '0.8125rem',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
                       {mode === 'global'
-                        ? row.school_name?.trim() || '-'
+                        ? schoolDisplayLabel(row.school_name, isPhone)
                         : row.grade != null
                           ? `Class ${row.grade}`
                           : '-'}
@@ -164,7 +186,8 @@ const MiniBoard: React.FC<{
       )}
     </CardContent>
   </Card>
-);
+  );
+};
 
 const CoinsLeaderboardWidget: React.FC<CoinsLeaderboardWidgetProps> = ({
   uid,

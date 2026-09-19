@@ -470,14 +470,8 @@ const ProfileSettings: React.FC = () => {
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
 
-        {/* Profile Form */}
+        {/* Profile Form — no inner Card; ProfilePage already wraps the About tab */}
         <Box sx={{ flex: 1 }}>
-          <Card sx={{
-            background: 'rgba(30, 41, 59, 0.8)',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
-            borderRadius: 3,
-          }}>
-            <CardContent sx={{ p: 3 }}>
               <Typography variant="h5" sx={{ ...studentSectionHeadingSx, mb: 3 }}>
                 Personal Information
               </Typography>
@@ -1036,8 +1030,6 @@ const ProfileSettings: React.FC = () => {
                   {isEditing ? 'Cancel' : 'Edit Profile'}
                 </Button>
               </Box>
-            </CardContent>
-          </Card>
         </Box>
       </Box>
     </Box>

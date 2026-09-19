@@ -1132,6 +1132,8 @@ export type OfficialQuestionStatRow = {
   lifecycle_status?: string | null;
   parent_id?: string | null;
   version?: string | null;
+  passage_id?: string | null;
+  question_markdown?: string | null;
 };
 
 export type OfficialExamQuestionStats = {
@@ -1302,6 +1304,9 @@ export async function getPlatformAdminOfficialExamItemBank(
         lifecycle_status: typeof q.lifecycle_status === 'string' ? q.lifecycle_status : null,
         parent_id: typeof q.parent_id === 'string' ? q.parent_id : null,
         version: typeof q.version === 'string' ? q.version : null,
+        passage_id: typeof q.passage_id === 'string' ? q.passage_id : null,
+        question_markdown:
+          typeof q.question_markdown === 'string' ? q.question_markdown : null,
       }))
     : [];
   return {
@@ -1495,6 +1500,9 @@ export async function getPlatformAdminPracticeExamItemBank(
         lifecycle_status: typeof q.lifecycle_status === 'string' ? q.lifecycle_status : null,
         parent_id: typeof q.parent_id === 'string' ? q.parent_id : null,
         version: typeof q.version === 'string' ? q.version : null,
+        passage_id: typeof q.passage_id === 'string' ? q.passage_id : null,
+        question_markdown:
+          typeof q.question_markdown === 'string' ? q.question_markdown : null,
       }))
     : [];
   return {

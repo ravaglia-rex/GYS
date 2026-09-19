@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
+  Badge,
   Box,
   List,
   ListItem,
@@ -142,6 +143,7 @@ export default function SidebarNavigation({ collapsed, onCollapse, onClose }: Si
   const currentUser = auth.currentUser;
   const { data: studentData } = useStudent(currentUser?.uid, Boolean(currentUser?.uid));
   const gamification = readGamificationFromStudent(studentData as Record<string, unknown> | undefined);
+  const [showProfileIncompleteBadge, setShowProfileIncompleteBadge] = useState(false);
   const [openSubmenus, setOpenSubmenus] = useState<{ [key: string]: boolean }>({});
   const [multiSchoolEligible, setMultiSchoolEligible] = useState(false);
   const [switchOpen, setSwitchOpen] = useState(false);
@@ -150,6 +152,28 @@ export default function SidebarNavigation({ collapsed, onCollapse, onClose }: Si
   const [switchError, setSwitchError] = useState<string | null>(null);
 
   const isStaffStudent = isHiddenStaffStudentEmail(currentUser?.email);
+
+  useEffect(() => {
+    let cancelled = false;
+    void import('../utils/profileCompletion')
+      .then((mod) => {
+        if (cancelled) return;
+        if (typeof mod.computeProfileCompletion !== 'function') {
+          setShowProfileIncompleteBadge(false);
+          return;
+        }
+        const snapshot = mod.computeProfileCompletion(
+          studentData as Record<string, unknown> | undefined
+        );
+        setShowProfileIncompleteBadge(!snapshot.complete);
+      })
+      .catch(() => {
+        if (!cancelled) setShowProfileIncompleteBadge(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [studentData]);
 
   useEffect(() => {
     if (!isStaffStudent) {
@@ -247,12 +271,13 @@ export default function SidebarNavigation({ collapsed, onCollapse, onClose }: Si
     const isItemActive = isActive(item.path) || hasActiveChild(item);
     const hasChildren = item.children && item.children.length > 0;
     const isSubmenuOpen = openSubmenus[item.title] ?? isItemActive;
+    const showIncompleteBadge = item.path === '/profile' && showProfileIncompleteBadge;
 
     return (
       <Box key={item.title}>
         <ListItem disablePadding sx={{ display: 'block' }}>
           <Tooltip 
-            title={collapsed ? item.title : ''} 
+            title={collapsed ? (showIncompleteBadge ? `${item.title} (1)` : item.title) : ''} 
             placement="right"
             disableHoverListener={!collapsed}
           >
@@ -294,7 +319,24 @@ export default function SidebarNavigation({ collapsed, onCollapse, onClose }: Si
                   justifyContent: 'center',
                 }}
               >
-                {item.icon}
+                {collapsed && showIncompleteBadge ? (
+                  <Badge
+                    badgeContent={1}
+                    color="error"
+                    sx={{
+                      '& .MuiBadge-badge': {
+                        fontSize: '0.65rem',
+                        minWidth: 16,
+                        height: 16,
+                        fontWeight: 700,
+                      },
+                    }}
+                  >
+                    {item.icon}
+                  </Badge>
+                ) : (
+                  item.icon
+                )}
               </ListItemIcon>
               {!collapsed && (
                 <>
@@ -307,6 +349,28 @@ export default function SidebarNavigation({ collapsed, onCollapse, onClose }: Si
                       }
                     }}
                   />
+                  {showIncompleteBadge && (
+                    <Box
+                      component="span"
+                      aria-label="Profile incomplete"
+                      sx={{
+                        ml: 1,
+                        minWidth: 20,
+                        height: 20,
+                        px: 0.6,
+                        borderRadius: 999,
+                        bgcolor: '#ef4444',
+                        color: '#fff',
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        lineHeight: '20px',
+                        textAlign: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      1
+                    </Box>
+                  )}
                   {hasChildren && (
                     <IconButton
                       size="small"

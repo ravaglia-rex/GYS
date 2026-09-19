@@ -53,14 +53,22 @@ const QodDashboardCard: React.FC<QodDashboardCardProps> = ({
             <Chip label={`${qodStreak} day streak`} size="small" sx={{ mt: 1, bgcolor: 'rgba(255,255,255,0.12)', color: 'white' }} />
           </Box>
         </Box>
-        <Button
-          variant="contained"
-          disabled={preview}
-          onClick={() => navigate('/question-of-the-day')}
-          sx={{ bgcolor: '#a855f7', fontWeight: 700, whiteSpace: 'nowrap' }}
+        <Box
+          sx={{
+            width: { xs: '100%', sm: 'auto' },
+            display: 'flex',
+            justifyContent: { xs: 'center', sm: 'flex-start' },
+          }}
         >
-          {alreadyAnswered ? 'View result' : 'Solve now'}
-        </Button>
+          <Button
+            variant="contained"
+            disabled={preview}
+            onClick={() => navigate('/question-of-the-day')}
+            sx={{ bgcolor: '#a855f7', fontWeight: 700, whiteSpace: 'nowrap' }}
+          >
+            {alreadyAnswered ? 'View result' : 'Solve now'}
+          </Button>
+        </Box>
       </CardContent>
     </Card>
   );

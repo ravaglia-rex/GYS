@@ -6,7 +6,9 @@ import {
   GET_OFFICIAL_EXAM_OPS,
   GET_STUDENT_ASSESSMENTS,
   INITIALIZE_EXAM,
+  PREFETCH_NEXT_QUESTION,
   RECORD_ANSWER,
+  RECORD_ANSWERS_BATCH,
   COMPLETE_EXAM,
   ABANDON_EXAM,
   REPORT_QUESTION_PROBLEM,
@@ -79,27 +81,6 @@ export interface AttemptRecord {
   coins_awarded?: number | null;
 }
 
-export interface InitializedExam {
-  attempt_id: string;
-  total_questions: number;
-  current_index: number;
-  question: ExamQuestion | null;
-  /** Server-computed; null if this assessment has no time limit */
-  seconds_remaining?: number | null;
-  resumed?: boolean;
-  proctoring?: ProctoringConfig;
-  proctoring_enabled?: boolean;
-  /** Timed sit already ended; scores may be present after auto-finalize. */
-  time_expired?: boolean;
-  score_percent?: number;
-  score_points?: number;
-  correct?: number;
-  total?: number;
-  passed?: boolean;
-  next_tier?: number | null;
-  coins_awarded?: number;
-}
-
 /** Firestore / API may set question_type on items; otherwise UI infers from assessment + fields */
 export type QuestionInteractionType =
   | 'visual_mcq'
@@ -154,12 +135,58 @@ export interface ExamQuestion {
   solution_steps?: string[];
 }
 
+export interface VerbalPassageGroupQuestion extends ExamQuestion {
+  /** Absolute index in the attempt question_queue. */
+  queue_index?: number;
+}
+
+export interface VerbalPassageGroup {
+  group_start_index: number;
+  group_size: number;
+  passage_markdown: string;
+  questions: VerbalPassageGroupQuestion[];
+}
+
+export interface InitializedExam {
+  attempt_id: string;
+  total_questions: number;
+  current_index: number;
+  question: ExamQuestion | null;
+  /** Verbal multi-item passage: show all sibling questions on one screen. */
+  passage_group?: VerbalPassageGroup | null;
+  /** Server-computed; null if this assessment has no time limit */
+  seconds_remaining?: number | null;
+  resumed?: boolean;
+  proctoring?: ProctoringConfig;
+  proctoring_enabled?: boolean;
+  /** Timed sit already ended; scores may be present after auto-finalize. */
+  time_expired?: boolean;
+  score_percent?: number;
+  score_points?: number;
+  correct?: number;
+  total?: number;
+  passed?: boolean;
+  next_tier?: number | null;
+  coins_awarded?: number;
+}
+
 export interface RecordAnswerResponse {
   done: boolean;
   current_index?: number;
   total_questions?: number;
   next_question: ExamQuestion | null;
+  next_item_id?: string | null;
+  prefetch_accepted?: boolean;
   already_recorded?: boolean;
+  passage_group?: VerbalPassageGroup | null;
+}
+
+export interface PrefetchNextQuestionResponse {
+  next_question: ExamQuestion | null;
+  next_item_id: string | null;
+  next_index: number | null;
+  prefetchable: boolean;
+  passage_group?: VerbalPassageGroup | null;
 }
 
 export interface CompleteExamResponse {
@@ -252,13 +279,38 @@ export const initializeExam = async (
   return response.data;
 };
 
+export const prefetchNextQuestion = async (
+  uid: string,
+  attempt_id: string
+): Promise<PrefetchNextQuestionResponse> => {
+  const authToken = await authTokenHandler.getAuthToken();
+  const response = await axios.post(
+    `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${ASSESSMENTS_APIS}${PREFETCH_NEXT_QUESTION}`,
+    { uid, attempt_id },
+    {
+      headers: { Authorization: `Bearer ${authToken}` },
+      timeout: EXAM_MUTATION_TIMEOUT_MS,
+    }
+  );
+  return {
+    next_question: response.data?.next_question ?? null,
+    next_item_id:
+      typeof response.data?.next_item_id === 'string' ? response.data.next_item_id : null,
+    next_index:
+      typeof response.data?.next_index === 'number' ? response.data.next_index : null,
+    prefetchable: response.data?.prefetchable === true,
+  };
+};
+
 export const recordAnswer = async (
   uid: string,
   attempt_id: string,
   item_id: string,
   selected_option: number,
   time_spent_ms?: number,
-  device_fingerprint?: string
+  device_fingerprint?: string,
+  prefetch_item_id?: string,
+  opts?: { includePassageGroup?: boolean }
 ): Promise<RecordAnswerResponse> => {
   const authToken = await authTokenHandler.getAuthToken();
   const response = await axios.post(
@@ -270,6 +322,36 @@ export const recordAnswer = async (
       selected_option,
       time_spent_ms,
       ...(device_fingerprint ? { device_fingerprint } : {}),
+      ...(prefetch_item_id ? { prefetch_item_id } : {}),
+      ...(opts?.includePassageGroup === false ? { include_passage_group: false } : {}),
+    },
+    {
+      headers: { Authorization: `Bearer ${authToken}` },
+      timeout: EXAM_MUTATION_TIMEOUT_MS,
+    }
+  );
+  return response.data;
+};
+
+/** One round-trip for Verbal multi-item passage screens (contiguous queue answers). */
+export const recordAnswersBatch = async (
+  uid: string,
+  attempt_id: string,
+  answers: Array<{ item_id: string; selected_option: number }>,
+  time_spent_ms?: number,
+  device_fingerprint?: string,
+  opts?: { includePassageGroup?: boolean }
+): Promise<RecordAnswerResponse> => {
+  const authToken = await authTokenHandler.getAuthToken();
+  const response = await axios.post(
+    `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${ASSESSMENTS_APIS}${RECORD_ANSWERS_BATCH}`,
+    {
+      uid,
+      attempt_id,
+      answers,
+      time_spent_ms,
+      ...(device_fingerprint ? { device_fingerprint } : {}),
+      ...(opts?.includePassageGroup === false ? { include_passage_group: false } : {}),
     },
     {
       headers: { Authorization: `Bearer ${authToken}` },

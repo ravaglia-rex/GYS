@@ -30,11 +30,15 @@ import { auth } from '../../firebase/firebase';
 import {
   initializeExam,
   recordAnswer,
+  recordAnswersBatch,
+  prefetchNextQuestion,
   completeExam,
   abandonExam,
   abandonExamOnTabUnload,
   ExamQuestion,
   CompleteExamResponse,
+  VerbalPassageGroup,
+  RecordAnswerResponse,
 } from '../../db/assessmentCollection';
 import { useAssessmentConfig, useStudent, useInvalidateStudentQueries } from '../../query/hooks';
 import { MathJaxContext } from 'better-react-mathjax';
@@ -42,6 +46,11 @@ import { getAssessmentFlowDefinition } from '../../config/assessmentFlowUI';
 import { EXAM_MATHJAX_CONFIG } from '../../components/assessment/examMathJaxConfig';
 import { inferQuestionInteraction } from '../../components/assessment/inferQuestionInteraction';
 import { ExamQuestionBody } from '../../components/assessment/ExamQuestionBody';
+import {
+  VerbalPassageGroupBody,
+  allPassageGroupAnswered,
+  answerablePassageGroupQuestions,
+} from '../../components/assessment/VerbalPassageGroupBody';
 import { useExamIntegrity } from '../../hooks/useExamIntegrity';
 import {
   canStartOfficialAssessment,
@@ -310,6 +319,8 @@ export default function AssessmentTakePage() {
 
   const [attemptId, setAttemptId] = useState<string | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState<ExamQuestion | null>(null);
+  const [passageGroup, setPassageGroup] = useState<VerbalPassageGroup | null>(null);
+  const [groupSelections, setGroupSelections] = useState<Record<string, number | null>>({});
   const [currentIndex, setCurrentIndex] = useState(0);
   const [totalQuestions, setTotalQuestions] = useState(0);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
@@ -334,8 +345,23 @@ export default function AssessmentTakePage() {
   const finishingForTimeRef = useRef(false);
   const selectedOptionRef = useRef<number | null>(null);
   const currentQuestionRef = useRef<ExamQuestion | null>(null);
+  const passageGroupRef = useRef<VerbalPassageGroup | null>(null);
+  const groupSelectionsRef = useRef<Record<string, number | null>>({});
+  const currentIndexRef = useRef(0);
   selectedOptionRef.current = selectedOption;
   currentQuestionRef.current = currentQuestion;
+  passageGroupRef.current = passageGroup;
+  groupSelectionsRef.current = groupSelections;
+  currentIndexRef.current = currentIndex;
+  /** Next item warmed while the student is still on the current question. */
+  const prefetchRef = useRef<{
+    attemptId: string;
+    fromIndex: number;
+    itemId: string;
+    question: ExamQuestion;
+    passageGroup?: VerbalPassageGroup | null;
+    nextIndex?: number;
+  } | null>(null);
 
   const flow = assessmentId ? getAssessmentFlowDefinition(assessmentId) : getAssessmentFlowDefinition('');
   const assessmentConfig = configTypes.find(
@@ -427,20 +453,29 @@ export default function AssessmentTakePage() {
     examEndedRef.current = true;
     setIsSubmitting(true);
     try {
-      const q = currentQuestionRef.current;
-      const opt = selectedOptionRef.current;
-      if (q && opt !== null) {
-        try {
-          await recordAnswer(
-            uid,
-            aid,
-            q.id,
-            opt,
-            Date.now() - questionStartTimeRef.current,
-            getExamDeviceFingerprint()
-          );
-        } catch {
-          // Clock may already be past expiry; still score what is stored.
+      const group = passageGroupRef.current;
+      const groupSel = groupSelectionsRef.current;
+      const timeSpentMs = Date.now() - questionStartTimeRef.current;
+      const fingerprint = getExamDeviceFingerprint();
+      if (group?.questions?.length) {
+        for (const q of answerablePassageGroupQuestions(group, currentIndexRef.current)) {
+          const opt = groupSel[q.id];
+          if (typeof opt !== 'number') continue;
+          try {
+            await recordAnswer(uid, aid, q.id, opt, timeSpentMs, fingerprint);
+          } catch {
+            // Clock may already be past expiry; still score what is stored.
+          }
+        }
+      } else {
+        const q = currentQuestionRef.current;
+        const opt = selectedOptionRef.current;
+        if (q && opt !== null) {
+          try {
+            await recordAnswer(uid, aid, q.id, opt, timeSpentMs, fingerprint);
+          } catch {
+            // Clock may already be past expiry; still score what is stored.
+          }
         }
       }
       const result = await completeExam(uid, aid);
@@ -545,6 +580,9 @@ export default function AssessmentTakePage() {
       }
       setAttemptId(result.attempt_id);
       setCurrentQuestion(result.question);
+      setPassageGroup(result.passage_group ?? null);
+      setGroupSelections({});
+      setSelectedOption(null);
       setCurrentIndex(result.current_index);
       setTotalQuestions(result.total_questions);
       questionStartTimeRef.current = Date.now();
@@ -730,47 +768,162 @@ export default function AssessmentTakePage() {
     setStage('taking');
   }, []);
 
-  const handleNext = useCallback(async () => {
-    if (selectedOption === null || !attemptId || !currentQuestion) return;
+  const applyAdvanceFromResponse = useCallback(
+    (response: RecordAnswerResponse, fallbackIndex: number) => {
+      const pref = prefetchRef.current;
+      const nextFromPrefetch =
+        pref &&
+        (response.prefetch_accepted === true ||
+          response.next_item_id === pref.itemId ||
+          response.next_question?.id === pref.itemId ||
+          (pref.passageGroup &&
+            response.passage_group?.group_start_index === pref.passageGroup.group_start_index))
+          ? pref
+          : null;
 
-    const timeSpentMs = Date.now() - questionStartTimeRef.current;
-    setIsSubmitting(true);
-    setSubmitError(null);
+      const nextGroup =
+        response.passage_group && response.passage_group.group_size >= 2
+          ? response.passage_group
+          : nextFromPrefetch?.passageGroup && nextFromPrefetch.passageGroup.group_size >= 2
+            ? nextFromPrefetch.passageGroup
+            : null;
+      const nextQuestion =
+        response.next_question ??
+        nextFromPrefetch?.question ??
+        nextGroup?.questions?.[0] ??
+        null;
 
-    try {
-      const response = await recordAnswer(
-        uid,
-        attemptId,
-        currentQuestion.id,
-        selectedOption,
-        timeSpentMs,
-        getExamDeviceFingerprint()
-      );
-
-      if (response.done) {
-        const result = await completeExam(uid, attemptId);
-        goToExamResults(attemptId, result);
-        return;
-      }
-
-      if (!response.next_question) {
+      if (!nextQuestion && !nextGroup) {
         setSubmitError(
           response.already_recorded
             ? 'Your answer was saved, but the next question could not be loaded. Tap Next again — do not refresh.'
             : 'Could not load the next question. Tap Next again — do not refresh.'
         );
-        return;
+        return false;
       }
 
       setSubmitError(null);
-
+      prefetchRef.current = null;
       setSelectedOption(null);
-      setCurrentQuestion(response.next_question);
-      setCurrentIndex(response.current_index ?? currentIndex + 1);
+      setGroupSelections({});
+      setPassageGroup(nextGroup);
+      setCurrentQuestion(nextQuestion);
+      setCurrentIndex(
+        response.current_index ?? nextFromPrefetch?.nextIndex ?? fallbackIndex
+      );
       if (typeof response.total_questions === 'number' && response.total_questions > 0) {
         setTotalQuestions(response.total_questions);
       }
       questionStartTimeRef.current = Date.now();
+      return true;
+    },
+    []
+  );
+
+  const handleNext = useCallback(async () => {
+    if (!attemptId || !uid) return;
+
+    if (passageGroup && passageGroup.group_size >= 2) {
+      if (!allPassageGroupAnswered(passageGroup, groupSelections, currentIndex)) return;
+    } else if (selectedOption === null || !currentQuestion) {
+      return;
+    }
+
+    const timeSpentMs = Date.now() - questionStartTimeRef.current;
+    const fingerprint = getExamDeviceFingerprint();
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      if (passageGroup && passageGroup.group_size >= 2) {
+        const toSubmit = answerablePassageGroupQuestions(passageGroup, currentIndex);
+        const batchAnswers: Array<{ item_id: string; selected_option: number }> = [];
+        for (const q of toSubmit) {
+          const opt = groupSelections[q.id];
+          if (typeof opt !== 'number') {
+            setSubmitError('Answer every question on this page before continuing.');
+            return;
+          }
+          batchAnswers.push({ item_id: q.id, selected_option: opt });
+        }
+
+        const pref =
+          prefetchRef.current &&
+          prefetchRef.current.attemptId === attemptId &&
+          prefetchRef.current.fromIndex === currentIndex
+            ? prefetchRef.current
+            : null;
+        const hasWarmNext = Boolean(pref?.question || (pref?.passageGroup && pref.passageGroup.group_size >= 2));
+
+        const lastResponse =
+          batchAnswers.length >= 2
+            ? await recordAnswersBatch(
+                uid,
+                attemptId,
+                batchAnswers,
+                timeSpentMs,
+                fingerprint,
+                // Skip rebuilding next screen when prefetch already warmed it.
+                { includePassageGroup: !hasWarmNext }
+              )
+            : await recordAnswer(
+                uid,
+                attemptId,
+                batchAnswers[0]!.item_id,
+                batchAnswers[0]!.selected_option,
+                timeSpentMs,
+                fingerprint,
+                pref?.itemId,
+                { includePassageGroup: !hasWarmNext }
+              );
+
+        if (lastResponse.done) {
+          prefetchRef.current = null;
+          const result = await completeExam(uid, attemptId);
+          goToExamResults(attemptId, result);
+          return;
+        }
+
+        applyAdvanceFromResponse(lastResponse, currentIndex + toSubmit.length);
+        return;
+      }
+
+      const pref =
+        prefetchRef.current &&
+        prefetchRef.current.attemptId === attemptId &&
+        prefetchRef.current.fromIndex === currentIndex
+          ? prefetchRef.current
+          : null;
+
+      const response = await recordAnswer(
+        uid,
+        attemptId,
+        currentQuestion!.id,
+        selectedOption!,
+        timeSpentMs,
+        fingerprint,
+        pref?.itemId
+      );
+
+      if (response.done) {
+        prefetchRef.current = null;
+        const result = await completeExam(uid, attemptId);
+        goToExamResults(attemptId, result);
+        return;
+      }
+
+      const nextFromPrefetch =
+        pref &&
+        (response.prefetch_accepted === true ||
+          response.next_item_id === pref.itemId ||
+          response.next_question?.id === pref.itemId)
+          ? pref.question
+          : null;
+      const merged: RecordAnswerResponse = {
+        ...response,
+        next_question: response.next_question ?? nextFromPrefetch,
+      };
+      applyAdvanceFromResponse(merged, currentIndex + 1);
     } catch (err: any) {
       Sentry.captureException(err);
       if (err?.response?.data?.code === 'exam_expired') {
@@ -785,6 +938,12 @@ export default function AssessmentTakePage() {
         );
         return;
       }
+      if (err?.response?.status === 400 && /out of sequence/i.test(String(err?.response?.data?.error ?? ''))) {
+        setSubmitError(
+          'This page got out of sync with the server. Leave and resume the attempt, or start a fresh sit if resume is unavailable.'
+        );
+        return;
+      }
       if (err?.response?.data?.code === 'section_inventory_timeout' || err?.response?.status === 503) {
         setSubmitError(
           err?.response?.data?.error ??
@@ -796,12 +955,60 @@ export default function AssessmentTakePage() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [selectedOption, attemptId, currentQuestion, uid, currentIndex, completeTimedExam, goToExamResults]);
+  }, [
+    selectedOption,
+    attemptId,
+    currentQuestion,
+    passageGroup,
+    groupSelections,
+    uid,
+    currentIndex,
+    completeTimedExam,
+    goToExamResults,
+    applyAdvanceFromResponse,
+  ]);
+
+  // Warm the next screen while the student reads / answers the current one.
+  // For multi-item passages, server peeks past the whole group.
+  useEffect(() => {
+    if (stage !== 'taking' || !uid || !attemptId || !currentQuestion || isSubmitting) return;
+    let cancelled = false;
+    const fromIndex = currentIndex;
+    const aid = attemptId;
+
+    void (async () => {
+      try {
+        const res = await prefetchNextQuestion(uid, aid);
+        if (cancelled || !res.next_question || !res.next_item_id) return;
+        prefetchRef.current = {
+          attemptId: aid,
+          fromIndex,
+          itemId: res.next_item_id,
+          question: res.next_question,
+          passageGroup: res.passage_group ?? null,
+          nextIndex: typeof res.next_index === 'number' ? res.next_index : undefined,
+        };
+      } catch {
+        // Prefetch is best-effort; Next still loads via recordAnswer.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [stage, uid, attemptId, currentQuestion?.id, currentIndex, isSubmitting, passageGroup?.group_start_index]);
 
   useEffect(() => {
     if (stage !== 'taking') return;
     const handleKey = (e: KeyboardEvent) => {
-      if (isSubmitting || isInitializing || !currentQuestion || !assessmentId) return;
+      if (isSubmitting || isInitializing || !assessmentId) return;
+      if (passageGroup && passageGroup.group_size >= 2) {
+        if (e.key === 'Enter' && allPassageGroupAnswered(passageGroup, groupSelections, currentIndex)) {
+          handleNext();
+        }
+        return;
+      }
+      if (!currentQuestion) return;
       const mode = inferQuestionInteraction(assessmentId, currentQuestion);
       if (mode === 'likert' && currentQuestion.options?.length >= 5) {
         if (['1', '2', '3', '4', '5'].includes(e.key)) setSelectedOption(parseInt(e.key, 10) - 1);
@@ -814,7 +1021,18 @@ export default function AssessmentTakePage() {
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [stage, handleNext, isSubmitting, isInitializing, selectedOption, currentQuestion, assessmentId]);
+  }, [
+    stage,
+    handleNext,
+    isSubmitting,
+    isInitializing,
+    selectedOption,
+    currentQuestion,
+    assessmentId,
+    passageGroup,
+    groupSelections,
+    currentIndex,
+  ]);
 
   const examShortTitle = flow.examTitleShort;
   const headerBg = flow.theme === 'purple' ? '#6a1b9a' : '#0d47a1';
@@ -974,10 +1192,54 @@ export default function AssessmentTakePage() {
     );
   }
 
-  const progressPercent = totalQuestions > 0 ? ((currentIndex + (selectedOption !== null ? 0.5 : 0)) / totalQuestions) * 100 : 0;
-  const questionNumber = currentIndex + 1;
+  const inPassageGroup = Boolean(passageGroup && passageGroup.group_size >= 2);
+  const groupAnswered = inPassageGroup
+    ? allPassageGroupAnswered(passageGroup, groupSelections, currentIndex)
+    : false;
+  const canAdvance = inPassageGroup ? groupAnswered : selectedOption !== null;
 
-  const questionBodyEl = (
+  const progressPercent =
+    totalQuestions > 0
+      ? ((currentIndex +
+          (inPassageGroup
+            ? groupAnswered
+              ? passageGroup!.group_size
+              : answerablePassageGroupQuestions(passageGroup!, currentIndex).filter(
+                  (q) => typeof groupSelections[q.id] === 'number'
+                ).length * 0.5
+            : selectedOption !== null
+              ? 0.5
+              : 0)) /
+          totalQuestions) *
+        100
+      : 0;
+  const questionNumber = currentIndex + 1;
+  const questionEndNumber = inPassageGroup
+    ? passageGroup!.group_start_index + passageGroup!.group_size
+    : questionNumber;
+  const headerQuestionLabel = hideQuestionTotal
+    ? inPassageGroup
+      ? `Questions ${passageGroup!.group_start_index + 1}–${questionEndNumber}`
+      : `Question ${questionNumber}`
+    : inPassageGroup
+      ? `${passageGroup!.group_start_index + 1}–${questionEndNumber} / ${totalQuestions}`
+      : `${questionNumber} / ${totalQuestions}`;
+
+  const questionBodyEl = inPassageGroup && passageGroup ? (
+    <VerbalPassageGroupBody
+      group={passageGroup}
+      selections={groupSelections}
+      onSelect={(itemId, optionIndex) => {
+        setGroupSelections((prev) => ({ ...prev, [itemId]: optionIndex }));
+      }}
+      theme={flow.theme}
+      questionNumberStart={passageGroup.group_start_index + 1}
+      totalQuestions={totalQuestions}
+      hideQuestionTotal={hideQuestionTotal}
+      answerableFromIndex={currentIndex}
+      questionReport={officialQuestionReport}
+    />
+  ) : (
     <ExamQuestionBody
       assessmentId={assessmentId}
       question={currentQuestion}
@@ -997,10 +1259,12 @@ export default function AssessmentTakePage() {
       sx={{
         height: '100dvh',
         maxHeight: '100dvh',
+        width: '100%',
         bgcolor: '#fff',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
+        boxSizing: 'border-box',
       }}
     >
       <Box
@@ -1008,42 +1272,70 @@ export default function AssessmentTakePage() {
           flexShrink: 0,
           bgcolor: headerBg,
           color: '#fff',
+          width: '100%',
+          boxSizing: 'border-box',
           px: { xs: 1.5, sm: 2.5 },
-          py: 1.5,
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr auto', sm: '1fr auto auto' },
+          pt: { xs: 'max(10px, env(safe-area-inset-top))', sm: 1.5 },
+          pb: { xs: 1.25, sm: 1.5 },
+          display: 'flex',
           alignItems: 'center',
-          gap: 1,
+          justifyContent: 'space-between',
+          gap: { xs: 1, sm: 2 },
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+        <Typography
+          sx={{
+            fontWeight: 700,
+            fontSize: { xs: '0.72rem', sm: '0.85rem' },
+            lineHeight: 1.3,
+            minWidth: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            flex: '1 1 auto',
+          }}
+        >
+          Exam {flow.examOrdinal}: {examShortTitle}
+        </Typography>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: { xs: 1.25, sm: 2 },
+            flexShrink: 0,
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            {flow.useTimer && secondsLeft !== null ? (
+              <>
+                <AccessTimeIcon sx={{ fontSize: { xs: 16, sm: '1rem' }, opacity: 0.95 }} />
+                <Typography
+                  sx={{
+                    fontWeight: 800,
+                    fontVariantNumeric: 'tabular-nums',
+                    fontSize: { xs: '0.82rem', sm: '0.9rem' },
+                  }}
+                >
+                  {formatMmSs(secondsLeft)}
+                </Typography>
+              </>
+            ) : (
+              <Typography sx={{ fontWeight: 600, fontSize: { xs: '0.72rem', sm: '0.8rem' }, opacity: 0.95 }}>
+                No time limit
+              </Typography>
+            )}
+          </Box>
           <Typography
             sx={{
               fontWeight: 700,
-              fontSize: { xs: '0.72rem', sm: '0.85rem' },
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
+              fontSize: { xs: '0.78rem', sm: '0.85rem' },
+              fontVariantNumeric: 'tabular-nums',
+              opacity: 0.95,
             }}
           >
-            Exam {flow.examOrdinal}: {examShortTitle}
+            {headerQuestionLabel}
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
-          {flow.useTimer && secondsLeft !== null ? (
-            <>
-              <AccessTimeIcon sx={{ fontSize: '1rem', opacity: 0.95 }} />
-              <Typography sx={{ fontWeight: 800, fontVariantNumeric: 'tabular-nums', fontSize: '0.9rem' }}>
-                {formatMmSs(secondsLeft)}
-              </Typography>
-            </>
-          ) : (
-            <Typography sx={{ fontWeight: 600, fontSize: '0.8rem', opacity: 0.95 }}>No time limit</Typography>
-          )}
-        </Box>
-        <Typography sx={{ fontWeight: 700, textAlign: 'right', fontSize: '0.85rem', fontVariantNumeric: 'tabular-nums' }}>
-          {hideQuestionTotal ? `Question ${questionNumber}` : `${questionNumber} / ${totalQuestions}`}
-        </Typography>
       </Box>
 
       <LinearProgress
@@ -1100,8 +1392,9 @@ export default function AssessmentTakePage() {
           overflowY: 'auto',
           display: 'flex',
           justifyContent: 'center',
-          py: { xs: 3, md: 5 },
+          py: { xs: 2, md: 5 },
           px: { xs: 2, md: 4 },
+          WebkitOverflowScrolling: 'touch',
         }}
       >
         <Box sx={{ width: '100%', maxWidth: 720 }}>
@@ -1112,10 +1405,20 @@ export default function AssessmentTakePage() {
           ) : (
             questionBodyEl
           )}
-          <Typography variant="caption" sx={{ color: '#94a3b8', mt: 2, display: 'block', textAlign: 'center' }}>
-            {inferQuestionInteraction(assessmentId, currentQuestion) === 'likert'
-              ? 'Keys 1 - 5 to select • Enter to continue'
-              : 'Keys 1 - 4 for options • Enter to continue'}
+          <Typography
+            variant="caption"
+            sx={{
+              color: '#94a3b8',
+              mt: 2,
+              display: { xs: 'none', md: 'block' },
+              textAlign: 'center',
+            }}
+          >
+            {inPassageGroup
+              ? 'Answer every question on this page • Enter to continue'
+              : inferQuestionInteraction(assessmentId, currentQuestion) === 'likert'
+                ? 'Keys 1 - 5 to select • Enter to continue'
+                : 'Keys 1 - 4 for options • Enter to continue'}
           </Typography>
         </Box>
       </Box>
@@ -1125,17 +1428,19 @@ export default function AssessmentTakePage() {
           flexShrink: 0,
           borderTop: '1px solid #e2e8f0',
           px: { xs: 2, md: 4 },
-          py: 2,
+          pt: { xs: 1.5, sm: 2 },
+          pb: { xs: 'max(12px, env(safe-area-inset-bottom))', sm: 2 },
           display: 'flex',
           justifyContent: 'center',
           bgcolor: '#f8fafc',
           width: '100%',
+          boxSizing: 'border-box',
         }}
       >
         <Button
           variant="contained"
           endIcon={isSubmitting ? <CircularProgress size={18} sx={{ color: '#fff' }} /> : <ArrowForwardIcon />}
-          disabled={selectedOption === null || isSubmitting}
+          disabled={!canAdvance || isSubmitting}
           onClick={handleNext}
           sx={{
             bgcolor: primaryBtn,
@@ -1147,7 +1452,11 @@ export default function AssessmentTakePage() {
             '&.Mui-disabled': { bgcolor: '#cbd5e1', color: '#64748b' },
           }}
         >
-          {currentIndex + 1 >= totalQuestions ? 'Submit' : 'Next'}
+          {(inPassageGroup
+            ? passageGroup!.group_start_index + passageGroup!.group_size
+            : currentIndex + 1) >= totalQuestions
+            ? 'Submit'
+            : 'Next'}
         </Button>
       </Box>
 

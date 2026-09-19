@@ -785,10 +785,12 @@ export default function PracticeTakePage() {
       sx={{
         height: '100dvh',
         maxHeight: '100dvh',
+        width: '100%',
         bgcolor: '#fff',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
+        boxSizing: 'border-box',
       }}
     >
       <Box
@@ -796,8 +798,11 @@ export default function PracticeTakePage() {
           flexShrink: 0,
           bgcolor: headerBg,
           color: '#fff',
+          width: '100%',
+          boxSizing: 'border-box',
           px: { xs: 1.25, sm: 2 },
-          py: { xs: 0.75, sm: 0.875 },
+          pt: { xs: 'max(8px, env(safe-area-inset-top))', sm: 0.875 },
+          pb: { xs: 0.75, sm: 0.875 },
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -913,7 +918,8 @@ export default function PracticeTakePage() {
           flexShrink: 0,
           borderTop: '1px solid #e2e8f0',
           px: { xs: 2, md: 4 },
-          py: 2,
+          pt: { xs: 1.5, sm: 2 },
+          pb: { xs: 'max(12px, env(safe-area-inset-bottom))', sm: 2 },
           display: 'flex',
           flexDirection: { xs: 'column', md: 'row' },
           alignItems: 'center',
@@ -953,9 +959,18 @@ export default function PracticeTakePage() {
           Practice only.{' '}
           {groupedPassagePractice
             ? 'Answer every question under this passage, then press Check answers.'
-            : inferQuestionInteraction(examId, q) === 'likert'
-            ? 'Keys 1–5 to select • Enter to continue'
-            : 'Pick an option or use keys 1–4, press Check answer or Enter, then Next or Done'}
+            : (
+              <>
+                <Box component="span" sx={{ display: { xs: 'inline', md: 'none' } }}>
+                  Select an option, then check your answer.
+                </Box>
+                <Box component="span" sx={{ display: { xs: 'none', md: 'inline' } }}>
+                  {inferQuestionInteraction(examId, q) === 'likert'
+                    ? 'Keys 1–5 to select • Enter to continue'
+                    : 'Pick an option or use keys 1–4, press Check answer or Enter, then Next or Done'}
+                </Box>
+              </>
+            )}
         </Typography>
         <Box
           sx={{

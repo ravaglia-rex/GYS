@@ -99,6 +99,106 @@ const AR_OPTION_LETTERS = ['A', 'B', 'C', 'D'] as const;
 /** Edit dialog supports A–F (Mathematical Reasoning IF uses A–E). */
 const BANK_EDIT_OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'] as const;
 type BankEditOptionLetter = (typeof BANK_EDIT_OPTION_LETTERS)[number];
+
+/** Split a shared-passage Item Bank stem into passage + question-only text. */
+export function splitItemBankPassageStem(q: OfficialQuestionStatRow): {
+  passageMarkdown: string;
+  questionMarkdown: string;
+} {
+  const full = String(q.prompt || '').trim();
+  const questionOnly = String(q.question_markdown || '').trim();
+  const hrParts = full.split(/\n---\n/);
+  if (hrParts.length >= 2) {
+    return {
+      passageMarkdown: hrParts[0].trim(),
+      questionMarkdown: hrParts.slice(1).join('\n---\n').trim() || questionOnly || full,
+    };
+  }
+  // Some imports use --- with surrounding blank lines already collapsed differently.
+  const looseHr = full.split(/\n\s*---\s*\n/);
+  if (looseHr.length >= 2) {
+    return {
+      passageMarkdown: looseHr[0].trim(),
+      questionMarkdown: looseHr.slice(1).join('\n---\n').trim() || questionOnly || full,
+    };
+  }
+  if (questionOnly && full && full !== questionOnly) {
+    if (full.endsWith(questionOnly)) {
+      return {
+        passageMarkdown: full
+          .slice(0, full.length - questionOnly.length)
+          .replace(/\n---\s*$/, '')
+          .trim(),
+        questionMarkdown: questionOnly,
+      };
+    }
+    const idx = full.lastIndexOf(questionOnly);
+    if (idx > 0) {
+      return {
+        passageMarkdown: full.slice(0, idx).replace(/\n---\s*$/, '').trim(),
+        questionMarkdown: questionOnly,
+      };
+    }
+  }
+  return { passageMarkdown: full, questionMarkdown: questionOnly || full };
+}
+
+/** Group key: prefer passage_id; else fingerprint shared passage text (--- split). */
+function itemBankPassageGroupKey(q: OfficialQuestionStatRow): string {
+  const pid = typeof q.passage_id === 'string' ? q.passage_id.trim() : '';
+  if (pid) return `id:${pid}`;
+  const { passageMarkdown, questionMarkdown } = splitItemBankPassageStem(q);
+  if (
+    passageMarkdown &&
+    questionMarkdown &&
+    passageMarkdown !== questionMarkdown &&
+    passageMarkdown.length >= 80
+  ) {
+    // Normalize whitespace so slight markdown drift still groups.
+    const fingerprint = passageMarkdown.replace(/\s+/g, ' ').trim().slice(0, 240);
+    return `text:${fingerprint}`;
+  }
+  return `solo:${q.item_id}`;
+}
+
+export type ItemBankDisplayEntry =
+  | { kind: 'single'; question: OfficialQuestionStatRow; index: number }
+  | {
+      kind: 'passage_set';
+      passageId: string;
+      members: Array<{ question: OfficialQuestionStatRow; index: number }>;
+    };
+
+/** Group rows that share a passage into one Item Bank card (order preserved). */
+export function groupItemBankQuestionsForDisplay(
+  questions: OfficialQuestionStatRow[]
+): ItemBankDisplayEntry[] {
+  const keys = questions.map((q) => itemBankPassageGroupKey(q));
+  const counts = new Map<string, number>();
+  for (const key of keys) {
+    if (key.startsWith('solo:')) continue;
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+  const emitted = new Set<string>();
+  const out: ItemBankDisplayEntry[] = [];
+  questions.forEach((q, index) => {
+    const key = keys[index] || `solo:${q.item_id}`;
+    if (!key.startsWith('solo:') && (counts.get(key) || 0) >= 2) {
+      if (emitted.has(key)) return;
+      emitted.add(key);
+      const members = questions
+        .map((question, i) => ({ question, index: i }))
+        .filter((_, i) => keys[i] === key);
+      const passageId =
+        (typeof q.passage_id === 'string' && q.passage_id.trim()) ||
+        key.replace(/^(id|text):/, '');
+      out.push({ kind: 'passage_set', passageId, members });
+      return;
+    }
+    out.push({ kind: 'single', question: q, index });
+  });
+  return out;
+}
 const OPTION_LETTERS = AR_OPTION_LETTERS;
 
 function apiErrorMessage(e: unknown, fallback: string): string {
@@ -535,6 +635,8 @@ export function PlatformAdminQuestionPerformanceCard({
   canApprove = false,
   canEditContent = false,
   bankKind = 'official',
+  variant = 'card',
+  displayStem = null,
   onApproved,
   onItemUpdated,
   onItemDeleted,
@@ -549,6 +651,10 @@ export function PlatformAdminQuestionPerformanceCard({
   /** Content edit dialog (AR schema). Defaults off unless caller enables. */
   canEditContent?: boolean;
   bankKind?: 'official' | 'practice';
+  /** Nested under a shared-passage set: no outer border; stem is question-only. */
+  variant?: 'card' | 'nested';
+  /** Override stem shown in the body (e.g. question-only under a shared passage). */
+  displayStem?: string | null;
   onApproved?: (itemId: string, deliveryAuthorized: boolean) => void;
   onItemUpdated?: (itemId: string, next: OfficialQuestionStatRow) => void;
   onItemDeleted?: (itemId: string) => void;
@@ -586,6 +692,17 @@ export function PlatformAdminQuestionPerformanceCard({
   const taxonomy = [question.strand, question.instruction_family, question.band]
     .filter(Boolean)
     .join(' · ');
+  const nested = variant === 'nested';
+  const bodyQuestion: OfficialQuestionStatRow =
+    displayStem != null && displayStem.trim()
+      ? {
+          ...question,
+          prompt: displayStem.trim(),
+          prompt_preview: displayStem.trim(),
+          stimulus: null,
+          stimulus_type: null,
+        }
+      : question;
 
   const openEdit = () => {
     if (!canEdit) return;
@@ -751,12 +868,23 @@ export function PlatformAdminQuestionPerformanceCard({
 
   return (
     <Box
-      sx={{
-        bgcolor: '#fff',
-        border: '1px solid #e2e8f0',
-        borderRadius: 1.5,
-        p: 2,
-      }}
+      sx={
+        nested
+          ? {
+              bgcolor: 'transparent',
+              border: 'none',
+              borderRadius: 0,
+              p: 0,
+              pt: 1.5,
+              borderTop: '1px solid #e2e8f0',
+            }
+          : {
+              bgcolor: '#fff',
+              border: '1px solid #e2e8f0',
+              borderRadius: 1.5,
+              p: 2,
+            }
+      }
     >
       <Box
         sx={{
@@ -863,7 +991,7 @@ export function PlatformAdminQuestionPerformanceCard({
         {taxonomy ? ` · ${taxonomy}` : ''}
       </Typography>
       <AdminExamQuestionBody
-        q={question}
+        q={bodyQuestion}
         emptyLabel="(no prompt)"
         renderMath={renderMath}
         optionStatus={(optIdx) => {
@@ -880,7 +1008,7 @@ export function PlatformAdminQuestionPerformanceCard({
         }}
       />
 
-      {examId && question.item_id && question.times_seen > 0 && bankKind === 'official' ? (
+      {examId && question.item_id && question.times_seen > 0 && bankKind === 'official' && !nested ? (
         <PlatformAdminItemScoreAnalyticsPanel
           examId={examId}
           itemId={question.item_id}
@@ -1270,6 +1398,99 @@ export function PlatformAdminQuestionPerformanceCard({
           ) : null}
         </DialogActions>
       </Dialog>
+    </Box>
+  );
+}
+
+/** One bordered card: shared passage once, then each linked question (Qn / Qn+1…). */
+export function PlatformAdminPassageSetCard({
+  passageId,
+  members,
+  renderMath = false,
+  examId = null,
+  level = null,
+  canApprove = false,
+  canEditContent = false,
+  bankKind = 'official',
+  onApproved,
+  onItemUpdated,
+  onItemDeleted,
+}: {
+  passageId: string;
+  members: Array<{ question: OfficialQuestionStatRow; index: number }>;
+  renderMath?: boolean;
+  examId?: string | null;
+  level?: number | null;
+  canApprove?: boolean;
+  canEditContent?: boolean;
+  bankKind?: 'official' | 'practice';
+  onApproved?: (itemId: string, deliveryAuthorized: boolean) => void;
+  onItemUpdated?: (itemId: string, next: OfficialQuestionStatRow) => void;
+  onItemDeleted?: (itemId: string) => void;
+}) {
+  const lead = members[0]?.question;
+  const passageMarkdown = lead ? splitItemBankPassageStem(lead).passageMarkdown : '';
+  const qLabels = members.map((m) => `Q${m.index + 1}`).join(' · ');
+  return (
+    <Box
+      sx={{
+        bgcolor: '#fff',
+        border: '1px solid #e2e8f0',
+        borderRadius: 1.5,
+        p: 2,
+      }}
+    >
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center', mb: 1 }}>
+        <Typography sx={{ fontWeight: 800, color: ip.heading, fontSize: 15 }}>
+          Shared passage
+        </Typography>
+        <PlatformAdminChip label={qLabels} tone="info" />
+        <PlatformAdminChip label={`${members.length} items`} tone="neutral" />
+      </Box>
+      <Typography sx={{ color: '#475569', fontSize: 12, mb: 1 }}>{passageId}</Typography>
+      {passageMarkdown ? (
+        <Box sx={{ mb: 0.5 }}>
+          <ExamRichPrompt
+            prompt={passageMarkdown}
+            emptyLabel="(no passage)"
+            renderMath={renderMath}
+          />
+        </Box>
+      ) : null}
+      {members.map((m) => {
+        const split = splitItemBankPassageStem(m.question);
+        // Never re-show the shared passage under a nested question.
+        let questionOnly = split.questionMarkdown;
+        if (
+          passageMarkdown &&
+          questionOnly &&
+          (questionOnly === split.passageMarkdown ||
+            (passageMarkdown.length > 80 && questionOnly.includes(passageMarkdown.slice(0, 80))))
+        ) {
+          questionOnly = split.questionMarkdown !== passageMarkdown
+            ? split.questionMarkdown.replace(passageMarkdown, '').replace(/^\s*---\s*/, '').trim()
+            : (m.question.question_markdown || '').trim();
+        }
+        if (!questionOnly) questionOnly = (m.question.question_markdown || '').trim() || '—';
+        return (
+          <PlatformAdminQuestionPerformanceCard
+            key={m.question.item_id}
+            question={m.question}
+            index={m.index}
+            renderMath={renderMath}
+            examId={examId}
+            level={level}
+            canApprove={canApprove}
+            canEditContent={canEditContent}
+            bankKind={bankKind}
+            variant="nested"
+            displayStem={questionOnly}
+            onApproved={onApproved}
+            onItemUpdated={onItemUpdated}
+            onItemDeleted={onItemDeleted}
+          />
+        );
+      })}
     </Box>
   );
 }

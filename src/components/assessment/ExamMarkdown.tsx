@@ -225,17 +225,13 @@ export const ExamRichPrompt: React.FC<{
   // Plain "Statement 1:" labels do not — without this branch the whole stem flipped
   // to ExamMathText (different size/weight/color). Keep one renderer for math exams.
   if (renderMath || looksLikeExamMarkdown(body)) {
-    const markdownBody =
-      renderMath && body && !looksLikeExamMarkdown(body)
-        ? preserveExamMarkdownSoftBreaks(body)
-        : body;
     return (
       <ExamMarkdown
         maxFigureWidth={maxFigureWidth}
         maxFigureHeight={maxFigureHeight}
         renderMath={renderMath}
       >
-        {markdownBody || emptyLabel}
+        {body || emptyLabel}
       </ExamMarkdown>
     );
   }
@@ -263,7 +259,15 @@ export const ExamMarkdown: React.FC<{
   renderMath?: boolean;
 }> = ({ children, compact = false, maxFigureWidth, maxFigureHeight, renderMath = false }) => {
   const cleaned = cleanLearnerFacingExamMarkup(children);
-  const markdown = renderMath ? normalizeExamMathDelimitersForMarkdown(cleaned) : cleaned;
+  // Single newlines are soft breaks in CommonMark (collapse to spaces). Math stems
+  // often use one newline between "Statement 1" / "Statement 2"; turn those into
+  // markdown hard breaks so the live exam matches the item bank layout.
+  const withSoftBreaks = renderMath
+    ? preserveExamMarkdownSoftBreaks(cleaned)
+    : cleaned;
+  const markdown = renderMath
+    ? normalizeExamMathDelimitersForMarkdown(withSoftBreaks)
+    : withSoftBreaks;
   const figureHeightCap = maxFigureHeight ?? (compact ? undefined : EXAM_FIGURE_MAX_HEIGHT_PX);
   // Re-typeset after every commit: ReactMarkdown reconciliation restores raw `$...$`
   // when the card re-renders (options keep working via ExamMathText's owned textContent).

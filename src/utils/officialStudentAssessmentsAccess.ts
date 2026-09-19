@@ -83,7 +83,7 @@ export const OFFICIAL_RESTRICTED_STARTABLE_ASSESSMENT_EMAILS: Record<
   ReadonlySet<string>
 > = {
   verbal_reasoning: new Set([
-    'srishti2k1@gmail.com',
+    'srishti+student@argus.ai',
     'divyam.ew+1@gmail.com',
     'vv@accessmca.com',
   ]),

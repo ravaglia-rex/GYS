@@ -30,7 +30,7 @@ import {
   PlatformAdminAnalyticsSection,
   PlatformAdminFilterControl,
 } from './platformAdminComponents';
-import { PlatformAdminQuestionPerformanceCard } from './PlatformAdminExamQuestionCard';
+import { PlatformAdminQuestionPerformanceCard, PlatformAdminPassageSetCard, groupItemBankQuestionsForDisplay } from './PlatformAdminExamQuestionCard';
 import { createTtlMemoryCache } from './platformAdminMemoryCache';
 
 /**
@@ -93,7 +93,7 @@ function itemBankCacheKey(
   filters: OfficialItemBankFilters
 ): string {
   const filterPart = FILTER_KEYS.map((key) => `${key}=${filters[key] || ''}`).join('&');
-  return `${bankKind}|${examId}|${level}|${filterPart}`;
+  return `${bankKind}|${examId}|${level}|v9|${filterPart}`;
 }
 
 function bankMatchesRequest(
@@ -136,7 +136,8 @@ function ItemBankVirtualList({
   useEffect(() => {
     setVisible(ITEM_BANK_PAGE_SIZE);
   }, [questions]);
-  const shown = questions.slice(0, visible);
+  const entries = useMemo(() => groupItemBankQuestionsForDisplay(questions), [questions]);
+  const shown = entries.slice(0, visible);
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.25 }}>
       {loading ? (
@@ -144,30 +145,49 @@ function ItemBankVirtualList({
           <CircularProgress size={22} sx={{ color: ip.navy }} />
         </Box>
       ) : null}
-      {shown.map((q, qi) => (
-        <PlatformAdminQuestionPerformanceCard
-          key={q.item_id}
-          question={q}
-          index={qi}
-          renderMath={renderMath}
-          examId={examId}
-          level={level}
-          canApprove={canApprove}
-          canEditContent={canEditContent}
-          bankKind={bankKind}
-          onApproved={(itemId, deliveryAuthorized) =>
-            onApprovalChange?.(itemId, deliveryAuthorized)
-          }
-          onItemUpdated={onItemUpdated}
-          onItemDeleted={onItemDeleted}
-        />
-      ))}
-      {visible < questions.length ? (
+      {shown.map((entry) =>
+        entry.kind === 'passage_set' ? (
+          <PlatformAdminPassageSetCard
+            key={`passage:${entry.passageId}`}
+            passageId={entry.passageId}
+            members={entry.members}
+            renderMath={renderMath}
+            examId={examId}
+            level={level}
+            canApprove={canApprove}
+            canEditContent={canEditContent}
+            bankKind={bankKind}
+            onApproved={(itemId, deliveryAuthorized) =>
+              onApprovalChange?.(itemId, deliveryAuthorized)
+            }
+            onItemUpdated={onItemUpdated}
+            onItemDeleted={onItemDeleted}
+          />
+        ) : (
+          <PlatformAdminQuestionPerformanceCard
+            key={entry.question.item_id}
+            question={entry.question}
+            index={entry.index}
+            renderMath={renderMath}
+            examId={examId}
+            level={level}
+            canApprove={canApprove}
+            canEditContent={canEditContent}
+            bankKind={bankKind}
+            onApproved={(itemId, deliveryAuthorized) =>
+              onApprovalChange?.(itemId, deliveryAuthorized)
+            }
+            onItemUpdated={onItemUpdated}
+            onItemDeleted={onItemDeleted}
+          />
+        )
+      )}
+      {visible < entries.length ? (
         <Button
           onClick={() => setVisible((n) => n + ITEM_BANK_PAGE_SIZE)}
           sx={{ alignSelf: 'center', textTransform: 'none' }}
         >
-          Show more ({questions.length - visible} remaining)
+          Show more ({entries.length - visible} remaining)
         </Button>
       ) : null}
     </Box>

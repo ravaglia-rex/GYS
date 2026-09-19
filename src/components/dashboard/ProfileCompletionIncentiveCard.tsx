@@ -86,23 +86,31 @@ const ProfileCompletionIncentiveCard: React.FC<ProfileCompletionIncentiveCardPro
             </Typography>
           </Box>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<Coins size={16} />}
-          disabled={preview}
-          onClick={() => navigate('/profile')}
+        <Box
           sx={{
-            bgcolor: 'rgba(234,179,8,0.9)',
-            color: '#111827',
-            fontWeight: 800,
-            whiteSpace: 'nowrap',
-            boxShadow: 'none',
-            '&:hover': { bgcolor: 'rgba(202,138,4,0.95)', boxShadow: 'none' },
-            '&.Mui-disabled': { bgcolor: 'rgba(234,179,8,0.4)', color: 'rgba(17,24,39,0.6)' },
+            width: { xs: '100%', sm: 'auto' },
+            display: 'flex',
+            justifyContent: { xs: 'center', sm: 'flex-start' },
           }}
         >
-          Complete profile
-        </Button>
+          <Button
+            variant="contained"
+            startIcon={<Coins size={16} />}
+            disabled={preview}
+            onClick={() => navigate('/profile')}
+            sx={{
+              bgcolor: 'rgba(234,179,8,0.9)',
+              color: '#111827',
+              fontWeight: 800,
+              whiteSpace: 'nowrap',
+              boxShadow: 'none',
+              '&:hover': { bgcolor: 'rgba(202,138,4,0.95)', boxShadow: 'none' },
+              '&.Mui-disabled': { bgcolor: 'rgba(234,179,8,0.4)', color: 'rgba(17,24,39,0.6)' },
+            }}
+          >
+            Complete profile
+          </Button>
+        </Box>
       </CardContent>
     </Card>
   );

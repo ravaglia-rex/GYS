@@ -162,8 +162,18 @@ export const QuestionProblemReport: React.FC<QuestionProblemReportProps> = ({
 
   return (
     <>
-      <Box sx={{ mt: 2, pt: 1.5, borderTop: '1px dashed rgba(148,163,184,0.45)' }}>
-        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.75 }}>
+      <Box
+        sx={{
+          mt: { xs: 1.5, sm: 2 },
+          pt: { xs: 1.25, sm: 1.5 },
+          borderTop: '1px dashed rgba(148,163,184,0.45)',
+          textAlign: { xs: 'center', sm: 'left' },
+        }}
+      >
+        <Typography
+          variant="caption"
+          sx={{ color: 'text.secondary', display: { xs: 'none', sm: 'block' }, mb: 0.75 }}
+        >
           Something wrong with this item?
         </Typography>
         <Link
@@ -177,6 +187,7 @@ export const QuestionProblemReport: React.FC<QuestionProblemReportProps> = ({
             fontWeight: 600,
             textDecoration: 'underline',
             textUnderlineOffset: 2,
+            textDecorationThickness: 'from-font',
             border: 'none',
             background: 'none',
             p: 0,
@@ -232,7 +243,7 @@ export const QuestionProblemReport: React.FC<QuestionProblemReportProps> = ({
               >
                 <CheckCircleIcon sx={{ color: '#4ade80', fontSize: 26, flexShrink: 0 }} aria-hidden />
                 <Typography variant="body2" component="p" sx={{ color: '#d1fae5', lineHeight: 1.55, m: 0 }}>
-                  Thanks - your report was submitted. Your feedback is saved on this question for review.
+                  Thanks! Your report was submitted.
                 </Typography>
               </Box>
             </>
@@ -367,13 +378,23 @@ export const QuestionProblemReport: React.FC<QuestionProblemReportProps> = ({
               disabled={sending || !formValid}
               sx={{
                 fontWeight: 700,
+                position: 'relative',
                 '&.Mui-disabled': {
                   bgcolor: 'rgba(139, 92, 246, 0.35)',
                   color: 'rgba(255, 255, 255, 0.88)',
                 },
               }}
             >
-              {sending ? <CircularProgress size={22} color="inherit" /> : 'Submit report'}
+              <Box component="span" sx={{ visibility: sending ? 'hidden' : 'visible' }}>
+                Submit report
+              </Box>
+              {sending ? (
+                <CircularProgress
+                  size={18}
+                  color="inherit"
+                  sx={{ position: 'absolute', left: '50%', top: '50%', mt: '-9px', ml: '-9px' }}
+                />
+              ) : null}
             </Button>
           )}
         </DialogActions>
