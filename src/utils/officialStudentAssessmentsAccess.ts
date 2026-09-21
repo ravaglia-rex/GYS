@@ -86,6 +86,7 @@ export const OFFICIAL_RESTRICTED_STARTABLE_ASSESSMENT_EMAILS: Record<
     'srishti+student@argus.ai',
     'divyam.ew+1@gmail.com',
     'vv@accessmca.com',
+    'jash17desai@gmail.com',
   ]),
   // Test accounts only — not a public or school-wide launch.
   mathematical_reasoning: new Set([
