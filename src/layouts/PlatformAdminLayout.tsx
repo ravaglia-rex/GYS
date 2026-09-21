@@ -41,6 +41,7 @@ import {
   canAccessPlatformAdminAnalytics,
   canAccessPlatformAdminQuestionReports,
 } from '../utils/platformAdminAnalyticsAccess';
+import { isPlatformAdminHeadEmail } from '../utils/platformAdminAccess';
 import {
   usePlatformAdminOpenQuestionReportsCount,
   usePlatformAdminOverview,
@@ -180,7 +181,11 @@ export default function PlatformAdminLayout({ children }: PlatformAdminLayoutPro
       ...mid,
       BASE_NAV_ITEMS[2],
     ];
-    return platformAdminRole === 'super' ? [...base, PIPELINE_NAV_ITEM, ADMINS_NAV_ITEM] : base;
+    if (platformAdminRole !== 'super') return base;
+    const withPipeline = [...base, PIPELINE_NAV_ITEM];
+    return isPlatformAdminHeadEmail(userEmail)
+      ? [...withPipeline, ADMINS_NAV_ITEM]
+      : withPipeline;
   }, [canSeeQuestionReports, platformAdminRole, userEmail]);
 
   const avatarInitials = useMemo(() => {
@@ -255,21 +260,32 @@ export default function PlatformAdminLayout({ children }: PlatformAdminLayoutPro
     const submenuOpen = openSubmenus[item.title] ?? routeImpliesOpen;
     const badgeCount = navBadgeByPath[item.path] ?? 0;
 
+    const handleNavActivate = () => {
+      if (hasChildren) {
+        const willOpen = !submenuOpen;
+        setSubmenuOpen(item.title, willOpen);
+        // Opening from outside the section → land on the first child.
+        if (willOpen && !routeImpliesOpen && item.children?.[0]) {
+          go(item.children[0].path, {
+            keepSearch: shouldKeepSearchOnNav(item.children[0].path),
+          });
+        }
+      } else {
+        go(item.path, { keepSearch: shouldKeepSearchOnNav(item.path) });
+      }
+    };
+
     return (
       <Box key={item.path}>
         <Box
-          onClick={() => {
-            if (hasChildren) {
-              const willOpen = !submenuOpen;
-              setSubmenuOpen(item.title, willOpen);
-              // Opening from outside the section → land on the first child.
-              if (willOpen && !routeImpliesOpen && item.children?.[0]) {
-                go(item.children[0].path, {
-                  keepSearch: shouldKeepSearchOnNav(item.children[0].path),
-                });
-              }
-            } else {
-              go(item.path, { keepSearch: shouldKeepSearchOnNav(item.path) });
+          role="button"
+          tabIndex={0}
+          aria-expanded={hasChildren ? submenuOpen : undefined}
+          onClick={handleNavActivate}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleNavActivate();
             }
           }}
           sx={{
@@ -282,6 +298,7 @@ export default function PlatformAdminLayout({ children }: PlatformAdminLayoutPro
             ml: level === 0 ? 1 : 2.5,
             borderRadius: 1.5,
             cursor: 'pointer',
+            userSelect: 'none',
             bgcolor: active ? ip.sidebarActiveBg : 'transparent',
             borderLeft: active ? `4px solid ${ip.sidebarActiveBorder}` : '4px solid transparent',
             transition: 'background-color 0.15s',
@@ -323,17 +340,18 @@ export default function PlatformAdminLayout({ children }: PlatformAdminLayoutPro
             </Box>
           )}
           {hasChildren && (
-            <IconButton
-              size="small"
-              aria-label={submenuOpen ? `Collapse ${item.title}` : `Expand ${item.title}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                setSubmenuOpen(item.title, !submenuOpen);
+            <Box
+              component="span"
+              aria-hidden
+              sx={{
+                display: 'inline-flex',
+                color: active ? ip.sidebarActiveText : '#64748b',
+                p: 0.25,
+                lineHeight: 0,
               }}
-              sx={{ color: active ? ip.sidebarActiveText : '#64748b', p: 0.25 }}
             >
               {submenuOpen ? <ExpandLess fontSize="small" /> : <ExpandMore fontSize="small" />}
-            </IconButton>
+            </Box>
           )}
         </Box>
 

@@ -1376,6 +1376,31 @@ export async function unapprovePlatformAdminOfficialExamBankItem(opts: {
   };
 }
 
+export async function retirePlatformAdminOfficialExamBankItem(opts: {
+  examId: string;
+  level: number;
+  itemId: string;
+}): Promise<{
+  item_id: string;
+  delivery_authorized: boolean;
+  lifecycle_status: string;
+  already_retired: boolean;
+}> {
+  const headers = await authHeaders();
+  const res = await axios.post(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAMS}/${encodeURIComponent(opts.examId)}/item-bank/${encodeURIComponent(opts.itemId)}/retire`,
+    {},
+    { headers, params: { level: opts.level } }
+  );
+  return {
+    item_id: typeof res.data.item_id === 'string' ? res.data.item_id : opts.itemId,
+    delivery_authorized: res.data.delivery_authorized === true,
+    lifecycle_status:
+      typeof res.data.lifecycle_status === 'string' ? res.data.lifecycle_status : 'RETIRED',
+    already_retired: res.data.already_retired === true,
+  };
+}
+
 export async function deletePlatformAdminOfficialExamBankItem(opts: {
   examId: string;
   level: number;
@@ -1569,6 +1594,31 @@ export async function unapprovePlatformAdminPracticeExamBankItem(opts: {
     lifecycle_status:
       typeof res.data.lifecycle_status === 'string' ? res.data.lifecycle_status : 'UNAPPROVED',
     already_unapproved: res.data.already_unapproved === true,
+  };
+}
+
+export async function retirePlatformAdminPracticeExamBankItem(opts: {
+  examId: string;
+  level: number;
+  itemId: string;
+}): Promise<{
+  item_id: string;
+  delivery_authorized: boolean;
+  lifecycle_status: string;
+  already_retired: boolean;
+}> {
+  const headers = await authHeaders();
+  const res = await axios.post(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_PRACTICE_EXAMS}/${encodeURIComponent(opts.examId)}/item-bank/${encodeURIComponent(opts.itemId)}/retire`,
+    {},
+    { headers, params: { level: opts.level } }
+  );
+  return {
+    item_id: typeof res.data.item_id === 'string' ? res.data.item_id : opts.itemId,
+    delivery_authorized: res.data.delivery_authorized === true,
+    lifecycle_status:
+      typeof res.data.lifecycle_status === 'string' ? res.data.lifecycle_status : 'RETIRED',
+    already_retired: res.data.already_retired === true,
   };
 }
 

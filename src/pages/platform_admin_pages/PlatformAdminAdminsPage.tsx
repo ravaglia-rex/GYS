@@ -51,6 +51,7 @@ import {
   platformAdminTextButtonSx,
 } from './platformAdminPageStyles';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
+import { isPlatformAdminHeadEmail } from '../../utils/platformAdminAccess';
 import { PlatformAdminChip, PlatformAdminPageHeader } from './platformAdminComponents';
 
 function axiosErrorMessage(error: unknown, fallback: string): string {
@@ -304,6 +305,7 @@ const PlatformAdminAdminsPage: React.FC = () => {
                 </TableRow>
               ) : (
                 admins.map((admin) => {
+                  const isHead = isPlatformAdminHeadEmail(admin.email);
                   const isSuper = admin.role === 'super';
                   const inviteBusy = inviteBusyEmail === admin.email;
                   const lastActive = admin.last_seen_at || admin.last_login_at;
@@ -314,7 +316,7 @@ const PlatformAdminAdminsPage: React.FC = () => {
                       <TableCell>{admin.position || '-'}</TableCell>
                       <TableCell>
                         <PlatformAdminChip
-                          label={isSuper ? 'Head admin' : 'Member'}
+                          label={isHead ? 'Head admin' : isSuper ? 'Super' : 'Member'}
                           tone={isSuper ? 'info' : 'neutral'}
                         />
                       </TableCell>

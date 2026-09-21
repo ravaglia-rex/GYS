@@ -62,6 +62,7 @@ const APPROVED_FILTER_LABELS: Record<string, string> = {
   all: 'All',
   yes: 'Approved',
   no: 'Not approved',
+  retired: 'Retired',
 };
 
 const LEVELS = [1, 2, 3];
@@ -93,7 +94,7 @@ function itemBankCacheKey(
   filters: OfficialItemBankFilters
 ): string {
   const filterPart = FILTER_KEYS.map((key) => `${key}=${filters[key] || ''}`).join('&');
-  return `${bankKind}|${examId}|${level}|v9|${filterPart}`;
+  return `${bankKind}|${examId}|${level}|v10|${filterPart}`;
 }
 
 function bankMatchesRequest(
@@ -128,7 +129,11 @@ function ItemBankVirtualList({
   /** Content edit dialog (AR taxonomy schema). Separate from approve/delete. */
   canEditContent?: boolean;
   bankKind?: ItemBankKind;
-  onApprovalChange?: (itemId: string, deliveryAuthorized: boolean) => void;
+  onApprovalChange?: (
+    itemId: string,
+    deliveryAuthorized: boolean,
+    lifecycleStatus?: string
+  ) => void;
   onItemUpdated?: (itemId: string, next: OfficialQuestionStatRow) => void;
   onItemDeleted?: (itemId: string) => void;
 }) {
@@ -157,8 +162,8 @@ function ItemBankVirtualList({
             canApprove={canApprove}
             canEditContent={canEditContent}
             bankKind={bankKind}
-            onApproved={(itemId, deliveryAuthorized) =>
-              onApprovalChange?.(itemId, deliveryAuthorized)
+            onApproved={(itemId, deliveryAuthorized, lifecycleStatus) =>
+              onApprovalChange?.(itemId, deliveryAuthorized, lifecycleStatus)
             }
             onItemUpdated={onItemUpdated}
             onItemDeleted={onItemDeleted}
@@ -174,8 +179,8 @@ function ItemBankVirtualList({
             canApprove={canApprove}
             canEditContent={canEditContent}
             bankKind={bankKind}
-            onApproved={(itemId, deliveryAuthorized) =>
-              onApprovalChange?.(itemId, deliveryAuthorized)
+            onApproved={(itemId, deliveryAuthorized, lifecycleStatus) =>
+              onApprovalChange?.(itemId, deliveryAuthorized, lifecycleStatus)
             }
             onItemUpdated={onItemUpdated}
             onItemDeleted={onItemDeleted}
@@ -507,7 +512,7 @@ export function PlatformAdminItemBankSection({
         : { [ALL_VALUE]: `All ${FILTER_LABELS[key].toLowerCase()}` };
     if (key === 'approved') {
       const counts = Object.fromEntries(options.map((row) => [row.key, row.count]));
-      for (const approvedKey of ['yes', 'no'] as const) {
+      for (const approvedKey of ['yes', 'no', 'retired'] as const) {
         const count = counts[approvedKey];
         labels[approvedKey] =
           count != null
@@ -541,33 +546,70 @@ export function PlatformAdminItemBankSection({
   };
 
   const handleApprovalChange = useCallback(
-    (itemId: string, deliveryAuthorized: boolean) => {
+    (itemId: string, deliveryAuthorized: boolean, lifecycleStatus?: string) => {
       setBank((prev) => {
         if (!prev) return prev;
-        // Facet counts are for the unfiltered level; keep using the previous
-        // totals so Approve/Unapprove only nudges yes/no by ±1.
         const prevApproved =
           prev.facets?.approved?.find((row) => row.key === 'yes')?.count ??
           prev.questions.filter((q) => q.delivery_authorized === true).length;
+        const prevRetired =
+          prev.facets?.approved?.find((row) => row.key === 'retired')?.count ??
+          prev.questions.filter(
+            (q) =>
+              q.delivery_authorized !== true &&
+              (q.lifecycle_status === 'RETIRED' || q.lifecycle_status === 'RETIRED_NOT_IN_POOL')
+          ).length;
         const prevNotApproved =
           prev.facets?.approved?.find((row) => row.key === 'no')?.count ??
-          Math.max(0, (prev.total_items || prev.questions.length) - prevApproved);
-        const wasAuthorized =
-          prev.questions.find((q) => q.item_id === itemId)?.delivery_authorized === true;
+          Math.max(
+            0,
+            (prev.total_items || prev.questions.length) - prevApproved - prevRetired
+          );
+
+        const existing = prev.questions.find((q) => q.item_id === itemId);
+        const wasAuthorized = existing?.delivery_authorized === true;
+        const wasRetired =
+          !wasAuthorized &&
+          (existing?.lifecycle_status === 'RETIRED' ||
+            existing?.lifecycle_status === 'RETIRED_NOT_IN_POOL');
+        const nextStatus =
+          typeof lifecycleStatus === 'string'
+            ? lifecycleStatus
+            : deliveryAuthorized
+              ? 'APPROVED'
+              : 'UNAPPROVED';
+        const nowRetired =
+          !deliveryAuthorized &&
+          (nextStatus === 'RETIRED' || nextStatus === 'RETIRED_NOT_IN_POOL');
+
         let approvedCount = prevApproved;
         let notApprovedCount = prevNotApproved;
-        if (wasAuthorized !== deliveryAuthorized) {
-          approvedCount = Math.max(0, prevApproved + (deliveryAuthorized ? 1 : -1));
-          notApprovedCount = Math.max(0, prevNotApproved + (deliveryAuthorized ? -1 : 1));
+        let retiredCount = prevRetired;
+        if (wasAuthorized !== deliveryAuthorized || wasRetired !== nowRetired) {
+          if (wasAuthorized) approvedCount = Math.max(0, approvedCount - 1);
+          else if (wasRetired) retiredCount = Math.max(0, retiredCount - 1);
+          else notApprovedCount = Math.max(0, notApprovedCount - 1);
+
+          if (deliveryAuthorized) approvedCount += 1;
+          else if (nowRetired) retiredCount += 1;
+          else notApprovedCount += 1;
         }
 
         let questions = prev.questions.map((q) =>
-          q.item_id === itemId ? { ...q, delivery_authorized: deliveryAuthorized } : q
+          q.item_id === itemId
+            ? {
+                ...q,
+                delivery_authorized: deliveryAuthorized,
+                lifecycle_status: nextStatus,
+              }
+            : q
         );
         // Stay consistent with the active Approval filter without a refetch.
         if (filters.approved === 'yes' && !deliveryAuthorized) {
           questions = questions.filter((q) => q.item_id !== itemId);
-        } else if (filters.approved === 'no' && deliveryAuthorized) {
+        } else if (filters.approved === 'no' && (deliveryAuthorized || nowRetired)) {
+          questions = questions.filter((q) => q.item_id !== itemId);
+        } else if (filters.approved === 'retired' && !nowRetired) {
           questions = questions.filter((q) => q.item_id !== itemId);
         }
 
@@ -581,6 +623,7 @@ export function PlatformAdminItemBankSection({
             approved: [
               { key: 'yes', label: 'Approved', count: approvedCount },
               { key: 'no', label: 'Not approved', count: notApprovedCount },
+              { key: 'retired', label: 'Retired', count: retiredCount },
             ],
           },
         };
@@ -605,14 +648,27 @@ export function PlatformAdminItemBankSection({
       const removed = prev.questions.find((q) => q.item_id === itemId);
       const questions = prev.questions.filter((q) => q.item_id !== itemId);
       const wasAuthorized = removed?.delivery_authorized === true;
+      const wasRetired =
+        !wasAuthorized &&
+        (removed?.lifecycle_status === 'RETIRED' ||
+          removed?.lifecycle_status === 'RETIRED_NOT_IN_POOL');
       const prevApproved =
         prev.facets?.approved?.find((row) => row.key === 'yes')?.count ??
         prev.questions.filter((q) => q.delivery_authorized === true).length;
+      const prevRetired =
+        prev.facets?.approved?.find((row) => row.key === 'retired')?.count ??
+        prev.questions.filter(
+          (q) =>
+            q.delivery_authorized !== true &&
+            (q.lifecycle_status === 'RETIRED' || q.lifecycle_status === 'RETIRED_NOT_IN_POOL')
+        ).length;
       const prevNotApproved =
         prev.facets?.approved?.find((row) => row.key === 'no')?.count ??
-        Math.max(0, (prev.total_items || prev.questions.length) - prevApproved);
+        Math.max(0, (prev.total_items || prev.questions.length) - prevApproved - prevRetired);
       const approvedCount = wasAuthorized ? Math.max(0, prevApproved - 1) : prevApproved;
-      const notApprovedCount = wasAuthorized ? prevNotApproved : Math.max(0, prevNotApproved - 1);
+      const retiredCount = wasRetired ? Math.max(0, prevRetired - 1) : prevRetired;
+      const notApprovedCount =
+        wasAuthorized || wasRetired ? prevNotApproved : Math.max(0, prevNotApproved - 1);
       return {
         ...prev,
         questions,
@@ -624,6 +680,7 @@ export function PlatformAdminItemBankSection({
               approved: [
                 { key: 'yes', label: 'Approved', count: approvedCount },
                 { key: 'no', label: 'Not approved', count: notApprovedCount },
+                { key: 'retired', label: 'Retired', count: retiredCount },
               ],
             }
           : prev.facets,

@@ -50,6 +50,8 @@ import {
   approvePlatformAdminPracticeExamBankItem,
   deletePlatformAdminOfficialExamBankItem,
   deletePlatformAdminPracticeExamBankItem,
+  retirePlatformAdminOfficialExamBankItem,
+  retirePlatformAdminPracticeExamBankItem,
   unapprovePlatformAdminOfficialExamBankItem,
   unapprovePlatformAdminPracticeExamBankItem,
   updatePlatformAdminOfficialExamBankItem,
@@ -655,13 +657,17 @@ export function PlatformAdminQuestionPerformanceCard({
   variant?: 'card' | 'nested';
   /** Override stem shown in the body (e.g. question-only under a shared passage). */
   displayStem?: string | null;
-  onApproved?: (itemId: string, deliveryAuthorized: boolean) => void;
+  onApproved?: (itemId: string, deliveryAuthorized: boolean, lifecycleStatus?: string) => void;
   onItemUpdated?: (itemId: string, next: OfficialQuestionStatRow) => void;
   onItemDeleted?: (itemId: string) => void;
 }) {
   const [approving, setApproving] = useState(false);
+  const [approvalAction, setApprovalAction] = useState<'approve' | 'unapprove' | null>(null);
+  const [retiring, setRetiring] = useState(false);
+  const [retireOpen, setRetireOpen] = useState(false);
   const [approveError, setApproveError] = useState<string | null>(null);
   const [localAuthorized, setLocalAuthorized] = useState<boolean | null>(null);
+  const [localLifecycleStatus, setLocalLifecycleStatus] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -683,10 +689,20 @@ export function PlatformAdminQuestionPerformanceCard({
 
   useEffect(() => {
     setLocalAuthorized(null);
-  }, [question.item_id, question.delivery_authorized]);
+    setLocalLifecycleStatus(null);
+  }, [question.item_id, question.delivery_authorized, question.lifecycle_status]);
 
   const authorized =
     localAuthorized != null ? localAuthorized : question.delivery_authorized === true;
+  const lifecycleStatus =
+    localLifecycleStatus != null
+      ? localLifecycleStatus
+      : typeof question.lifecycle_status === 'string'
+        ? question.lifecycle_status
+        : null;
+  const retired =
+    !authorized &&
+    (lifecycleStatus === 'RETIRED' || lifecycleStatus === 'RETIRED_NOT_IN_POOL');
   const canMutate = Boolean(canApprove && examId && level && question.item_id);
   const canEdit = Boolean(canEditContent && examId && level && question.item_id);
   const taxonomy = [question.strand, question.instruction_family, question.band]
@@ -784,48 +800,94 @@ export function PlatformAdminQuestionPerformanceCard({
     }
   };
 
-  const handleApprovalToggle = async () => {
-    if (!canApprove || !examId || !level || !question.item_id || approving) return;
+  const handleApprove = async () => {
+    if (!canApprove || !examId || !level || !question.item_id || approving || authorized) return;
     setApproving(true);
+    setApprovalAction('approve');
     setApproveError(null);
     try {
-      if (authorized) {
-        if (bankKind === 'practice') {
-          await unapprovePlatformAdminPracticeExamBankItem({
-            examId,
-            level,
-            itemId: question.item_id,
-          });
-        } else {
-          await unapprovePlatformAdminOfficialExamBankItem({
-            examId,
-            level,
-            itemId: question.item_id,
-          });
-        }
-        setLocalAuthorized(false);
-        onApproved?.(question.item_id, false);
+      if (bankKind === 'practice') {
+        await approvePlatformAdminPracticeExamBankItem({
+          examId,
+          level,
+          itemId: question.item_id,
+        });
       } else {
-        if (bankKind === 'practice') {
-          await approvePlatformAdminPracticeExamBankItem({
-            examId,
-            level,
-            itemId: question.item_id,
-          });
-        } else {
-          await approvePlatformAdminOfficialExamBankItem({
-            examId,
-            level,
-            itemId: question.item_id,
-          });
-        }
-        setLocalAuthorized(true);
-        onApproved?.(question.item_id, true);
+        await approvePlatformAdminOfficialExamBankItem({
+          examId,
+          level,
+          itemId: question.item_id,
+        });
       }
+      setLocalAuthorized(true);
+      setLocalLifecycleStatus('APPROVED');
+      onApproved?.(question.item_id, true, 'APPROVED');
     } catch (e) {
-      setApproveError(apiErrorMessage(e, authorized ? 'Unapprove failed' : 'Approve failed'));
+      setApproveError(apiErrorMessage(e, 'Approve failed'));
     } finally {
       setApproving(false);
+      setApprovalAction(null);
+    }
+  };
+
+  const handleUnapprove = async () => {
+    if (!canApprove || !examId || !level || !question.item_id || approving) return;
+    // Approved → unapproved, or retired → unapproved.
+    if (!authorized && !retired) return;
+    setApproving(true);
+    setApprovalAction('unapprove');
+    setApproveError(null);
+    try {
+      if (bankKind === 'practice') {
+        await unapprovePlatformAdminPracticeExamBankItem({
+          examId,
+          level,
+          itemId: question.item_id,
+        });
+      } else {
+        await unapprovePlatformAdminOfficialExamBankItem({
+          examId,
+          level,
+          itemId: question.item_id,
+        });
+      }
+      setLocalAuthorized(false);
+      setLocalLifecycleStatus('UNAPPROVED');
+      onApproved?.(question.item_id, false, 'UNAPPROVED');
+    } catch (e) {
+      setApproveError(apiErrorMessage(e, 'Unapprove failed'));
+    } finally {
+      setApproving(false);
+      setApprovalAction(null);
+    }
+  };
+
+  const handleRetire = async () => {
+    if (!canApprove || !examId || !level || !question.item_id || retiring || retired) return;
+    setRetiring(true);
+    setApproveError(null);
+    try {
+      if (bankKind === 'practice') {
+        await retirePlatformAdminPracticeExamBankItem({
+          examId,
+          level,
+          itemId: question.item_id,
+        });
+      } else {
+        await retirePlatformAdminOfficialExamBankItem({
+          examId,
+          level,
+          itemId: question.item_id,
+        });
+      }
+      setLocalAuthorized(false);
+      setLocalLifecycleStatus('RETIRED');
+      setRetireOpen(false);
+      onApproved?.(question.item_id, false, 'RETIRED');
+    } catch (e) {
+      setApproveError(apiErrorMessage(e, 'Retire failed'));
+    } finally {
+      setRetiring(false);
     }
   };
 
@@ -900,8 +962,14 @@ export function PlatformAdminQuestionPerformanceCard({
         </Typography>
         {canApprove ? (
           <PlatformAdminChip
-            label={authorized ? 'Approved · servable' : 'Not approved'}
-            tone={authorized ? 'success' : 'warning'}
+            label={
+              authorized
+                ? 'Approved · servable'
+                : retired
+                  ? 'Retired'
+                  : 'Not approved'
+            }
+            tone={authorized ? 'success' : retired ? 'neutral' : 'warning'}
           />
         ) : null}
         <PlatformAdminChip
@@ -947,38 +1015,97 @@ export function PlatformAdminQuestionPerformanceCard({
                 Edit
               </Button>
             ) : null}
-            <Button
-              size="small"
-              variant="contained"
-              disabled={approving}
-              onClick={() => void handleApprovalToggle()}
-              startIcon={
-                approving ? (
-                  <CircularProgress size={14} thickness={5} sx={{ color: 'inherit' }} />
-                ) : undefined
-              }
-              sx={{
-                textTransform: 'none',
-                fontWeight: 700,
-                minWidth: 118,
-                bgcolor: authorized ? '#b91c1c' : ip.navy,
-                color: '#fff',
-                '&:hover': { bgcolor: authorized ? '#991b1b' : ip.navy },
-                '&.Mui-disabled': {
-                  bgcolor: authorized ? '#b91c1c' : ip.navy,
-                  color: '#fff',
-                  opacity: 0.85,
-                },
-              }}
-            >
-              {approving
-                ? authorized
+            {!retired ? (
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={approving || retiring}
+                onClick={() => {
+                  setApproveError(null);
+                  setRetireOpen(true);
+                }}
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  borderColor: '#64748b',
+                  color: '#475569',
+                  '&:hover': { borderColor: '#475569', bgcolor: 'rgba(71, 85, 105, 0.04)' },
+                }}
+              >
+                Retire
+              </Button>
+            ) : null}
+            {authorized || retired ? (
+              <Button
+                size="small"
+                variant={authorized ? 'contained' : 'outlined'}
+                disabled={approving || retiring}
+                onClick={() => void handleUnapprove()}
+                startIcon={
+                  approvalAction === 'unapprove' ? (
+                    <CircularProgress size={14} thickness={5} sx={{ color: 'inherit' }} />
+                  ) : undefined
+                }
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  minWidth: authorized ? 118 : 140,
+                  ...(authorized
+                    ? {
+                        bgcolor: '#b91c1c',
+                        color: '#fff',
+                        '&:hover': { bgcolor: '#991b1b' },
+                        '&.Mui-disabled': {
+                          bgcolor: '#b91c1c',
+                          color: '#fff',
+                          opacity: 0.85,
+                        },
+                      }
+                    : {
+                        borderColor: '#64748b',
+                        color: '#475569',
+                        '&:hover': {
+                          borderColor: '#475569',
+                          bgcolor: 'rgba(71, 85, 105, 0.04)',
+                        },
+                      }),
+                }}
+              >
+                {approvalAction === 'unapprove'
                   ? 'Unapproving…'
-                  : 'Approving…'
-                : authorized
-                  ? 'Unapprove'
-                  : 'Approve'}
-            </Button>
+                  : retired
+                    ? 'Move to Unapproved'
+                    : 'Unapprove'}
+              </Button>
+            ) : null}
+            {!authorized ? (
+              <Button
+                size="small"
+                variant="contained"
+                disabled={approving || retiring}
+                onClick={() => void handleApprove()}
+                startIcon={
+                  approvalAction === 'approve' ? (
+                    <CircularProgress size={14} thickness={5} sx={{ color: 'inherit' }} />
+                  ) : undefined
+                }
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  minWidth: 118,
+                  bgcolor: ip.navy,
+                  color: '#fff',
+                  '&:hover': { bgcolor: ip.navy },
+                  '&.Mui-disabled': {
+                    bgcolor: ip.navy,
+                    color: '#fff',
+                    opacity: 0.85,
+                  },
+                }}
+              >
+                {approvalAction === 'approve' ? 'Approving…' : 'Approve'}
+              </Button>
+            ) : null}
           </Box>
         ) : null}
       </Box>
@@ -1398,11 +1525,65 @@ export function PlatformAdminQuestionPerformanceCard({
           ) : null}
         </DialogActions>
       </Dialog>
+
+      <Dialog
+        open={retireOpen}
+        onClose={() => (retiring ? null : setRetireOpen(false))}
+        fullWidth
+        maxWidth="sm"
+        PaperProps={{ sx: platformAdminDialogPaperSx }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, color: ip.heading }}>Retire bank item</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ color: '#475569', fontSize: 14, mb: 1 }}>
+            Retire <strong>{question.item_id}</strong>? It leaves the live serve pool (if it was
+            approved) and moves to the Retired filter — use this when a newer version replaces it.
+          </Typography>
+          <Typography sx={{ color: '#64748b', fontSize: 13 }}>
+            From Retired you can Approve again or Move to Unapproved.
+          </Typography>
+          {approveError ? (
+            <Typography sx={{ color: '#b91c1c', fontSize: 13, mt: 1.5 }}>{approveError}</Typography>
+          ) : null}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button
+            onClick={() => setRetireOpen(false)}
+            disabled={retiring}
+            sx={{ textTransform: 'none' }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            disabled={retiring}
+            onClick={() => void handleRetire()}
+            startIcon={
+              retiring ? (
+                <CircularProgress size={14} thickness={5} sx={{ color: 'inherit' }} />
+              ) : undefined
+            }
+            sx={{
+              textTransform: 'none',
+              fontWeight: 700,
+              minWidth: 120,
+              bgcolor: '#475569',
+              color: '#fff',
+              '&:hover': { bgcolor: '#334155' },
+              '&.Mui-disabled': {
+                bgcolor: '#475569',
+                color: '#fff',
+                opacity: 0.85,
+              },
+            }}
+          >
+            {retiring ? 'Retiring…' : 'Retire'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
-
-/** One bordered card: shared passage once, then each linked question (Qn / Qn+1…). */
 export function PlatformAdminPassageSetCard({
   passageId,
   members,
@@ -1424,7 +1605,7 @@ export function PlatformAdminPassageSetCard({
   canApprove?: boolean;
   canEditContent?: boolean;
   bankKind?: 'official' | 'practice';
-  onApproved?: (itemId: string, deliveryAuthorized: boolean) => void;
+  onApproved?: (itemId: string, deliveryAuthorized: boolean, lifecycleStatus?: string) => void;
   onItemUpdated?: (itemId: string, next: OfficialQuestionStatRow) => void;
   onItemDeleted?: (itemId: string) => void;
 }) {

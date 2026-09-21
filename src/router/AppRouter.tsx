@@ -4,6 +4,7 @@ import Protected from '../components/route_protection/Protected';
 import SchoolAdminRoute from '../components/route_protection/SchoolAdminRoute';
 import PlatformAdminRoute from '../components/route_protection/PlatformAdminRoute';
 import PlatformAdminSuperRoute from '../components/route_protection/PlatformAdminSuperRoute';
+import PlatformAdminHeadRoute from '../components/route_protection/PlatformAdminHeadRoute';
 import PlatformAdminAnalyticsRoute from '../components/route_protection/PlatformAdminAnalyticsRoute';
 import NotFoundPage from '../pages/NotFoundPage';
 import LocalStorageErrorPage from '../pages/LocalStorageErrorPage';
@@ -625,9 +626,9 @@ const AppRouter: React.FC = () => {
           <Route
             path="/platform-admin/admins"
             element={
-              <PlatformAdminSuperRoute nested>
+              <PlatformAdminHeadRoute nested>
                 <PlatformAdminAdminsPage />
-              </PlatformAdminSuperRoute>
+              </PlatformAdminHeadRoute>
             }
           />
         </Route>

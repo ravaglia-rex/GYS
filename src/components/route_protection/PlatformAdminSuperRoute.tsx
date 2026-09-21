@@ -18,7 +18,7 @@ const PlatformAdminSuperRoute: React.FC<PlatformAdminSuperRouteProps> = ({ child
     ) : (
       <Box sx={{ p: 4, maxWidth: 480, mx: 'auto', mt: 8 }}>
         <Alert severity="error">
-          This section is restricted to the platform head admin.
+          This section is restricted to platform super admins.
         </Alert>
       </Box>
     );
