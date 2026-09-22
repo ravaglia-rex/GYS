@@ -136,12 +136,14 @@ const AssessmentDetailPage: React.FC = () => {
 
   const flow = assessmentId ? getAssessmentFlowDefinition(assessmentId) : getAssessmentFlowDefinition('');
   const viewerEmail = auth.currentUser?.email;
+  const officialSchoolId = officialAssessmentSchoolIdFromStudent(student);
   const rawGate = assessmentId
     ? computeGate(assessmentId, membershipLevel, progressMap as any, studentGrade, assessmentTypes)
     : { locked: true, reason: 'membership' as const, requiredMembershipLevel: 3 };
-  // Restricted early-access starters (e.g. Math L1 for Divyam/Vishrut) ignore sequence prereqs.
+  // Restricted early-access starters ignore sequence prereqs.
+  // Aspee Nutan may open Verbal without an Analytical attempt.
   const gate = assessmentId
-    ? gateWithRestrictedStarterBypass(assessmentId, rawGate, viewerEmail, tier)
+    ? gateWithRestrictedStarterBypass(assessmentId, rawGate, viewerEmail, tier, officialSchoolId)
     : rawGate;
 
   const progressForAssessment = assessmentId
@@ -151,7 +153,6 @@ const AssessmentDetailPage: React.FC = () => {
       }
     : defaultAssessmentProgress;
   const maxTierCount = levelBased ? assessment?.tiers?.length ?? 1 : 0;
-  const officialSchoolId = officialAssessmentSchoolIdFromStudent(student);
   const tierAttemptAllowed =
     !!assessment &&
     !!assessmentId &&

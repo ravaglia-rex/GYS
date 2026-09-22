@@ -126,7 +126,9 @@ const Dashboard: React.FC = () => {
       const gate = gateWithRestrictedStarterBypass(
         a.id,
         computeGate(a.id, membershipLevel, progress, studentGrade, sorted),
-        userEmail
+        userEmail,
+        undefined,
+        officialSchoolId
       );
       const done = isAssessmentFullyComplete(a, p);
       if (done) {

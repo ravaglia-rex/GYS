@@ -1116,7 +1116,7 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
     const rawGate = computeGate(a.id, membershipLevel, progressMap, studentGrade, assessmentTypes);
     const gate = previewBundle
       ? rawGate
-      : gateWithRestrictedStarterBypass(a.id, rawGate, viewerEmail);
+      : gateWithRestrictedStarterBypass(a.id, rawGate, viewerEmail, undefined, officialSchoolId);
     return { assessment: a, progress, gate };
   });
 

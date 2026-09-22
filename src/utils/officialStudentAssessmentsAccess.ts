@@ -64,6 +64,25 @@ export const OFFICIAL_SCHOOL_LIVE_ASSESSMENTS: Record<
   },
 };
 
+export function isAspeeNutanAcademySchool(schoolId: unknown): boolean {
+  const id = typeof schoolId === 'string' ? schoolId.trim() : '';
+  return id === ASPEE_NUTAN_ACADEMY_SCHOOL_ID;
+}
+
+/**
+ * Aspee Nutan students may start Verbal without attempting or clearing Analytical.
+ * Does not skip membership, Verbal level locks, or other exams' sequence.
+ */
+export function aspeeVerbalSkipsAnalyticalSequence(
+  assessmentId: string,
+  schoolId: unknown
+): boolean {
+  return (
+    canonicalAssessmentId(assessmentId) === 'verbal_reasoning' &&
+    isAspeeNutanAcademySchool(schoolId)
+  );
+}
+
 /**
  * Exams beta testers may start before public live launch.
  * Same student feel otherwise (non-listed exams stay "coming soon").
