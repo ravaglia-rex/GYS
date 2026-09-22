@@ -187,6 +187,8 @@ export interface PrefetchNextQuestionResponse {
   next_index: number | null;
   prefetchable: boolean;
   passage_group?: VerbalPassageGroup | null;
+  /** True when the server included `passage_group` (null means the next item is a solo). */
+  passage_group_resolved?: boolean;
 }
 
 export interface CompleteExamResponse {
@@ -279,6 +281,15 @@ export const initializeExam = async (
   return response.data;
 };
 
+function passageGroupFromPayload(raw: unknown): VerbalPassageGroup | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const group = raw as VerbalPassageGroup;
+  if (typeof group.group_size !== 'number' || group.group_size < 2) return null;
+  if (typeof group.passage_markdown !== 'string' || !group.passage_markdown.trim()) return null;
+  if (!Array.isArray(group.questions) || group.questions.length < 2) return null;
+  return group;
+}
+
 export const prefetchNextQuestion = async (
   uid: string,
   attempt_id: string
@@ -292,13 +303,16 @@ export const prefetchNextQuestion = async (
       timeout: EXAM_MUTATION_TIMEOUT_MS,
     }
   );
+  const data = response.data;
+  const payload =
+    data && typeof data === 'object' ? (data as Record<string, unknown>) : null;
   return {
-    next_question: response.data?.next_question ?? null,
-    next_item_id:
-      typeof response.data?.next_item_id === 'string' ? response.data.next_item_id : null,
-    next_index:
-      typeof response.data?.next_index === 'number' ? response.data.next_index : null,
-    prefetchable: response.data?.prefetchable === true,
+    next_question: (payload?.next_question as ExamQuestion | null | undefined) ?? null,
+    next_item_id: typeof payload?.next_item_id === 'string' ? payload.next_item_id : null,
+    next_index: typeof payload?.next_index === 'number' ? payload.next_index : null,
+    prefetchable: payload?.prefetchable === true,
+    passage_group: passageGroupFromPayload(payload?.passage_group),
+    passage_group_resolved: payload != null && Object.prototype.hasOwnProperty.call(payload, 'passage_group'),
   };
 };
 

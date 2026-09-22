@@ -360,6 +360,8 @@ export default function AssessmentTakePage() {
     itemId: string;
     question: ExamQuestion;
     passageGroup?: VerbalPassageGroup | null;
+    /** Server answered whether the next screen is a shared passage (null = solo). */
+    passageGroupResolved?: boolean;
     nextIndex?: number;
   } | null>(null);
 
@@ -853,7 +855,11 @@ export default function AssessmentTakePage() {
           prefetchRef.current.fromIndex === currentIndex
             ? prefetchRef.current
             : null;
-        const hasWarmNext = Boolean(pref?.question || (pref?.passageGroup && pref.passageGroup.group_size >= 2));
+        const warmedGroup = Boolean(pref?.passageGroup && pref.passageGroup.group_size >= 2);
+        // A prefetched question alone is not the next screen. Skipping the server
+        // group rebuild in that case opened the first item of the next passage alone.
+        const warmedSolo = Boolean(pref?.question && pref.passageGroupResolved && !warmedGroup);
+        const hasWarmNext = warmedGroup || warmedSolo;
 
         const lastResponse =
           batchAnswers.length >= 2
@@ -863,7 +869,7 @@ export default function AssessmentTakePage() {
                 batchAnswers,
                 timeSpentMs,
                 fingerprint,
-                // Skip rebuilding next screen when prefetch already warmed it.
+                // Skip rebuilding next screen only when prefetch already has that screen.
                 { includePassageGroup: !hasWarmNext }
               )
             : await recordAnswer(
@@ -987,6 +993,7 @@ export default function AssessmentTakePage() {
           itemId: res.next_item_id,
           question: res.next_question,
           passageGroup: res.passage_group ?? null,
+          passageGroupResolved: res.passage_group_resolved === true,
           nextIndex: typeof res.next_index === 'number' ? res.next_index : undefined,
         };
       } catch {

@@ -10,7 +10,6 @@ import { canonicalAssessmentId } from './assessmentIdCompat';
  */
 export const OFFICIAL_STUDENT_ASSESSMENT_BETA_EMAILS = new Set([
   'srishti2k1@gmail.com',
-  'srishti+student@argus.ai',
   'michael+student@argus.ai',
   'masonfewel@gmail.com',
   'divyam.ew+1@gmail.com',
@@ -84,7 +83,6 @@ export const OFFICIAL_RESTRICTED_STARTABLE_ASSESSMENT_EMAILS: Record<
   ReadonlySet<string>
 > = {
   verbal_reasoning: new Set([
-    'srishti+student@argus.ai',
     'divyam.ew+1@gmail.com',
     'vv@accessmca.com',
     'jash17desai@gmail.com',
@@ -93,7 +91,6 @@ export const OFFICIAL_RESTRICTED_STARTABLE_ASSESSMENT_EMAILS: Record<
   mathematical_reasoning: new Set([
     'divyam.ew+1@gmail.com',
     'vv@accessmca.com',
-    'srishti+student@argus.ai',
   ]),
 };
 
