@@ -61,6 +61,7 @@ export const OFFICIAL_SCHOOL_LIVE_ASSESSMENTS: Record<
 > = {
   [ASPEE_NUTAN_ACADEMY_SCHOOL_ID]: {
     analytical_reasoning: new Set([1]),
+    verbal_reasoning: new Set([1]),
   },
 };
 
