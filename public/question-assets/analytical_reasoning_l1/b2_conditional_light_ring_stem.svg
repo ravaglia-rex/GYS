@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="960" viewBox="0 0 1500 960" role="img" aria-labelledby="title desc">
+  <title id="title">Conditional-turn light-ring examples and target</title>
+  <desc id="desc">Two before-and-after examples and one target show four lights attached to a marked circular plate.</desc>
+  <defs>
+    <style>
+      .heading{font:700 38px Arial,sans-serif;fill:#24344d}.section{font:700 29px Arial,sans-serif;fill:#24344d}.label{font:600 22px Arial,sans-serif;fill:#52647e}.option{font:700 28px Arial,sans-serif;fill:#24344d}.plate{fill:#fbfcfe;stroke:#8797ad;stroke-width:7}.tab{fill:#e68145;stroke:#b85d28;stroke-width:3}.on{fill:#26364f;stroke:#26364f;stroke-width:4}.off{fill:#fff;stroke:#26364f;stroke-width:5}.flow{fill:none;stroke:#536c94;stroke-width:6;stroke-linecap:round}.divider{stroke:#dce3ec;stroke-width:3}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto"><path d="M0 0L12 6 0 12Z" fill="#536c94"/></marker>
+  </defs>
+  <rect width="1500" height="1210" fill="#fff"/>
+  <text x="750" y="58" text-anchor="middle" class="heading">Light-ring examples</text>
+  <g transform="translate(500 115)"><circle r="15" class="on"/><text x="30" y="8" class="label">ON</text></g>
+  <g transform="translate(700 115)"><circle r="15" class="off"/><text x="30" y="8" class="label">OFF</text></g>
+  <g transform="translate(900 115)"><path d="M-13 10 L0-13 13 10 Z" class="tab"/><text x="30" y="8" class="label">PLATE MARKER</text></g>
+  <line x1="90" y1="160" x2="1410" y2="160" class="divider"/>
+  <text x="90" y="212" class="section">Examples</text><text x="440" y="212" text-anchor="middle" class="label">BEFORE</text><text x="1050" y="212" text-anchor="middle" class="label">AFTER</text>
+
+  <!-- Example 1: top pair matches; clockwise -->
+  <text x="130" y="352" class="option">1</text>
+  <g transform="translate(440 330)"><circle r="90" class="plate"/><path d="M-15-92 L0-116 15-92 Z" class="tab"/><circle cx="0" cy="-64" r="19" class="on"/><circle cx="64" cy="0" r="19" class="on"/><circle cx="0" cy="64" r="19" class="off"/><circle cx="-64" cy="0" r="19" class="off"/></g>
+  <path d="M650 330H840" class="flow" marker-end="url(#arrow)"/>
+  <g transform="translate(1050 330)"><circle r="90" class="plate"/><path d="M92-15 L116 0 92 15 Z" class="tab"/><circle cx="0" cy="-64" r="19" class="off"/><circle cx="64" cy="0" r="19" class="on"/><circle cx="0" cy="64" r="19" class="off"/><circle cx="-64" cy="0" r="19" class="on"/></g>
+
+  <!-- Example 2: top pair differs; counterclockwise -->
+  <text x="130" y="562" class="option">2</text>
+  <g transform="translate(440 540)"><circle r="90" class="plate"/><path d="M-15-92 L0-116 15-92 Z" class="tab"/><circle cx="0" cy="-64" r="19" class="on"/><circle cx="64" cy="0" r="19" class="off"/><circle cx="0" cy="64" r="19" class="off"/><circle cx="-64" cy="0" r="19" class="off"/></g>
+  <path d="M650 540H840" class="flow" marker-end="url(#arrow)"/>
+  <g transform="translate(1050 540)"><circle r="90" class="plate"/><path d="M-92-15 L-116 0 -92 15 Z" class="tab"/><circle cx="0" cy="-64" r="19" class="on"/><circle cx="64" cy="0" r="19" class="on"/><circle cx="0" cy="64" r="19" class="off"/><circle cx="-64" cy="0" r="19" class="off"/></g>
+
+  <line x1="90" y1="660" x2="1410" y2="660" class="divider"/>
+  <text x="90" y="714" class="section">Target</text>
+  <g transform="translate(300 835)"><circle r="90" class="plate"/><path d="M-15-92 L0-116 15-92 Z" class="tab"/><circle cx="0" cy="-64" r="19" class="off"/><circle cx="64" cy="0" r="19" class="off"/><circle cx="0" cy="64" r="19" class="on"/><circle cx="-64" cy="0" r="19" class="off"/></g>
+  <path d="M440 835H560" class="flow" marker-end="url(#arrow)"/><text x="625" y="848" text-anchor="middle" class="heading">?</text>
+
+</svg>

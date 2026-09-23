@@ -731,6 +731,57 @@ export type OfficialExamItemScoreAnalytics = {
   generated_at: string;
 };
 
+export type OfficialAbilityGroupKey = 'lower' | 'middle' | 'upper';
+
+export type OfficialAbilityGradientLabel =
+  | 'insufficient_evidence'
+  | 'reversed'
+  | 'non_monotonic'
+  | 'weak_flat'
+  | 'increasing';
+
+export type OfficialAbilityGroupMetrics = {
+  group: OfficialAbilityGroupKey;
+  n: number;
+  n_correct: number;
+  correct_pct: number | null;
+  wilson_ci_low: number | null;
+  wilson_ci_high: number | null;
+  median_time_ms: number | null;
+  median_time_sec: number | null;
+  rapid_pct: number | null;
+};
+
+export type OfficialItemAbilityAnalytics = {
+  item_id: string;
+  total_submitted: number;
+  by_group: OfficialAbilityGroupMetrics[];
+  upper_minus_lower_pp: number | null;
+  correlation: number | null;
+  logistic_slope: number | null;
+  logistic_intercept: number | null;
+  label: OfficialAbilityGradientLabel;
+  time_expired_or_unattempted_n: number;
+};
+
+export type OfficialExamItemAbilityAnalytics = {
+  exam_id: string;
+  item_id: string;
+  level_filter: number | null;
+  analytics: OfficialItemAbilityAnalytics | null;
+  calibration: {
+    generated_at: string | null;
+    model_version: string | null;
+    retained_students: number;
+    retained_responses: number;
+    threshold_p33: number | null;
+    threshold_p67: number | null;
+    rapid_response_ms: number | null;
+    active_exclusions: string[];
+  };
+  source: 'ability_calibration' | 'empty';
+};
+
 export type OfficialExamAbandons = {
   exam_id: string;
   level_filter: number | null;
@@ -824,6 +875,9 @@ export async function searchPlatformAdminOfficialExamCompletions(
     from?: string;
     to?: string;
     level?: number | null;
+    /** Inclusive /1000 score band (matches Score distribution bars). */
+    scoreMin?: number | null;
+    scoreMax?: number | null;
     /** 1–100 page size; pass 0 for all matched rows. */
     limit?: number;
   }
@@ -842,6 +896,12 @@ export async function searchPlatformAdminOfficialExamCompletions(
   if (opts?.from) params.from = opts.from;
   if (opts?.to) params.to = opts.to;
   if (typeof opts?.level === 'number' && opts.level > 0) params.level = opts.level;
+  if (typeof opts?.scoreMin === 'number' && Number.isFinite(opts.scoreMin)) {
+    params.score_min = Math.floor(opts.scoreMin);
+  }
+  if (typeof opts?.scoreMax === 'number' && Number.isFinite(opts.scoreMax)) {
+    params.score_max = Math.floor(opts.scoreMax);
+  }
   const res = await axios.get(
     `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAMS}/${encodeURIComponent(examId)}/completions`,
     { headers, params }
@@ -1019,6 +1079,81 @@ export async function getPlatformAdminOfficialExamItemScoreAnalytics(
       density: Array.isArray(raw.density) ? raw.density : [],
     },
     generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
+  };
+}
+
+export async function getPlatformAdminOfficialExamItemAbilityAnalytics(
+  examId: string,
+  opts: { itemId: string; level?: number | null }
+): Promise<OfficialExamItemAbilityAnalytics> {
+  const headers = await authHeaders();
+  const params: Record<string, string | number> = {};
+  if (typeof opts.level === 'number' && opts.level > 0) params.level = opts.level;
+  const res = await axios.get(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAMS}/${encodeURIComponent(examId)}/item-ability-analytics/${encodeURIComponent(opts.itemId)}`,
+    { headers, params }
+  );
+  const raw = res.data?.analytics && typeof res.data.analytics === 'object' ? res.data.analytics : null;
+  const calib =
+    res.data?.calibration && typeof res.data.calibration === 'object' ? res.data.calibration : {};
+  const byGroupRaw = Array.isArray(raw?.by_group) ? raw.by_group : [];
+  const by_group = byGroupRaw.map(
+    (g: Record<string, unknown>): OfficialAbilityGroupMetrics => ({
+      group:
+        g.group === 'lower' || g.group === 'middle' || g.group === 'upper' ? g.group : 'lower',
+      n: Number(g.n) || 0,
+      n_correct: Number(g.n_correct) || 0,
+      correct_pct: typeof g.correct_pct === 'number' ? g.correct_pct : null,
+      wilson_ci_low: typeof g.wilson_ci_low === 'number' ? g.wilson_ci_low : null,
+      wilson_ci_high: typeof g.wilson_ci_high === 'number' ? g.wilson_ci_high : null,
+      median_time_ms: typeof g.median_time_ms === 'number' ? g.median_time_ms : null,
+      median_time_sec: typeof g.median_time_sec === 'number' ? g.median_time_sec : null,
+      rapid_pct: typeof g.rapid_pct === 'number' ? g.rapid_pct : null,
+    })
+  );
+  const labelRaw = raw?.label;
+  const label: OfficialAbilityGradientLabel =
+    labelRaw === 'insufficient_evidence' ||
+    labelRaw === 'reversed' ||
+    labelRaw === 'non_monotonic' ||
+    labelRaw === 'weak_flat' ||
+    labelRaw === 'increasing'
+      ? labelRaw
+      : 'insufficient_evidence';
+
+  return {
+    exam_id: typeof res.data.exam_id === 'string' ? res.data.exam_id : examId,
+    item_id: typeof res.data.item_id === 'string' ? res.data.item_id : opts.itemId,
+    level_filter: typeof res.data.level_filter === 'number' ? res.data.level_filter : null,
+    analytics: raw
+      ? {
+          item_id: typeof raw.item_id === 'string' ? raw.item_id : opts.itemId,
+          total_submitted: Number(raw.total_submitted) || 0,
+          by_group,
+          upper_minus_lower_pp:
+            typeof raw.upper_minus_lower_pp === 'number' ? raw.upper_minus_lower_pp : null,
+          correlation: typeof raw.correlation === 'number' ? raw.correlation : null,
+          logistic_slope: typeof raw.logistic_slope === 'number' ? raw.logistic_slope : null,
+          logistic_intercept:
+            typeof raw.logistic_intercept === 'number' ? raw.logistic_intercept : null,
+          label,
+          time_expired_or_unattempted_n: Number(raw.time_expired_or_unattempted_n) || 0,
+        }
+      : null,
+    calibration: {
+      generated_at: typeof calib.generated_at === 'string' ? calib.generated_at : null,
+      model_version: typeof calib.model_version === 'string' ? calib.model_version : null,
+      retained_students: Number(calib.retained_students) || 0,
+      retained_responses: Number(calib.retained_responses) || 0,
+      threshold_p33: typeof calib.threshold_p33 === 'number' ? calib.threshold_p33 : null,
+      threshold_p67: typeof calib.threshold_p67 === 'number' ? calib.threshold_p67 : null,
+      rapid_response_ms:
+        typeof calib.rapid_response_ms === 'number' ? calib.rapid_response_ms : null,
+      active_exclusions: Array.isArray(calib.active_exclusions)
+        ? calib.active_exclusions.filter((x: unknown): x is string => typeof x === 'string')
+        : [],
+    },
+    source: res.data?.source === 'ability_calibration' ? 'ability_calibration' : 'empty',
   };
 }
 

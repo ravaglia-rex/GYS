@@ -747,12 +747,12 @@ function PlatformAdminSchoolDetailPage() {
       });
       setMarkPaidOpen(false);
       setSuccessMessage(
-        `School marked as paid. Invoice ${result.invoiceNumber}.` +
+        `School marked as paid. Invoice ${result.invoiceNumber} PDF is on file.` +
           (sendConfirmationEmail
             ? attachInvoice
-              ? ' Confirmation email + invoice queued.'
-              : ' Confirmation email queued (no invoice attached).'
-            : '')
+              ? ' Confirmation email + invoice attachment queued.'
+              : ' Confirmation email queued (invoice not attached; download from Payment history).'
+            : ' Download the invoice from Payment history when needed.')
       );
       await reloadSchool();
     } catch (e: unknown) {
@@ -1489,8 +1489,8 @@ function PlatformAdminSchoolDetailPage() {
             <Box component="span" sx={{ fontWeight: 700, color: ip.heading }}>
               {school.school_name}
             </Box>
-            . This updates Firestore, writes payment history, generates an invoice reference, and optionally
-            emails the school POCs.
+            . This updates Firestore, writes payment history, generates and stores the invoice PDF, and
+            optionally emails the school POCs (with or without the PDF attached).
           </Typography>
 
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="610" viewBox="0 0 1800 610" role="img" aria-labelledby="title desc">
+  <title id="title">Three possible rescue tunnel maps</title>
+  <desc id="desc">Three maps use the same five locations. All contain tunnels S-B, B-A, A-C, and C-T. Map 1 also contains S-A and B-C. Map 2 also contains S-A and B-T. Map 3 also contains B-C and B-T.</desc>
+  <defs>
+    <style>
+      .card{fill:#fbfcfe;stroke:#d4dce8;stroke-width:4}
+      .edge{stroke:#667a98;stroke-width:10;stroke-linecap:round}
+      .node{fill:#fff;stroke:#26364f;stroke-width:5}
+      .terminal{fill:#eaf1fb;stroke:#26364f;stroke-width:5}
+      .map-title{font:700 32px Arial,sans-serif;fill:#26364f;text-anchor:middle}
+      .label{font:700 27px Arial,sans-serif;fill:#26364f;text-anchor:middle;dominant-baseline:central}
+    </style>
+  </defs>
+  <rect width="1800" height="610" fill="#fff"/>
+
+  <!-- Map 1 -->
+  <g transform="translate(35 25)">
+    <rect width="550" height="550" rx="24" class="card"/>
+    <text x="275" y="58" class="map-title">MAP 1</text>
+    <g transform="translate(0 75)">
+      <line x1="65" y1="220" x2="190" y2="340" class="edge"/>
+      <line x1="190" y1="340" x2="270" y2="200" class="edge"/>
+      <line x1="270" y1="200" x2="395" y2="125" class="edge"/>
+      <line x1="395" y1="125" x2="490" y2="220" class="edge"/>
+      <line x1="65" y1="220" x2="270" y2="200" class="edge"/>
+      <line x1="190" y1="340" x2="395" y2="125" class="edge"/>
+      <g transform="translate(65 220)"><circle r="38" class="terminal"/><text class="label">S</text></g>
+      <g transform="translate(190 340)"><circle r="38" class="node"/><text class="label">B</text></g>
+      <g transform="translate(270 200)"><circle r="38" class="node"/><text class="label">A</text></g>
+      <g transform="translate(395 125)"><circle r="38" class="node"/><text class="label">C</text></g>
+      <g transform="translate(490 220)"><circle r="38" class="terminal"/><text class="label">T</text></g>
+    </g>
+  </g>
+
+  <!-- Map 2 -->
+  <g transform="translate(625 25)">
+    <rect width="550" height="550" rx="24" class="card"/>
+    <text x="275" y="58" class="map-title">MAP 2</text>
+    <g transform="translate(0 75)">
+      <line x1="65" y1="220" x2="190" y2="340" class="edge"/>
+      <line x1="190" y1="340" x2="270" y2="200" class="edge"/>
+      <line x1="270" y1="200" x2="395" y2="125" class="edge"/>
+      <line x1="395" y1="125" x2="490" y2="220" class="edge"/>
+      <line x1="65" y1="220" x2="270" y2="200" class="edge"/>
+      <line x1="190" y1="340" x2="490" y2="220" class="edge"/>
+      <g transform="translate(65 220)"><circle r="38" class="terminal"/><text class="label">S</text></g>
+      <g transform="translate(190 340)"><circle r="38" class="node"/><text class="label">B</text></g>
+      <g transform="translate(270 200)"><circle r="38" class="node"/><text class="label">A</text></g>
+      <g transform="translate(395 125)"><circle r="38" class="node"/><text class="label">C</text></g>
+      <g transform="translate(490 220)"><circle r="38" class="terminal"/><text class="label">T</text></g>
+    </g>
+  </g>
+
+  <!-- Map 3 -->
+  <g transform="translate(1215 25)">
+    <rect width="550" height="550" rx="24" class="card"/>
+    <text x="275" y="58" class="map-title">MAP 3</text>
+    <g transform="translate(0 75)">
+      <line x1="65" y1="220" x2="190" y2="340" class="edge"/>
+      <line x1="190" y1="340" x2="270" y2="200" class="edge"/>
+      <line x1="270" y1="200" x2="395" y2="125" class="edge"/>
+      <line x1="395" y1="125" x2="490" y2="220" class="edge"/>
+      <line x1="190" y1="340" x2="395" y2="125" class="edge"/>
+      <line x1="190" y1="340" x2="490" y2="220" class="edge"/>
+      <g transform="translate(65 220)"><circle r="38" class="terminal"/><text class="label">S</text></g>
+      <g transform="translate(190 340)"><circle r="38" class="node"/><text class="label">B</text></g>
+      <g transform="translate(270 200)"><circle r="38" class="node"/><text class="label">A</text></g>
+      <g transform="translate(395 125)"><circle r="38" class="node"/><text class="label">C</text></g>
+      <g transform="translate(490 220)"><circle r="38" class="terminal"/><text class="label">T</text></g>
+    </g>
+  </g>
+</svg>

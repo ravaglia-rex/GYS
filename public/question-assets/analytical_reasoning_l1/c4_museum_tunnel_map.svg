@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="520" viewBox="0 0 900 520" role="img" aria-labelledby="title desc">
+  <title id="title">Museum tunnel map</title>
+  <desc id="desc">Locations S, T, B, C, D, and A connected by open two-way tunnels. S connects to T and B. T connects to C. B connects to C and D. C connects to D and A. D connects to A.</desc>
+  <defs>
+    <style>
+      .edge{stroke:#667a98;stroke-width:12;stroke-linecap:round}
+      .node{fill:#fff;stroke:#26364f;stroke-width:6}
+      .terminal{fill:#eaf1fb;stroke:#26364f;stroke-width:6}
+      .label{font:700 34px Arial,sans-serif;fill:#26364f;text-anchor:middle;dominant-baseline:central}
+    </style>
+  </defs>
+  <rect width="900" height="520" rx="24" fill="#fbfcfe"/>
+  <g aria-hidden="true">
+    <line x1="95" y1="260" x2="285" y2="115" class="edge"/>
+    <line x1="95" y1="260" x2="285" y2="405" class="edge"/>
+    <line x1="285" y1="115" x2="515" y2="180" class="edge"/>
+    <line x1="285" y1="405" x2="515" y2="180" class="edge"/>
+    <line x1="285" y1="405" x2="515" y2="355" class="edge"/>
+    <line x1="515" y1="180" x2="515" y2="355" class="edge"/>
+    <line x1="515" y1="180" x2="805" y2="260" class="edge"/>
+    <line x1="515" y1="355" x2="805" y2="260" class="edge"/>
+  </g>
+  <g transform="translate(95 260)"><circle r="48" class="terminal"/><text class="label">S</text></g>
+  <g transform="translate(285 115)"><circle r="48" class="terminal"/><text class="label">T</text></g>
+  <g transform="translate(285 405)"><circle r="48" class="node"/><text class="label">B</text></g>
+  <g transform="translate(515 180)"><circle r="48" class="node"/><text class="label">C</text></g>
+  <g transform="translate(515 355)"><circle r="48" class="node"/><text class="label">D</text></g>
+  <g transform="translate(805 260)"><circle r="48" class="node"/><text class="label">A</text></g>
+</svg>

@@ -558,7 +558,10 @@ export async function markPlatformAdminSchoolPaid(
     transaction_reference?: string;
     admin_note?: string;
     send_confirmation_email?: boolean;
-    /** Include invoice PDF attachment when sending confirmation email. Defaults to true. */
+    /**
+     * Attach invoice PDF to the confirmation email. Defaults to true.
+     * The PDF is always generated and stored for admin download either way.
+     */
     attach_invoice?: boolean;
   }
 ): Promise<{ paymentId: string; invoiceNumber: string; publicReference: string }> {

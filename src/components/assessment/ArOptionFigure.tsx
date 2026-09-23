@@ -84,7 +84,7 @@ export function useArOptionFigureMeta(
       setNaturalHeight(0);
     }
 
-    if (!src || !allowRuntimeFallback) return undefined;
+    if (!src) return undefined;
     const figureSrc = resolveExamFigureSrc(src);
 
     const applyAspect = () => {
@@ -100,6 +100,17 @@ export function useArOptionFigureMeta(
       };
       img.src = figureSrc;
     };
+
+    // Live / admin parity path: never parse SVG for slices, but still measure
+    // natural size. Equal-window fallback with figW=figH=1 makes square crop
+    // boxes; on a wide options sheet that shows ~70% height per top tile and
+    // bleeds C into A / D into B (e.g. b2_conditional_light_ring_options).
+    if (!allowRuntimeFallback) {
+      applyAspect();
+      return () => {
+        cancelled = true;
+      };
+    }
 
     if (!/\.svg(\?|$)/i.test(figureSrc)) {
       applyAspect();
@@ -225,8 +236,17 @@ export const ArOptionFigureSlice: React.FC<{
     wPct: (1 / win.cols) * 100,
     hPct: (1 / win.rows) * 100,
   };
-  const figW = naturalWidth || 1;
-  const figH = naturalHeight || 1;
+  const imgSrc = resolveExamFigureSrc(figure.src);
+  const { status: imgStatus, displaySrc, isRetrying, onLoad, onError, markReadyIfComplete } =
+    useExamFigureImageLoad(imgSrc);
+  const [measuredNatural, setMeasuredNatural] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    setMeasuredNatural({ w: 0, h: 0 });
+  }, [imgSrc]);
+  // Prefer bank natural size; if missing (no option_crops), use the loaded
+  // image so crop-box aspect matches the real figure — not 1×1.
+  const figW = naturalWidth || measuredNatural.w || 1;
+  const figH = naturalHeight || measuredNatural.h || 1;
   const natW = (crop.wPct / 100) * figW;
   const natH = (crop.hPct / 100) * figH;
   const { width: sliceWidth, height: sliceHeight } = arOptionFigureSliceDisplaySize(
@@ -241,9 +261,12 @@ export const ArOptionFigureSlice: React.FC<{
     stemDisplaySize,
     layout
   );
-  const imgSrc = resolveExamFigureSrc(figure.src);
-  const { status: imgStatus, displaySrc, isRetrying, onLoad, onError, markReadyIfComplete } =
-    useExamFigureImageLoad(imgSrc);
+  const handleImgLoad = (el: HTMLImageElement | null) => {
+    if (el && el.naturalWidth > 0) {
+      setMeasuredNatural({ w: el.naturalWidth, h: el.naturalHeight });
+    }
+    onLoad();
+  };
 
   // Cap at the authored display size, but always fill the parent when the
   // parent is narrower (2×2 option cells + caption padding). Fixed `width: Npx`
@@ -323,8 +346,14 @@ export const ArOptionFigureSlice: React.FC<{
             component="img"
             src={displaySrc}
             alt={figure.alt || `Option ${String.fromCharCode(65 + index)}`}
-            ref={markReadyIfComplete}
-            onLoad={onLoad}
+            ref={(el) => {
+              const img = el as HTMLImageElement | null;
+              markReadyIfComplete(img);
+              if (img && img.complete && img.naturalWidth > 0 && !measuredNatural.w) {
+                setMeasuredNatural({ w: img.naturalWidth, h: img.naturalHeight });
+              }
+            }}
+            onLoad={(e) => handleImgLoad(e.currentTarget)}
             onError={onError}
             sx={{
               position: 'absolute',

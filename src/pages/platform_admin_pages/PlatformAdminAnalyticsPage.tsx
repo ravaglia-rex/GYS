@@ -36,12 +36,13 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Legend,
   Cell,
+  Legend,
   Line,
   LineChart,
   Pie,
   PieChart,
+  Rectangle,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -86,6 +87,7 @@ import {
   type OfficialExamSchoolRow,
   type OfficialExamSummaryRow,
   type OfficialQuestionTagType,
+  type OfficialScoreBucketRow,
   type OfficialTagAggRow,
   type OfficialCrossSplitRow,
 } from '../../db/platformAdminAnalytics';
@@ -180,6 +182,33 @@ const AR_EXTENSION_REASON_LABELS: Record<string, string> = {
   extension_assembly_infeasible_finishing_at_32:
     'Could not assemble the extra 8 items - sitting finished at 32',
 };
+
+/** Fixed /1000 bands — same as Score distribution chart + backend OFFICIAL_EXAM_SCORE_BANDS. */
+const COMPLETION_SCORE_BRACKETS = [
+  { key: '0-499', label: '0–499', min: 0, max: 499 },
+  { key: '500-699', label: '500–699', min: 500, max: 699 },
+  { key: '700-799', label: '700–799', min: 700, max: 799 },
+  { key: '800-899', label: '800–899', min: 800, max: 899 },
+  { key: '900-1000', label: '900–1000', min: 900, max: 1000 },
+] as const;
+
+type CompletionScoreBracketKey = (typeof COMPLETION_SCORE_BRACKETS)[number]['key'] | 'all';
+
+function completionScoreBracketKeyFromPoints(
+  min: number,
+  max: number
+): CompletionScoreBracketKey {
+  const match = COMPLETION_SCORE_BRACKETS.find((b) => b.min === min && b.max === max);
+  return match?.key ?? 'all';
+}
+
+function completionScoreBracketKeyFromBucket(bucket: string): CompletionScoreBracketKey {
+  const ascii = bucket.replace(/[–—]/g, '-').trim();
+  const match = COMPLETION_SCORE_BRACKETS.find(
+    (b) => b.key === ascii || b.label === bucket || b.label.replace(/[–—]/g, '-') === ascii
+  );
+  return match?.key ?? 'all';
+}
 
 function titleCaseAnalyticsKey(key: string): string {
   const spaced = key.replace(/_/g, ' ').replace(/:/g, ' · ').trim();
@@ -726,6 +755,8 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
   const [completionFrom, setCompletionFrom] = useState('');
   const [completionTo, setCompletionTo] = useState('');
   const [completionLevel, setCompletionLevel] = useState<'all' | number>('all');
+  const [completionScoreBracket, setCompletionScoreBracket] =
+    useState<CompletionScoreBracketKey>('all');
   const [completionLimit, setCompletionLimit] = useState(25);
   const [officialDrilldown, setOfficialDrilldown] = useState<OfficialExamDrilldown | null>(null);
   const [officialDrillLevel, setOfficialDrillLevel] = useState<'all' | number>('all');
@@ -917,18 +948,40 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
   }, []);
 
   const searchOfficialCompletions = useCallback(
-    async (examId: string) => {
+    async (
+      examId: string,
+      overrides?: {
+        q?: string;
+        from?: string;
+        to?: string;
+        level?: 'all' | number;
+        scoreBracket?: CompletionScoreBracketKey;
+        limit?: number;
+      }
+    ) => {
       if (!examId) return;
       const req = ++officialCompletionsReqRef.current;
       setOfficialCompletionsLoading(true);
       setOfficialError(null);
+      const q = overrides?.q ?? completionQ;
+      const from = overrides?.from ?? completionFrom;
+      const to = overrides?.to ?? completionTo;
+      const level = overrides?.level ?? completionLevel;
+      const scoreBracket = overrides?.scoreBracket ?? completionScoreBracket;
+      const limit = overrides?.limit ?? completionLimit;
+      const band =
+        scoreBracket === 'all'
+          ? null
+          : COMPLETION_SCORE_BRACKETS.find((b) => b.key === scoreBracket) ?? null;
       try {
         const data = await searchPlatformAdminOfficialExamCompletions(examId, {
-          q: completionQ,
-          from: completionFrom || undefined,
-          to: completionTo || undefined,
-          level: completionLevel === 'all' ? null : completionLevel,
-          limit: completionLimit,
+          q,
+          from: from || undefined,
+          to: to || undefined,
+          level: level === 'all' ? null : level,
+          scoreMin: band?.min ?? null,
+          scoreMax: band?.max ?? null,
+          limit,
         });
         if (req !== officialCompletionsReqRef.current) return;
         setOfficialRecent(data.results);
@@ -945,7 +998,47 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
         if (req === officialCompletionsReqRef.current) setOfficialCompletionsLoading(false);
       }
     },
-    [completionQ, completionFrom, completionTo, completionLevel, completionLimit]
+    [
+      completionQ,
+      completionFrom,
+      completionTo,
+      completionLevel,
+      completionScoreBracket,
+      completionLimit,
+    ]
+  );
+
+  const openCompletionsForScoreBracket = useCallback(
+    (bracketKey: CompletionScoreBracketKey) => {
+      if (!selectedOfficialExamId || bracketKey === 'all') return;
+      const level = officialDrillLevel;
+      setCompletionScoreBracket(bracketKey);
+      setCompletionLevel(level);
+      setOfficialView('completions');
+      void searchOfficialCompletions(selectedOfficialExamId, {
+        scoreBracket: bracketKey,
+        level,
+      });
+    },
+    [selectedOfficialExamId, officialDrillLevel, searchOfficialCompletions]
+  );
+
+  const openCompletionsForScoreBand = useCallback(
+    (row: OfficialScoreBucketRow | null | undefined, index?: number) => {
+      let bracketKey: CompletionScoreBracketKey = 'all';
+      if (typeof index === 'number' && index >= 0 && index < COMPLETION_SCORE_BRACKETS.length) {
+        bracketKey = COMPLETION_SCORE_BRACKETS[index].key;
+      } else if (row) {
+        if (typeof row.min_points === 'number' && typeof row.max_points === 'number') {
+          bracketKey = completionScoreBracketKeyFromPoints(row.min_points, row.max_points);
+        }
+        if (bracketKey === 'all' && typeof row.bucket === 'string') {
+          bracketKey = completionScoreBracketKeyFromBucket(row.bucket);
+        }
+      }
+      openCompletionsForScoreBracket(bracketKey);
+    },
+    [openCompletionsForScoreBracket]
   );
 
   const loadOfficialDrilldown = useCallback(
@@ -2244,7 +2337,7 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                             Score distribution (/1000)
                           </Typography>
                           <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1.25 }}>
-                            Completions by score band.
+                            Completions by score band. Click a bar to search that bracket.
                           </Typography>
                           <Box sx={{ width: '100%', height: 220 }}>
                             <ResponsiveContainer>
@@ -2252,10 +2345,107 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                                 <XAxis dataKey="bucket" tick={{ fontSize: 11 }} />
                                 <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                                <Tooltip />
-                                <Bar dataKey="count" name="Completions" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                                <Tooltip cursor={{ fill: 'rgba(37, 99, 235, 0.08)' }} />
+                                <Bar
+                                  dataKey="count"
+                                  name="Completions"
+                                  isAnimationActive={false}
+                                  minPointSize={4}
+                                  shape={(shapeProps: unknown) => {
+                                    const {
+                                      x,
+                                      y,
+                                      width,
+                                      height,
+                                      index,
+                                      payload,
+                                    } = shapeProps as {
+                                      x?: number;
+                                      y?: number;
+                                      width?: number;
+                                      height?: number;
+                                      index?: number;
+                                      payload?: OfficialScoreBucketRow;
+                                    };
+                                    if (
+                                      typeof x !== 'number' ||
+                                      typeof y !== 'number' ||
+                                      typeof width !== 'number' ||
+                                      typeof height !== 'number'
+                                    ) {
+                                      return <g />;
+                                    }
+                                    const rowIndex =
+                                      typeof index === 'number'
+                                        ? index
+                                        : officialDrilldown.score_distribution.findIndex(
+                                            (r) => r.bucket === payload?.bucket
+                                          );
+                                    const active =
+                                      completionScoreBracket !== 'all' &&
+                                      rowIndex >= 0 &&
+                                      COMPLETION_SCORE_BRACKETS[rowIndex]?.key ===
+                                        completionScoreBracket;
+                                    return (
+                                      <Rectangle
+                                        x={x}
+                                        y={y}
+                                        width={width}
+                                        height={height}
+                                        radius={[4, 4, 0, 0]}
+                                        fill={active ? '#1d4ed8' : '#2563eb'}
+                                        cursor="pointer"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          openCompletionsForScoreBand(payload, rowIndex);
+                                        }}
+                                      />
+                                    );
+                                  }}
+                                />
                               </BarChart>
                             </ResponsiveContainer>
+                          </Box>
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              flexWrap: 'wrap',
+                              gap: 0.75,
+                              justifyContent: 'center',
+                              mt: 1,
+                            }}
+                          >
+                            {COMPLETION_SCORE_BRACKETS.map((band, i) => {
+                              const count =
+                                officialDrilldown.score_distribution[i]?.count ?? 0;
+                              const active = completionScoreBracket === band.key;
+                              return (
+                                <Button
+                                  key={band.key}
+                                  size="small"
+                                  variant={active ? 'contained' : 'outlined'}
+                                  onClick={() => openCompletionsForScoreBracket(band.key)}
+                                  sx={{
+                                    ...platformAdminOutlinedButtonSx,
+                                    minWidth: 0,
+                                    px: 1,
+                                    py: 0.25,
+                                    fontSize: 12,
+                                    ...(active
+                                      ? {
+                                          bgcolor: ip.navy,
+                                          color: '#fff',
+                                          borderColor: ip.navy,
+                                          '&:hover': { bgcolor: ip.navy, opacity: 0.92 },
+                                        }
+                                      : {}),
+                                  }}
+                                >
+                                  {band.label}
+                                  {count > 0 ? ` · ${count.toLocaleString()}` : ''}
+                                </Button>
+                              );
+                            })}
                           </Box>
                         </Box>
                       </Box>
@@ -2636,7 +2826,7 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
               {officialView === 'completions' && (
               <PlatformAdminAnalyticsSection
                 title="Search completions"
-                subtitle="Click Search to load. Click a student to open their profile and exam attempts. Limit controls how many rows return (10–100, or All)."
+                subtitle="Click Search to load. Click a student to open their profile and exam attempts. Limit controls how many rows return (10–100, or All). Score bracket matches the /1000 distribution bars."
                 accent="violet"
               >
                   <Box sx={{ ...platformAdminFilterToolbarRowSx, mb: 2 }}>
@@ -2718,6 +2908,27 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                         ).map((level) => (
                           <MenuItem key={level} value={level}>
                             Level {level}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    <FormControl size="small" sx={platformAdminFilterSelectSx(140)}>
+                      <InputLabel id="completion-score" sx={{ color: ip.subtext }}>
+                        Score
+                      </InputLabel>
+                      <Select
+                        labelId="completion-score"
+                        label="Score"
+                        value={completionScoreBracket}
+                        onChange={(e) => {
+                          setCompletionScoreBracket(e.target.value as CompletionScoreBracketKey);
+                        }}
+                        MenuProps={{ PaperProps: { sx: platformAdminSelectMenuPaperSx } }}
+                      >
+                        <MenuItem value="all">All scores</MenuItem>
+                        {COMPLETION_SCORE_BRACKETS.map((band) => (
+                          <MenuItem key={band.key} value={band.key}>
+                            {band.label}
                           </MenuItem>
                         ))}
                       </Select>
