@@ -124,6 +124,7 @@ const ProfileSettings: React.FC = () => {
 
   const [formData, setFormData] = useState({
     displayName: currentUser?.displayName || '',
+    loginUserId: '',
     email: currentUser?.email || '',
     school: '',
     grade: '',
@@ -154,6 +155,7 @@ const ProfileSettings: React.FC = () => {
   const [profileHydrated, setProfileHydrated] = useState(false);
 
   const { data: userData } = useStudent(currentUser?.uid, Boolean(currentUser?.uid));
+  const loginEmailIsSynthetic = userData?.login_email_is_synthetic === true;
   const argusCoins = readGamificationFromStudent(userData).argus_coins;
   const profileCompletion = useMemo(
     () =>
@@ -178,35 +180,50 @@ const ProfileSettings: React.FC = () => {
     const sectionUi = studentSectionToUi(sectionValue);
     setSectionChoice(sectionUi.choice);
     setSectionOtherText(sectionUi.otherText);
-    setFormData((prev) => ({
-      ...prev,
-      displayName: `${userData.first_name || ''} ${userData.last_name || ''}`.trim(),
-      email: (typeof userData.email === 'string' && userData.email) || prev.email,
-      school: userData.school_id || '',
-      grade: userData.grade ? `Class ${userData.grade}` : '',
-      section: sectionValue,
-      dateOfBirth: userData.date_of_birth || '',
-      cityState: userData.city_state || '',
-      country: userData.country === 'Qatar' ? 'Qatar' : 'India',
-      homeLanguage: userData.home_language || '',
-      aspiration: userData.aspiration || '',
-      heardFrom: userData.heard_from || '',
-      about: userData.about_me || '',
-      parentName: userData.parent_name || '',
-      parentEmail: userData.parent_email || '',
-      parentPhone: toSchoolMobileNationalDigits(
-        userData.parent_phone || '',
-        schoolPhoneDialFromE164(userData.parent_phone || '')
-      ),
-      parentPhoneDialCode: schoolPhoneDialFromE164(userData.parent_phone || ''),
-      phoneNumber: toSchoolMobileNationalDigits(
-        userData.phone_number || '',
-        schoolPhoneDialFromE164(userData.phone_number || '')
-      ),
-      phoneDialCode: schoolPhoneDialFromE164(userData.phone_number || ''),
-    }));
+    setFormData((prev) => {
+      const rawEmail =
+        typeof userData.email === 'string' ? userData.email.trim() : '';
+      const storedUserId =
+        typeof userData.login_user_id === 'string' ? userData.login_user_id.trim() : '';
+      const contactEmail =
+        typeof userData.contact_email === 'string' ? userData.contact_email.trim() : '';
+      const synthetic = userData.login_email_is_synthetic === true;
+      const loginUserId =
+        storedUserId ||
+        (synthetic ? rawEmail : '') ||
+        (synthetic && typeof currentUser?.email === 'string' ? currentUser.email : '');
+      return {
+        ...prev,
+        displayName: `${userData.first_name || ''} ${userData.last_name || ''}`.trim(),
+        loginUserId,
+        // Contact mailbox for synthetic students; normal students use email as login.
+        email: synthetic ? contactEmail : rawEmail || prev.email,
+        school: userData.school_id || '',
+        grade: userData.grade ? `Class ${userData.grade}` : '',
+        section: sectionValue,
+        dateOfBirth: userData.date_of_birth || '',
+        cityState: userData.city_state || '',
+        country: userData.country === 'Qatar' ? 'Qatar' : 'India',
+        homeLanguage: userData.home_language || '',
+        aspiration: userData.aspiration || '',
+        heardFrom: userData.heard_from || '',
+        about: userData.about_me || '',
+        parentName: userData.parent_name || '',
+        parentEmail: userData.parent_email || '',
+        parentPhone: toSchoolMobileNationalDigits(
+          userData.parent_phone || '',
+          schoolPhoneDialFromE164(userData.parent_phone || '')
+        ),
+        parentPhoneDialCode: schoolPhoneDialFromE164(userData.parent_phone || ''),
+        phoneNumber: toSchoolMobileNationalDigits(
+          userData.phone_number || '',
+          schoolPhoneDialFromE164(userData.phone_number || '')
+        ),
+        phoneDialCode: schoolPhoneDialFromE164(userData.phone_number || ''),
+      };
+    });
     setProfileHydrated(true);
-  }, [userData, profileHydrated]);
+  }, [userData, profileHydrated, currentUser?.email]);
 
   useEffect(() => {
     if (!profileHydrated || userData?.country === 'Qatar' || userData?.country === 'India') {
@@ -304,6 +321,18 @@ const ProfileSettings: React.FC = () => {
         formData.parentPhoneDialCode
       );
       if (formData.about !== undefined) updates.about_me = formData.about;
+
+      if (loginEmailIsSynthetic) {
+        const nextContact = formData.email.trim().toLowerCase();
+        const currentContact =
+          typeof userData?.contact_email === 'string'
+            ? userData.contact_email.trim().toLowerCase()
+            : '';
+        if (nextContact !== currentContact) {
+          // Backend maps this onto contact_email for synthetic students (does not change login email).
+          updates.email = nextContact;
+        }
+      }
 
       if (originalGrade !== null) {
         const currentGrade = parseInt(formData.grade.replace(/\D/g, ''), 10);
@@ -495,16 +524,56 @@ const ProfileSettings: React.FC = () => {
                   />
                 </Box>
 
+                {loginEmailIsSynthetic || formData.loginUserId ? (
+                  <Box>
+                    <TextField
+                      fullWidth
+                      label="User ID"
+                      value={formData.loginUserId}
+                      disabled
+                      helperText="Use this User ID and your password to sign in."
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <User size={20} color="rgba(255, 255, 255, 0.5)" />
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={profileFieldSx}
+                    />
+                  </Box>
+                ) : null}
+
                 <Box>
                   <TextField
                     fullWidth
                     label="Email"
                     value={formData.email}
-                    disabled
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    disabled={!isEditing || !loginEmailIsSynthetic}
+                    helperText={
+                      isEditing && loginEmailIsSynthetic
+                        ? 'Optional contact email. You still sign in with your User ID.'
+                        : undefined
+                    }
+                    placeholder={
+                      isEditing && loginEmailIsSynthetic
+                        ? 'you@example.com'
+                        : loginEmailIsSynthetic
+                          ? 'Not set'
+                          : undefined
+                    }
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
-                          <Mail size={20} color="rgba(255, 255, 255, 0.5)" />
+                          <Mail
+                            size={20}
+                            color={
+                              isEditing && loginEmailIsSynthetic
+                                ? 'rgba(255, 255, 255, 0.7)'
+                                : 'rgba(255, 255, 255, 0.5)'
+                            }
+                          />
                         </InputAdornment>
                       ),
                     }}

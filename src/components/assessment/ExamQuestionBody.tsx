@@ -17,6 +17,7 @@ import {
   shouldSuppressInstructionAsDuplicateRule,
   stripEmbeddedOptionLetterPrefix,
   visualChoicesFromQuestion,
+  withoutPromotedSetupPassage,
   type VisualChoiceMatrix,
 } from './ExamQuestionStimulus';
 
@@ -543,7 +544,7 @@ interface ExamQuestionBodyProps {
 
 const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
   assessmentId,
-  question,
+  question: questionProp,
   questionNumber,
   totalQuestions,
   selectedOption,
@@ -562,7 +563,8 @@ const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
     ? `Question ${questionNumber}`
     : `Question ${questionNumber} of ${totalQuestions}`;
 
-  if (!question) return null;
+  if (!questionProp) return null;
+  const question = withoutPromotedSetupPassage(questionProp);
 
   const reportItemIdEarly = resolvePracticeItemId(question);
   const problemReportBlockEarly =
@@ -703,15 +705,15 @@ const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
         <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 700, letterSpacing: 1, display: 'block', mb: 1.5, textTransform: 'uppercase', fontSize: '0.68rem' }}>
           {questionCaption}
         </Typography>
-        <Box sx={{ borderLeft: `4px solid ${primary}`, bgcolor: primarySoft, borderRadius: 2, p: 2, mb: 2.5 }}>
-          {renderMath ? (
+        {renderMath ? (
+          <Box sx={{ mb: 2.5 }}>
             <ExamMathBlock>{question.passage}</ExamMathBlock>
-          ) : (
-            <Typography sx={{ fontSize: '0.92rem', color: '#334155', fontStyle: 'italic', lineHeight: 1.65 }}>
-              {question.passage}
-            </Typography>
-          )}
-        </Box>
+          </Box>
+        ) : (
+          <Typography sx={{ fontSize: '0.95rem', color: '#334155', lineHeight: 1.7, whiteSpace: 'pre-line', mb: 2.5 }}>
+            {question.passage}
+          </Typography>
+        )}
         <QuestionPromptBlock
           question={question}
           renderMath={renderMath}

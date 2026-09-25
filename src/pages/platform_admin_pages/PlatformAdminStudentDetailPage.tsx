@@ -764,9 +764,7 @@ const PlatformAdminStudentDetailPage: React.FC = () => {
                             </Box>
                           </TableCell>
                           <TableCell align="right">
-                            {row.questions_total > 0
-                              ? `${row.correct_count}/${row.questions_total}`
-                              : row.questions_answered || '—'}
+                            {`${row.correct_count ?? 0}/${row.questions_answered ?? 0}`}
                           </TableCell>
                           <TableCell align="right">
                             {row.score_points != null

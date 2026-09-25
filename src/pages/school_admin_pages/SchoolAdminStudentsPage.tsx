@@ -4,13 +4,6 @@ import {
   Card,
   CardContent,
   Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
   Chip,
   TextField,
   InputAdornment,
@@ -26,7 +19,7 @@ import {
   LinearProgress,
   Tooltip,
 } from '@mui/material';
-import { TableVirtuoso } from 'react-virtuoso';
+import { Virtuoso } from 'react-virtuoso';
 import {
   Search as SearchIcon,
   FilterList as FilterListIcon,
@@ -96,8 +89,8 @@ type RosterRow = RosterRegistered | RosterInvited;
 
 type AssessmentsCompletedFilter = 'all' | '0' | '1' | '2' | '3_plus';
 /**
- * `invited` covers everything that is not a finished signup - both "no account yet" and
- * "account created but no password". `needs_password` / `no_account` drill into those two.
+ * `invited` is the umbrella filter for incomplete signup - both "no account yet" and
+ * "account created but no password". Summary chips and row labels keep those two separate.
  */
 type StatusFilter = 'all' | 'registered' | 'invited' | 'needs_password' | 'no_account' | 'revoked';
 /** `none` = registered students with no section entered. */
@@ -131,11 +124,11 @@ const ASSESSMENTS_FILTER_LABELS: Record<AssessmentsCompletedFilter, string> = {
 
 const STATUS_FILTER_LABELS: Record<StatusFilter, string> = {
   all: 'All',
-  registered: 'Registered',
-  invited: 'Invited',
-  needs_password: 'Invited - password not set up',
-  no_account: 'Invited - account not created',
-  revoked: 'Revoked',
+  registered: 'Account fully setup',
+  invited: 'Incomplete (all)',
+  needs_password: 'Account setup, no password',
+  no_account: 'No account yet',
+  revoked: 'Revoked invitations',
 };
 
 /**
@@ -161,6 +154,14 @@ const INVITED_CHIP_SX = {
   border: '1px solid rgba(245, 158, 11, 0.45)',
 };
 
+/** Account exists but password was never set - distinct from invite-only "no account". */
+const NEEDS_PASSWORD_CHIP_SX = {
+  fontWeight: 600,
+  bgcolor: 'rgba(234, 88, 12, 0.12)',
+  color: '#9a3412',
+  border: '1px solid rgba(234, 88, 12, 0.4)',
+};
+
 const REVOKED_CHIP_SX = {
   fontWeight: 600,
   bgcolor: '#f1f5f9',
@@ -170,8 +171,10 @@ const REVOKED_CHIP_SX = {
 
 /** Search, sort, sort-direction, and Filters - one visual height */
 const ROSTER_TOOLBAR_H = 40;
-/** Status, class, and assessments filter dropdowns share width */
-const ROSTER_FILTER_SELECT_MIN_W = 200;
+/** Compact selects (Class / Section / Assessments) */
+const ROSTER_FILTER_SELECT_MIN_W = 112;
+/** Status needs room for labels like "Account setup, no password" */
+const ROSTER_STATUS_FILTER_SELECT_MIN_W = 248;
 
 const rosterToolbarSelectSx = (minWidth: number) => ({
   minWidth,
@@ -203,39 +206,59 @@ const rosterSelectMenuPaperSx = {
 };
 
 const SCHOOL_ROSTER_VIRTUOSO_HEIGHT = 560;
+/** Must match RosterScrollRail width so empty vs filled grid containers stay the same width. */
+const ROSTER_SCROLL_RAIL_WIDTH = 14;
 
-/** Fixed roster columns - widths must not flex with cell content. */
-const ROSTER_COL_WIDTHS = ['28%', '12%', '9%', '14%', '10%', '27%'] as const;
+/**
+ * CSS grid — same template for header + every row (empty or filled).
+ * Avoids HTML table / TableVirtuoso colgroup drift across filters.
+ */
+const ROSTER_GRID_COLUMNS =
+  'minmax(0, 2fr) minmax(148px, 1fr) 80px 120px 120px minmax(210px, 1.25fr)';
+const ROSTER_GRID_MIN_WIDTH = 960;
 
-const rosterTableLayoutSx = {
-  bgcolor: '#fff',
+const rosterGridRowSx = {
+  display: 'grid',
+  gridTemplateColumns: ROSTER_GRID_COLUMNS,
+  alignItems: 'center',
   width: '100%',
-  minWidth: 880,
-  tableLayout: 'fixed' as const,
-  borderCollapse: 'separate' as const,
-  borderSpacing: 0,
+  minWidth: ROSTER_GRID_MIN_WIDTH,
+  boxSizing: 'border-box' as const,
+  px: 2,
+  columnGap: 1.5,
 };
 
-const rosterTableSx = {
-  ...rosterTableLayoutSx,
-  border: `1px solid ${ip.cardBorder}`,
-  borderRadius: 1,
-};
-
-function RosterColGroup() {
+function RosterGridHeader() {
   return (
-    <colgroup>
-      {ROSTER_COL_WIDTHS.map((width, i) => (
-        <col key={i} style={{ width }} />
-      ))}
-    </colgroup>
+    <Box
+      data-tutorial-id="school-students-table"
+      sx={{
+        ...rosterGridRowSx,
+        bgcolor: ip.cardMutedBg,
+        borderBottom: `1px solid ${ip.cardBorder}`,
+        minHeight: 48,
+        '& > *': {
+          fontWeight: 700,
+          color: ip.heading,
+          fontSize: '0.875rem',
+          lineHeight: 1.25,
+        },
+      }}
+    >
+      <Box>Student</Box>
+      <Box>Status</Box>
+      <Box>Class</Box>
+      <Box>Tier</Box>
+      <Box>Assessments</Box>
+      <Box sx={{ textAlign: 'right' }}>Actions</Box>
+    </Box>
   );
 }
 
 /**
  * macOS overlay scrollbars stay hidden until the user scrolls, and Virtuoso sets
  * inline overflowY: auto which wins over sx. Hide the native bar and draw a
- * permanent rail beside the bordered table instead.
+ * permanent rail beside the bordered list instead.
  */
 const rosterScrollerSx = {
   boxShadow: 'none',
@@ -244,7 +267,7 @@ const rosterScrollerSx = {
   border: 'none',
   borderRadius: 0,
   maxWidth: '100%',
-  overflowX: 'auto',
+  overflowX: 'hidden',
   scrollbarWidth: 'none',
   msOverflowStyle: 'none',
   '&::-webkit-scrollbar': {
@@ -326,7 +349,7 @@ function RosterScrollRail({
         }
       }}
       sx={{
-        width: 14,
+        width: ROSTER_SCROLL_RAIL_WIDTH,
         flexShrink: 0,
         height: listHeight,
         bgcolor: ip.cardMutedBg,
@@ -358,9 +381,7 @@ const SchoolRosterVirtuosoComponents = {
     ref
   ) {
     return (
-      <TableContainer
-        component={Paper}
-        elevation={0}
+      <Box
         {...props}
         ref={ref}
         style={{
@@ -372,29 +393,18 @@ const SchoolRosterVirtuosoComponents = {
       />
     );
   }),
-  Table: ({ children, ...props }: React.ComponentProps<typeof Table>) => (
-    <Table {...props} size="medium" sx={rosterTableSx}>
-      <RosterColGroup />
-      {children}
-    </Table>
-  ),
-  TableHead: React.forwardRef<HTMLTableSectionElement, React.ComponentProps<typeof TableHead>>(
-    function SchoolRosterTableHead(props, ref) {
-      return <TableHead {...props} ref={ref} data-tutorial-id="school-students-table" />;
-    }
-  ),
-  TableRow,
-  TableBody: React.forwardRef<HTMLTableSectionElement, React.ComponentProps<typeof TableBody>>(
-    function SchoolRosterTableBody(props, ref) {
-      return <TableBody {...props} ref={ref} />;
-    }
-  ),
 };
 
 const rosterFilterSelectSx = {
   ...rosterToolbarSelectSx(ROSTER_FILTER_SELECT_MIN_W),
   width: ROSTER_FILTER_SELECT_MIN_W,
   maxWidth: ROSTER_FILTER_SELECT_MIN_W,
+};
+
+const rosterStatusFilterSelectSx = {
+  ...rosterToolbarSelectSx(ROSTER_STATUS_FILTER_SELECT_MIN_W),
+  width: ROSTER_STATUS_FILTER_SELECT_MIN_W,
+  maxWidth: ROSTER_STATUS_FILTER_SELECT_MIN_W,
 };
 
 function getAchievementTierChipSx(tierRaw: string) {
@@ -1123,27 +1133,34 @@ const SchoolAdminStudentsPage: React.FC = () => {
         )}
         <Tooltip title="Students who created an account and set their password - they can sign in. Click to filter, click again to clear.">
           <Chip
-            label={`Registered: ${registeredCount}`}
+            label={`${STATUS_FILTER_LABELS.registered}: ${registeredCount}`}
             size="small"
             onClick={() => toggleStatusFilter('registered')}
             aria-pressed={statusFilter === 'registered'}
             sx={statusChipSx(statusFilter === 'registered')}
           />
         </Tooltip>
-        <Tooltip
-          title={`Invited but not able to sign in yet: ${statusCounts.no_account} have not created an account and ${statusCounts.needs_password} created an account but have not set a password. Click to filter, click again to clear.`}
-        >
+        <Tooltip title="Account created, but password not set up yet - they cannot sign in. Click to filter, click again to clear.">
           <Chip
-            label={`Invited (not signed up): ${invitedCount}`}
+            label={`${STATUS_FILTER_LABELS.needs_password}: ${statusCounts.needs_password}`}
             size="small"
-            onClick={() => toggleStatusFilter('invited')}
-            aria-pressed={statusFilter === 'invited'}
-            sx={statusChipSx(statusFilter === 'invited')}
+            onClick={() => toggleStatusFilter('needs_password')}
+            aria-pressed={statusFilter === 'needs_password'}
+            sx={statusChipSx(statusFilter === 'needs_password')}
+          />
+        </Tooltip>
+        <Tooltip title="Invited by email but no account created yet. Click to filter, click again to clear.">
+          <Chip
+            label={`${STATUS_FILTER_LABELS.no_account}: ${statusCounts.no_account}`}
+            size="small"
+            onClick={() => toggleStatusFilter('no_account')}
+            aria-pressed={statusFilter === 'no_account'}
+            sx={statusChipSx(statusFilter === 'no_account')}
           />
         </Tooltip>
         <Tooltip title="Invitations you removed. Click to filter, click again to clear.">
           <Chip
-            label={`Revoked: ${revokedCount}`}
+            label={`${STATUS_FILTER_LABELS.revoked}: ${revokedCount}`}
             size="small"
             onClick={() => toggleStatusFilter('revoked')}
             aria-pressed={statusFilter === 'revoked'}
@@ -1302,15 +1319,16 @@ const SchoolAdminStudentsPage: React.FC = () => {
                 <Box
                   sx={{
                     display: 'flex',
-                    flexWrap: 'wrap',
+                    flexWrap: { xs: 'wrap', md: 'nowrap' },
                     gap: 2,
                     pt: 2,
                     borderTop: `1px solid ${ip.cardBorder}`,
-                    justifyContent: 'center',
+                    justifyContent: 'flex-start',
                     alignItems: 'center',
+                    overflowX: { md: 'auto' },
                   }}
                 >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
                     <Typography
                       component="label"
                       htmlFor="students-status-filter"
@@ -1326,17 +1344,17 @@ const SchoolAdminStudentsPage: React.FC = () => {
                       onChange={e => setStatusFilter(e.target.value as StatusFilter)}
                       renderValue={v => STATUS_FILTER_LABELS[v as StatusFilter]}
                       MenuProps={{ PaperProps: { sx: rosterSelectMenuPaperSx } }}
-                      sx={rosterFilterSelectSx}
+                      sx={rosterStatusFilterSelectSx}
                     >
                       <MenuItem value="all">All</MenuItem>
-                      <MenuItem value="registered">Registered</MenuItem>
-                      <MenuItem value="invited">Invited (all)</MenuItem>
-                      <MenuItem value="needs_password">Invited - password not set up</MenuItem>
-                      <MenuItem value="no_account">Invited - account not created</MenuItem>
-                      <MenuItem value="revoked">Revoked</MenuItem>
+                      <MenuItem value="registered">{STATUS_FILTER_LABELS.registered}</MenuItem>
+                      <MenuItem value="needs_password">{STATUS_FILTER_LABELS.needs_password}</MenuItem>
+                      <MenuItem value="no_account">{STATUS_FILTER_LABELS.no_account}</MenuItem>
+                      <MenuItem value="invited">Incomplete (all)</MenuItem>
+                      <MenuItem value="revoked">{STATUS_FILTER_LABELS.revoked}</MenuItem>
                     </Select>
                   </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
                     <Typography
                       component="label"
                       htmlFor="students-grade-filter"
@@ -1362,7 +1380,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
                       ))}
                     </Select>
                   </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
                     <Typography
                       component="label"
                       htmlFor="students-section-filter"
@@ -1395,7 +1413,7 @@ const SchoolAdminStudentsPage: React.FC = () => {
                       ) : null}
                     </Select>
                   </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
                     <Typography
                       component="label"
                       htmlFor="students-assessments-filter"
@@ -1451,379 +1469,326 @@ const SchoolAdminStudentsPage: React.FC = () => {
               <Typography variant="body2" sx={{ color: ip.subtext, mb: 2 }}>
                 Showing {filteredSorted.length} of {rows.length} rows
               </Typography>
-              {filteredSorted.length === 0 ? (
-                <TableContainer
-                  component={Paper}
-                  elevation={0}
+              <Box sx={{ display: 'flex', alignItems: 'stretch', gap: 1.25 }}>
+                <Box
                   sx={{
-                    boxShadow: 'none',
-                    bgcolor: '#fff',
-                    color: ip.heading,
+                    flex: 1,
+                    minWidth: 0,
+                    overflowX: 'auto',
                     border: `1px solid ${ip.cardBorder}`,
                     borderRadius: 1,
-                    overflowX: 'auto',
-                    maxWidth: '100%',
+                    bgcolor: '#fff',
                   }}
                 >
-                  <Table size="medium" sx={rosterTableLayoutSx}>
-                    <RosterColGroup />
-                    <TableHead data-tutorial-id="school-students-table">
-                      <TableRow
-                        sx={{
-                          bgcolor: ip.cardMutedBg,
-                          '& .MuiTableCell-root': {
-                            color: ip.heading,
-                            fontWeight: 700,
-                            borderBottom: `1px solid ${ip.cardBorder}`,
-                          },
+                  <Box sx={{ minWidth: ROSTER_GRID_MIN_WIDTH }}>
+                    <RosterGridHeader />
+                    {filteredSorted.length === 0 ? (
+                      <Box sx={{ textAlign: 'center', py: 4, color: ip.subtext }}>
+                        No rows match your filters.
+                      </Box>
+                    ) : (
+                      <Virtuoso
+                        style={{
+                          height: Math.min(
+                            SCHOOL_ROSTER_VIRTUOSO_HEIGHT,
+                            56 + filteredSorted.length * 64
+                          ),
                         }}
-                      >
-                        <TableCell>Student</TableCell>
-                        <TableCell>Status</TableCell>
-                        <TableCell>Class</TableCell>
-                        <TableCell>Achievement</TableCell>
-                        <TableCell>Assessments</TableCell>
-                        <TableCell align="right">Actions</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      <TableRow sx={{ bgcolor: '#fff' }}>
-                        <TableCell colSpan={6} sx={{ textAlign: 'center', py: 4, color: ip.subtext, borderBottom: 'none' }}>
-                          No rows match your filters.
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              ) : (
-                <Box sx={{ display: 'flex', alignItems: 'stretch', gap: 1.25 }}>
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <TableVirtuoso
-                      style={{ height: Math.min(SCHOOL_ROSTER_VIRTUOSO_HEIGHT, 72 + filteredSorted.length * 64) }}
-                      data={filteredSorted}
-                      components={SchoolRosterVirtuosoComponents}
-                      scrollerRef={el => {
-                        setRosterScrollerEl(el instanceof HTMLElement ? el : null);
-                      }}
-                      fixedHeaderContent={() => (
-                    <TableRow
-                      sx={{
-                        bgcolor: ip.cardMutedBg,
-                        '& .MuiTableCell-root': {
-                          color: ip.heading,
-                          fontWeight: 700,
-                          borderBottom: `1px solid ${ip.cardBorder}`,
-                        },
-                      }}
-                    >
-                      <TableCell>Student</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell>Class</TableCell>
-                      <TableCell>Achievement</TableCell>
-                      <TableCell>Assessments</TableCell>
-                      <TableCell align="right">Actions</TableCell>
-                    </TableRow>
-                  )}
-                  itemContent={(index, r) =>
-                    r.kind === 'registered' ? (
-                      <>
-                        <TableCell
-                          sx={{
-                            color: ip.heading,
+                        data={filteredSorted}
+                        components={SchoolRosterVirtuosoComponents}
+                        scrollerRef={el => {
+                          setRosterScrollerEl(el instanceof HTMLElement ? el : null);
+                        }}
+                        itemContent={(index, r) => {
+                          const rowBg = index % 2 === 1 ? ip.cardMutedBg : '#fff';
+                          const cellBorder = {
                             borderBottom: `1px solid ${ip.cardBorder}`,
-                            bgcolor: index % 2 === 1 ? ip.cardMutedBg : '#fff',
+                            py: 1.25,
+                            minWidth: 0,
                             overflow: 'hidden',
-                          }}
-                        >
-                          <Typography
-                            sx={{
-                              fontWeight: 600,
-                              color: ip.heading,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {r.firstName} {r.lastName}
-                          </Typography>
-                          {r.email ? (
-                            <Typography
-                              variant="caption"
-                              sx={{
-                                color: ip.subtext,
-                                display: 'block',
-                                mt: 0.25,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                              }}
-                            >
-                              {r.email}
-                            </Typography>
-                          ) : null}
-                          {!r.passwordSetupComplete ? (
-                            <Typography
-                              variant="caption"
-                              sx={{
-                                color: ip.subtext,
-                                display: 'block',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                              }}
-                            >
-                              Password not set up yet
-                            </Typography>
-                          ) : null}
-                        </TableCell>
-                        <TableCell
-                          sx={{
-                            borderBottom: `1px solid ${ip.cardBorder}`,
-                            bgcolor: index % 2 === 1 ? ip.cardMutedBg : '#fff',
-                          }}
-                        >
-                          <Chip
-                            size="small"
-                            label={r.passwordSetupComplete ? 'Registered' : 'Invited'}
-                            sx={r.passwordSetupComplete ? REGISTERED_CHIP_SX : INVITED_CHIP_SX}
-                          />
-                        </TableCell>
-                        <TableCell
-                          sx={{
-                            color: ip.heading,
-                            fontWeight: 500,
-                            borderBottom: `1px solid ${ip.cardBorder}`,
-                            bgcolor: index % 2 === 1 ? ip.cardMutedBg : '#fff',
-                          }}
-                        >
-                          {r.grade > 0
-                            ? r.section
-                              ? `${r.grade}-${r.section}`
-                              : String(r.grade)
-                            : r.section || '-'}
-                        </TableCell>
-                        <TableCell
-                          sx={{
-                            color: ip.heading,
-                            fontWeight: 500,
-                            borderBottom: `1px solid ${ip.cardBorder}`,
-                            bgcolor: index % 2 === 1 ? ip.cardMutedBg : '#fff',
-                          }}
-                        >
-                          <Chip
-                            size="small"
-                            label={
-                              STUDENT_EXAM_SHOW_SCORES_AND_COINS
-                                ? formatAchievementTierLabel(r.achievementTier)
-                                : 'Pending'
-                            }
-                            sx={{
-                              fontWeight: 600,
-                              ...(STUDENT_EXAM_SHOW_SCORES_AND_COINS
-                                ? getAchievementTierChipSx(r.achievementTier)
-                                : {
-                                    border: '1px solid #64748b',
-                                    color: ip.heading,
-                                    bgcolor: '#fff',
-                                  }),
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell
-                          sx={{
-                            color: ip.heading,
-                            fontWeight: 500,
-                            borderBottom: `1px solid ${ip.cardBorder}`,
-                            bgcolor: index % 2 === 1 ? ip.cardMutedBg : '#fff',
-                          }}
-                        >
-                          {r.assessmentsCompleted}
-                        </TableCell>
-                        <TableCell
-                          align="right"
-                          sx={{
-                            borderBottom: `1px solid ${ip.cardBorder}`,
-                            bgcolor: index % 2 === 1 ? ip.cardMutedBg : '#fff',
-                          }}
-                        >
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              flexWrap: 'wrap',
-                              justifyContent: 'flex-end',
-                              gap: 0.5,
-                              alignItems: 'center',
-                            }}
-                          >
-                            {!r.passwordSetupComplete && r.email ? (
-                              <>
-                                <Button
-                                  size="small"
-                                  color="error"
-                                  disabled={
-                                    revokingEmail === normalizeRosterEmail(r.email) ||
-                                    resendingEmail === normalizeRosterEmail(r.email)
-                                  }
-                                  onClick={() =>
-                                    setIncompleteRevokeConfirmEmail(normalizeRosterEmail(r.email))
-                                  }
-                                  sx={{ fontWeight: 600, textTransform: 'none' }}
-                                >
-                                  {revokingEmail === normalizeRosterEmail(r.email)
-                                    ? 'Revoking...'
-                                    : 'Revoke invitation'}
-                                </Button>
-                                <Button
-                                  size="small"
-                                  disabled={
-                                    revokingEmail === normalizeRosterEmail(r.email) ||
-                                    resendingEmail === normalizeRosterEmail(r.email)
-                                  }
-                                  onClick={() =>
-                                    setIncompleteReinviteConfirmEmail(normalizeRosterEmail(r.email))
-                                  }
+                          };
+                          if (r.kind === 'registered') {
+                            return (
+                              <Box
+                                sx={{
+                                  ...rosterGridRowSx,
+                                  bgcolor: rowBg,
+                                  borderBottom: `1px solid ${ip.cardBorder}`,
+                                }}
+                              >
+                                <Box sx={{ ...cellBorder, borderBottom: 'none' }}>
+                                  <Typography
+                                    sx={{
+                                      fontWeight: 600,
+                                      color: ip.heading,
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                  >
+                                    {r.firstName} {r.lastName}
+                                  </Typography>
+                                  {r.email ? (
+                                    <Typography
+                                      variant="caption"
+                                      sx={{
+                                        color: ip.subtext,
+                                        display: 'block',
+                                        mt: 0.25,
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                      }}
+                                    >
+                                      {r.email}
+                                    </Typography>
+                                  ) : null}
+                                </Box>
+                                <Box sx={{ ...cellBorder, borderBottom: 'none' }}>
+                                  <Chip
+                                    size="small"
+                                    label={r.passwordSetupComplete ? 'Fully setup' : 'Password pending'}
+                                    sx={
+                                      r.passwordSetupComplete
+                                        ? REGISTERED_CHIP_SX
+                                        : NEEDS_PASSWORD_CHIP_SX
+                                    }
+                                  />
+                                </Box>
+                                <Box
                                   sx={{
-                                    color: ip.statBlue,
-                                    fontWeight: 600,
-                                    textTransform: 'none',
+                                    ...cellBorder,
+                                    borderBottom: 'none',
+                                    color: ip.heading,
+                                    fontWeight: 500,
                                   }}
                                 >
-                                  {resendingEmail === normalizeRosterEmail(r.email)
-                                    ? 'Sending...'
-                                    : 'Re-invite'}
-                                </Button>
-                              </>
-                            ) : null}
-                            <Button
-                              size="small"
-                              endIcon={<OpenInNewIcon sx={{ fontSize: '1rem !important' }} />}
-                              onClick={() =>
-                                navigate(`${routeBase}/students/${encodeURIComponent(r.uid)}`, {
-                                  state: {
-                                    studentRow: r.dashboardRow,
-                                    email: r.email,
-                                  },
-                                })
-                              }
-                              sx={{ color: ip.statBlue, fontWeight: 600, textTransform: 'none' }}
+                                  {r.grade > 0
+                                    ? r.section
+                                      ? `${r.grade}-${r.section}`
+                                      : String(r.grade)
+                                    : r.section || '-'}
+                                </Box>
+                                <Box sx={{ ...cellBorder, borderBottom: 'none' }}>
+                                  <Chip
+                                    size="small"
+                                    label={
+                                      STUDENT_EXAM_SHOW_SCORES_AND_COINS
+                                        ? formatAchievementTierLabel(r.achievementTier)
+                                        : 'Pending'
+                                    }
+                                    sx={{
+                                      fontWeight: 600,
+                                      ...(STUDENT_EXAM_SHOW_SCORES_AND_COINS
+                                        ? getAchievementTierChipSx(r.achievementTier)
+                                        : {
+                                            border: '1px solid #64748b',
+                                            color: ip.heading,
+                                            bgcolor: '#fff',
+                                          }),
+                                    }}
+                                  />
+                                </Box>
+                                <Box
+                                  sx={{
+                                    ...cellBorder,
+                                    borderBottom: 'none',
+                                    color: ip.heading,
+                                    fontWeight: 500,
+                                  }}
+                                >
+                                  {r.assessmentsCompleted}
+                                </Box>
+                                <Box
+                                  sx={{
+                                    ...cellBorder,
+                                    borderBottom: 'none',
+                                    display: 'flex',
+                                    flexWrap: 'nowrap',
+                                    justifyContent: 'flex-end',
+                                    gap: 0.25,
+                                    alignItems: 'center',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  {!r.passwordSetupComplete && r.email ? (
+                                    <>
+                                      <Button
+                                        size="small"
+                                        color="error"
+                                        disabled={
+                                          revokingEmail === normalizeRosterEmail(r.email) ||
+                                          resendingEmail === normalizeRosterEmail(r.email)
+                                        }
+                                        onClick={() =>
+                                          setIncompleteRevokeConfirmEmail(
+                                            normalizeRosterEmail(r.email)
+                                          )
+                                        }
+                                        sx={{
+                                          fontWeight: 600,
+                                          textTransform: 'none',
+                                          minWidth: 0,
+                                          px: 1,
+                                          whiteSpace: 'nowrap',
+                                        }}
+                                      >
+                                        {revokingEmail === normalizeRosterEmail(r.email)
+                                          ? 'Revoking...'
+                                          : 'Revoke'}
+                                      </Button>
+                                      <Button
+                                        size="small"
+                                        disabled={
+                                          revokingEmail === normalizeRosterEmail(r.email) ||
+                                          resendingEmail === normalizeRosterEmail(r.email)
+                                        }
+                                        onClick={() =>
+                                          setIncompleteReinviteConfirmEmail(
+                                            normalizeRosterEmail(r.email)
+                                          )
+                                        }
+                                        sx={{
+                                          color: ip.statBlue,
+                                          fontWeight: 600,
+                                          textTransform: 'none',
+                                          minWidth: 0,
+                                          px: 1,
+                                          whiteSpace: 'nowrap',
+                                        }}
+                                      >
+                                        {resendingEmail === normalizeRosterEmail(r.email)
+                                          ? 'Sending...'
+                                          : 'Re-invite'}
+                                      </Button>
+                                    </>
+                                  ) : null}
+                                  <Button
+                                    size="small"
+                                    endIcon={
+                                      <OpenInNewIcon sx={{ fontSize: '1rem !important' }} />
+                                    }
+                                    onClick={() =>
+                                      navigate(
+                                        `${routeBase}/students/${encodeURIComponent(r.uid)}`,
+                                        {
+                                          state: {
+                                            studentRow: r.dashboardRow,
+                                            email: r.email,
+                                          },
+                                        }
+                                      )
+                                    }
+                                    sx={{
+                                      color: ip.statBlue,
+                                      fontWeight: 600,
+                                      textTransform: 'none',
+                                      minWidth: 0,
+                                      px: 1,
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                  >
+                                    View
+                                  </Button>
+                                </Box>
+                              </Box>
+                            );
+                          }
+                          return (
+                            <Box
+                              sx={{
+                                ...rosterGridRowSx,
+                                bgcolor: rowBg,
+                                borderBottom: `1px solid ${ip.cardBorder}`,
+                              }}
                             >
-                              View
-                            </Button>
-                          </Box>
-                        </TableCell>
-                      </>
-                    ) : (
-                      <>
-                        <TableCell
-                          sx={{
-                            color: ip.heading,
-                            borderBottom: `1px solid ${ip.cardBorder}`,
-                            bgcolor: index % 2 === 1 ? ip.cardMutedBg : '#fff',
-                            overflow: 'hidden',
-                          }}
-                        >
-                          <Typography
-                            sx={{
-                              fontWeight: 600,
-                              color: ip.heading,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {r.email}
-                          </Typography>
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              color: ip.subtext,
-                              display: 'block',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {r.status === 'revoked' ? 'Invitation revoked' : 'Account not created yet'}
-                          </Typography>
-                        </TableCell>
-                        <TableCell
-                          sx={{
-                            borderBottom: `1px solid ${ip.cardBorder}`,
-                            bgcolor: index % 2 === 1 ? ip.cardMutedBg : '#fff',
-                          }}
-                        >
-                          <Chip
-                            size="small"
-                            label={r.status === 'revoked' ? 'Revoked' : 'Invited'}
-                            sx={r.status === 'revoked' ? REVOKED_CHIP_SX : INVITED_CHIP_SX}
-                          />
-                        </TableCell>
-                        <TableCell
-                          sx={{
-                            color: ip.subtext,
-                            borderBottom: `1px solid ${ip.cardBorder}`,
-                            bgcolor: index % 2 === 1 ? ip.cardMutedBg : '#fff',
-                          }}
-                        >
-                          -
-                        </TableCell>
-                        <TableCell
-                          sx={{
-                            color: ip.subtext,
-                            borderBottom: `1px solid ${ip.cardBorder}`,
-                            bgcolor: index % 2 === 1 ? ip.cardMutedBg : '#fff',
-                          }}
-                        >
-                          -
-                        </TableCell>
-                        <TableCell
-                          sx={{
-                            color: ip.subtext,
-                            borderBottom: `1px solid ${ip.cardBorder}`,
-                            bgcolor: index % 2 === 1 ? ip.cardMutedBg : '#fff',
-                          }}
-                        >
-                          -
-                        </TableCell>
-                        <TableCell
-                          align="right"
-                          sx={{
-                            borderBottom: `1px solid ${ip.cardBorder}`,
-                            bgcolor: index % 2 === 1 ? ip.cardMutedBg : '#fff',
-                          }}
-                        >
-                          {r.status === 'revoked' ? (
-                            <Button
-                              size="small"
-                              disabled={resendingEmail === r.email}
-                              onClick={() => setResendConfirmEmail(r.email)}
-                              sx={{ color: ip.statBlue, fontWeight: 600, textTransform: 'none' }}
-                            >
-                              {resendingEmail === r.email ? 'Sending...' : 'Resend invitation'}
-                            </Button>
-                          ) : (
-                            <Button
-                              size="small"
-                              color="error"
-                              disabled={revokingEmail === r.email}
-                              onClick={() => setRevokeConfirmEmail(r.email)}
-                              sx={{ fontWeight: 600, textTransform: 'none' }}
-                            >
-                              {revokingEmail === r.email ? 'Revoking...' : 'Revoke invitation'}
-                            </Button>
-                          )}
-                        </TableCell>
-                      </>
-                    )
-                  }
-                    />
+                              <Box sx={{ ...cellBorder, borderBottom: 'none' }}>
+                                <Typography
+                                  sx={{
+                                    fontWeight: 600,
+                                    color: ip.heading,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  {r.email}
+                                </Typography>
+                              </Box>
+                              <Box sx={{ ...cellBorder, borderBottom: 'none' }}>
+                                <Chip
+                                  size="small"
+                                  label={r.status === 'revoked' ? 'Revoked' : 'No account yet'}
+                                  sx={r.status === 'revoked' ? REVOKED_CHIP_SX : INVITED_CHIP_SX}
+                                />
+                              </Box>
+                              <Box sx={{ ...cellBorder, borderBottom: 'none', color: ip.subtext }}>
+                                -
+                              </Box>
+                              <Box sx={{ ...cellBorder, borderBottom: 'none', color: ip.subtext }}>
+                                -
+                              </Box>
+                              <Box sx={{ ...cellBorder, borderBottom: 'none', color: ip.subtext }}>
+                                -
+                              </Box>
+                              <Box
+                                sx={{
+                                  ...cellBorder,
+                                  borderBottom: 'none',
+                                  textAlign: 'right',
+                                }}
+                              >
+                                {r.status === 'revoked' ? (
+                                  <Button
+                                    size="small"
+                                    disabled={resendingEmail === r.email}
+                                    onClick={() => setResendConfirmEmail(r.email)}
+                                    sx={{
+                                      color: ip.statBlue,
+                                      fontWeight: 600,
+                                      textTransform: 'none',
+                                    }}
+                                  >
+                                    {resendingEmail === r.email ? 'Sending...' : 'Resend invitation'}
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    size="small"
+                                    color="error"
+                                    disabled={revokingEmail === r.email}
+                                    onClick={() => setRevokeConfirmEmail(r.email)}
+                                    sx={{ fontWeight: 600, textTransform: 'none' }}
+                                  >
+                                    {revokingEmail === r.email ? 'Revoking...' : 'Revoke'}
+                                  </Button>
+                                )}
+                              </Box>
+                            </Box>
+                          );
+                        }}
+                      />
+                    )}
                   </Box>
+                </Box>
+                {filteredSorted.length > 0 ? (
                   <RosterScrollRail
                     scrollerEl={rosterScrollerEl}
-                    listHeight={Math.min(SCHOOL_ROSTER_VIRTUOSO_HEIGHT, 72 + filteredSorted.length * 64)}
+                    listHeight={Math.min(
+                      SCHOOL_ROSTER_VIRTUOSO_HEIGHT,
+                      56 + filteredSorted.length * 64
+                    )}
                   />
-                </Box>
-              )}
+                ) : (
+                  <Box
+                    aria-hidden
+                    sx={{
+                      width: ROSTER_SCROLL_RAIL_WIDTH,
+                      flexShrink: 0,
+                      visibility: 'hidden',
+                    }}
+                  />
+                )}
+              </Box>
             </CardContent>
           </Card>
         </>

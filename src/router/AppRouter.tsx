@@ -159,6 +159,9 @@ const PlatformAdminPipelinePage = lazy(() => import('../pages/platform_admin_pag
 const PlatformAdminAdminsPage = lazy(() => import('../pages/platform_admin_pages/PlatformAdminAdminsPage'));
 const PlatformAdminAnalyticsPage = lazy(() => import('../pages/platform_admin_pages/PlatformAdminAnalyticsPage'));
 const PlatformAdminItemBankPage = lazy(() => import('../pages/platform_admin_pages/PlatformAdminItemBankPage'));
+const PlatformAdminItemHealthPage = lazy(
+  () => import('../pages/platform_admin_pages/PlatformAdminItemHealthPage')
+);
 const PlatformAdminQuestionReportsPage = lazy(
   () => import('../pages/platform_admin_pages/PlatformAdminQuestionReportsPage')
 );
@@ -571,14 +574,7 @@ const AppRouter: React.FC = () => {
               </PlatformAdminSuperRoute>
             }
           />
-          <Route
-            path="/platform-admin/students"
-            element={
-              <PlatformAdminSuperRoute nested>
-                <PlatformAdminStudentsPage />
-              </PlatformAdminSuperRoute>
-            }
-          />
+          <Route path="/platform-admin/students" element={<PlatformAdminStudentsPage />} />
           <Route
             path="/platform-admin/analytics/:section"
             element={
@@ -596,6 +592,14 @@ const AppRouter: React.FC = () => {
             }
           />
           <Route
+            path="/platform-admin/item-health"
+            element={
+              <PlatformAdminAnalyticsRoute nested>
+                <PlatformAdminItemHealthPage />
+              </PlatformAdminAnalyticsRoute>
+            }
+          />
+          <Route
             path="/platform-admin/item-bank"
             element={<Navigate to="/platform-admin/item-bank/official" replace />}
           />
@@ -609,11 +613,7 @@ const AppRouter: React.FC = () => {
           />
           <Route
             path="/platform-admin/students/:studentId"
-            element={
-              <PlatformAdminSuperRoute nested>
-                <PlatformAdminStudentDetailPage />
-              </PlatformAdminSuperRoute>
-            }
+            element={<PlatformAdminStudentDetailPage />}
           />
           <Route
             path="/platform-admin/pipelines"

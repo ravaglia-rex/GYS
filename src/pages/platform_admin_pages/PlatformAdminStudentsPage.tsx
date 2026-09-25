@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
   Typography,
@@ -21,13 +21,15 @@ import {
   Tooltip,
   Select,
   MenuItem,
+  MenuList,
   Checkbox,
   ListItemText,
-  OutlinedInput,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
+  Popper,
+  Autocomplete,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -36,18 +38,22 @@ import {
   CheckCircleOutline as ActiveIcon,
   School as SchoolIcon,
   Payments as SelfPaidIcon,
-  TrendingUp as UpgradeIcon,
   PersonOff as OthersIcon,
   MarkEmailUnread as PendingInviteIcon,
   Visibility as ViewIcon,
   CardGiftcard as ComplimentaryIcon,
+  KeyboardArrowDown as KeyboardArrowDownIcon,
+  FileDownload as FileDownloadIcon,
 } from '@mui/icons-material';
 import { TableVirtuoso } from 'react-virtuoso';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import * as XLSX from 'xlsx';
 import {
   createPlatformAdminComplimentaryInvite,
+  listPlatformAdminStudents,
   revokePlatformAdminComplimentaryInvite,
+  type PlatformAdminStudentRow,
 } from '../../db/platformAdminCollection';
 import {
   usePlatformAdminSchools,
@@ -59,12 +65,13 @@ import { queryKeys } from '../../query/queryKeys';
 import {
   platformAdminCardSx,
   platformAdminClearFiltersButtonSx,
+  platformAdminDialogAutocompleteSx,
   platformAdminDialogFieldLabelSx,
   platformAdminDialogPaperSx,
   platformAdminDialogSelectSx,
   platformAdminDialogTextFieldSx,
-  platformAdminFilterSelectSx,
   platformAdminFilterToolbarRowSx,
+  platformAdminOutlinedButtonSx,
   platformAdminPageContainerSx,
   platformAdminPrimaryButtonSx,
   platformAdminSearchFieldSx,
@@ -91,21 +98,95 @@ import { MEMBERSHIP_LEVEL_LABEL } from '../../utils/studentMembershipPricing';
 type StatusFilter = 'all' | 'approved' | 'pending';
 type RosterFilter = 'all' | 'yes' | 'no';
 type SetupFilter = 'all' | 'complete' | 'incomplete';
-type PaymentFilter = 'all' | 'self_paid' | 'membership_upgrade';
+type PaymentFilter = 'all' | 'self_paid' | 'membership_upgrade' | 'individual';
 type AccountFilter = 'all' | 'registered' | 'invite';
 type GradeFilter = 'all' | '6' | '7' | '8' | '9' | '10' | '11' | '12';
 type MembershipFilter = 'all' | '1' | '2' | '3' | '3_plus';
 type StudentStatFilter =
-  | 'total'
+  | 'on_roster'
   | 'active'
-  | 'self_paid'
-  | 'membership_upgrade'
-  | 'roster_pending'
+  | 'account_no_password'
+  | 'no_account'
+  | 'individual'
   | 'others';
 
+/** Roster export buckets — mirrors the four roster-related stats cards. */
+type StudentExportBucket = 'on_roster' | 'fully_setup' | 'account_no_password' | 'no_account';
+
+const STUDENT_EXPORT_OPTIONS: {
+  bucket: StudentExportBucket;
+  label: string;
+  fileLabel: string;
+  filters: {
+    roster: 'yes';
+    setup?: 'complete' | 'incomplete';
+    account?: 'registered' | 'invite';
+  };
+}[] = [
+  {
+    bucket: 'on_roster',
+    label: 'All on Roster',
+    fileLabel: 'All_on_Roster',
+    filters: { roster: 'yes' },
+  },
+  {
+    bucket: 'fully_setup',
+    label: 'Fully Set Up',
+    fileLabel: 'Fully_Set_Up',
+    filters: { roster: 'yes', setup: 'complete', account: 'registered' },
+  },
+  {
+    bucket: 'account_no_password',
+    label: 'Account, No Password',
+    fileLabel: 'Account_No_Password',
+    filters: { roster: 'yes', setup: 'incomplete', account: 'registered' },
+  },
+  {
+    bucket: 'no_account',
+    label: 'No Account Yet',
+    fileLabel: 'No_Account_Yet',
+    filters: { roster: 'yes', account: 'invite' },
+  },
+];
+
+function deriveStudentExportStatus(row: PlatformAdminStudentRow): string {
+  if (row.is_invite) return 'No Account Yet';
+  if (row.password_setup_complete === true) return 'Fully Set Up';
+  return 'Account, No Password';
+}
+
+function formatExportJoinedDate(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function sanitizeExportFileToken(value: string): string {
+  return value
+    .trim()
+    .replace(/[^\w\s-]+/g, '')
+    .replace(/\s+/g, '_')
+    .replace(/_+/g, '_')
+    .slice(0, 60) || 'School';
+}
+
+function studentExportEmail(row: PlatformAdminStudentRow): string {
+  if (row.login_email_is_synthetic && row.login_user_id) return row.login_user_id;
+  return row.email || '';
+}
+
+function membershipExportLabel(level: number | null | undefined): string {
+  if (level == null) return '';
+  const named = MEMBERSHIP_LEVEL_LABEL[level as 1 | 2 | 3 | 4];
+  return named ? `Level ${level} · ${named}` : `Level ${level}`;
+}
 const ALL_SCHOOLS_VALUE = '__all__';
 /** Must match the backend's NO_SCHOOL_FILTER_VALUE sentinel in platformAdminCollection/index.ts. */
 const NO_SCHOOL_FILTER_VALUE = '__no_school__';
+/** School filter takes most of the row; search gets the remainder. */
+const SCHOOL_FILTER_FLEX = '6 1 0%';
+const SEARCH_FILTER_FLEX = '4 1 0%';
 /** Matches the backend's NOT_LISTED_SCHOOL_ID (students who picked "school not listed" at signup). */
 const NOT_LISTED_SCHOOL_ID = 'not-listed';
 
@@ -137,6 +218,7 @@ const PAYMENT_LABELS: Record<PaymentFilter, string> = {
   all: 'All payments',
   self_paid: 'Self-paid',
   membership_upgrade: 'Membership upgrade',
+  individual: 'Self-paid & upgrades',
 };
 
 const ACCOUNT_LABELS: Record<AccountFilter, string> = {
@@ -279,6 +361,9 @@ const PlatformAdminStudentsPage: React.FC = () => {
 
   const [allSchoolsSelected, setAllSchoolsSelected] = useState(initialSchool.allSchoolsSelected);
   const [selectedSchoolIds, setSelectedSchoolIds] = useState<string[]>(initialSchool.selectedSchoolIds);
+  const [schoolMenuOpen, setSchoolMenuOpen] = useState(false);
+  const schoolMenuAnchorRef = useRef<HTMLButtonElement | null>(null);
+  const schoolMenuPaperRef = useRef<HTMLDivElement | null>(null);
 
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -294,7 +379,9 @@ const PlatformAdminStudentsPage: React.FC = () => {
     ['all', 'complete', 'incomplete'].includes(initialSetup) ? initialSetup : 'all'
   );
   const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>(
-    ['all', 'self_paid', 'membership_upgrade'].includes(initialPayment) ? initialPayment : 'all'
+    ['all', 'self_paid', 'membership_upgrade', 'individual'].includes(initialPayment)
+      ? initialPayment
+      : 'all'
   );
   const [accountFilter, setAccountFilter] = useState<AccountFilter>(
     ['all', 'registered', 'invite'].includes(initialAccount) ? initialAccount : 'all'
@@ -313,11 +400,41 @@ const PlatformAdminStudentsPage: React.FC = () => {
   const [inviteLevel, setInviteLevel] = useState<1 | 2 | 3 | 4>(1);
   const [inviteBusy, setInviteBusy] = useState(false);
   const [revokeBusyEmail, setRevokeBusyEmail] = useState<string | null>(null);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportSchoolId, setExportSchoolId] = useState('');
+  const [exportBusy, setExportBusy] = useState(false);
+  const [exportDialogError, setExportDialogError] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [exportMessage, setExportMessage] = useState<string | null>(null);
 
   const schoolSelected = allSchoolsSelected || selectedSchoolIds.length > 0;
   /** Unlinked students have no school_id - allow loading them without picking a school. */
   const canLoadStudents = schoolSelected || rosterFilter === 'no';
 
+  // Close the school Popper on outside click / Escape. Avoid MUI ClickAwayListener —
+  // its ESM build is named-export-only, and barrel imports have resolved to undefined
+  // at runtime ("Element type is invalid … got: undefined").
+  useEffect(() => {
+    if (!schoolMenuOpen) return undefined;
+    const onPointerDown = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (schoolMenuAnchorRef.current?.contains(target)) return;
+      if (schoolMenuPaperRef.current?.contains(target)) return;
+      setSchoolMenuOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSchoolMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('touchstart', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('touchstart', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [schoolMenuOpen]);
   useEffect(() => {
     const timer = setTimeout(
       () => setDebouncedSearch(search.trim()),
@@ -360,6 +477,12 @@ const PlatformAdminStudentsPage: React.FC = () => {
   const schools = useMemo(() => schoolsQuery.data ?? [], [schoolsQuery.data]);
   const schoolsLoading = schoolsQuery.isLoading;
   const stats = statsQuery.data ?? null;
+  const rosterAccountPending = stats
+    ? Math.max(0, stats.students_rostered - stats.students_active)
+    : null;
+  const individualPaidCount = stats
+    ? stats.students_self_paid + stats.students_membership_upgrade
+    : null;
   const students = useMemo(
     () => (canLoadStudents ? studentsQuery.data?.students ?? [] : []),
     [canLoadStudents, studentsQuery.data?.students]
@@ -385,8 +508,6 @@ const PlatformAdminStudentsPage: React.FC = () => {
     }
     return map;
   }, [schools]);
-
-  const schoolSelectValue = allSchoolsSelected ? [ALL_SCHOOLS_VALUE] : selectedSchoolIds;
 
   const deleteSuccessMessage =
     typeof location.state === 'object' &&
@@ -428,20 +549,12 @@ const PlatformAdminStudentsPage: React.FC = () => {
       return null;
     }
     if (
-      paymentFilter === 'self_paid' &&
+      rosterFilter === 'yes' &&
       setupFilter === 'all' &&
-      rosterFilter === 'all' &&
-      accountFilter === 'registered'
+      paymentFilter === 'all' &&
+      accountFilter === 'all'
     ) {
-      return 'self_paid';
-    }
-    if (
-      paymentFilter === 'membership_upgrade' &&
-      setupFilter === 'all' &&
-      rosterFilter === 'all' &&
-      accountFilter === 'registered'
-    ) {
-      return 'membership_upgrade';
+      return 'on_roster';
     }
     if (
       rosterFilter === 'yes' &&
@@ -455,9 +568,25 @@ const PlatformAdminStudentsPage: React.FC = () => {
       rosterFilter === 'yes' &&
       setupFilter === 'incomplete' &&
       paymentFilter === 'all' &&
-      accountFilter === 'all'
+      accountFilter === 'registered'
     ) {
-      return 'roster_pending';
+      return 'account_no_password';
+    }
+    if (
+      rosterFilter === 'yes' &&
+      setupFilter === 'all' &&
+      paymentFilter === 'all' &&
+      accountFilter === 'invite'
+    ) {
+      return 'no_account';
+    }
+    if (
+      paymentFilter === 'individual' &&
+      setupFilter === 'all' &&
+      rosterFilter === 'all' &&
+      accountFilter === 'registered'
+    ) {
+      return 'individual';
     }
     if (
       rosterFilter === 'no' &&
@@ -466,14 +595,6 @@ const PlatformAdminStudentsPage: React.FC = () => {
       accountFilter === 'registered'
     ) {
       return 'others';
-    }
-    if (
-      rosterFilter === 'all' &&
-      setupFilter === 'complete' &&
-      paymentFilter === 'all' &&
-      accountFilter === 'registered'
-    ) {
-      return 'total';
     }
     return null;
   }, [
@@ -500,11 +621,11 @@ const PlatformAdminStudentsPage: React.FC = () => {
     setGradeFilter('all');
     setMembershipFilter('all');
     switch (stat) {
-      case 'total':
-        setRosterFilter('all');
-        setSetupFilter('complete');
+      case 'on_roster':
+        setRosterFilter('yes');
+        setSetupFilter('all');
         setPaymentFilter('all');
-        setAccountFilter('registered');
+        setAccountFilter('all');
         break;
       case 'active':
         setRosterFilter('yes');
@@ -512,23 +633,23 @@ const PlatformAdminStudentsPage: React.FC = () => {
         setPaymentFilter('all');
         setAccountFilter('registered');
         break;
-      case 'self_paid':
-        setRosterFilter('all');
-        setSetupFilter('all');
-        setPaymentFilter('self_paid');
-        setAccountFilter('registered');
-        break;
-      case 'membership_upgrade':
-        setRosterFilter('all');
-        setSetupFilter('all');
-        setPaymentFilter('membership_upgrade');
-        setAccountFilter('registered');
-        break;
-      case 'roster_pending':
+      case 'account_no_password':
         setRosterFilter('yes');
         setSetupFilter('incomplete');
         setPaymentFilter('all');
-        setAccountFilter('all');
+        setAccountFilter('registered');
+        break;
+      case 'no_account':
+        setRosterFilter('yes');
+        setSetupFilter('all');
+        setPaymentFilter('all');
+        setAccountFilter('invite');
+        break;
+      case 'individual':
+        setRosterFilter('all');
+        setSetupFilter('all');
+        setPaymentFilter('individual');
+        setAccountFilter('registered');
         break;
       case 'others':
         setRosterFilter('no');
@@ -649,6 +770,43 @@ const PlatformAdminStudentsPage: React.FC = () => {
     setAllSchoolsSelected(false);
     setSelectedSchoolIds(selectedSpecific);
   };
+
+  const toggleSchoolMenuOption = (value: string) => {
+    if (value === ALL_SCHOOLS_VALUE) {
+      handleSchoolSelectChange([ALL_SCHOOLS_VALUE]);
+      return;
+    }
+    if (allSchoolsSelected) {
+      handleSchoolSelectChange([value]);
+      return;
+    }
+    const next = selectedSchoolIds.includes(value)
+      ? selectedSchoolIds.filter((id) => id !== value)
+      : [...selectedSchoolIds, value];
+    handleSchoolSelectChange(next);
+  };
+
+  const schoolFilterLabel = useMemo(() => {
+    if (allSchoolsSelected) return 'All schools';
+    if (selectedSchoolIds.length === 0) {
+      return schoolsLoading ? 'Loading schools…' : 'Select school(s) - required';
+    }
+    if (selectedSchoolIds.length === 1) {
+      const id = selectedSchoolIds[0];
+      if (id === NO_SCHOOL_FILTER_VALUE) return 'No specific school';
+      const school = schools.find((s) => s.id === id);
+      const name = school?.school_name || schoolNameById.get(id) || id;
+      const count = school?.student_count ?? 0;
+      return `${name} (${count})`;
+    }
+    return `${selectedSchoolIds.length} schools`;
+  }, [
+    allSchoolsSelected,
+    selectedSchoolIds,
+    schoolsLoading,
+    schools,
+    schoolNameById,
+  ]);
 
   const activeFilterChips = useMemo(() => {
     // Chips are prefixed with the filter they came from - several filters share school wording
@@ -777,28 +935,129 @@ const PlatformAdminStudentsPage: React.FC = () => {
     setSortDir(key === 'name' ? 'asc' : 'desc');
   };
 
+  const openExportDialog = () => {
+    // Prefill from the page filter when exactly one real school is already selected.
+    const prefill =
+      !allSchoolsSelected &&
+      selectedSchoolIds.length === 1 &&
+      selectedSchoolIds[0] !== NO_SCHOOL_FILTER_VALUE
+        ? selectedSchoolIds[0]
+        : '';
+    setExportSchoolId(prefill);
+    setExportDialogError(null);
+    setExportDialogOpen(true);
+  };
+
+  const handleExport = async (bucket: StudentExportBucket) => {
+    if (exportBusy) return;
+    if (!exportSchoolId) {
+      setExportDialogError('Select a school to export.');
+      return;
+    }
+    const option = STUDENT_EXPORT_OPTIONS.find((o) => o.bucket === bucket);
+    if (!option) return;
+
+    setExportBusy(true);
+    setExportDialogError(null);
+    setExportError(null);
+    setExportMessage(null);
+    try {
+      const result = await listPlatformAdminStudents({
+        school_ids: [exportSchoolId],
+        roster: option.filters.roster,
+        setup: option.filters.setup,
+        account: option.filters.account,
+        limit: 5000,
+        export: true,
+      });
+
+      const sheetRows = result.students.map((row) => {
+        return {
+          'First Name': row.first_name || '',
+          'Last Name': row.last_name || '',
+          'Email / User ID': studentExportEmail(row),
+          Grade: row.grade ?? '',
+          Section: row.section || '',
+          School: row.school_name || '',
+          Status: deriveStudentExportStatus(row),
+          'Membership Level': membershipExportLabel(row.membership_level),
+          'Joined Date': formatExportJoinedDate(row.created_at),
+        };
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(sheetRows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Students');
+      const dateStamp = new Date().toISOString().slice(0, 10);
+      const schoolToken = sanitizeExportFileToken(
+        schoolNameById.get(exportSchoolId) || exportSchoolId
+      );
+      const filename = `${schoolToken}_${option.fileLabel}_${dateStamp}.xlsx`;
+      XLSX.writeFile(workbook, filename);
+
+      const clipped =
+        result.totalMatching > result.students.length
+          ? ` (showing ${result.students.length.toLocaleString()} of ${result.totalMatching.toLocaleString()} matching)`
+          : '';
+      setExportDialogOpen(false);
+      setExportMessage(
+        `Exported ${result.students.length.toLocaleString()} student${
+          result.students.length === 1 ? '' : 's'
+        } — ${option.label}${clipped}.`
+      );
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { error?: string } }; message?: string };
+      setExportDialogError(
+        err?.response?.data?.error || err?.message || 'Failed to export students.'
+      );
+    } finally {
+      setExportBusy(false);
+    }
+  };
+
   return (
     <Box sx={platformAdminPageContainerSx}>
       <PlatformAdminPageHeader
         title="Students"
         subtitle="Total = accounts with password set. Self-paid = individual signup with no school. Upgrades = school-roster kids with individual / upgrade payment. Roster pending + Others cover incomplete setup."
         action={
-          isSuperAdmin ? (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flexWrap: 'wrap' }}>
             <Button
-              variant="contained"
-              startIcon={<ComplimentaryIcon />}
-              onClick={openInviteDialog}
-              sx={platformAdminPrimaryButtonSx}
+              variant="outlined"
+              startIcon={<FileDownloadIcon />}
+              disabled={exportBusy}
+              onClick={openExportDialog}
+              sx={platformAdminOutlinedButtonSx}
             >
-              Invite free student
+              Export
             </Button>
-          ) : undefined
+            {isSuperAdmin ? (
+              <Button
+                variant="contained"
+                startIcon={<ComplimentaryIcon />}
+                onClick={openInviteDialog}
+                sx={platformAdminPrimaryButtonSx}
+              >
+                Invite free student
+              </Button>
+            ) : null}
+          </Box>
         }
       />
 
       {deleteSuccessMessage && (
         <Alert severity="success" sx={{ mb: 2 }}>
           {deleteSuccessMessage}
+        </Alert>
+      )}
+      {exportMessage && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setExportMessage(null)}>
+          {exportMessage}
+        </Alert>
+      )}
+      {exportError && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setExportError(null)}>
+          {exportError}
         </Alert>
       )}
       {isSuperAdmin && complimentaryMessage && (
@@ -825,53 +1084,53 @@ const PlatformAdminStudentsPage: React.FC = () => {
         }}
       >
         <PlatformAdminStatCard
-          title="Total"
-          value={stats?.students_total ?? '-'}
-          subtitle="Account + password set"
-          icon={<PeopleIcon sx={{ fontSize: 22 }} />}
+          title="Total on Roster"
+          value={stats?.students_on_roster ?? '-'}
+          subtitle="Invited to a school roster"
+          icon={<SchoolIcon sx={{ fontSize: 22 }} />}
           accent={ip.statBlue}
-          selected={activeStatFilter === 'total'}
-          onClick={() => applyStatFilter('total')}
+          selected={activeStatFilter === 'on_roster'}
+          onClick={() => applyStatFilter('on_roster')}
         />
         <PlatformAdminStatCard
-          title="Active"
+          title="Fully Set Up"
           value={stats?.students_active ?? '-'}
-          subtitle="School roster · setup done"
+          subtitle="On roster · account + password"
           icon={<ActiveIcon sx={{ fontSize: 22 }} />}
           accent={ip.approveGreen}
           selected={activeStatFilter === 'active'}
           onClick={() => applyStatFilter('active')}
         />
         <PlatformAdminStatCard
-          title="Self-paid"
-          value={stats?.students_self_paid ?? '-'}
-          subtitle={
-            stats
-              ? `${stats.students_self_paid_setup ?? 0} setup · ${stats.students_self_paid_pending ?? 0} no password`
-              : 'Paid signup themselves'
-          }
-          icon={<SelfPaidIcon sx={{ fontSize: 22 }} />}
-          accent={ip.navy}
-          selected={activeStatFilter === 'self_paid'}
-          onClick={() => applyStatFilter('self_paid')}
+          title="Account, No Password"
+          value={rosterAccountPending ?? '-'}
+          subtitle="On roster · account created, password pending"
+          icon={<PeopleIcon sx={{ fontSize: 22 }} />}
+          accent="#B45309"
+          selected={activeStatFilter === 'account_no_password'}
+          onClick={() => applyStatFilter('account_no_password')}
         />
         <PlatformAdminStatCard
-          title="Upgrades"
-          value={stats?.students_membership_upgrade ?? '-'}
-          subtitle="School roster · individual payment"
-          icon={<UpgradeIcon sx={{ fontSize: 22 }} />}
-          accent="#7C3AED"
-          selected={activeStatFilter === 'membership_upgrade'}
-          onClick={() => applyStatFilter('membership_upgrade')}
-        />
-        <PlatformAdminStatCard
-          title="Roster pending"
-          value={stats?.students_roster_pending ?? '-'}
-          subtitle="On roster · no account/password"
+          title="No Account Yet"
+          value={stats?.students_pending_invite ?? '-'}
+          subtitle="On roster · no account created"
           icon={<PendingInviteIcon sx={{ fontSize: 22 }} />}
           accent="#B45309"
-          selected={activeStatFilter === 'roster_pending'}
-          onClick={() => applyStatFilter('roster_pending')}
+          selected={activeStatFilter === 'no_account'}
+          onClick={() => applyStatFilter('no_account')}
+        />
+        <PlatformAdminStatCard
+          title="Self-paid & Upgrades"
+          value={individualPaidCount ?? '-'}
+          subtitle={
+            stats
+              ? `${stats.students_self_paid} self-paid · ${stats.students_membership_upgrade} upgrades`
+              : 'Paid individually (any route)'
+          }
+          icon={<SelfPaidIcon sx={{ fontSize: 22 }} />}
+          accent="#7C3AED"
+          selected={activeStatFilter === 'individual'}
+          onClick={() => applyStatFilter('individual')}
         />
         <PlatformAdminStatCard
           title="Others"
@@ -908,114 +1167,197 @@ const PlatformAdminStudentsPage: React.FC = () => {
             >
               School*
             </Typography>
-            <Select
+            <Button
               id="students-school-filter"
-              multiple
-              displayEmpty
-              size="small"
-              value={schoolSelectValue}
-              onChange={(e) => handleSchoolSelectChange(e.target.value)}
-              input={<OutlinedInput />}
+              ref={schoolMenuAnchorRef}
+              type="button"
+              disableRipple
               disabled={schoolsLoading}
-              renderValue={(selected) => {
-                if (allSchoolsSelected) return 'All schools';
-                if (selected.length === 0) {
-                  return schoolsLoading ? 'Loading schools…' : 'Select school(s) - required';
-                }
-                if (selected.length === 1) {
-                  const id = selected[0];
-                  if (id === NO_SCHOOL_FILTER_VALUE) return 'No specific school';
-                  const school = schools.find((s) => s.id === id);
-                  const name = school?.school_name || schoolNameById.get(id) || id;
-                  const count = school?.student_count ?? 0;
-                  return `${name} (${count})`;
-                }
-                return `${selected.length} schools`;
-              }}
-              MenuProps={{
-                PaperProps: {
-                  sx: {
-                    ...platformAdminSelectMenuPaperSx,
-                    maxHeight: 360,
-                    minWidth: 320,
-                  },
-                },
-              }}
+              aria-haspopup="listbox"
+              aria-expanded={schoolMenuOpen ? 'true' : undefined}
+              onClick={() => setSchoolMenuOpen((open) => !open)}
+              endIcon={
+                <KeyboardArrowDownIcon
+                  sx={{
+                    color: schoolsLoading ? ip.subtext : ip.heading,
+                    fontSize: 20,
+                    transform: schoolMenuOpen ? 'rotate(180deg)' : 'none',
+                    transition: 'transform 120ms ease',
+                  }}
+                />
+              }
               sx={{
-                ...platformAdminFilterSelectSx(240),
-                flex: 1,
-                width: '100%',
-                minWidth: 0,
-                maxWidth: '100%',
-                '& .MuiSelect-select': {
-                  ...platformAdminFilterSelectSx(240)['& .MuiSelect-select'],
-                  color:
-                    schoolSelected || schoolsLoading
-                      ? `${ip.heading} !important`
-                      : `${ip.subtext} !important`,
-                  WebkitTextFillColor: schoolSelected || schoolsLoading ? ip.heading : ip.subtext,
+                flex: SCHOOL_FILTER_FLEX,
+                minWidth: 280,
+                width: 'auto',
+                height: 40,
+                minHeight: 40,
+                justifyContent: 'space-between',
+                textTransform: 'none',
+                bgcolor: schoolsLoading ? '#F8FAFC' : '#fff',
+                color: ip.heading,
+                border: `1px solid ${ip.cardBorder}`,
+                borderRadius: 1.5,
+                boxShadow: 'none',
+                px: 1.25,
+                '&:hover': {
+                  borderColor: ip.navy,
+                  bgcolor: '#fff',
+                  boxShadow: 'none',
                 },
+                '&.Mui-disabled': {
+                  bgcolor: '#F8FAFC',
+                  borderColor: ip.cardBorder,
+                  opacity: 1,
+                },
+                '& .MuiButton-endIcon': { ml: 1, mr: 0 },
               }}
             >
-              <MenuItem value={ALL_SCHOOLS_VALUE}>
-                <Checkbox checked={allSchoolsSelected} size="small" />
-                <ListItemText primary="All schools" />
-              </MenuItem>
-              <MenuItem value={NO_SCHOOL_FILTER_VALUE}>
-                <Checkbox
-                  checked={!allSchoolsSelected && selectedSchoolIds.includes(NO_SCHOOL_FILTER_VALUE)}
-                  size="small"
-                />
-                <ListItemText
-                  primary="No specific school"
-                  secondary="Unrostered students & pending invites"
-                  primaryTypographyProps={{ fontWeight: 600, color: ip.heading }}
-                  secondaryTypographyProps={{ sx: { color: ip.subtext, fontSize: '0.7rem' } }}
-                />
-              </MenuItem>
-              {schools.map((school) => (
-                <MenuItem key={school.id} value={school.id}>
-                  <Checkbox
-                    checked={!allSchoolsSelected && selectedSchoolIds.includes(school.id)}
-                    size="small"
-                  />
-                  <ListItemText
-                    primary={`${school.school_name || school.id} (${school.student_count ?? 0})`}
-                    secondary={
-                      isPlatformAdminTestSchool(school.id)
-                        ? `${school.id} · Test`
-                        : school.id
+              <Typography
+                component="span"
+                noWrap
+                sx={{
+                  flex: 1,
+                  textAlign: 'left',
+                  fontWeight: 600,
+                  fontSize: '0.875rem',
+                  color: schoolSelected || schoolsLoading ? ip.heading : ip.subtext,
+                }}
+              >
+                {schoolFilterLabel}
+              </Typography>
+            </Button>
+            <Popper
+              open={schoolMenuOpen}
+              anchorEl={schoolMenuAnchorRef.current}
+              placement="bottom-start"
+              disablePortal={false}
+              modifiers={[
+                { name: 'offset', options: { offset: [0, 4] } },
+                { name: 'flip', enabled: false },
+                {
+                  name: 'preventOverflow',
+                  options: { altAxis: false, tether: false, padding: 8 },
+                },
+              ]}
+              sx={{ zIndex: (theme) => theme.zIndex.modal }}
+            >
+              <Paper
+                ref={schoolMenuPaperRef}
+                elevation={0}
+                sx={{
+                      ...platformAdminSelectMenuPaperSx,
+                      mt: 0,
+                      width: schoolMenuAnchorRef.current?.offsetWidth ?? 420,
+                      maxWidth: schoolMenuAnchorRef.current?.offsetWidth ?? 420,
+                      maxHeight: 320,
+                      overflowY: 'auto',
+                    }}
+              >
+                <MenuList
+                  id="students-school-filter-menu"
+                  autoFocusItem={false}
+                  dense
+                  sx={{ py: 0.5 }}
+                  aria-labelledby="students-school-filter"
+                >
+                  <MenuItem
+                    dense
+                    selected={allSchoolsSelected}
+                    onClick={() => toggleSchoolMenuOption(ALL_SCHOOLS_VALUE)}
+                    sx={{ alignItems: 'flex-start', py: 0.75 }}
+                  >
+                    <Checkbox checked={allSchoolsSelected} size="small" sx={{ pt: 0.25 }} />
+                    <ListItemText
+                      primary="All schools"
+                      primaryTypographyProps={{
+                        fontWeight: 600,
+                        color: ip.heading,
+                        noWrap: true,
+                      }}
+                    />
+                  </MenuItem>
+                  <MenuItem
+                    dense
+                    selected={
+                      !allSchoolsSelected &&
+                      selectedSchoolIds.includes(NO_SCHOOL_FILTER_VALUE)
                     }
-                    primaryTypographyProps={{ fontWeight: 600, color: ip.heading }}
-                    secondaryTypographyProps={{ sx: { color: ip.subtext, fontSize: '0.7rem' } }}
-                  />
-                </MenuItem>
-              ))}
-            </Select>
-            <PlatformAdminFilterControl
-              id="students-sort-filter"
-              label="Sort by"
-              value={sortKey}
-              labels={STUDENT_SORT_LABELS}
-              minWidth={168}
-              onChange={(key) => {
-                setSortKey(key);
-                setSortDir(key === 'name' ? 'asc' : 'desc');
-              }}
-            />
-          </Box>
-
-          <Box
-            sx={{
-              ...platformAdminFilterToolbarRowSx,
-              mt: 1.75,
-              pt: 1.75,
-              borderTop: `1px solid ${ip.cardBorder}`,
-            }}
-          >
+                    onClick={() => toggleSchoolMenuOption(NO_SCHOOL_FILTER_VALUE)}
+                    sx={{ alignItems: 'flex-start', py: 0.75 }}
+                  >
+                    <Checkbox
+                      checked={
+                        !allSchoolsSelected &&
+                        selectedSchoolIds.includes(NO_SCHOOL_FILTER_VALUE)
+                      }
+                      size="small"
+                      sx={{ pt: 0.25 }}
+                    />
+                    <ListItemText
+                      primary="No specific school"
+                      secondary="Unrostered students & pending invites"
+                      primaryTypographyProps={{
+                        fontWeight: 600,
+                        color: ip.heading,
+                        noWrap: true,
+                      }}
+                      secondaryTypographyProps={{
+                        sx: { color: ip.subtext, fontSize: '0.7rem', lineHeight: 1.3 },
+                      }}
+                    />
+                  </MenuItem>
+                  {schools.map((school) => {
+                    const locationLabel = [school.city, school.state]
+                      .filter(Boolean)
+                      .join(', ');
+                    const secondaryParts = [
+                      locationLabel || null,
+                      isPlatformAdminTestSchool(school.id) ? 'Test' : null,
+                    ].filter(Boolean);
+                    const checked =
+                      !allSchoolsSelected && selectedSchoolIds.includes(school.id);
+                    return (
+                      <MenuItem
+                        key={school.id}
+                        dense
+                        title={school.id}
+                        selected={checked}
+                        onClick={() => toggleSchoolMenuOption(school.id)}
+                        sx={{ alignItems: 'flex-start', py: 0.75 }}
+                      >
+                        <Checkbox checked={checked} size="small" sx={{ pt: 0.25 }} />
+                        <ListItemText
+                          primary={`${school.school_name || school.id} (${school.student_count ?? 0})`}
+                          secondary={
+                            secondaryParts.length > 0
+                              ? secondaryParts.join(' · ')
+                              : undefined
+                          }
+                          primaryTypographyProps={{
+                            fontWeight: 600,
+                            color: ip.heading,
+                            noWrap: true,
+                            title: school.school_name || school.id,
+                          }}
+                          secondaryTypographyProps={{
+                            noWrap: true,
+                            sx: {
+                              color: ip.subtext,
+                              fontSize: '0.7rem',
+                              lineHeight: 1.3,
+                            },
+                          }}
+                        />
+                      </MenuItem>
+                    );
+                  })}
+                </MenuList>
+              </Paper>
+            </Popper>
             <TextField
               size="small"
-              placeholder="Search name, email, school…"
+              placeholder="Search name, email, or school"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               InputProps={{
@@ -1027,8 +1369,32 @@ const PlatformAdminStudentsPage: React.FC = () => {
               }}
               sx={{
                 ...platformAdminSearchFieldSx,
-                flex: '1 1 200px',
-                minWidth: 180,
+                flex: SEARCH_FILTER_FLEX,
+                minWidth: 160,
+              }}
+            />
+          </Box>
+
+          <Box
+            sx={{
+              ...platformAdminFilterToolbarRowSx,
+              width: '100%',
+              flexWrap: { xs: 'wrap', md: 'nowrap' },
+              mt: 1.75,
+              pt: 1.75,
+              borderTop: `1px solid ${ip.cardBorder}`,
+            }}
+          >
+            <PlatformAdminFilterControl
+              id="students-sort-filter"
+              label="Sort by"
+              value={sortKey}
+              labels={STUDENT_SORT_LABELS}
+              minWidth={168}
+              fullWidth
+              onChange={(key) => {
+                setSortKey(key);
+                setSortDir(key === 'name' ? 'asc' : 'desc');
               }}
             />
             <PlatformAdminFilterControl
@@ -1037,6 +1403,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
               value={statusFilter}
               labels={STATUS_LABELS}
               minWidth={148}
+              fullWidth
               onChange={setStatusFilter}
             />
             <PlatformAdminFilterControl
@@ -1046,6 +1413,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
               labels={ROSTER_LABELS}
               valueLabels={ROSTER_VALUE_LABELS}
               minWidth={120}
+              fullWidth
               onChange={handleRosterFilterChange}
             />
             <PlatformAdminFilterControl
@@ -1054,6 +1422,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
               value={gradeFilter}
               labels={GRADE_LABELS}
               minWidth={132}
+              fullWidth
               onChange={setGradeFilter}
             />
             <PlatformAdminFilterControl
@@ -1062,6 +1431,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
               value={membershipFilter}
               labels={MEMBERSHIP_LABELS}
               minWidth={148}
+              fullWidth
               onChange={setMembershipFilter}
             />
             {(hasSecondaryFilters || schoolSelected) && (
@@ -1072,7 +1442,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
                   clearSecondaryFilters();
                   clearSchoolSelection();
                 }}
-                sx={platformAdminClearFiltersButtonSx}
+                sx={{ ...platformAdminClearFiltersButtonSx, flexShrink: 0 }}
               >
                 Clear
               </Button>
@@ -1488,8 +1858,153 @@ const PlatformAdminStudentsPage: React.FC = () => {
         </DialogActions>
       </Dialog>
       )}
+
+      <Dialog
+        open={exportDialogOpen}
+        onClose={() => !exportBusy && setExportDialogOpen(false)}
+        fullWidth
+        maxWidth="sm"
+        PaperProps={{ sx: platformAdminDialogPaperSx }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, color: ip.heading, px: 3, pt: 2.5, pb: 1 }}>
+          Export students
+        </DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, px: 3, pt: 1, pb: 1 }}>
+          <Typography variant="body2" sx={{ color: ip.subtext, lineHeight: 1.55 }}>
+            Pick a school, then choose which roster group to download as Excel.
+          </Typography>
+          <Box>
+            <Typography
+              sx={platformAdminDialogFieldLabelSx}
+              component="label"
+              htmlFor="export-school"
+            >
+              School*
+            </Typography>
+            <Autocomplete
+              id="export-school"
+              fullWidth
+              size="small"
+              options={schools}
+              loading={schoolsLoading}
+              disabled={exportBusy || schoolsLoading}
+              value={schools.find((s) => s.id === exportSchoolId) ?? null}
+              onChange={(_event, school) => {
+                setExportSchoolId(school?.id ?? '');
+                setExportDialogError(null);
+              }}
+              getOptionLabel={(school) => {
+                const name = school.school_name || school.id;
+                const count =
+                  typeof school.student_count === 'number' ? ` (${school.student_count})` : '';
+                const test = isPlatformAdminTestSchool(school.id) ? ' · Test' : '';
+                return `${name}${count}${test}`;
+              }}
+              isOptionEqualToValue={(a, b) => a.id === b.id}
+              filterOptions={(options, { inputValue }) => {
+                const q = inputValue.trim().toLowerCase();
+                if (!q) return options;
+                return options.filter((school) => {
+                  const name = (school.school_name || '').toLowerCase();
+                  const id = school.id.toLowerCase();
+                  const city = (school.city || '').toLowerCase();
+                  const state = (school.state || '').toLowerCase();
+                  return (
+                    name.includes(q) ||
+                    id.includes(q) ||
+                    city.includes(q) ||
+                    state.includes(q)
+                  );
+                });
+              }}
+              noOptionsText={schoolsLoading ? 'Loading schools…' : 'No matching schools'}
+              sx={platformAdminDialogAutocompleteSx}
+              slotProps={{
+                paper: {
+                  sx: {
+                    ...platformAdminSelectMenuPaperSx,
+                    maxHeight: 280,
+                  },
+                },
+                listbox: {
+                  sx: { maxHeight: 280 },
+                },
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  placeholder="Search school name…"
+                  sx={platformAdminDialogTextFieldSx}
+                  InputProps={{
+                    ...params.InputProps,
+                    startAdornment: (
+                      <>
+                        <InputAdornment position="start" sx={{ ml: 0.5, mr: 0 }}>
+                          <SearchIcon sx={{ fontSize: 18, color: ip.subtext }} />
+                        </InputAdornment>
+                        {params.InputProps.startAdornment}
+                      </>
+                    ),
+                    endAdornment: (
+                      <>
+                        {schoolsLoading ? (
+                          <CircularProgress color="inherit" size={16} sx={{ mr: 1 }} />
+                        ) : null}
+                        {params.InputProps.endAdornment}
+                      </>
+                    ),
+                  }}
+                />
+              )}
+            />
+          </Box>
+          {exportDialogError && (
+            <Alert severity="error" onClose={() => setExportDialogError(null)}>
+              {exportDialogError}
+            </Alert>
+          )}
+          <Box>
+            <Typography sx={{ ...platformAdminDialogFieldLabelSx, mb: 1 }}>
+              Export
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {STUDENT_EXPORT_OPTIONS.map((option) => (
+                <Button
+                  key={option.bucket}
+                  variant="outlined"
+                  fullWidth
+                  disabled={exportBusy}
+                  startIcon={
+                    exportBusy ? (
+                      <CircularProgress size={16} color="inherit" />
+                    ) : (
+                      <FileDownloadIcon />
+                    )
+                  }
+                  onClick={() => void handleExport(option.bucket)}
+                  sx={{
+                    ...platformAdminOutlinedButtonSx,
+                    justifyContent: 'flex-start',
+                    py: 1.1,
+                  }}
+                >
+                  {option.label}
+                </Button>
+              ))}
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5, pt: 1 }}>
+          <Button
+            onClick={() => setExportDialogOpen(false)}
+            disabled={exportBusy}
+            sx={platformAdminTextButtonSx}
+          >
+            Cancel
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
-
 export default PlatformAdminStudentsPage;

@@ -84,13 +84,20 @@ const EXAM_LEAVE_DIALOG_COPY =
 function ExamFullscreenRequiredDialog({
   open,
   secondsLeft,
+  fullscreenCapable,
+  fullscreenBlocked,
   onReturnToFullscreen,
+  onDismiss,
 }: {
   open: boolean;
   secondsLeft: number | null;
+  fullscreenCapable: boolean;
+  fullscreenBlocked: boolean;
   onReturnToFullscreen: () => void;
+  onDismiss: () => void;
 }) {
   const inGrace = secondsLeft != null && secondsLeft > 0;
+  const incapable = !fullscreenCapable;
   return (
     <Dialog
       open={open}
@@ -120,14 +127,23 @@ function ExamFullscreenRequiredDialog({
       }}
     >
       <DialogTitle sx={{ px: { xs: 2.5, sm: 3.5 }, pt: { xs: 3, sm: 3.5 }, pb: 1, fontWeight: 800, fontSize: '1.25rem', color: '#0f172a' }}>
-        Return to fullscreen
+        {incapable ? 'Stay in this tab' : 'Return to fullscreen'}
       </DialogTitle>
       <DialogContent sx={{ px: { xs: 2.5, sm: 3.5 }, pt: 0, pb: 1 }}>
         <DialogContentText
           component="div"
           sx={{ m: 0, color: '#334155', typography: 'body1', lineHeight: 1.65, fontSize: '1rem' }}
         >
-          {inGrace ? (
+          {incapable ? (
+            <>
+              Your browser doesn&apos;t support fullscreen. Keep this tab open and focused to continue the exam.
+              {inGrace ? (
+                <Box component="p" sx={{ mt: 1.5, mb: 0, fontWeight: 800, fontSize: '1.15rem', color: '#b91c1c' }}>
+                  Return now ({secondsLeft}s)
+                </Box>
+              ) : null}
+            </>
+          ) : inGrace ? (
             <>
               You left fullscreen. Click the button below to continue the exam.
               <Box component="p" sx={{ mt: 1.5, mb: 0, fontWeight: 800, fontSize: '1.15rem', color: '#b91c1c' }}>
@@ -141,17 +157,25 @@ function ExamFullscreenRequiredDialog({
             'Fullscreen is required for the whole exam. Click the button below to re-enter fullscreen and continue.'
           )}
         </DialogContentText>
+        {fullscreenBlocked && !incapable ? (
+          <Box
+            component="p"
+            sx={{ mt: 1.5, mb: 0, color: '#b91c1c', fontWeight: 600, fontSize: '0.95rem', lineHeight: 1.5 }}
+          >
+            Browser blocked fullscreen. Please try again or switch to Chrome on Android or a laptop.
+          </Box>
+        ) : null}
       </DialogContent>
       <DialogActions sx={{ px: { xs: 2.5, sm: 3.5 }, pb: { xs: 3, sm: 3.5 }, pt: 1.5, justifyContent: 'center' }}>
         <Button
           variant="contained"
           size="large"
-          startIcon={<FullscreenIcon />}
-          onClick={onReturnToFullscreen}
+          startIcon={incapable ? undefined : <FullscreenIcon />}
+          onClick={incapable ? onDismiss : onReturnToFullscreen}
           autoFocus
           sx={{ fontWeight: 800, px: 3, py: 1.1, minWidth: 240 }}
         >
-          OK, return to fullscreen
+          {incapable ? "OK, I'll stay in this tab" : 'OK, return to fullscreen'}
         </Button>
       </DialogActions>
     </Dialog>
@@ -171,9 +195,10 @@ interface PreExamStepProps {
   tierNumber: number;
   onConfirm: () => void;
   onBack: () => void;
+  fullscreenCapable: boolean;
 }
 
-const PreExamStep: React.FC<PreExamStepProps> = ({ assessmentId, tierNumber, onConfirm, onBack }) => {
+const PreExamStep: React.FC<PreExamStepProps> = ({ assessmentId, tierNumber, onConfirm, onBack, fullscreenCapable }) => {
   const needsMic = NEEDS_MIC.has(assessmentId);
   const needsLaptop = NEEDS_LAPTOP.has(assessmentId);
   const flow = getAssessmentFlowDefinition(assessmentId);
@@ -273,7 +298,11 @@ const PreExamStep: React.FC<PreExamStepProps> = ({ assessmentId, tierNumber, onC
               Exam integrity
             </Typography>
             <Typography variant="body2" sx={{ fontSize: '0.82rem', lineHeight: 1.55 }}>
-              Do not cheat, get outside help, or share exam content. Stay in fullscreen, keep a stable internet connection, and do not leave or minimize this exam window. Your activity is monitored - leaving the exam environment or breaking these rules can terminate your attempt.
+              Do not cheat, get outside help, or share exam content.{' '}
+              {fullscreenCapable
+                ? 'Stay in fullscreen, keep a stable internet connection, and do not leave or minimize this exam window.'
+                : 'Keep this window open and in front, keep a stable internet connection, and do not leave or minimize this exam window.'}{' '}
+              Your activity is monitored - leaving the exam environment or breaking these rules can terminate your attempt.
             </Typography>
           </Alert>
 
@@ -507,7 +536,15 @@ export default function AssessmentTakePage() {
     void reportProctoringEvent(type, severity, snapshot);
   };
 
-  const { leftFullscreen, lostWindowFocus, integrityWarning, tryEnterFullscreen } = useExamIntegrity({
+  const {
+    leftFullscreen,
+    lostWindowFocus,
+    integrityWarning,
+    fullscreenBlocked,
+    fullscreenCapable,
+    tryEnterFullscreen,
+    dismissFullscreenRequired,
+  } = useExamIntegrity({
     active: Boolean(attemptId && stage === 'taking'),
     onLeaveLimitReached: () =>
       endAttemptForIntegrity(
@@ -762,9 +799,9 @@ export default function AssessmentTakePage() {
   }, [attemptId, uid, assessmentId, tier, navigate, invalidateStudentQueries]);
 
   const handlePreExamConfirm = useCallback(() => {
-    void document.documentElement.requestFullscreen?.().catch(() => {});
+    tryEnterFullscreen();
     setStage(proctoringEnabled ? 'proctoring_setup' : 'taking');
-  }, [proctoringEnabled]);
+  }, [proctoringEnabled, tryEnterFullscreen]);
 
   const handleProctoringSetupReady = useCallback(() => {
     setStage('taking');
@@ -1089,6 +1126,7 @@ export default function AssessmentTakePage() {
         tierNumber={tier}
         onConfirm={handlePreExamConfirm}
         onBack={() => navigate(`/assessments/${assessmentId}/tier/${tier}/detail`)}
+        fullscreenCapable={fullscreenCapable}
       />
     );
   }
@@ -1122,11 +1160,17 @@ export default function AssessmentTakePage() {
                 This is a secure assessment. Do not cheat, get help from others, use unauthorized materials, or share exam content in any form.
               </Typography>
               <Typography component="p" sx={{ mb: 1.5, textAlign: 'justify' }}>
-                Your activity is monitored. Do not exit fullscreen, switch away from this window, open other apps or tabs, or leave the exam environment. Ensure you have a stable internet connection. Violating these rules can terminate your exam immediately and may invalidate your results.
+                Your activity is monitored.{' '}
+                {fullscreenCapable
+                  ? 'Do not exit fullscreen, switch away from this window, open other apps or tabs, or leave the exam environment.'
+                  : 'Keep this tab open and focused. Do not switch away from this window, open other apps or tabs, or leave the exam environment.'}{' '}
+                Ensure you have a stable internet connection. Violating these rules can terminate your exam immediately and may invalidate your results.
               </Typography>
-              <Typography component="p" sx={{ mb: 2, textAlign: 'justify' }}>
-                Your browser may ask for fullscreen permission, allow it before you begin.
-              </Typography>
+              {fullscreenCapable ? (
+                <Typography component="p" sx={{ mb: 2, textAlign: 'justify' }}>
+                  Your browser may ask for fullscreen permission, allow it before you begin.
+                </Typography>
+              ) : null}
             </DialogContentText>
             <TextField
               autoFocus
@@ -1136,6 +1180,12 @@ export default function AssessmentTakePage() {
               placeholder="I understand"
               value={rulesAckInput}
               onChange={(e) => setRulesAckInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key !== 'Enter' || !rulesAcknowledged) return;
+                e.preventDefault();
+                tryEnterFullscreen();
+                setIntegrityGateOk(true);
+              }}
               inputProps={{ 'aria-label': 'Type I understand to continue', autoComplete: 'off', spellCheck: false }}
               sx={{ mt: 0.5 }}
             />
@@ -1148,7 +1198,7 @@ export default function AssessmentTakePage() {
               variant="contained"
               disabled={!rulesAcknowledged}
               onClick={() => {
-                void document.documentElement.requestFullscreen?.().catch(() => {});
+                tryEnterFullscreen();
                 setIntegrityGateOk(true);
               }}
             >
@@ -1383,7 +1433,9 @@ export default function AssessmentTakePage() {
         <Alert severity="error" sx={{ flexShrink: 0, borderRadius: 0 }}>
           {integrityWarning.secondsLeft > 0
             ? `Return to the exam now (${integrityWarning.secondsLeft}s). If you don't, or you keep leaving this window, this attempt will end.`
-            : 'Stay on this exam in fullscreen and keep this window in front. If you keep leaving, this attempt will end.'}
+            : fullscreenCapable
+              ? 'Stay on this exam in fullscreen and keep this window in front. If you keep leaving, this attempt will end.'
+              : 'Stay on this exam tab and keep this window in front. If you keep leaving, this attempt will end.'}
         </Alert>
       )}
 
@@ -1471,7 +1523,10 @@ export default function AssessmentTakePage() {
       <ExamFullscreenRequiredDialog
         open={leftFullscreen}
         secondsLeft={integrityWarning?.secondsLeft ?? null}
+        fullscreenCapable={fullscreenCapable}
+        fullscreenBlocked={fullscreenBlocked}
         onReturnToFullscreen={tryEnterFullscreen}
+        onDismiss={dismissFullscreenRequired}
       />
 
       <Dialog

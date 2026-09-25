@@ -1,3 +1,4 @@
+import DOMPurify from 'dompurify';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import PageFooter from '../../components/layout/LandingSiteFooter';
@@ -74,7 +75,7 @@ const SchoolLegalDocumentPage: React.FC = () => {
       })
       .then((md) => {
         if (cancelled) return;
-        setHtml(simpleMarkdownToHtml(md));
+        setHtml(DOMPurify.sanitize(simpleMarkdownToHtml(md)));
         setLoading(false);
         const hash = window.location.hash.replace(/^#/, '');
         if (hash) {

@@ -48,7 +48,7 @@ export const ExamMathBlock: React.FC<{ children: string; sx?: SxProps<Theme> }> 
         ref={mathRef}
         component="div"
         data-exam-math-own="1"
-        sx={{ fontSize: '0.92rem', lineHeight: 1.65, color: '#334155', fontStyle: 'italic' }}
+        sx={{ fontSize: '0.92rem', lineHeight: 1.65, color: '#334155' }}
       />
     </Box>
   );

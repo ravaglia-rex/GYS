@@ -113,6 +113,12 @@ export type PlatformAdminSchoolSummary = {
   country: 'India' | 'Qatar';
   city: string | null;
   state: string | null;
+  /** Curriculum boards from registration (e.g. CBSE, State Board). */
+  boards?: string[];
+  /** Display label joined from boards (or legacy board/affiliation). */
+  board_label?: string | null;
+  /** State name when State Board is selected. */
+  state_board_state?: string | null;
   verified: boolean;
   payment_status: string;
   payment_method: string | null;
@@ -240,6 +246,12 @@ export type PlatformAdminStudentRow = {
   is_invite?: boolean;
   invited_by?: string | null;
   password_setup_complete?: boolean;
+  /** True when Auth login is a synthetic @{school}.gys.com user id (no real mailbox). */
+  login_email_is_synthetic?: boolean;
+  /** Same as email for synthetic roster students; shown as User ID in the UI. */
+  login_user_id?: string;
+  /** Optional real contact mailbox for synthetic students (does not change login). */
+  contact_email?: string;
   self_paid?: boolean;
 };
 
@@ -305,11 +317,11 @@ export type PlatformAdminStudentStats = {
   /** @deprecated Prefer roster_pending + others. Kept for older clients. */
   students_pending_setup?: number;
   /** Invite-list emails with no account yet (subset of roster_pending). */
-  students_pending_invite?: number;
+  students_pending_invite: number;
   /** Invite-list emails ∪ registered accounts across real schools. */
-  students_on_roster?: number;
+  students_on_roster: number;
   /** Registered accounts linked to a school (subset of on_roster). */
-  students_rostered?: number;
+  students_rostered: number;
   /** Alias of students_pending_setup. */
   students_pending?: number;
 };
@@ -926,12 +938,14 @@ export async function listPlatformAdminStudents(params?: {
   status?: 'approved' | 'pending' | 'all';
   roster?: 'yes' | 'no' | 'all';
   setup?: 'complete' | 'incomplete' | 'all';
-  payment?: 'self_paid' | 'membership_upgrade' | 'all';
+  payment?: 'self_paid' | 'membership_upgrade' | 'individual' | 'all';
   /** registered = has account; invite = invite-list / complimentary stub, no account yet. */
   account?: 'registered' | 'invite' | 'all';
   /** Required: `'all'` or one/more school document IDs. Omitting returns no students. */
   school_ids?: 'all' | string[];
   limit?: number;
+  /** When true, backend raises the row cap (up to 5000) for Excel export. */
+  export?: boolean;
 }): Promise<{
   students: PlatformAdminStudentRow[];
   /** Rows matching the filters platform-wide - can exceed `students.length` when `limit` clips. */
@@ -957,6 +971,7 @@ export async function listPlatformAdminStudents(params?: {
       payment: params?.payment && params.payment !== 'all' ? params.payment : undefined,
       account: params?.account && params.account !== 'all' ? params.account : undefined,
       school_ids: schoolIdsParam,
+      export: params?.export ? 'true' : undefined,
     },
   });
   const students = (res.data.students ?? []) as PlatformAdminStudentRow[];

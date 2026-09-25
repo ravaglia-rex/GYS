@@ -3,12 +3,8 @@
  * Keep in sync with backend `studentLoginSchoolBlocks.ts`.
  */
 
-/** Sir Padampat Singhania Education Centre Kanpur */
-export const PADAMPAT_SINGHANIA_SCHOOL_ID = 'zgreySFOG71i6tp1qeqT';
-
-export const STUDENT_LOGIN_BLOCKED_SCHOOL_IDS = new Set<string>([
-  PADAMPAT_SINGHANIA_SCHOOL_ID,
-]);
+/** Empty after Padampat AR contamination wipe — school may sign in again. */
+export const STUDENT_LOGIN_BLOCKED_SCHOOL_IDS = new Set<string>([]);
 
 /** Extra emails blocked for QA / demo of the school lockdown message. */
 export const STUDENT_LOGIN_BLOCKED_EMAILS = new Set<string>([]);

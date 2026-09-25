@@ -239,15 +239,50 @@ export const platformAdminDialogTextFieldSx = {
   width: '100%',
   maxWidth: '100%',
   minWidth: 0,
+  bgcolor: '#fff',
+  // App.tsx ships a global dark MUI theme (white text / translucent white borders).
+  // Platform-admin dialogs are white paper — force contrast so fields stay visible.
   '& .MuiOutlinedInput-root': {
     ...platformAdminTextFieldSx['& .MuiOutlinedInput-root'],
     minHeight: PLATFORM_ADMIN_TOOLBAR_H,
+    color: `${ip.heading} !important`,
+    bgcolor: '#fff',
+    '& fieldset': { borderColor: `${ip.cardBorder} !important` },
+    '&:hover fieldset': { borderColor: '#94a3b8 !important' },
+    '&.Mui-focused fieldset': { borderColor: `${ip.navy} !important` },
+    '&.Mui-disabled fieldset': { borderColor: `${ip.cardBorder} !important` },
   },
+  '& .MuiInputBase-input': {
+    color: `${ip.heading} !important`,
+    WebkitTextFillColor: ip.heading,
+  },
+  '& .MuiInputBase-input::placeholder': {
+    color: `${ip.subtext} !important`,
+    opacity: 1,
+    WebkitTextFillColor: ip.subtext,
+  },
+  '& .MuiInputBase-input.Mui-disabled': {
+    color: `${ip.subtext} !important`,
+    WebkitTextFillColor: ip.subtext,
+  },
+  '& .MuiSvgIcon-root': { color: ip.heading },
   '& .MuiFormHelperText-root': {
     color: ip.subtext,
     mt: 0.75,
     mx: 0,
     lineHeight: 1.4,
+  },
+} as const;
+
+/** Autocomplete inside white platform-admin dialogs (dark global theme otherwise hides the input). */
+export const platformAdminDialogAutocompleteSx = {
+  '& .MuiAutocomplete-input': {
+    opacity: '1 !important',
+    color: `${ip.heading} !important`,
+    WebkitTextFillColor: ip.heading,
+  },
+  '& .MuiAutocomplete-popupIndicator, & .MuiAutocomplete-clearIndicator': {
+    color: ip.heading,
   },
 } as const;
 

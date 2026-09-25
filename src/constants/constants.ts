@@ -52,6 +52,13 @@ export const PLATFORM_ADMIN_ANALYTICS_LIVE_EXAMS = '/analytics/live-exams';
 export const PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAM_OPS = '/analytics/official-exam-ops';
 export const PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAMS = '/analytics/official-exams';
 export const PLATFORM_ADMIN_ANALYTICS_OFFICIAL_DAILY = '/analytics/official-daily';
+/** Official exam item-health review queue (recommendation-only). Path includes exam id. */
+export function platformAdminItemHealthRunsPath(examId: string): string {
+  return `/analytics/official-exams/${encodeURIComponent(examId)}/item-health/runs`;
+}
+export function platformAdminItemHealthRunPath(examId: string): string {
+  return `/analytics/official-exams/${encodeURIComponent(examId)}/item-health/run`;
+}
 export const PLATFORM_ADMIN_QUESTION_PROBLEM_REPORTS = '/question-problem-reports';
 
 // Schools
@@ -115,6 +122,7 @@ export const GET_ATTEMPT_PROCTORING='/getAttemptProctoring';
 export const GET_PRACTICE_POOL_COUNTS='/poolCounts';
 export const GET_PRACTICE_QUESTIONS='/questions';
 export const REVEAL_PRACTICE_SOLUTIONS='/revealSolutions';
+export const REMEMBER_PRACTICE_DRAW='/rememberDraw';
 export const RECORD_PRACTICE_OUTCOME='/recordOutcome';
 export const RECORD_PRACTICE_SESSION_OUTCOMES='/recordSessionOutcomes';
 export const RESET_PRACTICE_PROGRESS='/resetProgress';

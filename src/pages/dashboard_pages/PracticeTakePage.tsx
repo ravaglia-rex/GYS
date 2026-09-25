@@ -24,6 +24,7 @@ import { auth } from '../../firebase/firebase';
 import {
   fetchPracticeQuestions,
   PRACTICE_SESSION_BATCH_SIZE,
+  rememberPracticeDraw,
   recordPracticeSessionOutcomes,
   revealPracticeSolutions,
 } from '../../db/practiceBank';
@@ -75,12 +76,8 @@ function getPracticePassageText(q: ExamQuestion): string {
   const stimulus = q.stimulus;
   if (stimulus && typeof stimulus === 'object' && !Array.isArray(stimulus)) {
     const obj = stimulus as Record<string, unknown>;
-    return (
-      stringFromUnknown(obj.passage) ||
-      stringFromUnknown(obj.reading_passage) ||
-      stringFromUnknown(obj.text) ||
-      stringFromUnknown(obj.setup)
-    );
+    // Explicit reading-passage fields only — do not treat math `setup`/`text` as a passage.
+    return stringFromUnknown(obj.passage) || stringFromUnknown(obj.reading_passage);
   }
 
   return '';
@@ -233,6 +230,15 @@ export default function PracticeTakePage() {
       setIndex(saved.index);
       setPoolCap(saved.totalInLevel);
       setLoading(false);
+      // Local resume skips /questions, so re-bind last_served for Check answer.
+      const resumeIds = saved.questions
+        .map((q) => resolvePracticeItemId(q))
+        .filter((id): id is string => Boolean(id));
+      if (resumeIds.length > 0) {
+        void rememberPracticeDraw({ examId, itemIds: resumeIds }).catch((e) => {
+          console.warn('rememberPracticeDraw on resume:', e);
+        });
+      }
       return;
     }
 
@@ -487,7 +493,14 @@ export default function PracticeTakePage() {
           );
         } catch (e) {
           console.error('revealPracticeSolutions:', e);
-          setSessionSubmitError('Could not load answer feedback. Please try again.');
+          let msg = 'Could not load answer feedback. Please try again.';
+          if (axios.isAxiosError(e) && e.response?.data && typeof e.response.data === 'object') {
+            const err = (e.response.data as { error?: unknown }).error;
+            if (typeof err === 'string' && err.trim()) {
+              msg = err.trim();
+            }
+          }
+          setSessionSubmitError(msg);
           return;
         } finally {
           setRevealingSolutions(false);
@@ -727,11 +740,9 @@ export default function PracticeTakePage() {
           {currentQuestionEndNumber > questionNumber ? `-${currentQuestionEndNumber}` : ''} of {totalQuestions}
         </Typography>
         {currentPage.passage ? (
-          <Box sx={{ borderLeft: `4px solid ${primaryBtn}`, bgcolor: 'rgba(13,71,161,0.06)', borderRadius: 2, p: 2, mb: 3 }}>
-            <Typography sx={{ fontSize: '0.92rem', color: '#334155', fontStyle: 'italic', lineHeight: 1.65, whiteSpace: 'pre-line' }}>
-              {currentPage.passage}
-            </Typography>
-          </Box>
+          <Typography sx={{ fontSize: '0.95rem', color: '#334155', lineHeight: 1.7, whiteSpace: 'pre-line', mb: 3 }}>
+            {currentPage.passage}
+          </Typography>
         ) : null}
         {answerChecked ? (
           <Alert

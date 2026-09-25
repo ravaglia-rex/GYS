@@ -236,34 +236,24 @@ const QuestionOfTheDayPage: React.FC = () => {
                   sx={{
                     mt: 2,
                     mb: 2.5,
-                    borderLeft: '4px solid #a855f7',
-                    bgcolor: 'rgba(168, 85, 247, 0.08)',
-                    borderRadius: 2,
-                    p: 2,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 1.25,
                   }}
                 >
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 1.25,
-                    }}
-                  >
-                    {splitPassageParagraphs(passageText).map((paragraph, index) => (
-                      <Typography
-                        key={index}
-                        sx={{
-                          fontSize: '0.92rem',
-                          color: 'rgba(255, 255, 255, 0.85)',
-                          fontStyle: 'italic',
-                          lineHeight: 1.65,
-                          m: 0,
-                        }}
-                      >
-                        {paragraph}
-                      </Typography>
-                    ))}
-                  </Box>
+                  {splitPassageParagraphs(passageText).map((paragraph, index) => (
+                    <Typography
+                      key={index}
+                      sx={{
+                        fontSize: '0.95rem',
+                        color: 'rgba(255, 255, 255, 0.85)',
+                        lineHeight: 1.7,
+                        m: 0,
+                      }}
+                    >
+                      {paragraph}
+                    </Typography>
+                  ))}
                 </Box>
               )}
 

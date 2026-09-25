@@ -20,13 +20,17 @@ import { optionFigurePickerGridSx } from '../../components/assessment/arOptionFi
 import {
   AR_FIGURE_DISPLAY_SIZES,
   AR_FIGURE_SIZE_LABEL,
+  AR_TEXT_OPTION_LAYOUTS,
+  AR_TEXT_OPTION_LAYOUT_LABEL,
   normalizeArFigureDisplaySize,
   arFigureSizeMultiplier,
   scaleExamFigureCaps,
-  isArTextOptionGrid2x2,
-  looksLikeArAsciiGridOptionTexts,
+  resolveArTextOptionLayout,
+  resolveArOptionLayoutForEdit,
+  arTextOptionLayoutContainerSx,
   type ArFigureDisplaySize,
   type ArFigureDisplaySizeInput,
+  type ArTextOptionLayout,
 } from '../../components/assessment/arFigureDisplaySize';
 import { resolveLearnerExamOptions } from '../../components/assessment/resolveLearnerExamOptions';
 import { ExamQuestionStimulus } from '../../components/assessment/ExamQuestionStimulus';
@@ -538,11 +542,14 @@ export function AdminExamQuestionBody({
     letter: optionRows[i]?.letter || OPTION_LETTERS[i] || String.fromCharCode(65 + i),
     text: optionRows[i]?.text || resolved.optionTexts[i] || '',
   }));
-  const textOptionsAsGrid2x2 =
-    isArTextOptionGrid2x2(q.option_layout) ||
-    looksLikeArAsciiGridOptionTexts(
-      rows.map((r, i) => resolved.optionTexts[i] || r.text || '')
-    );
+  const textOptionLayout = resolveArTextOptionLayout(
+    q.option_layout,
+    rows.map((r, i) => resolved.optionTexts[i] || r.text || '')
+  );
+  const textOptionsGridSx = arTextOptionLayoutContainerSx(textOptionLayout, {
+    gap: 0.75,
+    alignItems: 'start',
+  });
   return (
     <>
       <AdminExamQuestionStem
@@ -571,14 +578,7 @@ export function AdminExamQuestionBody({
           sx={
             showFigureSlices
               ? optionFigurePickerGridSx(layout)
-              : textOptionsAsGrid2x2
-                ? {
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                    alignItems: 'start',
-                    gap: 0.75,
-                  }
-                : { display: 'flex', flexDirection: 'column', gap: 0.4 }
+              : textOptionsGridSx || { display: 'flex', flexDirection: 'column', gap: 0.4 }
           }
         >
           {rows.map((opt, optIdx) => {
@@ -686,6 +686,7 @@ export function PlatformAdminQuestionPerformanceCard({
   const [representationMode, setRepresentationMode] = useState('');
   const [stemDisplaySize, setStemDisplaySize] = useState<ArFigureDisplaySize>('medium');
   const [optionDisplaySize, setOptionDisplaySize] = useState<ArFigureDisplaySize>('medium');
+  const [optionLayout, setOptionLayout] = useState<ArTextOptionLayout>('1x4');
 
   useEffect(() => {
     setLocalAuthorized(null);
@@ -752,6 +753,14 @@ export function PlatformAdminQuestionPerformanceCard({
     setRepresentationMode('');
     setStemDisplaySize(normalizeArFigureDisplaySize(question.stem_display_size));
     setOptionDisplaySize(normalizeArFigureDisplaySize(question.option_display_size));
+    setOptionLayout(
+      resolveArOptionLayoutForEdit({
+        optionLayout: question.option_layout,
+        optionCropsLayout: question.option_crops?.layout,
+        displayMode: question.display_mode,
+        optionTexts: (question.options || []).map((o) => o?.text),
+      })
+    );
     setEditOpen(true);
   };
 
@@ -768,6 +777,7 @@ export function PlatformAdminQuestionPerformanceCard({
         body_markdown: bodyMarkdown,
         stem_display_size: stemDisplaySize,
         option_display_size: optionDisplaySize,
+        option_layout: optionLayout,
       };
       // Only rewrite options when the editor actually changed them — otherwise
       // stem-only saves used to drop trailing IF choice E (dialog historically A–D).
@@ -1259,34 +1269,64 @@ export function PlatformAdminQuestionPerformanceCard({
                 />
                 );
               })}
-              <Box>
-                <Typography
-                  sx={platformAdminDialogFieldLabelSx}
-                  component="label"
-                  htmlFor={`correct-${question.item_id}`}
-                >
-                  Correct answer
-                </Typography>
-                <Select
-                  id={`correct-${question.item_id}`}
-                  fullWidth
-                  size="small"
-                  value={correctLetter}
-                  onChange={(e) =>
-                    setCorrectLetter(e.target.value as BankEditOptionLetter)
-                  }
-                  MenuProps={{ PaperProps: { sx: platformAdminSelectMenuPaperSx } }}
-                  sx={platformAdminDialogSelectSx}
-                >
-                  {optionTexts.map((_t, i) => {
-                    const letter = BANK_EDIT_OPTION_LETTERS[i] || String.fromCharCode(65 + i);
-                    return (
-                      <MenuItem key={letter} value={letter}>
-                        {letter}
-                      </MenuItem>
-                    );
-                  })}
-                </Select>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+                  gap: 1.5,
+                  alignItems: 'end',
+                }}
+              >
+                <Box>
+                  <Typography
+                    sx={platformAdminDialogFieldLabelSx}
+                    component="label"
+                    htmlFor={`correct-${question.item_id}`}
+                  >
+                    Correct answer
+                  </Typography>
+                  <Select
+                    id={`correct-${question.item_id}`}
+                    fullWidth
+                    size="small"
+                    value={correctLetter}
+                    onChange={(e) =>
+                      setCorrectLetter(e.target.value as BankEditOptionLetter)
+                    }
+                    MenuProps={{ PaperProps: { sx: platformAdminSelectMenuPaperSx } }}
+                    sx={platformAdminDialogSelectSx}
+                  >
+                    {optionTexts.map((_t, i) => {
+                      const letter = BANK_EDIT_OPTION_LETTERS[i] || String.fromCharCode(65 + i);
+                      return (
+                        <MenuItem key={letter} value={letter}>
+                          {letter}
+                        </MenuItem>
+                      );
+                    })}
+                  </Select>
+                </Box>
+                <Box>
+                  <Typography sx={platformAdminDialogFieldLabelSx} component="label">
+                    Option layout
+                  </Typography>
+                  <ToggleButtonGroup
+                    exclusive
+                    fullWidth
+                    size="small"
+                    value={optionLayout}
+                    onChange={(_e, next) => {
+                      if (next) setOptionLayout(next as ArTextOptionLayout);
+                    }}
+                    sx={platformAdminFilterGroupSx}
+                  >
+                    {AR_TEXT_OPTION_LAYOUTS.map((layout) => (
+                      <ToggleButton key={layout} value={layout}>
+                        {AR_TEXT_OPTION_LAYOUT_LABEL[layout]}
+                      </ToggleButton>
+                    ))}
+                  </ToggleButtonGroup>
+                </Box>
               </Box>
               <Box
                 sx={{

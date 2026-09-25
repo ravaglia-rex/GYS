@@ -242,7 +242,7 @@ export function usePlatformAdminStudents(
     status?: 'approved' | 'pending' | 'all';
     roster?: 'yes' | 'no' | 'all';
     setup?: 'complete' | 'incomplete' | 'all';
-    payment?: 'self_paid' | 'membership_upgrade' | 'all';
+    payment?: 'self_paid' | 'membership_upgrade' | 'individual' | 'all';
     account?: 'registered' | 'invite' | 'all';
     grade?: string;
     membership?: string;

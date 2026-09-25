@@ -930,6 +930,20 @@ function PlatformAdminSchoolDetailPage() {
                 .filter(Boolean)
                 .join(', ') || ' - '}
             />
+            <DetailRow
+              label="School board"
+              value={
+                [
+                  school.board_label ||
+                    (Array.isArray(school.boards) && school.boards.length > 0
+                      ? school.boards.join(', ')
+                      : null),
+                  school.state_board_state || null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ') || ' - '
+              }
+            />
             <DetailRow label="Payment status">
               <PlatformAdminChip
                 label={formatPaymentStatusLabel(school.payment_status)}

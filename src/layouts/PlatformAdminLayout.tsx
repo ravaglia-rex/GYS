@@ -29,6 +29,7 @@ import {
   TodayOutlined as QodIcon,
   MonetizationOnOutlined as CoinsIcon,
   Inventory2Outlined as ItemBankIcon,
+  HealthAndSafetyOutlined as ItemHealthIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
@@ -117,6 +118,11 @@ const ITEM_BANK_NAV_ITEM: NavItem = {
       title: 'Practice',
       path: '/platform-admin/item-bank/practice',
       icon: <PracticeExamsIcon sx={{ color: '#2563eb', fontSize: CHILD_ICON_SIZE }} />,
+    },
+    {
+      title: 'Item Health',
+      path: '/platform-admin/item-health',
+      icon: <ItemHealthIcon sx={{ color: '#2563eb', fontSize: CHILD_ICON_SIZE }} />,
     },
   ],
 };
@@ -249,9 +255,19 @@ export default function PlatformAdminLayout({ children }: PlatformAdminLayoutPro
     path.startsWith('/platform-admin/item-bank/') ||
     path.startsWith('/platform-admin/analytics/');
 
+  /** Keep Item Bank parent highlighted when on Item Health. */
+  const isItemBankSectionActive =
+    location.pathname.startsWith('/platform-admin/item-bank') ||
+    location.pathname === '/platform-admin/item-health';
+
   const renderNavItem = (item: NavItem, level = 0) => {
     const childActive = hasActiveChild(item);
-    const active = level === 0 ? isPathActive(item.path) || childActive : location.pathname === item.path;
+    const active =
+      level === 0
+        ? item.path === '/platform-admin/item-bank'
+          ? isItemBankSectionActive
+          : isPathActive(item.path) || childActive
+        : location.pathname === item.path;
     const hasChildren = Boolean(item.children?.length);
     // Include the parent path so /analytics → /analytics/official does not close-then-open
     // Collapse (that enter animation is what loops Transition on first load).

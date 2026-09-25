@@ -3068,9 +3068,7 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                                         }}
                                       >
                                         <Typography component="span" variant="body2" sx={{ fontWeight: 600 }}>
-                                          {typeof row.questions_total === 'number' && row.questions_total > 0
-                                            ? `${row.correct_count ?? 0}/${row.questions_total}`
-                                            : row.questions_answered ?? '-'}
+                                          {`${row.correct_count ?? 0}/${row.questions_answered ?? 0}`}
                                         </Typography>
                                         {durationLabel ? (
                                           <PlatformAdminChip label={durationLabel} tone="warning" />

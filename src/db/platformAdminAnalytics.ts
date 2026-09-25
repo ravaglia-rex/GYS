@@ -15,6 +15,8 @@ import {
   PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAM_OPS,
   PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAMS,
   PLATFORM_ADMIN_ANALYTICS_OFFICIAL_DAILY,
+  platformAdminItemHealthRunPath,
+  platformAdminItemHealthRunsPath,
 } from '../constants/constants';
 import { isHiddenStaffSchoolAdminEmail } from '../constants/hiddenStaffSchoolAdmins';
 
@@ -1566,6 +1568,8 @@ export type OfficialExamBankItemEditPatch = {
   representation_mode?: string;
   stem_display_size?: 'xsmall' | 'small' | 'medium' | 'large' | 'xlarge';
   option_display_size?: 'xsmall' | 'small' | 'medium' | 'large' | 'xlarge';
+  /** Text MCQ tile arrangement: 2x2 | 1x4 | 4x1 (aliases like grid/list/row also accepted). */
+  option_layout?: string;
 };
 
 export async function updatePlatformAdminOfficialExamBankItem(opts: {
@@ -1616,6 +1620,14 @@ export async function updatePlatformAdminOfficialExamBankItem(opts: {
       typeof q?.stem_display_size === 'string' ? q.stem_display_size : null,
     option_display_size:
       typeof q?.option_display_size === 'string' ? q.option_display_size : null,
+    option_layout: typeof q?.option_layout === 'string' ? q.option_layout : null,
+    option_crops: q?.option_crops ?? null,
+    display_mode:
+      q?.display_mode === 'figure_tiles' ||
+      q?.display_mode === 'letter_buttons' ||
+      q?.display_mode === 'text_options'
+        ? q.display_mode
+        : null,
   };
   return {
     item_id: typeof res.data.item_id === 'string' ? res.data.item_id : opts.itemId,
@@ -1954,3 +1966,181 @@ export async function getPlatformAdminOfficialDailyStats(
     generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
   };
 }
+
+// ─── Official item health (recommendation-only Friday queue) ────────────────
+
+export type ItemHealthRunMeta = {
+  id: string;
+  run_id?: string;
+  data_cutoff_ts?: string | null;
+  run_started_at?: string | null;
+  run_finished_at?: string | null;
+  status?: string | null;
+  total_evidence_units?: number;
+  collecting_count?: number;
+  review_ready_count?: number;
+  stable_count?: number;
+  p0_count?: number;
+  p1_count?: number;
+  p2_count?: number;
+  total_attempts_retained?: number;
+  total_responses_retained?: number;
+  recommendation_only?: boolean;
+  item_health_version?: string | null;
+  error_message?: string | null;
+};
+
+export type ItemHealthFlag = {
+  code: string;
+  severity: string;
+  detail?: string;
+};
+
+export type ItemHealthRow = {
+  id: string;
+  evidence_unit_id?: string;
+  item_id?: string;
+  version?: string | null;
+  data_sufficiency_status?: string;
+  design_band?: string | null;
+  operational_tier?: string | null;
+  lifecycle_status?: string | null;
+  delivery_authorized?: boolean | null;
+  has_p0?: boolean;
+  has_p1?: boolean;
+  has_p2?: boolean;
+  proposed_adjacent_tier?: string | null;
+  proposed_adjacent_tier_direction?: string | null;
+  flags?: ItemHealthFlag[];
+  statistics?: {
+    retained_n?: number;
+    overall?: { correct_pct?: number | null };
+    upper_minus_lower_pp?: number | null;
+    point_biserial?: number | null;
+    logistic_slope?: number | null;
+    b_observed?: number | null;
+    p05_scoring_b?: number | null;
+    median_time_ms?: number | null;
+    rapid_rate?: number | null;
+  } | null;
+};
+
+/** Exams/levels with a live item-health pipeline. Expand as Verbal/Math land. */
+export function isItemHealthSupported(examId: string, level: number): boolean {
+  return examId === 'analytical_reasoning' && level === 1;
+}
+
+export async function listPlatformAdminItemHealthRuns(
+  examId: string,
+  opts?: { level?: number }
+): Promise<{
+  supported: boolean;
+  exam_id: string;
+  level: number;
+  runs: ItemHealthRunMeta[];
+}> {
+  const level = opts?.level ?? 1;
+  const headers = await authHeaders();
+  const res = await axios.get(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${platformAdminItemHealthRunsPath(examId)}`,
+    { headers, params: { level } }
+  );
+  const runs = Array.isArray(res.data?.runs)
+    ? res.data.runs.map((r: Record<string, unknown>) => ({
+        id: typeof r.id === 'string' ? r.id : String(r.run_id ?? ''),
+        ...r,
+      }))
+    : [];
+  return {
+    supported: res.data?.supported !== false,
+    exam_id: typeof res.data?.exam_id === 'string' ? res.data.exam_id : examId,
+    level: Number(res.data?.level) || level,
+    runs,
+  };
+}
+
+export async function listPlatformAdminItemHealthRows(
+  examId: string,
+  runId: string,
+  opts?: {
+    level?: number;
+    flag?: 'P0' | 'P1' | 'P2' | '';
+    status?: string;
+    limit?: number;
+    offset?: number;
+  }
+): Promise<{
+  supported: boolean;
+  run_id: string;
+  run: Record<string, unknown> | null;
+  total: number;
+  offset: number;
+  limit: number;
+  rows: ItemHealthRow[];
+}> {
+  const level = opts?.level ?? 1;
+  const headers = await authHeaders();
+  const res = await axios.get(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${platformAdminItemHealthRunsPath(examId)}/${encodeURIComponent(runId)}/rows`,
+    {
+      headers,
+      params: {
+        level,
+        ...(opts?.flag ? { flag: opts.flag } : {}),
+        ...(opts?.status ? { status: opts.status } : {}),
+        limit: opts?.limit ?? 300,
+        offset: opts?.offset ?? 0,
+      },
+    }
+  );
+  return {
+    supported: res.data?.supported !== false,
+    run_id: typeof res.data?.run_id === 'string' ? res.data.run_id : runId,
+    run: res.data?.run && typeof res.data.run === 'object' ? res.data.run : null,
+    total: Number(res.data?.total) || 0,
+    offset: Number(res.data?.offset) || 0,
+    limit: Number(res.data?.limit) || 300,
+    rows: Array.isArray(res.data?.rows) ? res.data.rows : [],
+  };
+}
+
+/** Triggers the recommendation-only Friday job. May take several minutes. */
+export async function runPlatformAdminItemHealthJob(
+  examId: string,
+  opts?: { level?: number }
+): Promise<{
+  supported: boolean;
+  run_id: string;
+  rows_written: number;
+  meta: ItemHealthRunMeta | null;
+}> {
+  const level = opts?.level ?? 1;
+  const headers = await authHeaders();
+  const res = await axios.post(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${platformAdminItemHealthRunPath(examId)}`,
+    {},
+    { headers, params: { level }, timeout: 290_000 }
+  );
+  return {
+    supported: res.data?.supported !== false,
+    run_id: typeof res.data?.run_id === 'string' ? res.data.run_id : '',
+    rows_written: Number(res.data?.rows_written) || 0,
+    meta: res.data?.meta && typeof res.data.meta === 'object' ? res.data.meta : null,
+  };
+}
+
+/** @deprecated Use listPlatformAdminItemHealthRuns */
+export const listPlatformAdminArItemHealthRuns = () =>
+  listPlatformAdminItemHealthRuns('analytical_reasoning', { level: 1 });
+/** @deprecated Use listPlatformAdminItemHealthRows */
+export const listPlatformAdminArItemHealthRows = (
+  runId: string,
+  opts?: { flag?: 'P0' | 'P1' | 'P2' | ''; status?: string; limit?: number; offset?: number }
+) => listPlatformAdminItemHealthRows('analytical_reasoning', runId, { ...opts, level: 1 });
+/** @deprecated Use runPlatformAdminItemHealthJob */
+export const runPlatformAdminArItemHealthJob = () =>
+  runPlatformAdminItemHealthJob('analytical_reasoning', { level: 1 });
+
+export type ArItemHealthRunMeta = ItemHealthRunMeta;
+export type ArItemHealthFlag = ItemHealthFlag;
+export type ArItemHealthRow = ItemHealthRow;

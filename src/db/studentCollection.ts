@@ -130,6 +130,8 @@ export type StudentTutorialUiPreferences = {
 export type UpdateStudentPayload = {
     first_name?: string;
     last_name?: string;
+    /** Only allowed for synthetic-login students (login_email_is_synthetic). */
+    email?: string;
     about_me?: string;
     parent_name?: string;
     parent_email?: string;

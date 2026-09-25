@@ -20,11 +20,18 @@ function plainSetupTextBeforePrompt(q: ExamQuestion): string | null {
   const text = setup.trim();
   if (!text) return null;
 
+  const setupNorm = normalizeStemCompare(text);
   const prompt = (q.prompt ?? '').trim();
   if (prompt) {
-    const setupNorm = normalizeStemCompare(text);
     const promptNorm = normalizeStemCompare(prompt);
     if (setupNorm === promptNorm || promptNorm.includes(setupNorm)) return null;
+  }
+
+  // Already shown in the passage chrome — do not reprint above the prompt.
+  const passage = (q.passage ?? '').trim();
+  if (passage) {
+    const passageNorm = normalizeStemCompare(passage);
+    if (setupNorm === passageNorm || passageNorm.includes(setupNorm)) return null;
   }
 
   return text ? cleanLearnerFacingExamMarkup(text) : null;
@@ -329,6 +336,34 @@ function stimulusFieldDuplicatesPrompt(fieldKey: string, value: unknown, prompt:
   const vs = normalizeStemCompare(value);
   if (!stem || !vs) return false;
   return vs === stem || stem.includes(vs) || vs.includes(stem);
+}
+
+/** Skip stimulus fields already rendered in the passage box. */
+function stimulusFieldDuplicatesPassage(fieldKey: string, value: unknown, passage: string | undefined): boolean {
+  if (!['setup', 'text', 'question'].includes(fieldKey) || typeof value !== 'string') return false;
+  const passageNorm = normalizeStemCompare(passage ?? '');
+  const vs = normalizeStemCompare(value);
+  if (!passageNorm || !vs) return false;
+  return vs === passageNorm || passageNorm.includes(vs) || vs.includes(passageNorm);
+}
+
+/**
+ * Delivery sometimes copies math `stimulus.setup` into `passage`, which forces passage chrome
+ * and double-renders with the setup line. Drop that fake passage so setup shows once as normal text.
+ */
+export function withoutPromotedSetupPassage(q: ExamQuestion): ExamQuestion {
+  const passage = (q.passage ?? '').trim();
+  if (!passage) return q;
+  const stimulus = q.stimulus;
+  if (!stimulus || typeof stimulus !== 'object' || Array.isArray(stimulus)) return q;
+  const setup = (stimulus as Record<string, unknown>).setup;
+  if (typeof setup !== 'string' || !setup.trim()) return q;
+  const passageNorm = normalizeStemCompare(passage);
+  const setupNorm = normalizeStemCompare(setup);
+  if (passageNorm === setupNorm || passageNorm.includes(setupNorm) || setupNorm.includes(passageNorm)) {
+    return { ...q, passage: undefined };
+  }
+  return q;
 }
 
 /**
@@ -1816,7 +1851,7 @@ export function visualChoicesFromQuestion(question: ExamQuestion): VisualChoiceM
     }
   }
 
-  if (!visualPrompt && !optionLayout.includes('grid')) return null;
+  if (!visualPrompt && !optionLayout.includes('grid') && !optionLayout.includes('2x2')) return null;
   const parsedOptions = (question.options ?? []).map(parseVisualChoice);
   if (parsedOptions.length >= 2 && parsedOptions.every((choice): choice is VisualChoiceMatrix => choice !== null)) {
     return parsedOptions;
@@ -2479,8 +2514,10 @@ const HumanFriendlyStimulusInner: React.FC<{
       !stimulusFieldRenderedAsGrid(key, value, gridMatrix !== null) &&
       !(concealedRuleKeys?.has(key) ?? false) &&
       !(key === 'text' && shouldHideStimulusTextSummary(value, obj)) &&
-      !(key === 'setup' && plainSetupTextBeforePrompt(q)) &&
-      !stimulusFieldDuplicatesPrompt(key, value, q.prompt)
+      // `setup` is owned by QuestionPromptBlock (or already shown as passage chrome).
+      !(key === 'setup' && typeof value === 'string' && value.trim().length > 0) &&
+      !stimulusFieldDuplicatesPrompt(key, value, q.prompt) &&
+      !stimulusFieldDuplicatesPassage(key, value, q.passage)
   );
   if (entries.length === 0 && !gridMatrix && !dataTable) return null;
 

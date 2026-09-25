@@ -733,6 +733,14 @@ export function optionFigurePickerGridSx(layout: ArOptionFigureLayout | null | u
       gap: 0.75,
     };
   }
+  if (layout === 'row') {
+    return {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+      alignItems: 'start',
+      gap: 0.75,
+    };
+  }
   return {
     display: 'grid',
     gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',

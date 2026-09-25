@@ -8,6 +8,7 @@ import {
   PRACTICE_APIS,
   RECORD_PRACTICE_OUTCOME,
   RECORD_PRACTICE_SESSION_OUTCOMES,
+  REMEMBER_PRACTICE_DRAW,
   RESET_PRACTICE_PROGRESS,
   REVEAL_PRACTICE_SOLUTIONS,
 } from '../constants/constants';
@@ -104,6 +105,31 @@ export async function revealPracticeSolutions(params: {
   );
   const data = response.data as { ok?: boolean; solutions?: Record<string, PracticeSolutionReveal> };
   return data.solutions ?? {};
+}
+
+/** Re-bind the server draw after resuming a locally cached practice session. */
+export async function rememberPracticeDraw(params: {
+  examId: string;
+  itemIds: string[];
+}): Promise<void> {
+  const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS;
+  if (!base) {
+    throw new Error('REACT_APP_GOOGLE_CLOUD_FUNCTIONS is not set.');
+  }
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error('You must be signed in to resume practice.');
+  }
+  const authToken = await user.getIdToken();
+  authTokenHandler.setAuthToken(authToken);
+  await axios.post(
+    `${base}${PRACTICE_APIS}${REMEMBER_PRACTICE_DRAW}`,
+    {
+      exam_id: params.examId,
+      item_ids: params.itemIds,
+    },
+    { headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' } }
+  );
 }
 
 export interface RecordPracticeOutcomeResponse {

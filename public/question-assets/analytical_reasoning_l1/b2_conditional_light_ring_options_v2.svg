@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800" role="img" aria-labelledby="title desc">
+  <title id="title">Four light-ring answer options</title>
+  <desc id="desc">Four possible final states of a circular plate, arranged in a two-by-two grid. Platform controls supply the A through D labels.</desc>
+  <defs>
+    <style>
+      .plate{fill:#fbfcfe;stroke:#8797ad;stroke-width:10}
+      .tab{fill:#e68145;stroke:#b85d28;stroke-width:5}
+      .on{fill:#26364f;stroke:#26364f;stroke-width:5}
+      .off{fill:#fff;stroke:#26364f;stroke-width:7}
+    </style>
+  </defs>
+  <rect width="800" height="800" fill="#fff"/>
+
+  <!-- A: top and right ON; marker at left -->
+  <g transform="translate(200 200)">
+    <circle r="120" class="plate"/><path d="M-123-20 L-158 0 -123 20 Z" class="tab"/>
+    <circle cx="0" cy="-84" r="26" class="on"/><circle cx="84" cy="0" r="26" class="on"/>
+    <circle cx="0" cy="84" r="26" class="off"/><circle cx="-84" cy="0" r="26" class="off"/>
+  </g>
+
+  <!-- B: top and right ON; marker at right -->
+  <g transform="translate(600 200)">
+    <circle r="120" class="plate"/><path d="M123-20 L158 0 123 20 Z" class="tab"/>
+    <circle cx="0" cy="-84" r="26" class="on"/><circle cx="84" cy="0" r="26" class="on"/>
+    <circle cx="0" cy="84" r="26" class="off"/><circle cx="-84" cy="0" r="26" class="off"/>
+  </g>
+
+  <!-- C: top and left ON; marker at top -->
+  <g transform="translate(200 600)">
+    <circle r="120" class="plate"/><path d="M-20-123 L0-158 20-123 Z" class="tab"/>
+    <circle cx="0" cy="-84" r="26" class="on"/><circle cx="84" cy="0" r="26" class="off"/>
+    <circle cx="0" cy="84" r="26" class="off"/><circle cx="-84" cy="0" r="26" class="on"/>
+  </g>
+
+  <!-- D: bottom and left ON; marker at left -->
+  <g transform="translate(600 600)">
+    <circle r="120" class="plate"/><path d="M-123-20 L-158 0 -123 20 Z" class="tab"/>
+    <circle cx="0" cy="-84" r="26" class="off"/><circle cx="84" cy="0" r="26" class="off"/>
+    <circle cx="0" cy="84" r="26" class="on"/><circle cx="-84" cy="0" r="26" class="on"/>
+  </g>
+</svg>

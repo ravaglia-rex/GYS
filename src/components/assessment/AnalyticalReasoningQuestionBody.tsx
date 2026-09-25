@@ -5,7 +5,7 @@ import { ArOptionFigureSlice, useArOptionFigureMeta } from './ArOptionFigure';
 import { optionFigurePickerGridSx } from './arOptionFigureModel';
 import { ExamMarkdown, EXAM_FIGURE_MAX_HEIGHT_PX, EXAM_FIGURE_MAX_WIDTH_PX } from './ExamMarkdown';
 import { ExamMathText } from './ExamMathText';
-import { scaleExamFigureCaps, isArTextOptionGrid2x2, looksLikeArAsciiGridOptionTexts, arFigureSizeMultiplier } from './arFigureDisplaySize';
+import { scaleExamFigureCaps, resolveArTextOptionLayout, arTextOptionLayoutContainerSx, arFigureSizeMultiplier } from './arFigureDisplaySize';
 import { resolveLearnerExamOptions } from './resolveLearnerExamOptions';
 
 interface AnalyticalReasoningQuestionBodyProps {
@@ -62,9 +62,12 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
   const showFigureOptions = mode === 'figure_tiles' ? Boolean(optionFigure) : false;
   const showLetterButtons =
     mode === 'letter_buttons' ? !resolved.hasRealOptionText : false;
-  const textOptionsAsGrid2x2 =
-    isArTextOptionGrid2x2(question.option_layout) ||
-    looksLikeArAsciiGridOptionTexts(optionIds);
+  const textOptionLayout = resolveArTextOptionLayout(question.option_layout, optionIds);
+  const textOptionsAsGrid = textOptionLayout === '2x2' || textOptionLayout === '4x1';
+  const textOptionsGridSx = arTextOptionLayoutContainerSx(textOptionLayout, {
+    gap: 1.25,
+    mb: footer ? 1.5 : 0,
+  });
   const { layout, slices, stemSlice, includesStemContent, naturalWidth, naturalHeight } =
     useArOptionFigureMeta(optionFigure?.src, optionIds.length, question.option_crops);
   const optionDisplaySize = question.option_display_size ?? null;
@@ -248,17 +251,7 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
                 if (selectionLocked) return;
                 onSelectOption(parseInt(e.target.value, 10));
               }}
-              sx={
-                textOptionsAsGrid2x2
-                  ? {
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                      alignItems: 'stretch',
-                      gap: 1.25,
-                      mb: footer ? 1.5 : 0,
-                    }
-                  : undefined
-              }
+              sx={textOptionsGridSx}
             >
               {optionIds.map((label, idx) => {
                 const selected = selectedOption === idx;
@@ -335,14 +328,14 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
                     }
                     sx={{
                       m: 0,
-                      mb: textOptionsAsGrid2x2 ? 0 : 1.25,
+                      mb: textOptionsAsGrid ? 0 : 1.25,
                       p: '14px 16px',
                       borderRadius: 2,
                       border: `2px solid ${rowBorder}`,
                       bgcolor: rowBg,
                       cursor: selectionLocked ? 'default' : 'pointer',
                       alignItems: 'center',
-                      height: textOptionsAsGrid2x2 ? '100%' : undefined,
+                      height: textOptionsAsGrid ? '100%' : undefined,
                       transition: 'all 0.15s',
                       '&:hover': selectionLocked ? {} : { borderColor: `${primary}99` },
                     }}

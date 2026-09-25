@@ -28,6 +28,7 @@
     "better-react-mathjax": "^2.3.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "dompurify": "^3.4.15",
     "firebase": "^10.12.2",
     "lucide-react": "^0.383.0",
     "react": "^18.3.1",
@@ -45,6 +46,7 @@
     "tailwind-merge": "^2.3.0",
     "tailwindcss-animate": "^1.0.7",
     "web-vitals": "^2.1.4",
+    "xlsx": "^0.18.5",
     "zod": "^3.23.8"
   },
   "scripts": {
@@ -62,7 +64,10 @@
     "extends": [
       "react-app",
       "react-app/jest"
-    ]
+    ],
+    "rules": {
+      "react/no-danger": "warn"
+    }
   },
   "browserslist": {
     "production": [
@@ -77,6 +82,7 @@
     ]
   },
   "devDependencies": {
+    "@types/dompurify": "^3.0.5",
     "source-map-explorer": "^2.5.3",
     "tailwindcss": "^3.4.4",
     "typescript": "^5.9.2"

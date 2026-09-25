@@ -27,10 +27,35 @@ type UseExamIntegrityOptions = {
   enforceFullscreen?: boolean;
 };
 
+type FullscreenCapableElement = HTMLElement & {
+  webkitRequestFullscreen?: () => Promise<void> | void;
+};
+
+type FullscreenCapableDocument = Document & {
+  fullscreenEnabled?: boolean;
+  webkitFullscreenEnabled?: boolean;
+  webkitFullscreenElement?: Element | null;
+};
+
+/** True when the browser can enter document fullscreen (standard or webkit-prefixed). */
+export function isFullscreenCapable(): boolean {
+  if (typeof document === 'undefined') return false;
+  const doc = document as FullscreenCapableDocument;
+  const el = document.documentElement as FullscreenCapableElement;
+  const enabled = Boolean(doc.fullscreenEnabled || doc.webkitFullscreenEnabled);
+  const canRequest = Boolean(el.requestFullscreen || el.webkitRequestFullscreen);
+  return enabled && canRequest;
+}
+
+function getFullscreenElement(): Element | null {
+  const doc = document as FullscreenCapableDocument;
+  return document.fullscreenElement ?? doc.webkitFullscreenElement ?? null;
+}
+
 function isExamAway(enforceFullscreen: boolean, windowFocused: boolean): boolean {
   if (!windowFocused) return true;
   if (document.visibilityState === 'hidden') return true;
-  if (enforceFullscreen && !document.fullscreenElement) return true;
+  if (enforceFullscreen && isFullscreenCapable() && !getFullscreenElement()) return true;
   return false;
 }
 
@@ -47,6 +72,7 @@ export function useExamIntegrity({
   const [leftFullscreen, setLeftFullscreen] = useState(false);
   const [lostWindowFocus, setLostWindowFocus] = useState(false);
   const [warning, setWarning] = useState<ExamIntegrityWarning | null>(null);
+  const [fullscreenBlocked, setFullscreenBlocked] = useState(false);
 
   const onEndRef = useRef(onLeaveLimitReached);
   onEndRef.current = onLeaveLimitReached;
@@ -60,13 +86,39 @@ export function useExamIntegrity({
   const leaveCountRef = useRef(0);
   const graceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tickTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const graceEndsAtRef = useRef(0);
 
   const tryEnterFullscreen = useCallback(() => {
-    const el = document.documentElement;
-    if (!document.fullscreenElement && el.requestFullscreen) {
-      void el.requestFullscreen().catch(() => {});
+    if (getFullscreenElement()) {
+      setFullscreenBlocked(false);
+      return;
     }
+    const el = document.documentElement as FullscreenCapableElement;
+    const enter =
+      el.requestFullscreen?.bind(el) ?? el.webkitRequestFullscreen?.bind(el);
+    if (!enter) {
+      setFullscreenBlocked(true);
+      return;
+    }
+    try {
+      const result = enter();
+      if (result && typeof (result as Promise<void>).then === 'function') {
+        void (result as Promise<void>)
+          .then(() => setFullscreenBlocked(false))
+          .catch(() => setFullscreenBlocked(true));
+      } else {
+        setFullscreenBlocked(false);
+      }
+    } catch {
+      setFullscreenBlocked(true);
+    }
+  }, []);
+
+  const dismissFullscreenRequired = useCallback(() => {
+    if (isFullscreenCapable()) return;
+    setLeftFullscreen(false);
+    setFullscreenBlocked(false);
   }, []);
 
   const clearTimers = useCallback(() => {
@@ -77,6 +129,10 @@ export function useExamIntegrity({
     if (tickTimerRef.current) {
       clearInterval(tickTimerRef.current);
       tickTimerRef.current = null;
+    }
+    if (blurTimerRef.current) {
+      clearTimeout(blurTimerRef.current);
+      blurTimerRef.current = null;
     }
   }, []);
 
@@ -99,7 +155,7 @@ export function useExamIntegrity({
         leaveCount: count,
         secondsLeft: Math.ceil(msLeft / 1000),
         canReenterFullscreen:
-          document.visibilityState === 'visible' && !document.fullscreenElement,
+          document.visibilityState === 'visible' && !getFullscreenElement(),
       });
     };
     refreshWarning();
@@ -151,6 +207,7 @@ export function useExamIntegrity({
       setLeftFullscreen(false);
       setLostWindowFocus(false);
       setWarning(null);
+      setFullscreenBlocked(false);
       awayRef.current = false;
       endedRef.current = false;
       primedRef.current = false;
@@ -173,8 +230,11 @@ export function useExamIntegrity({
     windowFocusedRef.current = document.hasFocus();
 
     const sync = () => {
+      const capable = isFullscreenCapable();
+      const inFs = Boolean(getFullscreenElement());
       const away = isExamAway(enforceFullscreen, windowFocusedRef.current);
-      setLeftFullscreen(enforceFullscreen && !document.fullscreenElement);
+      setLeftFullscreen(enforceFullscreen && capable && !inFs);
+      if (inFs) setFullscreenBlocked(false);
       setLostWindowFocus(
         !windowFocusedRef.current && document.visibilityState === 'visible'
       );
@@ -182,7 +242,7 @@ export function useExamIntegrity({
         if (
           document.visibilityState === 'visible' &&
           windowFocusedRef.current &&
-          (!enforceFullscreen || Boolean(document.fullscreenElement))
+          (!enforceFullscreen || !capable || inFs)
         ) {
           primedRef.current = true;
         }
@@ -194,19 +254,40 @@ export function useExamIntegrity({
 
     const onWindowBlur = () => {
       windowFocusedRef.current = false;
-      sync();
+      if (blurTimerRef.current) clearTimeout(blurTimerRef.current);
+      // Debounce short blur/focus pairs (keyboard, notification shade) so they
+      // don't count as leave incidents. Real app-switch still hits visibilitychange immediately.
+      blurTimerRef.current = setTimeout(() => {
+        blurTimerRef.current = null;
+        sync();
+      }, 500);
     };
     const onWindowFocus = () => {
       windowFocusedRef.current = true;
+      if (blurTimerRef.current) {
+        clearTimeout(blurTimerRef.current);
+        blurTimerRef.current = null;
+      }
       sync();
     };
 
     document.addEventListener('visibilitychange', sync);
     document.addEventListener('fullscreenchange', sync);
+    document.addEventListener('webkitfullscreenchange', sync);
     window.addEventListener('blur', onWindowBlur);
     window.addEventListener('focus', onWindowFocus);
-    if (enforceFullscreen && !document.fullscreenElement) {
-      void document.documentElement.requestFullscreen?.().catch(() => {});
+    // Silent mount attempt — never sets fullscreenBlocked (that is reserved for user taps).
+    if (enforceFullscreen && isFullscreenCapable() && !getFullscreenElement()) {
+      const el = document.documentElement as FullscreenCapableElement;
+      const enter = el.requestFullscreen?.bind(el) ?? el.webkitRequestFullscreen?.bind(el);
+      try {
+        const result = enter?.();
+        if (result && typeof (result as Promise<void>).then === 'function') {
+          void (result as Promise<void>).catch(() => {});
+        }
+      } catch {
+        /* ignore — user can re-enter via the dialog button */
+      }
     }
     sync();
 
@@ -225,6 +306,7 @@ export function useExamIntegrity({
       document.removeEventListener('contextmenu', stop, true);
       document.removeEventListener('visibilitychange', sync);
       document.removeEventListener('fullscreenchange', sync);
+      document.removeEventListener('webkitfullscreenchange', sync);
       window.removeEventListener('blur', onWindowBlur);
       window.removeEventListener('focus', onWindowFocus);
       window.removeEventListener('keydown', onKeyCapture, true);
@@ -236,7 +318,10 @@ export function useExamIntegrity({
     leftFullscreen,
     lostWindowFocus,
     integrityWarning: warning,
+    fullscreenBlocked,
+    fullscreenCapable: isFullscreenCapable(),
     tryEnterFullscreen,
+    dismissFullscreenRequired,
     dismissFullscreenWarning: () => {
       if (warning && warning.secondsLeft === 0) setWarning(null);
     },
