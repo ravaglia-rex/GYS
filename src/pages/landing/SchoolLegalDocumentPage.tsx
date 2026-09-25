@@ -157,6 +157,8 @@ const SchoolLegalDocumentPage: React.FC = () => {
               {!loading && !error && (
                 <div
                   className="legal-doc-body prose-legal"
+                  // Content is DOMPurify.sanitize()'d before setHtml (see load effect).
+                  // eslint-disable-next-line react/no-danger -- trusted legal markdown after sanitize
                   dangerouslySetInnerHTML={{ __html: html }}
                 />
               )}
