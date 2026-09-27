@@ -161,10 +161,12 @@ const ProfileSettings: React.FC = () => {
     () =>
       profileCompletionFromForm({
         ...formData,
+        // Synthetic students' User ID lives in students.email, which the backend scores as filled.
+        email: loginEmailIsSynthetic ? formData.loginUserId : formData.email,
         signupSchoolName:
           typeof userData?.signup_school_name === 'string' ? userData.signup_school_name : '',
       }),
-    [formData, userData?.signup_school_name]
+    [formData, loginEmailIsSynthetic, userData?.signup_school_name]
   );
   const schoolId =
     typeof userData?.school_id === 'string' && userData.school_id && userData.school_id !== 'not-listed'
@@ -322,18 +324,6 @@ const ProfileSettings: React.FC = () => {
       );
       if (formData.about !== undefined) updates.about_me = formData.about;
 
-      if (loginEmailIsSynthetic) {
-        const nextContact = formData.email.trim().toLowerCase();
-        const currentContact =
-          typeof userData?.contact_email === 'string'
-            ? userData.contact_email.trim().toLowerCase()
-            : '';
-        if (nextContact !== currentContact) {
-          // Backend maps this onto contact_email for synthetic students (does not change login email).
-          updates.email = nextContact;
-        }
-      }
-
       if (originalGrade !== null) {
         const currentGrade = parseInt(formData.grade.replace(/\D/g, ''), 10);
         if (Number.isFinite(currentGrade) && currentGrade !== originalGrade) {
@@ -364,6 +354,7 @@ const ProfileSettings: React.FC = () => {
 
       const hitHundred = profileCompletionFromForm({
         ...formData,
+        email: loginEmailIsSynthetic ? formData.loginUserId : formData.email,
         signupSchoolName:
           typeof userData?.signup_school_name === 'string' ? userData.signup_school_name : '',
       }).complete;
@@ -544,42 +535,24 @@ const ProfileSettings: React.FC = () => {
                   </Box>
                 ) : null}
 
-                <Box>
-                  <TextField
-                    fullWidth
-                    label="Email"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    disabled={!isEditing || !loginEmailIsSynthetic}
-                    helperText={
-                      isEditing && loginEmailIsSynthetic
-                        ? 'Optional contact email. You still sign in with your User ID.'
-                        : undefined
-                    }
-                    placeholder={
-                      isEditing && loginEmailIsSynthetic
-                        ? 'you@example.com'
-                        : loginEmailIsSynthetic
-                          ? 'Not set'
-                          : undefined
-                    }
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <Mail
-                            size={20}
-                            color={
-                              isEditing && loginEmailIsSynthetic
-                                ? 'rgba(255, 255, 255, 0.7)'
-                                : 'rgba(255, 255, 255, 0.5)'
-                            }
-                          />
-                        </InputAdornment>
-                      ),
-                    }}
-                    sx={profileFieldSx}
-                  />
-                </Box>
+                {!loginEmailIsSynthetic ? (
+                  <Box>
+                    <TextField
+                      fullWidth
+                      label="Email"
+                      value={formData.email}
+                      disabled
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Mail size={20} color="rgba(255, 255, 255, 0.5)" />
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={profileFieldSx}
+                    />
+                  </Box>
+                ) : null}
 
                 <Box>
                   <TextField
@@ -654,7 +627,7 @@ const ProfileSettings: React.FC = () => {
                         </InputAdornment>
                       ),
                     }}
-                    helperText="Earned from exams, practice, and daily challenges. Redeem in the Rewards Shop."
+                   
                     FormHelperTextProps={{
                       sx: { color: 'rgba(255, 255, 255, 0.55)', mt: 1 },
                     }}
@@ -814,7 +787,7 @@ const ProfileSettings: React.FC = () => {
                     select
                     SelectProps={{ native: false }}
                     InputLabelProps={{ shrink: true }}
-                    helperText="Needed for a complete profile"
+                   
                     FormHelperTextProps={{
                       sx: {
                         color: 'rgba(255, 255, 255, 0.55)',

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="420" viewBox="0 0 420 420" role="img" aria-labelledby="title desc">
+  <title id="title">Square divided into four congruent smaller squares</title>
+  <desc id="desc">A large square divided into four congruent smaller squares. Point O is the center of the large square. Point M is the midpoint of the outer right side of the upper-right smaller square. Segment OM is shown.</desc>
+  <rect width="420" height="420" fill="white"/>
+  <g stroke="#111" stroke-width="2.5" fill="none">
+    <rect x="70" y="70" width="280" height="280"/>
+    <line x1="210" y1="70" x2="210" y2="350"/>
+    <line x1="70" y1="210" x2="350" y2="210"/>
+    <line x1="210" y1="210" x2="350" y2="140" stroke-dasharray="7 5"/>
+  </g>
+  <g fill="#111">
+    <circle cx="210" cy="210" r="5"/>
+    <circle cx="350" cy="140" r="5"/>
+  </g>
+  <g font-family="Arial, sans-serif" font-size="18" fill="#111">
+    <text x="196" y="202" text-anchor="end">O</text>
+    <text x="362" y="144">M</text>
+    <text x="210" y="48" text-anchor="middle" font-size="14" font-style="italic">Figure not drawn to scale</text>
+  </g>
+</svg>

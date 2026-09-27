@@ -21,6 +21,7 @@ import BillingSettings from '../../components/settings/BillingSettings';
 import { auth } from '../../firebase/firebase';
 import PageTutorial from '../../components/tutorial/PageTutorial';
 import { studentPageSubtitleSx, studentPageTitleSx } from '../../styles/studentTypography';
+import { useStudent } from '../../query/hooks';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -43,54 +44,70 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-const TAB_KEYS = ['about', 'billing', 'security'] as const;
-type TabKey = (typeof TAB_KEYS)[number];
-
-function tabIndexFromKey(key: string | null): number {
-  const idx = TAB_KEYS.indexOf((key as TabKey) || 'about');
-  return idx >= 0 ? idx : 0;
-}
+type TabKey = 'about' | 'billing' | 'security';
 
 const ProfilePage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
   const currentUser = auth.currentUser;
+  const { data: userData } = useStudent(currentUser?.uid, Boolean(currentUser?.uid));
+  // User-ID roster students (e.g. Lawrence @school.gys.com) — no password-change UI.
+  const hideSecurityTab = userData?.login_email_is_synthetic === true;
 
-  const initialTab = useMemo(
-    () => tabIndexFromKey(searchParams.get('tab')),
-    [searchParams]
+  const tabKeys = useMemo((): TabKey[] => {
+    return hideSecurityTab ? ['about', 'billing'] : ['about', 'billing', 'security'];
+  }, [hideSecurityTab]);
+
+  const tabIndexFromKey = (key: string | null): number => {
+    const idx = tabKeys.indexOf((key as TabKey) || 'about');
+    return idx >= 0 ? idx : 0;
+  };
+
+  const [activeTab, setActiveTab] = useState(() =>
+    tabIndexFromKey(searchParams.get('tab'))
   );
-  const [activeTab, setActiveTab] = useState(initialTab);
 
   useEffect(() => {
-    setActiveTab(tabIndexFromKey(searchParams.get('tab')));
-  }, [searchParams]);
+    const key = searchParams.get('tab');
+    if (hideSecurityTab && key === 'security') {
+      navigate(`/profile?tab=about${location.hash || ''}`, { replace: true });
+      setActiveTab(0);
+      return;
+    }
+    setActiveTab(tabIndexFromKey(key));
+  }, [searchParams, hideSecurityTab, location.hash, navigate, tabKeys]);
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
-    const key = TAB_KEYS[newValue] ?? 'about';
+    const key = tabKeys[newValue] ?? 'about';
     const hash = location.hash || '';
     navigate(`/profile?tab=${key}${hash}`, { replace: true });
   };
 
-  const tabs = [
-    {
-      label: 'About',
-      icon: <User size={20} />,
-      description: 'Update your personal information',
-    },
-    {
-      label: 'Billing & Payment',
-      icon: <CreditCard size={20} />,
-      description: 'Membership and payment history',
-    },
-    {
-      label: 'Security & Privacy',
-      icon: <Shield size={20} />,
-      description: 'Password, security, and privacy',
-    },
-  ];
+  const tabs = useMemo(() => {
+    const all = [
+      {
+        key: 'about' as const,
+        label: 'About',
+        icon: <User size={20} />,
+        description: 'Update your personal information',
+      },
+      {
+        key: 'billing' as const,
+        label: 'Billing & Payment',
+        icon: <CreditCard size={20} />,
+        description: 'Membership and payment history',
+      },
+      {
+        key: 'security' as const,
+        label: 'Security & Privacy',
+        icon: <Shield size={20} />,
+        description: 'Password, security, and privacy',
+      },
+    ];
+    return all.filter((t) => tabKeys.includes(t.key));
+  }, [tabKeys]);
 
   return (
     <DashboardLayout>
@@ -120,7 +137,9 @@ const ProfilePage: React.FC = () => {
                 Profile
               </Typography>
               <Typography variant="h6" sx={studentPageSubtitleSx}>
-                Manage your account, billing, and security
+                {hideSecurityTab
+                  ? 'Manage your account and billing'
+                  : 'Manage your account, billing, and security'}
               </Typography>
             </Box>
           </Box>
@@ -225,9 +244,9 @@ const ProfilePage: React.FC = () => {
                   },
                 }}
               >
-                {tabs.map((tab, index) => (
+                {tabs.map((tab) => (
                   <Tab
-                    key={index}
+                    key={tab.key}
                     label={
                       <Box
                         sx={{
@@ -260,15 +279,17 @@ const ProfilePage: React.FC = () => {
             </Box>
 
             <Box data-tutorial-id="student-settings-content" sx={{ p: 3 }}>
-              <TabPanel value={activeTab} index={0}>
+              <TabPanel value={activeTab} index={tabKeys.indexOf('about')}>
                 <ProfileSettings />
               </TabPanel>
-              <TabPanel value={activeTab} index={1}>
+              <TabPanel value={activeTab} index={tabKeys.indexOf('billing')}>
                 <BillingSettings />
               </TabPanel>
-              <TabPanel value={activeTab} index={2}>
-                <SecurityPrivacySettings />
-              </TabPanel>
+              {!hideSecurityTab ? (
+                <TabPanel value={activeTab} index={tabKeys.indexOf('security')}>
+                  <SecurityPrivacySettings />
+                </TabPanel>
+              ) : null}
             </Box>
           </CardContent>
         </Card>

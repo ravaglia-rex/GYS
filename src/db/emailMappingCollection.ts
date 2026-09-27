@@ -11,7 +11,27 @@ export type EmailExistsResult = {
   passwordSetupComplete?: boolean;
 };
 
-// Returns { exists: boolean, type: 'student' | 'schooladmin' | null }.
+function describeEmailCheckError(error: unknown): string {
+  if (axios.isAxiosError(error)) {
+    const status = error.response?.status;
+    const bodyError =
+      typeof error.response?.data?.error === 'string' ? error.response.data.error : undefined;
+    if (bodyError) return bodyError;
+    if (status === 429) {
+      return 'Too many email checks. Please wait a moment and try again.';
+    }
+    if (status && status >= 500) {
+      return 'Could not check your email right now. Please try again later.';
+    }
+    if (error.message?.trim()) return error.message;
+  }
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+  return 'There was an issue checking your email. Please try again later.';
+}
+
+// Returns { exists: boolean, type: 'student' | 'schooladmin' | 'platformadmin' | null }.
 export const checkEmailExists = async (email: string): Promise<EmailExistsResult> => {
   try {
     const encodedEmail = encodeURIComponent(email);
@@ -19,9 +39,13 @@ export const checkEmailExists = async (email: string): Promise<EmailExistsResult
       `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${EMAIL_CHECK_APIS}${CHECK_EMAIL_EXISTS}/${encodedEmail}`
     );
     return response.data;
-  } catch (error) {
+  } catch (error: unknown) {
+    // 404 means "no account" — keep returning exists:false for that case only.
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      return { exists: false, type: null };
+    }
     console.error('checkEmailExists failed:', error);
-    return { exists: false, type: null };
+    throw new Error(describeEmailCheckError(error));
   }
 };
 

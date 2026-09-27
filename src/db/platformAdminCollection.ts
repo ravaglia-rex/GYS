@@ -399,12 +399,37 @@ export async function getPlatformAdminMe(opts?: { force?: boolean }): Promise<Pl
     const me = res.data as PlatformAdminMe;
     platformAdminMeCache = { value: me, expiresAt: Date.now() + PLATFORM_ADMIN_ME_TTL_MS };
     return me;
-  } catch {
+  } catch (error: unknown) {
     platformAdminMeCache = null;
-    return null;
+    // 403 / not-admin → null (caller treats as "not a platform admin")
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      if (status === 401 || status === 403) {
+        return null;
+      }
+      const bodyError =
+        typeof error.response?.data?.error === 'string' ? error.response.data.error : undefined;
+      if (status === 429) {
+        throw new Error(bodyError || 'Too many requests. Please wait a moment and try again.');
+      }
+      if (status && status >= 500) {
+        throw new Error(bodyError || 'Could not verify admin access. Please try again.');
+      }
+      if (bodyError) {
+        throw new Error(bodyError);
+      }
+    }
+    if (error instanceof Error && error.message.trim()) {
+      throw error;
+    }
+    throw new Error('Could not verify admin access. Please try again.');
   }
 }
 
+/**
+ * Returns true when the signed-in user is an active platform admin.
+ * Throws on transient API failures (429/500/network) — do not treat those as "not admin".
+ */
 export async function checkPlatformAdminAccess(): Promise<boolean> {
   const me = await getPlatformAdminMe();
   return me?.ok === true;
@@ -426,11 +451,46 @@ export async function authenticatePlatformAdmin(
   return token;
 }
 
-/** Ensures Auth user exists for an allowlisted admin so a password-setup email can be sent. */
-export async function verifyPlatformAdminAndSendPasswordSetup(email: string): Promise<void> {
-  await axios.post(`${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_VERIFY_AND_SEND_PASSWORD_SETUP}`, {
-    email: email.trim().toLowerCase(),
-  });
+/** Ensures Auth user exists for an allowlisted admin and emails a password-setup link (atomic). */
+export type PlatformAdminPasswordSetupResult = {
+  success: true;
+  sent: boolean;
+  cooldown: boolean;
+  message?: string;
+};
+
+export async function verifyPlatformAdminAndSendPasswordSetup(
+  email: string
+): Promise<PlatformAdminPasswordSetupResult> {
+  try {
+    const res = await axios.post(
+      `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_VERIFY_AND_SEND_PASSWORD_SETUP}`,
+      { email: email.trim().toLowerCase() }
+    );
+    const data = res.data ?? {};
+    return {
+      success: true,
+      sent: data.sent === true,
+      cooldown: data.cooldown === true || data.sent === false,
+      message: typeof data.message === 'string' ? data.message : undefined,
+    };
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      const bodyError =
+        typeof error.response?.data?.error === 'string' ? error.response.data.error : undefined;
+      if (bodyError) throw new Error(bodyError);
+      if (status === 403) throw new Error('Not an authorized platform admin');
+      if (status === 429) {
+        throw new Error('Too many setup attempts. Please wait a few minutes and try again.');
+      }
+      if (status === 500) {
+        throw new Error('Could not send password setup link. Please try again.');
+      }
+    }
+    if (error instanceof Error && error.message.trim()) throw error;
+    throw new Error('Could not send password setup link. Please try again.');
+  }
 }
 
 /** Marks personal password setup complete after confirmPasswordReset (requires signed-in admin). */

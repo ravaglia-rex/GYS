@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { getSchoolAdmin, checkSchoolEmail, SchoolAdmin } from '../db/schoolAdminCollection';
+import { getPlatformAdminMe } from '../db/platformAdminCollection';
 
 export interface User {
     uid: string;
@@ -32,6 +33,25 @@ export const checkUserRole = createAsyncThunk(
     'auth/checkUserRole',
     async (email: string, { getState, rejectWithValue }) => {
         try {
+            // Platform admin first — must not fall through to "student" on transient /me errors.
+            try {
+                const me = await getPlatformAdminMe();
+                if (me?.ok === true) {
+                    return {
+                        role: 'platformadmin' as const,
+                        schoolAdmin: null,
+                        platformAdminRole: me.role,
+                        platformAdminPermissions: Array.isArray(me.permissions) ? me.permissions : [],
+                    };
+                }
+            } catch (platformError) {
+                const message =
+                  platformError instanceof Error
+                    ? platformError.message
+                    : 'Failed to check platform admin role';
+                return rejectWithValue(message);
+            }
+
             const state = getState() as { auth?: AuthState };
             const preferredSchoolId = state.auth?.schoolAdmin?.schoolId;
             let schoolAdmin = await getSchoolAdmin(email, preferredSchoolId);
@@ -50,9 +70,19 @@ export const checkUserRole = createAsyncThunk(
                 }
             }
             if (schoolAdmin) {
-                return { role: 'schooladmin' as const, schoolAdmin };
+                return {
+                    role: 'schooladmin' as const,
+                    schoolAdmin,
+                    platformAdminRole: null as AuthState['platformAdminRole'],
+                    platformAdminPermissions: [] as string[],
+                };
             }
-            return { role: 'student' as const, schoolAdmin: null };
+            return {
+                role: 'student' as const,
+                schoolAdmin: null,
+                platformAdminRole: null as AuthState['platformAdminRole'],
+                platformAdminPermissions: [] as string[],
+            };
         } catch (error) {
             // Do not fail open to student — transient API errors must not demote school admins.
             const message =
@@ -103,6 +133,8 @@ const authSlice = createSlice({
                 state.loading = false;
                 state.role = action.payload.role;
                 state.schoolAdmin = action.payload.schoolAdmin;
+                state.platformAdminRole = action.payload.platformAdminRole ?? null;
+                state.platformAdminPermissions = action.payload.platformAdminPermissions ?? [];
             })
             .addCase(checkUserRole.rejected, (state, action) => {
                 state.loading = false;
@@ -113,6 +145,8 @@ const authSlice = createSlice({
                 // Leave role unknown — callers must not treat this as a confirmed student.
                 state.role = null;
                 state.schoolAdmin = null;
+                state.platformAdminRole = null;
+                state.platformAdminPermissions = [];
             });
     },
 });

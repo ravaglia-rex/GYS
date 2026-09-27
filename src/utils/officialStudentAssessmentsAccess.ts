@@ -61,6 +61,7 @@ export const OFFICIAL_SCHOOL_LIVE_ASSESSMENTS: Record<
   [ASPEE_NUTAN_ACADEMY_SCHOOL_ID]: {
     analytical_reasoning: new Set([1]),
     verbal_reasoning: new Set([1]),
+    mathematical_reasoning: new Set([1]),
   },
 };
 
@@ -81,6 +82,31 @@ export function aspeeVerbalSkipsAnalyticalSequence(
     canonicalAssessmentId(assessmentId) === 'verbal_reasoning' &&
     isAspeeNutanAcademySchool(schoolId)
   );
+}
+
+/**
+ * Aspee Nutan students may start Mathematical Reasoning Level 1 irrespective of
+ * membership / school package floor and irrespective of Verbal or Analytical
+ * attempt/clearance. Tier omitted (exam browse) or tier 1 only — L2+ stays gated.
+ * Does not bypass ops pause, integrity suspension, or same-level cooldown.
+ */
+export function aspeeMayStartOfficialMathLevel1(
+  assessmentId: string,
+  schoolId: unknown,
+  tierNumber?: number
+): boolean {
+  if (!isAspeeNutanAcademySchool(schoolId)) return false;
+  if (canonicalAssessmentId(assessmentId) !== 'mathematical_reasoning') return false;
+  if (tierNumber != null && tierNumber !== 1) return false;
+  return true;
+}
+
+/** @deprecated Prefer {@link aspeeMayStartOfficialMathLevel1}; kept for call-site clarity. */
+export function aspeeMathSkipsVerbalSequence(
+  assessmentId: string,
+  schoolId: unknown
+): boolean {
+  return aspeeMayStartOfficialMathLevel1(assessmentId, schoolId);
 }
 
 /**

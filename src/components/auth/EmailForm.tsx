@@ -88,8 +88,10 @@ const EmailEntryForm: React.FC = () => {
           navigate('/school-admin/dashboard', { replace: true });
           return;
         }
-      } catch {
-        /* fall through to student dashboard */
+      } catch (err) {
+        // Transient API errors must not demote a signed-in admin to the student dashboard.
+        console.error('Login redirect role check failed:', err);
+        return;
       }
       if (!cancelled) navigate('/dashboard', { replace: true });
     });
@@ -193,9 +195,12 @@ const EmailEntryForm: React.FC = () => {
       });
       toast({
         variant: 'destructive',
-        title: 'Whoops!',
-        description: 'There was an issue checking your email. Please try again later.',
-        duration: 2000,
+        title: 'Could not check email',
+        description:
+          error instanceof Error && error.message.trim()
+            ? error.message
+            : 'There was an issue checking your email. Please try again later.',
+        duration: 4000,
       });
     } finally {
       setIsSubmitted(false);

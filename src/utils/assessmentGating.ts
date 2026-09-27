@@ -5,6 +5,7 @@ import {
 } from './tierProgression';
 import { canonicalAssessmentId } from './assessmentIdCompat';
 import {
+  aspeeMayStartOfficialMathLevel1,
   aspeeVerbalSkipsAnalyticalSequence,
   isRestrictedOfficialAssessmentStarter,
 } from './officialStudentAssessmentsAccess';
@@ -240,7 +241,8 @@ export function computeGate(
 /**
  * Restricted early-access starters (e.g. Math L1 QA accounts) may skip sequence
  * prerequisites in the student UI. Aspee Nutan students may start Verbal without
- * an Analytical attempt. Membership locks still apply.
+ * an Analytical attempt. Aspee Math L1 also clears membership / school-package
+ * locks and any sequence prereq (Verbal/Analytical).
  */
 export function gateWithRestrictedStarterBypass(
   assessmentId: string,
@@ -249,10 +251,17 @@ export function gateWithRestrictedStarterBypass(
   tierNumber?: number,
   schoolId?: unknown
 ): GateResult {
-  if (!gate.locked || gate.reason !== 'prerequisite') return gate;
+  if (!gate.locked) return gate;
   if (isRestrictedOfficialAssessmentStarter(assessmentId, email, tierNumber)) {
     return { locked: false, reason: null };
   }
+  if (
+    aspeeMayStartOfficialMathLevel1(assessmentId, schoolId, tierNumber) &&
+    (gate.reason === 'membership' || gate.reason === 'prerequisite')
+  ) {
+    return { locked: false, reason: null };
+  }
+  if (gate.reason !== 'prerequisite') return gate;
   if (
     aspeeVerbalSkipsAnalyticalSequence(assessmentId, schoolId) &&
     gate.missingPrerequisite === 'analytical_reasoning'

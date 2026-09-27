@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="420" viewBox="0 0 420 420" role="img" aria-labelledby="title desc">
+  <title id="title">Seven-sided polygon with diagonals from vertex A</title>
+  <desc id="desc">A convex heptagon with vertices labeled A through G. The four diagonals from vertex A are shown as dashed segments.</desc>
+  <rect width="420" height="420" fill="white"/>
+  <!-- Regular heptagon centered at (210,210), radius 140, A at top -->
+  <g stroke="#111" stroke-width="2.5" fill="none">
+    <polygon points="210,70 331.1,118.1 355.5,246.9 262.4,340.0 157.6,340.0 64.5,246.9 88.9,118.1"/>
+    <line x1="210" y1="70" x2="355.5" y2="246.9" stroke-dasharray="7 5"/>
+    <line x1="210" y1="70" x2="262.4" y2="340.0" stroke-dasharray="7 5"/>
+    <line x1="210" y1="70" x2="157.6" y2="340.0" stroke-dasharray="7 5"/>
+    <line x1="210" y1="70" x2="64.5" y2="246.9" stroke-dasharray="7 5"/>
+  </g>
+  <g fill="#111">
+    <circle cx="210" cy="70" r="4"/>
+    <circle cx="331.1" cy="118.1" r="4"/>
+    <circle cx="355.5" cy="246.9" r="4"/>
+    <circle cx="262.4" cy="340.0" r="4"/>
+    <circle cx="157.6" cy="340.0" r="4"/>
+    <circle cx="64.5" cy="246.9" r="4"/>
+    <circle cx="88.9" cy="118.1" r="4"/>
+  </g>
+  <g font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#111">
+    <text x="210" y="58" text-anchor="middle">A</text>
+    <text x="348" y="112">B</text>
+    <text x="368" y="252">C</text>
+    <text x="268" y="362">D</text>
+    <text x="140" y="362" text-anchor="end">E</text>
+    <text x="48" y="252" text-anchor="end">F</text>
+    <text x="72" y="112" text-anchor="end">G</text>
+  </g>
+</svg>

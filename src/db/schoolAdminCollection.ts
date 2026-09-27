@@ -803,27 +803,70 @@ export const verifySchoolEmail = async (email: string) => {
 };
 
 // Alias kept for backward compatibility - delegates to verifySchoolAdminAndSendPasswordSetup
-// which now handles both Firebase Auth user creation and admin record creation.
+// which ensures Auth user exists and sends the password-setup email in one request.
 export const createSchoolAdmin = async (email: string, schoolId: string, _password?: string) => {
   return verifySchoolAdminAndSendPasswordSetup(email, schoolId);
 };
 
-export const verifySchoolAdminAndSendPasswordSetup = async (email: string, schoolId: string) => {
+export type SchoolAdminPasswordSetupResult = {
+  success: true;
+  sent: boolean;
+  cooldown: boolean;
+  message?: string;
+};
+
+export const verifySchoolAdminAndSendPasswordSetup = async (
+  email: string,
+  schoolId: string
+): Promise<SchoolAdminPasswordSetupResult> => {
   try {
     const response = await axios.post(
       `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOLS_APIS}/verifySchoolAdminAndSendPasswordSetup`,
       { email, schoolId }
     );
-    return response.data;
-  } catch (error: any) {
+    const data = response.data ?? {};
+    return {
+      success: true,
+      sent: data.sent === true,
+      cooldown: data.cooldown === true || data.sent === false,
+      message: typeof data.message === "string" ? data.message : undefined,
+    };
+  } catch (error: unknown) {
     if (axios.isAxiosError(error)) {
-      if (error.response?.status === 400) {
-        throw new Error(error.response?.data?.error || "Email does not match the selected school.");
+      const status = error.response?.status;
+      const bodyError =
+        typeof error.response?.data?.error === "string" ? error.response.data.error : undefined;
+      if (status === 400) {
+        throw new Error(bodyError || "Email does not match the selected school.");
       }
-      if (error.response?.status === 404) {
+      if (status === 403) {
+        throw new Error(
+          bodyError ||
+            "School registration payment has not completed yet. Complete checkout on the school registration page before setting up your account."
+        );
+      }
+      if (status === 404) {
         throw new Error("School not found. Please contact us at globalyoungscholar@argus.ai");
       }
+      if (status === 429) {
+        throw new Error(
+          bodyError ||
+            "Too many setup attempts. Please wait up to an hour before requesting another verification link."
+        );
+      }
+      if (status === 500) {
+        throw new Error(
+          bodyError || "Could not send password setup link. Please try again in a moment."
+        );
+      }
+      if (bodyError) {
+        throw new Error(bodyError);
+      }
     }
-    throw new Error(`Error verifying school admin: ${error.message ?? "Unknown error"}. Please contact globalyoungscholar@argus.ai`);
+    const fallback =
+      error instanceof Error && error.message.trim() ? error.message : "Unknown error";
+    throw new Error(
+      `Error verifying school admin: ${fallback}. Please contact globalyoungscholar@argus.ai`
+    );
   }
 };

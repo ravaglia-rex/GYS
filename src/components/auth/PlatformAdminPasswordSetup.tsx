@@ -4,7 +4,6 @@ import { LoadingSpinner as Spinner } from '../ui/spinner';
 import { useToast } from '../ui/use-toast';
 import PlatformAdminSignInForm from './PlatformAdminSignInForm';
 import { verifyPlatformAdminAndSendPasswordSetup } from '../../db/platformAdminCollection';
-import { requestPasswordResetEmail } from '../../db/passwordResetCollection';
 
 interface PlatformAdminPasswordSetupProps {
   email: string;
@@ -25,6 +24,7 @@ const PlatformAdminPasswordSetup: React.FC<PlatformAdminPasswordSetupProps> = ({
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [linkSent, setLinkSent] = useState(false);
+  const [cooldownOnly, setCooldownOnly] = useState(false);
   const [showSignInInstead, setShowSignInInstead] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
 
@@ -32,12 +32,17 @@ const PlatformAdminPasswordSetup: React.FC<PlatformAdminPasswordSetupProps> = ({
     try {
       setIsSubmitting(true);
       setLastError(null);
-      await verifyPlatformAdminAndSendPasswordSetup(email);
-      await requestPasswordResetEmail(email);
+      // Single atomic call: Auth user + password-setup email
+      const result = await verifyPlatformAdminAndSendPasswordSetup(email);
+      const wasCooldown = result.cooldown === true || result.sent === false;
+
+      setCooldownOnly(wasCooldown);
       setLinkSent(true);
       toast({
-        title: 'Setup link sent',
-        description: `Check inbox and spam for ${email}. The link is valid for about 1 hour - resend anytime if it expires.`,
+        title: wasCooldown ? 'Link already sent' : 'Setup link sent',
+        description: wasCooldown
+          ? `A setup link was recently emailed to ${email}. Check inbox and spam — you can request a new one after about 30 seconds.`
+          : `Check inbox and spam for ${email}. The link is valid for about 1 hour — you can request a new one after about 30 seconds if needed.`,
       });
     } catch (error: unknown) {
       const message = describeSendError(error);
@@ -78,18 +83,28 @@ const PlatformAdminPasswordSetup: React.FC<PlatformAdminPasswordSetupProps> = ({
           </div>
           <h2 className="mb-3 text-2xl font-semibold tracking-tight text-slate-900">Check your email</h2>
           <p className="mx-auto mb-6 max-w-md text-base leading-relaxed text-slate-600">
-            We&apos;ve sent a password setup link to{' '}
-            <strong className="font-semibold text-slate-900">{email}</strong>. Open the link to create your
-            password, then sign in to the admin portal.
+            {cooldownOnly ? (
+              <>
+                A password setup link was recently sent to{' '}
+                <strong className="font-semibold text-slate-900">{email}</strong>. Check inbox and spam —
+                you can request a new one after about 30 seconds if needed.
+              </>
+            ) : (
+              <>
+                We&apos;ve sent a password setup link to{' '}
+                <strong className="font-semibold text-slate-900">{email}</strong>. Open the link to create your
+                password, then sign in to the admin portal.
+              </>
+            )}
           </p>
           <p className="mx-auto mb-4 max-w-md rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm leading-relaxed text-slate-700">
-            The link is valid for about <strong>1 hour</strong>. You can generate a new one any number of
-            times with Resend below - there is no limit on how often you request it.
+            The link is valid for about <strong>1 hour</strong>. You can request a new one with Resend below —
+            please wait about <strong>30 seconds</strong> between requests.
           </p>
           <p className="mx-auto max-w-md border-t border-slate-200 pt-6 text-sm leading-relaxed text-slate-600">
-            Didn&apos;t get it? Check spam/junk. Firebase sends this from{' '}
-            <span className="font-medium text-slate-800">noreply@argus-india-v2.firebaseapp.com</span> (or your
-            custom SMTP sender).
+            Didn&apos;t get it? Check spam/junk. Argus sends this via SendGrid (typically from{' '}
+            <span className="font-medium text-slate-800">globalyoungscholar@argus.ai</span>
+            ).
           </p>
           <div className="mt-6 flex flex-col items-center gap-3">
             <Button

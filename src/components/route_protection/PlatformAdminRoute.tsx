@@ -19,6 +19,7 @@ const PlatformAdminRoute: React.FC<PlatformAdminRouteProps> = ({ children }) => 
   const dispatch = useDispatch<AppDispatch>();
   const [loading, setLoading] = useState(true);
   const [forbidden, setForbidden] = useState(false);
+  const [transientError, setTransientError] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -50,9 +51,16 @@ const PlatformAdminRoute: React.FC<PlatformAdminRouteProps> = ({ children }) => 
         dispatch(setRole('platformadmin'));
         dispatch(setPlatformAdminRole(me.role));
         dispatch(setPlatformAdminPermissions(Array.isArray(me.permissions) ? me.permissions : []));
+        setTransientError(null);
+        setForbidden(false);
       } catch (err) {
         console.error('PlatformAdminRoute auth check failed:', err);
-        setForbidden(true);
+        // Transient API failures must not look like "access denied"
+        setTransientError(
+          err instanceof Error && err.message.trim()
+            ? err.message
+            : 'Could not verify admin access. Please refresh and try again.'
+        );
       } finally {
         setLoading(false);
       }
@@ -63,6 +71,14 @@ const PlatformAdminRoute: React.FC<PlatformAdminRouteProps> = ({ children }) => 
 
   if (loading) {
     return <BigSpinner />;
+  }
+
+  if (transientError) {
+    return (
+      <Box sx={{ p: 4, maxWidth: 480, mx: 'auto', mt: 8 }}>
+        <Alert severity="warning">{transientError}</Alert>
+      </Box>
+    );
   }
 
   if (forbidden) {

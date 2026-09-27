@@ -1040,6 +1040,7 @@ export function PlatformAdminQuestionPerformanceCard({
                   borderColor: '#64748b',
                   color: '#475569',
                   '&:hover': { borderColor: '#475569', bgcolor: 'rgba(71, 85, 105, 0.04)' },
+                  '&.Mui-disabled': { borderColor: '#e2e8f0', color: '#94a3b8' },
                 }}
               >
                 Retire
@@ -1078,6 +1079,7 @@ export function PlatformAdminQuestionPerformanceCard({
                           borderColor: '#475569',
                           bgcolor: 'rgba(71, 85, 105, 0.04)',
                         },
+                        '&.Mui-disabled': { borderColor: '#e2e8f0', color: '#94a3b8' },
                       }),
                 }}
               >

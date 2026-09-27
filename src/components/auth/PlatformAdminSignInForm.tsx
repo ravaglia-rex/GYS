@@ -80,15 +80,29 @@ const PlatformAdminSignInForm: React.FC<PlatformAdminSignInFormProps> = ({
       });
       navigate('/platform-admin/schools');
     } catch (error: unknown) {
-      const code = getFirebaseAuthErrorCode(error);
-      const needsSetup = [
-        'auth/invalid-credential',
-        'auth/invalid-login-credentials',
-        'auth/user-not-found',
-        'auth/wrong-password',
-      ].includes(code);
+      // Transient /me failures after Firebase sign-in — do not treat as wrong password
+      if (
+        error instanceof Error &&
+        (error.message.includes('Could not verify admin access') ||
+          error.message.includes('Too many requests'))
+      ) {
+        await signOut(auth).catch(() => undefined);
+        authTokenHandler.clearToken();
+        toast({
+          variant: 'destructive',
+          title: 'Could not verify access',
+          description: error.message,
+        });
+        setIsSubmitted(false);
+        return;
+      }
 
-      if (needsSetup && onNeedsPasswordSetup) {
+      const code = getFirebaseAuthErrorCode(error);
+      // Only route to setup when the Auth user truly does not exist.
+      // Wrong password / invalid-credential must stay on this form (Firebase often
+      // returns invalid-credential for both wrong password and missing user on newer SDKs,
+      // but user-not-found is the only unambiguous "no password set" signal).
+      if (code === 'auth/user-not-found' && onNeedsPasswordSetup) {
         toast({
           variant: 'destructive',
           title: 'No password set yet',
@@ -100,11 +114,17 @@ const PlatformAdminSignInForm: React.FC<PlatformAdminSignInFormProps> = ({
         return;
       }
 
+      const wrongPassword = [
+        'auth/invalid-credential',
+        'auth/invalid-login-credentials',
+        'auth/wrong-password',
+      ].includes(code);
+
       toast({
         variant: 'destructive',
-        title: needsSetup ? 'No password set yet' : 'Sign in failed',
-        description: needsSetup
-          ? 'Use “Send password setup link” on the previous screen, or Forgot password below. Signing in does not send an email.'
+        title: wrongPassword ? 'Wrong password' : 'Sign in failed',
+        description: wrongPassword
+          ? 'That password is incorrect. Try again, use Forgot password, or send a new setup link if you have not created one yet.'
           : error instanceof Error
             ? error.message
             : 'Invalid admin credentials.',

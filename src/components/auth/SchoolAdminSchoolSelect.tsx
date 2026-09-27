@@ -9,7 +9,6 @@ import { LoadingSpinner as Spinner } from '../ui/spinner';
 import { useToast } from '../ui/use-toast';
 import SignInForm from './SignInForm';
 import { verifySchoolAdminAndSendPasswordSetup } from '../../db/schoolAdminCollection';
-import { requestPasswordResetEmail } from '../../db/passwordResetCollection';
 
 const schoolSelectSchema = z.object({
   school: z.string().min(1, 'School is required'),
@@ -20,11 +19,33 @@ interface SchoolAdminSchoolSelectProps {
   schoolInfo: { schoolId: string; schoolName: string; verified?: boolean };
 }
 
+function describeSetupError(error: unknown): { title: string; description: string } {
+  const message =
+    error instanceof Error && error.message.trim()
+      ? error.message
+      : 'An error occurred. Please try again.';
+  const lower = message.toLowerCase();
+  if (lower.includes('payment')) {
+    return { title: 'Payment required', description: message };
+  }
+  if (lower.includes('too many') || lower.includes('rate')) {
+    return { title: 'Too many attempts', description: message };
+  }
+  if (lower.includes('does not match')) {
+    return { title: 'Email mismatch', description: message };
+  }
+  if (lower.includes('could not send') || lower.includes('password link')) {
+    return { title: 'Could not send email', description: message };
+  }
+  return { title: 'Could not send link', description: message };
+}
+
 const SchoolAdminSchoolSelect: React.FC<SchoolAdminSchoolSelectProps> = ({ email, schoolInfo }) => {
   const { toast } = useToast();
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [linkSent, setLinkSent] = useState(false);
+  const [cooldownOnly, setCooldownOnly] = useState(false);
   const [showSignInInstead, setShowSignInInstead] = useState(false);
 
   const form = useForm({
@@ -44,23 +65,26 @@ const SchoolAdminSchoolSelect: React.FC<SchoolAdminSchoolSelectProps> = ({ email
       setIsSubmitted(true);
       setIsVerifying(true);
 
-      // Backend validates email + schoolId and ensures user exists in Firebase Auth
-      await verifySchoolAdminAndSendPasswordSetup(email, data.school);
+      // Single atomic call: Auth user + password-setup email
+      const result = await verifySchoolAdminAndSendPasswordSetup(email, data.school);
+      const wasCooldown = result.cooldown === true || result.sent === false;
 
-      await requestPasswordResetEmail(email);
-
+      setCooldownOnly(wasCooldown);
       setLinkSent(true);
       toast({
         variant: 'default',
-        title: 'Verification Link Sent',
-        description: 'Please check your email for the verification link to continue.',
+        title: wasCooldown ? 'Link already sent' : 'Verification Link Sent',
+        description: wasCooldown
+          ? 'A setup link was recently emailed. Check inbox and spam — you can request a new one after about 30 seconds.'
+          : 'Please check your email for the verification link to continue.',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error sending verification email:', error);
+      const { title, description } = describeSetupError(error);
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: error.message || 'An error occurred. Please try again.',
+        title,
+        description,
       });
       setIsSubmitted(false);
       setIsVerifying(false);
@@ -97,8 +121,19 @@ const SchoolAdminSchoolSelect: React.FC<SchoolAdminSchoolSelectProps> = ({ email
           </div>
           <h2 className="mb-3 text-2xl font-semibold tracking-tight text-slate-900">Check your email</h2>
           <p className="mx-auto mb-6 max-w-md text-base leading-relaxed text-slate-600">
-            We&apos;ve sent a verification link to{' '}
-            <strong className="font-semibold text-slate-900">{email}</strong>. Click the link in the email to set up your password and complete your account setup.
+            {cooldownOnly ? (
+              <>
+                A password setup link was recently sent to{' '}
+                <strong className="font-semibold text-slate-900">{email}</strong>. Check inbox and spam —
+                you can request a new link after about 30 seconds if needed.
+              </>
+            ) : (
+              <>
+                We&apos;ve sent a verification link to{' '}
+                <strong className="font-semibold text-slate-900">{email}</strong>. Click the link in the
+                email to set up your password and complete your account setup.
+              </>
+            )}
           </p>
           <p className="mx-auto max-w-md border-t border-slate-200 pt-6 text-sm leading-relaxed text-slate-600">
             Didn&apos;t receive the email? Check your spam folder, mark the email as not spam if it lands there, or contact us at{' '}
