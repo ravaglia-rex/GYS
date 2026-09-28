@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Card,
@@ -59,10 +59,13 @@ const ProfilePage: React.FC = () => {
     return hideSecurityTab ? ['about', 'billing'] : ['about', 'billing', 'security'];
   }, [hideSecurityTab]);
 
-  const tabIndexFromKey = (key: string | null): number => {
-    const idx = tabKeys.indexOf((key as TabKey) || 'about');
-    return idx >= 0 ? idx : 0;
-  };
+  const tabIndexFromKey = useCallback(
+    (key: string | null): number => {
+      const idx = tabKeys.indexOf((key as TabKey) || 'about');
+      return idx >= 0 ? idx : 0;
+    },
+    [tabKeys]
+  );
 
   const [activeTab, setActiveTab] = useState(() =>
     tabIndexFromKey(searchParams.get('tab'))
@@ -76,7 +79,7 @@ const ProfilePage: React.FC = () => {
       return;
     }
     setActiveTab(tabIndexFromKey(key));
-  }, [searchParams, hideSecurityTab, location.hash, navigate, tabKeys]);
+  }, [searchParams, hideSecurityTab, location.hash, navigate, tabIndexFromKey]);
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
