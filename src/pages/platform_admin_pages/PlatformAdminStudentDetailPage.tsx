@@ -489,20 +489,35 @@ const PlatformAdminStudentDetailPage: React.FC = () => {
         <Card sx={platformAdminCardSx}>
           <CardContent>
             <Typography variant="subtitle1" sx={{ fontWeight: 700, color: ip.heading, mb: 2 }}>
-              Profile
+              Profile & school
             </Typography>
             <DetailRow label="Email" value={student.email || ' - '} />
             <DetailRow label="First name" value={student.first_name || ' - '} />
             <DetailRow label="Last name" value={student.last_name || ' - '} />
             <DetailRow label="Phone" value={student.phone_number || ' - '} />
-            <DetailRow label="Grade" value={student.grade != null ? String(student.grade) : ' - '} />
+            <DetailRow label="School" value={student.school_name || ' - '} />
+            <DetailRow label="School ID" value={student.school_id || ' - '} />
+            <DetailRow label="Signup school name" value={student.signup_school_name || ' - '} />
             <DetailRow
-              label="Section"
-              value={typeof student.section === 'string' && student.section.trim() ? student.section.trim() : ' - '}
+              label="Grade / section"
+              value={[
+                student.grade != null ? String(student.grade) : null,
+                typeof student.section === 'string' && student.section.trim()
+                  ? student.section.trim()
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(' · ') || ' - '}
             />
             <DetailRow label="Heard from" value={student.heard_from || ' - '} />
             <DetailRow label="Joined" value={formatDate(student.created_at)} />
             <DetailRow label="Updated" value={formatDate(student.updated_at)} />
+            <DetailRow
+              label="Password setup"
+              value={student.password_setup_complete ? 'Complete' : 'Not set'}
+            />
+            <DetailRow label="Registration status" value={student.registration_status || ' - '} />
+            <DetailRow label="Approval" value={student.approval_status || ' - '} />
             <DetailRow label="Parent / guardian" value={student.parent_name || ' - '} />
             <DetailRow label="Parent email" value={student.parent_email || ' - '} />
             <DetailRow label="Parent phone" value={student.parent_phone || ' - '} />
@@ -512,17 +527,8 @@ const PlatformAdminStudentDetailPage: React.FC = () => {
         <Card sx={platformAdminCardSx}>
           <CardContent>
             <Typography variant="subtitle1" sx={{ fontWeight: 700, color: ip.heading, mb: 2 }}>
-              School & account
+              Activity
             </Typography>
-            <DetailRow label="School" value={student.school_name || ' - '} />
-            <DetailRow label="School ID" value={student.school_id || ' - '} />
-            <DetailRow label="Signup school name" value={student.signup_school_name || ' - '} />
-            <DetailRow
-              label="Password setup"
-              value={student.password_setup_complete ? 'Complete' : 'Not set'}
-            />
-            <DetailRow label="Registration status" value={student.registration_status || ' - '} />
-            <DetailRow label="Approval" value={student.approval_status || ' - '} />
             <DetailRow label="Achievement tier" value={student.achievement_tier || ' - '} />
             <DetailRow label="Argus coins (balance)" value={String(student.argus_coins ?? 0)} />
             <DetailRow
