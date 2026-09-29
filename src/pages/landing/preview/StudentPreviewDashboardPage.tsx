@@ -112,7 +112,6 @@ const StudentPreviewDashboardPage: React.FC = () => {
         completedAssessments={PREVIEW_COMPLETED_ASSESSMENT_NOTIFICATIONS}
         unlockedAssessments={PREVIEW_UNLOCKED_ASSESSMENT_NOTIFICATIONS}
         backendNotificationEvents={PREVIEW_BACKEND_NOTIFICATION_EVENTS}
-        defaultEntryTier={false}
         previewProfile={{
           userName: PREVIEW_STUDENT_PROFILE.firstName,
           grade: PREVIEW_STUDENT_PROFILE.grade,

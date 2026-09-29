@@ -880,7 +880,7 @@ export async function searchPlatformAdminOfficialExamCompletions(
     /** Inclusive /1000 score band (matches Score distribution bars). */
     scoreMin?: number | null;
     scoreMax?: number | null;
-    /** 1–100 page size; pass 0 for all matched rows. */
+    /** 1–500 page size; pass 0 for All (up to 500 matched rows). */
     limit?: number;
   }
 ): Promise<{
@@ -891,8 +891,13 @@ export async function searchPlatformAdminOfficialExamCompletions(
   generated_at: string;
 }> {
   const headers = await authHeaders();
+  const OFFICIAL_COMPLETIONS_MAX_LIMIT = 500;
+  const rawLimit = typeof opts?.limit === 'number' && Number.isFinite(opts.limit) ? opts.limit : 25;
+  // UI “All” uses 0 — map to backend max so it never clamps to 1.
+  const resolvedLimit =
+    rawLimit <= 0 ? OFFICIAL_COMPLETIONS_MAX_LIMIT : Math.min(OFFICIAL_COMPLETIONS_MAX_LIMIT, Math.max(1, Math.floor(rawLimit)));
   const params: Record<string, string | number> = {
-    limit: typeof opts?.limit === 'number' ? opts.limit : 25,
+    limit: resolvedLimit,
   };
   if (opts?.q?.trim()) params.q = opts.q.trim();
   if (opts?.from) params.from = opts.from;
@@ -2128,19 +2133,3 @@ export async function runPlatformAdminItemHealthJob(
     meta: res.data?.meta && typeof res.data.meta === 'object' ? res.data.meta : null,
   };
 }
-
-/** @deprecated Use listPlatformAdminItemHealthRuns */
-export const listPlatformAdminArItemHealthRuns = () =>
-  listPlatformAdminItemHealthRuns('analytical_reasoning', { level: 1 });
-/** @deprecated Use listPlatformAdminItemHealthRows */
-export const listPlatformAdminArItemHealthRows = (
-  runId: string,
-  opts?: { flag?: 'P0' | 'P1' | 'P2' | ''; status?: string; limit?: number; offset?: number }
-) => listPlatformAdminItemHealthRows('analytical_reasoning', runId, { ...opts, level: 1 });
-/** @deprecated Use runPlatformAdminItemHealthJob */
-export const runPlatformAdminArItemHealthJob = () =>
-  runPlatformAdminItemHealthJob('analytical_reasoning', { level: 1 });
-
-export type ArItemHealthRunMeta = ItemHealthRunMeta;
-export type ArItemHealthFlag = ItemHealthFlag;
-export type ArItemHealthRow = ItemHealthRow;

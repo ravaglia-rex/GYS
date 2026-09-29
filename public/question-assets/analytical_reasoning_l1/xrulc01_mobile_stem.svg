@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="475" viewBox="0 0 1180 475" role="img" aria-labelledby="title desc">
+  <title id="title">Planet mobile and control sequence</title>
+  <desc id="desc">Planet mobile and control sequence</desc>
+  <rect width="1180" height="475" fill="white"/>
+  <style>
+    text { font-family: Arial, Helvetica, sans-serif; fill: #23344d; }
+    .label { font-size: 22px; font-weight: 700; }
+    .small { font-size: 18px; }
+    .symbol { font-size: 36px; font-weight: 700; text-anchor: middle; dominant-baseline: middle; }
+    .card { fill: #f7f9fc; stroke: #8798ad; stroke-width: 2; }
+    .tile { fill: white; stroke: #23344d; stroke-width: 2; }
+  </style>
+<text x="590" y="40" class="label" text-anchor="middle">Starting mobile</text>
+<line x1="590" y1="58" x2="590" y2="98" stroke="#23344d" stroke-width="4"/>
+<line x1="418" y1="98" x2="762" y2="98" stroke="#23344d" stroke-width="5"/>
+<line x1="488" y1="98" x2="488" y2="141" stroke="#23344d" stroke-width="3"/>
+<line x1="692" y1="98" x2="692" y2="141" stroke="#23344d" stroke-width="3"/>
+<line x1="418" y1="141" x2="558" y2="141" stroke="#23344d" stroke-width="4"/>
+<line x1="622" y1="141" x2="762" y2="141" stroke="#23344d" stroke-width="4"/>
+<line x1="448" y1="141" x2="448" y2="162" stroke="#23344d" stroke-width="2"/>
+<line x1="528" y1="141" x2="528" y2="162" stroke="#23344d" stroke-width="2"/>
+<line x1="652" y1="141" x2="652" y2="162" stroke="#23344d" stroke-width="2"/>
+<line x1="732" y1="141" x2="732" y2="162" stroke="#23344d" stroke-width="2"/>
+<circle cx="448" cy="194" r="28" fill="#4e9ee8" stroke="#23344d" stroke-width="2"/><path d="M428 189 q18 -20 32 -3 q-8 10 3 20 q-18 8 -35 -2" fill="#55a868" opacity=".95"/>
+<text x="448" y="244" class="small" text-anchor="middle">Earth</text>
+<ellipse cx="528" cy="194" rx="43" ry="11" fill="none" stroke="#b58b47" stroke-width="7"/><circle cx="528" cy="194" r="28" fill="#e6c47a" stroke="#23344d" stroke-width="2"/><ellipse cx="528" cy="194" rx="43" ry="11" fill="none" stroke="#b58b47" stroke-width="3"/>
+<text x="528" y="244" class="small" text-anchor="middle">Saturn</text>
+<circle cx="652" cy="194" r="28" fill="#cf674d" stroke="#23344d" stroke-width="2"/><circle cx="643" cy="187" r="5" fill="#a84737"/><circle cx="663" cy="203" r="7" fill="#a84737"/>
+<text x="652" y="244" class="small" text-anchor="middle">Mars</text>
+<circle cx="732" cy="194" r="28" fill="#d8dde5" stroke="#23344d" stroke-width="2"/><circle cx="723" cy="189" r="5" fill="#aeb7c4"/><circle cx="741" cy="204" r="7" fill="#aeb7c4"/>
+<text x="732" y="244" class="small" text-anchor="middle">Moon</text>
+<text x="590" y="300" class="label" text-anchor="middle">Controls</text>
+<rect x="382" y="326" width="120" height="72" rx="14" fill="#fff5cf" stroke="#a88022" stroke-width="2"/><circle cx="442" cy="362" r="12" fill="none" stroke="#23344d" stroke-width="3"/>
+<rect x="530" y="326" width="120" height="72" rx="14" fill="#fff5cf" stroke="#a88022" stroke-width="2"/>
+<polygon points="590.0,338.0 596.1,353.7 612.8,354.6 599.8,365.2 604.1,381.4 590.0,372.3 575.9,381.4 580.2,365.2 567.2,354.6 583.9,353.7" fill="#23344d"/>
+<rect x="678" y="326" width="120" height="72" rx="14" fill="#fff5cf" stroke="#a88022" stroke-width="2"/>
+<circle cx="738" cy="362" r="13" fill="#23344d"/><line x1="756.0" y1="362.0" x2="766.0" y2="362.0" stroke="#23344d" stroke-width="3"/><line x1="750.7" y1="374.7" x2="757.8" y2="381.8" stroke="#23344d" stroke-width="3"/><line x1="738.0" y1="380.0" x2="738.0" y2="390.0" stroke="#23344d" stroke-width="3"/><line x1="725.3" y1="374.7" x2="718.2" y2="381.8" stroke="#23344d" stroke-width="3"/><line x1="720.0" y1="362.0" x2="710.0" y2="362.0" stroke="#23344d" stroke-width="3"/><line x1="725.3" y1="349.3" x2="718.2" y2="342.2" stroke="#23344d" stroke-width="3"/><line x1="738.0" y1="344.0" x2="738.0" y2="334.0" stroke="#23344d" stroke-width="3"/><line x1="750.7" y1="349.3" x2="757.8" y2="342.2" stroke="#23344d" stroke-width="3"/>
+<circle cx="480" cy="433" r="8" fill="none" stroke="#23344d" stroke-width="2"/>
+<text x="522" y="440" class="label">→</text>
+<polygon points="570.0,417.0 574.0,427.4 585.2,428.1 576.5,435.1 579.4,445.9 570.0,439.9 560.6,445.9 563.5,435.1 554.8,428.1 566.0,427.4" fill="#23344d"/>
+<text x="614" y="440" class="label">→</text>
+<circle cx="662" cy="433" r="8" fill="#23344d"/><line x1="675.0" y1="433.0" x2="685.0" y2="433.0" stroke="#23344d" stroke-width="3"/><line x1="671.2" y1="442.2" x2="678.3" y2="449.3" stroke="#23344d" stroke-width="3"/><line x1="662.0" y1="446.0" x2="662.0" y2="456.0" stroke="#23344d" stroke-width="3"/><line x1="652.8" y1="442.2" x2="645.7" y2="449.3" stroke="#23344d" stroke-width="3"/><line x1="649.0" y1="433.0" x2="639.0" y2="433.0" stroke="#23344d" stroke-width="3"/><line x1="652.8" y1="423.8" x2="645.7" y2="416.7" stroke="#23344d" stroke-width="3"/><line x1="662.0" y1="420.0" x2="662.0" y2="410.0" stroke="#23344d" stroke-width="3"/><line x1="671.2" y1="423.8" x2="678.3" y2="416.7" stroke="#23344d" stroke-width="3"/>
+<text x="708" y="440" class="label">→</text>
+<circle cx="756" cy="433" r="8" fill="none" stroke="#23344d" stroke-width="2"/>
+</svg>

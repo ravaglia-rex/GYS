@@ -2826,7 +2826,7 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
               {officialView === 'completions' && (
               <PlatformAdminAnalyticsSection
                 title="Search completions"
-                subtitle="Click Search to load. Click a student to open their profile and exam attempts. Limit controls how many rows return (10–100, or All). Score bracket matches the /1000 distribution bars."
+                subtitle="Click Search to load. Click a student to open their profile and exam attempts. Limit controls how many rows return (10–100, or All up to 500). Score bracket matches the /1000 distribution bars."
                 accent="violet"
               >
                   <Box sx={{ ...platformAdminFilterToolbarRowSx, mb: 2 }}>
@@ -2949,7 +2949,7 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                             {n}
                           </MenuItem>
                         ))}
-                        <MenuItem value={0}>All</MenuItem>
+                        <MenuItem value={0}>All (≤500)</MenuItem>
                       </Select>
                     </FormControl>
                     <Button

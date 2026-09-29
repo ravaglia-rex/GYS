@@ -6,7 +6,6 @@ import {
 } from '../constants/hiddenStaffSchoolAdmins';
 import {
   PLATFORM_ADMIN_APIS,
-  PLATFORM_ADMIN_AUTHENTICATE,
   PLATFORM_ADMIN_VERIFY_AND_SEND_PASSWORD_SETUP,
   PLATFORM_ADMIN_VERIFY_PASSWORD_SETUP,
   PLATFORM_ADMIN_FULFILL_REDEMPTION,
@@ -433,22 +432,6 @@ export async function getPlatformAdminMe(opts?: { force?: boolean }): Promise<Pl
 export async function checkPlatformAdminAccess(): Promise<boolean> {
   const me = await getPlatformAdminMe();
   return me?.ok === true;
-}
-
-/** Validates env-stored admin password and returns a Firebase custom token (legacy shared-password login). */
-export async function authenticatePlatformAdmin(
-  email: string,
-  password: string
-): Promise<string> {
-  const res = await axios.post(`${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_AUTHENTICATE}`, {
-    email: email.trim().toLowerCase(),
-    password,
-  });
-  const token = res.data?.customToken;
-  if (typeof token !== 'string' || !token) {
-    throw new Error('Authentication failed');
-  }
-  return token;
 }
 
 /** Ensures Auth user exists for an allowlisted admin and emails a password-setup link (atomic). */

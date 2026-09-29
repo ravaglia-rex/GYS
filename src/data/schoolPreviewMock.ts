@@ -3,7 +3,6 @@
  * (`seedGreenfieldGysReport.js`, ADMIN_EMAIL srishti+school@argus.ai).
  */
 import type { QuarterlyReportListItem } from '../db/schoolAdminCollection';
-import { PREVIEW_SAMPLE_QUESTIONS_BY_EXAM } from './previewSampleAssessments';
 
 export {
   buildGreenfieldPreviewStudentRows,
@@ -71,9 +70,6 @@ export const GREENFIELD_QUARTERLY_REPORTS: QuarterlyReportListItem[] = [
     isLatest: false,
   },
 ];
-
-/** Analytical Reasoning sample items for the school preview (frontend only). */
-export const PREVIEW_PATTERN_LOGIC_SAMPLE_QUESTIONS = PREVIEW_SAMPLE_QUESTIONS_BY_EXAM.analytical_reasoning;
 
 /** Static preview notifications for `/for-schools/preview/alerts`. */
 export const GREENFIELD_PREVIEW_NOTIFICATIONS = [

@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="520" viewBox="0 0 900 520" role="img" aria-labelledby="title desc">
+  <title id="title">Seven-wheel belt network</title>
+  <desc id="desc">Wheel A turns clockwise. Straight belts connect A to B, B to D, and C to E. Crossed belts connect B to C, D to F, E to G, and F to G.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1664a8"/>
+    </marker>
+    <style>
+      .belt { fill:none; stroke:#53667a; stroke-width:4; stroke-linecap:round; }
+      .wheel { fill:#fff; stroke:#24364b; stroke-width:4; }
+      .hub { fill:#24364b; }
+      .label { font:700 22px Arial, sans-serif; fill:#172638; text-anchor:middle; }
+      .legend { font:600 17px Arial, sans-serif; fill:#31465d; }
+      .motor { font:700 17px Arial, sans-serif; fill:#1664a8; }
+    </style>
+  </defs>
+
+  <rect width="900" height="520" fill="#ffffff"/>
+
+  <!-- Legend -->
+  <g aria-label="Legend">
+    <line class="belt" x1="70" y1="48" x2="155" y2="48"/>
+    <line class="belt" x1="70" y1="60" x2="155" y2="60"/>
+    <text class="legend" x="170" y="60">STRAIGHT BELT</text>
+    <line class="belt" x1="385" y1="46" x2="470" y2="62"/>
+    <line class="belt" x1="385" y1="62" x2="470" y2="46"/>
+    <text class="legend" x="485" y="60">CROSSED BELT</text>
+  </g>
+
+  <!-- Belts are drawn behind the wheels. -->
+  <g aria-label="Belts">
+    <!-- A-B straight -->
+    <line class="belt" x1="130" y1="252" x2="210" y2="252"/>
+    <line class="belt" x1="130" y1="268" x2="210" y2="268"/>
+    <!-- B-C crossed -->
+    <line class="belt" x1="282" y1="226" x2="378" y2="184"/>
+    <line class="belt" x1="282" y1="294" x2="378" y2="116"/>
+    <!-- B-D straight -->
+    <line class="belt" x1="281" y1="291" x2="379" y2="359"/>
+    <line class="belt" x1="289" y1="279" x2="387" y2="347"/>
+    <!-- C-E straight -->
+    <line class="belt" x1="450" y1="142" x2="540" y2="142"/>
+    <line class="belt" x1="450" y1="158" x2="540" y2="158"/>
+    <!-- D-F crossed -->
+    <line class="belt" x1="450" y1="362" x2="540" y2="378"/>
+    <line class="belt" x1="450" y1="378" x2="540" y2="362"/>
+    <!-- E-G crossed -->
+    <line class="belt" x1="614" y1="116" x2="726" y2="294"/>
+    <line class="belt" x1="614" y1="184" x2="726" y2="226"/>
+    <!-- F-G crossed -->
+    <line class="belt" x1="614" y1="336" x2="726" y2="294"/>
+    <line class="belt" x1="614" y1="404" x2="726" y2="226"/>
+  </g>
+
+  <!-- Wheels -->
+  <g aria-label="Wheels">
+    <g><circle class="wheel" cx="90" cy="260" r="40"/><circle class="hub" cx="90" cy="260" r="6"/><text class="label" x="90" y="322">A</text></g>
+    <g><circle class="wheel" cx="250" cy="260" r="40"/><circle class="hub" cx="250" cy="260" r="6"/><text class="label" x="250" y="322">B</text></g>
+    <g><circle class="wheel" cx="410" cy="150" r="40"/><circle class="hub" cx="410" cy="150" r="6"/><text class="label" x="410" y="212">C</text></g>
+    <g><circle class="wheel" cx="410" cy="370" r="40"/><circle class="hub" cx="410" cy="370" r="6"/><text class="label" x="410" y="432">D</text></g>
+    <g><circle class="wheel" cx="580" cy="150" r="40"/><circle class="hub" cx="580" cy="150" r="6"/><text class="label" x="580" y="212">E</text></g>
+    <g><circle class="wheel" cx="580" cy="370" r="40"/><circle class="hub" cx="580" cy="370" r="6"/><text class="label" x="580" y="432">F</text></g>
+    <g><circle class="wheel" cx="760" cy="260" r="40"/><circle class="hub" cx="760" cy="260" r="6"/><text class="label" x="760" y="322">G</text></g>
+  </g>
+
+  <!-- Clockwise motor arrow -->
+  <path d="M 58 227 A 47 47 0 0 1 123 230" fill="none" stroke="#1664a8" stroke-width="5" marker-end="url(#arrow)"/>
+  <text class="motor" x="28" y="197">CLOCKWISE</text>
+</svg>

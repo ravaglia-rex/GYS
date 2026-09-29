@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="665" viewBox="0 0 1180 665" role="img" aria-labelledby="title desc">
+  <title id="title">Four possible sets of three block towers</title>
+  <desc id="desc">Four possible sets of three block towers</desc>
+  <rect width="1180" height="665" fill="white"/>
+  <style>
+    text { font-family: Arial, Helvetica, sans-serif; fill: #23344d; }
+    .label { font-size: 22px; font-weight: 700; }
+    .small { font-size: 18px; }
+    .symbol { font-size: 36px; font-weight: 700; text-anchor: middle; dominant-baseline: middle; }
+    .card { fill: #f7f9fc; stroke: #8798ad; stroke-width: 2; }
+    .tile { fill: white; stroke: #23344d; stroke-width: 2; }
+  </style>
+<rect x="55" y="25" width="500" height="295" rx="16" class="card"/>
+<line x1="102" y1="279" x2="198" y2="279" stroke="#23344d" stroke-width="3"/>
+<rect x="114" y="215" width="72" height="54" rx="5" class="tile"/>
+<text x="150" y="243" class="symbol">▲</text>
+<rect x="114" y="157" width="72" height="54" rx="5" class="tile"/>
+<text x="150" y="185" class="symbol">■</text>
+<rect x="114" y="99" width="72" height="54" rx="5" class="tile"/>
+<text x="150" y="127" class="symbol">●</text>
+<text x="150" y="309" class="small" text-anchor="middle">Left</text>
+<line x1="257" y1="279" x2="353" y2="279" stroke="#23344d" stroke-width="3"/>
+<rect x="269" y="215" width="72" height="54" rx="5" class="tile"/>
+<text x="305" y="243" class="symbol">■</text>
+<rect x="269" y="157" width="72" height="54" rx="5" class="tile"/>
+<text x="305" y="185" class="symbol">▲</text>
+<rect x="269" y="99" width="72" height="54" rx="5" class="tile"/>
+<text x="305" y="127" class="symbol">●</text>
+<rect x="269" y="41" width="72" height="54" rx="5" class="tile"/>
+<text x="305" y="69" class="symbol">■</text>
+<text x="305" y="309" class="small" text-anchor="middle">Middle</text>
+<line x1="412" y1="279" x2="508" y2="279" stroke="#23344d" stroke-width="3"/>
+<rect x="424" y="215" width="72" height="54" rx="5" class="tile"/>
+<text x="460" y="243" class="symbol">●</text>
+<rect x="424" y="157" width="72" height="54" rx="5" class="tile"/>
+<text x="460" y="185" class="symbol">▲</text>
+<text x="460" y="309" class="small" text-anchor="middle">Right</text>
+<rect x="625" y="25" width="500" height="295" rx="16" class="card"/>
+<line x1="672" y1="279" x2="768" y2="279" stroke="#23344d" stroke-width="3"/>
+<rect x="684" y="215" width="72" height="54" rx="5" class="tile"/>
+<text x="720" y="243" class="symbol">▲</text>
+<rect x="684" y="157" width="72" height="54" rx="5" class="tile"/>
+<text x="720" y="185" class="symbol">■</text>
+<rect x="684" y="99" width="72" height="54" rx="5" class="tile"/>
+<text x="720" y="127" class="symbol">▲</text>
+<text x="720" y="309" class="small" text-anchor="middle">Left</text>
+<line x1="827" y1="279" x2="923" y2="279" stroke="#23344d" stroke-width="3"/>
+<rect x="839" y="215" width="72" height="54" rx="5" class="tile"/>
+<text x="875" y="243" class="symbol">■</text>
+<rect x="839" y="157" width="72" height="54" rx="5" class="tile"/>
+<text x="875" y="185" class="symbol">▲</text>
+<rect x="839" y="99" width="72" height="54" rx="5" class="tile"/>
+<text x="875" y="127" class="symbol">●</text>
+<rect x="839" y="41" width="72" height="54" rx="5" class="tile"/>
+<text x="875" y="69" class="symbol">■</text>
+<text x="875" y="309" class="small" text-anchor="middle">Middle</text>
+<line x1="982" y1="279" x2="1078" y2="279" stroke="#23344d" stroke-width="3"/>
+<rect x="994" y="215" width="72" height="54" rx="5" class="tile"/>
+<text x="1030" y="243" class="symbol">●</text>
+<rect x="994" y="157" width="72" height="54" rx="5" class="tile"/>
+<text x="1030" y="185" class="symbol">●</text>
+<text x="1030" y="309" class="small" text-anchor="middle">Right</text>
+<rect x="55" y="345" width="500" height="295" rx="16" class="card"/>
+<line x1="102" y1="599" x2="198" y2="599" stroke="#23344d" stroke-width="3"/>
+<rect x="114" y="535" width="72" height="54" rx="5" class="tile"/>
+<text x="150" y="563" class="symbol">▲</text>
+<rect x="114" y="477" width="72" height="54" rx="5" class="tile"/>
+<text x="150" y="505" class="symbol">■</text>
+<rect x="114" y="419" width="72" height="54" rx="5" class="tile"/>
+<text x="150" y="447" class="symbol">■</text>
+<text x="150" y="629" class="small" text-anchor="middle">Left</text>
+<line x1="257" y1="599" x2="353" y2="599" stroke="#23344d" stroke-width="3"/>
+<rect x="269" y="535" width="72" height="54" rx="5" class="tile"/>
+<text x="305" y="563" class="symbol">■</text>
+<rect x="269" y="477" width="72" height="54" rx="5" class="tile"/>
+<text x="305" y="505" class="symbol">▲</text>
+<rect x="269" y="419" width="72" height="54" rx="5" class="tile"/>
+<text x="305" y="447" class="symbol">●</text>
+<rect x="269" y="361" width="72" height="54" rx="5" class="tile"/>
+<text x="305" y="389" class="symbol">●</text>
+<text x="305" y="629" class="small" text-anchor="middle">Middle</text>
+<line x1="412" y1="599" x2="508" y2="599" stroke="#23344d" stroke-width="3"/>
+<rect x="424" y="535" width="72" height="54" rx="5" class="tile"/>
+<text x="460" y="563" class="symbol">●</text>
+<rect x="424" y="477" width="72" height="54" rx="5" class="tile"/>
+<text x="460" y="505" class="symbol">●</text>
+<text x="460" y="629" class="small" text-anchor="middle">Right</text>
+<rect x="625" y="345" width="500" height="295" rx="16" class="card"/>
+<line x1="672" y1="599" x2="768" y2="599" stroke="#23344d" stroke-width="3"/>
+<rect x="684" y="535" width="72" height="54" rx="5" class="tile"/>
+<text x="720" y="563" class="symbol">●</text>
+<rect x="684" y="477" width="72" height="54" rx="5" class="tile"/>
+<text x="720" y="505" class="symbol">▲</text>
+<rect x="684" y="419" width="72" height="54" rx="5" class="tile"/>
+<text x="720" y="447" class="symbol">■</text>
+<text x="720" y="629" class="small" text-anchor="middle">Left</text>
+<line x1="827" y1="599" x2="923" y2="599" stroke="#23344d" stroke-width="3"/>
+<rect x="839" y="535" width="72" height="54" rx="5" class="tile"/>
+<text x="875" y="563" class="symbol">■</text>
+<rect x="839" y="477" width="72" height="54" rx="5" class="tile"/>
+<text x="875" y="505" class="symbol">■</text>
+<rect x="839" y="419" width="72" height="54" rx="5" class="tile"/>
+<text x="875" y="447" class="symbol">▲</text>
+<rect x="839" y="361" width="72" height="54" rx="5" class="tile"/>
+<text x="875" y="389" class="symbol">●</text>
+<text x="875" y="629" class="small" text-anchor="middle">Middle</text>
+<line x1="982" y1="599" x2="1078" y2="599" stroke="#23344d" stroke-width="3"/>
+<rect x="994" y="535" width="72" height="54" rx="5" class="tile"/>
+<text x="1030" y="563" class="symbol">▲</text>
+<rect x="994" y="477" width="72" height="54" rx="5" class="tile"/>
+<text x="1030" y="505" class="symbol">●</text>
+<text x="1030" y="629" class="small" text-anchor="middle">Right</text>
+</svg>

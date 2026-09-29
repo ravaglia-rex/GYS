@@ -20,7 +20,6 @@ export const PLATFORM_ADMIN_PENDING_REDEMPTIONS = '/pending-redemptions';
 export const PLATFORM_ADMIN_REDEMPTION_HISTORY = '/redemption-history';
 export const PLATFORM_ADMIN_FULFILL_REDEMPTION = '/fulfill-redemption';
 export const PLATFORM_ADMIN_RUN_PIPELINE = '/run-pipeline';
-export const PLATFORM_ADMIN_AUTHENTICATE = '/authenticate';
 export const PLATFORM_ADMIN_VERIFY_AND_SEND_PASSWORD_SETUP = '/verifyAndSendPasswordSetup';
 export const PLATFORM_ADMIN_VERIFY_PASSWORD_SETUP = '/verifyPasswordSetup';
 export const PLATFORM_ADMIN_MARK_SCHOOL_PAID = '/mark-paid';
@@ -68,8 +67,6 @@ export const AMEND_SCHOOL_REGISTRATION='/amendSchoolRegistration';
 export const RESUME_SCHOOL_CHECKOUT='/resumeSchoolCheckout';
 export const LOOKUP_SCHOOL_REGISTRATION_PAYMENT='/lookupSchoolRegistrationPayment';
 export const FETCH_SCHOOL_NAME='/getSchoolDetails';
-export const CHECK_SCHOOL_EMAIL = '/checkSchoolEmail';
-export const VERIFY_SCHOOL_EMAIL = '/verifySchoolEmail';
 export const VERIFY_SCHOOL_ADMIN_AND_SEND_PASSWORD_SETUP = '/verifySchoolAdminAndSendPasswordSetup';
 export const RESOLVE_REGISTRATION_SCHOOL = '/resolveRegistrationSchool';
 
@@ -138,7 +135,6 @@ export const POST_GAMIFICATION_RECORD_DAILY_LOGIN = '/recordDailyLogin';
 export const GET_GAMIFICATION_REWARDS = '/rewards';
 export const GET_GAMIFICATION_REDEMPTIONS = '/redemptions';
 export const POST_GAMIFICATION_REDEEM = '/redeem';
-export const GET_GAMIFICATION_COIN_EVENTS = '/coin-events';
 
 // Razorpay
 export const CREATE_SCHOOL_RAZORPAY_ORDER='/createSchoolOrder';
@@ -174,23 +170,9 @@ export const STUDENT_OFFICIAL_ASSESSMENTS_ENABLED = false;
 export const STUDENT_EXAM_SHOW_SCORES_AND_COINS = false;
 
 /**
- * Bucket 2 — student PDF reports.
- * Keep in sync with backend `STUDENT_REPORTS_REVEAL`.
- * Independent of score reveal: can keep reports hidden after scores go live.
- */
-export const STUDENT_REPORTS_VISIBLE = false;
-
-/**
- * Bucket 3 — school quarterly PDF reports.
- * Keep in sync with backend `SCHOOL_REPORTS_REVEAL`.
- * Independent of score reveal and student reports.
- */
-export const SCHOOL_REPORTS_VISIBLE = false;
-
-/**
  * Keep in sync with backend `GLOBAL_REPORTS_AND_RANKING_PIPELINE_HELD`.
  * When true, Platform Admin pipeline buttons are disabled; scheduled jobs and
  * report *minting* no-op until CAPS lift on the backend flag.
- * This is generation hold — not the same as STUDENT_REPORTS_VISIBLE / SCHOOL_REPORTS_VISIBLE.
+ * This is generation hold — independent of student/school PDF reveal flags on the API.
  */
 export const GLOBAL_REPORTS_AND_RANKING_PIPELINE_HELD = true;

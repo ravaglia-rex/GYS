@@ -575,58 +575,129 @@ const PlatformAdminStudentDetailPage: React.FC = () => {
             />
           </CardContent>
         </Card>
+      </Box>
 
-        <Card sx={platformAdminCardSx}>
-          <CardContent>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
-              Coin ledger
-            </Typography>
-            <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 2 }}>
-              Forward-looking earn/spend events only (no pre-ledger history). Balance on the student
-              doc remains the source of truth.
-            </Typography>
-            <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
-              <Table size="small" sx={platformAdminTableSx}>
-                <TableHead>
-                  <TableRow sx={platformAdminTableHeadRowSx}>
-                    <TableCell>When</TableCell>
-                    <TableCell>Reason</TableCell>
-                    <TableCell align="right">Delta</TableCell>
-                    <TableCell align="right">Balance after</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {coinEvents.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={4} align="center" sx={{ py: 3, color: ip.subtext }}>
-                        No coin events yet.
-                      </TableCell>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+          gap: 2.5,
+          mt: 2.5,
+        }}
+      >
+        {/*
+          Absolute-fill the coin ledger on md+ so row height is set by Membership
+          (right) and the ledger scrolls inside that matched height.
+        */}
+        <Box sx={{ position: 'relative', minHeight: { xs: 320, md: 0 } }}>
+          <Card
+            sx={{
+              ...platformAdminCardSx,
+              position: { xs: 'relative', md: 'absolute' },
+              inset: { md: 0 },
+              maxHeight: { xs: 360, md: 'none' },
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+            }}
+          >
+            <CardContent
+              sx={{
+                flex: 1,
+                minHeight: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+                '&:last-child': { pb: 2 },
+              }}
+            >
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: ip.heading, mb: 0.5 }}>
+                Coin ledger
+              </Typography>
+              <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 2, flexShrink: 0 }}>
+                Forward-looking earn/spend events only (no pre-ledger history). Balance on the student
+                doc remains the source of truth.
+              </Typography>
+              <TableContainer
+                component={Paper}
+                elevation={0}
+                sx={{
+                  ...platformAdminTablePaperSx,
+                  flex: 1,
+                  minHeight: 0,
+                  overflowX: 'auto',
+                  overflowY: 'scroll',
+                  scrollbarGutter: 'stable',
+                  scrollbarWidth: 'thin',
+                  scrollbarColor: `${ip.cardBorder} ${ip.cardMutedBg}`,
+                  '&::-webkit-scrollbar': {
+                    width: 8,
+                    height: 8,
+                    WebkitAppearance: 'none',
+                  },
+                  '&::-webkit-scrollbar-track': {
+                    backgroundColor: ip.cardMutedBg,
+                    borderRadius: 4,
+                  },
+                  '&::-webkit-scrollbar-thumb': {
+                    backgroundColor: ip.cardBorder,
+                    borderRadius: 4,
+                    minHeight: 40,
+                    '&:hover': {
+                      backgroundColor: ip.subtext,
+                    },
+                  },
+                }}
+              >
+                <Table size="small" sx={{ ...platformAdminTableSx, minWidth: 480 }}>
+                  <TableHead>
+                    <TableRow
+                      sx={{
+                        ...platformAdminTableHeadRowSx,
+                        position: 'sticky',
+                        top: 0,
+                        zIndex: 1,
+                      }}
+                    >
+                      <TableCell>When</TableCell>
+                      <TableCell>Reason</TableCell>
+                      <TableCell align="right">Delta</TableCell>
+                      <TableCell align="right">Balance after</TableCell>
                     </TableRow>
-                  ) : (
-                    coinEvents.map((ev) => (
-                      <TableRow key={ev.id}>
-                        <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                          {ev.ts ? formatDateTime(ev.ts) : ev.date_ist || ' - '}
+                  </TableHead>
+                  <TableBody>
+                    {coinEvents.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={4} align="center" sx={{ py: 3, color: ip.subtext }}>
+                          No coin events yet.
                         </TableCell>
-                        <TableCell>{coinReasonLabel(ev.reason)}</TableCell>
-                        <TableCell
-                          align="right"
-                          sx={{
-                            fontWeight: 700,
-                            color: ev.delta >= 0 ? '#059669' : '#b91c1c',
-                          }}
-                        >
-                          {ev.delta >= 0 ? `+${ev.delta}` : String(ev.delta)}
-                        </TableCell>
-                        <TableCell align="right">{ev.balance_after.toLocaleString()}</TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </CardContent>
-        </Card>
+                    ) : (
+                      coinEvents.map((ev) => (
+                        <TableRow key={ev.id}>
+                          <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                            {ev.ts ? formatDateTime(ev.ts) : ev.date_ist || ' - '}
+                          </TableCell>
+                          <TableCell>{coinReasonLabel(ev.reason)}</TableCell>
+                          <TableCell
+                            align="right"
+                            sx={{
+                              fontWeight: 700,
+                              color: ev.delta >= 0 ? '#059669' : '#b91c1c',
+                            }}
+                          >
+                            {ev.delta >= 0 ? `+${ev.delta}` : String(ev.delta)}
+                          </TableCell>
+                          <TableCell align="right">{ev.balance_after.toLocaleString()}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </CardContent>
+          </Card>
+        </Box>
 
         <Card sx={platformAdminCardSx}>
           <CardContent>

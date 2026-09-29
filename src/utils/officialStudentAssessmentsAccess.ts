@@ -101,14 +101,6 @@ export function aspeeMayStartOfficialMathLevel1(
   return true;
 }
 
-/** @deprecated Prefer {@link aspeeMayStartOfficialMathLevel1}; kept for call-site clarity. */
-export function aspeeMathSkipsVerbalSequence(
-  assessmentId: string,
-  schoolId: unknown
-): boolean {
-  return aspeeMayStartOfficialMathLevel1(assessmentId, schoolId);
-}
-
 /**
  * Exams beta testers may start before public live launch.
  * Same student feel otherwise (non-listed exams stay "coming soon").

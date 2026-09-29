@@ -386,8 +386,6 @@ interface DashboardOverviewProps {
   completedAssessments?: CompletedAssessmentNotificationSource[];
   unlockedAssessments?: UnlockedAssessmentNotificationSource[];
   backendNotificationEvents?: DashboardNotificationEventSource[];
-  /** @deprecated Explorer is now the canonical default achievement tier from the student profile. */
-  defaultEntryTier?: boolean;
   /** Static profile - skips Firestore; use with sample / preview dashboards */
   previewProfile?: DashboardOverviewPreviewProfile;
   /** When set with previewProfile, stat-card clicks navigate here instead of live assessment routes */
@@ -527,7 +525,6 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   completedAssessments = [],
   unlockedAssessments = [],
   backendNotificationEvents = [],
-  defaultEntryTier: _defaultEntryTier = true,
   previewProfile,
   previewNavTargets,
   previewDisableAssessmentStatClicks = false,

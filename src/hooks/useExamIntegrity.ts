@@ -5,11 +5,6 @@ export const EXAM_LEAVE_GRACE_MS = 30_000;
 /** Brief leaves allowed in one sit before the attempt is ended. */
 export const EXAM_LEAVE_MAX_INCIDENTS = 3;
 
-/** @deprecated Use EXAM_LEAVE_GRACE_MS */
-export const EXAM_BACKGROUND_MS = EXAM_LEAVE_GRACE_MS;
-/** @deprecated Use EXAM_LEAVE_GRACE_MS */
-export const EXAM_FULLSCREEN_EXIT_GRACE_MS = EXAM_LEAVE_GRACE_MS;
-
 export type ExamIntegrityWarning = {
   leaveCount: number;
   secondsLeft: number;

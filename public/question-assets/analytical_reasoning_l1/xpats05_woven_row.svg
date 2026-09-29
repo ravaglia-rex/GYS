@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="230" viewBox="0 0 1180 230" role="img" aria-labelledby="title desc">
+  <title id="title">Alternating woven bead row</title>
+  <desc id="desc">Alternating woven bead row</desc>
+  <rect width="1180" height="230" fill="white"/>
+  <style>
+    text { font-family: Arial, Helvetica, sans-serif; fill: #23344d; }
+    .label { font-size: 22px; font-weight: 700; }
+    .small { font-size: 18px; }
+    .symbol { font-size: 36px; font-weight: 700; text-anchor: middle; dominant-baseline: middle; }
+    .card { fill: #f7f9fc; stroke: #8798ad; stroke-width: 2; }
+    .tile { fill: white; stroke: #23344d; stroke-width: 2; }
+  </style>
+<text x="590" y="34" text-anchor="middle" class="label">Woven row</text>
+<text x="28" y="99" class="small" fill="#3f73b5">Strip A</text>
+<text x="28" y="159" class="small" fill="#b85e43">Strip B</text>
+<path d="M110 92 C280 40 420 142 610 92 S930 40 1130 92" fill="none" stroke="#5d8dcc" stroke-width="7" opacity="0.55"/>
+<path d="M110 152 C280 204 420 102 610 152 S930 204 1130 152" fill="none" stroke="#cf7d61" stroke-width="7" opacity="0.55"/>
+<circle cx="120" cy="92" r="31" fill="#eef5ff" stroke="#23344d" stroke-width="2"/>
+<text x="120" y="94" class="symbol">▲</text>
+<circle cx="211" cy="152" r="31" fill="#fff1ec" stroke="#23344d" stroke-width="2"/>
+<text x="211" y="154" class="symbol">◇</text>
+<circle cx="302" cy="92" r="31" fill="#eef5ff" stroke="#23344d" stroke-width="2"/>
+<text x="302" y="94" class="symbol">□</text>
+<circle cx="393" cy="152" r="31" fill="#fff1ec" stroke="#23344d" stroke-width="2"/>
+<text x="393" y="154" class="symbol">◆</text>
+<circle cx="484" cy="92" r="31" fill="#eef5ff" stroke="#23344d" stroke-width="2"/>
+<text x="484" y="94" class="symbol">●</text>
+<circle cx="575" cy="152" r="31" fill="#fff1ec" stroke="#23344d" stroke-width="2"/>
+<text x="575" y="154" class="symbol">★</text>
+<circle cx="666" cy="92" r="31" fill="#eef5ff" stroke="#23344d" stroke-width="2"/>
+<text x="666" y="94" class="symbol">△</text>
+<circle cx="757" cy="152" r="31" fill="#fff1ec" stroke="#23344d" stroke-width="2"/>
+<text x="757" y="154" class="symbol">☆</text>
+<circle cx="848" cy="92" r="31" fill="#eef5ff" stroke="#23344d" stroke-width="2"/>
+<text x="848" y="94" class="symbol">■</text>
+<circle cx="939" cy="152" r="31" fill="#fff1ec" stroke="#23344d" stroke-width="2"/>
+<text x="939" y="154" class="symbol">◆</text>
+<circle cx="1030" cy="92" r="31" fill="#eef5ff" stroke="#23344d" stroke-width="2"/>
+<text x="1030" y="94" class="symbol">?</text>
+<circle cx="1121" cy="152" r="31" fill="#fff1ec" stroke="#23344d" stroke-width="2"/>
+<text x="1121" y="154" class="symbol">?</text>
+</svg>
