@@ -53,10 +53,9 @@ export const PREVIEW_SETTINGS_FORM_INITIAL = {
 };
 
 export const PREVIEW_DASHBOARD_STATS = {
-  totalAssessments: 7,
-  completedAssessments: 4,
-  averageScore: 840,
   availableAssessments: 1,
+  assessmentsTaken: 4,
+  resultsAvailable: 4,
 };
 
 export const PREVIEW_ASSESSMENT_TYPES: AssessmentType[] = [

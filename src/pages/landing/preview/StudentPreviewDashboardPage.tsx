@@ -103,10 +103,9 @@ const StudentPreviewDashboardPage: React.FC = () => {
     <Box sx={{ p: 0 }}>
       <DashboardOverview
         stats={{
-          totalAssessments: PREVIEW_DASHBOARD_STATS.totalAssessments,
-          completedAssessments: PREVIEW_DASHBOARD_STATS.completedAssessments,
-          averageScore: PREVIEW_DASHBOARD_STATS.averageScore,
           availableAssessments: PREVIEW_DASHBOARD_STATS.availableAssessments,
+          assessmentsTaken: PREVIEW_DASHBOARD_STATS.assessmentsTaken,
+          resultsAvailable: PREVIEW_DASHBOARD_STATS.resultsAvailable,
         }}
         latestAssessmentResults={getPreviewAssessmentBestTierChartData()}
         completedAssessments={PREVIEW_COMPLETED_ASSESSMENT_NOTIFICATIONS}

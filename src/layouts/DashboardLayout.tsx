@@ -5,6 +5,7 @@ import { signOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import SidebarNavigation from '../layouts/SidebarNavigation';
 import NotificationsDialog from '../components/dashboard/NotificationsDialog';
+import ClearedAchievementPopup from '../components/dashboard/ClearedAchievementPopup';
 import StudentTutorialProvider from '../components/tutorial/StudentTutorialProvider';
 import { auth } from '../firebase/firebase';
 import authTokenHandler from '../functions/auth_token/auth_token_handler';
@@ -224,6 +225,8 @@ export default function DashboardLayout({
           {children}
         </Box>
       </Box>
+
+      <ClearedAchievementPopup />
 
       {/* Notifications Dialog */}
       <NotificationsDialog

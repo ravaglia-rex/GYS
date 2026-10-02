@@ -116,6 +116,7 @@ const AssessmentResultPage: React.FC = () => {
 
   const displayScore = Math.round(scorePercent);
   const scorePoints = tierPercentToExamPoints(scorePercent);
+  const clearedLabel = levelBased ? `Level ${tierNumber}` : flow.examTitleShort;
   const unlockItems = unlockedItemsAfterAttempt({
     assessmentId,
     completedTier: tierNumber,
@@ -178,7 +179,7 @@ const AssessmentResultPage: React.FC = () => {
     <Box
       sx={{
         minHeight: '100dvh',
-        bgcolor: '#f8fafc',
+        bgcolor: passed ? '#f0fdf4' : '#f8fafc',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -187,24 +188,73 @@ const AssessmentResultPage: React.FC = () => {
       }}
     >
       <Box sx={{ maxWidth: 520, width: '100%', mx: 'auto' }}>
-        <Typography variant="h6" sx={{ textAlign: 'center', fontWeight: 800, color: '#334155', mb: 2 }}>
-          Results
-        </Typography>
+        {passed ? null : (
+          <Typography variant="h6" sx={{ textAlign: 'center', fontWeight: 800, color: '#334155', mb: 2 }}>
+            Results
+          </Typography>
+        )}
 
-        <Box sx={{ textAlign: 'center', mb: 2.5 }}>
-          <Typography sx={{ fontSize: '3rem', lineHeight: 1, mb: 1 }}>🎉</Typography>
-          <Typography variant="h5" sx={{ fontWeight: 900, color: '#0f172a', mb: 0.75 }}>
-            Assessment complete!
-          </Typography>
-          <Typography sx={{ color: '#64748b', fontSize: '0.95rem', lineHeight: 1.55, px: 1 }}>
-            {levelBased
-              ? `${flow.examTitleShort} Level ${tierNumber} has now been scored.`
-              : `${flow.examTitleShort} has now been scored.`}
-          </Typography>
-          <Typography sx={{ color: '#94a3b8', fontSize: '0.85rem', lineHeight: 1.5, mt: 1.25, px: 1 }}>
-            Open Completed &amp; Results to see your score and attempt details.
-          </Typography>
-        </Box>
+        {passed ? (
+          <Box
+            sx={{
+              textAlign: 'center',
+              mb: 2.5,
+              borderRadius: 3,
+              px: 2.5,
+              py: 3.25,
+              background:
+                'radial-gradient(circle at 18% 0%, rgba(253, 224, 71, 0.55), transparent 42%), linear-gradient(165deg, #ecfdf5 0%, #fffbeb 52%, #f0fdf4 100%)',
+              border: '1px solid #6ee7b7',
+              boxShadow: '0 14px 36px rgba(16, 185, 129, 0.16)',
+            }}
+          >
+            <Typography sx={{ fontSize: '2.85rem', lineHeight: 1, mb: 1 }} aria-hidden>
+              🎉
+            </Typography>
+            <Typography
+              variant="overline"
+              sx={{ color: '#047857', fontWeight: 800, letterSpacing: 1.2, display: 'block', mb: 0.5 }}
+            >
+              {flow.examTitleShort}
+            </Typography>
+            <Typography variant="h4" sx={{ fontWeight: 900, color: '#065f46', letterSpacing: -0.4, mb: 0.5 }}>
+              You cleared {clearedLabel}!
+            </Typography>
+            <Typography sx={{ color: '#047857', fontSize: '0.98rem', fontWeight: 700, mb: 2 }}>
+              That level is done. Nice work.
+            </Typography>
+            <Typography
+              sx={{
+                color: '#065f46',
+                fontWeight: 900,
+                fontSize: '3.4rem',
+                lineHeight: 1,
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              {scorePoints}
+            </Typography>
+            <Typography sx={{ color: '#059669', fontWeight: 800, fontSize: '0.95rem', mt: 0.5 }}>
+              out of {EXAM_MAX_SCORE_POINTS}
+              {total > 0 ? ` · ${correct} correct out of ${total}` : ''}
+            </Typography>
+          </Box>
+        ) : (
+          <Box sx={{ textAlign: 'center', mb: 2.5 }}>
+            <Typography sx={{ fontSize: '3rem', lineHeight: 1, mb: 1 }}>🎉</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 900, color: '#0f172a', mb: 0.75 }}>
+              Assessment complete!
+            </Typography>
+            <Typography sx={{ color: '#64748b', fontSize: '0.95rem', lineHeight: 1.55, px: 1 }}>
+              {levelBased
+                ? `${flow.examTitleShort} Level ${tierNumber} has now been scored.`
+                : `${flow.examTitleShort} has now been scored.`}
+            </Typography>
+            <Typography sx={{ color: '#94a3b8', fontSize: '0.85rem', lineHeight: 1.5, mt: 1.25, px: 1 }}>
+              Open Completed &amp; Results to see your score and attempt details.
+            </Typography>
+          </Box>
+        )}
 
         {(coinsAwarded ?? 0) > 0 && (
           <Box

@@ -1,5 +1,6 @@
 import type { AssessmentType } from '../db/assessmentCollection';
 import {
+  canAttemptTier,
   countClearedTiersFromProgress,
   examSequencePrereqMet,
 } from './tierProgression';
@@ -7,15 +8,16 @@ import { canonicalAssessmentId } from './assessmentIdCompat';
 import {
   aspeeMayStartOfficialMathLevel1,
   aspeeVerbalSkipsAnalyticalSequence,
+  canStartOfficialAssessmentNow,
   isRestrictedOfficialAssessmentStarter,
 } from './officialStudentAssessmentsAccess';
+import { nextEligibleAtMsForLevel } from './examAttemptCooldown';
+import { areExamScoresVisible } from '../constants/constants';
 
 /**
  * Canonical assessment order for sorting and gating (wired assessment ids from Firestore).
  * Rev 13 lists seven exams in the program; add exam 7 to `app_config/assessment_types` when ready.
  */
-export const PROGRAM_EXAM_COUNT = 7;
-
 export const ASSESSMENT_ORDER = [
   'analytical_reasoning',
   'verbal_reasoning',
@@ -25,6 +27,9 @@ export const ASSESSMENT_ORDER = [
   'english_proficiency',
   'career_interest_inventory',
 ] as const;
+
+/** Full programme size, even if the live config list is shorter. */
+export const PROGRAM_EXAM_COUNT = ASSESSMENT_ORDER.length;
 
 export type AssessmentId = (typeof ASSESSMENT_ORDER)[number];
 
@@ -105,9 +110,6 @@ export const SCHOOL_SCORED_ASSESSMENT_IDS = [
  */
 export const SCHOOL_COMPLETION_ONLY_ASSESSMENT_IDS = ['comprehensive_personality'] as const;
 
-export type SchoolScoredAssessmentId = (typeof SCHOOL_SCORED_ASSESSMENT_IDS)[number];
-export type SchoolCompletionOnlyAssessmentId = (typeof SCHOOL_COMPLETION_ONLY_ASSESSMENT_IDS)[number];
-
 export function isSchoolScoredAssessment(assessmentId: string): boolean {
   return (SCHOOL_SCORED_ASSESSMENT_IDS as readonly string[]).includes(assessmentId);
 }
@@ -116,10 +118,6 @@ export function isSchoolCompletionOnlyAssessment(assessmentId: string): boolean 
   return (SCHOOL_COMPLETION_ONLY_ASSESSMENT_IDS as readonly string[]).includes(assessmentId);
 }
 
-/** School portal exam list: scored tracks + personality completion row. */
-export function schoolFacingAssessmentIds(): string[] {
-  return [...SCHOOL_SCORED_ASSESSMENT_IDS, ...SCHOOL_COMPLETION_ONLY_ASSESSMENT_IDS];
-}
 /** Exams 4 and 7 are profile/pathway instruments, not leveled skill assessments. */
 export const NON_LEVEL_ASSESSMENT_IDS: ReadonlySet<string> = new Set([
   'comprehensive_personality',
@@ -300,7 +298,6 @@ export const DASHBOARD_CHART_EXAM_IDS = ASSESSMENT_ORDER.slice(0, 5);
 
 /** Competitive exams are shown in the UI as points out of this total (normalized score maps linearly). */
 export const EXAM_MAX_SCORE_POINTS = 1000;
-export const LEVEL_CLEAR_THRESHOLD_PERCENT = 80;
 export const LEVEL_CLEAR_THRESHOLD_POINTS = 800;
 export const LEVEL_CLEAR_THRESHOLD_LABEL = `${LEVEL_CLEAR_THRESHOLD_POINTS} on ${EXAM_MAX_SCORE_POINTS}`;
 
@@ -462,4 +459,103 @@ export function buildDashboardExamChartRows(
       locked: true,
     };
   });
+}
+
+function hasFiniteScore(value: unknown): boolean {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+/**
+ * One count per exam once any level has a student-visible score.
+ * Reattempts and extra levels do not add another. Held or unreleased scores do not count.
+ */
+export function assessmentHasReleasedScore(
+  assessmentId: string,
+  progress: AssessmentProgress | undefined
+): boolean {
+  if (!progress || !areExamScoresVisible(assessmentId)) return false;
+  if (hasFiniteScore(progress.best_score)) return true;
+  if (hasFiniteScore(progress.latest_attempt_score)) return true;
+  const byLevel = progress.best_scores_by_level;
+  if (!byLevel) return false;
+  return Object.values(byLevel).some((value) => hasFiniteScore(value));
+}
+
+/**
+ * How many distinct exam levels count as taken.
+ * A retake of the same level, including a discarded first attempt of that sit, counts once.
+ * Non-level exams count as one once any attempt exists.
+ */
+export function countAssessmentSits(
+  assessmentId: string,
+  progress: AssessmentProgress | undefined
+): number {
+  if (!progress) return 0;
+  if (!isLevelBasedAssessment(assessmentId)) {
+    if ((progress.attempts_count ?? 0) > 0) return 1;
+    if (progress.status === 'completed' || progress.status === 'tier_advanced') return 1;
+    if (progress.latest_attempt_level != null) return 1;
+    return 0;
+  }
+  const levels = new Set<string>();
+  for (const [level, cleared] of Object.entries(progress.tiers_cleared ?? {})) {
+    if (cleared) levels.add(level);
+  }
+  for (const [level, score] of Object.entries(progress.best_scores_by_level ?? {})) {
+    if (hasFiniteScore(score)) levels.add(level);
+  }
+  for (const level of Object.keys(progress.last_finished_at_by_level ?? {})) {
+    levels.add(level);
+  }
+  if (progress.latest_attempt_level != null) levels.add(String(progress.latest_attempt_level));
+  if (levels.size > 0) return levels.size;
+  if ((progress.attempts_count ?? 0) > 0 || progress.status === 'tier_advanced' || progress.status === 'completed') {
+    return 1;
+  }
+  return 0;
+}
+
+/**
+ * True when at least one level has an enabled Start or Retake right now.
+ * Locked, coming-soon, paused, and cooldown levels do not count.
+ */
+export function studentCanStartAssessmentNow(params: {
+  assessment: AssessmentType;
+  progress: AssessmentProgress;
+  gateLocked: boolean;
+  email: unknown;
+  schoolId: unknown;
+  newStartsPaused: boolean;
+}): boolean {
+  if (params.gateLocked) return false;
+  const id = params.assessment.id;
+  const progress = params.progress;
+  if (isLevelBasedAssessment(id)) {
+    const totalTiers = maxTiersForAssessment(id, params.assessment.tiers?.length);
+    for (let level = 1; level <= totalTiers; level += 1) {
+      if (!canAttemptTier(progress, level, totalTiers)) continue;
+      if (
+        !canStartOfficialAssessmentNow(
+          id,
+          params.email,
+          level,
+          params.schoolId,
+          params.newStartsPaused
+        )
+      ) {
+        continue;
+      }
+      if (nextEligibleAtMsForLevel(progress, level, params.email) != null) continue;
+      return true;
+    }
+    return false;
+  }
+  if (isAssessmentFullyComplete(params.assessment, progress)) return false;
+  return canStartOfficialAssessmentNow(
+    id,
+    params.email,
+    undefined,
+    params.schoolId,
+    params.newStartsPaused
+  );
 }

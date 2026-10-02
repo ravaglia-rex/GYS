@@ -78,7 +78,3 @@ export function mergeRegistrationEmailLists(current: string[], additions: string
   }
   return out;
 }
-
-export function dashboardRowByUid(students: StudentRow[] | undefined, uid: string): StudentRow | undefined {
-  return (students ?? []).find(s => s.uid === uid);
-}

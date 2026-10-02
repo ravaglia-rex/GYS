@@ -8,13 +8,6 @@ export type SavedOptionFigureCrops = {
   stemSlice: OptionFigureSliceRect | null;
 };
 
-/** Filename of a figure URL after query/hash strip (e.g. item_38_….svg). */
-export function optionFigureCropKey(src: string | undefined | null): string {
-  if (!src) return '';
-  const path = src.trim().split('#')[0].split('?')[0].replace(/\\/g, '/');
-  return path.split('/').pop() || '';
-}
-
 /** Clamp stem crop to the figure canvas (oversized hPct leaves empty gap under stems). */
 export function sanitizeOptionFigureCrops(
   crops: SavedOptionFigureCrops | null | undefined

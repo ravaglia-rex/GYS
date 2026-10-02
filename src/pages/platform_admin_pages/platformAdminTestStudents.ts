@@ -1,13 +1,11 @@
 import { isHiddenStaffStudentEmail } from '../../constants/hiddenStaffStudents';
 
 /**
- * Human QA / demo student emails. Keep in sync with backend
+ * The only student treated as a test account. Keep in sync with backend
  * `PLATFORM_ADMIN_TEST_STUDENT_EMAILS`.
  */
 export const PLATFORM_ADMIN_TEST_STUDENT_EMAILS = new Set([
   'srishti2k1@gmail.com',
-  'srishti+student@argus.ai',
-  'vv@accessmca.com',
 ]);
 
 /** Greenfield seed cohort emails (hidden from the platform admin student list). */
@@ -18,16 +16,12 @@ export function isGreenfieldSeedStudentEmail(email: string | null | undefined): 
   return local.startsWith('greenfield_seed_');
 }
 
-/** Student is an internal / demo / staff-shadow account excluded from platform admin totals. */
+/** True only for the single test student email. */
 export function isPlatformAdminTestStudent(student: {
-  is_test?: boolean | null;
   email?: string | null;
 }): boolean {
-  if (student.is_test === true) return true;
   const email = (student.email ?? '').trim().toLowerCase();
-  if (isHiddenStaffStudentEmail(email)) return true;
-  if (PLATFORM_ADMIN_TEST_STUDENT_EMAILS.has(email)) return true;
-  return email.endsWith('@seed.argus.test');
+  return PLATFORM_ADMIN_TEST_STUDENT_EMAILS.has(email);
 }
 
 /** Hidden from platform admin student list entirely (not just uncounted). */

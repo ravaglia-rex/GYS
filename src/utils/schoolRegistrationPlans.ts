@@ -128,11 +128,6 @@ function buildPlans(): SchoolPlanDisplay[] {
 /** Plan cards for the school registration flow (package prices; no tax is added separately). */
 export const SCHOOL_REGISTRATION_PLANS: SchoolPlanDisplay[] = buildPlans();
 
-/** Single line for order summary / headers: price + period without duplicating "/yr" */
-export function schoolPlanAnnualLabel(plan: SchoolPlanDisplay): string {
-  return `${plan.price}${plan.period}`;
-}
-
 /** Institutional landing page - production annual fees only */
 export const SCHOOL_INSTITUTIONAL_PRICE_LANDING: Record<RegisterPlanId, string> = {
   entry: `${formatInr(PRODUCTION_INR.entry)}/yr`,

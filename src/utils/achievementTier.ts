@@ -47,11 +47,3 @@ export function parseInstitutionalTierSlug(raw: unknown): string | null {
   if (raw == null || String(raw).trim() === '') return null;
   return normalizeTierSlugForDashboard(raw);
 }
-
-/** True if `id` is one of the four canonical achievement bands. */
-export function isCanonicalAchievementTierId(id: string): id is CanonicalAchievementTierId {
-  return CANONICAL_SET.has(id);
-}
-
-export const ACHIEVEMENT_TIER_EXPLORER_DESCRIPTION =
-  'Beginning performance. Foundation-building stage with clear growth pathways.';

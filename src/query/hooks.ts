@@ -298,13 +298,4 @@ export function useStudentReports(uid: string | undefined, enabled = true) {
   });
 }
 
-export function useInvalidateSchoolAdminQueries() {
-  const qc = useQueryClient();
-  return (schoolId: string) => {
-    void qc.invalidateQueries({ queryKey: queryKeys.schoolAdminSummary(schoolId) });
-    void qc.invalidateQueries({ queryKey: queryKeys.schoolAdminRoster(schoolId) });
-    void qc.invalidateQueries({ queryKey: queryKeys.schoolAdminAnalyticsSummary(schoolId) });
-  };
-}
-
 export type { AssessmentType, AttemptRecord };

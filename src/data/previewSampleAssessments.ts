@@ -116,5 +116,3 @@ export function getPreviewSampleAssessmentPath(examId: string): string {
   const resolved = isPreviewSampleExamId(examId) ? examId : DEFAULT_PREVIEW_SAMPLE_EXAM_ID;
   return `/for-schools/preview/assessment/${resolved}`;
 }
-
-export const PREVIEW_SAMPLE_ASSESSMENT_BASE_PATH = '/for-schools/preview/assessment';

@@ -12,8 +12,8 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { StudentProfileError } from '../../db/studentCollection';
-import { AssessmentType } from '../../db/assessmentCollection';
-import { useAssessmentConfig, useOfficialExamOps, useStudent } from '../../query/hooks';
+import { AssessmentType, type AttemptRecord } from '../../db/assessmentCollection';
+import { useAssessmentConfig, useOfficialExamOps, useStudent, useStudentAssessments } from '../../query/hooks';
 import BigSpinner from '../ui/BigSpinner';
 import * as Sentry from '@sentry/react';
 import type { AssessmentProgress, GateResult } from '../../utils/assessmentGating';
@@ -43,12 +43,13 @@ import {
   officialAssessmentSchoolIdFromStudent,
 } from '../../utils/officialStudentAssessmentsAccess';
 import { areExamScoresVisible } from '../../constants/constants';
-import { formatCooldownDate, nextEligibleAtMsForLevel } from '../../utils/examAttemptCooldown';
+import { formatCooldownDate, nextEligibleAtMsForLevel, timestampToMillis } from '../../utils/examAttemptCooldown';
 import { canonicalAssessmentId, canonicalizeProgressMap } from '../../utils/assessmentIdCompat';
 import {
   getPreviewSampleAssessmentPath,
   isPreviewSampleExamId,
 } from '../../data/previewSampleAssessments';
+import ClearedAchievementBanner from './ClearedAchievementBanner';
 
 // ─── Assessment metadata ──────────────────────────────────────────────────────
 
@@ -150,6 +151,67 @@ interface EnhancedAssessmentCardsGroupProps {
   };
 }
 
+function latestClearedPassLabel(attempts: AttemptRecord[]): string | null {
+  let latest: AttemptRecord | null = null;
+  let latestMs = -1;
+  for (const attempt of attempts) {
+    if (attempt.status !== 'completed') continue;
+    if (!areExamScoresVisible(attempt.assessment_id) || attempt.score_release_held === true) continue;
+    const ms = timestampToMillis(attempt.completed_at) ?? timestampToMillis(attempt.started_at) ?? 0;
+    if (ms < latestMs) continue;
+    latest = attempt;
+    latestMs = ms;
+  }
+  if (!latest || latest.passed !== true) return null;
+  const id = canonicalAssessmentId(latest.assessment_id);
+  const name = assessmentDisplayName(id);
+  const level =
+    isLevelBasedAssessment(id) &&
+    typeof latest.proficiency_tier === 'number' &&
+    latest.proficiency_tier > 0
+      ? ` Level ${latest.proficiency_tier}`
+      : '';
+  return `${name}${level}`;
+}
+
+function passedLevelsForAssessment(attempts: AttemptRecord[], assessmentId: string): number[] {
+  const id = canonicalAssessmentId(assessmentId);
+  const levels: number[] = [];
+  for (const attempt of attempts) {
+    if (canonicalAssessmentId(attempt.assessment_id) !== id) continue;
+    if (attempt.status !== 'completed' || attempt.passed !== true) continue;
+    if (!areExamScoresVisible(attempt.assessment_id) || attempt.score_release_held === true) continue;
+    const level = attempt.proficiency_tier;
+    if (typeof level === 'number' && level > 0 && levels.indexOf(level) === -1) {
+      levels.push(level);
+    }
+  }
+  return levels;
+}
+
+function latestPassedLevelsForAssessment(attempts: AttemptRecord[], assessmentId: string): number[] {
+  const id = canonicalAssessmentId(assessmentId);
+  const latestByLevel = new Map<number, { ms: number; passed: boolean }>();
+  for (const attempt of attempts) {
+    if (canonicalAssessmentId(attempt.assessment_id) !== id) continue;
+    if (attempt.status !== 'completed') continue;
+    if (!areExamScoresVisible(attempt.assessment_id) || attempt.score_release_held === true) continue;
+    const level = attempt.proficiency_tier;
+    if (typeof level !== 'number' || level <= 0) continue;
+    const ms = timestampToMillis(attempt.completed_at) ?? timestampToMillis(attempt.started_at) ?? 0;
+    const current = latestByLevel.get(level);
+    if (current && ms < current.ms) continue;
+    latestByLevel.set(level, { ms, passed: attempt.passed === true });
+  }
+  const levels: number[] = [];
+  latestByLevel.forEach((value, level) => {
+    if (value.passed) levels.push(level);
+  });
+  return levels;
+}
+
+const PASSED_SCORE_COLOR = '#4ade80';
+
 // ─── Single Assessment Card ───────────────────────────────────────────────────
 
 interface AssessmentCardProps {
@@ -174,6 +236,10 @@ interface AssessmentCardProps {
   officialSchoolId?: string | null;
   /** Per-level live gate (school-scoped / public tier allowlist). */
   isOfficialLevelStartable?: (level: number) => boolean;
+  /** Levels with a released passing attempt. */
+  passedLevels?: number[];
+  /** Levels whose newest released attempt was a pass. */
+  latestPassedLevels?: number[];
 }
 
 const AssessmentCard: React.FC<AssessmentCardProps> = ({
@@ -190,6 +256,8 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
   officialOpsPaused = false,
   officialSchoolId = null,
   isOfficialLevelStartable,
+  passedLevels = [],
+  latestPassedLevels = [],
 }) => {
   const navigate = useNavigate();
   const goPreviewSample = (path: string) =>
@@ -207,12 +275,13 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
   const scoreDisplay = pickLatestOrBestAssessmentScore(progress);
   const attemptsCount = progress.attempts_count;
   const totalTiers = maxTiersForAssessment(assessmentId, assessment.tiers.length);
-  const tiersDone =
+  const storedTiersDone =
     progress.tiers_cleared && Object.keys(progress.tiers_cleared).length > 0
       ? countClearedTiersFromProgress(progress, totalTiers)
       : currentTier >= 1
         ? Math.min(currentTier - 1, totalTiers)
         : 0;
+  const tiersDone = Math.min(totalTiers, Math.max(storedTiersDone, passedLevels.length));
   /** Each cleared tier implies at least one successful attempt; show the larger of stored count vs that floor */
   const displayAttempts = Math.max(attemptsCount, tiersDone);
   const allTiersComplete = isAssessmentFullyComplete(
@@ -426,7 +495,11 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
                     </Tooltip>
                     <Typography
                       sx={{
-                        color: '#e2e8f0',
+                        color:
+                          scoreDisplay.chartLevel != null &&
+                          latestPassedLevels.indexOf(scoreDisplay.chartLevel) !== -1
+                            ? PASSED_SCORE_COLOR
+                            : '#e2e8f0',
                         fontWeight: 700,
                         fontSize: '0.98rem',
                         whiteSpace: 'nowrap',
@@ -563,7 +636,12 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
                   <Typography
                     variant="caption"
                     sx={{
-                      color: row.score0to100 == null ? '#64748b' : '#e2e8f0',
+                      color:
+                        row.score0to100 == null
+                          ? '#64748b'
+                          : passedLevels.indexOf(row.level) !== -1
+                            ? PASSED_SCORE_COLOR
+                            : '#e2e8f0',
                       fontSize: '0.74rem',
                       fontWeight: 700,
                       fontVariantNumeric: 'tabular-nums',
@@ -1075,6 +1153,12 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
       : 8;
   }, [previewBundle, studentData]);
 
+  const { data: studentAssessments } = useStudentAssessments(uid, liveLoad);
+  const attempts = useMemo(
+    () => (liveLoad ? studentAssessments?.attempts ?? [] : []),
+    [liveLoad, studentAssessments?.attempts]
+  );
+
   const viewerEmail = auth.currentUser?.email;
   const officialSchoolId = officialAssessmentSchoolIdFromStudent(studentData);
   const officialOpsPaused =
@@ -1146,8 +1230,11 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
     </Box>
   );
 
+  const clearedLabel = filterType === 'completed' ? null : latestClearedPassLabel(attempts);
+
   return (
     <Box>
+      {clearedLabel ? <ClearedAchievementBanner label={clearedLabel} /> : null}
       {description && (
         <Typography variant="body2" sx={{ color: '#94a3b8', mb: 3 }}>{description}</Typography>
       )}
@@ -1211,6 +1298,8 @@ const EnhancedAssessmentCardsGroup: React.FC<EnhancedAssessmentCardsGroupProps> 
                 }
                 officialOpsPaused={officialOpsPaused}
                 officialSchoolId={officialSchoolId}
+                passedLevels={passedLevelsForAssessment(attempts, assessment.id)}
+                latestPassedLevels={latestPassedLevelsForAssessment(attempts, assessment.id)}
                 isOfficialLevelStartable={
                   previewBundle
                     ? undefined

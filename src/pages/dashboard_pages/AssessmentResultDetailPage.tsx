@@ -119,36 +119,72 @@ const AssessmentResultDetailPage: React.FC = () => {
         ) : (
           <Box
             sx={{
-              bgcolor: passed ? '#e8f5e9' : '#f1f5f9',
-              borderRadius: 2,
-              p: 2.5,
+              bgcolor: passed ? undefined : '#f1f5f9',
+              background: passed
+                ? 'radial-gradient(circle at 12% 0%, rgba(253, 224, 71, 0.5), transparent 40%), linear-gradient(165deg, #ecfdf5 0%, #fffbeb 100%)'
+                : undefined,
+              borderRadius: passed ? 3 : 2,
+              p: passed ? 3 : 2.5,
               mb: 2,
-              border: passed ? '1px solid #a5d6a7' : '1px solid #cbd5e1',
+              textAlign: passed ? 'center' : 'left',
+              border: passed ? '1px solid #6ee7b7' : '1px solid #cbd5e1',
+              boxShadow: passed ? '0 12px 28px rgba(16, 185, 129, 0.14)' : 'none',
             }}
           >
+            {passed ? (
+              <Typography sx={{ fontSize: '2.2rem', lineHeight: 1, mb: 0.75 }} aria-hidden>
+                🎉
+              </Typography>
+            ) : null}
             <Typography
               sx={{
-                fontWeight: 800,
-                color: passed ? '#1b5e20' : '#0f172a',
-                fontSize: '1.15rem',
+                fontWeight: 900,
+                color: passed ? '#065f46' : '#0f172a',
+                fontSize: passed ? '1.45rem' : '1.15rem',
                 mb: 0.5,
+                letterSpacing: passed ? -0.3 : 0,
               }}
             >
-              {passed ? `Level ${tierNumber} cleared` : `Level ${tierNumber} score`}
+              {passed ? `You cleared Level ${tierNumber}!` : `Level ${tierNumber} score`}
             </Typography>
             <Typography
               sx={{
-                color: passed ? '#1b5e20' : '#334155',
-                fontWeight: 800,
-                fontSize: '1.5rem',
+                color: passed ? '#065f46' : '#334155',
+                fontWeight: 900,
+                fontSize: passed ? '2.6rem' : '1.5rem',
+                lineHeight: 1.05,
+                fontVariantNumeric: 'tabular-nums',
               }}
             >
-              {scorePoints} / {EXAM_MAX_SCORE_POINTS}
+              {scorePoints}
+              <Typography
+                component="span"
+                sx={{
+                  color: passed ? '#059669' : '#64748b',
+                  fontWeight: 800,
+                  fontSize: passed ? '1.05rem' : '1rem',
+                  ml: 0.75,
+                }}
+              >
+                / {EXAM_MAX_SCORE_POINTS}
+              </Typography>
             </Typography>
-            <Typography sx={{ color: '#64748b', fontSize: '0.85rem', mt: 0.75 }}>
+            <Typography sx={{ color: passed ? '#047857' : '#64748b', fontSize: '0.85rem', mt: 1, fontWeight: passed ? 700 : 400 }}>
               {correct} / {total} items · Completed {dateLabel}
             </Typography>
-            <Typography sx={{ color: '#64748b', fontSize: '0.78rem', mt: 1.5, lineHeight: 1.5 }}>
+            {passed ? (
+              <Typography sx={{ color: '#047857', fontSize: '0.92rem', fontWeight: 700, mt: 1.25 }}>
+                That level is done. Nice work.
+              </Typography>
+            ) : null}
+            <Typography
+              sx={{
+                color: '#64748b',
+                fontSize: '0.78rem',
+                mt: 1.5,
+                lineHeight: 1.5,
+              }}
+            >
               National performance tier and percentile refresh weekly on Monday. Until then, your
               badge stays Explorer unless a prior Monday run already set one.
             </Typography>

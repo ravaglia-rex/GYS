@@ -23,6 +23,7 @@ import { timestampToMillis } from '../../utils/examAttemptCooldown';
 import { STUDENT_EXAM_SHOW_SCORES_AND_COINS, areExamScoresVisible } from '../../constants/constants';
 import { displayExamCoinsAwarded } from '../../utils/gamification';
 import { canonicalAssessmentId } from '../../utils/assessmentIdCompat';
+import ClearedAchievementBanner from './ClearedAchievementBanner';
 
 interface AssessmentAttemptHistorySectionProps {
   uid?: string;
@@ -73,6 +74,13 @@ function formatAttemptScore(attempt: AttemptRecord): string {
     return attempt.status === 'in_progress' ? 'Pending' : '--';
   }
   return `${examScorePointsFromFraction(attempt.score)} / ${EXAM_MAX_SCORE_POINTS}`;
+}
+
+function formatLevelProgress(attempt: AttemptRecord): string {
+  if (attempt.status === 'failed' || attempt.status === 'abandoned') return '--';
+  if (attempt.status !== 'completed') return 'Still in progress';
+  if (!attemptScoreReleased(attempt)) return 'Submitted';
+  return attempt.passed === false ? 'Still in progress' : 'Cleared';
 }
 
 function formatAttemptCoins(attempt: AttemptRecord): string {
@@ -127,11 +135,28 @@ const AssessmentAttemptHistorySection: React.FC<AssessmentAttemptHistorySectionP
     [attempts]
   );
 
+  const latestReleased = rows.find(
+    (attempt) => attempt.status === 'completed' && attemptScoreReleased(attempt)
+  );
+  const clearedLabel =
+    latestReleased?.passed === true
+      ? `${
+          assessmentNameById.get(canonicalAssessmentId(latestReleased.assessment_id)) ??
+          assessmentDisplayName(latestReleased.assessment_id)
+        }${
+          isLevelBasedAssessment(latestReleased.assessment_id) && latestReleased.proficiency_tier
+            ? ` Level ${latestReleased.proficiency_tier}`
+            : ''
+        }`
+      : null;
+
   return (
+    <>
+    {clearedLabel ? <ClearedAchievementBanner label={clearedLabel} /> : null}
     <Paper
       elevation={0}
       sx={{
-        mt: 3,
+        mt: clearedLabel ? 2 : 3,
         bgcolor: 'rgba(15, 23, 42, 0.55)',
         border: '1px solid rgba(255,255,255,0.08)',
         overflow: 'hidden',
@@ -184,8 +209,8 @@ const AssessmentAttemptHistorySection: React.FC<AssessmentAttemptHistorySectionP
               <TableRow sx={{ '& th': { color: '#e2e8f0', borderColor: 'rgba(255,255,255,0.08)', fontWeight: 700 } }}>
                 <TableCell>Date</TableCell>
                 <TableCell>Assessment</TableCell>
-                <TableCell>Level</TableCell>
                 <TableCell>Status</TableCell>
+                <TableCell>Level</TableCell>
                 <TableCell>Level progress</TableCell>
                 <TableCell align="right">Argus Coins</TableCell>
                 <TableCell align="right">Score</TableCell>
@@ -199,6 +224,7 @@ const AssessmentAttemptHistorySection: React.FC<AssessmentAttemptHistorySectionP
                     ? `Level ${attempt.proficiency_tier}`
                     : 'Profile';
                 const rowKey = attempt.attempt_id || `${attempt.assessment_id}-${attemptSortMs(attempt)}`;
+                const levelProgress = formatLevelProgress(attempt);
 
                 return (
                   <TableRow key={rowKey} sx={{ '& td': { borderColor: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.88)' } }}>
@@ -207,7 +233,6 @@ const AssessmentAttemptHistorySection: React.FC<AssessmentAttemptHistorySectionP
                       {assessmentNameById.get(canonicalAssessmentId(attempt.assessment_id)) ??
                         assessmentDisplayName(attempt.assessment_id)}
                     </TableCell>
-                    <TableCell>{level}</TableCell>
                     <TableCell>
                       <Chip
                         size="small"
@@ -215,14 +240,22 @@ const AssessmentAttemptHistorySection: React.FC<AssessmentAttemptHistorySectionP
                         sx={{ bgcolor: status.bg, color: status.color, fontWeight: 700 }}
                       />
                     </TableCell>
+                    <TableCell>{level}</TableCell>
                     <TableCell>
-                      {attempt.status === 'completed'
-                        ? attemptScoreReleased(attempt)
-                          ? attempt.passed === false
-                            ? 'Still in progress'
-                            : 'Complete'
-                          : 'Submitted'
-                        : 'Still in progress'}
+                      {levelProgress === 'Cleared' ? (
+                        <Chip
+                          size="small"
+                          label="Cleared"
+                          sx={{
+                            bgcolor: 'rgba(16,185,129,0.2)',
+                            color: '#6ee7b7',
+                            fontWeight: 800,
+                            border: '1px solid rgba(110,231,183,0.45)',
+                          }}
+                        />
+                      ) : (
+                        levelProgress
+                      )}
                     </TableCell>
                     <TableCell align="right" sx={{ fontWeight: 700, color: '#fcd34d' }}>
                       {formatAttemptCoins(attempt)}
@@ -238,6 +271,7 @@ const AssessmentAttemptHistorySection: React.FC<AssessmentAttemptHistorySectionP
         </Box>
       )}
     </Paper>
+    </>
   );
 };
 

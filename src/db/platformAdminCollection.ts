@@ -384,10 +384,6 @@ export type PlatformAdminMe = {
 let platformAdminMeCache: { value: PlatformAdminMe; expiresAt: number } | null = null;
 const PLATFORM_ADMIN_ME_TTL_MS = 5 * 60 * 1000;
 
-export function invalidatePlatformAdminMeCache(): void {
-  platformAdminMeCache = null;
-}
-
 export async function getPlatformAdminMe(opts?: { force?: boolean }): Promise<PlatformAdminMe | null> {
   if (!opts?.force && platformAdminMeCache && Date.now() < platformAdminMeCache.expiresAt) {
     return platformAdminMeCache.value;
@@ -963,15 +959,6 @@ export async function getPlatformAdminStudentInvoiceDownloadUrl(
   };
 }
 
-export async function capturePlatformAdminSchoolPayment(schoolId: string): Promise<void> {
-  const headers = await authHeaders();
-  await axios.post(
-    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_SCHOOLS}/${encodeURIComponent(schoolId)}/capture-payment`,
-    {},
-    { headers }
-  );
-}
-
 export async function getPlatformAdminStudentStats(): Promise<PlatformAdminStudentStats> {
   const headers = await authHeaders();
   const res = await axios.get(`${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_STUDENTS_STATS}`, { headers });
@@ -1050,17 +1037,6 @@ export type PlatformAdminComplimentaryInvite = {
   redeemed_at?: unknown;
   redeemed_uid?: string | null;
 };
-
-export async function listPlatformAdminComplimentaryInvites(
-  status: 'pending' | 'redeemed' | 'revoked' | 'all' = 'pending'
-): Promise<PlatformAdminComplimentaryInvite[]> {
-  const headers = await authHeaders();
-  const res = await axios.get(
-    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_COMPLIMENTARY_INVITES}`,
-    { headers, params: { status } }
-  );
-  return (res.data.invites ?? []) as PlatformAdminComplimentaryInvite[];
-}
 
 export async function createPlatformAdminComplimentaryInvite(params: {
   email: string;
@@ -1258,14 +1234,6 @@ export function formatDateTime(iso: string | null | undefined): string {
     hour: 'numeric',
     minute: '2-digit',
   });
-}
-
-export function paymentStatusChipColor(status: string): 'success' | 'warning' | 'error' | 'default' {
-  const s = status.toLowerCase();
-  if (['captured', 'paid', 'completed'].includes(s)) return 'success';
-  if (['pending', 'pending_contact', 'pending_webhook'].includes(s)) return 'warning';
-  if (s === 'failed') return 'error';
-  return 'default';
 }
 
 export type PlatformAdminQuestionProblemReportArchiveResolution = 'solved' | 'ignored';

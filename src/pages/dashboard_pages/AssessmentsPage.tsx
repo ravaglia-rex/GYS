@@ -168,42 +168,22 @@ const AssessmentsPage: React.FC = () => {
 
           {/* Tab Panels */}
           <TabPanel value={activeTab} index={0}>
-            <Box
-              data-tutorial-id="student-assessments-cards"
-              sx={{ 
-              backgroundColor: 'rgba(30, 41, 59, 0.5)', 
-              borderRadius: 2, 
-              p: 3,
-              border: '1px solid rgba(255, 255, 255, 0.1)'
-            }}>
+            <Box data-tutorial-id="student-assessments-cards">
               <EnhancedAssessmentCardsGroup 
                 uid={uid} 
                 filterType="available" 
                 showDashboardOverview={false}
-                description={
-                  officialAssessmentsEnabled
-                    ? 'These are the assessments currently available for you to take. Make sure your device meets all requirements before starting.'
-                    : 'Official exams are shown for reference, but they are not open yet while the real question banks are being prepared.'
-                }
               />
             </Box>
           </TabPanel>
 
           <TabPanel value={activeTab} index={1}>
-            <Box sx={{ 
-              backgroundColor: 'rgba(30, 41, 59, 0.5)', 
-              borderRadius: 2, 
-              p: 3,
-              border: '1px solid rgba(255, 255, 255, 0.1)'
-            }}>
-              <EnhancedAssessmentCardsGroup 
-                uid={uid} 
-                filterType="completed" 
-                showDashboardOverview={false}
-                description="View your completed assessments and their results. All assessment outcomes and performance analytics are displayed here."
-              />
-              <AssessmentAttemptHistorySection uid={uid} />
-            </Box>
+            <EnhancedAssessmentCardsGroup 
+              uid={uid} 
+              filterType="completed" 
+              showDashboardOverview={false}
+            />
+            <AssessmentAttemptHistorySection uid={uid} />
           </TabPanel>
 
         </Box>

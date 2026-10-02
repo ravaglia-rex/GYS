@@ -9,7 +9,6 @@ import {
   PLATFORM_ADMIN_ANALYTICS_PRACTICE_MONTHLY,
   PLATFORM_ADMIN_ANALYTICS_TOP_COINS,
   PLATFORM_ADMIN_ANALYTICS_TOP_QOD,
-  PLATFORM_ADMIN_ANALYTICS_SCHOOL_ADMIN_ACTIVITY,
   PLATFORM_ADMIN_ANALYTICS_SITE_PAGE_HITS,
   PLATFORM_ADMIN_ANALYTICS_LIVE_EXAMS,
   PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAM_OPS,
@@ -18,7 +17,6 @@ import {
   platformAdminItemHealthRunPath,
   platformAdminItemHealthRunsPath,
 } from '../constants/constants';
-import { isHiddenStaffSchoolAdminEmail } from '../constants/hiddenStaffSchoolAdmins';
 
 function apiBase(): string {
   const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS;
@@ -130,20 +128,11 @@ export type TopQodStudentRow = {
   qod_accuracy_pct: number;
 };
 
-export type SchoolAdminActivityRow = {
-  email: string;
-  school_id: string | null;
-  school_name: string | null;
-  last_active_at: string | null;
-};
-
 export type PlatformAdminPageHitRow = {
   path: string;
   label: string;
   hits: number;
 };
-
-export type SitePageHitRow = PlatformAdminPageHitRow;
 
 export async function getPlatformAdminPracticeExamSummaries(opts?: {
   refresh?: boolean;
@@ -342,28 +331,6 @@ export async function getPlatformAdminTopQod(
   };
 }
 
-export async function getPlatformAdminSchoolAdminActivity(
-  limit = 20,
-  opts?: { refresh?: boolean }
-): Promise<{
-  admins: SchoolAdminActivityRow[];
-  generated_at: string;
-}> {
-  const headers = await authHeaders();
-  const res = await axios.get(
-    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_SCHOOL_ADMIN_ACTIVITY}`,
-    { headers, params: { limit, ...refreshParams(opts?.refresh) } }
-  );
-  return {
-    admins: Array.isArray(res.data.admins)
-      ? res.data.admins.filter(
-          (row: SchoolAdminActivityRow) => !isHiddenStaffSchoolAdminEmail(row.email)
-        )
-      : [],
-    generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
-  };
-}
-
 export async function getPlatformAdminPageHits(): Promise<{
   pages: PlatformAdminPageHitRow[];
   total_hits: number;
@@ -390,8 +357,6 @@ export async function getPlatformAdminPageHits(): Promise<{
     generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
   };
 }
-
-export const getSitePageHits = getPlatformAdminPageHits;
 
 export type LiveExamAttemptRow = {
   attempt_id: string;
@@ -553,6 +518,8 @@ export type OfficialExamRecentRow = {
   duration_sec: number | null;
   passed: boolean;
   completed_at: string | null;
+  /** True when this sit's numeric score is withheld from the student. */
+  score_release_held?: boolean;
 };
 
 export type OfficialTagAggRow = {
@@ -656,29 +623,6 @@ export type OfficialCrossSplitRow = {
   served_sum: number;
   correct_sum: number;
   accuracy_pct: number;
-};
-
-export type OfficialItemExposureStudent = {
-  uid: string;
-  attempt_id: string;
-  is_correct: boolean | null;
-  time_spent_ms: number | null;
-  score_points?: number | null;
-  grade: number | null;
-  school_id: string | null;
-  completed_at_ms: number;
-  first_name: string;
-  last_name: string;
-  email: string;
-  school_name: string | null;
-};
-
-export type OfficialExamItemExposures = {
-  exam_id: string;
-  item_id: string;
-  level_filter: number | null;
-  students: OfficialItemExposureStudent[];
-  generated_at: string;
 };
 
 export type OfficialItemScoreBandRow = {
@@ -934,12 +878,28 @@ export async function searchPlatformAdminOfficialExamCompletions(
             typeof row.duration_sec === 'number' && Number.isFinite(row.duration_sec)
               ? Math.max(0, Math.floor(row.duration_sec))
               : null,
+          score_release_held: row.score_release_held === true,
         }))
       : [],
     matched: Number(res.data.matched) || 0,
     limit: Number(res.data.limit) || opts?.limit || 25,
     generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
   };
+}
+
+export async function setPlatformAdminOfficialExamCompletionScoreVisibility(
+  examId: string,
+  attemptId: string,
+  uid: string,
+  scoreReleaseHeld: boolean
+): Promise<{ score_release_held: boolean }> {
+  const headers = await authHeaders();
+  const res = await axios.patch(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAMS}/${encodeURIComponent(examId)}/completions/${encodeURIComponent(attemptId)}`,
+    { uid, score_release_held: scoreReleaseHeld },
+    { headers }
+  );
+  return { score_release_held: res.data?.score_release_held === true };
 }
 
 export async function getPlatformAdminOfficialExamDrilldown(
@@ -1019,26 +979,6 @@ export async function getPlatformAdminOfficialExamDrilldown(
     notes: Array.isArray(res.data.notes) ? res.data.notes : [],
     generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
     indexes_building: res.data.indexes_building === true,
-  };
-}
-
-export async function getPlatformAdminOfficialExamItemExposures(
-  examId: string,
-  opts: { itemId: string; level?: number | null; refresh?: boolean }
-): Promise<OfficialExamItemExposures> {
-  const headers = await authHeaders();
-  const params: Record<string, string | number> = { ...refreshParams(opts.refresh) };
-  if (typeof opts.level === 'number' && opts.level > 0) params.level = opts.level;
-  const res = await axios.get(
-    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAMS}/${encodeURIComponent(examId)}/item-exposures/${encodeURIComponent(opts.itemId)}`,
-    { headers, params }
-  );
-  return {
-    exam_id: typeof res.data.exam_id === 'string' ? res.data.exam_id : examId,
-    item_id: typeof res.data.item_id === 'string' ? res.data.item_id : opts.itemId,
-    level_filter: typeof res.data.level_filter === 'number' ? res.data.level_filter : null,
-    students: Array.isArray(res.data.students) ? res.data.students : [],
-    generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
   };
 }
 
@@ -1217,14 +1157,6 @@ export async function getPlatformAdminOfficialExamAbandons(
   };
 }
 
-export type OfficialQuestionTagType =
-  | 'family'
-  | 'mechanic'
-  | 'subconstruct'
-  | 'strand'
-  | 'instruction_family'
-  | 'band';
-
 export type OfficialQuestionOptionStat = {
   index: number;
   letter: string;
@@ -1278,87 +1210,15 @@ export type OfficialQuestionStatRow = {
   question_markdown?: string | null;
 };
 
-export type OfficialExamQuestionStats = {
-  exam_id: string;
-  label: string;
-  tag_type: OfficialQuestionTagType;
-  tag: string;
-  tag_label: string;
-  level_filter: number | null;
-  grade_filter: string | null;
-  source: 'item_bank_stats' | string;
-  attempts_analyzed: number;
-  questions: OfficialQuestionStatRow[];
-  generated_at: string;
-  indexes_building?: boolean;
-};
-
-export async function getPlatformAdminOfficialExamQuestionStats(
-  examId: string,
-  opts: {
-    tagType: OfficialQuestionTagType;
-    tag: string;
-    level?: number | null;
-    grade?: number | string | null;
-    refresh?: boolean;
-  }
-): Promise<OfficialExamQuestionStats> {
-  const headers = await authHeaders();
-  const params: Record<string, string | number> = {
-    ...refreshParams(opts.refresh),
-    tag_type: opts.tagType,
-    tag: opts.tag,
-  };
-  if (typeof opts.level === 'number' && opts.level > 0) params.level = opts.level;
-  if (opts.grade === 'unknown') params.grade = 'unknown';
-  else if (typeof opts.grade === 'number' && opts.grade > 0) params.grade = opts.grade;
-  const res = await axios.get(
-    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAMS}/${encodeURIComponent(examId)}/questions`,
-    { headers, params }
-  );
-  return {
-    exam_id: typeof res.data.exam_id === 'string' ? res.data.exam_id : examId,
-    label: typeof res.data.label === 'string' ? res.data.label : examId,
-    tag_type:
-      res.data.tag_type === 'mechanic' ||
-      res.data.tag_type === 'subconstruct' ||
-      res.data.tag_type === 'strand' ||
-      res.data.tag_type === 'instruction_family' ||
-      res.data.tag_type === 'band'
-        ? res.data.tag_type
-        : 'family',
-    tag: typeof res.data.tag === 'string' ? res.data.tag : opts.tag,
-    tag_label: typeof res.data.tag_label === 'string' ? res.data.tag_label : opts.tag,
-    level_filter: typeof res.data.level_filter === 'number' ? res.data.level_filter : null,
-    grade_filter: typeof res.data.grade_filter === 'string' ? res.data.grade_filter : null,
-    source: typeof res.data.source === 'string' ? res.data.source : 'item_bank_stats',
-    attempts_analyzed: Number(res.data.attempts_analyzed) || 0,
-    questions: Array.isArray(res.data.questions)
-      ? res.data.questions.map((q: OfficialQuestionStatRow) => ({
-          ...q,
-          prompt: typeof q.prompt === 'string' ? q.prompt : q.prompt_preview || '',
-          prompt_preview: typeof q.prompt_preview === 'string' ? q.prompt_preview : '',
-          stimulus: q.stimulus ?? null,
-          stimulus_type: typeof q.stimulus_type === 'string' ? q.stimulus_type : null,
-          assets: Array.isArray(q.assets) ? q.assets : [],
-          option_figure: q.option_figure ?? null,
-          options: Array.isArray(q.options) ? q.options : [],
-          correct_index: typeof q.correct_index === 'number' ? q.correct_index : null,
-        }))
-      : [],
-    generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
-    indexes_building: res.data.indexes_building === true,
-  };
-}
-
-export type OfficialItemBankFilterKey =
+export type OfficialQuestionTagType =
   | 'strand'
   | 'instruction_family'
   | 'band'
   | 'family'
   | 'subconstruct'
-  | 'mechanic'
-  | 'approved';
+  | 'mechanic';
+
+export type OfficialItemBankFilterKey = OfficialQuestionTagType | 'approved';
 
 export type OfficialItemBankFilters = Partial<Record<OfficialItemBankFilterKey, string>> & {
   item_id?: string;

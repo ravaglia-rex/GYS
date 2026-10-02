@@ -381,10 +381,9 @@ interface DashboardOverviewProps {
   /** When set, profile header uses shared query cache instead of fetching again. */
   uid?: string;
   stats: {
-    totalAssessments: number;
-    completedAssessments: number;
-    averageScore: number;
     availableAssessments: number;
+    assessmentsTaken: number;
+    resultsAvailable: number;
   };
   latestAssessmentResults?: AssessmentChartRow[];
   completedAssessments?: CompletedAssessmentNotificationSource[];
@@ -1089,24 +1088,6 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         mb: 4 
       }}>
         <StatCard
-          title="Total Assessments"
-          value={stats.totalAssessments}
-          icon={<School size={24} />}
-          color="#3b82f6"
-        />
-        
-        <StatCard
-          title="Results Available"
-          value={stats.completedAssessments}
-          icon={<CheckCircle size={24} />}
-          color="#10b981"
-          onClick={
-            previewDisableAssessmentStatClicks
-              ? undefined
-              : () => handleNavigation('/assessments/completed')
-          }
-        />
-         <StatCard
           title="Assessments Available"
           value={stats.availableAssessments}
           icon={<Clock size={24} />}
@@ -1115,6 +1096,23 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             previewDisableAssessmentStatClicks
               ? undefined
               : () => handleNavigation('/assessments/available')
+          }
+        />
+        <StatCard
+          title="Assessments Taken"
+          value={stats.assessmentsTaken}
+          icon={<School size={24} />}
+          color="#3b82f6"
+        />
+        <StatCard
+          title="Results Available"
+          value={stats.resultsAvailable}
+          icon={<CheckCircle size={24} />}
+          color="#10b981"
+          onClick={
+            previewDisableAssessmentStatClicks
+              ? undefined
+              : () => handleNavigation('/assessments/completed')
           }
         />
         

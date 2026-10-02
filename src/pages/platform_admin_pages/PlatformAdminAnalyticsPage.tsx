@@ -7,6 +7,10 @@ import {
   Card,
   CardContent,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   FormControl,
   InputLabel,
   LinearProgress,
@@ -67,6 +71,7 @@ import {
   getPlatformAdminOfficialExamAbandons,
   getPlatformAdminOfficialExamSummaries,
   searchPlatformAdminOfficialExamCompletions,
+  setPlatformAdminOfficialExamCompletionScoreVisibility,
   type PracticeDailyByExamStatRow,
   type PracticeDailyStatRow,
   type PracticeExamSummaryRow,
@@ -95,15 +100,18 @@ import { formatDateTime } from '../../db/platformAdminCollection';
 import { createTtlMemoryCache } from './platformAdminMemoryCache';
 import {
   platformAdminCardSx,
+  platformAdminDialogPaperSx,
   platformAdminFilterSelectSx,
   platformAdminFilterToolbarRowSx,
   platformAdminOutlinedButtonSx,
   platformAdminPageContainerSx,
+  platformAdminPrimaryButtonSx,
   platformAdminSelectMenuPaperSx,
   platformAdminStatsGridSx,
   platformAdminTableHeadRowSx,
   platformAdminTablePaperSx,
   platformAdminTableSx,
+  platformAdminTextButtonSx,
   platformAdminTextFieldSx,
 } from './platformAdminPageStyles';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
@@ -807,6 +815,8 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
   const [officialDetailLoading, setOfficialDetailLoading] = useState(false);
   const [officialDrillLoading, setOfficialDrillLoading] = useState(false);
   const [officialCompletionsLoading, setOfficialCompletionsLoading] = useState(false);
+  const [scoreVisibilityBusyId, setScoreVisibilityBusyId] = useState<string | null>(null);
+  const [scoreVisibilityConfirm, setScoreVisibilityConfirm] = useState<OfficialExamRecentRow | null>(null);
   const [officialError, setOfficialError] = useState<string | null>(null);
   const officialDetailReqRef = useRef(0);
   const officialCompletionsReqRef = useRef(0);
@@ -1045,6 +1055,38 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
       completionScoreBracket,
       completionLimit,
     ]
+  );
+
+  const toggleCompletionScoreVisibility = useCallback(
+    async (row: OfficialExamRecentRow) => {
+      if (!selectedOfficialExamId || !row.uid || !row.attempt_id) return false;
+      const nextHeld = row.score_release_held !== true;
+      setScoreVisibilityBusyId(row.attempt_id);
+      setOfficialError(null);
+      try {
+        const result = await setPlatformAdminOfficialExamCompletionScoreVisibility(
+          selectedOfficialExamId,
+          row.attempt_id,
+          row.uid,
+          nextHeld
+        );
+        setOfficialRecent((prev) =>
+          prev.map((item) =>
+            item.attempt_id === row.attempt_id
+              ? { ...item, score_release_held: result.score_release_held }
+              : item
+          )
+        );
+        return true;
+      } catch (e: unknown) {
+        const err = e as { response?: { data?: { error?: string } }; message?: string };
+        setOfficialError(err?.response?.data?.error || err?.message || 'Failed to update score visibility');
+        return false;
+      } finally {
+        setScoreVisibilityBusyId((current) => (current === row.attempt_id ? null : current));
+      }
+    },
+    [selectedOfficialExamId]
   );
 
   const openCompletionsForScoreBracket = useCallback(
@@ -1847,6 +1889,15 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
 
   const staleHint = (iso: string) =>
     iso ? `Cached as of ${formatDateTime(iso)} · refreshes ~30 min` : 'Cached · not realtime';
+
+  const scoreVisibilityConfirmName = scoreVisibilityConfirm
+    ? [scoreVisibilityConfirm.first_name, scoreVisibilityConfirm.last_name].filter(Boolean).join(' ') ||
+      scoreVisibilityConfirm.email
+    : '';
+  const scoreVisibilityConfirmPoints =
+    scoreVisibilityConfirm?.score_points != null ? `${scoreVisibilityConfirm.score_points}` : 'this score';
+  const scoreVisibilityConfirmBusy =
+    scoreVisibilityConfirm != null && scoreVisibilityBusyId === scoreVisibilityConfirm.attempt_id;
 
   return (
     <Box
@@ -2946,7 +2997,7 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
               {officialView === 'completions' && (
               <PlatformAdminAnalyticsSection
                 title="Search completions"
-                subtitle="Click Search to load. Click a student to open their profile and exam attempts. Student, date, level, and score filters search every completion for this exam. Limit only controls how many matching rows to show (10–100, or All up to 500). Score bracket matches the /1000 distribution bars."
+                subtitle="Click Search to load. Click a student to open their profile and exam attempts. Click Hidden or Shown to confirm showing or hiding that score. Student, date, level, and score filters search every completion for this exam. Limit only controls how many matching rows to show (10–100, or All up to 500). Score bracket matches the /1000 distribution bars."
                 accent="violet"
               >
                   <Box sx={{ ...platformAdminFilterToolbarRowSx, mb: 2 }}>
@@ -3128,13 +3179,14 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                               <TableCell align="right">Level</TableCell>
                               <TableCell align="right">Questions</TableCell>
                               <TableCell align="right">Score</TableCell>
+                              <TableCell align="right">Visibility</TableCell>
                               <TableCell align="right">Passed</TableCell>
                             </TableRow>
                           </TableHead>
                           <TableBody>
                             {officialRecent.length === 0 ? (
                               <TableRow>
-                                <TableCell colSpan={7} align="center" sx={{ py: 3, color: ip.subtext }}>
+                                <TableCell colSpan={8} align="center" sx={{ py: 3, color: ip.subtext }}>
                                   No completions matched these filters.
                                 </TableCell>
                               </TableRow>
@@ -3204,6 +3256,42 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                                     <TableCell align="right">
                                       {row.score_points ?? '-'}
                                     </TableCell>
+                                    <TableCell
+                                      align="right"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {scoreVisibilityBusyId === row.attempt_id ? (
+                                        <CircularProgress size={16} sx={{ color: ip.navy }} />
+                                      ) : (
+                                        <Box
+                                          component="button"
+                                          type="button"
+                                          onClick={() => {
+                                            if (!row.uid) return;
+                                            setScoreVisibilityConfirm(row);
+                                          }}
+                                          disabled={!row.uid}
+                                          aria-label={
+                                            row.score_release_held
+                                              ? 'Score is hidden. Click to show it to the student.'
+                                              : 'Score is shown. Click to hide it from the student.'
+                                          }
+                                          sx={{
+                                            border: 0,
+                                            p: 0,
+                                            m: 0,
+                                            bgcolor: 'transparent',
+                                            cursor: row.uid ? 'pointer' : 'default',
+                                            '&:disabled': { cursor: 'default', opacity: 0.6 },
+                                          }}
+                                        >
+                                          <PlatformAdminChip
+                                            label={row.score_release_held ? 'Hidden' : 'Shown'}
+                                            tone={row.score_release_held ? 'warning' : 'success'}
+                                          />
+                                        </Box>
+                                      )}
+                                    </TableCell>
                                     <TableCell align="right">
                                       <Box
                                         sx={{
@@ -3237,6 +3325,58 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                   )}
               </PlatformAdminAnalyticsSection>
               )}
+
+              <Dialog
+                open={scoreVisibilityConfirm != null}
+                onClose={() => {
+                  if (scoreVisibilityBusyId) return;
+                  setScoreVisibilityConfirm(null);
+                }}
+                fullWidth
+                maxWidth="xs"
+                PaperProps={{ sx: platformAdminDialogPaperSx }}
+              >
+                {scoreVisibilityConfirm ? (
+                  <>
+                    <DialogTitle sx={{ fontWeight: 700, color: ip.heading, px: 3, pt: 2.5, pb: 1 }}>
+                      {scoreVisibilityConfirm.score_release_held ? 'Show this score?' : 'Hide this score?'}
+                    </DialogTitle>
+                    <DialogContent sx={{ px: 3, pt: 1, pb: 1 }}>
+                      <Typography variant="body2" sx={{ color: ip.subtext, lineHeight: 1.55 }}>
+                        {scoreVisibilityConfirm.score_release_held
+                          ? `${scoreVisibilityConfirmName} will be able to see their score of ${scoreVisibilityConfirmPoints}.`
+                          : `${scoreVisibilityConfirmName}'s score of ${scoreVisibilityConfirmPoints} will be hidden from them.`}
+                      </Typography>
+                    </DialogContent>
+                    <DialogActions sx={{ px: 3, pb: 2.5, pt: 1 }}>
+                      <Button
+                        onClick={() => setScoreVisibilityConfirm(null)}
+                        disabled={scoreVisibilityConfirmBusy}
+                        sx={platformAdminTextButtonSx}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        variant="contained"
+                        disabled={scoreVisibilityConfirmBusy}
+                        onClick={() => {
+                          const row = scoreVisibilityConfirm;
+                          void toggleCompletionScoreVisibility(row).then((ok) => {
+                            if (ok) setScoreVisibilityConfirm(null);
+                          });
+                        }}
+                        sx={platformAdminPrimaryButtonSx}
+                      >
+                        {scoreVisibilityConfirmBusy
+                          ? 'Updating…'
+                          : scoreVisibilityConfirm.score_release_held
+                            ? 'Show score'
+                            : 'Hide score'}
+                      </Button>
+                    </DialogActions>
+                  </>
+                ) : null}
+              </Dialog>
 
               {officialView === 'abandons' && (
               <PlatformAdminAnalyticsSection

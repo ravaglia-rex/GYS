@@ -6,7 +6,6 @@ import {
   GET_PRACTICE_POOL_COUNTS,
   GET_PRACTICE_QUESTIONS,
   PRACTICE_APIS,
-  RECORD_PRACTICE_OUTCOME,
   RECORD_PRACTICE_SESSION_OUTCOMES,
   REMEMBER_PRACTICE_DRAW,
   RESET_PRACTICE_PROGRESS,
@@ -130,44 +129,6 @@ export async function rememberPracticeDraw(params: {
     },
     { headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' } }
   );
-}
-
-export interface RecordPracticeOutcomeResponse {
-  ok: boolean;
-  outcome_id?: string;
-  correct?: boolean;
-}
-
-/** Persist one practice attempt to the student profile (server writes Firestore). */
-export async function recordPracticeItemOutcome(params: {
-  examId: string;
-  level: 1 | 2 | 3;
-  itemId: string;
-  selectedOptionIndex: number;
-  timeToFirstCheckMs: number;
-}): Promise<RecordPracticeOutcomeResponse> {
-  const base = process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS;
-  if (!base) {
-    throw new Error('REACT_APP_GOOGLE_CLOUD_FUNCTIONS is not set.');
-  }
-  const user = auth.currentUser;
-  if (!user) {
-    throw new Error('You must be signed in to record practice outcomes.');
-  }
-  const authToken = await user.getIdToken();
-  authTokenHandler.setAuthToken(authToken);
-  const response = await axios.post(
-    `${base}${PRACTICE_APIS}${RECORD_PRACTICE_OUTCOME}`,
-    {
-      exam_id: params.examId,
-      level: String(params.level),
-      item_id: params.itemId,
-      selected_option_index: params.selectedOptionIndex,
-      time_to_first_check_ms: params.timeToFirstCheckMs,
-    },
-    { headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' } }
-  );
-  return response.data;
 }
 
 export interface PracticeSessionResultRow {

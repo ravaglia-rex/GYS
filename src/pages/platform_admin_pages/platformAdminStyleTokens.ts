@@ -19,11 +19,6 @@ export const platformAdminCardSx = {
   boxShadow: 'none',
 } as const;
 
-export const platformAdminTableContainerSx = {
-  ...platformAdminCardSx,
-  overflow: 'hidden',
-} as const;
-
 export const platformAdminTablePaperSx = {
   boxShadow: 'none',
   bgcolor: '#fff',
@@ -407,12 +402,3 @@ export const platformAdminDangerTextButtonSx = {
     WebkitTextFillColor: '#f87171',
   },
 } as const;
-
-export const platformAdminTableHeadCellSx = {
-  fontWeight: 700,
-  color: ip.heading,
-  bgcolor: ip.cardMutedBg,
-  borderBottom: `1px solid ${ip.cardBorder}`,
-} as const;
-
-export { ip as platformAdminPalette };

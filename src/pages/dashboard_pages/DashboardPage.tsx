@@ -11,14 +11,17 @@ import {
   COMPLETION_PREREQUISITES,
   PROGRAM_EXAM_COUNT,
   assessmentDisplayName,
+  assessmentHasReleasedScore,
+  countAssessmentSits,
   computeGate,
   gateWithRestrictedStarterBypass,
   membershipLevelForAssessmentGate,
   defaultAssessmentProgress,
   isAssessmentFullyComplete,
   buildDashboardExamChartRows,
-  examScorePointsFromFraction,
+  studentCanStartAssessmentNow,
   type AssessmentChartRow,
+  type AssessmentProgress,
 } from '../../utils/assessmentGating';
 import PageTutorial from '../../components/tutorial/PageTutorial';
 import {
@@ -41,18 +44,10 @@ const EnhancedAssessmentCardsGroup = lazy(() =>
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface AssessmentProgress {
-  proficiency_tier: number;
-  status: 'locked' | 'available' | 'tier_advanced';
-  best_score: number | null;
-  attempts_count: number;
-}
-
 interface DashboardStats {
-  totalAssessments: number;
-  tiersCompleted: number;
-  averageScore: number;
   availableAssessments: number;
+  assessmentsTaken: number;
+  resultsAvailable: number;
 }
 
 
@@ -82,10 +77,9 @@ const Dashboard: React.FC = () => {
     if (loading || !student) {
       return {
         stats: {
-          totalAssessments: PROGRAM_EXAM_COUNT,
-          tiersCompleted: 0,
-          averageScore: 0,
           availableAssessments: 0,
+          assessmentsTaken: 0,
+          resultsAvailable: 0,
         } as DashboardStats,
         scoresByAssessment: [] as AssessmentChartRow[],
         completedAssessments: [] as CompletedAssessmentNotificationSource[],
@@ -114,6 +108,8 @@ const Dashboard: React.FC = () => {
     });
 
     let availableAssessments = 0;
+    let assessmentsTaken = 0;
+    let resultsAvailable = 0;
     let tiersCompleted = 0;
     const completedForNotifications: CompletedAssessmentNotificationSource[] = [];
     const unlockedForNotifications: UnlockedAssessmentNotificationSource[] = [];
@@ -130,21 +126,31 @@ const Dashboard: React.FC = () => {
         undefined,
         officialSchoolId
       );
+      assessmentsTaken += countAssessmentSits(a.id, p);
+      if (assessmentHasReleasedScore(a.id, p)) resultsAvailable += 1;
+      if (studentCanStartAssessmentNow({
+        assessment: a,
+        progress: p,
+        gateLocked: gate.locked,
+        email: userEmail,
+        schoolId: officialSchoolId,
+        newStartsPaused,
+      })) {
+        availableAssessments += 1;
+      }
       const done = isAssessmentFullyComplete(a, p);
       if (done) {
-        tiersCompleted++;
+        tiersCompleted += 1;
         completedForNotifications.push({
           assessmentId: a.id,
           assessmentName: assessmentDisplayName(a.id, a.name),
         });
       }
-      // Only treat exams as "available" when membership-unlocked and publicly live (or beta).
       if (
         canStartOfficialAssessmentNow(a.id, userEmail, undefined, officialSchoolId, newStartsPaused) &&
         !gate.locked &&
-        !isAssessmentFullyComplete(a, p)
+        !done
       ) {
-        availableAssessments++;
         const hasAttemptedThisAssessment =
           (p.attempts_count ?? 0) > 0 ||
           p.latest_attempt_level != null ||
@@ -160,21 +166,11 @@ const Dashboard: React.FC = () => {
     }
 
     const listedTotal = Math.max(sorted.length, PROGRAM_EXAM_COUNT);
-    const scoresWithValues = Object.values(progress).filter((p) => p.best_score !== null);
-    const avgScore =
-      scoresWithValues.length > 0
-        ? examScorePointsFromFraction(
-            scoresWithValues.reduce((sum, p) => sum + (p.best_score ?? 0), 0) /
-              scoresWithValues.length
-          )
-        : 0;
-
     return {
       stats: {
-        totalAssessments: listedTotal,
-        tiersCompleted,
-        averageScore: avgScore,
         availableAssessments,
+        assessmentsTaken,
+        resultsAvailable,
       },
       scoresByAssessment: buildDashboardExamChartRows(sorted, progress, membershipLevel, studentGrade),
       completedAssessments: completedForNotifications,
@@ -244,12 +240,7 @@ const Dashboard: React.FC = () => {
               <DashboardOverview
                 uid={uid}
                 student={student as Record<string, unknown>}
-                stats={{
-                  totalAssessments: stats.totalAssessments,
-                  completedAssessments: stats.tiersCompleted,
-                  averageScore: stats.averageScore,
-                  availableAssessments: stats.availableAssessments,
-                }}
+                stats={stats}
                 latestAssessmentResults={scoresByAssessment}
                 completedAssessments={completedAssessments}
                 unlockedAssessments={unlockedAssessments}

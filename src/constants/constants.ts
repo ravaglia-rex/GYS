@@ -45,7 +45,6 @@ export const PLATFORM_ADMIN_ANALYTICS_PRACTICE_DAILY_BY_EXAM = '/analytics/pract
 export const PLATFORM_ADMIN_ANALYTICS_PRACTICE_MONTHLY = '/analytics/practice-monthly';
 export const PLATFORM_ADMIN_ANALYTICS_TOP_COINS = '/analytics/top-coins';
 export const PLATFORM_ADMIN_ANALYTICS_TOP_QOD = '/analytics/top-qod';
-export const PLATFORM_ADMIN_ANALYTICS_SCHOOL_ADMIN_ACTIVITY = '/analytics/school-admin-activity';
 export const PLATFORM_ADMIN_ANALYTICS_SITE_PAGE_HITS = '/analytics/site-page-hits';
 export const PLATFORM_ADMIN_ANALYTICS_LIVE_EXAMS = '/analytics/live-exams';
 export const PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAM_OPS = '/analytics/official-exam-ops';
@@ -119,7 +118,6 @@ export const GET_PRACTICE_POOL_COUNTS='/poolCounts';
 export const GET_PRACTICE_QUESTIONS='/questions';
 export const REVEAL_PRACTICE_SOLUTIONS='/revealSolutions';
 export const REMEMBER_PRACTICE_DRAW='/rememberDraw';
-export const RECORD_PRACTICE_OUTCOME='/recordOutcome';
 export const RECORD_PRACTICE_SESSION_OUTCOMES='/recordSessionOutcomes';
 export const RESET_PRACTICE_PROGRESS='/resetProgress';
 

@@ -1,5 +1,5 @@
 import type { StudentRow } from '../db/schoolAdminCollection';
-import { ASSESSMENT_ORDER, ASSESSMENT_NAMES, examScorePointsFromFraction } from './assessmentGating';
+import { ASSESSMENT_NAMES, examScorePointsFromFraction } from './assessmentGating';
 import {
   normalizeAchievementTierId,
   CANONICAL_ACHIEVEMENT_TIER_IDS,
@@ -173,36 +173,6 @@ export function summarizeSchoolTier123(students: StudentRow[]): Tier123Counts {
   return { tier1, tier2, tier3, total: list.length };
 }
 
-export interface GradeTier123Row extends Tier123Counts {
-  grade: number;
-}
-
-export function summarizeTier123ByGrade(students: StudentRow[]): GradeTier123Row[] {
-  const list = students;
-  const byGrade: Record<number, Tier123Counts> = {};
-
-  for (const s of list) {
-    const raw = typeof s.grade === 'number' ? s.grade : 0;
-    const g = raw > 0 ? raw : 0;
-    if (!byGrade[g]) byGrade[g] = { tier1: 0, tier2: 0, tier3: 0, total: 0 };
-    const row = byGrade[g]!;
-    row.total += 1;
-    const b = studentOverallProficiencyBand(s);
-    if (b === 0) continue;
-    if (b === 1) row.tier1 += 1;
-    else if (b === 2) row.tier2 += 1;
-    else row.tier3 += 1;
-  }
-
-  return Object.entries(byGrade)
-    .map(([grade, c]) => ({ grade: parseInt(grade, 10), ...c }))
-    .sort((a, b) => {
-      if (a.grade === 0) return 1;
-      if (b.grade === 0) return -1;
-      return a.grade - b.grade;
-    });
-}
-
 export interface ExamProficiencySummary extends Tier123Counts {
   examId: string;
 }
@@ -257,23 +227,6 @@ export function summarizeExamGradeTier123(students: StudentRow[], assessmentId: 
   }
 
   return Object.values(byGrade).sort((a, b) => a.grade - b.grade);
-}
-
-export function allExamsWithAnyActivity(students: StudentRow[]): string[] {
-  const list = students;
-  const ids = new Set<string>();
-  for (const s of list) {
-    const prog = s.assessment_progress ?? {};
-    for (const [aid, p] of Object.entries(prog)) {
-      if (isActiveAssessmentProgress(p as Progress)) ids.add(aid);
-    }
-  }
-  const order = [...ASSESSMENT_ORDER];
-  return Array.from(ids).sort((a, b) => {
-    const ia = order.indexOf(a as (typeof ASSESSMENT_ORDER)[number]);
-    const ib = order.indexOf(b as (typeof ASSESSMENT_ORDER)[number]);
-    return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
-  });
 }
 
 export function assessmentDisplayName(id: string): string {
