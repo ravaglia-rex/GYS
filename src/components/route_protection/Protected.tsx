@@ -10,6 +10,8 @@ import { recordDailyLogin } from '../../db/gamificationCollection';
 import StreakBrokenModal from '../gamification/StreakBrokenModal';
 import { hasRecordedDailyLoginToday, markDailyLoginRecorded } from '../../utils/dailyLoginGuard';
 import { getStudent, StudentProfileError } from '../../db/studentCollection';
+import { queryClient } from '../../query/queryClient';
+import { queryKeys } from '../../query/queryKeys';
 import { toast } from '../ui/use-toast';
 import {
   isStudentLoginBlockedEmail,
@@ -87,6 +89,7 @@ const Protected: React.FC<ProtectedProps> = ({ children }) => {
               setLoading(false);
               return;
             }
+            queryClient.setQueryData(queryKeys.student(user.uid), student);
           } catch (err) {
             if (
               err instanceof StudentProfileError &&
@@ -115,16 +118,16 @@ const Protected: React.FC<ProtectedProps> = ({ children }) => {
         });
         if (!loginCalledRef.current && !hasRecordedDailyLoginToday(user.uid)) {
           loginCalledRef.current = true;
-          try {
-            const result = await recordDailyLogin();
-            markDailyLoginRecorded(user.uid);
-            if (result.streak_break && typeof result.streak_break.previous_streak === 'number') {
-              setStreakBreak({ previous_streak: result.streak_break.previous_streak });
-            }
-          } catch {
-            loginCalledRef.current = false;
-            /* non-blocking streak update; retry on next protected mount */
-          }
+          void recordDailyLogin()
+            .then((result) => {
+              markDailyLoginRecorded(user.uid);
+              if (result.streak_break && typeof result.streak_break.previous_streak === 'number') {
+                setStreakBreak({ previous_streak: result.streak_break.previous_streak });
+              }
+            })
+            .catch(() => {
+              loginCalledRef.current = false;
+            });
         } else if (!loginCalledRef.current) {
           loginCalledRef.current = true;
         }

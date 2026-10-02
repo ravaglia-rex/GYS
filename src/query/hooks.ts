@@ -23,7 +23,7 @@ import { isVisibleSchoolRosterStudent } from '../utils/schoolAdminRosterUtils';
 import { queryKeys } from './queryKeys';
 
 const ASSESSMENT_CONFIG_STALE_MS = 15 * 60_000;
-const OFFICIAL_EXAM_OPS_STALE_MS = 30_000;
+const OFFICIAL_EXAM_OPS_STALE_MS = 120_000;
 const STUDENT_STALE_MS = 2 * 60_000;
 const SCHOOL_STALE_MS = 30 * 60_000;
 const PAYMENTS_STALE_MS = 5 * 60_000;
@@ -244,6 +244,7 @@ export function usePlatformAdminStudents(
     setup?: 'complete' | 'incomplete' | 'all';
     payment?: 'self_paid' | 'membership_upgrade' | 'individual' | 'all';
     account?: 'registered' | 'invite' | 'all';
+    attempted?: string;
     grade?: string;
     membership?: string;
     school_ids?: 'all' | string[];

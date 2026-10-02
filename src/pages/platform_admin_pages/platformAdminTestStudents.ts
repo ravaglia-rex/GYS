@@ -6,6 +6,7 @@ import { isHiddenStaffStudentEmail } from '../../constants/hiddenStaffStudents';
  */
 export const PLATFORM_ADMIN_TEST_STUDENT_EMAILS = new Set([
   'srishti2k1@gmail.com',
+  'srishti+student@argus.ai',
   'vv@accessmca.com',
 ]);
 

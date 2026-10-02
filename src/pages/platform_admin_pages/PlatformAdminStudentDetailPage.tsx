@@ -28,7 +28,7 @@ import {
   DeleteOutline as DeleteIcon,
   FileDownload as DownloadIcon,
 } from '@mui/icons-material';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import {
   deletePlatformAdminStudent,
@@ -163,6 +163,17 @@ function formatClientDevice(
   return `${device} (${browser})`;
 }
 
+function studentDetailReturn(state: unknown): { path: string; label: string } | null {
+  if (!state || typeof state !== 'object') return null;
+  const path = (state as { returnTo?: unknown }).returnTo;
+  if (typeof path !== 'string' || !path.startsWith('/platform-admin/')) return null;
+  const label = (state as { returnLabel?: unknown }).returnLabel;
+  return {
+    path,
+    label: typeof label === 'string' && label.trim() ? label : 'Back',
+  };
+}
+
 function attemptLabel(row: PlatformAdminStudentExamAttemptRow): string {
   const level =
     row.proficiency_tier != null ? `L${row.proficiency_tier}` : 'level ?';
@@ -173,6 +184,15 @@ const PlatformAdminStudentDetailPage: React.FC = () => {
   const { studentId } = useParams<{ studentId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnNav = studentDetailReturn(location.state);
+  const goBack = () => {
+    if (returnNav) {
+      navigate(returnNav.path);
+      return;
+    }
+    navigate('/platform-admin/students');
+  };
   const [student, setStudent] = useState<PlatformAdminStudentDetail | null>(null);
   const [coinEvents, setCoinEvents] = useState<PlatformAdminCoinEventRow[]>([]);
   const [examAttempts, setExamAttempts] = useState<PlatformAdminStudentExamAttemptRow[]>([]);
@@ -416,10 +436,10 @@ const PlatformAdminStudentDetailPage: React.FC = () => {
         <Alert severity="error">{error || 'Student not found.'}</Alert>
         <Button
           startIcon={<BackIcon />}
-          onClick={() => navigate('/platform-admin/students')}
+          onClick={goBack}
           sx={{ mt: 2, textTransform: 'none', color: ip.navy }}
         >
-          Back to students
+          {returnNav?.label ?? 'Back to students'}
         </Button>
       </Box>
     );
@@ -432,10 +452,10 @@ const PlatformAdminStudentDetailPage: React.FC = () => {
     <Box sx={platformAdminPageContainerSx}>
       <Button
         startIcon={<BackIcon />}
-        onClick={() => navigate('/platform-admin/students')}
+        onClick={goBack}
         sx={{ mb: 2, textTransform: 'none', color: ip.navy, fontWeight: 600 }}
       >
-        Back to students
+        {returnNav?.label ?? 'Back to students'}
       </Button>
 
       <Box

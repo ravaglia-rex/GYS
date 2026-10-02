@@ -58,19 +58,22 @@ import {
 } from '../../utils/officialStudentAssessmentsAccess';
 import { getExamDeviceFingerprint } from '../../utils/examDeviceFingerprint';
 import { isLevelBasedAssessment } from '../../utils/assessmentGating';
-import { STUDENT_EXAM_SHOW_SCORES_AND_COINS } from '../../constants/constants';
+import { areExamScoresVisible } from '../../constants/constants';
 import { assessmentIdsEqual, ANALYTICAL_REASONING_ASSESSMENT_ID, canonicalAssessmentId } from '../../utils/assessmentIdCompat';
 import {
   isProctoringActive,
   resolveProctoringConfig,
   useProctoringMonitor,
+  VIDEO_PROCTORING_ENABLED,
   type ProctoringEventType,
 } from '../../features/proctoring';
+import ExamProctorDock from '../../features/proctoring/ExamProctorDock';
 import * as Sentry from '@sentry/react';
 
 const PreExamProctoringSetup = lazy(() =>
   import('../../features/proctoring').then((m) => ({ default: m.PreExamProctoringSetup }))
 );
+const MediaPermissionGate = lazy(() => import('../../features/proctoring/MediaPermissionGate'));
 
 const NEEDS_MIC = new Set(['english_proficiency']);
 const NEEDS_LAPTOP = new Set(['ai_literacy']);
@@ -182,7 +185,7 @@ function ExamFullscreenRequiredDialog({
   );
 }
 
-type PageStage = 'pre_exam' | 'proctoring_setup' | 'taking' | 'complete';
+type PageStage = 'pre_exam' | 'media_check' | 'proctoring_setup' | 'taking' | 'complete';
 
 function formatMmSs(totalSec: number): string {
   const m = Math.floor(Math.max(0, totalSec) / 60);
@@ -342,7 +345,9 @@ export default function AssessmentTakePage() {
   const needsPreExamStep = assessmentId ? NEEDS_MIC.has(assessmentId) || NEEDS_LAPTOP.has(assessmentId) : false;
   const { data: student, isLoading: studentLoading } = useStudent(uid, Boolean(uid));
 
-  const [stage, setStage] = useState<PageStage>(needsPreExamStep ? 'pre_exam' : 'taking');
+  const [stage, setStage] = useState<PageStage>(
+    needsPreExamStep ? 'pre_exam' : VIDEO_PROCTORING_ENABLED ? 'media_check' : 'taking'
+  );
   const invalidateStudentQueries = useInvalidateStudentQueries();
   const { data: configTypes = [] } = useAssessmentConfig(Boolean(uid));
 
@@ -368,6 +373,19 @@ export default function AssessmentTakePage() {
   const [rulesAckInput, setRulesAckInput] = useState('');
   const [screenshotNudge, setScreenshotNudge] = useState(false);
   const rulesAcknowledged = rulesAckInput.trim().toLowerCase() === 'i understand';
+  const proctorStreamRef = useRef<MediaStream | null>(null);
+  const [proctorStream, setProctorStream] = useState<MediaStream | null>(null);
+  const stopProctoring = useCallback(() => {
+    proctorStreamRef.current?.getTracks().forEach((track) => track.stop());
+    proctorStreamRef.current = null;
+    setProctorStream(null);
+  }, []);
+  useEffect(() => {
+    return () => {
+      proctorStreamRef.current?.getTracks().forEach((track) => track.stop());
+      proctorStreamRef.current = null;
+    };
+  }, []);
   const questionStartTimeRef = useRef<number>(Date.now());
   /** True after submit, confirmed leave, integrity abandon, or tab-unload beacon - skips duplicate fail-on-unload. */
   const examEndedRef = useRef(false);
@@ -453,7 +471,7 @@ export default function AssessmentTakePage() {
       examEndedRef.current = true;
       finishingForTimeRef.current = true;
       setStage('complete');
-      const reveal = STUDENT_EXAM_SHOW_SCORES_AND_COINS && result.results_pending !== true;
+      const reveal = areExamScoresVisible(assessmentId) && result.results_pending !== true;
       navigate(`/assessments/${assessmentId}/result`, {
         state: {
           attemptId: aid,
@@ -469,7 +487,7 @@ export default function AssessmentTakePage() {
                 nextTier: result.next_tier,
                 coinsAwarded: result.coins_awarded ?? 0,
               }
-            : {}),
+            : { resultsPending: true }),
           completedAt: new Date().toISOString(),
         },
         replace: true,
@@ -482,6 +500,7 @@ export default function AssessmentTakePage() {
     if (finishingForTimeRef.current) return;
     finishingForTimeRef.current = true;
     examEndedRef.current = true;
+    stopProctoring();
     setIsSubmitting(true);
     try {
       const group = passageGroupRef.current;
@@ -518,7 +537,7 @@ export default function AssessmentTakePage() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [uid, goToExamResults]);
+  }, [uid, goToExamResults, stopProctoring]);
 
   const { reportEvent: reportProctoringEvent } = useProctoringMonitor({
     uid,
@@ -568,15 +587,6 @@ export default function AssessmentTakePage() {
     if (!proctoringEnabled || !lostWindowFocus || stage !== 'taking' || !attemptId) return;
     void reportProctoringEventRef.current?.('window_blur', 'low', false);
   }, [proctoringEnabled, lostWindowFocus, stage, attemptId]);
-
-  const proctoringRoutedRef = useRef(false);
-  useEffect(() => {
-    if (proctoringRoutedRef.current || !proctoringEnabled || needsPreExamStep) return;
-    if (stage === 'taking' && !attemptId && !integrityGateOk) {
-      proctoringRoutedRef.current = true;
-      setStage('proctoring_setup');
-    }
-  }, [proctoringEnabled, needsPreExamStep, stage, attemptId, integrityGateOk]);
 
   const doInitialize = useCallback(async () => {
     if (!uid || !assessmentId) return;
@@ -803,7 +813,23 @@ export default function AssessmentTakePage() {
     setStage(proctoringEnabled ? 'proctoring_setup' : 'taking');
   }, [proctoringEnabled, tryEnterFullscreen]);
 
+  const handleMediaCheckReady = useCallback((stream: MediaStream) => {
+    proctorStreamRef.current = stream;
+    setProctorStream(stream);
+    setStage('taking');
+  }, []);
+
+  const beginAfterRules = useCallback(() => {
+    tryEnterFullscreen();
+    if (proctoringEnabled) {
+      setStage('proctoring_setup');
+      return;
+    }
+    setIntegrityGateOk(true);
+  }, [proctoringEnabled, tryEnterFullscreen]);
+
   const handleProctoringSetupReady = useCallback(() => {
+    setIntegrityGateOk(true);
     setStage('taking');
   }, []);
 
@@ -870,6 +896,12 @@ export default function AssessmentTakePage() {
 
     const timeSpentMs = Date.now() - questionStartTimeRef.current;
     const fingerprint = getExamDeviceFingerprint();
+    const onLastScreen =
+      totalQuestions > 0 &&
+      (passageGroup && passageGroup.group_size >= 2
+        ? passageGroup.group_start_index + passageGroup.group_size
+        : currentIndex + 1) >= totalQuestions;
+    if (onLastScreen) stopProctoring();
     setIsSubmitting(true);
     setSubmitError(null);
 
@@ -1009,6 +1041,8 @@ export default function AssessmentTakePage() {
     completeTimedExam,
     goToExamResults,
     applyAdvanceFromResponse,
+    totalQuestions,
+    stopProctoring,
   ]);
 
   // Warm the next screen while the student reads / answers the current one.
@@ -1131,6 +1165,23 @@ export default function AssessmentTakePage() {
     );
   }
 
+  if (stage === 'media_check') {
+    return (
+      <Suspense
+        fallback={
+          <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <CircularProgress />
+          </Box>
+        }
+      >
+        <MediaPermissionGate
+          onReady={handleMediaCheckReady}
+          onBack={() => navigate(`/assessments/${assessmentId}/tier/${tier}/detail`)}
+        />
+      </Suspense>
+    );
+  }
+
   if (stage === 'proctoring_setup') {
     return (
       <Suspense
@@ -1152,6 +1203,7 @@ export default function AssessmentTakePage() {
   if (stage === 'taking' && !needsPreExamStep && !integrityGateOk && !attemptId) {
     return (
       <Box sx={{ minHeight: '100vh', bgcolor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}>
+        {proctorStream ? <ExamProctorDock stream={proctorStream} /> : null}
         <Dialog open maxWidth="sm" fullWidth disableEscapeKeyDown>
           <DialogTitle sx={{ fontWeight: 800 }}>Exam Rules</DialogTitle>
           <DialogContent>
@@ -1183,8 +1235,7 @@ export default function AssessmentTakePage() {
               onKeyDown={(e) => {
                 if (e.key !== 'Enter' || !rulesAcknowledged) return;
                 e.preventDefault();
-                tryEnterFullscreen();
-                setIntegrityGateOk(true);
+                beginAfterRules();
               }}
               inputProps={{ 'aria-label': 'Type I understand to continue', autoComplete: 'off', spellCheck: false }}
               sx={{ mt: 0.5 }}
@@ -1197,10 +1248,7 @@ export default function AssessmentTakePage() {
             <Button
               variant="contained"
               disabled={!rulesAcknowledged}
-              onClick={() => {
-                tryEnterFullscreen();
-                setIntegrityGateOk(true);
-              }}
+              onClick={beginAfterRules}
             >
               Begin
             </Button>
@@ -1213,6 +1261,7 @@ export default function AssessmentTakePage() {
   if (isInitializing) {
     return (
       <Box sx={{ minHeight: '100vh', bgcolor: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+        {proctorStream ? <ExamProctorDock stream={proctorStream} /> : null}
         <CircularProgress sx={{ color: primaryBtn }} size={48} />
         <Typography variant="h6" sx={{ color: '#334155', fontWeight: 700 }}>
           Preparing your assessment…
@@ -1325,6 +1374,7 @@ export default function AssessmentTakePage() {
         boxSizing: 'border-box',
       }}
     >
+      {proctorStream ? <ExamProctorDock stream={proctorStream} /> : null}
       <Box
         sx={{
           flexShrink: 0,

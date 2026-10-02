@@ -62,7 +62,7 @@ import { NationalPerformanceTierOverview } from '../../components/school_admin/N
 import { buildGreenfieldPreviewStudentRows } from '../../data/schoolPreviewMock';
 import { REASONING_EXAM_SUBCATEGORIES } from '../../data/reasoningExamSubcategories';
 import PageTutorial from '../../components/tutorial/PageTutorial';
-import { STUDENT_EXAM_SHOW_SCORES_AND_COINS } from '../../constants/constants';
+import { STUDENT_EXAM_SHOW_SCORES_AND_COINS, areExamScoresVisible } from '../../constants/constants';
 import { SchoolAdminPageHeader, schoolAdminPageContainerSx } from './schoolAdminPageStyles';
 import type { SchoolAnalyticsSummaryResponse, StudentRow } from '../../db/schoolAdminCollection';
 import { countAssessmentsFromProgress } from '../../utils/schoolAdminRosterUtils';
@@ -132,7 +132,7 @@ function isPersonalityCompleted(progress: StudentRow['assessment_progress'] | un
 /** One bar per school-scored assessment; `current` is 0 when no student has a best score yet. */
 function buildExamAverageChartRows(
   students: StudentRow[]
-): Array<{ category: string; current: number; remainder: number }> {
+): Array<{ examId: string; category: string; current: number; remainder: number }> {
   return scoredExamIdsForAvgChart().map(id => {
     const scores: number[] = [];
     for (const s of students) {
@@ -144,6 +144,7 @@ function buildExamAverageChartRows(
     const current =
       top.length > 0 ? Math.round(top.reduce((acc, v) => acc + v, 0) / top.length) : 0;
     return {
+      examId: id,
       category: assessmentDisplayName(id),
       current,
       remainder: Math.max(0, EXAM_MAX_SCORE_POINTS - current),
@@ -226,7 +227,7 @@ interface AnalyticsData {
     total: number;
   };
   /** Mean best score points among top performers per exam; one row per school-scored assessment (0 if none). */
-  examAverages: Array<{ category: string; current: number; remainder: number }>;
+  examAverages: Array<{ examId?: string; category: string; current: number; remainder: number }>;
   personalityCompletion: { completed: number; total: number };
 }
 
@@ -265,7 +266,11 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
     [summary, examBreakdownId]
   );
   const scoreDistribution = useMemo(() => summary?.score_distribution ?? [], [summary]);
-  const scoreDistributionHasAny = scoreDistribution.some(block => block.hasAnyScores);
+  const visibleScoreDistribution = useMemo(
+    () => scoreDistribution.filter((block) => areExamScoresVisible(block.examId)),
+    [scoreDistribution]
+  );
+  const scoreDistributionHasAny = visibleScoreDistribution.some(block => block.hasAnyScores);
 
   useEffect(() => {
     if (examIdsWithActivity.length === 0) {
@@ -591,7 +596,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
               <Typography variant="h6" sx={{ fontWeight: 600, color: '#1E293B', mb: 0.5 }}>
                 Score Distribution
               </Typography>
-              {!STUDENT_EXAM_SHOW_SCORES_AND_COINS ? (
+              {visibleScoreDistribution.length === 0 ? (
                 <Alert severity="info" sx={{ mt: 1 }}>
                   Numeric exam scores are deferred for schools right now. Score bands will appear here when results are
                   released.
@@ -631,7 +636,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                 ))}
               </Box>
 
-              {scoreDistribution.map(examBlock => (
+              {visibleScoreDistribution.map(examBlock => (
                 <Box key={examBlock.examId} sx={{ mb: 3, '&:last-of-type': { mb: 0 } }}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1e3a8a', mb: 1.5 }}>
                     {assessmentDisplayName(examBlock.examId)}
@@ -774,7 +779,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
                   Average best score by assessment
                 </Typography>
               </Box>
-              {!STUDENT_EXAM_SHOW_SCORES_AND_COINS ? (
+              {analyticsData.examAverages.filter((row) => areExamScoresVisible(row.examId)).length === 0 ? (
                 <Alert severity="info">
                   Numeric exam scores are deferred for schools right now. Average score charts will appear here when
                   results are released.
@@ -792,7 +797,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
               <Box sx={{ maxWidth: 650, width: '100%', mx: 'auto' }}>
                 <ResponsiveContainer width="100%" height={360}>
                   <BarChart
-                    data={analyticsData.examAverages}
+                    data={analyticsData.examAverages.filter((row) => areExamScoresVisible(row.examId))}
                     margin={{ top: 8, bottom: 8, left: 4, right: 12 }}
                     barCategoryGap="18%"
                   >

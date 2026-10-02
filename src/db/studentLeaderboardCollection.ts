@@ -13,6 +13,8 @@ export interface StudentSchoolLeaderboardResponse {
   sections: ExamLeaderboardSection[];
   /** Per-class boards for the whole school. Class toggle reads this. */
   sectionsByGrade?: Partial<Record<LeaderboardGrade, ExamLeaderboardSection[]>>;
+  /** Class-wise national Analytical Reasoning top 10 (includes school name). */
+  nationalByGrade?: Partial<Record<LeaderboardGrade, ExamLeaderboardSection['entries']>>;
   lastUpdatedISO: string | null;
 }
 
@@ -25,6 +27,19 @@ function normalizeSectionsByGrade(
   for (const g of LEADERBOARD_GRADES) {
     const sections = source[String(g)];
     if (Array.isArray(sections)) out[g] = sections as ExamLeaderboardSection[];
+  }
+  return out;
+}
+
+function normalizeNationalByGrade(
+  raw: unknown
+): StudentSchoolLeaderboardResponse['nationalByGrade'] {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const source = raw as Record<string, unknown>;
+  const out: NonNullable<StudentSchoolLeaderboardResponse['nationalByGrade']> = {};
+  for (const g of LEADERBOARD_GRADES) {
+    const rows = source[String(g)];
+    if (Array.isArray(rows)) out[g] = rows as NonNullable<StudentSchoolLeaderboardResponse['nationalByGrade']>[LeaderboardGrade];
   }
   return out;
 }
@@ -43,6 +58,7 @@ export const getStudentSchoolLeaderboard = async (): Promise<StudentSchoolLeader
   return {
     ...data,
     sectionsByGrade: normalizeSectionsByGrade(data.sectionsByGrade),
+    nationalByGrade: normalizeNationalByGrade(data.nationalByGrade),
   };
 };
 

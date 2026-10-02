@@ -22,7 +22,7 @@ import {
   tierPercentToExamPoints,
   type AssessmentChartRow,
 } from '../../utils/assessmentGating';
-import { STUDENT_EXAM_SHOW_SCORES_AND_COINS } from '../../constants/constants';
+import { STUDENT_EXAM_SHOW_SCORES_AND_COINS, areExamScoresVisible } from '../../constants/constants';
 import {
   ACHIEVEMENT_TIER_EXPLORER,
   formatAchievementTierLabel,
@@ -74,12 +74,12 @@ const ColumnChart: React.FC<{ data: AssessmentChartRow[] }> = ({ data }) => {
   const programBarPalette = [
     '#5eead4', '#93c5fd', '#fcd34d', '#f9a8d4', '#c4b5fd', '#67e8f9', '#86efac', '#fca5a5',
   ];
-  const showScores = STUDENT_EXAM_SHOW_SCORES_AND_COINS;
-
   const rows = data ?? [];
 
   const dataWithPoints = rows.map((item, index) => {
     const locked = item.locked === true;
+    const scoresVisible =
+      !locked && areExamScoresVisible(item.assessmentId) && item.hasNumericScore !== false;
     const tierPct = locked ? 0 : Math.max(0, Math.min(100, item.score));
     const points = locked ? 0 : tierPercentToExamPoints(tierPct);
     const isNonCompetitive =
@@ -89,10 +89,12 @@ const ColumnChart: React.FC<{ data: AssessmentChartRow[] }> = ({ data }) => {
     return {
       ...item,
       points,
+      scoresVisible,
       barColor: programBarPalette[index % programBarPalette.length],
       isNonCompetitive,
     };
   });
+  const showScores = dataWithPoints.some((item) => item.scoresVisible);
 
   const chartMax = EXAM_MAX_SCORE_POINTS;
   /** Total vertical slot for the chart column (must match Y-axis height). */
@@ -188,16 +190,17 @@ const ColumnChart: React.FC<{ data: AssessmentChartRow[] }> = ({ data }) => {
           >
             {dataWithPoints.map((item, index) => {
               const locked = item.locked === true;
-              const barHeight = !showScores
-                ? locked
-                  ? 0
-                  : Math.round(BAR_SCALE_HEIGHT * 0.55)
-                : item.isNonCompetitive
-                ? Math.round(BAR_SCALE_HEIGHT * 0.88)
-                : Math.min(
-                    BAR_SCALE_HEIGHT,
-                    Math.max(4, (item.points / chartMax) * BAR_SCALE_HEIGHT)
-                  );
+              const stub = !locked && !item.scoresVisible && !item.isNonCompetitive;
+              const barHeight = locked
+                ? 0
+                : stub
+                  ? 16
+                  : item.isNonCompetitive
+                    ? Math.round(BAR_SCALE_HEIGHT * 0.88)
+                    : Math.min(
+                        BAR_SCALE_HEIGHT,
+                        Math.max(4, (item.points / chartMax) * BAR_SCALE_HEIGHT)
+                      );
               const color = item.barColor ?? programBarPalette[index % programBarPalette.length];
 
               return (
@@ -256,15 +259,15 @@ const ColumnChart: React.FC<{ data: AssessmentChartRow[] }> = ({ data }) => {
                           <Typography
                             variant="caption"
                             sx={{
-                              color: item.isNonCompetitive || !showScores ? 'rgba(255,255,255,0.75)' : 'white',
+                              color: item.isNonCompetitive || stub ? 'rgba(255,255,255,0.75)' : 'white',
                               fontWeight: 700,
-                              fontSize: item.isNonCompetitive || !showScores ? '0.72rem' : '0.8rem',
+                              fontSize: item.isNonCompetitive || stub ? '0.72rem' : '0.8rem',
                               lineHeight: 1.2,
                               textAlign: 'center',
                               px: 0.25,
                             }}
                           >
-                            {!showScores
+                            {stub
                               ? 'Submitted'
                               : item.isNonCompetitive
                                 ? 'Completed'
@@ -275,10 +278,11 @@ const ColumnChart: React.FC<{ data: AssessmentChartRow[] }> = ({ data }) => {
                           sx={{
                             width: BAR_WIDTH_PX,
                             maxWidth: '100%',
-                            backgroundColor: color,
+                            backgroundColor: stub ? 'transparent' : color,
+                            border: stub ? '2px dashed rgba(255,255,255,0.35)' : 'none',
                             borderRadius: '6px 6px 0 0',
                             transition: 'height 0.3s ease',
-                            boxShadow: `0 4px 14px ${color}55`,
+                            boxShadow: stub ? 'none' : `0 4px 14px ${color}55`,
                             flexShrink: 0,
                           }}
                           style={{ height: `${barHeight}px` }}
@@ -315,7 +319,7 @@ const ColumnChart: React.FC<{ data: AssessmentChartRow[] }> = ({ data }) => {
                         Level {item.chartLevel}
                       </Typography>
                     )}
-                    {showScores && !locked && !item.isNonCompetitive && item.chartScoreIsBestFallback && (
+                    {item.scoresVisible && !locked && !item.isNonCompetitive && item.chartScoreIsBestFallback && (
                       <Typography
                         variant="caption"
                         component="div"
@@ -518,6 +522,29 @@ const StatCard: React.FC<{
   </Card>
 );
 
+function readSentNotificationIds(uid: string): Set<string> {
+  try {
+    const raw = localStorage.getItem(`argus.notificationEmailsSent.${uid}`);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return new Set(Array.isArray(parsed) ? parsed.filter((id) => typeof id === 'string') : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function rememberSentNotificationIds(uid: string, ids: string[]) {
+  try {
+    const merged = readSentNotificationIds(uid);
+    ids.forEach((id) => merged.add(id));
+    localStorage.setItem(
+      `argus.notificationEmailsSent.${uid}`,
+      JSON.stringify(Array.from(merged).slice(-80))
+    );
+  } catch {
+    /* storage unavailable */
+  }
+}
+
 const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   uid,
   stats,
@@ -644,9 +671,10 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   useEffect(() => {
     if (!persistNotificationDismissals || notifications.length === 0) return;
 
+    const persisted = uid ? readSentNotificationIds(uid) : new Set<string>();
     const newIds = notifications
       .map((n) => n.id)
-      .filter((id) => !notificationEmailSentRef.current.has(id));
+      .filter((id) => !notificationEmailSentRef.current.has(id) && !persisted.has(id));
     if (newIds.length === 0) return;
     newIds.forEach((id) => notificationEmailSentRef.current.add(id));
 
@@ -654,10 +682,14 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = ({
       notificationIds: newIds,
       availableAssessmentsCount: stats.availableAssessments,
       completedAssessments,
-    }).catch(error => {
+    })
+      .then(() => {
+        if (uid) rememberSentNotificationIds(uid, newIds);
+      })
+      .catch(error => {
       console.warn('Notification email send skipped:', error);
     });
-  }, [completedAssessments, notifications, persistNotificationDismissals, stats.availableAssessments]);
+  }, [completedAssessments, notifications, persistNotificationDismissals, stats.availableAssessments, uid]);
 
   const handleDismissNotification = (id: string) => {
     if (persistNotificationDismissals) {

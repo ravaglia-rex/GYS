@@ -453,32 +453,32 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
                 border:
                   selected && canSelect
                     ? `2px solid ${meta.accent}`
-                    : '1px solid rgba(255,255,255,0.1)',
+                    : canSelect
+                      ? `1px solid ${meta.accent}99`
+                      : '1px solid rgba(255,255,255,0.08)',
                 boxShadow:
                   selected && canSelect
                     ? `0 0 0 1px ${meta.accent}55, 0 12px 40px -8px ${meta.accent}50, 0 4px 20px rgba(0,0,0,0.45)`
-                    : 'none',
+                    : canSelect
+                      ? `0 6px 20px -8px ${meta.accent}55`
+                      : 'none',
                 transform: selected && canSelect ? 'scale(1.02)' : 'scale(1)',
                 zIndex: selected && canSelect ? 2 : 0,
-                opacity: lockedByProgram ? 0.38 : selected ? 1 : 0.55,
-                filter: lockedByProgram
-                  ? 'grayscale(0.75) brightness(0.7)'
+                opacity: lockedByProgram ? 0.4 : 1,
+                filter: lockedByProgram ? 'grayscale(0.9) brightness(0.62)' : 'none',
+                background: lockedByProgram
+                  ? 'linear-gradient(160deg, rgba(15,23,42,0.38) 0%, rgba(30,41,59,0.26) 100%)'
                   : selected
-                    ? 'none'
-                    : 'grayscale(0.5) brightness(0.88)',
-                background: selected
-                  ? `linear-gradient(150deg, rgba(15,23,42,0.98) 0%, rgba(30,41,59,0.92) 50%, rgba(15,23,42,0.88) 100%)`
-                  : 'linear-gradient(160deg, rgba(15,23,42,0.55) 0%, rgba(30,41,59,0.4) 100%)',
+                    ? `linear-gradient(150deg, rgba(15,23,42,0.98) 0%, rgba(30,41,59,0.92) 50%, rgba(15,23,42,0.88) 100%)`
+                    : `linear-gradient(160deg, ${meta.accent}2e 0%, rgba(15,23,42,0.78) 58%, rgba(30,41,59,0.62) 100%)`,
                 transition:
                   'transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease, filter 0.18s ease, border-color 0.18s ease',
                 '&:hover':
                   canSelect && !selected
                     ? {
-                        opacity: 0.82,
-                        filter: 'grayscale(0.25) brightness(0.95)',
-                        transform: 'scale(1.01)',
-                        borderColor: `${meta.accent}66`,
-                        boxShadow: `0 8px 24px -6px ${meta.accent}33`,
+                        transform: 'scale(1.015)',
+                        borderColor: meta.accent,
+                        boxShadow: `0 10px 28px -6px ${meta.accent}66`,
                       }
                     : canSelect && selected
                       ? {
@@ -492,7 +492,7 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
                   height: selected && canSelect ? 5 : 4,
                   borderRadius: '8px 8px 0 0',
                   background: meta.gradient,
-                  opacity: selected ? 1 : lockedByProgram ? 0.35 : 0.55,
+                  opacity: lockedByProgram ? 0.22 : 1,
                   transition: 'opacity 0.18s ease',
                 }}
               />
@@ -505,8 +505,10 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
                       height: 22,
                       fontWeight: 700,
                       fontSize: '0.7rem',
-                      bgcolor: `${meta.accent}${selected ? '33' : '18'}`,
-                      color: selected ? meta.accent : 'rgba(255,255,255,0.55)',
+                      bgcolor: lockedByProgram
+                        ? 'rgba(255,255,255,0.06)'
+                        : `${meta.accent}${selected ? '33' : '2a'}`,
+                      color: lockedByProgram ? 'rgba(255,255,255,0.38)' : meta.accent,
                       border: 'none',
                     }}
                   />
@@ -541,15 +543,22 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
                 <Typography
                   variant="subtitle1"
                   sx={{
-                    color: selected ? 'white' : 'rgba(255,255,255,0.82)',
-                    fontWeight: selected ? 800 : 600,
+                    color: lockedByProgram ? 'rgba(255,255,255,0.42)' : 'white',
+                    fontWeight: lockedByProgram ? 600 : selected ? 800 : 700,
                     mt: 1.25,
                     lineHeight: 1.3,
                   }}
                 >
                   {getAssessmentDisplayName(id)}
                 </Typography>
-                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.45)', display: 'block', mt: 0.75 }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: lockedByProgram ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.62)',
+                    display: 'block',
+                    mt: 0.75,
+                  }}
+                >
                   Skill-based · Adaptive-Style Pool
                 </Typography>
               </CardContent>
@@ -816,9 +825,14 @@ const PracticeModeContent: React.FC<PracticeModeContentProps> = ({
         <DialogTitle sx={{ fontWeight: 800 }}>Start this practice set?</DialogTitle>
         <DialogContent>
           <DialogContentText component="div" sx={{ color: '#FFFFFF', typography: 'body2', lineHeight: 1.65 }}>
-            This starts a practice set of {PRACTICE_SESSION_BATCH_SIZE} questions. Answer all{' '}
-            {PRACTICE_SESSION_BATCH_SIZE} to finish the set and qualify for weekly Argus coins. You can
-            still leave partway through if you need to, but coins are only awarded for a complete set.
+            This starts a practice set of {PRACTICE_SESSION_BATCH_SIZE} questions. Finish all{' '}
+            {PRACTICE_SESSION_BATCH_SIZE} to earn Argus Coins. You can earn coins for one completed set
+            of each practice subject each day.{' '}
+            <Box component="strong" sx={{ fontWeight: 800 }}>
+              A second set of the same practice subject today does not earn more coins.
+            </Box>{' '}
+            A
+            different practice subject still can.
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>

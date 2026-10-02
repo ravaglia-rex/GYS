@@ -21,11 +21,11 @@ import {
   LEADERBOARD_GRADES,
   formatLeaderboardDateTime,
   leaderboardScoreScaleLabel,
-  leaderboardScoreLevelHeadingSuffix,
   type ExamLeaderboardSection,
   type LeaderboardGrade,
 } from '../../utils/leaderboard';
-import { EXAM_MAX_SCORE_POINTS } from '../../utils/assessmentGating';
+import { LEVEL_CLEAR_THRESHOLD_POINTS } from '../../utils/assessmentGating';
+import type { LeaderboardEntry } from '../../utils/leaderboard';
 
 export interface StudentLeaderboardPanelProps {
   /** Default grade shown in the toggle (e.g. signed-in student grade when wired to profile). */
@@ -37,6 +37,8 @@ export interface StudentLeaderboardPanelProps {
   gradeToggleDisabled?: boolean;
   /** Per-grade mock/API sections; when set, changing grade updates visible tables. */
   sectionsByGrade?: Partial<Record<LeaderboardGrade, ExamLeaderboardSection[]>>;
+  /** Class-wise national Analytical Reasoning top 10. */
+  nationalByGrade?: Partial<Record<LeaderboardGrade, LeaderboardEntry[]>>;
 }
 
 function sectionHasEntries(sections: ExamLeaderboardSection[] | undefined): boolean {
@@ -58,6 +60,83 @@ function richestGradeWithEntries(
     }
   }
   return bestCount > 0 ? best : fallback;
+}
+
+function ScoreBoard({
+  title,
+  subtitle,
+  entries,
+  showSchool,
+  emptyMessage,
+}: {
+  title: string;
+  subtitle: string;
+  entries: LeaderboardEntry[];
+  showSchool: boolean;
+  emptyMessage: string;
+}) {
+  return (
+    <Box
+      sx={{
+        bgcolor: 'rgba(30, 41, 59, 0.65)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: '12px',
+        overflow: 'hidden',
+        minWidth: 0,
+      }}
+    >
+      <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <Typography sx={{ color: 'white', fontWeight: 700, fontSize: '1rem' }}>{title}</Typography>
+        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
+          {subtitle}
+        </Typography>
+      </Box>
+      {entries.length === 0 ? (
+        <Typography variant="body2" sx={{ color: 'rgba(226,232,240,0.75)', px: 2, py: 2.5 }}>
+          {emptyMessage}
+        </Typography>
+      ) : (
+        <TableContainer sx={{ overflowX: 'auto' }}>
+          <Table size="small" sx={{ minWidth: showSchool ? 420 : 320, '& .MuiTableCell-root': { borderColor: 'rgba(255,255,255,0.08)' } }}>
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ color: '#94a3b8', fontWeight: 600, width: 40 }}>#</TableCell>
+                <TableCell sx={{ color: '#94a3b8', fontWeight: 600 }}>Student</TableCell>
+                {showSchool && <TableCell sx={{ color: '#94a3b8', fontWeight: 600 }}>School</TableCell>}
+                <TableCell align="right" sx={{ color: '#94a3b8', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                  Score
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {entries.map((row) => (
+                <TableRow key={`${row.rank}-${row.studentName}-${row.schoolName ?? ''}`} hover sx={{ '&:hover': { bgcolor: 'rgba(255,255,255,0.03)' } }}>
+                  <TableCell sx={{ color: rankColor(row.rank), fontWeight: 700 }}>{row.rank}</TableCell>
+                  <TableCell sx={{ color: '#e2e8f0' }}>{row.studentName}</TableCell>
+                  {showSchool && (
+                    <TableCell sx={{ color: 'rgba(226,232,240,0.88)', fontSize: '0.8125rem' }}>
+                      {row.schoolName || 'School'}
+                    </TableCell>
+                  )}
+                  <TableCell
+                    align="right"
+                    sx={{
+                      color: row.scorePoints >= LEVEL_CLEAR_THRESHOLD_POINTS ? '#4ade80' : '#f8fafc',
+                      fontWeight: 600,
+                      fontVariantNumeric: 'tabular-nums',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {row.scorePoints}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
+    </Box>
+  );
 }
 
 export default function StudentLeaderboardPanel({
@@ -85,7 +164,10 @@ export default function StudentLeaderboardPanel({
   };
 
   const activeSections = sectionsByGrade?.[grade] ?? sections;
-  const visibleSections = activeSections.filter((section) => section.entries.length > 0);
+  const arSection = activeSections.find((section) => section.examId === 'analytical_reasoning');
+  const visibleSections = activeSections.filter(
+    (section) => section.examId !== 'analytical_reasoning' && section.entries.length > 0
+  );
   const hasExamTakenDates = visibleSections.some((section) =>
     section.entries.some((row) => Boolean(row.examTakenAtISO))
   );
@@ -176,7 +258,28 @@ export default function StudentLeaderboardPanel({
         </Typography>
       )}
 
-      {visibleSections.length === 0 && (
+      {arSection && (
+        <Box sx={{ mb: visibleSections.length > 0 ? 2 : 0 }}>
+          {/* All-schools board paused. Restore the two-column layout (All schools | Your school) when it comes back.
+          <ScoreBoard
+            title="All schools"
+            subtitle={`Top 10 in Class ${grade} - Analytical Reasoning (${leaderboardScoreScaleLabel}).`}
+            entries={nationalByGrade?.[grade] ?? []}
+            showSchool
+            emptyMessage="No Analytical Reasoning scores for this class yet."
+          />
+          */}
+          <ScoreBoard
+            title="Your school"
+            subtitle={`Top 10 in Class ${grade} - best official score (${leaderboardScoreScaleLabel}).`}
+            entries={arSection.entries}
+            showSchool={false}
+            emptyMessage="No official scores for this class at your school yet."
+          />
+        </Box>
+      )}
+
+      {visibleSections.length === 0 && !arSection && (
         <Alert severity="info" sx={{ bgcolor: 'rgba(59, 130, 246, 0.12)', color: '#e2e8f0', border: '1px solid rgba(59, 130, 246, 0.35)', '& .MuiAlert-icon': { color: '#93c5fd' } }}>
           No official scores for this class yet. Switch class above, or check back as students at your school take the test.
         </Alert>
@@ -235,12 +338,9 @@ export default function StudentLeaderboardPanel({
                       )}
                       <TableCell
                         align="right"
-                        sx={{ color: '#94a3b8', fontWeight: 600, minWidth: 108, whiteSpace: 'nowrap' }}
+                        sx={{ color: '#94a3b8', fontWeight: 600, minWidth: 72, whiteSpace: 'nowrap' }}
                       >
-                        Score{' '}
-                        <Box component="span" sx={{ fontWeight: 500, color: 'rgba(148, 163, 184, 0.88)' }}>
-                          {leaderboardScoreLevelHeadingSuffix(grade)}
-                        </Box>
+                        Score
                       </TableCell>
                     </TableRow>
                   </TableHead>
@@ -254,8 +354,15 @@ export default function StudentLeaderboardPanel({
                             {row.examTakenAtISO ? formatLeaderboardDateTime(row.examTakenAtISO) : '-'}
                           </TableCell>
                         )}
-                        <TableCell align="right" sx={{ color: '#f8fafc', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
-                          {row.scorePoints} on {EXAM_MAX_SCORE_POINTS}
+                        <TableCell
+                          align="right"
+                          sx={{
+                            color: row.scorePoints >= LEVEL_CLEAR_THRESHOLD_POINTS ? '#4ade80' : '#f8fafc',
+                            fontWeight: 600,
+                            fontVariantNumeric: 'tabular-nums',
+                          }}
+                        >
+                          {row.scorePoints}
                         </TableCell>
                       </TableRow>
                     ))}

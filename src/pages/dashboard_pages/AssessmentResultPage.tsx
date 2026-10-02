@@ -8,7 +8,7 @@ import {
   getAssessmentFlowDefinition,
   unlockedItemsAfterAttempt,
 } from '../../config/assessmentFlowUI';
-import { STUDENT_EXAM_SHOW_SCORES_AND_COINS } from '../../constants/constants';
+import { areExamScoresVisible } from '../../constants/constants';
 import {
   EXAM_MAX_SCORE_POINTS,
   isLevelBasedAssessment,
@@ -26,6 +26,7 @@ interface ResultState {
   nextTier?: number | null;
   completedAt?: string;
   coinsAwarded?: number;
+  resultsPending?: boolean;
 }
 
 const AI_PROFICIENCY_LEVELS = [
@@ -63,7 +64,7 @@ const AssessmentResultPage: React.FC = () => {
     ? `${flow.examTitleShort} Level ${tierNumber}`
     : flow.examTitleShort;
 
-  if (!STUDENT_EXAM_SHOW_SCORES_AND_COINS) {
+  if (!areExamScoresVisible(assessmentId) || state.resultsPending === true) {
     return (
       <Box
         sx={{

@@ -326,6 +326,8 @@ export type AssessmentChartRow = {
   score: number;
   assessmentId: string;
   locked: boolean;
+  /** False when the server omitted the score. A real 0 still counts as present. */
+  hasNumericScore?: boolean;
   /** Level (1-indexed) for the displayed score - last graded attempt when backend fields exist. */
   chartLevel?: number | null;
   /** True when the bar uses legacy best_score (no latest attempt snapshot yet). */
@@ -448,6 +450,7 @@ export function buildDashboardExamChartRows(
         score: picked?.score0to100 ?? 0,
         assessmentId: id,
         locked: false,
+        hasNumericScore: picked != null,
         chartLevel: picked?.chartLevel ?? p.latest_attempt_level ?? null,
         chartScoreIsBestFallback: picked?.chartScoreIsBestFallback ?? false,
       };

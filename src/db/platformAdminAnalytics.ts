@@ -880,7 +880,7 @@ export async function searchPlatformAdminOfficialExamCompletions(
     /** Inclusive /1000 score band (matches Score distribution bars). */
     scoreMin?: number | null;
     scoreMax?: number | null;
-    /** 1–500 page size; pass 0 for All (up to 500 matched rows). */
+    /** How many matching rows to return (1–500). Pass 0 for All (up to 500). Filters search the full index. */
     limit?: number;
   }
 ): Promise<{

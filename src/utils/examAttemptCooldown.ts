@@ -1,8 +1,6 @@
 import type { AssessmentProgress } from './assessmentGating';
 import { isUnlimitedOfficialExamRetakeEmail } from './officialStudentAssessmentsAccess';
 
-export const EXAM_ATTEMPT_COOLDOWN_MONTHS = 3;
-
 type FirestoreTimestampJson = {
   _seconds?: number;
   seconds?: number;
@@ -51,16 +49,6 @@ export function nextEligibleAtMsForLevel(
   const value = progress?.next_eligible_at_by_level?.[String(level)];
   const ms = timestampToMillis(value);
   return ms != null && ms > Date.now() ? ms : null;
-}
-
-export function addExamAttemptCooldown(startMs: number): number {
-  const start = new Date(startMs);
-  const next = new Date(startMs);
-  next.setMonth(start.getMonth() + EXAM_ATTEMPT_COOLDOWN_MONTHS);
-  if (next.getDate() !== start.getDate()) {
-    next.setDate(0);
-  }
-  return next.getTime();
 }
 
 export function formatCooldownDate(ms: number): string {

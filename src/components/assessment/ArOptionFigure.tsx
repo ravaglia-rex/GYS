@@ -150,9 +150,9 @@ export function useArOptionFigureMeta(
           setLayout(parsed);
         }
         setSlices(nextSlices);
-        if (optionFigureIncludesStemContent(parsed ?? 'grid', nextSlices)) {
-          const minY = Math.min(...nextSlices.map((s) => s.yPct));
-          const contentBottom = optionFigureStemContentBottomYPct(text, minY);
+        const minY = Math.min(...nextSlices.map((s) => s.yPct));
+        const contentBottom = optionFigureStemContentBottomYPct(text, minY);
+        if (optionFigureIncludesStemContent(parsed ?? 'grid', nextSlices, contentBottom)) {
           setRuntimeStemSlice(optionFigureStemSliceFromOptionSlices(nextSlices, contentBottom));
         } else {
           setRuntimeStemSlice(null);
@@ -274,16 +274,23 @@ export const ArOptionFigureSlice: React.FC<{
   // Parent must have a definite width (`flex: 1; minWidth: 0`) — otherwise
   // `width: 100%` can collapse to 0 in shrink-wrapped flex children.
   //
-  // Use aspect-ratio + transform (not padding-top + top/height %). With the
-  // padding hack, abspos height/% top often resolve against an indefinite
-  // containing block and clip the bottom of square option crops.
+  // Size the crop window with an in-flow padding-bottom spacer (not only
+  // aspect-ratio). Flex parents with overflow:hidden + align-items:center were
+  // treating abspos-only aspect-ratio boxes as short and clipping the bottom of
+  // square option cards (e.g. IF-08 flip/rotate A–B tiles).
+  //
+  // Image width/height both use crop % of the window so the sprite fill does
+  // not depend on the SVG's intrinsic aspect matching bank naturalWidth/Height.
   const boxWidth = Math.max(sliceWidth, 1);
   const boxHeight = Math.max(sliceHeight, 1);
   const wPct = Math.max(crop.wPct, 0.01);
+  const hPct = Math.max(crop.hPct, 0.01);
+  const padBottomPct = (boxHeight / boxWidth) * 100;
   return (
     <Box
       sx={{
-        flex: '1 1 auto',
+        flex: '0 1 auto',
+        alignSelf: 'flex-start',
         width: '100%',
         minWidth: 0,
         maxWidth: boxWidth,
@@ -293,12 +300,15 @@ export const ArOptionFigureSlice: React.FC<{
         sx={{
           position: 'relative',
           width: '100%',
-          aspectRatio: `${boxWidth} / ${boxHeight}`,
+          height: 0,
+          paddingBottom: `${padBottomPct}%`,
           overflow: 'hidden',
           lineHeight: 0,
           bgcolor: imgStatus === 'ready' ? 'transparent' : '#f8fafc',
+          // No borderRadius while cropping — rounded overflow clips card borders
+          // on tight grid slices (bottom edge of IF-08 option tiles).
           border: imgStatus === 'ready' ? 'none' : `1px solid ${borderMuted}`,
-          borderRadius: 1,
+          borderRadius: imgStatus === 'ready' ? 0 : 1,
         }}
       >
         {imgStatus === 'loading' ? (
@@ -360,8 +370,9 @@ export const ArOptionFigureSlice: React.FC<{
               display: imgStatus === 'error' ? 'none' : 'block',
               visibility: imgStatus === 'ready' ? 'visible' : 'hidden',
               width: `${10000 / wPct}%`,
-              height: 'auto',
+              height: `${10000 / hPct}%`,
               maxWidth: 'none',
+              maxHeight: 'none',
               left: 0,
               top: 0,
               // translate % is relative to the image itself, so xPct/yPct map

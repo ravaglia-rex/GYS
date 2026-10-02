@@ -1,6 +1,9 @@
 import type { AssessmentType } from '../../db/assessmentCollection';
 import { DEFAULT_PROCTORING_CONFIG, type ProctoringConfig } from './types';
 
+/** Camera, microphone, and the in-exam proctoring dock. Set to false to skip all of it. */
+export const VIDEO_PROCTORING_ENABLED = false;
+
 export function resolveProctoringConfig(
   assessment?: Pick<AssessmentType, 'proctoring'> | null
 ): ProctoringConfig {

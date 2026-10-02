@@ -252,6 +252,10 @@ export type PlatformAdminStudentRow = {
   /** Optional real contact mailbox for synthetic students (does not change login). */
   contact_email?: string;
   self_paid?: boolean;
+  /** Official exams with at least one finished sitting. */
+  exams_attempted?: string[];
+  /** Distinct official exams finished (same set as `exams_attempted`). */
+  exams_completed_count?: number;
 };
 
 export type PlatformAdminStudentPaymentHistoryItem = {
@@ -984,6 +988,12 @@ export async function listPlatformAdminStudents(params?: {
   payment?: 'self_paid' | 'membership_upgrade' | 'individual' | 'all';
   /** registered = has account; invite = invite-list / complimentary stub, no account yet. */
   account?: 'registered' | 'invite' | 'all';
+  /**
+   * `none` = finished no official exam.
+   * Comma-separated exam ids = finished at least one of those exams.
+   * Omit to leave the list unfiltered by exams (exports).
+   */
+  attempted?: string;
   /** Required: `'all'` or one/more school document IDs. Omitting returns no students. */
   school_ids?: 'all' | string[];
   limit?: number;
@@ -993,6 +1003,8 @@ export async function listPlatformAdminStudents(params?: {
   students: PlatformAdminStudentRow[];
   /** Rows matching the filters platform-wide - can exceed `students.length` when `limit` clips. */
   totalMatching: number;
+  /** All-schools browse stopped after the newest page instead of scanning every student. */
+  listCapped?: boolean;
 }> {
   const headers = await authHeaders();
   const schoolIdsParam =
@@ -1013,6 +1025,7 @@ export async function listPlatformAdminStudents(params?: {
       setup: params?.setup && params.setup !== 'all' ? params.setup : undefined,
       payment: params?.payment && params.payment !== 'all' ? params.payment : undefined,
       account: params?.account && params.account !== 'all' ? params.account : undefined,
+      attempted: params?.attempted || undefined,
       school_ids: schoolIdsParam,
       export: params?.export ? 'true' : undefined,
     },
@@ -1022,6 +1035,7 @@ export async function listPlatformAdminStudents(params?: {
     students,
     totalMatching:
       typeof res.data.total_matching === 'number' ? res.data.total_matching : students.length,
+    listCapped: res.data.list_capped === true,
   };
 }
 

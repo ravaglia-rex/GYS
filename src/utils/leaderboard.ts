@@ -47,6 +47,7 @@ export interface LeaderboardEntry {
   studentName: string;
   scorePoints: number;
   examTakenAtISO?: string;
+  schoolName?: string;
 }
 
 export interface ExamLeaderboardSection {

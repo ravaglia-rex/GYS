@@ -38,10 +38,6 @@ export const PRACTICE_ELIGIBLE_EXAM_IDS = ASSESSMENT_ORDER.filter(
   (id) => !NON_LEVEL_ASSESSMENT_IDS.has(id)
 ) as readonly string[];
 
-export const NON_PRACTICE_EXAM_IDS = ASSESSMENT_ORDER.filter((id) =>
-  NON_LEVEL_ASSESSMENT_IDS.has(id)
-) as readonly string[];
-
 /** Reasoning triad: full-page interactive practice (practice_bank API + PracticeTakePage). */
 export const INTERACTIVE_PRACTICE_EXAM_IDS = [
   'analytical_reasoning',
@@ -90,58 +86,10 @@ export const PRACTICE_POOL_BY_EXAM: Record<string, number> = {
   ai_literacy: 160,
 };
 
-/** @deprecated Use PRACTICE_POOL_BY_EXAM — levels collapsed. */
-export const PRACTICE_POOL_BY_EXAM_LEVEL: Record<string, Record<PracticeLevel, number>> = {
-  analytical_reasoning: { 1: 185, 2: 0, 3: 0 },
-  verbal_reasoning: { 1: 210, 2: 0, 3: 0 },
-  mathematical_reasoning: { 1: 198, 2: 0, 3: 0 },
-  english_proficiency: { 1: 220, 2: 0, 3: 0 },
-  ai_literacy: { 1: 160, 2: 0, 3: 0 },
-};
-
-export function recommendedPracticeLevel(grade: number): PracticeLevel {
-  const g = Number.isFinite(grade) ? grade : 8;
-  if (g <= 7) return 1;
-  if (g <= 9) return 2;
-  return 3;
-}
-
-export function recommendedLevelLabel(level: PracticeLevel): string {
-  switch (level) {
-    case 1:
-      return 'Classes 6–7';
-    case 2:
-      return 'Classes 8–9';
-    case 3:
-      return 'Classes 10–12';
-    default:
-      return '';
-  }
-}
-
-/**
- * Highest practice difficulty this student may use for an exam, based on official tier unlocks.
- * `proficiency_tier` is 1-based (which official level is in focus). If you have advanced to
- * official level 2, you may practice at levels 1 and 2. After all official tiers are complete
- * (proficiency_tier greater than the number of official tiers), all three practice levels unlock.
- * Pass `fullUnlock: true` for test-school rosters that bypass official progress caps.
- */
-export function maxUnlockedPracticeLevel(
-  progress: Partial<Pick<AssessmentProgress, 'proficiency_tier'>> | null | undefined,
-  totalOfficialTiers: number,
-  opts?: { fullUnlock?: boolean }
-): PracticeLevel {
-  if (opts?.fullUnlock) return 3;
-  const pt =
-    typeof progress?.proficiency_tier === 'number' && !Number.isNaN(progress.proficiency_tier)
-      ? progress.proficiency_tier
-      : 1;
-  const capTiers = totalOfficialTiers > 0 ? totalOfficialTiers : 3;
-  if (pt > capTiers) {
-    return 3;
-  }
-  return Math.min(3, Math.max(1, pt)) as PracticeLevel;
-}
+/** Level-keyed fallback when a session has no live pool cap. Levels 2 and 3 stay at 0. */
+const PRACTICE_POOL_BY_EXAM_LEVEL: Record<string, Record<PracticeLevel, number>> = Object.fromEntries(
+  Object.entries(PRACTICE_POOL_BY_EXAM).map(([examId, count]) => [examId, { 1: count, 2: 0, 3: 0 }])
+);
 
 // ─── Local persistence (until practice API exists) ─────────────────────────────
 
@@ -278,7 +226,7 @@ export function getPracticeStats(
   activeSession: PracticeActiveSession | null;
 } {
   const persisted = load(scope);
-  const staticPool = PRACTICE_POOL_BY_EXAM[examId] ?? PRACTICE_POOL_BY_EXAM_LEVEL[examId]?.[1] ?? 0;
+  const staticPool = PRACTICE_POOL_BY_EXAM[examId] ?? 0;
   const pool =
     livePoolByLevel != null && typeof livePoolByLevel[1] === 'number'
       ? livePoolByLevel[1]!
@@ -504,7 +452,7 @@ export function clearPracticeTakeSession(scope: string, examId: string, level: P
   }
 }
 
-/** Optional hook for when question engine lands - increments completed count for an exam/level. */
+/** Increments the locally stored completed-question count for an exam/level. */
 export function recordPracticeQuestionsCompleted(
   scope: string,
   examId: string,
@@ -567,16 +515,5 @@ export const PRACTICE_EXAM_CARD_STYLE: Record<
     examNumber: 5,
     gradient: 'linear-gradient(135deg, #06b6d4 0%, #0e7490 100%)',
     accent: '#06b6d4',
-  },
-};
-
-export const NON_PRACTICE_EXAM_CARD_STYLE: Record<string, { examNumber: number; gradient: string }> = {
-  comprehensive_personality: {
-    examNumber: 4,
-    gradient: 'linear-gradient(135deg, rgba(236,72,153,0.35) 0%, rgba(190,24,93,0.25) 100%)',
-  },
-  career_interest_inventory: {
-    examNumber: 7,
-    gradient: 'linear-gradient(135deg, rgba(168,85,247,0.35) 0%, rgba(109,40,217,0.25) 100%)',
   },
 };

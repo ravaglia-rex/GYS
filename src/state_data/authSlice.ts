@@ -1,6 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { getSchoolAdmin, checkSchoolEmail, SchoolAdmin } from '../db/schoolAdminCollection';
-import { getPlatformAdminMe } from '../db/platformAdminCollection';
+import type { SchoolAdmin } from '../db/schoolAdminCollection';
 
 export interface User {
     uid: string;
@@ -33,6 +32,7 @@ export const checkUserRole = createAsyncThunk(
     'auth/checkUserRole',
     async (email: string, { getState, rejectWithValue }) => {
         try {
+            const { getPlatformAdminMe } = await import('../db/platformAdminCollection');
             // Platform admin first — must not fall through to "student" on transient /me errors.
             try {
                 const me = await getPlatformAdminMe();
@@ -52,6 +52,7 @@ export const checkUserRole = createAsyncThunk(
                 return rejectWithValue(message);
             }
 
+            const { getSchoolAdmin, checkSchoolEmail } = await import('../db/schoolAdminCollection');
             const state = getState() as { auth?: AuthState };
             const preferredSchoolId = state.auth?.schoolAdmin?.schoolId;
             let schoolAdmin = await getSchoolAdmin(email, preferredSchoolId);

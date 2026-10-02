@@ -87,7 +87,6 @@ import {
   PlatformAdminPageHeader,
   PlatformAdminChip,
   PlatformAdminStatCard,
-  PlatformAdminFilterControl,
   PlatformAdminTableSection,
 } from './platformAdminComponents';
 import { isPlatformAdminTestStudent } from './platformAdminTestStudents';
@@ -181,6 +180,45 @@ function membershipExportLabel(level: number | null | undefined): string {
   const named = MEMBERSHIP_LEVEL_LABEL[level as 1 | 2 | 3 | 4];
   return named ? `Level ${level} · ${named}` : `Level ${level}`;
 }
+
+function examsAttemptedExportLabel(ids: string[] | undefined): string {
+  const attempted = new Set(ids ?? []);
+  return ATTEMPTED_EXAM_OPTIONS.filter((option) => attempted.has(option.id))
+    .map((option) => option.label)
+    .join(', ');
+}
+
+function sortStudentRows(
+  rows: PlatformAdminStudentRow[],
+  sortKey: StudentSortKey,
+  sortDir: StudentSortDir
+): PlatformAdminStudentRow[] {
+  const sorted = [...rows];
+  const dir = sortDir === 'asc' ? 1 : -1;
+  sorted.sort((a, b) => {
+    if (sortKey === 'exams_completed') {
+      return ((a.exams_completed_count ?? 0) - (b.exams_completed_count ?? 0)) * dir;
+    }
+    if (sortKey === 'login_streak') {
+      return ((a.login_streak_longest ?? 0) - (b.login_streak_longest ?? 0)) * dir;
+    }
+    if (sortKey === 'qod_streak') {
+      return ((a.qod_streak_longest ?? 0) - (b.qod_streak_longest ?? 0)) * dir;
+    }
+    if (sortKey === 'practice') {
+      return ((a.practice_sessions_total ?? 0) - (b.practice_sessions_total ?? 0)) * dir;
+    }
+    if (sortKey === 'name') {
+      const an = `${a.first_name} ${a.last_name}`.trim().toLowerCase();
+      const bn = `${b.first_name} ${b.last_name}`.trim().toLowerCase();
+      return an.localeCompare(bn) * dir;
+    }
+    const aJoined = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const bJoined = b.created_at ? new Date(b.created_at).getTime() : 0;
+    return (aJoined - bJoined) * dir;
+  });
+  return sorted;
+}
 const ALL_SCHOOLS_VALUE = '__all__';
 /** Must match the backend's NO_SCHOOL_FILTER_VALUE sentinel in platformAdminCollection/index.ts. */
 const NO_SCHOOL_FILTER_VALUE = '__no_school__';
@@ -200,12 +238,6 @@ const ROSTER_LABELS: Record<RosterFilter, string> = {
   all: 'All roster',
   yes: 'Linked to a school',
   no: 'Not linked to a school',
-};
-
-/** Compact closed-select labels; menu + filter chips keep ROSTER_LABELS. */
-const ROSTER_VALUE_LABELS: Partial<Record<RosterFilter, string>> = {
-  yes: 'Linked',
-  no: 'Not linked',
 };
 
 const SETUP_LABELS: Record<SetupFilter, string> = {
@@ -246,6 +278,32 @@ const MEMBERSHIP_LABELS: Record<MembershipFilter, string> = {
   '3_plus': 'Stream Ready+',
 };
 
+/** Official exams in the Attempted multi-select. Empty selection means no finished exam. */
+const ATTEMPTED_EXAM_OPTIONS: { id: string; label: string }[] = [
+  { id: 'analytical_reasoning', label: 'Analytical' },
+  { id: 'verbal_reasoning', label: 'Verbal' },
+  { id: 'mathematical_reasoning', label: 'Mathematical' },
+  { id: 'comprehensive_personality', label: 'Personality' },
+  { id: 'ai_literacy', label: 'AI Proficiency' },
+  { id: 'english_proficiency', label: 'English' },
+  { id: 'career_interest_inventory', label: 'Career Discovery' },
+];
+
+const ATTEMPTED_EXAM_LABEL = new Map(ATTEMPTED_EXAM_OPTIONS.map((option) => [option.id, option.label]));
+
+function parseAttemptedExamIds(raw: string | null): string[] {
+  if (!raw || raw.toLowerCase() === 'none') return [];
+  const allowed = new Set(ATTEMPTED_EXAM_OPTIONS.map((option) => option.id));
+  return Array.from(
+    new Set(
+      raw
+        .split(',')
+        .map((id) => id.trim())
+        .filter((id) => allowed.has(id))
+    )
+  );
+}
+
 function parseInitialSchoolSelection(raw: string | null): {
   allSchoolsSelected: boolean;
   selectedSchoolIds: string[];
@@ -260,25 +318,22 @@ const PLATFORM_STUDENTS_VIRTUOSO_HEIGHT = 560;
 
 /**
  * Fixed % widths so TableVirtuoso rows don't reflow columns as rows virtualize in/out.
- * The joined date lives on the student detail page only, which leaves Status enough room to show
- * labels like "Payment incomplete" without clipping.
+ * The joined date lives on the student detail page only.
  */
 const STUDENT_COL = {
-  name: { width: '14%', minWidth: 110 },
-  email: { width: '16%', minWidth: 140 },
-  school: { width: '15%', minWidth: 120 },
-  grade: { width: '5%', minWidth: 52 },
-  membership: { width: '8%', minWidth: 80 },
-  coins: { width: '9%', minWidth: 88 },
-  qod: { width: '9%', minWidth: 88 },
-  status: { width: '16%', minWidth: 140 },
-  actions: { width: '11%', minWidth: 104 },
+  name: { width: '15%', minWidth: 112 },
+  email: { width: '17%', minWidth: 148 },
+  school: { width: '16%', minWidth: 128 },
+  grade: { width: '8%', minWidth: 72 },
+  membership: { width: '12%', minWidth: 118 },
+  exams: { width: '11%', minWidth: 108 },
+  status: { width: '13%', minWidth: 148 },
+  actions: { width: '8%', minWidth: 88 },
 } as const;
 
 /** `joined` has no column header; it stays the default order (newest accounts first). */
 type StudentSortKey =
-  | 'coins'
-  | 'qod'
+  | 'exams_completed'
   | 'joined'
   | 'name'
   | 'login_streak'
@@ -289,8 +344,7 @@ type StudentSortDir = 'asc' | 'desc';
 const STUDENT_SORT_LABELS: Record<StudentSortKey, string> = {
   joined: 'Joined (newest)',
   name: 'Name',
-  coins: 'Coins (balance)',
-  qod: 'QoD attempted',
+  exams_completed: 'Exams done',
   login_streak: 'Login streak (longest)',
   qod_streak: 'QoD streak (longest)',
   practice: 'Practice sessions',
@@ -301,6 +355,45 @@ const studentColSx = (key: keyof typeof STUDENT_COL, extra?: Record<string, unkn
   boxSizing: 'border-box' as const,
   ...extra,
 });
+
+const studentTableSx = {
+  ...platformAdminTableSx,
+  tableLayout: 'fixed' as const,
+  width: '100%',
+  minWidth: 1040,
+  '& .MuiTableCell-root': {
+    ...platformAdminTableSx['& .MuiTableCell-root'],
+    px: 1.5,
+  },
+  '& .MuiTableHead-root .MuiTableRow-root:hover': {
+    bgcolor: ip.cardMutedBg,
+  },
+};
+
+/** Column titles stay bold and on one line. Hover does not recolor them. */
+const studentHeadRowSx = {
+  ...platformAdminTableHeadRowSx,
+  '& .MuiTableCell-root': {
+    ...platformAdminTableHeadRowSx['& .MuiTableCell-root'],
+    fontWeight: 700,
+    whiteSpace: 'nowrap',
+    overflow: 'visible',
+  },
+  '& .MuiTableSortLabel-root': {
+    fontWeight: 700,
+    color: ip.heading,
+  },
+  '& .MuiTableSortLabel-root:hover, & .MuiTableSortLabel-root:focus, & .MuiTableSortLabel-root.Mui-active': {
+    color: ip.heading,
+  },
+  '& .MuiTableSortLabel-root:hover .MuiTableSortLabel-icon': {
+    opacity: 0,
+  },
+  '& .MuiTableSortLabel-root.Mui-active .MuiTableSortLabel-icon, & .MuiTableSortLabel-root.Mui-active:hover .MuiTableSortLabel-icon':
+    {
+      opacity: 1,
+    },
+} as const;
 
 const PlatformStudentsVirtuosoComponents = {
   Scroller: React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
@@ -322,10 +415,7 @@ const PlatformStudentsVirtuosoComponents = {
       {...props}
       size="medium"
       sx={{
-        ...platformAdminTableSx,
-        tableLayout: 'fixed',
-        width: '100%',
-        minWidth: 960,
+        ...studentTableSx,
         borderCollapse: 'separate',
       }}
     />
@@ -343,6 +433,187 @@ const PlatformStudentsVirtuosoComponents = {
   ),
 };
 
+const studentsDropdownButtonSx = {
+  flex: 1,
+  minWidth: 0,
+  width: 'auto',
+  height: 40,
+  minHeight: 40,
+  justifyContent: 'space-between',
+  textTransform: 'none',
+  bgcolor: '#fff',
+  color: ip.heading,
+  border: `1px solid ${ip.cardBorder}`,
+  borderRadius: 1.5,
+  boxShadow: 'none',
+  px: 1.25,
+  '&:hover': {
+    borderColor: ip.navy,
+    bgcolor: '#fff',
+    boxShadow: 'none',
+  },
+  '& .MuiButton-endIcon': { ml: 1, mr: 0 },
+} as const;
+
+function StudentsFilterMenuItem({
+  label,
+  selected,
+  onClick,
+  checked,
+}: {
+  label: string;
+  selected: boolean;
+  onClick: () => void;
+  /** When set, the row shows a checkbox (multi-select). */
+  checked?: boolean;
+}) {
+  return (
+    <MenuItem
+      dense
+      selected={selected}
+      onClick={onClick}
+      sx={{ alignItems: 'center', py: 0.75 }}
+    >
+      {checked != null ? (
+        <Checkbox checked={checked} size="small" sx={{ pt: 0.25, mr: 0.25 }} />
+      ) : null}
+      <ListItemText
+        primary={label}
+        primaryTypographyProps={{
+          fontWeight: 600,
+          color: ip.heading,
+          noWrap: true,
+        }}
+      />
+    </MenuItem>
+  );
+}
+
+function StudentsFilterMenu({
+  id,
+  label,
+  valueText,
+  open,
+  onToggle,
+  buttonRef,
+  paperRef,
+  children,
+}: {
+  id: string;
+  label: string;
+  valueText: string;
+  open: boolean;
+  onToggle: () => void;
+  buttonRef: (node: HTMLButtonElement | null) => void;
+  paperRef: (node: HTMLDivElement | null) => void;
+  children: React.ReactNode;
+}) {
+  const anchorRef = useRef<HTMLButtonElement | null>(null);
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 1.25,
+        flex: '1 1 0',
+        minWidth: 160,
+        width: '100%',
+      }}
+    >
+      <Typography
+        component="label"
+        htmlFor={id}
+        variant="body2"
+        sx={{
+          color: ip.heading,
+          fontWeight: 700,
+          whiteSpace: 'nowrap',
+          fontSize: '0.8rem',
+          flexShrink: 0,
+        }}
+      >
+        {label}
+      </Typography>
+      <Button
+        id={id}
+        ref={(node) => {
+          anchorRef.current = node;
+          buttonRef(node);
+        }}
+        type="button"
+        disableRipple
+        aria-haspopup="listbox"
+        aria-expanded={open ? 'true' : undefined}
+        onClick={onToggle}
+        endIcon={
+          <KeyboardArrowDownIcon
+            sx={{
+              color: ip.heading,
+              fontSize: 20,
+              transform: open ? 'rotate(180deg)' : 'none',
+              transition: 'transform 120ms ease',
+            }}
+          />
+        }
+        sx={studentsDropdownButtonSx}
+      >
+        <Typography
+          component="span"
+          noWrap
+          sx={{
+            flex: 1,
+            textAlign: 'left',
+            fontWeight: 600,
+            fontSize: '0.875rem',
+            color: ip.heading,
+          }}
+        >
+          {valueText}
+        </Typography>
+      </Button>
+      <Popper
+        open={open}
+        anchorEl={anchorRef.current}
+        placement="bottom-start"
+        disablePortal={false}
+        modifiers={[
+          { name: 'offset', options: { offset: [0, 4] } },
+          { name: 'flip', enabled: false },
+          {
+            name: 'preventOverflow',
+            options: { altAxis: false, tether: false, padding: 8 },
+          },
+        ]}
+        sx={{ zIndex: (theme) => theme.zIndex.modal }}
+      >
+        <Paper
+          ref={paperRef}
+          elevation={0}
+          sx={{
+            ...platformAdminSelectMenuPaperSx,
+            mt: 0,
+            width: Math.max(anchorRef.current?.offsetWidth ?? 180, 220),
+            maxHeight: 320,
+            overflowY: 'auto',
+          }}
+        >
+          <MenuList
+            id={`${id}-menu`}
+            autoFocusItem={false}
+            dense
+            sx={{ py: 0.5 }}
+            aria-labelledby={id}
+          >
+            {children}
+          </MenuList>
+        </Paper>
+      </Popper>
+    </Box>
+  );
+}
+
+type StudentFilterMenuId = 'sort' | 'attempted' | 'grade' | 'membership';
+
 const PlatformAdminStudentsPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -357,6 +628,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
   const initialAccount = (searchParams.get('account') as AccountFilter) || 'all';
   const initialGrade = (searchParams.get('grade') as GradeFilter) || 'all';
   const initialMembership = (searchParams.get('membership') as MembershipFilter) || 'all';
+  const initialAttemptedExamIds = parseAttemptedExamIds(searchParams.get('attempted'));
   const initialSchool = parseInitialSchoolSelection(searchParams.get('schools'));
 
   const [allSchoolsSelected, setAllSchoolsSelected] = useState(initialSchool.allSchoolsSelected);
@@ -364,6 +636,9 @@ const PlatformAdminStudentsPage: React.FC = () => {
   const [schoolMenuOpen, setSchoolMenuOpen] = useState(false);
   const schoolMenuAnchorRef = useRef<HTMLButtonElement | null>(null);
   const schoolMenuPaperRef = useRef<HTMLDivElement | null>(null);
+  const [openFilterMenu, setOpenFilterMenu] = useState<StudentFilterMenuId | null>(null);
+  const filterMenuAnchorRefs = useRef<Partial<Record<StudentFilterMenuId, HTMLButtonElement | null>>>({});
+  const filterMenuPaperRefs = useRef<Partial<Record<StudentFilterMenuId, HTMLDivElement | null>>>({});
 
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -392,6 +667,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
   const [membershipFilter, setMembershipFilter] = useState<MembershipFilter>(
     Object.keys(MEMBERSHIP_LABELS).includes(initialMembership) ? initialMembership : 'all'
   );
+  const [attemptedExamIds, setAttemptedExamIds] = useState<string[]>(initialAttemptedExamIds);
 
   const [complimentaryError, setComplimentaryError] = useState<string | null>(null);
   const [complimentaryMessage, setComplimentaryMessage] = useState<string | null>(null);
@@ -406,6 +682,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
   const [exportDialogError, setExportDialogError] = useState<string | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
   const [exportMessage, setExportMessage] = useState<string | null>(null);
+  const [viewExportBusy, setViewExportBusy] = useState(false);
 
   const schoolSelected = allSchoolsSelected || selectedSchoolIds.length > 0;
   /** Unlinked students have no school_id - allow loading them without picking a school. */
@@ -415,16 +692,22 @@ const PlatformAdminStudentsPage: React.FC = () => {
   // its ESM build is named-export-only, and barrel imports have resolved to undefined
   // at runtime ("Element type is invalid … got: undefined").
   useEffect(() => {
-    if (!schoolMenuOpen) return undefined;
+    if (!schoolMenuOpen && !openFilterMenu) return undefined;
     const onPointerDown = (event: MouseEvent | TouchEvent) => {
       const target = event.target as Node | null;
       if (!target) return;
       if (schoolMenuAnchorRef.current?.contains(target)) return;
       if (schoolMenuPaperRef.current?.contains(target)) return;
+      if (openFilterMenu && filterMenuAnchorRefs.current[openFilterMenu]?.contains(target)) return;
+      if (openFilterMenu && filterMenuPaperRefs.current[openFilterMenu]?.contains(target)) return;
       setSchoolMenuOpen(false);
+      setOpenFilterMenu(null);
     };
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setSchoolMenuOpen(false);
+      if (event.key === 'Escape') {
+        setSchoolMenuOpen(false);
+        setOpenFilterMenu(null);
+      }
     };
     document.addEventListener('mousedown', onPointerDown);
     document.addEventListener('touchstart', onPointerDown);
@@ -434,7 +717,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
       document.removeEventListener('touchstart', onPointerDown);
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [schoolMenuOpen]);
+  }, [schoolMenuOpen, openFilterMenu]);
   useEffect(() => {
     const timer = setTimeout(
       () => setDebouncedSearch(search.trim()),
@@ -457,6 +740,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
       account: accountFilter === 'all' ? undefined : accountFilter,
       grade: gradeFilter === 'all' ? undefined : gradeFilter,
       membership: membershipFilter === 'all' ? undefined : membershipFilter,
+      attempted: attemptedExamIds.length > 0 ? attemptedExamIds.join(',') : 'none',
       school_ids,
       limit: 500,
     };
@@ -469,12 +753,21 @@ const PlatformAdminStudentsPage: React.FC = () => {
     accountFilter,
     gradeFilter,
     membershipFilter,
+    attemptedExamIds,
     allSchoolsSelected,
     selectedSchoolIds,
   ]);
   const studentsQuery = usePlatformAdminStudents(studentListParams, canLoadStudents);
 
-  const schools = useMemo(() => schoolsQuery.data ?? [], [schoolsQuery.data]);
+  const schools = useMemo(() => {
+    const rows = schoolsQuery.data ?? [];
+    return [...rows].sort((a, b) =>
+      (a.school_name || a.id).localeCompare(b.school_name || b.id, undefined, {
+        sensitivity: 'base',
+        numeric: true,
+      })
+    );
+  }, [schoolsQuery.data]);
   const schoolsLoading = schoolsQuery.isLoading;
   const stats = statsQuery.data ?? null;
   const rosterAccountPending = stats
@@ -488,6 +781,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
     [canLoadStudents, studentsQuery.data?.students]
   );
   const totalMatching = canLoadStudents ? studentsQuery.data?.totalMatching ?? 0 : 0;
+  const listCapped = canLoadStudents && studentsQuery.data?.listCapped === true;
   const loading = canLoadStudents && studentsQuery.isLoading;
   const error =
     schoolsQuery.isError
@@ -525,6 +819,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
     accountFilter !== 'all' ||
     gradeFilter !== 'all' ||
     membershipFilter !== 'all' ||
+    attemptedExamIds.length > 0 ||
     search.trim().length > 0;
 
   const clearSecondaryFilters = () => {
@@ -536,6 +831,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
     setAccountFilter('all');
     setGradeFilter('all');
     setMembershipFilter('all');
+    setAttemptedExamIds([]);
   };
 
   const clearSchoolSelection = () => {
@@ -732,6 +1028,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
     if (accountFilter !== 'all') params.set('account', accountFilter);
     if (gradeFilter !== 'all') params.set('grade', gradeFilter);
     if (membershipFilter !== 'all') params.set('membership', membershipFilter);
+    if (attemptedExamIds.length > 0) params.set('attempted', attemptedExamIds.join(','));
     setSearchParams(params, { replace: true });
   }, [
     allSchoolsSelected,
@@ -743,16 +1040,13 @@ const PlatformAdminStudentsPage: React.FC = () => {
     accountFilter,
     gradeFilter,
     membershipFilter,
+    attemptedExamIds,
     setSearchParams,
   ]);
 
-  const handleRosterFilterChange = (value: RosterFilter) => {
-    setRosterFilter(value);
-    // Unlinked students only appear under All schools - switch automatically.
-    if (value === 'no') {
-      setAllSchoolsSelected(true);
-      setSelectedSchoolIds([]);
-    }
+  const toggleFilterMenu = (id: StudentFilterMenuId) => {
+    setSchoolMenuOpen(false);
+    setOpenFilterMenu((current) => (current === id ? null : id));
   };
 
   const handleSchoolSelectChange = (rawValues: string | string[]) => {
@@ -872,6 +1166,16 @@ const PlatformAdminStudentsPage: React.FC = () => {
         onDelete: () => setMembershipFilter('all'),
       });
     }
+    if (attemptedExamIds.length > 0) {
+      const names = attemptedExamIds
+        .map((id) => ATTEMPTED_EXAM_LABEL.get(id) ?? id)
+        .join(', ');
+      chips.push({
+        key: 'attempted',
+        label: `Attempted: ${names}`,
+        onDelete: () => setAttemptedExamIds([]),
+      });
+    }
     if (search.trim()) {
       chips.push({ key: 'search', label: `Search: ${search.trim()}`, onDelete: () => setSearch('') });
     }
@@ -887,44 +1191,16 @@ const PlatformAdminStudentsPage: React.FC = () => {
     accountFilter,
     gradeFilter,
     membershipFilter,
+    attemptedExamIds,
     search,
   ]);
 
-  const tableColSpan = isSuperAdmin ? 9 : 8;
+  const tableColSpan = isSuperAdmin ? 8 : 7;
 
-  const sortedStudents = useMemo(() => {
-    const rows = [...students];
-    const dir = sortDir === 'asc' ? 1 : -1;
-    rows.sort((a, b) => {
-      if (sortKey === 'coins') {
-        return (a.argus_coins - b.argus_coins) * dir;
-      }
-      if (sortKey === 'qod') {
-        const aQod = a.qod_attempted_total ?? 0;
-        const bQod = b.qod_attempted_total ?? 0;
-        if (aQod !== bQod) return (aQod - bQod) * dir;
-        return ((a.qod_accuracy_pct ?? 0) - (b.qod_accuracy_pct ?? 0)) * dir;
-      }
-      if (sortKey === 'login_streak') {
-        return ((a.login_streak_longest ?? 0) - (b.login_streak_longest ?? 0)) * dir;
-      }
-      if (sortKey === 'qod_streak') {
-        return ((a.qod_streak_longest ?? 0) - (b.qod_streak_longest ?? 0)) * dir;
-      }
-      if (sortKey === 'practice') {
-        return ((a.practice_sessions_total ?? 0) - (b.practice_sessions_total ?? 0)) * dir;
-      }
-      if (sortKey === 'name') {
-        const an = `${a.first_name} ${a.last_name}`.trim().toLowerCase();
-        const bn = `${b.first_name} ${b.last_name}`.trim().toLowerCase();
-        return an.localeCompare(bn) * dir;
-      }
-      const aJoined = a.created_at ? new Date(a.created_at).getTime() : 0;
-      const bJoined = b.created_at ? new Date(b.created_at).getTime() : 0;
-      return (aJoined - bJoined) * dir;
-    });
-    return rows;
-  }, [students, sortKey, sortDir]);
+  const sortedStudents = useMemo(
+    () => sortStudentRows(students, sortKey, sortDir),
+    [students, sortKey, sortDir]
+  );
 
   const toggleSort = (key: StudentSortKey) => {
     if (sortKey === key) {
@@ -933,6 +1209,60 @@ const PlatformAdminStudentsPage: React.FC = () => {
     }
     setSortKey(key);
     setSortDir(key === 'name' ? 'asc' : 'desc');
+  };
+
+  const handleExportThisView = async () => {
+    if (viewExportBusy || !canLoadStudents) return;
+    setViewExportBusy(true);
+    setExportError(null);
+    setExportMessage(null);
+    try {
+      let rows = sortedStudents;
+      if (listCapped || totalMatching > sortedStudents.length) {
+        const result = await listPlatformAdminStudents({
+          ...studentListParams,
+          limit: 5000,
+          export: true,
+        });
+        rows = sortStudentRows(result.students, sortKey, sortDir);
+      }
+      if (rows.length === 0) {
+        setExportError('No students in this view to export.');
+        return;
+      }
+
+      const sheetRows = rows.map((row) => ({
+        Name: `${row.first_name} ${row.last_name}`.trim(),
+        Email: studentExportEmail(row),
+        Grade: row.grade ?? '',
+        Section: row.section || '',
+        School: row.school_name || '',
+        'Join Date': formatExportJoinedDate(row.created_at),
+        'Exams Attempted': examsAttemptedExportLabel(row.exams_attempted),
+        'Membership Level': membershipExportLabel(row.membership_level),
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(sheetRows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Students');
+      const dateStamp = new Date().toISOString().slice(0, 10);
+      const schoolToken = sanitizeExportFileToken(
+        allSchoolsSelected
+          ? 'All_schools'
+          : selectedSchoolIds.length === 1
+            ? schoolNameById.get(selectedSchoolIds[0]) || selectedSchoolIds[0]
+            : `${selectedSchoolIds.length}_schools`
+      );
+      XLSX.writeFile(workbook, `${schoolToken}_This_View_${dateStamp}.xlsx`);
+      setExportMessage(
+        `Exported ${rows.length.toLocaleString()} student${rows.length === 1 ? '' : 's'} from this view.`
+      );
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { error?: string } }; message?: string };
+      setExportError(err?.response?.data?.error || err?.message || 'Failed to export this view.');
+    } finally {
+      setViewExportBusy(false);
+    }
   };
 
   const openExportDialog = () => {
@@ -1175,7 +1505,10 @@ const PlatformAdminStudentsPage: React.FC = () => {
               disabled={schoolsLoading}
               aria-haspopup="listbox"
               aria-expanded={schoolMenuOpen ? 'true' : undefined}
-              onClick={() => setSchoolMenuOpen((open) => !open)}
+              onClick={() => {
+                setOpenFilterMenu(null);
+                setSchoolMenuOpen((open) => !open);
+              }}
               endIcon={
                 <KeyboardArrowDownIcon
                   sx={{
@@ -1385,55 +1718,118 @@ const PlatformAdminStudentsPage: React.FC = () => {
               borderTop: `1px solid ${ip.cardBorder}`,
             }}
           >
-            <PlatformAdminFilterControl
+            <StudentsFilterMenu
               id="students-sort-filter"
               label="Sort by"
-              value={sortKey}
-              labels={STUDENT_SORT_LABELS}
-              minWidth={168}
-              fullWidth
-              onChange={(key) => {
-                setSortKey(key);
-                setSortDir(key === 'name' ? 'asc' : 'desc');
+              valueText={STUDENT_SORT_LABELS[sortKey]}
+              open={openFilterMenu === 'sort'}
+              onToggle={() => toggleFilterMenu('sort')}
+              buttonRef={(node) => {
+                filterMenuAnchorRefs.current.sort = node;
               }}
-            />
-            <PlatformAdminFilterControl
-              id="students-status-filter"
-              label="Status"
-              value={statusFilter}
-              labels={STATUS_LABELS}
-              minWidth={148}
-              fullWidth
-              onChange={setStatusFilter}
-            />
-            <PlatformAdminFilterControl
-              id="students-roster-filter"
-              label="Roster"
-              value={rosterFilter}
-              labels={ROSTER_LABELS}
-              valueLabels={ROSTER_VALUE_LABELS}
-              minWidth={120}
-              fullWidth
-              onChange={handleRosterFilterChange}
-            />
-            <PlatformAdminFilterControl
+              paperRef={(node) => {
+                filterMenuPaperRefs.current.sort = node;
+              }}
+            >
+              {(Object.keys(STUDENT_SORT_LABELS) as StudentSortKey[]).map((key) => (
+                <StudentsFilterMenuItem
+                  key={key}
+                  label={STUDENT_SORT_LABELS[key]}
+                  selected={sortKey === key}
+                  onClick={() => {
+                    setSortKey(key);
+                    setSortDir(key === 'name' ? 'asc' : 'desc');
+                    setOpenFilterMenu(null);
+                  }}
+                />
+              ))}
+            </StudentsFilterMenu>
+            <StudentsFilterMenu
+              id="students-attempted-filter"
+              label="Attempted"
+              valueText={
+                attemptedExamIds.length === 0
+                  ? 'No exams'
+                  : attemptedExamIds.map((id) => ATTEMPTED_EXAM_LABEL.get(id) ?? id).join(', ')
+              }
+              open={openFilterMenu === 'attempted'}
+              onToggle={() => toggleFilterMenu('attempted')}
+              buttonRef={(node) => {
+                filterMenuAnchorRefs.current.attempted = node;
+              }}
+              paperRef={(node) => {
+                filterMenuPaperRefs.current.attempted = node;
+              }}
+            >
+              {ATTEMPTED_EXAM_OPTIONS.map((option) => {
+                const checked = attemptedExamIds.includes(option.id);
+                return (
+                  <StudentsFilterMenuItem
+                    key={option.id}
+                    label={option.label}
+                    selected={checked}
+                    checked={checked}
+                    onClick={() => {
+                      setAttemptedExamIds((current) =>
+                        current.includes(option.id)
+                          ? current.filter((id) => id !== option.id)
+                          : [...current, option.id]
+                      );
+                    }}
+                  />
+                );
+              })}
+            </StudentsFilterMenu>
+            <StudentsFilterMenu
               id="students-grade-filter"
               label="Grade"
-              value={gradeFilter}
-              labels={GRADE_LABELS}
-              minWidth={132}
-              fullWidth
-              onChange={setGradeFilter}
-            />
-            <PlatformAdminFilterControl
+              valueText={GRADE_LABELS[gradeFilter]}
+              open={openFilterMenu === 'grade'}
+              onToggle={() => toggleFilterMenu('grade')}
+              buttonRef={(node) => {
+                filterMenuAnchorRefs.current.grade = node;
+              }}
+              paperRef={(node) => {
+                filterMenuPaperRefs.current.grade = node;
+              }}
+            >
+              {(Object.keys(GRADE_LABELS) as GradeFilter[]).map((key) => (
+                <StudentsFilterMenuItem
+                  key={key}
+                  label={GRADE_LABELS[key]}
+                  selected={gradeFilter === key}
+                  onClick={() => {
+                    setGradeFilter(key);
+                    setOpenFilterMenu(null);
+                  }}
+                />
+              ))}
+            </StudentsFilterMenu>
+            <StudentsFilterMenu
               id="students-membership-filter"
               label="Membership"
-              value={membershipFilter}
-              labels={MEMBERSHIP_LABELS}
-              minWidth={148}
-              fullWidth
-              onChange={setMembershipFilter}
-            />
+              valueText={MEMBERSHIP_LABELS[membershipFilter]}
+              open={openFilterMenu === 'membership'}
+              onToggle={() => toggleFilterMenu('membership')}
+              buttonRef={(node) => {
+                filterMenuAnchorRefs.current.membership = node;
+              }}
+              paperRef={(node) => {
+                filterMenuPaperRefs.current.membership = node;
+              }}
+            >
+              {(Object.keys(MEMBERSHIP_LABELS) as MembershipFilter[]).map((key) => (
+                <StudentsFilterMenuItem
+                  key={key}
+                  label={MEMBERSHIP_LABELS[key]}
+                  selected={membershipFilter === key}
+                  onClick={() => {
+                    setMembershipFilter(key);
+                    setOpenFilterMenu(null);
+                  }}
+                />
+              ))}
+            </StudentsFilterMenu>
             {(hasSecondaryFilters || schoolSelected) && (
               <Button
                 size="small"
@@ -1497,19 +1893,33 @@ const PlatformAdminStudentsPage: React.FC = () => {
       ) : (
         <PlatformAdminTableSection
           countLabel={
-            totalMatching > sortedStudents.length
+            listCapped
+              ? `Showing ${sortedStudents.length} most recent students. Search or pick a school to narrow the list.`
+              : totalMatching > sortedStudents.length
               ? `Showing ${sortedStudents.length} of ${totalMatching} matching students`
               : `Showing ${sortedStudents.length} student${sortedStudents.length === 1 ? '' : 's'}`
+          }
+          headerAction={
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<FileDownloadIcon sx={{ fontSize: 18 }} />}
+              disabled={viewExportBusy || sortedStudents.length === 0}
+              onClick={() => void handleExportThisView()}
+              sx={{ ...platformAdminOutlinedButtonSx, height: 36, minHeight: 36, px: 1.5 }}
+            >
+              {viewExportBusy ? 'Exporting…' : 'Export this view'}
+            </Button>
           }
         >
           {sortedStudents.length === 0 ? (
             <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
               <Table
                 size="medium"
-                sx={{ ...platformAdminTableSx, tableLayout: 'fixed', width: '100%', minWidth: 960 }}
+                sx={studentTableSx}
               >
                 <TableHead>
-                  <TableRow sx={platformAdminTableHeadRowSx}>
+                  <TableRow sx={studentHeadRowSx}>
                     <TableCell sx={studentColSx('name')}>
                       <TableSortLabel
                         active={sortKey === 'name'}
@@ -1523,22 +1933,13 @@ const PlatformAdminStudentsPage: React.FC = () => {
                     <TableCell sx={studentColSx('school')}>School</TableCell>
                     <TableCell sx={studentColSx('grade')}>Grade</TableCell>
                     <TableCell sx={studentColSx('membership')}>Membership</TableCell>
-                    <TableCell sx={studentColSx('coins')} align="right">
+                    <TableCell sx={studentColSx('exams')}>
                       <TableSortLabel
-                        active={sortKey === 'coins'}
-                        direction={sortKey === 'coins' ? sortDir : 'desc'}
-                        onClick={() => toggleSort('coins')}
+                        active={sortKey === 'exams_completed'}
+                        direction={sortKey === 'exams_completed' ? sortDir : 'desc'}
+                        onClick={() => toggleSort('exams_completed')}
                       >
-                        Balance / Life
-                      </TableSortLabel>
-                    </TableCell>
-                    <TableCell sx={studentColSx('qod')} align="right">
-                      <TableSortLabel
-                        active={sortKey === 'qod'}
-                        direction={sortKey === 'qod' ? sortDir : 'desc'}
-                        onClick={() => toggleSort('qod')}
-                      >
-                        QoD
+                        Exams done
                       </TableSortLabel>
                     </TableCell>
                     <TableCell sx={studentColSx('status')}>Status</TableCell>
@@ -1564,7 +1965,7 @@ const PlatformAdminStudentsPage: React.FC = () => {
               data={sortedStudents}
               components={PlatformStudentsVirtuosoComponents}
               fixedHeaderContent={() => (
-                <TableRow sx={platformAdminTableHeadRowSx}>
+                <TableRow sx={studentHeadRowSx}>
                   <TableCell sx={studentColSx('name')}>
                     <TableSortLabel
                       active={sortKey === 'name'}
@@ -1578,22 +1979,13 @@ const PlatformAdminStudentsPage: React.FC = () => {
                   <TableCell sx={studentColSx('school')}>School</TableCell>
                   <TableCell sx={studentColSx('grade')}>Grade</TableCell>
                   <TableCell sx={studentColSx('membership')}>Membership</TableCell>
-                  <TableCell sx={studentColSx('coins')} align="right">
+                  <TableCell sx={studentColSx('exams')}>
                     <TableSortLabel
-                      active={sortKey === 'coins'}
-                      direction={sortKey === 'coins' ? sortDir : 'desc'}
-                      onClick={() => toggleSort('coins')}
+                      active={sortKey === 'exams_completed'}
+                      direction={sortKey === 'exams_completed' ? sortDir : 'desc'}
+                      onClick={() => toggleSort('exams_completed')}
                     >
-                      Balance / Life
-                    </TableSortLabel>
-                  </TableCell>
-                  <TableCell sx={studentColSx('qod')} align="right">
-                    <TableSortLabel
-                      active={sortKey === 'qod'}
-                      direction={sortKey === 'qod' ? sortDir : 'desc'}
-                      onClick={() => toggleSort('qod')}
-                    >
-                      QoD
+                      Exams done
                     </TableSortLabel>
                   </TableCell>
                   <TableCell sx={studentColSx('status')}>Status</TableCell>
@@ -1697,37 +2089,9 @@ const PlatformAdminStudentsPage: React.FC = () => {
                     {student.membership_level != null ? `Level ${student.membership_level}` : ' - '}
                   </TableCell>
                   <TableCell
-                    align="right"
-                    sx={studentColSx('coins', { color: ip.heading, fontWeight: 700, whiteSpace: 'nowrap' })}
+                    sx={studentColSx('exams', { color: ip.heading, fontWeight: 700, whiteSpace: 'nowrap' })}
                   >
-                    {(typeof student.argus_coins === 'number' ? student.argus_coins : 0).toLocaleString()}
-                    <Typography
-                      component="span"
-                      sx={{ color: ip.subtext, fontWeight: 500, fontSize: '0.75rem', ml: 0.5 }}
-                    >
-                      /{' '}
-                      {(typeof student.coins_lifetime_earned === 'number'
-                        ? student.coins_lifetime_earned
-                        : 0
-                      ).toLocaleString()}
-                    </Typography>
-                  </TableCell>
-                  <TableCell
-                    align="right"
-                    sx={studentColSx('qod', { color: ip.heading, whiteSpace: 'nowrap' })}
-                  >
-                    {(student.qod_attempted_total ?? 0) > 0 ? (
-                      <>
-                        <Typography component="span" sx={{ fontWeight: 700, fontSize: 'inherit' }}>
-                          {(student.qod_attempted_total ?? 0).toLocaleString()}
-                        </Typography>
-                        <Typography component="span" sx={{ color: ip.subtext, fontSize: '0.75rem', ml: 0.5 }}>
-                          · {student.qod_accuracy_pct ?? 0}%
-                        </Typography>
-                      </>
-                    ) : (
-                      '0'
-                    )}
+                    {(student.exams_completed_count ?? 0).toLocaleString()}
                   </TableCell>
                   <TableCell sx={studentColSx('status', { whiteSpace: 'nowrap' })}>
                     {student.is_invite ? (

@@ -79,6 +79,8 @@ export interface AttemptRecord {
   abandoned_at?: any | null;
   /** Argus Coins granted when this attempt was scored (official exams). */
   coins_awarded?: number | null;
+  /** Passing Analytical Reasoning sit held (under 40 min or score ≥ 900). Score stays pending. */
+  score_release_held?: boolean;
 }
 
 /** Firestore / API may set question_type on items; otherwise UI infers from assessment + fields */

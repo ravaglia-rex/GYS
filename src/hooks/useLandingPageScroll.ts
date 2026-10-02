@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type RefObject } from 'react';
+import { useEffect, useState, type RefObject } from 'react';
 
 export function landingPrefersReducedMotion(): boolean {
   return (
@@ -93,10 +93,4 @@ export function useLandingSectionSpy(sectionIdsJoined: string): string {
  */
 export function useLandingRevealInContainer(_rootRef: RefObject<HTMLElement | null>): void {
   void _rootRef;
-}
-
-export function useScrollToSectionHandler(): (id: string) => void {
-  return useCallback((id: string) => {
-    scrollToLandingSectionId(id);
-  }, []);
 }

@@ -125,6 +125,8 @@ export interface AssessmentProgress {
   tiers_cleared?: Record<string, boolean>;
   latest_attempt_level?: number | null;
   latest_attempt_score?: number | null;
+  /** Latest sit is held. Score stays pending when best_score is also absent. */
+  latest_score_release_held?: boolean;
   /** Level → family → construct scores (legacy section mode). */
   best_construct_scores_by_level?: Record<string, Record<string, AssessmentConstructScore>>;
   /** Level → subconstruct display name → estimated scores when present. */
@@ -676,10 +678,12 @@ export type SchoolAnalyticsSummaryResponse = {
     }>;
     hasAnyScores: boolean;
   }>;
-  exam_averages: Array<{ category: string; current: number; remainder: number }>;
+  exam_averages: Array<{ examId?: string; category: string; current: number; remainder: number }>;
   personality_completion: { completed: number; total: number };
   /** Live Performance-overview metrics from the same roster scan. */
   attempt_rate?: number;
+  /** Mean national percentile among assessed students on this roster. */
+  avg_national_percentile?: number;
   assessments_completed?: number;
   tier123?: { tier1: number; tier2: number; tier3: number; total: number };
   proficiency_by_exam?: Array<{
@@ -800,12 +804,6 @@ export const verifySchoolEmail = async (email: string) => {
         : error.message ?? "Error verifying school email.";
     throw new Error(msg);
   }
-};
-
-// Alias kept for backward compatibility - delegates to verifySchoolAdminAndSendPasswordSetup
-// which ensures Auth user exists and sends the password-setup email in one request.
-export const createSchoolAdmin = async (email: string, schoolId: string, _password?: string) => {
-  return verifySchoolAdminAndSendPasswordSetup(email, schoolId);
 };
 
 export type SchoolAdminPasswordSetupResult = {

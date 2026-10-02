@@ -40,6 +40,8 @@ export type GamificationState = {
   practice_correct_total: number;
   practice_accuracy_pct: number;
   practice_coins_earned_total: number;
+  /** IST date (YYYY-MM-DD) of the last practice-coin award for each exam. */
+  practice_awarded_dates_by_exam?: Record<string, string>;
   practice_last_awarded_week?: string;
   exam_coins_earned_total: number;
   login_streak_coins_earned_total: number;

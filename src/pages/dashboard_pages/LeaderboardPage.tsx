@@ -8,19 +8,28 @@ import { LoadingSpinner } from '../../components/ui/spinner';
 import { useStudentSchoolLeaderboard } from '../../query/hooks';
 import PageTutorial from '../../components/tutorial/PageTutorial';
 import { studentPageSubtitleSx, studentPageTitleSx } from '../../styles/studentTypography';
-import { STUDENT_EXAM_SHOW_SCORES_AND_COINS } from '../../constants/constants';
+import { areExamScoresVisible } from '../../constants/constants';
 
 const LeaderboardPage: React.FC = () => {
   const { data, isLoading: loading, isError, error: queryError } = useStudentSchoolLeaderboard();
   const initialGrade = data?.grade ?? 10;
-  const sections = data?.sections ?? [];
+  const keepVisible = (section: { examId: string }) => areExamScoresVisible(section.examId);
+  const sections = (data?.sections ?? []).filter(keepVisible);
+  const sectionsByGrade = data?.sectionsByGrade
+    ? Object.fromEntries(
+        Object.entries(data.sectionsByGrade).map(([grade, list]) => [
+          grade,
+          (list ?? []).filter(keepVisible),
+        ])
+      )
+    : undefined;
   const lastUpdatedISO = data?.lastUpdatedISO ?? null;
   const error = isError
     ? 'Could not load official school leaderboard data. Please try again later.'
     : '';
   const scoresDeferred =
-    !STUDENT_EXAM_SHOW_SCORES_AND_COINS ||
-    (data as { scores_deferred?: boolean } | undefined)?.scores_deferred === true;
+    (data as { scores_deferred?: boolean } | undefined)?.scores_deferred === true ||
+    sections.length === 0;
 
   useEffect(() => {
     if (!isError || !queryError) return;
@@ -58,11 +67,11 @@ const LeaderboardPage: React.FC = () => {
                 <EmojiEvents />
               </Avatar>
               <Box sx={{ minWidth: 0 }}>
-                <Typography sx={studentPageTitleSx}>School leaderboard</Typography>
+                <Typography sx={studentPageTitleSx}>Leaderboard</Typography>
                 <Typography sx={studentPageSubtitleSx}>
                   {scoresDeferred
                     ? 'Official exam standings will appear here once results are released.'
-                    : 'Top performers by exam and class at your school.'}
+                    : 'Top 10 Analytical Reasoning scores at your school, by class.'}
                 </Typography>
               </Box>
             </Box>
@@ -103,7 +112,8 @@ const LeaderboardPage: React.FC = () => {
                   <StudentLeaderboardPanel
                     initialGrade={initialGrade}
                     sections={sections}
-                    sectionsByGrade={data?.sectionsByGrade}
+                    sectionsByGrade={sectionsByGrade}
+                    nationalByGrade={data?.nationalByGrade}
                     lastUpdatedISO={lastUpdatedISO}
                   />
                 )}

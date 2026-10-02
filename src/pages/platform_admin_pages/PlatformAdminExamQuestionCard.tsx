@@ -407,7 +407,9 @@ function AdminExamOptionRow({
       sx={{
         display: 'flex',
         gap: 0.75,
-        alignItems: figureOption ? 'center' : 'flex-start',
+        // flex-start: figure tiles size from their crop box. center + overflow
+        // clipped the bottom of square option cards in the item bank.
+        alignItems: 'flex-start',
         px: figureOption ? 1.25 : 1,
         py: figureOption ? 1 : 0.45,
         // Caption sits above the crop (pt) instead of stealing a wide right gutter.
@@ -419,7 +421,8 @@ function AdminExamOptionRow({
         bgcolor: isCorrect ? '#f0fdf4' : picked ? '#fef2f2' : '#f8fafc',
         position: 'relative',
         minWidth: 0,
-        overflow: 'hidden',
+        // Pick-bar overlay clips itself; row overflow:hidden was cutting figure crops.
+        overflow: figureOption ? 'visible' : 'hidden',
       }}
     >
       {typeof pickPct === 'number' ? (
@@ -449,6 +452,9 @@ function AdminExamOptionRow({
           fontSize: 13,
           position: 'relative',
           flexShrink: 0,
+          // Keep A–D optically centered against tall figure tiles.
+          alignSelf: figureOption ? 'center' : undefined,
+          mt: figureOption ? 0.25 : undefined,
         }}
       >
         {letter}.
@@ -723,11 +729,6 @@ export function PlatformAdminQuestionPerformanceCard({
 
   const openEdit = () => {
     if (!canEdit) return;
-    if (authorized) {
-      setEditError('Unapprove this item before editing. Approved bank items are locked.');
-      setEditOpen(true);
-      return;
-    }
     setEditError(null);
     setBodyMarkdown(question.prompt || '');
     const existingCount = Math.min(
@@ -765,7 +766,7 @@ export function PlatformAdminQuestionPerformanceCard({
   };
 
   const handleSaveEdit = async () => {
-    if (!canEdit || !examId || !level || authorized || saving) return;
+    if (!canEdit || !examId || !level || saving) return;
     setSaving(true);
     setEditError(null);
     try {
@@ -1185,12 +1186,12 @@ export function PlatformAdminQuestionPerformanceCard({
           }}
         >
           {authorized ? (
-            <Typography sx={{ color: '#92400e', fontSize: 14, mb: 1.5 }}>
-              Unapprove this item before editing. Approved bank items stay locked so live
-              content cannot be rewritten silently.
+            <Typography sx={{ color: '#92400e', fontSize: 13, mb: 1.5 }}>
+              This item is approved and live. Edits save to the bank immediately and stay
+              approved.
             </Typography>
-          ) : (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.75 }}>
+          ) : null}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.75 }}>
               <Box
                 sx={{
                   display: 'grid',
@@ -1455,7 +1456,6 @@ export function PlatformAdminQuestionPerformanceCard({
                 here.
               </Typography>
             </Box>
-          )}
           {editError ? (
             <Typography sx={{ color: '#b91c1c', fontSize: 13, mt: 1.5 }}>{editError}</Typography>
           ) : null}
@@ -1468,8 +1468,7 @@ export function PlatformAdminQuestionPerformanceCard({
           >
             Cancel
           </Button>
-          {!authorized ? (
-            <Button
+          <Button
               variant="contained"
               disabled={saving}
               onClick={() => void handleSaveEdit()}
@@ -1493,7 +1492,6 @@ export function PlatformAdminQuestionPerformanceCard({
             >
               {saving ? 'Saving…' : 'Save to database'}
             </Button>
-          ) : null}
         </DialogActions>
       </Dialog>
 

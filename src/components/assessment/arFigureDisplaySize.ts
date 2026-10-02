@@ -82,11 +82,6 @@ export const AR_TEXT_OPTION_LAYOUT_LABEL: Record<ArTextOptionLayout, string> = {
   '4x1': '4×1',
 };
 
-/** Bank `presentation.option_layout` values that place A–D text tiles in a 2×2. */
-export function isArTextOptionGrid2x2(optionLayout?: string | null): boolean {
-  return normalizeArTextOptionLayout(optionLayout) === '2x2';
-}
-
 /**
  * Map freeform bank `option_layout` to a canonical tile arrangement.
  * Returns null when unset / unrecognized (caller may apply ascii heuristic).
@@ -163,14 +158,6 @@ export function arTextOptionLayoutFromFigureCrop(
   if (v === 'stack') return '1x4';
   if (v === 'row') return '4x1';
   return null;
-}
-
-export function arFigureCropLayoutFromTextOption(
-  layout: ArTextOptionLayout
-): 'row' | 'stack' | 'grid' {
-  if (layout === '2x2') return 'grid';
-  if (layout === '1x4') return 'stack';
-  return 'row';
 }
 
 /**

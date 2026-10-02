@@ -20,7 +20,7 @@ import {
   isLevelBasedAssessment,
 } from '../../utils/assessmentGating';
 import { timestampToMillis } from '../../utils/examAttemptCooldown';
-import { STUDENT_EXAM_SHOW_SCORES_AND_COINS } from '../../constants/constants';
+import { STUDENT_EXAM_SHOW_SCORES_AND_COINS, areExamScoresVisible } from '../../constants/constants';
 import { displayExamCoinsAwarded } from '../../utils/gamification';
 import { canonicalAssessmentId } from '../../utils/assessmentIdCompat';
 
@@ -61,8 +61,12 @@ function attemptSortMs(attempt: AttemptRecord): number {
   );
 }
 
+function attemptScoreReleased(attempt: AttemptRecord): boolean {
+  return areExamScoresVisible(attempt.assessment_id) && attempt.score_release_held !== true;
+}
+
 function formatAttemptScore(attempt: AttemptRecord): string {
-  if (!STUDENT_EXAM_SHOW_SCORES_AND_COINS) {
+  if (!attemptScoreReleased(attempt)) {
     return attempt.status === 'completed' ? 'Coming soon' : attempt.status === 'in_progress' ? 'Pending' : '--';
   }
   if (typeof attempt.score !== 'number' || Number.isNaN(attempt.score)) {
@@ -72,7 +76,7 @@ function formatAttemptScore(attempt: AttemptRecord): string {
 }
 
 function formatAttemptCoins(attempt: AttemptRecord): string {
-  if (!STUDENT_EXAM_SHOW_SCORES_AND_COINS) return '--';
+  if (!attemptScoreReleased(attempt)) return '--';
   const coins = displayExamCoinsAwarded({
     assessmentId: attempt.assessment_id,
     coinsAwarded: attempt.coins_awarded,
@@ -213,7 +217,7 @@ const AssessmentAttemptHistorySection: React.FC<AssessmentAttemptHistorySectionP
                     </TableCell>
                     <TableCell>
                       {attempt.status === 'completed'
-                        ? STUDENT_EXAM_SHOW_SCORES_AND_COINS
+                        ? attemptScoreReleased(attempt)
                           ? attempt.passed === false
                             ? 'Still in progress'
                             : 'Complete'

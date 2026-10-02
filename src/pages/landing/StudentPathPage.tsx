@@ -330,7 +330,7 @@ const StudentPathPage: React.FC = () => {
           </p>
           <div className="mx-auto mt-8 grid max-w-4xl grid-cols-1 gap-4 sm:grid-cols-3">
             {[
-              { icon: '🪙', title: 'Earn Coins', body: 'Complete exams, practice thoughtfully, and solve the daily question to earn Argus Coins.' },
+              { icon: '🪙', title: 'Earn Coins', body: 'Complete exams, finish one practice set per subject each day, and solve the daily question to earn Argus Coins.' },
               { icon: '🔥', title: 'Daily Streaks', body: 'Log in and answer Question of the Day every day to build login and QoD streaks with milestone bonuses.' },
               { icon: '🎁', title: 'Redeem Rewards', body: 'Trade coins for gift cards and perks in the Rewards Shop - the more consistent you are, the bigger the payoff.' },
             ].map((item) => (

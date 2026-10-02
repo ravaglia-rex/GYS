@@ -210,6 +210,13 @@ export const platformAdminSelectMenuPaperSx = {
     },
     '&.Mui-selected:hover': { bgcolor: 'rgba(37, 99, 235, 0.12)' },
   },
+  // Global theme is dark, so checkbox strokes are white and vanish on this paper.
+  '& .MuiCheckbox-root': {
+    color: ip.heading,
+  },
+  '& .MuiCheckbox-root.Mui-checked': {
+    color: ip.navy,
+  },
 } as const;
 
 export const platformAdminFilterLabelSx = {

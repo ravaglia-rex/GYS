@@ -28,6 +28,7 @@ import {
   recordPracticeSessionOutcomes,
   revealPracticeSolutions,
 } from '../../db/practiceBank';
+import { practiceCoinsNotEarnedMessage } from '../../utils/gamification';
 import type { ExamQuestion } from '../../db/assessmentCollection';
 import { ExamQuestionBody, inferQuestionInteraction } from '../../components/assessment/ExamQuestionBody';
 import { getAssessmentFlowDefinition } from '../../config/assessmentFlowUI';
@@ -173,7 +174,7 @@ export default function PracticeTakePage() {
   const practiceLevel = parsePracticeLevel(levelParam);
   const supported = isInteractivePracticeExam(examId);
 
-  const goToPracticeHub = useCallback((coinsFeedback?: { coins_awarded?: number; coins_reason?: string | null }) => {
+  const goToPracticeHub = useCallback(() => {
     if (examId && practiceLevel) {
       saveLastPracticeSelection(storageScope, { examId, level: practiceLevel });
     }
@@ -181,7 +182,6 @@ export default function PracticeTakePage() {
       replace: true,
       state: {
         ...(examId && practiceLevel ? { examId, level: practiceLevel } : {}),
-        ...(coinsFeedback ? { coinsFeedback } : {}),
       },
     });
   }, [examId, practiceLevel, navigate, storageScope]);
@@ -202,6 +202,7 @@ export default function PracticeTakePage() {
   const advancingQuestionRef = useRef(false);
   const sessionSubmitInFlightRef = useRef(false);
   const [sessionSubmitting, setSessionSubmitting] = useState(false);
+  const [coinsNotice, setCoinsNotice] = useState<{ awarded: number; message: string; title?: string } | null>(null);
   const [sessionSubmitError, setSessionSubmitError] = useState<string | null>(null);
   /** Wall-clock start of current question (for analytics: time until first “Check answer”). */
   const questionWallClockStartRef = useRef(0);
@@ -338,6 +339,7 @@ export default function PracticeTakePage() {
       !practiceLevel ||
       !supported ||
       sessionSubmitting ||
+      coinsNotice ||
       advancingQuestionRef.current ||
       sessionSubmitInFlightRef.current
     ) {
@@ -376,14 +378,11 @@ export default function PracticeTakePage() {
         });
       };
 
-      const finishLocal = (
-        completedDelta: number,
-        coinsFeedback?: { coins_awarded?: number; coins_reason?: string | null }
-      ) => {
+      const finishLocal = (completedDelta: number) => {
         recordPracticeQuestionsCompleted(storageScope, examId, practiceLevel, completedDelta, poolCap);
         clearPracticeTakeSession(storageScope, examId, practiceLevel);
         clearActivePracticeSession(storageScope);
-        goToPracticeHub(coinsFeedback);
+        goToPracticeHub();
       };
 
       if (!isLast) {
@@ -422,10 +421,26 @@ export default function PracticeTakePage() {
         sessionId: sessionIdRef.current,
       })
         .then((resp) => {
-          finishLocal(results.length, {
-            coins_awarded: resp.coins_awarded,
-            coins_reason: resp.coins_reason ?? null,
-          });
+          const awarded = resp.coins_awarded ?? 0;
+          const alreadyFinishedToday =
+            awarded <= 0 &&
+            (resp.coins_reason === 'daily_cap' || resp.coins_reason === 'weekly_cap');
+          const message =
+            awarded > 0
+              ? `You earned ${awarded} Argus Coins for this practice set!`
+              : practiceCoinsNotEarnedMessage(resp.coins_reason ?? null);
+          recordPracticeQuestionsCompleted(storageScope, examId, practiceLevel, results.length, poolCap);
+          clearPracticeTakeSession(storageScope, examId, practiceLevel);
+          clearActivePracticeSession(storageScope);
+          if (message) {
+            setCoinsNotice({
+              awarded,
+              message,
+              ...(alreadyFinishedToday ? { title: 'Nice work!' } : {}),
+            });
+            return;
+          }
+          goToPracticeHub();
         })
         .catch((e) => {
           Sentry.captureException(e);
@@ -460,10 +475,18 @@ export default function PracticeTakePage() {
     currentQuestions,
     getSelectedOption,
     sessionSubmitting,
+    coinsNotice,
   ]);
 
   const handlePrimaryAction = useCallback(async () => {
-    if (!allCurrentQuestionsSelected || !practiceLevel || !supported || sessionSubmitting || revealingSolutions) {
+    if (
+      !allCurrentQuestionsSelected ||
+      !practiceLevel ||
+      !supported ||
+      sessionSubmitting ||
+      revealingSolutions ||
+      coinsNotice
+    ) {
       return;
     }
     if (!answerChecked) {
@@ -518,6 +541,7 @@ export default function PracticeTakePage() {
     advanceToNextQuestion,
     sessionSubmitting,
     revealingSolutions,
+    coinsNotice,
     currentQuestions,
     examId,
   ]);
@@ -532,7 +556,7 @@ export default function PracticeTakePage() {
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (!q || !examId || sessionSubmitting) return;
+      if (!q || !examId || sessionSubmitting || coinsNotice) return;
       if (e.key === 'Enter' && allCurrentQuestionsSelected) {
         handlePrimaryAction();
         return;
@@ -561,6 +585,7 @@ export default function PracticeTakePage() {
     answerChecked,
     handlePrimaryAction,
     sessionSubmitting,
+    coinsNotice,
     groupedPassagePractice,
     currentQuestions,
     getSelectedOption,
@@ -1024,7 +1049,7 @@ export default function PracticeTakePage() {
                 <ArrowForwardIcon />
               )
             }
-            disabled={!allCurrentQuestionsSelected || sessionSubmitting || revealingSolutions}
+            disabled={!allCurrentQuestionsSelected || sessionSubmitting || revealingSolutions || Boolean(coinsNotice)}
             onClick={() => {
               void handlePrimaryAction();
             }}
@@ -1051,6 +1076,68 @@ export default function PracticeTakePage() {
           </Button>
         </Box>
       </Box>
+
+      <Dialog
+        open={Boolean(coinsNotice)}
+        onClose={() => {
+          setCoinsNotice(null);
+          goToPracticeHub();
+        }}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            bgcolor: '#ffffff',
+            backgroundImage: 'none',
+            color: '#0f172a',
+            borderRadius: 2,
+            borderTop: '4px solid #8b5cf6',
+            boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.4)',
+          },
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, color: '#0f172a', pt: 2.5 }}>
+          {(coinsNotice?.awarded ?? 0) > 0
+            ? 'Good job!'
+            : coinsNotice?.title ?? 'Practice coins'}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText
+            component="div"
+            sx={{
+              color: (coinsNotice?.awarded ?? 0) > 0 ? '#0f172a' : '#334155',
+              fontWeight: 400,
+              typography: 'body2',
+              lineHeight: 1.65,
+            }}
+          >
+            {coinsNotice?.message}
+          </DialogContentText>
+          {(coinsNotice?.awarded ?? 0) > 0 && (
+            <DialogContentText component="div" sx={{ color: '#475569', typography: 'body2', lineHeight: 1.65, mt: 1.5 }}>
+              Argus Coins are awarded for one completed set of each practice subject each day. You can earn coins for a
+              different practice subject today, and again for this practice subject tomorrow.
+            </DialogContentText>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            variant="contained"
+            onClick={() => {
+              setCoinsNotice(null);
+              goToPracticeHub();
+            }}
+            sx={{
+              bgcolor: '#8b5cf6',
+              color: '#FFFFFF',
+              fontWeight: 800,
+              '&:hover': { bgcolor: '#7c3aed' },
+            }}
+          >
+            Got it
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={leaveOpen} onClose={() => setLeaveOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 800 }}>Leave practice?</DialogTitle>

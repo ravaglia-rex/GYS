@@ -188,9 +188,23 @@ const COMPLETION_SCORE_BRACKETS = [
   { key: '0-499', label: '0–499', min: 0, max: 499 },
   { key: '500-699', label: '500–699', min: 500, max: 699 },
   { key: '700-799', label: '700–799', min: 700, max: 799 },
-  { key: '800-899', label: '800–899', min: 800, max: 899 },
-  { key: '900-1000', label: '900–1000', min: 900, max: 1000 },
+  { key: '800-1000', label: '800–1000', min: 800, max: 1000 },
 ] as const;
+
+/** Chart rows, folding an older 800–899 + 900–1000 split into 800–1000. */
+function mergedCompletionScoreRows(
+  rows: OfficialScoreBucketRow[] | undefined
+): Array<{ bucket: string; min_points: number; max_points: number; count: number }> {
+  const source = rows ?? [];
+  return COMPLETION_SCORE_BRACKETS.map((band) => ({
+    bucket: band.label,
+    min_points: band.min,
+    max_points: band.max,
+    count: source
+      .filter((row) => row.min_points >= band.min && row.max_points <= band.max)
+      .reduce((sum, row) => sum + (typeof row.count === 'number' ? row.count : 0), 0),
+  }));
+}
 
 type CompletionScoreBracketKey = (typeof COMPLETION_SCORE_BRACKETS)[number]['key'] | 'all';
 
@@ -209,6 +223,23 @@ function completionScoreBracketKeyFromBucket(bucket: string): CompletionScoreBra
   );
   return match?.key ?? 'all';
 }
+
+type OfficialAnalyticsUiSnapshot = {
+  view: OfficialView;
+  examId: string;
+  completionQ: string;
+  completionFrom: string;
+  completionTo: string;
+  completionLevel: 'all' | number;
+  completionScoreBracket: CompletionScoreBracketKey;
+  completionLimit: number;
+  recent: OfficialExamRecentRow[];
+  matched: number;
+  searched: boolean;
+};
+
+/** Kept for the tab session so leaving for a student profile and coming back restores Search completions. */
+let officialAnalyticsUiSnapshot: OfficialAnalyticsUiSnapshot | null = null;
 
 function titleCaseAnalyticsKey(key: string): string {
   const spaced = key.replace(/_/g, ' ').replace(/:/g, ' · ').trim();
@@ -737,27 +768,35 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
   const { section: sectionParam } = useParams<{ section?: string }>();
   const section: AnalyticsSection = isAnalyticsSection(sectionParam) ? sectionParam : 'official';
 
-  const [officialView, setOfficialView] = useState<OfficialView>('overview');
+  const restoredOfficialUi = officialAnalyticsUiSnapshot;
+  const [officialView, setOfficialView] = useState<OfficialView>(restoredOfficialUi?.view ?? 'overview');
   const [practiceView, setPracticeView] = useState<PracticeView>('overview');
   const [qodView, setQodView] = useState<QodView>('overview');
 
   const [officialSummaries, setOfficialSummaries] = useState<OfficialExamSummaryRow[]>([]);
   const [officialDaily, setOfficialDaily] = useState<OfficialDailyStatRow[]>([]);
   const [officialDailyExamIds, setOfficialDailyExamIds] = useState<string[]>([]);
-  const [selectedOfficialExamId, setSelectedOfficialExamId] = useState('');
+  const [selectedOfficialExamId, setSelectedOfficialExamId] = useState(restoredOfficialUi?.examId ?? '');
   const [officialByLevel, setOfficialByLevel] = useState<OfficialExamLevelRow[]>([]);
   const [officialByGrade, setOfficialByGrade] = useState<OfficialExamGradeRow[]>([]);
   const [officialBySchool, setOfficialBySchool] = useState<OfficialExamSchoolRow[]>([]);
-  const [officialRecent, setOfficialRecent] = useState<OfficialExamRecentRow[]>([]);
-  const [officialRecentMatched, setOfficialRecentMatched] = useState(0);
-  const [officialRecentSearched, setOfficialRecentSearched] = useState(false);
-  const [completionQ, setCompletionQ] = useState('');
-  const [completionFrom, setCompletionFrom] = useState('');
-  const [completionTo, setCompletionTo] = useState('');
-  const [completionLevel, setCompletionLevel] = useState<'all' | number>('all');
-  const [completionScoreBracket, setCompletionScoreBracket] =
-    useState<CompletionScoreBracketKey>('all');
-  const [completionLimit, setCompletionLimit] = useState(25);
+  const [officialRecent, setOfficialRecent] = useState<OfficialExamRecentRow[]>(
+    restoredOfficialUi?.recent ?? []
+  );
+  const [officialRecentMatched, setOfficialRecentMatched] = useState(restoredOfficialUi?.matched ?? 0);
+  const [officialRecentSearched, setOfficialRecentSearched] = useState(
+    restoredOfficialUi?.searched ?? false
+  );
+  const [completionQ, setCompletionQ] = useState(restoredOfficialUi?.completionQ ?? '');
+  const [completionFrom, setCompletionFrom] = useState(restoredOfficialUi?.completionFrom ?? '');
+  const [completionTo, setCompletionTo] = useState(restoredOfficialUi?.completionTo ?? '');
+  const [completionLevel, setCompletionLevel] = useState<'all' | number>(
+    restoredOfficialUi?.completionLevel ?? 'all'
+  );
+  const [completionScoreBracket, setCompletionScoreBracket] = useState<CompletionScoreBracketKey>(
+    restoredOfficialUi?.completionScoreBracket ?? 'all'
+  );
+  const [completionLimit, setCompletionLimit] = useState(restoredOfficialUi?.completionLimit ?? 25);
   const [officialDrilldown, setOfficialDrilldown] = useState<OfficialExamDrilldown | null>(null);
   const [officialDrillLevel, setOfficialDrillLevel] = useState<'all' | number>('all');
   const [gradeSchoolStrandSplit, setGradeSchoolStrandSplit] =
@@ -1515,6 +1554,36 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
   );
 
   useEffect(() => {
+    if (section !== 'official') return;
+    officialAnalyticsUiSnapshot = {
+      view: officialView,
+      examId: selectedOfficialExamId,
+      completionQ,
+      completionFrom,
+      completionTo,
+      completionLevel,
+      completionScoreBracket,
+      completionLimit,
+      recent: officialRecent,
+      matched: officialRecentMatched,
+      searched: officialRecentSearched,
+    };
+  }, [
+    section,
+    officialView,
+    selectedOfficialExamId,
+    completionQ,
+    completionFrom,
+    completionTo,
+    completionLevel,
+    completionScoreBracket,
+    completionLimit,
+    officialRecent,
+    officialRecentMatched,
+    officialRecentSearched,
+  ]);
+
+  useEffect(() => {
     if (!isAnalyticsSection(sectionParam)) {
       navigate('/platform-admin/analytics/official', { replace: true });
     }
@@ -1861,6 +1930,124 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                   {examOpsError || liveExamsError || activityError}
                 </Alert>
               )}
+              <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1 }}>
+                {liveExamsGeneratedAt
+                  ? `Live exams refreshed ${formatDateTime(liveExamsGeneratedAt)} · auto-refresh every 60s`
+                  : staleHint(activityGeneratedAt)}
+              </Typography>
+
+              <PlatformAdminAnalyticsSection
+                title="Live official exams"
+                subtitle={
+                  examOpsPaused
+                    ? `New starts paused · ${liveExamActiveCount === 1 ? '1 student mid-exam' : `${liveExamActiveCount} students mid-exam`}`
+                    : liveExamActiveCount === 1
+                      ? '1 student mid-exam now'
+                      : `${liveExamActiveCount} students mid-exam now`
+                }
+                accent="teal"
+                action={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flexShrink: 0 }}>
+                    <Typography sx={{ color: ip.subtext, fontSize: '0.85rem', fontWeight: 600 }}>
+                      Pause exams
+                    </Typography>
+                    <Switch
+                      checked={examOpsPaused}
+                      onChange={(e) => void handleExamOpsToggle(e.target.checked)}
+                      disabled={!isSuperAdmin || examOpsLoading || examOpsSaving}
+                      inputProps={{ 'aria-label': 'Pause new exam starts' }}
+                      sx={examPauseToggleSwitchSx}
+                    />
+                  </Box>
+                }
+              >
+                {liveExamsLoading && liveExams.length === 0 ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                    <CircularProgress size={28} sx={{ color: ip.navy }} />
+                  </Box>
+                ) : liveExams.length === 0 ? (
+                  <Typography sx={{ color: ip.subtext, py: 3, textAlign: 'center' }}>
+                    No students are mid-exam right now.
+                  </Typography>
+                ) : (
+                  <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
+                    <Table size="small" sx={platformAdminTableSx}>
+                      <TableHead>
+                        <TableRow sx={platformAdminTableHeadRowSx}>
+                          <TableCell>Student</TableCell>
+                          <TableCell>School</TableCell>
+                          <TableCell>Exam</TableCell>
+                          <TableCell>Progress</TableCell>
+                          <TableCell>Device</TableCell>
+                          <TableCell>Started</TableCell>
+                          <TableCell>Time left</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {liveExams.map((row) => {
+                          const session = formatClientSessionMeta({
+                            deviceType: row.client_device_type,
+                            userAgent: row.client_user_agent,
+                            ip: row.client_ip,
+                          });
+                          return (
+                          <TableRow key={row.attempt_id}>
+                            <TableCell>
+                              {row.uid ? (
+                                <Typography
+                                  component={RouterLink}
+                                  to={`/platform-admin/students/${row.uid}`}
+                                  sx={{
+                                    color: ip.navy,
+                                    fontWeight: 600,
+                                    textDecoration: 'none',
+                                    '&:hover': { textDecoration: 'underline' },
+                                  }}
+                                >
+                                  {row.student_name || row.email || row.uid}
+                                </Typography>
+                              ) : (
+                                row.student_name || row.email || '—'
+                              )}
+                              {row.email ? (
+                                <Typography variant="caption" sx={{ display: 'block', color: ip.subtext }}>
+                                  {row.email}
+                                </Typography>
+                              ) : null}
+                            </TableCell>
+                            <TableCell>{row.school_name ?? '—'}</TableCell>
+                            <TableCell>
+                              {row.assessment_label}
+                              {row.proficiency_tier != null ? ` · L${row.proficiency_tier}` : ''}
+                            </TableCell>
+                            <TableCell>{liveExamProgressLabel(row)}</TableCell>
+                            <TableCell>
+                              <Typography sx={{ fontSize: 13 }}>{session.primary}</Typography>
+                              {session.secondary ? (
+                                <Typography
+                                  variant="caption"
+                                  sx={{ display: 'block', color: ip.subtext, fontFamily: 'monospace' }}
+                                  title={row.client_user_agent || undefined}
+                                >
+                                  {session.secondary}
+                                </Typography>
+                              ) : null}
+                            </TableCell>
+                            <TableCell>
+                              {row.started_at ? formatDateTime(row.started_at) : '—'}
+                            </TableCell>
+                            <TableCell>
+                              {formatLiveExamTimeLeft(row.seconds_remaining, row.expired)}
+                            </TableCell>
+                          </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                )}
+              </PlatformAdminAnalyticsSection>
+
               <PlatformAdminAnalyticsSection
                 title="Overview"
                 subtitle="Platform-wide official exam totals and daily completion trends (IST). Click a card to open the matching tab."
@@ -1899,6 +2086,58 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                   />
                 </Box>
                 <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.75 }}>
+                  Total completions by exam
+                </Typography>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: {
+                      xs: '1fr 1fr',
+                      sm: 'repeat(3, 1fr)',
+                      lg: 'repeat(5, 1fr)',
+                    },
+                    gap: 1.25,
+                    mb: 2.5,
+                  }}
+                >
+                  {officialSummaries.map((exam) => (
+                    <Box
+                      key={exam.exam_id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => {
+                        setSelectedOfficialExamId(exam.exam_id);
+                        setOfficialView('exam-snapshots');
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setSelectedOfficialExamId(exam.exam_id);
+                          setOfficialView('exam-snapshots');
+                        }
+                      }}
+                      sx={{
+                        bgcolor: ip.cardMutedBg,
+                        border: `1px solid ${ip.cardBorder}`,
+                        borderRadius: 1.5,
+                        px: 1.5,
+                        py: 1.25,
+                        cursor: 'pointer',
+                        '&:hover': { borderColor: '#cbd5e1' },
+                      }}
+                    >
+                      <Typography variant="caption" sx={{ color: ip.subtext, fontWeight: 600 }}>
+                        {shortOfficialExamLabel(exam.label)}
+                      </Typography>
+                      <Typography
+                        sx={{ fontWeight: 800, color: ip.heading, mt: 0.25, fontSize: '1.35rem' }}
+                      >
+                        {exam.completed_attempts.toLocaleString()}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
+                <Typography sx={{ fontWeight: 700, color: ip.heading, mb: 0.75 }}>
                   Completions by exam (last 30 days)
                 </Typography>
                 <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1.5 }}>
@@ -1931,168 +2170,48 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                 </Box>
               </PlatformAdminAnalyticsSection>
 
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mt: 2.5 }}>
-                <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mt: -1 }}>
-                  {liveExamsGeneratedAt
-                    ? `Live exams refreshed ${formatDateTime(liveExamsGeneratedAt)} · auto-refresh every 60s`
-                    : staleHint(activityGeneratedAt)}
-                </Typography>
-
-                <PlatformAdminAnalyticsSection
-                  title="Live official exams"
-                  subtitle={
-                    examOpsPaused
-                      ? `New starts paused · ${liveExamActiveCount === 1 ? '1 student mid-exam' : `${liveExamActiveCount} students mid-exam`}`
-                      : liveExamActiveCount === 1
-                        ? '1 student mid-exam now'
-                        : `${liveExamActiveCount} students mid-exam now`
-                  }
-                  accent="teal"
-                  action={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flexShrink: 0 }}>
-                      <Typography sx={{ color: ip.subtext, fontSize: '0.85rem', fontWeight: 600 }}>
-                        Pause exams
-                      </Typography>
-                      <Switch
-                        checked={examOpsPaused}
-                        onChange={(e) => void handleExamOpsToggle(e.target.checked)}
-                        disabled={!isSuperAdmin || examOpsLoading || examOpsSaving}
-                        inputProps={{ 'aria-label': 'Pause new exam starts' }}
-                        sx={examPauseToggleSwitchSx}
-                      />
-                    </Box>
-                  }
-                >
-                  {liveExamsLoading && liveExams.length === 0 ? (
-                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                      <CircularProgress size={28} sx={{ color: ip.navy }} />
-                    </Box>
-                  ) : liveExams.length === 0 ? (
-                    <Typography sx={{ color: ip.subtext, py: 3, textAlign: 'center' }}>
-                      No students are mid-exam right now.
-                    </Typography>
-                  ) : (
-                    <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
-                      <Table size="small" sx={platformAdminTableSx}>
-                        <TableHead>
-                          <TableRow sx={platformAdminTableHeadRowSx}>
-                            <TableCell>Student</TableCell>
-                            <TableCell>School</TableCell>
-                            <TableCell>Exam</TableCell>
-                            <TableCell>Progress</TableCell>
-                            <TableCell>Device</TableCell>
-                            <TableCell>Started</TableCell>
-                            <TableCell>Time left</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {liveExams.map((row) => {
-                            const session = formatClientSessionMeta({
-                              deviceType: row.client_device_type,
-                              userAgent: row.client_user_agent,
-                              ip: row.client_ip,
-                            });
-                            return (
-                            <TableRow key={row.attempt_id}>
-                              <TableCell>
-                                {row.uid ? (
-                                  <Typography
-                                    component={RouterLink}
-                                    to={`/platform-admin/students/${row.uid}`}
-                                    sx={{
-                                      color: ip.navy,
-                                      fontWeight: 600,
-                                      textDecoration: 'none',
-                                      '&:hover': { textDecoration: 'underline' },
-                                    }}
-                                  >
-                                    {row.student_name || row.email || row.uid}
-                                  </Typography>
-                                ) : (
-                                  row.student_name || row.email || '—'
-                                )}
-                                {row.email ? (
-                                  <Typography variant="caption" sx={{ display: 'block', color: ip.subtext }}>
-                                    {row.email}
-                                  </Typography>
-                                ) : null}
-                              </TableCell>
-                              <TableCell>{row.school_name ?? '—'}</TableCell>
-                              <TableCell>
-                                {row.assessment_label}
-                                {row.proficiency_tier != null ? ` · L${row.proficiency_tier}` : ''}
-                              </TableCell>
-                              <TableCell>{liveExamProgressLabel(row)}</TableCell>
-                              <TableCell>
-                                <Typography sx={{ fontSize: 13 }}>{session.primary}</Typography>
-                                {session.secondary ? (
-                                  <Typography
-                                    variant="caption"
-                                    sx={{ display: 'block', color: ip.subtext, fontFamily: 'monospace' }}
-                                    title={row.client_user_agent || undefined}
-                                  >
-                                    {session.secondary}
-                                  </Typography>
-                                ) : null}
-                              </TableCell>
-                              <TableCell>
-                                {row.started_at ? formatDateTime(row.started_at) : '—'}
-                              </TableCell>
-                              <TableCell>
-                                {formatLiveExamTimeLeft(row.seconds_remaining, row.expired)}
-                              </TableCell>
-                            </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  )}
-                </PlatformAdminAnalyticsSection>
-
-                <PlatformAdminAnalyticsSection
-                  title="Site page hits"
-                  subtitle={
-                    pageHitsTracked > SITE_PAGE_HITS_CHART_TOP_N
-                      ? `Top ${SITE_PAGE_HITS_CHART_TOP_N} pages · ${pageHitsTotal.toLocaleString()} total hits across ${pageHitsTracked.toLocaleString()} routes`
-                      : `Lifetime views on landing, signup, student, and school pages · ${pageHitsTotal.toLocaleString()} total.`
-                  }
-                  accent="navy"
-                >
-                  {pageHits.length === 0 ? (
-                    <Typography sx={{ color: ip.subtext, py: 3, textAlign: 'center' }}>
-                      No page hits recorded yet. Counts start as users browse the site.
-                    </Typography>
-                  ) : (
-                    <Box sx={{ width: '100%', height: pageHitsChartHeight }}>
-                      <ResponsiveContainer>
-                        <BarChart
-                          layout="vertical"
-                          data={pageHitsChartData}
-                          margin={{ top: 8, right: 24, left: 8, bottom: 8 }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
-                          <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12 }} />
-                          <YAxis
-                            type="category"
-                            dataKey="label"
-                            width={168}
-                            tick={{ fontSize: 12, fill: '#334155' }}
-                            interval={0}
-                          />
-                          <Tooltip
-                            formatter={(value: number | string) => [
-                              typeof value === 'number' ? value.toLocaleString() : value,
-                              'Hits',
-                            ]}
-                          />
-                          <Bar dataKey="hits" name="Hits" fill="#2563eb" radius={[0, 4, 4, 0]} barSize={22} />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </Box>
-                  )}
-                </PlatformAdminAnalyticsSection>
-              </Box>
+              <PlatformAdminAnalyticsSection
+                title="Site page hits"
+                subtitle={
+                  pageHitsTracked > SITE_PAGE_HITS_CHART_TOP_N
+                    ? `Top ${SITE_PAGE_HITS_CHART_TOP_N} pages · ${pageHitsTotal.toLocaleString()} total hits across ${pageHitsTracked.toLocaleString()} routes`
+                    : `Lifetime views on landing, signup, student, and school pages · ${pageHitsTotal.toLocaleString()} total.`
+                }
+                accent="navy"
+              >
+                {pageHits.length === 0 ? (
+                  <Typography sx={{ color: ip.subtext, py: 3, textAlign: 'center' }}>
+                    No page hits recorded yet. Counts start as users browse the site.
+                  </Typography>
+                ) : (
+                  <Box sx={{ width: '100%', height: pageHitsChartHeight }}>
+                    <ResponsiveContainer>
+                      <BarChart
+                        layout="vertical"
+                        data={pageHitsChartData}
+                        margin={{ top: 8, right: 24, left: 8, bottom: 8 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
+                        <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12 }} />
+                        <YAxis
+                          type="category"
+                          dataKey="label"
+                          width={168}
+                          tick={{ fontSize: 12, fill: '#334155' }}
+                          interval={0}
+                        />
+                        <Tooltip
+                          formatter={(value: number | string) => [
+                            typeof value === 'number' ? value.toLocaleString() : value,
+                            'Hits',
+                          ]}
+                        />
+                        <Bar dataKey="hits" name="Hits" fill="#2563eb" radius={[0, 4, 4, 0]} barSize={22} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </Box>
+                )}
+              </PlatformAdminAnalyticsSection>
               </>
               )}
 
@@ -2341,7 +2460,7 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                           </Typography>
                           <Box sx={{ width: '100%', height: 220 }}>
                             <ResponsiveContainer>
-                              <BarChart data={officialDrilldown.score_distribution}>
+                              <BarChart data={mergedCompletionScoreRows(officialDrilldown.score_distribution)}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                                 <XAxis dataKey="bucket" tick={{ fontSize: 11 }} />
                                 <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
@@ -2378,9 +2497,9 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                                     const rowIndex =
                                       typeof index === 'number'
                                         ? index
-                                        : officialDrilldown.score_distribution.findIndex(
-                                            (r) => r.bucket === payload?.bucket
-                                          );
+                                        : mergedCompletionScoreRows(
+                                            officialDrilldown.score_distribution
+                                          ).findIndex((r) => r.bucket === payload?.bucket);
                                     const active =
                                       completionScoreBracket !== 'all' &&
                                       rowIndex >= 0 &&
@@ -2417,7 +2536,8 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                           >
                             {COMPLETION_SCORE_BRACKETS.map((band, i) => {
                               const count =
-                                officialDrilldown.score_distribution[i]?.count ?? 0;
+                                mergedCompletionScoreRows(officialDrilldown.score_distribution)[i]
+                                  ?.count ?? 0;
                               const active = completionScoreBracket === band.key;
                               return (
                                 <Button
@@ -2826,7 +2946,7 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
               {officialView === 'completions' && (
               <PlatformAdminAnalyticsSection
                 title="Search completions"
-                subtitle="Click Search to load. Click a student to open their profile and exam attempts. Limit controls how many rows return (10–100, or All up to 500). Score bracket matches the /1000 distribution bars."
+                subtitle="Click Search to load. Click a student to open their profile and exam attempts. Student, date, level, and score filters search every completion for this exam. Limit only controls how many matching rows to show (10–100, or All up to 500). Score bracket matches the /1000 distribution bars."
                 accent="violet"
               >
                   <Box sx={{ ...platformAdminFilterToolbarRowSx, mb: 2 }}>
@@ -3028,7 +3148,13 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                                     onClick={() => {
                                       if (!row.uid) return;
                                       navigate(
-                                        `/platform-admin/students/${encodeURIComponent(row.uid)}?attempt=${encodeURIComponent(row.attempt_id)}`
+                                        `/platform-admin/students/${encodeURIComponent(row.uid)}?attempt=${encodeURIComponent(row.attempt_id)}`,
+                                        {
+                                          state: {
+                                            returnTo: '/platform-admin/analytics/official',
+                                            returnLabel: 'Back to search completions',
+                                          },
+                                        }
                                       );
                                     }}
                                     sx={{ cursor: 'pointer' }}

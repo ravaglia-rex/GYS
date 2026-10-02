@@ -33,7 +33,7 @@ import {
   normalizeMembershipLevel,
   tierPercentToExamPoints,
 } from '../../utils/assessmentGating';
-import { STUDENT_EXAM_SHOW_SCORES_AND_COINS } from '../../constants/constants';
+import { STUDENT_EXAM_SHOW_SCORES_AND_COINS, areExamScoresVisible } from '../../constants/constants';
 import { formatAchievementTierLabel, normalizeAchievementTierId } from '../../utils/achievementTier';
 import {
   INSTITUTIONAL_PLAN_COVERED_MEMBERSHIP_LEVEL,
@@ -588,7 +588,9 @@ const SchoolAdminStudentDetailPage: React.FC = () => {
                             ? '-'
                             : completionOnly
                               ? 'Private'
-                              : !STUDENT_EXAM_SHOW_SCORES_AND_COINS
+                              : !areExamScoresVisible(key) ||
+                                  (p.latest_score_release_held === true &&
+                                    (p.best_score == null || Number.isNaN(Number(p.best_score))))
                                 ? 'Pending'
                                 : formatBestScore(p.best_score)}
                         </TableCell>

@@ -117,6 +117,17 @@ export function readGamificationFromStudent(student: Record<string, unknown> | n
       typeof g.practice_coins_earned_total === 'number' && g.practice_coins_earned_total > 0
         ? Math.floor(g.practice_coins_earned_total)
         : 0,
+    practice_awarded_dates_by_exam: (() => {
+      const rawDates = g.practice_awarded_dates_by_exam;
+      if (!rawDates || typeof rawDates !== 'object' || Array.isArray(rawDates)) return undefined;
+      const out: Record<string, string> = {};
+      for (const [examId, value] of Object.entries(rawDates as Record<string, unknown>)) {
+        if (examId.trim() && typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+          out[examId.trim()] = value;
+        }
+      }
+      return Object.keys(out).length > 0 ? out : undefined;
+    })(),
     practice_last_awarded_week: typeof g.practice_last_awarded_week === 'string' ? g.practice_last_awarded_week : undefined,
     exam_coins_earned_total:
       typeof g.exam_coins_earned_total === 'number' && g.exam_coins_earned_total > 0
@@ -151,14 +162,11 @@ export function readGamificationFromStudent(student: Record<string, unknown> | n
 }
 
 export function practiceCoinsNotEarnedMessage(reason: string | null | undefined): string | null {
-  if (reason === 'honesty') {
-    return 'Argus coins not earned - it looks like the questions may not have been attempted thoughtfully. Take your time on each question next session!';
-  }
-  if (reason === 'weekly_cap') {
-    return 'You already earned your weekly practice coins. Come back next week for another reward!';
+  if (reason === 'daily_cap' || reason === 'weekly_cap') {
+    return 'Good job finishing this practice set! You already earned Argus Coins for this practice subject today. Try a different practice subject today, or come back tomorrow for this one.';
   }
   if (reason === 'insufficient_questions') {
-    return 'Answer all 10 questions in a practice set to earn weekly Argus coins.';
+    return 'Answer all 10 questions in a practice set to earn Argus Coins. Coins are awarded for one completed set of each practice subject each day.';
   }
   return null;
 }

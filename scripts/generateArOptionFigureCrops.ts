@@ -70,14 +70,10 @@ function main(): void {
     }
     const size = svgNaturalSizeFromText(text);
     const layout = layoutFromSvgText(text) ?? 'grid';
-    const stemSlice = optionFigureIncludesStemContent(layout, slices)
-      ? optionFigureStemSliceFromOptionSlices(
-          slices,
-          optionFigureStemContentBottomYPct(
-            text,
-            Math.min(...slices.map((s) => s.yPct))
-          )
-        )
+    const minY = Math.min(...slices.map((s) => s.yPct));
+    const contentBottom = optionFigureStemContentBottomYPct(text, minY);
+    const stemSlice = optionFigureIncludesStemContent(layout, slices, contentBottom)
+      ? optionFigureStemSliceFromOptionSlices(slices, contentBottom)
       : null;
     catalog[path.basename(file)] = {
       layout,

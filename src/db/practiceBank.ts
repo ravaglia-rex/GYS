@@ -181,7 +181,7 @@ export interface RecordPracticeSessionOutcomesResponse {
   recorded?: number;
   correct_count?: number;
   coins_awarded?: number;
-  coins_reason?: 'weekly_cap' | 'honesty' | 'insufficient_questions' | null;
+  coins_reason?: 'daily_cap' | 'weekly_cap' | 'insufficient_questions' | null;
 }
 
 /** Persist a full practice session in one request (student outcomes + bank analytics). */

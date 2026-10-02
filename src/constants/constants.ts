@@ -67,7 +67,6 @@ export const AMEND_SCHOOL_REGISTRATION='/amendSchoolRegistration';
 export const RESUME_SCHOOL_CHECKOUT='/resumeSchoolCheckout';
 export const LOOKUP_SCHOOL_REGISTRATION_PAYMENT='/lookupSchoolRegistrationPayment';
 export const FETCH_SCHOOL_NAME='/getSchoolDetails';
-export const VERIFY_SCHOOL_ADMIN_AND_SEND_PASSWORD_SETUP = '/verifySchoolAdminAndSendPasswordSetup';
 export const RESOLVE_REGISTRATION_SCHOOL = '/resolveRegistrationSchool';
 
 // Students
@@ -162,12 +161,24 @@ export const CHECK_EMAIL_EXISTS='/checkEmailExists';
 export const STUDENT_OFFICIAL_ASSESSMENTS_ENABLED = false;
 
 /**
- * Bucket 1 — scores / standing (not PDF reports).
+ * Bucket 1 — master switch (not PDF reports).
  * Keep in sync with backend `STUDENT_EXAM_REVEAL_SCORES`.
- * When false: students + school admins hide numeric scores, coins-on-result,
- * percentiles, leaderboards, GYS tiers / ranks. Platform Admin still sees scores.
+ * When false, only exams in STUDENT_EXAM_SCORE_REVEAL_ASSESSMENT_IDS show numeric scores.
+ * Composite GYS standing stays hidden until this is true.
  */
 export const STUDENT_EXAM_SHOW_SCORES_AND_COINS = false;
+
+/** Keep in sync with backend `STUDENT_EXAM_SCORE_REVEAL_ASSESSMENT_IDS`. */
+export const STUDENT_EXAM_SCORE_REVEAL_ASSESSMENT_IDS = new Set<string>([
+  'analytical_reasoning',
+]);
+
+/** Fail closed: unknown ids stay hidden. */
+export function areExamScoresVisible(examId: string | null | undefined): boolean {
+  if (STUDENT_EXAM_SHOW_SCORES_AND_COINS) return true;
+  const id = String(examId ?? '').trim();
+  return id !== '' && STUDENT_EXAM_SCORE_REVEAL_ASSESSMENT_IDS.has(id);
+}
 
 /**
  * Keep in sync with backend `GLOBAL_REPORTS_AND_RANKING_PIPELINE_HELD`.

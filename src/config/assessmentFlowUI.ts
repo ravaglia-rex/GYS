@@ -5,6 +5,7 @@
 
 import { ASSESSMENT_NAMES } from '../utils/assessmentGating';
 import { canonicalAssessmentId } from '../utils/assessmentIdCompat';
+import { VIDEO_PROCTORING_ENABLED } from '../features/proctoring/config';
 
 export type AssessmentThemeMode = 'blue' | 'purple';
 
@@ -132,7 +133,9 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
       { label: 'Duration', value: '45 min' },
       { label: 'Format', value: 'Multiple choice' },
       { label: 'Questions', value: '32' },
-      { label: 'Language', value: 'English' },
+      VIDEO_PROCTORING_ENABLED
+        ? { label: 'Proctoring', value: 'Video proctored' }
+        : { label: 'Language', value: 'English' },
     ],
     bodyDescription:
       'You will read short passages and answer questions about meaning, inference, and author intent. All content is in the language you chose for this exam.',
@@ -146,10 +149,9 @@ export const ASSESSMENT_FLOW_UI: Record<string, AssessmentFlowDefinition> = {
     beforeBegin: [
       FORWARD_ONLY_BEFORE,
       { icon: 'clock', text: 'The timer runs continuously - plan your pace.' },
-      { icon: 'phone', text: 'Minimize distractions; you will need focused reading.' },
       { icon: 'block', text: 'No dictionaries, translators, or outside help.' },
-      ONE_SITTING_BEFORE,
       WEIGHTED_DIFFICULTY_BEFORE,
+      ONE_SITTING_BEFORE,
       NO_SKIP_BEFORE,
     ],
     theme: 'blue',

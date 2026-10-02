@@ -138,9 +138,15 @@ function ItemBankVirtualList({
   onItemDeleted?: (itemId: string) => void;
 }) {
   const [visible, setVisible] = useState(ITEM_BANK_PAGE_SIZE);
+  // Reset pagination only when the membership/order of items changes (filters,
+  // reload, delete) — not when a single card is edited in place.
+  const questionIdsKey = useMemo(
+    () => questions.map((q) => q.item_id).join('\0'),
+    [questions]
+  );
   useEffect(() => {
     setVisible(ITEM_BANK_PAGE_SIZE);
-  }, [questions]);
+  }, [questionIdsKey]);
   const entries = useMemo(() => groupItemBankQuestionsForDisplay(questions), [questions]);
   const shown = entries.slice(0, visible);
   return (

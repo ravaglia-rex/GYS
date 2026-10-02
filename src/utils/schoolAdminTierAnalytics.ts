@@ -73,9 +73,6 @@ export function studentOverallProficiencyBand(student: StudentRow): 0 | 1 | 2 | 
   return Math.max(...bands) as 1 | 2 | 3;
 }
 
-/** Alias - highest active proficiency level (1–3), or 0 if none. */
-export const studentHighestProficiencyBand = studentOverallProficiencyBand;
-
 export function studentHasAnyAssessmentAttempt(student: StudentRow): boolean {
   return studentOverallProficiencyBand(student) > 0;
 }

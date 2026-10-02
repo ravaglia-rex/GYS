@@ -446,17 +446,30 @@ export function PlatformAdminFilterControl<T extends string>({
 
 export function PlatformAdminTableSection({
   countLabel,
+  headerAction,
   children,
 }: {
   countLabel: string;
+  headerAction?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <Box sx={platformAdminCardSx}>
-      <Box sx={{ px: { xs: 2, sm: 2.5 }, pt: { xs: 2, sm: 2.5 }, pb: 0 }}>
+      <Box
+        sx={{
+          px: { xs: 2, sm: 2.5 },
+          pt: { xs: 2, sm: 2.5 },
+          pb: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 1.5,
+        }}
+      >
         <Typography variant="body2" sx={{ color: ip.subtext, fontWeight: 500 }}>
           {countLabel}
         </Typography>
+        {headerAction}
       </Box>
       <Box sx={{ p: { xs: 1.5, sm: 2 }, pt: 1.5 }}>{children}</Box>
     </Box>

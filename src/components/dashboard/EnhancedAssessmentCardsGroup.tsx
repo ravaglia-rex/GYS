@@ -42,7 +42,7 @@ import {
   isOfficialExamNewStartBlocked,
   officialAssessmentSchoolIdFromStudent,
 } from '../../utils/officialStudentAssessmentsAccess';
-import { STUDENT_EXAM_SHOW_SCORES_AND_COINS } from '../../constants/constants';
+import { areExamScoresVisible } from '../../constants/constants';
 import { formatCooldownDate, nextEligibleAtMsForLevel } from '../../utils/examAttemptCooldown';
 import { canonicalAssessmentId, canonicalizeProgressMap } from '../../utils/assessmentIdCompat';
 import {
@@ -250,7 +250,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
     ? levelScoreBreakdown
     : levelScoreBreakdown.filter((row) => row.score0to100 != null);
   const showLevelScoreBreakdown =
-    STUDENT_EXAM_SHOW_SCORES_AND_COINS && visibleLevelScoreBreakdown.length > 0;
+    areExamScoresVisible(assessmentId) && visibleLevelScoreBreakdown.length > 0;
   const previewBlockedStartCtaLabel = `Start Assessment ${meta.assessmentNumber}`;
 
   return (
@@ -398,7 +398,7 @@ const AssessmentCard: React.FC<AssessmentCardProps> = ({
           >
             {hasStats ? (
               <Box sx={{ display: 'flex', gap: 3 }}>
-                {STUDENT_EXAM_SHOW_SCORES_AND_COINS && scoreDisplay !== null && (
+                {areExamScoresVisible(assessmentId) && scoreDisplay !== null && (
                   <Box>
                     <Tooltip
                       title={

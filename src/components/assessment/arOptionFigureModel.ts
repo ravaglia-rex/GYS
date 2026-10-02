@@ -27,10 +27,6 @@ export function isPlaceholderOptionText(text: string, index: number): boolean {
   );
 }
 
-export function allLetterKeyOptions(texts: string[]): boolean {
-  return texts.length >= 2 && texts.every((t, i) => isPlaceholderOptionText(t, i));
-}
-
 function normalizeChoiceLine(line: string): string {
   return line.replace(/^\s*(?:>\s*)?/, '');
 }
@@ -468,20 +464,6 @@ export function optionChoicesFromStimulus(stimulus: unknown): string[] | null {
   return choicesFromTableGrid(headers, rows);
 }
 
-export function splitArOptionFigure(markdown: string): {
-  stemMarkdown: string;
-  optionFigure: ArOptionFigureRef | null;
-} {
-  return splitArOptionFigureInternal(markdown, false);
-}
-
-export function splitLastArImageAsOptionFigure(markdown: string): {
-  stemMarkdown: string;
-  optionFigure: ArOptionFigureRef | null;
-} {
-  return splitArOptionFigureInternal(markdown, true);
-}
-
 export function splitArImageBySrc(markdown: string, src: string | undefined | null): {
   stemMarkdown: string;
   optionFigure: ArOptionFigureRef | null;
@@ -548,55 +530,6 @@ function arImageMatches(raw: string): ImgMatch[] {
   }
 
   return matches;
-}
-
-function splitArOptionFigureInternal(markdown: string, allowAnyImage: boolean): {
-  stemMarkdown: string;
-  optionFigure: ArOptionFigureRef | null;
-} {
-  const raw = markdown ?? '';
-  if (!raw.trim()) return { stemMarkdown: raw, optionFigure: null };
-  const matches = arImageMatches(raw);
-
-  const hit = matches
-    .slice()
-    .reverse()
-    .find((m) => allowAnyImage || looksLikeArOptionFigureHint(m.src ?? '', m.alt ?? ''));
-  if (!hit) return { stemMarkdown: raw, optionFigure: null };
-
-  const stemMarkdown = `${raw.slice(0, hit.index)}${raw.slice(hit.index + hit.rawTag.length)}`
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-  return {
-    stemMarkdown,
-    optionFigure: { alt: hit.alt, src: hit.src },
-  };
-}
-
-/**
- * Shared hint for “this image is the A–D option strip” (or a combined
- * stem+options SVG that we crop). Keep composite/cycle matrices as stem.
- */
-export function looksLikeArOptionFigureHint(src: string, alt = ''): boolean {
-  const haystack = `${src} ${alt}`;
-  if (/(?:composite|cycle)_matrix/i.test(haystack)) return false;
-  if (/followed by\s+.+answer cards/i.test(haystack)) return false;
-  return (
-    /\b(option|options|choice|choices|answer|answers|possible)\b/i.test(haystack) ||
-    /followed by\s+.+\bcovers\b/i.test(haystack) ||
-    /(?:^|\/|_|\b)covers(?:_|\.|$)/i.test(src)
-  );
-}
-
-export function optionFigureFromAssets(
-  assets?: Array<{ path?: string; alt?: string }> | null
-): ArOptionFigureRef | null {
-  if (!assets?.length) return null;
-  const hit = [...assets]
-    .reverse()
-    .find((a) => looksLikeArOptionFigureHint(a.path ?? '', a.alt ?? ''));
-  if (!hit?.path) return null;
-  return { src: hit.path, alt: hit.alt ?? '' };
 }
 
 const SKIP_TEXT_CLASS = /\b(letter|number|inside|symbol|num|lab|mark)\b/i;
@@ -898,7 +831,8 @@ function rowLayoutSlicesFromCards(
   const slices: OptionFigureSliceRect[] = [];
   for (let k = 0; k < order.length; k++) {
     const card = picked[k];
-    const pad = Math.max(3, Math.min(card.w, card.h) * 0.03);
+    // Extra pad so stroke and corner glyphs survive tile scaling (vw2_05 cards).
+    const pad = Math.max(10, Math.min(card.w, card.h) * 0.055);
     const x1 = Math.max(vb.x, card.x - pad);
     const y1 = Math.max(vb.y, card.y - pad);
     const x2 = Math.min(vb.x + vb.w, card.x + card.w + pad);
@@ -1167,7 +1101,10 @@ function sliceRectFromBounds(
   vb: { x: number; y: number; w: number; h: number },
   kind: OptionFigureSliceKind
 ): OptionFigureSliceRect {
-  const pad = Math.max(3, Math.min(maxX - minX, maxY - minY) * 0.03);
+  // Grid cards need extra pad — 3% left ~3 display px of slack after tile caps,
+  // which clipped bottom borders / corner glyphs (vw2_05 answer cards).
+  const padRatio = kind === 'grid' ? 0.055 : 0.03;
+  const pad = Math.max(kind === 'grid' ? 8 : 3, Math.min(maxX - minX, maxY - minY) * padRatio);
   const x1 = Math.max(vb.x, minX - pad);
   const y1 = Math.max(vb.y, minY - pad);
   const x2 = Math.min(vb.x + vb.w, maxX + pad);
@@ -1228,19 +1165,36 @@ function stackedRowSlicesFromCards(
 }
 
 /**
- * Options must sit clearly in the lower half before we treat the top as stem art.
+ * Options must sit clearly below stem art before we treat the top as a stem crop.
  * Options-only sheets often reserve ~25–35% for A–D labels above the cards; that
- * headroom is not stem content and must not trigger stem cropping / crop fit.
+ * headroom is not stem content. Combined stem+options figures (e.g. ssw2_06) can
+ * start options just under 40% — still mint a stem when real art sits above.
  */
 export const OPTION_FIGURE_STEM_CONTENT_MIN_Y_PCT = 40;
+/** Lower floor when SVG content above the option band proves combined stem+options. */
+export const OPTION_FIGURE_STEM_CONTENT_MIN_Y_PCT_WITH_ART = 32;
 
 /** True when A–D sit in the lower part of a figure that also has stem content above. */
 export function optionFigureIncludesStemContent(
   _layout: ArOptionFigureLayout,
-  slices: OptionFigureSliceRect[] | null
+  slices: OptionFigureSliceRect[] | null,
+  contentBottomYPct?: number | null
 ): boolean {
   if (!slices?.length) return false;
-  return Math.min(...slices.map((s) => s.yPct)) >= OPTION_FIGURE_STEM_CONTENT_MIN_Y_PCT;
+  const minY = Math.min(...slices.map((s) => s.yPct));
+  if (minY >= OPTION_FIGURE_STEM_CONTENT_MIN_Y_PCT) return true;
+  // Combined figures whose option band starts ~32–40% still have stem art when
+  // content sits well above the cards (ssw2_06 rotate/stack at ~38%).
+  if (
+    minY >= OPTION_FIGURE_STEM_CONTENT_MIN_Y_PCT_WITH_ART &&
+    contentBottomYPct != null &&
+    Number.isFinite(contentBottomYPct) &&
+    contentBottomYPct >= 8 &&
+    contentBottomYPct < minY - 6
+  ) {
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -1269,6 +1223,11 @@ export function optionFigureStemContentBottomYPct(
 
   for (const text of Array.from(doc.querySelectorAll('text'))) {
     if (isInsideDefs(text)) continue;
+    const raw = (text.textContent || '').replace(/\s+/g, ' ').trim();
+    // OPTIONS / A–D / ANSWER CARDS chrome sits in the option headroom above the
+    // cards. Counting it as stem art either leaves orphaned headers or, after
+    // sanitize pullback, clips the real stem (TARGET on vw2_05).
+    if (/^(OPTIONS|ANSWER CARDS?|[A-D])$/i.test(raw)) continue;
     const pt = svgLocalPoint(text);
     // text y is baseline; allow a small glyph descent below the anchor.
     const bottom = pt.y + 12;
@@ -1288,7 +1247,7 @@ export function optionFigureStemSliceFromOptionSlices(
 ): OptionFigureSliceRect | null {
   if (!slices?.length) return null;
   const minY = Math.min(...slices.map((s) => s.yPct));
-  if (minY < OPTION_FIGURE_STEM_CONTENT_MIN_Y_PCT) return null;
+  if (!optionFigureIncludesStemContent('grid', slices, contentBottomYPct)) return null;
   // Options detected past the viewBox (yPct > 100) mean the SVG canvas was
   // already cropped to stem-only — use the full frame, never invent headroom.
   if (minY > 100) {
@@ -1371,25 +1330,6 @@ function trimOptionLetterFromSlice(
     wPct: ((x2 - nx1) / vb.w) * 100,
     hPct: ((y2 - ny1) / vb.h) * 100,
   };
-}
-
-export function trimOptionLabelsFromSlices(
-  svgText: string,
-  slices: OptionFigureSliceRect[],
-  optionCount = 4
-): OptionFigureSliceRect[] | null {
-  if (typeof DOMParser === 'undefined' || !slices.length) return null;
-  const doc = new DOMParser().parseFromString(svgText, 'image/svg+xml');
-  if (doc.querySelector('parsererror')) return null;
-  const vb = svgViewBox(doc);
-  if (!vb) return null;
-  const n = Math.min(slices.length, Math.min(4, Math.max(2, optionCount)));
-  const labels = optionLabelEls(doc, n);
-  if (!labels || labels.length < n) return null;
-  const letterPts = labels.map((el) => svgLocalPoint(el));
-  return slices.map((slice, i) =>
-    i < letterPts.length ? trimOptionLetterFromSlice(slice, letterPts[i], vb) : slice
-  );
 }
 
 export function optionFigureContentSlicesFromSvg(

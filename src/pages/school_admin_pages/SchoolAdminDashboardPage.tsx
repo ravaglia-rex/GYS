@@ -683,11 +683,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
           ) {
             usedLiveAnalyticsSummary = true;
             setStudentCount(analyticsSummary.student_count);
-            setInitializedStudentCount(
-              typeof summaryData.live?.total_students === 'number' && summaryData.live.total_students > 0
-                ? summaryData.live.total_students
-                : analyticsSummary.student_count
-            );
+            setInitializedStudentCount(analyticsSummary.student_count);
             setTotalAssessmentsCompleted(analyticsSummary.assessments_completed ?? 0);
             setProficiencyByExam(
               (analyticsSummary.proficiency_by_exam ?? []).filter((e) => e.total > 0)
@@ -705,7 +701,12 @@ const SchoolAdminDashboardPage: React.FC = () => {
             });
             setPerformance({
               avgPercentile:
-                analyticsData.avg_percentile_source === 'national' ? analyticsData.avg_percentile ?? 0 : 0,
+                typeof analyticsSummary.avg_national_percentile === 'number' &&
+                analyticsSummary.avg_national_percentile > 0
+                  ? analyticsSummary.avg_national_percentile
+                  : analyticsData.avg_percentile_source === 'national'
+                    ? analyticsData.avg_percentile ?? 0
+                    : 0,
               atLevel3Count: liveTier123.tier3,
               clearedLevel1Count: liveTier123.tier2 + liveTier123.tier3,
               rosterTotal: liveTier123.total,

@@ -141,22 +141,3 @@ export function resolveLearnerExamOptions(input: {
     displayMode,
   };
 }
-
-export function resolvedOptionTextsForItem(q: {
-  prompt?: string;
-  prompt_preview?: string;
-  stimulus?: unknown;
-  stimulus_type?: string | null;
-  options?: Array<{ text?: string } | string> | null;
-}): string[] {
-  const bank = (q.options || []).map((o) => (typeof o === 'string' ? o : o.text || ''));
-  const resolved = resolveLearnerExamOptions({
-    markdown: q.prompt || q.prompt_preview || '',
-    stimulus: q.stimulus,
-    stimulusType: q.stimulus_type,
-    bankOptions: bank,
-  });
-  return Array.from({ length: Math.max(bank.length, resolved.optionTexts.length) }, (_, i) => {
-    return resolved.optionTexts[i] || bank[i] || '';
-  });
-}

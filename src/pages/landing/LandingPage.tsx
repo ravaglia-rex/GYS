@@ -531,7 +531,7 @@ const LandingPage: React.FC = () => {
             Argus Coins &amp; Daily Rewards
           </h3>
           <p className="mx-auto mt-3 max-w-3xl text-center text-sm leading-relaxed text-gray-600">
-            GYS keeps students coming back with Argus Coins - earn them from official exams, weekly practice, and a daily Question of the Day.
+            GYS keeps students coming back with Argus Coins - earn them from official exams, one practice set per subject each day, and a daily Question of the Day.
             Build login and QoD streaks, then redeem coins for gift cards and perks in the Rewards Shop.
           </p>
           <div className="mx-auto mt-8 grid max-w-4xl grid-cols-1 gap-4 sm:grid-cols-3">

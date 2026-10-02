@@ -11,7 +11,7 @@ import ShareIcon from '@mui/icons-material/Share';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import { getAssessmentFlowDefinition } from '../../config/assessmentFlowUI';
 import { nextAssessmentNudge } from '../../config/assessmentResultDetail';
-import { STUDENT_EXAM_SHOW_SCORES_AND_COINS } from '../../constants/constants';
+import { areExamScoresVisible } from '../../constants/constants';
 import {
   EXAM_MAX_SCORE_POINTS,
   isLevelBasedAssessment,
@@ -28,6 +28,7 @@ interface ResultState {
   passed?: boolean;
   nextTier?: number | null;
   completedAt?: string;
+  resultsPending?: boolean;
   coinsAwarded?: number;
 }
 
@@ -40,7 +41,7 @@ const AssessmentResultDetailPage: React.FC = () => {
     return <Navigate to="/assessments" replace />;
   }
 
-  if (!STUDENT_EXAM_SHOW_SCORES_AND_COINS) {
+  if (!areExamScoresVisible(state.assessmentId) || state.resultsPending === true) {
     return (
       <Navigate
         to={`/assessments/${state.assessmentId}/result`}
