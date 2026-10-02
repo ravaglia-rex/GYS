@@ -13,7 +13,6 @@ export type SchoolTutorialPageKey =
   | 'school.dashboard'
   | 'school.students'
   | 'school.studentDetail'
-  | 'school.analytics'
   | 'school.reports'
   | 'school.alerts'
   | 'school.settings'

@@ -25,7 +25,7 @@ export const TUTORIAL_REGISTRY: Record<TutorialPageKey, TutorialStepDefinition[]
       scrollTargetId: 'student-dashboard-assessments-heading',
       scrollBlock: 'center',
       title: 'Your assessments',
-      body: 'Scroll here to open or continue official exams. Locked items unlock as you progress and your membership allows.',
+      body: 'Open this to go to your available exams. Locked items unlock as you progress and your membership allows.',
       placement: 'top',
     },
     {
@@ -184,8 +184,14 @@ export const TUTORIAL_REGISTRY: Record<TutorialPageKey, TutorialStepDefinition[]
     {
       targetId: 'school-dashboard-quick-actions',
       title: 'Quick actions',
-      body: 'Jump to Analytics or email support from here when you need deeper views or help.',
+      body: 'Download the latest report or email support from here.',
       placement: 'top',
+    },
+    {
+      targetId: 'school-analytics-exam-select',
+      title: 'Proficiency by class',
+      body: 'Choose an assessment to see Level 1, 2, and 3 counts broken out by class.',
+      placement: 'bottom',
     },
   ],
   'school.students': [
@@ -237,26 +243,6 @@ export const TUTORIAL_REGISTRY: Record<TutorialPageKey, TutorialStepDefinition[]
       targetId: 'school-student-detail-assessments',
       title: 'Assessment progress',
       body: 'Review scores and completion status across assessments for this individual student.',
-      placement: 'top',
-    },
-  ],
-  'school.analytics': [
-    {
-      targetId: 'school-nav-analytics',
-      title: 'Analytics',
-      body: 'School-wide charts for scores, class mix, and proficiency tiers across assessments.',
-      placement: 'right',
-    },
-    {
-      targetId: 'school-analytics-exam-select',
-      title: 'Pick an assessment',
-      body: 'Choose which exam to analyze-charts and tables update for that assessment across your roster.',
-      placement: 'bottom',
-    },
-    {
-      targetId: 'school-analytics-charts',
-      title: 'Performance charts',
-      body: 'Compare average scores, tier breakdowns, and national performance bands for your students.',
       placement: 'top',
     },
   ],

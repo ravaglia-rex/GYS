@@ -20,7 +20,6 @@ import {
   BarChart as MiniBarChartIcon,
   HelpOutline as HelpOutlineIcon,
   FileDownload as FileDownloadIcon,
-  Analytics as AnalyticsIcon,
 } from '@mui/icons-material';
 import { alpha } from '@mui/material/styles';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -69,6 +68,7 @@ import {
 } from '../../data/schoolPreviewMock';
 import PageTutorial from '../../components/tutorial/PageTutorial';
 import { SCHOOL_ADMIN_PAGE_MAX_WIDTH } from './schoolAdminPageStyles';
+import SchoolAdminOverviewInsights from './SchoolAdminAnalyticsPage';
 import { STUDENT_EXAM_SHOW_SCORES_AND_COINS } from '../../constants/constants';
 
 // ─── Tier config ─────────────────────────────────────────────────────────────
@@ -83,15 +83,8 @@ type DashboardQuickAction =
   | { key: string; icon: React.ReactElement; label: string; subcaption: string; path: string }
   | { key: string; icon: React.ReactElement; label: string; subcaption: string; href: string };
 
-function getDashboardQuickActions(routeBase: string): DashboardQuickAction[] {
+function getDashboardQuickActions(): DashboardQuickAction[] {
   return [
-    {
-      key: 'analytics',
-      icon: <AnalyticsIcon sx={{ color: '#dc2626', fontSize: '2rem' }} />,
-      label: 'Analytics',
-      subcaption: 'School-wide scores, class mix, and proficiency levels across assessments.',
-      path: `${routeBase}/analytics`,
-    },
     {
       key: 'help',
       icon: <HelpOutlineIcon sx={{ color: '#0d9488', fontSize: '2rem' }} />,
@@ -1013,7 +1006,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
         data-tutorial-id="school-dashboard-quick-actions"
         sx={{
         display: 'grid',
-        gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' },
+        gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
         gap: 2,
         mb: 3,
       }}>
@@ -1119,7 +1112,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
             </Box>
           </CardContent>
         </Card>
-        {getDashboardQuickActions(routeBase).map(action => (
+        {getDashboardQuickActions().map(action => (
           <Card
             key={action.key}
             onClick={() => {
@@ -1181,8 +1174,8 @@ const SchoolAdminDashboardPage: React.FC = () => {
           </Box>
           <Typography variant="body2" sx={{ color: ip.subtext, mb: 1, lineHeight: 1.55 }}>
             Headline stats use each student’s <strong>highest</strong> proficiency level across assessments they have
-            started or completed. The bars below break levels out <strong>per exam</strong> for a fairer view. For
-            class-level detail, open Analytics.
+            started or completed. The bars below break levels out <strong>per exam</strong>. The table further down
+            splits those levels by class.
           </Typography>
           <Typography variant="caption" sx={{ color: ip.subtext, mb: 2, display: 'block', lineHeight: 1.5 }}>
             <strong>Proficiency ladder:</strong> Level 1 / 2 / 3 = foundational / intermediate / advanced difficulty on
@@ -1238,7 +1231,7 @@ const SchoolAdminDashboardPage: React.FC = () => {
               Proficiency by exam (levels 1–3)
             </Typography>
             <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 2, lineHeight: 1.5 }}>
-              Each bar counts only students with activity on that exam. Open Analytics for the same breakdown by class.
+              Each bar counts only students with activity on that exam. The table below splits the same levels by class.
             </Typography>
             {proficiencyByExam.length === 0 ? (
               <Typography variant="body2" sx={{ color: ip.subtext }}>
@@ -1265,6 +1258,8 @@ const SchoolAdminDashboardPage: React.FC = () => {
           </Box>
         </CardContent>
       </Card>
+
+      <SchoolAdminOverviewInsights />
 
       {/* ── Upgrade Banner ────────────────────────────────────────────────── */}
       <Box sx={{

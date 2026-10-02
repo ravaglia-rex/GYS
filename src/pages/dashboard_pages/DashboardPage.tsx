@@ -1,5 +1,7 @@
-import React, { useEffect, useMemo, useState, Suspense, lazy } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Box, Typography } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import { ChevronRight } from 'lucide-react';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../firebase/firebase';
@@ -9,7 +11,6 @@ import DashboardOverview from '../../components/dashboard/DashboardOverview';
 import {
   ASSESSMENT_ORDER,
   COMPLETION_PREREQUISITES,
-  PROGRAM_EXAM_COUNT,
   assessmentDisplayName,
   assessmentHasReleasedScore,
   countAssessmentSits,
@@ -25,7 +26,6 @@ import {
 } from '../../utils/assessmentGating';
 import PageTutorial from '../../components/tutorial/PageTutorial';
 import {
-  canAccessOfficialStudentAssessments,
   canStartOfficialAssessmentNow,
   officialAssessmentSchoolIdFromStudent,
 } from '../../utils/officialStudentAssessmentsAccess';
@@ -35,12 +35,6 @@ import type {
   DashboardNotificationEventSource,
   UnlockedAssessmentNotificationSource,
 } from '../../utils/dashboardNotifications';
-
-const EnhancedAssessmentCardsGroup = lazy(() =>
-  import('../../components/dashboard/EnhancedAssessmentCardsGroup').then((m) => ({
-    default: m.EnhancedAssessmentCardsGroup,
-  }))
-);
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -54,6 +48,7 @@ interface DashboardStats {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
   const [uid, setUid] = useState(() => auth.currentUser?.uid ?? '');
   const [userEmail, setUserEmail] = useState(() => auth.currentUser?.email ?? '');
   const {
@@ -71,7 +66,6 @@ const Dashboard: React.FC = () => {
     ? 'Could not load your dashboard data. Please refresh or try again later.'
     : '';
   const officialSchoolId = officialAssessmentSchoolIdFromStudent(student);
-  const officialAssessmentsEnabled = canAccessOfficialStudentAssessments(userEmail, officialSchoolId);
 
   const dashboardDerived = useMemo(() => {
     if (loading || !student) {
@@ -85,7 +79,6 @@ const Dashboard: React.FC = () => {
         completedAssessments: [] as CompletedAssessmentNotificationSource[],
         unlockedAssessments: [] as UnlockedAssessmentNotificationSource[],
         backendNotificationEvents: [] as DashboardNotificationEventSource[],
-        assessmentScopeLine: '',
       };
     }
 
@@ -110,7 +103,6 @@ const Dashboard: React.FC = () => {
     let availableAssessments = 0;
     let assessmentsTaken = 0;
     let resultsAvailable = 0;
-    let tiersCompleted = 0;
     const completedForNotifications: CompletedAssessmentNotificationSource[] = [];
     const unlockedForNotifications: UnlockedAssessmentNotificationSource[] = [];
 
@@ -140,7 +132,6 @@ const Dashboard: React.FC = () => {
       }
       const done = isAssessmentFullyComplete(a, p);
       if (done) {
-        tiersCompleted += 1;
         completedForNotifications.push({
           assessmentId: a.id,
           assessmentName: assessmentDisplayName(a.id, a.name),
@@ -165,7 +156,6 @@ const Dashboard: React.FC = () => {
       }
     }
 
-    const listedTotal = Math.max(sorted.length, PROGRAM_EXAM_COUNT);
     return {
       stats: {
         availableAssessments,
@@ -176,7 +166,6 @@ const Dashboard: React.FC = () => {
       completedAssessments: completedForNotifications,
       unlockedAssessments: unlockedForNotifications,
       backendNotificationEvents: dashboardNotificationEvents,
-      assessmentScopeLine: `${tiersCompleted} of ${listedTotal} complete`,
     };
   }, [student, configFromBackend, loading, userEmail, officialSchoolId, newStartsPaused]);
 
@@ -186,7 +175,6 @@ const Dashboard: React.FC = () => {
     completedAssessments,
     unlockedAssessments,
     backendNotificationEvents,
-    assessmentScopeLine,
   } = dashboardDerived;
 
   useEffect(() => {
@@ -246,40 +234,109 @@ const Dashboard: React.FC = () => {
                 unlockedAssessments={unlockedAssessments}
                 backendNotificationEvents={backendNotificationEvents}
               />
-              <Box sx={{ mt: 4, ml: { xs: 0, sm: 1 }, minWidth: 0 }} data-tutorial-id="student-dashboard-assessments">
-                <Box>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', gap: 1, mb: 2 }}>
-                    <Typography
-                      variant="h5"
-                      data-tutorial-scroll-id="student-dashboard-assessments-heading"
-                      sx={{ color: 'white', fontWeight: 700 }}
-                    >
-                      Your Assessments
-                    </Typography>
-                    {assessmentScopeLine && (
-                      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.55)' }}>
-                        {assessmentScopeLine}
-                      </Typography>
-                    )}
+              <Box
+                component="button"
+                type="button"
+                aria-label="Open available assessments"
+                data-tutorial-id="student-dashboard-assessments"
+                data-tutorial-scroll-id="student-dashboard-assessments-heading"
+                onClick={() => navigate('/assessments/available')}
+                sx={{
+                  mt: 4,
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 2,
+                  px: { xs: 2, sm: 2.5 },
+                  py: 2.25,
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  color: 'white',
+                  borderRadius: 3,
+                  border: '1px solid rgba(91, 33, 182, 0.4)',
+                  background:
+                    'radial-gradient(circle at 8% 0%, rgba(76, 29, 149, 0.28), transparent 36%), radial-gradient(circle at 92% 120%, rgba(6, 78, 59, 0.22), transparent 42%), linear-gradient(135deg, rgba(30, 27, 75, 0.72) 0%, rgba(15, 23, 42, 0.94) 58%, rgba(6, 46, 36, 0.4) 100%)',
+                  boxShadow: '0 10px 28px rgba(15, 23, 42, 0.35)',
+                  transition: 'transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease',
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                    borderColor: 'rgba(109, 40, 217, 0.55)',
+                    boxShadow: '0 16px 36px rgba(30, 27, 75, 0.4)',
+                  },
+                  '&:hover .assessments-go-arrow': {
+                    transform: 'translateX(4px)',
+                  },
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 2.25 }, minWidth: 0 }}>
+                  <Box sx={{ display: 'flex', gap: 0.75, flexShrink: 0 }} aria-hidden>
+                    {[
+                      { icon: '🧩', gradient: 'linear-gradient(160deg, #6d28d9 0%, #3b0764 100%)' },
+                      { icon: '📚', gradient: 'linear-gradient(160deg, #93c5fd 0%, #1d4ed8 100%)' },
+                      { icon: '∑', gradient: 'linear-gradient(160deg, #6ee7b7 0%, #047857 100%)' },
+                    ].map((mark) => (
+                      <Box
+                        key={mark.icon}
+                        sx={{
+                          width: { xs: 36, sm: 44 },
+                          height: { xs: 36, sm: 44 },
+                          borderRadius: 2,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: { xs: '1rem', sm: '1.15rem' },
+                          fontWeight: 800,
+                          color: 'white',
+                          background: mark.gradient,
+                          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.35), 0 6px 14px rgba(0,0,0,0.25)',
+                        }}
+                      >
+                        {mark.icon}
+                      </Box>
+                    ))}
                   </Box>
-                  <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.65)', mb: 2 }}>
-                    {officialAssessmentsEnabled
-                      ? 'All assessments are listed below. Complete them in sequence where your membership allows.'
-                      : 'Official exams are shown below for reference and will unlock soon. Practice Mode remains available in the meantime.'}
-                  </Typography>
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography
+                      sx={{
+                        color: '#a78bfa',
+                        fontWeight: 800,
+                        fontSize: '0.72rem',
+                        letterSpacing: 1.4,
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      Assessments
+                    </Typography>
+                    <Typography sx={{ color: 'white', fontWeight: 800, fontSize: { xs: '1.05rem', sm: '1.2rem' }, lineHeight: 1.25, mt: 0.25 }}>
+                      Continue your exams
+                    </Typography>
+                    <Typography sx={{ color: 'rgba(255,255,255,0.72)', fontSize: '0.88rem', mt: 0.4 }}>
+                      {stats.availableAssessments > 0
+                        ? `${stats.availableAssessments} ready to start`
+                        : 'See scores, retakes, and what unlocks next'}
+                    </Typography>
+                  </Box>
                 </Box>
-                <Suspense
-                  fallback={
-                    <Box sx={{ minHeight: 240, borderRadius: 2, bgcolor: 'rgba(255,255,255,0.04)' }} />
-                  }
+                <Box
+                  aria-hidden
+                  sx={{
+                    flexShrink: 0,
+                    width: 52,
+                    height: 52,
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    background: 'linear-gradient(135deg, #5b21b6 0%, #312e81 100%)',
+                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18), 0 8px 18px rgba(49, 46, 129, 0.35)',
+                  }}
                 >
-                  <EnhancedAssessmentCardsGroup
-                    uid={uid}
-                    filterType="all"
-                    student={student as Record<string, unknown>}
-                    assessmentConfig={configFromBackend}
-                  />
-                </Suspense>
+                  <Box className="assessments-go-arrow" sx={{ display: 'flex', transition: 'transform 160ms ease' }}>
+                    <ChevronRight size={28} />
+                  </Box>
+                </Box>
               </Box>
             </>
           )}

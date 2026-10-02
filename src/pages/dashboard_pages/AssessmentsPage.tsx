@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Box, Typography, Tabs, Tab, Paper, Avatar, useMediaQuery } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
@@ -62,6 +62,12 @@ const AssessmentsPage: React.FC = () => {
     officialAssessmentSchoolIdFromStudent(student)
   );
   const [activeTab, setActiveTab] = useState(0);
+
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [pathname]);
 
   // Determine active tab based on current route
   useEffect(() => {

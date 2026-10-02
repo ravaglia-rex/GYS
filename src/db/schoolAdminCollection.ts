@@ -678,7 +678,6 @@ export type SchoolAnalyticsSummaryResponse = {
     }>;
     hasAnyScores: boolean;
   }>;
-  exam_averages: Array<{ examId?: string; category: string; current: number; remainder: number }>;
   personality_completion: { completed: number; total: number };
   /** Live Performance-overview metrics from the same roster scan. */
   attempt_rate?: number;

@@ -27,16 +27,10 @@ import { useSelector } from 'react-redux';
 import { useLocation } from 'react-router-dom';
 import { RootState } from '../../state_data/reducer';
 import {
-  BarChart,
-  Bar,
   PieChart,
   Pie,
   Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from 'recharts';
 import { useSchoolAdminAnalyticsSummary } from '../../query/hooks';
@@ -56,14 +50,10 @@ import {
   EXAM_MAX_SCORE_POINTS,
   SCHOOL_SCORED_ASSESSMENT_IDS,
   isSchoolScoredAssessment,
-  tierPercentToExamPoints,
 } from '../../utils/assessmentGating';
-import { NationalPerformanceTierOverview } from '../../components/school_admin/NationalPerformanceTierOverview';
 import { buildGreenfieldPreviewStudentRows } from '../../data/schoolPreviewMock';
 import { REASONING_EXAM_SUBCATEGORIES } from '../../data/reasoningExamSubcategories';
-import PageTutorial from '../../components/tutorial/PageTutorial';
-import { STUDENT_EXAM_SHOW_SCORES_AND_COINS, areExamScoresVisible } from '../../constants/constants';
-import { SchoolAdminPageHeader, schoolAdminPageContainerSx } from './schoolAdminPageStyles';
+import { areExamScoresVisible } from '../../constants/constants';
 import type { SchoolAnalyticsSummaryResponse, StudentRow } from '../../db/schoolAdminCollection';
 import { countAssessmentsFromProgress } from '../../utils/schoolAdminRosterUtils';
 const SCORE_BAND_COLORS: Record<ScoreBandId, string> = {
@@ -110,46 +100,11 @@ const examTierSelectMenuPaperSx = {
   '& .MuiMenuItem-root': { color: ip.heading },
 } as const;
 
-/** Per assessment, average best score among the school’s top-N students by that score (N capped by how many have progress). */
-const TOP_STUDENTS_PER_EXAM_FOR_AVG = 10;
-
-function bestScorePoints(raw: number | null | undefined): number | null {
-  if (raw == null || typeof raw !== 'number' || Number.isNaN(raw)) return null;
-  return tierPercentToExamPoints(raw <= 1 ? raw * 100 : raw);
-}
-
-function scoredExamIdsForAvgChart(): string[] {
-  return [...SCHOOL_SCORED_ASSESSMENT_IDS];
-}
-
 function isPersonalityCompleted(progress: StudentRow['assessment_progress'] | undefined): boolean {
   const p = progress?.[PERSONALITY_ASSESSMENT_ID];
   if (!p) return false;
   const st = p.status ?? '';
   return st === 'completed' || st === 'tier_advanced';
-}
-
-/** One bar per school-scored assessment; `current` is 0 when no student has a best score yet. */
-function buildExamAverageChartRows(
-  students: StudentRow[]
-): Array<{ examId: string; category: string; current: number; remainder: number }> {
-  return scoredExamIdsForAvgChart().map(id => {
-    const scores: number[] = [];
-    for (const s of students) {
-      const points = bestScorePoints(s.assessment_progress?.[id]?.best_score ?? undefined);
-      if (points != null) scores.push(points);
-    }
-    scores.sort((a, b) => b - a);
-    const top = scores.slice(0, TOP_STUDENTS_PER_EXAM_FOR_AVG);
-    const current =
-      top.length > 0 ? Math.round(top.reduce((acc, v) => acc + v, 0) / top.length) : 0;
-    return {
-      examId: id,
-      category: assessmentDisplayName(id),
-      current,
-      remainder: Math.max(0, EXAM_MAX_SCORE_POINTS - current),
-    };
-  });
 }
 
 function buildPersonalityCompletionStats(students: StudentRow[]): {
@@ -205,7 +160,6 @@ function buildPreviewAnalyticsSummary(students: StudentRow[]): SchoolAnalyticsSu
       SCORE_DISTRIBUTION_EXAMS,
       EXAM_MAX_SCORE_POINTS
     ),
-    exam_averages: buildExamAverageChartRows(students),
     personality_completion: buildPersonalityCompletionStats(students),
     attempt_rate: computeAttemptRatePct(students),
     assessments_completed: students.reduce(
@@ -226,12 +180,11 @@ interface AnalyticsData {
   qualificationStats: {
     total: number;
   };
-  /** Mean best score points among top performers per exam; one row per school-scored assessment (0 if none). */
-  examAverages: Array<{ examId?: string; category: string; current: number; remainder: number }>;
   personalityCompletion: { completed: number; total: number };
 }
 
-const SchoolAdminAnalyticsPage: React.FC = () => {
+/** Analytics sections shown on the school Overview page. */
+const SchoolAdminOverviewInsights: React.FC = () => {
   const location = useLocation();
   const isSchoolAdminPreview = location.pathname.startsWith('/for-schools/preview');
   const { schoolAdmin } = useSelector((state: RootState) => state.auth);
@@ -249,14 +202,6 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
     return analyticsQuery.data ?? null;
   }, [isSchoolAdminPreview, analyticsQuery.data]);
 
-  const nationalPerfTiersSummary = useMemo(
-    () =>
-      summary?.national_tiers ?? {
-        counts: { explorer: 0, bronze: 0, silver: 0, gold: 0, platinum: 0, diamond: 0 },
-        total: 0,
-      },
-    [summary]
-  );
   const examIdsWithActivity = useMemo(
     () => (summary?.exam_ids_with_activity ?? []).filter(isSchoolScoredAssessment),
     [summary]
@@ -287,7 +232,6 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
     return {
       gradeDistribution: summary.grade_distribution,
       qualificationStats: { total: summary.student_count },
-      examAverages: summary.exam_averages,
       personalityCompletion: summary.personality_completion,
     };
   }, [summary]);
@@ -324,15 +268,9 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
   }
 
   return (
-    <Box sx={schoolAdminPageContainerSx}>
-      <PageTutorial pageKey="school.analytics" ready={!loading} />
-      <SchoolAdminPageHeader
-        title="Analytics"
-        subtitle="Comprehensive insights into your school's performance and student achievements"
-      />
-
+    <Box>
       {!hasAnyAnalyticsData && (
-        <Card sx={{ bgcolor: '#ffffff', boxShadow: 'none', border: `1px solid ${ip.cardBorder}`, borderRadius: 2 }}>
+        <Card sx={{ bgcolor: '#ffffff', boxShadow: 'none', border: `1px solid ${ip.cardBorder}`, borderRadius: 2, mb: 3 }}>
           <CardContent sx={{ py: 5, px: { xs: 2.5, sm: 4 }, textAlign: 'center' }}>
             <Avatar sx={{ width: 56, height: 56, bgcolor: 'rgba(16, 64, 139, 0.08)', color: ip.navy, mx: 'auto', mb: 2 }}>
               <ShowChartIcon />
@@ -449,32 +387,6 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
             </Card>
           </Box>
 
-          {/* Nationwide GYS performance tiers (achievement_tier) */}
-          <Card sx={{ bgcolor: '#ffffff', boxShadow: 'none', border: `1px solid ${ip.cardBorder}`, mb: 4 }}>
-            <CardContent>
-              <Typography variant="h6" sx={{ fontWeight: 600, color: '#1E293B', mb: 0.5 }}>
-                National performance tiers (GYS)
-              </Typography>
-              {!STUDENT_EXAM_SHOW_SCORES_AND_COINS ? (
-                <Alert severity="info" sx={{ mt: 1 }}>
-                  GYS performance tiers are deferred for schools until exam scores are released.
-                </Alert>
-              ) : (
-                <>
-              <Typography variant="body2" sx={{ color: '#94a3b8', mb: 2, lineHeight: 1.55 }}>
-                Explorer → Diamond: normed tiers from each student&apos;s profile.
-              </Typography>
-              <NationalPerformanceTierOverview
-                counts={nationalPerfTiersSummary.counts}
-                total={nationalPerfTiersSummary.total}
-                subtitle="Each student counted once by current GYS performance tier (achievement_tier on each profile). Same roster as proficiency analytics."
-                barHeight={36}
-              />
-                </>
-              )}
-            </CardContent>
-          </Card>
-
           {/* Proficiency levels 1–3 (assessment progress) */}
           <Card sx={{ bgcolor: '#ffffff', boxShadow: 'none', border: `1px solid ${ip.cardBorder}`, mb: 4 }}>
             <CardContent>
@@ -484,7 +396,7 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
               <Typography variant="body2" sx={{ color: '#94a3b8', mb: 2, lineHeight: 1.55 }}>
                 Counts students at Level 1 / 2 / 3 on a single assessment, broken down by class. Each student is
                 counted once for the selected exam based on their proficiency on that exam only (not their weakest
-                across subjects). Overview uses the same per-exam view without the class split.
+                across subjects). The bars above show the same levels across all classes.
               </Typography>
 
               <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#1E293B', mt: 1, mb: 1 }}>
@@ -768,97 +680,10 @@ const SchoolAdminAnalyticsPage: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card
-            data-tutorial-id="school-analytics-charts"
-            sx={{ bgcolor: '#ffffff', boxShadow: 'none', border: `1px solid ${ip.cardBorder}`, mb: 4 }}
-          >
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <ShowChartIcon sx={{ color: '#3b82f6', mr: 2 }} />
-                <Typography variant="h6" sx={{ fontWeight: 600, color: '#1E293B' }}>
-                  Average best score by assessment
-                </Typography>
-              </Box>
-              {analyticsData.examAverages.filter((row) => areExamScoresVisible(row.examId)).length === 0 ? (
-                <Alert severity="info">
-                  Numeric exam scores are deferred for schools right now. Average score charts will appear here when
-                  results are released.
-                </Alert>
-              ) : (
-                <>
-              <Typography variant="body2" sx={{ color: '#94a3b8', mb: 3, lineHeight: 1.6 }}>
-                For each exam, we pool students across all classes, rank them by their personal best score on that exam,
-                take the top {TOP_STUDENTS_PER_EXAM_FOR_AVG} performers, and plot the average of those scores. Charts
-                cover Analytical Reasoning, Verbal Reasoning, Mathematical Reasoning, and AI Proficiency (school-scored
-                tracks). Bars are 0 when no student has a recorded best
-                score yet. If fewer than {TOP_STUDENTS_PER_EXAM_FOR_AVG} students have a score for an exam, we average
-                everyone who has one.
-              </Typography>
-              <Box sx={{ maxWidth: 650, width: '100%', mx: 'auto' }}>
-                <ResponsiveContainer width="100%" height={360}>
-                  <BarChart
-                    data={analyticsData.examAverages.filter((row) => areExamScoresVisible(row.examId))}
-                    margin={{ top: 8, bottom: 8, left: 4, right: 12 }}
-                    barCategoryGap="18%"
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
-                    <XAxis
-                      dataKey="category"
-                      stroke="#94a3b8"
-                      interval={0}
-                      angle={-18}
-                      textAnchor="end"
-                      height={88}
-                      tick={{ fontSize: 11, fill: '#64748b' }}
-                    />
-                    <YAxis
-                      stroke="#94a3b8"
-                      domain={[0, EXAM_MAX_SCORE_POINTS]}
-                      width={44}
-                      tick={{ fontSize: 11, fill: '#64748b' }}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: '#ffffff',
-                        border: `1px solid ${ip.cardBorder}`,
-                        color: '#1E293B',
-                      }}
-                      formatter={(value: number) => [
-                        `${value} / ${EXAM_MAX_SCORE_POINTS}`,
-                        `Top ${TOP_STUDENTS_PER_EXAM_FOR_AVG} avg`,
-                      ]}
-                    />
-                    <Legend wrapperStyle={{ fontSize: '0.8rem', paddingTop: 8 }} />
-                    <Bar
-                      dataKey="current"
-                      stackId="avg"
-                      fill="#3b82f6"
-                      name={`Top ${TOP_STUDENTS_PER_EXAM_FOR_AVG} avg score`}
-                      barSize={68}
-                      radius={[0, 0, 0, 0]}
-                    />
-                    <Bar
-                      dataKey="remainder"
-                      stackId="avg"
-                      fill="#e2e8f0"
-                      name="Remaining to max"
-                      barSize={68}
-                      radius={[4, 4, 0, 0]}
-                      legendType="none"
-                      tooltipType="none"
-                      isAnimationActive={false}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Box>
-                </>
-              )}
-            </CardContent>
-          </Card>
         </>
       )}
     </Box>
   );
 };
 
-export default SchoolAdminAnalyticsPage;
+export default SchoolAdminOverviewInsights;
