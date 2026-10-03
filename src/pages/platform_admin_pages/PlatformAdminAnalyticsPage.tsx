@@ -70,7 +70,7 @@ import {
   getPlatformAdminOfficialExamDrilldown,
   getPlatformAdminOfficialExamAbandons,
   getPlatformAdminOfficialExamSummaries,
-  searchPlatformAdminOfficialExamCompletions,
+  getPlatformAdminOfficialExamCompletionCatalog,
   setPlatformAdminOfficialExamCompletionScoreVisibility,
   type PracticeDailyByExamStatRow,
   type PracticeDailyStatRow,
@@ -97,6 +97,7 @@ import {
   type OfficialCrossSplitRow,
 } from '../../db/platformAdminAnalytics';
 import { formatDateTime } from '../../db/platformAdminCollection';
+import { isPlatformAdminTestStudent } from './platformAdminTestStudents';
 import { createTtlMemoryCache } from './platformAdminMemoryCache';
 import {
   platformAdminCardSx,
@@ -248,6 +249,8 @@ type OfficialAnalyticsUiSnapshot = {
 
 /** Kept for the tab session so leaving for a student profile and coming back restores Search completions. */
 let officialAnalyticsUiSnapshot: OfficialAnalyticsUiSnapshot | null = null;
+/** Slim rows already fetched this session, keyed by exam. Filters do not refetch. */
+const completionCatalogByExam = new Map<string, OfficialExamRecentRow[]>();
 
 function titleCaseAnalyticsKey(key: string): string {
   const spaced = key.replace(/_/g, ' ').replace(/:/g, ' · ').trim();
@@ -805,6 +808,12 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
     restoredOfficialUi?.completionScoreBracket ?? 'all'
   );
   const [completionLimit, setCompletionLimit] = useState(restoredOfficialUi?.completionLimit ?? 25);
+  const [completionCatalog, setCompletionCatalog] = useState<OfficialExamRecentRow[]>(
+    () => completionCatalogByExam.get(restoredOfficialUi?.examId ?? '') ?? []
+  );
+  const [completionCatalogExamId, setCompletionCatalogExamId] = useState(
+    () => (completionCatalogByExam.has(restoredOfficialUi?.examId ?? '') ? restoredOfficialUi?.examId ?? '' : '')
+  );
   const [officialDrilldown, setOfficialDrilldown] = useState<OfficialExamDrilldown | null>(null);
   const [officialDrillLevel, setOfficialDrillLevel] = useState<'all' | number>('all');
   const [gradeSchoolStrandSplit, setGradeSchoolStrandSplit] =
@@ -996,66 +1005,80 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
     }
   }, []);
 
-  const searchOfficialCompletions = useCallback(
-    async (
-      examId: string,
-      overrides?: {
-        q?: string;
-        from?: string;
-        to?: string;
-        level?: 'all' | number;
-        scoreBracket?: CompletionScoreBracketKey;
-        limit?: number;
+  const filteredCompletions = useMemo(() => {
+    if (!selectedOfficialExamId || completionCatalogExamId !== selectedOfficialExamId) return [];
+    const q = completionQ.trim().toLowerCase();
+    const band =
+      completionScoreBracket === 'all'
+        ? null
+        : COMPLETION_SCORE_BRACKETS.find((item) => item.key === completionScoreBracket) ?? null;
+    const fromMs = completionFrom ? Date.parse(completionFrom) : NaN;
+    const toMs = completionTo ? Date.parse(completionTo) : NaN;
+    const toExclusiveMs = Number.isFinite(toMs) ? toMs + 24 * 60 * 60 * 1000 - 1 : NaN;
+    return completionCatalog.filter((row) => {
+      if (!q && isPlatformAdminTestStudent({ email: row.email })) return false;
+      if (q) {
+        const hay = `${row.first_name ?? ''} ${row.last_name ?? ''} ${row.email ?? ''} ${row.uid ?? ''}`.toLowerCase();
+        if (!hay.includes(q)) return false;
       }
-    ) => {
-      if (!examId) return;
-      const req = ++officialCompletionsReqRef.current;
-      setOfficialCompletionsLoading(true);
-      setOfficialError(null);
-      const q = overrides?.q ?? completionQ;
-      const from = overrides?.from ?? completionFrom;
-      const to = overrides?.to ?? completionTo;
-      const level = overrides?.level ?? completionLevel;
-      const scoreBracket = overrides?.scoreBracket ?? completionScoreBracket;
-      const limit = overrides?.limit ?? completionLimit;
-      const band =
-        scoreBracket === 'all'
-          ? null
-          : COMPLETION_SCORE_BRACKETS.find((b) => b.key === scoreBracket) ?? null;
-      try {
-        const data = await searchPlatformAdminOfficialExamCompletions(examId, {
-          q,
-          from: from || undefined,
-          to: to || undefined,
-          level: level === 'all' ? null : level,
-          scoreMin: band?.min ?? null,
-          scoreMax: band?.max ?? null,
-          limit,
-        });
-        if (req !== officialCompletionsReqRef.current) return;
-        setOfficialRecent(data.results);
-        setOfficialRecentMatched(data.matched);
-        setOfficialRecentSearched(true);
-      } catch (e: unknown) {
-        if (req !== officialCompletionsReqRef.current) return;
-        const err = e as { response?: { data?: { error?: string } }; message?: string };
-        setOfficialError(err?.response?.data?.error || err?.message || 'Failed to search completions');
-        setOfficialRecent([]);
-        setOfficialRecentMatched(0);
-        setOfficialRecentSearched(true);
-      } finally {
-        if (req === officialCompletionsReqRef.current) setOfficialCompletionsLoading(false);
+      if (completionLevel !== 'all' && row.proficiency_tier !== completionLevel) return false;
+      if (band) {
+        const points = row.score_points ?? 0;
+        if (points < band.min || points > band.max) return false;
       }
-    },
-    [
-      completionQ,
-      completionFrom,
-      completionTo,
-      completionLevel,
-      completionScoreBracket,
-      completionLimit,
-    ]
-  );
+      const completedMs = row.completed_at ? Date.parse(row.completed_at) : 0;
+      if (Number.isFinite(fromMs) && completedMs < fromMs) return false;
+      if (Number.isFinite(toExclusiveMs) && completedMs > toExclusiveMs) return false;
+      return true;
+    });
+  }, [
+    completionCatalog,
+    completionCatalogExamId,
+    selectedOfficialExamId,
+    completionQ,
+    completionFrom,
+    completionTo,
+    completionLevel,
+    completionScoreBracket,
+  ]);
+
+  const visibleCompletions = useMemo(() => {
+    const cap = completionLimit <= 0 ? 500 : completionLimit;
+    return filteredCompletions.slice(0, cap);
+  }, [filteredCompletions, completionLimit]);
+
+  const loadCompletionCatalog = useCallback(async (examId: string, opts?: { refresh?: boolean }) => {
+    if (!examId) return;
+    if (!opts?.refresh) {
+      const cached = completionCatalogByExam.get(examId);
+      if (cached) {
+        setCompletionCatalog(cached);
+        setCompletionCatalogExamId(examId);
+        setOfficialCompletionsLoading(false);
+        return;
+      }
+    }
+    const req = ++officialCompletionsReqRef.current;
+    setOfficialCompletionsLoading(true);
+    setOfficialError(null);
+    try {
+      const data = await getPlatformAdminOfficialExamCompletionCatalog(examId, {
+        refresh: opts?.refresh,
+      });
+      if (req !== officialCompletionsReqRef.current) return;
+      completionCatalogByExam.set(examId, data.results);
+      setCompletionCatalog(data.results);
+      setCompletionCatalogExamId(examId);
+    } catch (e: unknown) {
+      if (req !== officialCompletionsReqRef.current) return;
+      const err = e as { response?: { data?: { error?: string } }; message?: string };
+      setOfficialError(err?.response?.data?.error || err?.message || 'Failed to load completions');
+      setCompletionCatalog([]);
+      setCompletionCatalogExamId(examId);
+    } finally {
+      if (req === officialCompletionsReqRef.current) setOfficialCompletionsLoading(false);
+    }
+  }, []);
 
   const toggleCompletionScoreVisibility = useCallback(
     async (row: OfficialExamRecentRow) => {
@@ -1070,13 +1093,16 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
           row.uid,
           nextHeld
         );
-        setOfficialRecent((prev) =>
-          prev.map((item) =>
-            item.attempt_id === row.attempt_id
-              ? { ...item, score_release_held: result.score_release_held }
-              : item
-          )
-        );
+        const applyHeld = (item: OfficialExamRecentRow) =>
+          item.attempt_id === row.attempt_id
+            ? { ...item, score_release_held: result.score_release_held }
+            : item;
+        setCompletionCatalog((prev) => {
+          const next = prev.map(applyHeld);
+          completionCatalogByExam.set(selectedOfficialExamId, next);
+          return next;
+        });
+        setOfficialRecent((prev) => prev.map(applyHeld));
         return true;
       } catch (e: unknown) {
         const err = e as { response?: { data?: { error?: string } }; message?: string };
@@ -1096,12 +1122,8 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
       setCompletionScoreBracket(bracketKey);
       setCompletionLevel(level);
       setOfficialView('completions');
-      void searchOfficialCompletions(selectedOfficialExamId, {
-        scoreBracket: bracketKey,
-        level,
-      });
     },
-    [selectedOfficialExamId, officialDrillLevel, searchOfficialCompletions]
+    [selectedOfficialExamId, officialDrillLevel]
   );
 
   const openCompletionsForScoreBand = useCallback(
@@ -1683,6 +1705,11 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
   }, [section, officialView, selectedOfficialExamId, officialAbandonLevel, loadOfficialAbandons]);
 
   useEffect(() => {
+    if (section !== 'official' || officialView !== 'completions' || !selectedOfficialExamId) return;
+    void loadCompletionCatalog(selectedOfficialExamId);
+  }, [section, officialView, selectedOfficialExamId, loadCompletionCatalog]);
+
+  useEffect(() => {
     if (section !== 'practice' || !selectedExamId) return;
     if (practiceOverviewDetailExamRef.current === selectedExamId) {
       practiceOverviewDetailExamRef.current = '';
@@ -1724,6 +1751,10 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
         }
         if (officialView === 'abandons') {
           void loadOfficialAbandons(selectedOfficialExamId, officialAbandonLevel, { refresh: true });
+        }
+        if (officialView === 'completions') {
+          completionCatalogByExam.delete(selectedOfficialExamId);
+          void loadCompletionCatalog(selectedOfficialExamId, { refresh: true });
         }
       }
     }
@@ -2997,7 +3028,7 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
               {officialView === 'completions' && (
               <PlatformAdminAnalyticsSection
                 title="Search completions"
-                subtitle="Click Search to load. Click a student to open their profile and exam attempts. Click Hidden or Shown to confirm showing or hiding that score. Student, date, level, and score filters search every completion for this exam. Limit only controls how many matching rows to show (10–100, or All up to 500). Score bracket matches the /1000 distribution bars."
+                subtitle="Filters update the list as you change them. Click a student to open their profile and exam attempts. Click Hidden or Shown to confirm showing or hiding that score. Limit is how many rows to show (10–100, or All up to 500)."
                 accent="violet"
               >
                   <Box sx={{ ...platformAdminFilterToolbarRowSx, mb: 2 }}>
@@ -3007,11 +3038,6 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                       placeholder="Name, email, or uid"
                       value={completionQ}
                       onChange={(e) => setCompletionQ(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && selectedOfficialExamId) {
-                          void searchOfficialCompletions(selectedOfficialExamId);
-                        }
-                      }}
                       sx={{
                         ...platformAdminTextFieldSx,
                         minWidth: { xs: '100%', sm: 220 },
@@ -3123,24 +3149,9 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                         <MenuItem value={0}>All (≤500)</MenuItem>
                       </Select>
                     </FormControl>
-                    <Button
-                      variant="outlined"
-                      disabled={!selectedOfficialExamId || officialCompletionsLoading}
-                      onClick={() => {
-                        if (selectedOfficialExamId) void searchOfficialCompletions(selectedOfficialExamId);
-                      }}
-                      startIcon={
-                        officialCompletionsLoading ? (
-                          <CircularProgress size={16} color="inherit" />
-                        ) : undefined
-                      }
-                      sx={platformAdminOutlinedButtonSx}
-                    >
-                      {officialCompletionsLoading ? 'Searching…' : 'Search'}
-                    </Button>
                   </Box>
 
-                  {officialCompletionsLoading ? (
+                  {completionCatalogExamId !== selectedOfficialExamId || officialCompletionsLoading ? (
                     <Box
                       sx={{
                         display: 'flex',
@@ -3156,42 +3167,46 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                         Loading completions…
                       </Typography>
                     </Box>
-                  ) : !officialRecentSearched ? (
-                    <Typography variant="body2" sx={{ color: ip.subtext, py: 2 }}>
-                      Select filters (optional), then click Search to load completions.
-                    </Typography>
                   ) : (
                     <>
                       <Typography variant="caption" sx={{ color: ip.subtext, display: 'block', mb: 1 }}>
-                        {officialRecentMatched > officialRecent.length
-                          ? `Showing ${officialRecent.length.toLocaleString()} of ${officialRecentMatched.toLocaleString()} matched`
-                          : officialRecent.length === 0
-                            ? 'No completions matched these filters.'
-                            : `Showing ${officialRecent.length.toLocaleString()} most recent`}
+                        {filteredCompletions.length === 0
+                          ? 'No completions matched these filters.'
+                          : visibleCompletions.length < filteredCompletions.length
+                            ? `Showing ${visibleCompletions.length.toLocaleString()} of ${filteredCompletions.length.toLocaleString()} matched`
+                            : `Showing ${visibleCompletions.length.toLocaleString()}`}
                       </Typography>
                       <TableContainer component={Paper} elevation={0} sx={platformAdminTablePaperSx}>
-                        <Table size="small" sx={platformAdminTableSx}>
+                        <Table
+                          size="small"
+                          sx={{
+                            ...platformAdminTableSx,
+                            tableLayout: 'fixed',
+                            width: '100%',
+                            minWidth: 980,
+                          }}
+                        >
                           <TableHead>
                             <TableRow sx={platformAdminTableHeadRowSx}>
-                              <TableCell>When</TableCell>
-                              <TableCell>Student</TableCell>
-                              <TableCell>School</TableCell>
-                              <TableCell align="right">Level</TableCell>
-                              <TableCell align="right">Questions</TableCell>
-                              <TableCell align="right">Score</TableCell>
-                              <TableCell align="right">Visibility</TableCell>
-                              <TableCell align="right">Passed</TableCell>
+                              <TableCell sx={{ width: '16%' }}>When</TableCell>
+                              <TableCell sx={{ width: '22%' }}>Student</TableCell>
+                              <TableCell sx={{ width: '18%' }}>School</TableCell>
+                              <TableCell align="right" sx={{ width: '8%' }}>Level</TableCell>
+                              <TableCell align="right" sx={{ width: '14%' }}>Questions</TableCell>
+                              <TableCell align="right" sx={{ width: '8%' }}>Score</TableCell>
+                              <TableCell align="right" sx={{ width: '8%' }}>Visibility</TableCell>
+                              <TableCell align="right" sx={{ width: '6%' }}>Passed</TableCell>
                             </TableRow>
                           </TableHead>
                           <TableBody>
-                            {officialRecent.length === 0 ? (
+                            {visibleCompletions.length === 0 ? (
                               <TableRow>
                                 <TableCell colSpan={8} align="center" sx={{ py: 3, color: ip.subtext }}>
                                   No completions matched these filters.
                                 </TableCell>
                               </TableRow>
                             ) : (
-                              officialRecent.map((row) => {
+                              visibleCompletions.map((row) => {
                                 const durationLabel = formatExamDuration(row.duration_sec);
                                 return (
                                   <TableRow
@@ -3214,10 +3229,12 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                                     <TableCell sx={{ whiteSpace: 'nowrap' }}>
                                       {formatDateTime(row.completed_at)}
                                     </TableCell>
-                                    <TableCell sx={{ fontWeight: 600 }}>
+                                    <TableCell sx={{ fontWeight: 600, overflow: 'hidden' }}>
                                       <Typography
                                         component="span"
+                                        noWrap
                                         sx={{
+                                          display: 'block',
                                           color: ip.navy,
                                           fontWeight: 700,
                                           textDecoration: 'underline',
@@ -3229,20 +3246,26 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                                       </Typography>
                                       <Typography
                                         variant="caption"
+                                        noWrap
                                         sx={{ display: 'block', color: ip.subtext }}
                                       >
                                         {row.email}
                                       </Typography>
                                     </TableCell>
-                                    <TableCell>{row.school_name ?? '-'}</TableCell>
+                                    <TableCell
+                                      sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                    >
+                                      {row.school_name ?? '-'}
+                                    </TableCell>
                                     <TableCell align="right">{row.proficiency_tier ?? '-'}</TableCell>
-                                    <TableCell align="right">
+                                    <TableCell align="right" sx={{ overflow: 'hidden' }}>
                                       <Box
                                         sx={{
                                           display: 'inline-flex',
                                           alignItems: 'center',
                                           gap: 0.75,
                                           justifyContent: 'flex-end',
+                                          maxWidth: '100%',
                                         }}
                                       >
                                         <Typography component="span" variant="body2" sx={{ fontWeight: 600 }}>
@@ -3292,28 +3315,7 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                                         </Box>
                                       )}
                                     </TableCell>
-                                    <TableCell align="right">
-                                      <Box
-                                        sx={{
-                                          display: 'inline-flex',
-                                          alignItems: 'center',
-                                          gap: 0.75,
-                                          justifyContent: 'flex-end',
-                                        }}
-                                      >
-                                        <PlatformAdminChip
-                                          label={row.passed ? 'Passed' : 'Not passed'}
-                                          tone={row.passed ? 'success' : 'neutral'}
-                                        />
-                                        <Typography
-                                          component="span"
-                                          sx={{ color: ip.subtext, fontSize: 14, lineHeight: 1 }}
-                                          aria-hidden
-                                        >
-                                          →
-                                        </Typography>
-                                      </Box>
-                                    </TableCell>
+                                    <TableCell align="right">{row.passed ? 'Yes' : 'No'}</TableCell>
                                   </TableRow>
                                 );
                               })

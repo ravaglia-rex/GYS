@@ -86,6 +86,7 @@ export const SEND_NOTIFICATION_EMAILS='/sendNotificationEmails';
 export const FETCH_SCHOOL_ADMIN_DATA='/getSchoolAdminDetails';
 export const FETCH_SCHOOL_SUMMARY='/getSchoolSummary';
 export const FETCH_SCHOOL_ANALYTICS_SUMMARY='/getSchoolAnalyticsSummary';
+export const FETCH_SCHOOL_EXAM_COMPLETIONS='/getSchoolExamCompletions';
 export const SCHOOL_STUDENTS_ROSTER='/students';
 export const STUDENT_REGISTRATION_EMAILS='/studentRegistrationEmails';
 export const INCOMPLETE_STUDENT_INVITATION='/incompleteStudentInvitation';

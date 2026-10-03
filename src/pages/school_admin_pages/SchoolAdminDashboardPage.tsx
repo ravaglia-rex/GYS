@@ -68,7 +68,7 @@ import {
 } from '../../data/schoolPreviewMock';
 import PageTutorial from '../../components/tutorial/PageTutorial';
 import { SCHOOL_ADMIN_PAGE_MAX_WIDTH } from './schoolAdminPageStyles';
-import SchoolAdminOverviewInsights from './SchoolAdminAnalyticsPage';
+import SchoolAdminOverviewInsights from './SchoolAdminOverviewInsights';
 import { STUDENT_EXAM_SHOW_SCORES_AND_COINS } from '../../constants/constants';
 
 // ─── Tier config ─────────────────────────────────────────────────────────────

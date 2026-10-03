@@ -814,6 +814,27 @@ export async function getPlatformAdminOfficialExamDetail(
   };
 }
 
+/** Slim rows for one exam. The Search completions screen filters this list locally. */
+export async function getPlatformAdminOfficialExamCompletionCatalog(
+  examId: string,
+  opts?: { refresh?: boolean }
+): Promise<{
+  exam_id: string;
+  results: OfficialExamRecentRow[];
+  generated_at: string;
+}> {
+  const headers = await authHeaders();
+  const res = await axios.get(
+    `${apiBase()}${PLATFORM_ADMIN_APIS}${PLATFORM_ADMIN_ANALYTICS_OFFICIAL_EXAMS}/${encodeURIComponent(examId)}/completions`,
+    { headers, params: { catalog: '1', ...refreshParams(opts?.refresh) } }
+  );
+  return {
+    exam_id: typeof res.data.exam_id === 'string' ? res.data.exam_id : examId,
+    results: Array.isArray(res.data.results) ? res.data.results : [],
+    generated_at: typeof res.data.generated_at === 'string' ? res.data.generated_at : '',
+  };
+}
+
 export async function searchPlatformAdminOfficialExamCompletions(
   examId: string,
   opts?: {
@@ -824,7 +845,7 @@ export async function searchPlatformAdminOfficialExamCompletions(
     /** Inclusive /1000 score band (matches Score distribution bars). */
     scoreMin?: number | null;
     scoreMax?: number | null;
-    /** How many matching rows to return (1–500). Pass 0 for All (up to 500). Filters search the full index. */
+    /** How many matching rows to return (1–500). Pass 0 for All (up to 500). */
     limit?: number;
   }
 ): Promise<{

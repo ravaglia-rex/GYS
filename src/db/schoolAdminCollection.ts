@@ -3,6 +3,7 @@ import {
   BILLING_INVOICE_DOWNLOAD_URL,
   FETCH_SCHOOL_ADMIN_DATA,
   FETCH_SCHOOL_ANALYTICS_SUMMARY,
+  FETCH_SCHOOL_EXAM_COMPLETIONS,
   FETCH_SCHOOL_SUMMARY,
   SCHOOL_STUDENTS_ROSTER,
   QUARTERLY_REPORT_DOWNLOAD_URL,
@@ -668,16 +669,6 @@ export type SchoolAnalyticsSummaryResponse = {
     string,
     Array<{ grade: number; tier1: number; tier2: number; tier3: number; total: number }>
   >;
-  score_distribution: Array<{
-    examId: string;
-    subcategories: Array<{
-      name: string;
-      n: number;
-      meanPoints: number | null;
-      bands: Record<string, number>;
-    }>;
-    hasAnyScores: boolean;
-  }>;
   personality_completion: { completed: number; total: number };
   /** Live Performance-overview metrics from the same roster scan. */
   attempt_rate?: number;
@@ -692,7 +683,7 @@ export type SchoolAnalyticsSummaryResponse = {
     tier3: number;
     total: number;
   }>;
-  /** Present when STUDENT_EXAM_REVEAL_SCORES is false — score charts are emptied server-side. */
+  /** Present when composite national standing is still hidden. */
   scores_deferred?: boolean;
 };
 
@@ -711,6 +702,52 @@ export const getSchoolAnalyticsSummary = async (
   } catch {
     throw new Error(
       "Error fetching school analytics summary. Please contact globalyoungscholar@argus.ai"
+    );
+  }
+};
+
+export type SchoolExamCompletionRow = {
+  uid: string;
+  first_name: string;
+  last_name: string;
+  grade: number;
+  section: string;
+  level: number | null;
+  score_points: number | null;
+  score_pending: boolean;
+  passed: boolean;
+  finished_at: string | null;
+};
+
+export type SchoolExamCompletionStats = {
+  row_count: number;
+  pass_count: number;
+  pass_rate_pct: number | null;
+  avg_score_points: number | null;
+  scores_deferred: boolean;
+};
+
+export type SchoolExamCompletionsResponse = {
+  schoolId: string;
+  school_covered_membership_level: number;
+  by_exam: Record<string, { students: SchoolExamCompletionRow[]; stats: SchoolExamCompletionStats }>;
+};
+
+/** One roster scan covering every exam the school's package unlocks. */
+export const getSchoolExamCompletions = async (
+  schoolId: string
+): Promise<SchoolExamCompletionsResponse> => {
+  try {
+    const authToken = await authTokenHandler.getAuthToken();
+    const encodedSchoolId = encodeURIComponent(String(schoolId ?? "").trim());
+    const response = await axios.get(
+      `${process.env.REACT_APP_GOOGLE_CLOUD_FUNCTIONS}${SCHOOL_ADMINS_APIS}${FETCH_SCHOOL_EXAM_COMPLETIONS}/${encodedSchoolId}`,
+      { headers: { Authorization: `Bearer ${authToken}` } }
+    );
+    return response.data as SchoolExamCompletionsResponse;
+  } catch {
+    throw new Error(
+      "Error fetching school exam completions. Please contact globalyoungscholar@argus.ai"
     );
   }
 };

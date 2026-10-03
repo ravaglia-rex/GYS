@@ -194,6 +194,26 @@ export const TUTORIAL_REGISTRY: Record<TutorialPageKey, TutorialStepDefinition[]
       placement: 'bottom',
     },
   ],
+  'school.analytics': [
+    {
+      targetId: 'school-nav-analytics',
+      title: 'Exam analytics',
+      body: 'Switch exams to see who finished each level, with class, score, and pass or fail.',
+      placement: 'right',
+    },
+    {
+      targetId: 'school-analytics-exam-tabs',
+      title: 'Choose an exam',
+      body: 'Exams outside your school package stay locked. Hover a lock to see that it needs an upgrade.',
+      placement: 'bottom',
+    },
+    {
+      targetId: 'school-analytics-table',
+      title: 'Level results',
+      body: 'Each row is one student at one level. Filter the table, then export the rows you are looking at.',
+      placement: 'top',
+    },
+  ],
   'school.students': [
     {
       targetId: 'school-nav-students',

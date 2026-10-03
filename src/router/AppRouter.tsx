@@ -134,6 +134,7 @@ SCHOOL ADMIN PAGES: These are the pages for school administrators
 */
 const SchoolAdminPageWrapper = lazy(() => import('../components/school_admin/SchoolAdminPageWrapper'));
 const SchoolAdminDashboardPage = lazy(() => import('../pages/school_admin_pages/SchoolAdminDashboardPage'));
+const SchoolAdminAnalyticsPage = lazy(() => import('../pages/school_admin_pages/SchoolAdminAnalyticsPage'));
 const SchoolAdminStudentsPage = lazy(() => import('../pages/school_admin_pages/SchoolAdminStudentsPage'));
 const SchoolAdminSettingsPage = lazy(() => import('../pages/school_admin_pages/SchoolAdminSettingsPage'));
 const SchoolAdminReportsPage = lazy(() => import('../pages/school_admin_pages/SchoolAdminReportsPage'));
@@ -451,7 +452,14 @@ const AppRouter: React.FC = () => {
                 </Suspense>
               }
             />
-            <Route path="analytics" element={<Navigate to="/for-schools/preview/dashboard" replace />} />
+            <Route
+              path="analytics"
+              element={
+                <Suspense fallback={<BigSpinner/>}>
+                  <SchoolAdminAnalyticsPage />
+                </Suspense>
+              }
+            />
             <Route path="student-emails" element={<Navigate to="/for-schools/preview/students" replace />} />
             <Route
               path="alerts"
@@ -543,7 +551,7 @@ const AppRouter: React.FC = () => {
           <Route path="/school-admin/dashboard" element={<SchoolAdminDashboardPage />} />
           <Route path="/school-admin/students" element={<SchoolAdminStudentsPage />} />
           <Route path="/school-admin/students/:studentId" element={<SchoolAdminStudentDetailPage />} />
-          <Route path="/school-admin/analytics" element={<Navigate to="/school-admin/dashboard" replace />} />
+          <Route path="/school-admin/analytics" element={<SchoolAdminAnalyticsPage />} />
           <Route path="/school-admin/settings" element={<SchoolAdminSettingsPage />} />
           <Route path="/school-admin/reports" element={<SchoolAdminReportsPage />} />
           <Route path="/school-admin/alerts" element={<SchoolAdminAlertsPage />} />

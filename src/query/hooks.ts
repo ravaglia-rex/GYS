@@ -11,7 +11,7 @@ import {
 import { getSchoolDetails } from '../db/schoolCollection';
 import { getPayments } from '../db/studentPaymentMappings';
 import { fetchQod, fetchRewards, fetchRedemptions } from '../db/gamificationCollection';
-import { getSchoolAnalyticsSummary, getSchoolStudentRoster, getSchoolSummary } from '../db/schoolAdminCollection';
+import { getSchoolAnalyticsSummary, getSchoolExamCompletions, getSchoolStudentRoster, getSchoolSummary } from '../db/schoolAdminCollection';
 import {
   getPlatformAdminOverview,
   getPlatformAdminStudentStats,
@@ -176,6 +176,16 @@ export function useSchoolAdminAnalyticsSummary(schoolId: string | undefined, ena
   return useQuery({
     queryKey: queryKeys.schoolAdminAnalyticsSummary(schoolId ?? ''),
     queryFn: () => getSchoolAnalyticsSummary(schoolId!),
+    enabled: Boolean(schoolId) && enabled,
+    staleTime: SCHOOL_ADMIN_ANALYTICS_SUMMARY_STALE_MS,
+  });
+}
+
+/** Per-level completion rows for every exam the school package unlocks. One roster scan. */
+export function useSchoolAdminExamCompletions(schoolId: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.schoolAdminExamCompletions(schoolId ?? ''),
+    queryFn: () => getSchoolExamCompletions(schoolId!),
     enabled: Boolean(schoolId) && enabled,
     staleTime: SCHOOL_ADMIN_ANALYTICS_SUMMARY_STALE_MS,
   });

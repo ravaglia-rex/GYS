@@ -19,6 +19,7 @@ import {
   Menu as MenuIcon,
   People as PeopleIcon,
   Description as ReportsIcon,
+  Analytics as AnalyticsIcon,
   Notifications as AlertsIcon,
   Settings as SettingsIcon,
   CreditCard as SubscriptionIcon,
@@ -95,6 +96,7 @@ const SCHOOL_NAV_TUTORIAL_ID: Record<string, string> = {
   Overview: 'school-nav-overview',
   Students: 'school-nav-students',
   Reports: 'school-nav-reports',
+  Analytics: 'school-nav-analytics',
   Alerts: 'school-nav-alerts',
   Settings: 'school-nav-settings',
   Subscription: 'school-nav-subscription',
@@ -103,6 +105,7 @@ const SCHOOL_NAV_TUTORIAL_ID: Record<string, string> = {
 const SIDEBAR_NAV: SidebarNavItem[] = [
   { title: 'Overview', path: '/school-admin/dashboard', icon: <OverviewColoredIcon /> },
   { title: 'Students', path: '/school-admin/students', icon: <PeopleIcon sx={{ color: '#64748b', fontSize: SIDEBAR_ICON_SIZE }} /> },
+  { title: 'Analytics', path: '/school-admin/analytics', icon: <AnalyticsIcon sx={{ color: '#dc2626', fontSize: SIDEBAR_ICON_SIZE }} /> },
   { title: 'Reports', path: '/school-admin/reports', icon: <ReportsIcon sx={{ color: '#b45309', fontSize: SIDEBAR_ICON_SIZE }} /> },
   { title: 'Alerts', path: '/school-admin/alerts', icon: <AlertsIcon sx={{ color: '#eab308', fontSize: SIDEBAR_ICON_SIZE }} /> },
   { title: 'Subscription', path: '/school-admin/subscription', icon: <SubscriptionIcon sx={{ color: '#059669', fontSize: SIDEBAR_ICON_SIZE }} /> },

@@ -12,6 +12,8 @@ export const queryKeys = {
   schoolAdminRoster: (schoolId: string) => ['schoolAdminRoster', schoolId] as const,
   schoolAdminAnalyticsSummary: (schoolId: string) =>
     ['schoolAdminAnalyticsSummary', schoolId] as const,
+  schoolAdminExamCompletions: (schoolId: string) =>
+    ['schoolAdminExamCompletions', schoolId] as const,
   platformAdminOverview: () => ['platformAdminOverview'] as const,
   platformAdminOpenQuestionReportsCount: () =>
     ['platformAdminOpenQuestionReportsCount'] as const,
