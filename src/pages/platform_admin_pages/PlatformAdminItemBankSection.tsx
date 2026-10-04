@@ -44,9 +44,11 @@ const FILTER_KEYS: OfficialItemBankFilterKey[] = [
   'instruction_family',
   'band',
   'family',
-  'mechanic',
   'approved',
 ];
+
+/** Item Bank list order. Latest = most recently approved first. */
+type ApprovalOrder = 'latest' | 'oldest';
 
 const FILTER_LABELS: Record<OfficialItemBankFilterKey, string> = {
   strand: 'Strand',
@@ -94,7 +96,7 @@ function itemBankCacheKey(
   filters: OfficialItemBankFilters
 ): string {
   const filterPart = FILTER_KEYS.map((key) => `${key}=${filters[key] || ''}`).join('&');
-  return `${bankKind}|${examId}|${level}|v10|${filterPart}`;
+  return `${bankKind}|${examId}|${level}|v11|${filterPart}`;
 }
 
 function bankMatchesRequest(
@@ -254,6 +256,42 @@ function itemIdMatchesQuery(itemId: string, query: string): boolean {
   return itemId.toLowerCase().includes(q);
 }
 
+function readApprovalOrder(params: URLSearchParams): ApprovalOrder {
+  return params.get('order') === 'oldest' ? 'oldest' : 'latest';
+}
+
+/**
+ * Sort key for approved questions. Prefer Item Bank `approved_at`.
+ * Approved items written before that field existed fall back to import time.
+ * Unapproved rows sort after every approved row.
+ */
+function approvalSortMs(question: OfficialQuestionStatRow): number | null {
+  if (question.delivery_authorized !== true) return null;
+  const raw = (question.approved_at || question.imported_at || '').trim();
+  if (!raw) return null;
+  const ms = Date.parse(raw);
+  return Number.isFinite(ms) ? ms : null;
+}
+
+function sortQuestionsByApproval(
+  questions: OfficialQuestionStatRow[],
+  order: ApprovalOrder
+): OfficialQuestionStatRow[] {
+  const indexed = questions.map((question, index) => ({
+    question,
+    index,
+    ms: approvalSortMs(question),
+  }));
+  indexed.sort((a, b) => {
+    if (a.ms == null && b.ms == null) return a.index - b.index;
+    if (a.ms == null) return 1;
+    if (b.ms == null) return -1;
+    if (a.ms !== b.ms) return order === 'oldest' ? a.ms - b.ms : b.ms - a.ms;
+    return a.index - b.index;
+  });
+  return indexed.map((row) => row.question);
+}
+
 export function PlatformAdminItemBankSection({
   refreshNonce = 0,
   onLoadingChange,
@@ -271,6 +309,7 @@ export function PlatformAdminItemBankSection({
   const level = Number.isFinite(levelRaw) && levelRaw > 0 ? Math.floor(levelRaw) : 1;
   const taxonomyParamKey = FILTER_KEYS.map((key) => `${key}:${searchParams.get(key) || ''}`).join('|');
   const filters = useMemo(() => readFilters(searchParams), [taxonomyParamKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const order = readApprovalOrder(searchParams);
   const itemIdQuery = searchParams.get('item_id') || '';
   const bankCacheKey = useMemo(
     () => (examId ? itemBankCacheKey(bankKind, examId, level, filters) : ''),
@@ -311,23 +350,26 @@ export function PlatformAdminItemBankSection({
       level?: number;
       filters?: OfficialItemBankFilters;
       itemIdQuery?: string;
+      order?: ApprovalOrder;
     }) => {
       const next = new URLSearchParams();
       const nextExam = patch.exam ?? examId;
       const nextLevel = patch.level ?? level;
       const nextFilters = patch.filters ?? filters;
       const nextItemId = patch.itemIdQuery !== undefined ? patch.itemIdQuery : itemIdQuery;
+      const nextOrder = patch.order ?? order;
       if (nextExam) next.set('exam', nextExam);
       next.set('level', String(nextLevel));
       for (const key of FILTER_KEYS) {
         const value = nextFilters[key];
         if (value) next.set(key, value);
       }
+      if (nextOrder === 'oldest') next.set('order', 'oldest');
       const trimmedItemId = nextItemId.trim();
       if (trimmedItemId) next.set('item_id', trimmedItemId);
       setSearchParams(next, { replace: true });
     },
-    [examId, filters, itemIdQuery, level, setSearchParams]
+    [examId, filters, itemIdQuery, level, order, setSearchParams]
   );
 
   useEffect(() => {
@@ -340,11 +382,12 @@ export function PlatformAdminItemBankSection({
     }
   }, [bankParam, navigate, searchParams]);
 
-  // Drop legacy `is_new` URL param (removed filter; Approval is enough).
+  // Drop retired URL params (is_new filter; Mechanic replaced by latest/oldest order).
   useEffect(() => {
-    if (!searchParams.has('is_new')) return;
+    if (!searchParams.has('is_new') && !searchParams.has('mechanic')) return;
     const next = new URLSearchParams(searchParams);
     next.delete('is_new');
+    next.delete('mechanic');
     setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams]);
 
@@ -501,14 +544,19 @@ export function PlatformAdminItemBankSection({
   const visibleFilterKeys = FILTER_KEYS;
   const row1FilterKeys = visibleFilterKeys.filter((key) => key === 'strand');
   const row2FilterKeys = visibleFilterKeys.filter((key) => key !== 'strand');
+  // Order sits where Mechanic used to: after Family, before Approval.
+  const row2BeforeOrder = row2FilterKeys.filter((key) => key !== 'approved');
+  const row2AfterOrder = row2FilterKeys.filter((key) => key === 'approved');
   // Approved / other taxonomy filters are applied by the API.
   // Only item-id search is client-side so we do not double-filter and empty
   // stale Redis payloads that already match `approved=`.
   const questions = useMemo(() => {
     const rows = bank?.questions || [];
-    if (!itemIdQuery.trim()) return rows;
-    return rows.filter((q) => itemIdMatchesQuery(q.item_id, itemIdQuery));
-  }, [bank, itemIdQuery]);
+    const matched = itemIdQuery.trim()
+      ? rows.filter((q) => itemIdMatchesQuery(q.item_id, itemIdQuery))
+      : rows;
+    return sortQuestionsByApproval(matched, order);
+  }, [bank, itemIdQuery, order]);
 
   const renderFilter = (key: OfficialItemBankFilterKey) => {
     const options = facets?.[key] || [];
@@ -607,6 +655,10 @@ export function PlatformAdminItemBankSection({
                 ...q,
                 delivery_authorized: deliveryAuthorized,
                 lifecycle_status: nextStatus,
+                approved_at:
+                  deliveryAuthorized && !wasAuthorized
+                    ? new Date().toISOString()
+                    : q.approved_at ?? null,
               }
             : q
         );
@@ -821,21 +873,31 @@ export function PlatformAdminItemBankSection({
                 />
                 {row1FilterKeys.map(renderFilter)}
               </Box>
-              {row2FilterKeys.length > 0 ? (
-                <Box
-                  sx={{
-                    display: 'grid',
-                    gridTemplateColumns: {
-                      xs: '1fr',
-                      sm: `repeat(${row2FilterKeys.length}, minmax(0, 1fr))`,
-                    },
-                    gap: 1.25,
-                    alignItems: 'center',
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: {
+                    xs: '1fr',
+                    sm: `repeat(${row2FilterKeys.length + 1}, minmax(0, 1fr))`,
+                  },
+                  gap: 1.25,
+                  alignItems: 'center',
+                }}
+              >
+                {row2BeforeOrder.map(renderFilter)}
+                <PlatformAdminFilterControl
+                  id="item-bank-order"
+                  label="Order"
+                  labels={{ latest: 'Latest', oldest: 'Oldest' }}
+                  value={order}
+                  fullWidth
+                  minWidth={160}
+                  onChange={(value) => {
+                    if (value !== order) setQuery({ order: value });
                   }}
-                >
-                  {row2FilterKeys.map(renderFilter)}
-                </Box>
-              ) : null}
+                />
+                {row2AfterOrder.map(renderFilter)}
+              </Box>
             </Box>
 
             {loading && !bank ? (

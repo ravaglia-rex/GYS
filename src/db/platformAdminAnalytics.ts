@@ -1222,6 +1222,8 @@ export type OfficialQuestionStatRow = {
   avg_time_ms: number | null;
   avg_time_sec: number | null;
   imported_at?: string | null;
+  /** ISO time written when Item Bank Approve runs. */
+  approved_at?: string | null;
   is_new_in_latest_upload?: boolean;
   delivery_authorized?: boolean;
   lifecycle_status?: string | null;
@@ -1325,6 +1327,7 @@ export async function getPlatformAdminOfficialExamItemBank(
         correct_index: typeof q.correct_index === 'number' ? q.correct_index : null,
         delivery_authorized: q.delivery_authorized === true,
         lifecycle_status: typeof q.lifecycle_status === 'string' ? q.lifecycle_status : null,
+        approved_at: typeof q.approved_at === 'string' ? q.approved_at : null,
         parent_id: typeof q.parent_id === 'string' ? q.parent_id : null,
         version: typeof q.version === 'string' ? q.version : null,
         passage_id: typeof q.passage_id === 'string' ? q.passage_id : null,
@@ -1556,6 +1559,7 @@ export async function getPlatformAdminPracticeExamItemBank(
         correct_index: typeof q.correct_index === 'number' ? q.correct_index : null,
         delivery_authorized: q.delivery_authorized === true,
         lifecycle_status: typeof q.lifecycle_status === 'string' ? q.lifecycle_status : null,
+        approved_at: typeof q.approved_at === 'string' ? q.approved_at : null,
         parent_id: typeof q.parent_id === 'string' ? q.parent_id : null,
         version: typeof q.version === 'string' ? q.version : null,
         passage_id: typeof q.passage_id === 'string' ? q.passage_id : null,
