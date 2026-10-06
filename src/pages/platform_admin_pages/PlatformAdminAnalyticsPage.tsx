@@ -115,6 +115,8 @@ import {
   platformAdminTextButtonSx,
   platformAdminTextFieldSx,
 } from './platformAdminPageStyles';
+import { areExamScoresVisible, isAttemptScoreVisibleToStudent } from '../../constants/constants';
+import { assessmentDisplayName } from '../../utils/assessmentGating';
 import { institutionalPalette as ip } from '../../theme/institutionalPalette';
 import {
   PlatformAdminAccuracyChip,
@@ -1929,6 +1931,9 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
     scoreVisibilityConfirm?.score_points != null ? `${scoreVisibilityConfirm.score_points}` : 'this score';
   const scoreVisibilityConfirmBusy =
     scoreVisibilityConfirm != null && scoreVisibilityBusyId === scoreVisibilityConfirm.attempt_id;
+  const officialExamScoresReleased = areExamScoresVisible(selectedOfficialExamId);
+  const officialExamScoreLabel =
+    selectedOfficialSummary?.label?.trim() || assessmentDisplayName(selectedOfficialExamId);
 
   return (
     <Box
@@ -3028,7 +3033,7 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
               {officialView === 'completions' && (
               <PlatformAdminAnalyticsSection
                 title="Search completions"
-                subtitle="Filters update the list as you change them. Click a student to open their profile and exam attempts. Click Hidden or Shown to confirm showing or hiding that score. Limit is how many rows to show (10–100, or All up to 500)."
+                subtitle="Filters update the list as you change them. Click a student to open their profile and exam attempts. Visibility is what that student can see. On a released exam, click Shown or Hidden to change that sit. Scores on an unreleased exam stay Hidden. Limit is how many rows to show (10–100, or All up to 500)."
                 accent="violet"
               >
                   <Box sx={{ ...platformAdminFilterToolbarRowSx, mb: 2 }}>
@@ -3208,6 +3213,10 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                             ) : (
                               visibleCompletions.map((row) => {
                                 const durationLabel = formatExamDuration(row.duration_sec);
+                                const shownToStudent = isAttemptScoreVisibleToStudent(
+                                  selectedOfficialExamId,
+                                  row.score_release_held
+                                );
                                 return (
                                   <TableRow
                                     key={row.attempt_id}
@@ -3294,10 +3303,19 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                                             setScoreVisibilityConfirm(row);
                                           }}
                                           disabled={!row.uid}
+                                          title={
+                                            officialExamScoresReleased
+                                              ? shownToStudent
+                                                ? 'The student can see this score. Click to hide it.'
+                                                : 'This sit is hidden from the student. Click to show it.'
+                                              : `${officialExamScoreLabel} scores stay hidden from students.`
+                                          }
                                           aria-label={
-                                            row.score_release_held
-                                              ? 'Score is hidden. Click to show it to the student.'
-                                              : 'Score is shown. Click to hide it from the student.'
+                                            officialExamScoresReleased
+                                              ? shownToStudent
+                                                ? 'Score is shown. Click to hide it from the student.'
+                                                : 'Score is hidden. Click to show it to the student.'
+                                              : `${officialExamScoreLabel} scores stay hidden from students.`
                                           }
                                           sx={{
                                             border: 0,
@@ -3309,8 +3327,8 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                                           }}
                                         >
                                           <PlatformAdminChip
-                                            label={row.score_release_held ? 'Hidden' : 'Shown'}
-                                            tone={row.score_release_held ? 'warning' : 'success'}
+                                            label={shownToStudent ? 'Shown' : 'Hidden'}
+                                            tone={shownToStudent ? 'success' : 'warning'}
                                           />
                                         </Box>
                                       )}
@@ -3339,6 +3357,7 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                 PaperProps={{ sx: platformAdminDialogPaperSx }}
               >
                 {scoreVisibilityConfirm ? (
+                  officialExamScoresReleased ? (
                   <>
                     <DialogTitle sx={{ fontWeight: 700, color: ip.heading, px: 3, pt: 2.5, pb: 1 }}>
                       {scoreVisibilityConfirm.score_release_held ? 'Show this score?' : 'Hide this score?'}
@@ -3377,6 +3396,26 @@ const PlatformAdminAnalyticsPageInner: React.FC = () => {
                       </Button>
                     </DialogActions>
                   </>
+                  ) : (
+                  <>
+                    <DialogTitle sx={{ fontWeight: 700, color: ip.heading, px: 3, pt: 2.5, pb: 1 }}>
+                      Hidden from the student
+                    </DialogTitle>
+                    <DialogContent sx={{ px: 3, pt: 1, pb: 1 }}>
+                      <Typography variant="body2" sx={{ color: ip.subtext, lineHeight: 1.55 }}>
+                        {`${officialExamScoreLabel} scores stay hidden from students. ${scoreVisibilityConfirmName}'s score of ${scoreVisibilityConfirmPoints} stays on this screen only.`}
+                      </Typography>
+                    </DialogContent>
+                    <DialogActions sx={{ px: 3, pb: 2.5, pt: 1 }}>
+                      <Button
+                        onClick={() => setScoreVisibilityConfirm(null)}
+                        sx={platformAdminTextButtonSx}
+                      >
+                        Close
+                      </Button>
+                    </DialogActions>
+                  </>
+                  )
                 ) : null}
               </Dialog>
 

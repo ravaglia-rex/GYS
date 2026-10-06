@@ -68,6 +68,7 @@ import {
   type ProctoringEventType,
 } from '../../features/proctoring';
 import ExamProctorDock from '../../features/proctoring/ExamProctorDock';
+import { ProctorDeviceWarningDialog, useProctorDeviceGuard } from '../../features/proctoring/useProctorDeviceGuard';
 import * as Sentry from '@sentry/react';
 
 const PreExamProctoringSetup = lazy(() =>
@@ -374,14 +375,17 @@ export default function AssessmentTakePage() {
   const [screenshotNudge, setScreenshotNudge] = useState(false);
   const rulesAcknowledged = rulesAckInput.trim().toLowerCase() === 'i understand';
   const proctorStreamRef = useRef<MediaStream | null>(null);
+  const proctorStopIntentRef = useRef(false);
   const [proctorStream, setProctorStream] = useState<MediaStream | null>(null);
   const stopProctoring = useCallback(() => {
+    proctorStopIntentRef.current = true;
     proctorStreamRef.current?.getTracks().forEach((track) => track.stop());
     proctorStreamRef.current = null;
     setProctorStream(null);
   }, []);
   useEffect(() => {
     return () => {
+      proctorStopIntentRef.current = true;
       proctorStreamRef.current?.getTracks().forEach((track) => track.stop());
       proctorStreamRef.current = null;
     };
@@ -464,6 +468,22 @@ export default function AssessmentTakePage() {
   );
 
   endAttemptForIntegrityRef.current = endAttemptForIntegrity;
+
+  const { warning: deviceWarning, restoreDevices } = useProctorDeviceGuard({
+    active: VIDEO_PROCTORING_ENABLED && Boolean(attemptId && stage === 'taking' && proctorStream),
+    stream: proctorStream,
+    intentionalStopRef: proctorStopIntentRef,
+    onEnd: () => {
+      stopProctoring();
+      void endAttemptForIntegrity(
+        'This attempt ended because the camera or microphone was turned off.'
+      );
+    },
+    onReplaceStream: (next: MediaStream) => {
+      proctorStreamRef.current = next;
+      setProctorStream(next);
+    },
+  });
 
   const goToExamResults = useCallback(
     (aid: string, result: CompleteExamResponse) => {
@@ -1577,6 +1597,16 @@ export default function AssessmentTakePage() {
         fullscreenBlocked={fullscreenBlocked}
         onReturnToFullscreen={tryEnterFullscreen}
         onDismiss={dismissFullscreenRequired}
+      />
+
+      <ProctorDeviceWarningDialog
+        open={deviceWarning != null}
+        secondsLeft={deviceWarning?.secondsLeft ?? 0}
+        cameraOff={deviceWarning?.cameraOff ?? false}
+        micOff={deviceWarning?.micOff ?? false}
+        onTurnBackOn={() => {
+          void restoreDevices();
+        }}
       />
 
       <Dialog

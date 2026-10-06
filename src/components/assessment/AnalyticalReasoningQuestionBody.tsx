@@ -8,6 +8,53 @@ import { ExamMathText } from './ExamMathText';
 import { scaleExamFigureCaps, resolveArTextOptionLayout, arTextOptionLayoutContainerSx, arFigureSizeMultiplier } from './arFigureDisplaySize';
 import { resolveLearnerExamOptions } from './resolveLearnerExamOptions';
 
+type AnswerFeedback = { correctIndex: number; selectedIndex: number } | null;
+
+function choiceColors(
+  idx: number,
+  selected: boolean,
+  primary: string,
+  primarySoft: string,
+  borderMuted: string,
+  feedback: AnswerFeedback,
+  surface: 'light' | 'dark' = 'light'
+) {
+  const idleBg = surface === 'dark' ? 'transparent' : '#fff';
+  const idleLetterBg = surface === 'dark' ? 'rgba(255,255,255,0.08)' : '#f1f5f9';
+  const idleLetterFg = surface === 'dark' ? 'rgba(255,255,255,0.7)' : '#64748b';
+  const quietLabel = surface === 'dark' ? 'rgba(255,255,255,0.9)' : '#475569';
+  const strongLabel = surface === 'dark' ? '#fff' : '#0f172a';
+  const pack = (
+    rowBorder: string,
+    rowBg: string,
+    letterBg: string,
+    letterBorder: string,
+    letterFg: string,
+    labelStrong: boolean
+  ) => ({
+    rowBorder,
+    rowBg,
+    letterBg,
+    letterBorder,
+    letterFg,
+    labelStrong,
+    labelColor: labelStrong ? strongLabel : quietLabel,
+  });
+  if (feedback) {
+    if (idx === feedback.correctIndex) {
+      return pack('#059669', 'rgba(5, 150, 105, 0.16)', '#059669', '#059669', '#fff', true);
+    }
+    if (idx === feedback.selectedIndex && idx !== feedback.correctIndex) {
+      return pack('#dc2626', 'rgba(220, 38, 38, 0.14)', '#dc2626', '#dc2626', '#fff', true);
+    }
+    return pack(borderMuted, idleBg, idleLetterBg, borderMuted, idleLetterFg, false);
+  }
+  if (selected) {
+    return pack(primary, primarySoft, primary, primary, '#fff', true);
+  }
+  return pack(borderMuted, idleBg, idleLetterBg, borderMuted, idleLetterFg, false);
+}
+
 interface AnalyticalReasoningQuestionBodyProps {
   question: ExamQuestion;
   questionNumber: number;
@@ -19,8 +66,12 @@ interface AnalyticalReasoningQuestionBodyProps {
   selectionLocked?: boolean;
   /** When true (adaptive exams), omit "of N" because length can change mid-attempt. */
   hideQuestionTotal?: boolean;
+  /** Question of the Day already names the item; skip the "Question N" line. */
+  hideQuestionCaption?: boolean;
   /** Requires MathJaxContext ancestor (Mathematical Reasoning). */
   renderMath?: boolean;
+  answerFeedback?: AnswerFeedback;
+  surface?: 'light' | 'dark';
 }
 
 const OPTION_LETTERS = ['A', 'B', 'C', 'D'] as const;
@@ -35,11 +86,16 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
   footer,
   selectionLocked = false,
   hideQuestionTotal = false,
+  hideQuestionCaption = false,
   renderMath = false,
+  answerFeedback = null,
+  surface = 'light',
 }) => {
-  const primary = theme === 'purple' ? '#7b1fa2' : '#0d47a1';
-  const primarySoft = theme === 'purple' ? 'rgba(123,31,162,0.08)' : 'rgba(13,71,161,0.06)';
-  const borderMuted = '#e2e8f0';
+  const primary = surface === 'dark' ? '#a855f7' : theme === 'purple' ? '#7b1fa2' : '#0d47a1';
+  const primarySoft = surface === 'dark'
+    ? 'rgba(168, 85, 247, 0.16)'
+    : theme === 'purple' ? 'rgba(123,31,162,0.08)' : 'rgba(13,71,161,0.06)';
+  const borderMuted = surface === 'dark' ? 'rgba(255,255,255,0.18)' : '#e2e8f0';
   const markdown = question.body_markdown ?? question.prompt ?? '';
   const resolved = resolveLearnerExamOptions({
     markdown,
@@ -84,25 +140,28 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
 
   return (
     <Box sx={{ width: '100%' }}>
-      <Typography
-        variant="caption"
-        sx={{
-          color: '#64748b',
-          fontWeight: 700,
-          letterSpacing: 1,
-          display: 'block',
-          mb: 1.5,
-          textTransform: 'uppercase',
-          fontSize: '0.68rem',
-        }}
-      >
-        {hideQuestionTotal ? `Question ${questionNumber}` : `Question ${questionNumber} of ${totalQuestions}`}
-      </Typography>
+      {!hideQuestionCaption && (
+        <Typography
+          variant="caption"
+          sx={{
+            color: '#64748b',
+            fontWeight: 700,
+            letterSpacing: 1,
+            display: 'block',
+            mb: 1.5,
+            textTransform: 'uppercase',
+            fontSize: '0.68rem',
+          }}
+        >
+          {hideQuestionTotal ? `Question ${questionNumber}` : `Question ${questionNumber} of ${totalQuestions}`}
+        </Typography>
+      )}
       <Box sx={{ mb: 2.5 }}>
         <ExamMarkdown
           maxFigureWidth={stemCaps.maxWidth}
           maxFigureHeight={stemCaps.maxHeight}
           renderMath={renderMath}
+          tone={surface === 'dark' ? 'dark' : 'light'}
         >
           {stemMarkdown}
         </ExamMarkdown>
@@ -134,11 +193,8 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
           >
             {optionIds.map((_, idx) => {
               const selected = selectedOption === idx;
-              const rowBorder = selected ? primary : borderMuted;
-              const rowBg = selected ? primarySoft : '#fff';
-              const letterBg = selected ? primary : '#f1f5f9';
-              const letterBorder = selected ? primary : borderMuted;
-              const letterFg = selected ? '#fff' : '#64748b';
+              const colors = choiceColors(idx, selected, primary, primarySoft, borderMuted, answerFeedback, surface);
+              const { rowBorder, rowBg, letterBg, letterBorder, letterFg } = colors;
               const letter = String.fromCharCode(65 + idx);
 
               return (
@@ -209,6 +265,7 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: footer ? 1.5 : 0 }}>
             {optionIds.map((label, idx) => {
               const selected = selectedOption === idx;
+              const colors = choiceColors(idx, selected, primary, primarySoft, borderMuted, answerFeedback, surface);
               const letter = String.fromCharCode(65 + idx);
               return (
                 <Box
@@ -227,12 +284,12 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
                     height: 48,
                     borderRadius: 2,
                     border: '2px solid',
-                    borderColor: selected ? primary : borderMuted,
-                    bgcolor: selected ? primarySoft : '#fff',
+                    borderColor: colors.rowBorder,
+                    bgcolor: colors.rowBg,
                     cursor: selectionLocked ? 'default' : 'pointer',
                     fontWeight: 800,
                     fontSize: '1rem',
-                    color: selected ? primary : '#334155',
+                    color: colors.labelColor,
                   }}
                 >
                   {letter}
@@ -255,11 +312,8 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
             >
               {optionIds.map((label, idx) => {
                 const selected = selectedOption === idx;
-                const rowBorder = selected ? primary : borderMuted;
-                const rowBg = selected ? primarySoft : '#fff';
-                const letterBg = selected ? primary : '#f1f5f9';
-                const letterBorder = selected ? primary : borderMuted;
-                const letterFg = selected ? '#fff' : '#64748b';
+                const colors = choiceColors(idx, selected, primary, primarySoft, borderMuted, answerFeedback, surface);
+                const { rowBorder, rowBg, letterBg, letterBorder, letterFg, labelStrong, labelColor } = colors;
                 const letter = String.fromCharCode(65 + idx);
                 const showText = !isSameAsLetter(label, letter);
                 return (
@@ -296,9 +350,9 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
                             <ExamMathText
                               inline
                               sx={{
-                                color: selected ? '#0f172a' : '#475569',
+                                color: labelColor,
                                 fontSize: `${0.92 * optionTextScale}rem`,
-                                fontWeight: selected ? 700 : 500,
+                                fontWeight: labelStrong ? 700 : 500,
                                 lineHeight: String(label).includes('\n') ? 1.35 : 1.45,
                                 whiteSpace: String(label).includes('\n') ? 'pre' : 'normal',
                               }}
@@ -310,9 +364,9 @@ export const AnalyticalReasoningQuestionBody: React.FC<AnalyticalReasoningQuesti
                               component={String(label).includes('\n') ? 'pre' : 'span'}
                               sx={{
                                 m: 0,
-                                color: selected ? '#0f172a' : '#475569',
+                                color: labelColor,
                                 fontSize: `${0.92 * optionTextScale}rem`,
-                                fontWeight: selected ? 700 : 500,
+                                fontWeight: labelStrong ? 700 : 500,
                                 lineHeight: String(label).includes('\n') ? 1.35 : 1.45,
                                 fontFamily: String(label).includes('\n')
                                   ? 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace'

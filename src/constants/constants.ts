@@ -180,6 +180,17 @@ export function areExamScoresVisible(examId: string | null | undefined): boolean
 }
 
 /**
+ * Whether the student can see this sit's numeric score.
+ * The exam must be released, and the sit must not be on the per-attempt hold.
+ */
+export function isAttemptScoreVisibleToStudent(
+  examId: string | null | undefined,
+  scoreReleaseHeld?: boolean | null
+): boolean {
+  return areExamScoresVisible(examId) && scoreReleaseHeld !== true;
+}
+
+/**
  * Keep in sync with backend `GLOBAL_REPORTS_AND_RANKING_PIPELINE_HELD`.
  * When true, Platform Admin pipeline buttons are disabled; scheduled jobs and
  * report *minting* no-op until CAPS lift on the backend flag.

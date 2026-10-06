@@ -257,7 +257,9 @@ export const ExamMarkdown: React.FC<{
   maxFigureHeight?: number;
   /** Requires a MathJaxContext ancestor (e.g. Mathematical Reasoning item bank). */
   renderMath?: boolean;
-}> = ({ children, compact = false, maxFigureWidth, maxFigureHeight, renderMath = false }) => {
+  /** Prose color. Figures stay on white either way. */
+  tone?: 'light' | 'dark';
+}> = ({ children, compact = false, maxFigureWidth, maxFigureHeight, renderMath = false, tone = 'light' }) => {
   const cleaned = cleanLearnerFacingExamMarkup(children);
   // Single newlines are soft breaks in CommonMark (collapse to spaces). Math stems
   // often use one newline between "Statement 1" / "Statement 2"; turn those into
@@ -278,7 +280,7 @@ export const ExamMarkdown: React.FC<{
     <Box
       ref={renderMath ? mathRef : undefined}
       sx={{
-        color: '#334155',
+        color: tone === 'dark' ? 'rgba(255,255,255,0.92)' : '#334155',
         fontSize: compact ? '0.88rem' : { xs: '0.95rem', sm: '1rem' },
         lineHeight: 1.65,
         '& p': { mb: compact ? 0.75 : 1.5, mt: 0 },
@@ -286,7 +288,7 @@ export const ExamMarkdown: React.FC<{
         '& h1, & h2, & h3, & h4': {
           fontSize: '1.05rem',
           fontWeight: 700,
-          color: '#0f172a',
+          color: tone === 'dark' ? '#fff' : '#0f172a',
           mb: 1,
           mt: compact ? 1 : 2,
         },
@@ -294,7 +296,12 @@ export const ExamMarkdown: React.FC<{
         '& ul': { pl: 2.5, mb: 1.5, listStyleType: 'disc', listStylePosition: 'outside' },
         '& ol': { pl: 2.5, mb: 1.5, listStyleType: 'decimal', listStylePosition: 'outside' },
         '& li': { mb: 0.5 },
-        '& code': { fontSize: '0.88em', bgcolor: '#f1f5f9', px: 0.5, borderRadius: 0.5 },
+        '& code': {
+          fontSize: '0.88em',
+          bgcolor: tone === 'dark' ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
+          px: 0.5,
+          borderRadius: 0.5,
+        },
         '& pre': {
           overflowX: 'auto',
           my: 1.5,

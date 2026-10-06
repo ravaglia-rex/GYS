@@ -88,31 +88,56 @@ const MediaPermissionGate: React.FC<Props> = ({ onReady, onBack }) => {
         return;
       }
 
+      let videoStream: MediaStream | null = null;
+      let audioStream: MediaStream | null = null;
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        try {
+          videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+        } catch {
+          videoStream = null;
+        }
         if (disposed) {
-          stopStream(stream);
+          stopStream(videoStream);
+          return;
+        }
+        try {
+          audioStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+        } catch {
+          audioStream = null;
+        }
+        if (disposed) {
+          stopStream(videoStream);
+          stopStream(audioStream);
           return;
         }
 
+        const stream = new MediaStream([
+          ...(videoStream?.getVideoTracks() ?? []),
+          ...(audioStream?.getAudioTracks() ?? []),
+        ]);
         const hasVideo = stream.getVideoTracks().some((track) => track.readyState === 'live');
-        const hasAudio = stream.getAudioTracks().some((track) => track.readyState === 'live' && track.enabled);
-        if (!hasVideo || !hasAudio) {
-          stopStream(stream);
+        const hasAudio = stream.getAudioTracks().some((track) => track.readyState === 'live' && track.enabled && !track.muted);
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = hasVideo ? stream : null;
+          if (hasVideo) await videoRef.current.play().catch(() => undefined);
+        }
+        setCameraLive(hasVideo);
+        setMicLive(hasAudio);
+        if (!hasVideo && !hasAudio) {
           setError(
-            'Both camera and microphone are required. Check that neither device is blocked, then press Try again.'
+            'Camera and microphone access was blocked. Click the camera icon in your browser address bar, choose Allow for both, then press Try again.'
           );
           setRequesting(false);
           return;
         }
-
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play().catch(() => undefined);
+        if (!hasVideo || !hasAudio) {
+          setError(
+            hasVideo
+              ? 'Microphone is off. Allow the microphone in your browser settings, then press Try again. The camera stays on.'
+              : 'Camera is off. Allow the camera in your browser settings, then press Try again. The microphone stays on.'
+          );
         }
-        setCameraLive(true);
-        setMicLive(true);
 
         const paintMeter = (level: number) => {
           const bars = meterBarsRef.current;
@@ -170,44 +195,46 @@ const MediaPermissionGate: React.FC<Props> = ({ onReady, onBack }) => {
           });
         });
 
-        const audioContext = new AudioContext();
-        const source = audioContext.createMediaStreamSource(stream);
-        const analyser = audioContext.createAnalyser();
-        analyser.fftSize = 512;
-        analyser.smoothingTimeConstant = 0.65;
-        source.connect(analyser);
-        const samples = new Uint8Array(analyser.fftSize);
-        let meterFrame = 0;
-        const readMeter = () => {
-          if (disposed) return;
-          const audioTrack = stream.getAudioTracks().find((track) => track.readyState === 'live' && track.enabled && !track.muted);
-          if (!audioTrack) {
-            paintMeter(0);
-          } else {
-            analyser.getByteTimeDomainData(samples);
-            let sum = 0;
-            for (let i = 0; i < samples.length; i += 1) {
-              const sample = (samples[i] - 128) / 128;
-              sum += sample * sample;
+        if (stream.getAudioTracks().length > 0) {
+          const audioContext = new AudioContext();
+          const source = audioContext.createMediaStreamSource(stream);
+          const analyser = audioContext.createAnalyser();
+          analyser.fftSize = 512;
+          analyser.smoothingTimeConstant = 0.65;
+          source.connect(analyser);
+          const samples = new Uint8Array(analyser.fftSize);
+          let meterFrame = 0;
+          const readMeter = () => {
+            if (disposed) return;
+            const audioTrack = stream.getAudioTracks().find((track) => track.readyState === 'live' && track.enabled && !track.muted);
+            if (!audioTrack) {
+              paintMeter(0);
+            } else {
+              analyser.getByteTimeDomainData(samples);
+              let sum = 0;
+              for (let i = 0; i < samples.length; i += 1) {
+                const sample = (samples[i] - 128) / 128;
+                sum += sample * sample;
+              }
+              const level = Math.min(1, Math.sqrt(sum / samples.length) * 5.5);
+              paintMeter(level);
             }
-            const level = Math.min(1, Math.sqrt(sum / samples.length) * 5.5);
-            paintMeter(level);
-          }
-          meterFrame = window.requestAnimationFrame(readMeter);
-        };
-        void audioContext.resume().catch(() => undefined);
-        const resumeMeter = () => {
+            meterFrame = window.requestAnimationFrame(readMeter);
+          };
           void audioContext.resume().catch(() => undefined);
-        };
-        window.addEventListener('pointerdown', resumeMeter);
-        meterFrame = window.requestAnimationFrame(readMeter);
-        cleanups.push(() => {
-          window.removeEventListener('pointerdown', resumeMeter);
-          window.cancelAnimationFrame(meterFrame);
-          source.disconnect();
-          void audioContext.close();
-          paintMeter(0);
-        });
+          const resumeMeter = () => {
+            void audioContext.resume().catch(() => undefined);
+          };
+          window.addEventListener('pointerdown', resumeMeter);
+          meterFrame = window.requestAnimationFrame(readMeter);
+          cleanups.push(() => {
+            window.removeEventListener('pointerdown', resumeMeter);
+            window.cancelAnimationFrame(meterFrame);
+            source.disconnect();
+            void audioContext.close();
+            paintMeter(0);
+          });
+        }
 
         if (navigator.permissions?.query) {
           for (const name of ['camera', 'microphone'] as PermissionName[]) {
@@ -485,7 +512,6 @@ const MediaPermissionGate: React.FC<Props> = ({ onReady, onBack }) => {
               onClick={() => setRetryToken((n) => n + 1)}
               disabled={requesting || !error}
               sx={{
-                visibility: error ? 'visible' : 'hidden',
                 height: 40,
                 minWidth: 112,
                 px: 2,
@@ -494,7 +520,13 @@ const MediaPermissionGate: React.FC<Props> = ({ onReady, onBack }) => {
                 fontWeight: 600,
                 borderColor: '#94a3b8',
                 color: '#0f172a',
+                bgcolor: '#fff',
                 '&:hover': { borderColor: '#334155', bgcolor: '#fff' },
+                '&.Mui-disabled': {
+                  borderColor: '#e2e8f0',
+                  color: '#94a3b8',
+                  bgcolor: '#f8fafc',
+                },
               }}
             >
               Try again

@@ -6,8 +6,8 @@ import { ExamMarkdown, markdownFromStimulus } from './ExamMarkdown';
 import { cleanLearnerFacingExamMarkup } from './cleanLearnerFacingExamMarkup';
 
 /** Secondary stem line (canonical `presentation.instruction`). */
-export const InstructionLine: React.FC<{ text: string }> = ({ text }) => (
-  <Typography variant="body2" sx={{ color: '#475569', mb: 2, whiteSpace: 'pre-wrap', lineHeight: 1.55 }}>
+export const InstructionLine: React.FC<{ text: string; color?: string }> = ({ text, color = '#475569' }) => (
+  <Typography variant="body2" sx={{ color, mb: 2, whiteSpace: 'pre-wrap', lineHeight: 1.55 }}>
     {text}
   </Typography>
 );
@@ -43,11 +43,12 @@ export const QuestionPromptBlock: React.FC<{
   mathSx: React.ComponentProps<typeof Box>['sx'];
   typographySx: React.ComponentProps<typeof Typography>['sx'];
   typographyVariant?: React.ComponentProps<typeof Typography>['variant'];
-}> = ({ question, renderMath = false, mathSx, typographySx, typographyVariant = 'body1' }) => {
+  setupColor?: string;
+}> = ({ question, renderMath = false, mathSx, typographySx, typographyVariant = 'body1', setupColor = '#334155' }) => {
   const setupText = plainSetupTextBeforePrompt(question);
   const promptText = examPromptWithoutRedundantRuleBlock(question);
   const setupSx = {
-    color: '#334155',
+    color: setupColor,
     fontSize: { xs: '0.95rem', sm: '1rem' },
     lineHeight: 1.6,
     mb: 1.25,

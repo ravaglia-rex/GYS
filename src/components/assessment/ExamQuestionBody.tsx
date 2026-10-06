@@ -38,6 +38,7 @@ interface OptionPickerProps {
   mathWrap?: boolean;
   selectionLocked?: boolean;
   answerFeedback?: { correctIndex: number; selectedIndex: number } | null;
+  surface?: 'light' | 'dark';
 }
 
 function OptionPicker({
@@ -50,7 +51,13 @@ function OptionPicker({
   mathWrap,
   selectionLocked = false,
   answerFeedback = null,
+  surface = 'light',
 }: OptionPickerProps) {
+  const idleBg = surface === 'dark' ? 'transparent' : '#fff';
+  const idleLetterBg = surface === 'dark' ? 'rgba(255,255,255,0.08)' : '#f1f5f9';
+  const idleLetterFg = surface === 'dark' ? 'rgba(255,255,255,0.7)' : '#64748b';
+  const quietLabel = surface === 'dark' ? 'rgba(255,255,255,0.9)' : '#475569';
+  const strongLabel = surface === 'dark' ? '#fff' : '#0f172a';
   return (
     <FormControl component="fieldset" fullWidth>
       <RadioGroup
@@ -66,32 +73,32 @@ function OptionPicker({
           );
           const fb = answerFeedback;
           let rowBorder = selectedOption === idx ? primaryColor : borderMuted;
-          let rowBg = selectedOption === idx ? primarySoft : '#fff';
-          let letterBg = selectedOption === idx ? primaryColor : '#f1f5f9';
+          let rowBg = selectedOption === idx ? primarySoft : idleBg;
+          let letterBg = selectedOption === idx ? primaryColor : idleLetterBg;
           let letterBorder = selectedOption === idx ? primaryColor : borderMuted;
-          let letterFg = selectedOption === idx ? '#fff' : '#64748b';
+          let letterFg = selectedOption === idx ? '#fff' : idleLetterFg;
           let labelStrong = selectedOption === idx;
           if (fb) {
             if (idx === fb.correctIndex) {
               rowBorder = '#059669';
-              rowBg = 'rgba(5, 150, 105, 0.1)';
+              rowBg = 'rgba(5, 150, 105, 0.16)';
               letterBg = '#059669';
               letterBorder = '#059669';
               letterFg = '#fff';
               labelStrong = true;
             } else if (idx === fb.selectedIndex && idx !== fb.correctIndex) {
               rowBorder = '#dc2626';
-              rowBg = 'rgba(220, 38, 38, 0.07)';
+              rowBg = 'rgba(220, 38, 38, 0.14)';
               letterBg = '#dc2626';
               letterBorder = '#dc2626';
               letterFg = '#fff';
               labelStrong = true;
             } else {
               rowBorder = borderMuted;
-              rowBg = '#fff';
-              letterBg = '#f1f5f9';
+              rowBg = idleBg;
+              letterBg = idleLetterBg;
               letterBorder = borderMuted;
-              letterFg = '#64748b';
+              letterFg = idleLetterFg;
               labelStrong = false;
             }
           }
@@ -127,7 +134,7 @@ function OptionPicker({
                     <ExamMathText
                       inline
                       sx={{
-                        color: labelStrong ? '#0f172a' : '#475569',
+                        color: labelStrong ? strongLabel : quietLabel,
                         fontSize: '0.92rem',
                         fontWeight: labelStrong ? 700 : 500,
                       }}
@@ -137,7 +144,7 @@ function OptionPicker({
                   ) : (
                     <Typography
                       sx={{
-                        color: labelStrong ? '#0f172a' : '#475569',
+                        color: labelStrong ? strongLabel : quietLabel,
                         fontSize: '0.92rem',
                         fontWeight: labelStrong ? 700 : 500,
                         lineHeight: 1.45,
@@ -177,6 +184,7 @@ interface VisualOptionPickerProps {
   borderMuted: string;
   selectionLocked?: boolean;
   answerFeedback?: { correctIndex: number; selectedIndex: number } | null;
+  surface?: 'light' | 'dark';
 }
 
 function VisualOptionPicker({
@@ -188,7 +196,11 @@ function VisualOptionPicker({
   borderMuted,
   selectionLocked = false,
   answerFeedback = null,
+  surface = 'light',
 }: VisualOptionPickerProps) {
+  const idleBg = surface === 'dark' ? 'transparent' : '#fff';
+  const idleLetterBg = surface === 'dark' ? 'rgba(255,255,255,0.08)' : '#f1f5f9';
+  const idleLetterFg = surface === 'dark' ? 'rgba(255,255,255,0.7)' : '#64748b';
   return (
     <FormControl component="fieldset" fullWidth>
       <RadioGroup
@@ -208,29 +220,29 @@ function VisualOptionPicker({
           {choices.map((choice, idx) => {
             const fb = answerFeedback;
             let rowBorder = selectedOption === idx ? primaryColor : borderMuted;
-            let rowBg = selectedOption === idx ? primarySoft : '#fff';
-            let letterBg = selectedOption === idx ? primaryColor : '#f1f5f9';
+            let rowBg = selectedOption === idx ? primarySoft : idleBg;
+            let letterBg = selectedOption === idx ? primaryColor : idleLetterBg;
             let letterBorder = selectedOption === idx ? primaryColor : borderMuted;
-            let letterFg = selectedOption === idx ? '#fff' : '#64748b';
+            let letterFg = selectedOption === idx ? '#fff' : idleLetterFg;
             if (fb) {
               if (idx === fb.correctIndex) {
                 rowBorder = '#059669';
-                rowBg = 'rgba(5, 150, 105, 0.1)';
+                rowBg = 'rgba(5, 150, 105, 0.16)';
                 letterBg = '#059669';
                 letterBorder = '#059669';
                 letterFg = '#fff';
               } else if (idx === fb.selectedIndex && idx !== fb.correctIndex) {
                 rowBorder = '#dc2626';
-                rowBg = 'rgba(220, 38, 38, 0.07)';
+                rowBg = 'rgba(220, 38, 38, 0.14)';
                 letterBg = '#dc2626';
                 letterBorder = '#dc2626';
                 letterFg = '#fff';
               } else {
                 rowBorder = borderMuted;
-                rowBg = '#fff';
-                letterBg = '#f1f5f9';
+                rowBg = idleBg;
+                letterBg = idleLetterBg;
                 letterBorder = borderMuted;
-                letterFg = '#64748b';
+                letterFg = idleLetterFg;
               }
             }
             const cols = Math.max(1, ...choice.map((row) => row.length));
@@ -337,6 +349,7 @@ const ListeningMcqInner: React.FC<{
   selectionLocked?: boolean;
   answerFeedback?: { correctIndex: number; selectedIndex: number } | null;
   hideQuestionTotal?: boolean;
+  hideQuestionCaption?: boolean;
 }> = ({
   question,
   questionNumber,
@@ -351,6 +364,7 @@ const ListeningMcqInner: React.FC<{
   selectionLocked = false,
   answerFeedback = null,
   hideQuestionTotal = false,
+  hideQuestionCaption = false,
 }) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -368,12 +382,14 @@ const ListeningMcqInner: React.FC<{
   return (
     <Box sx={{ width: '100%' }}>
       <audio ref={audioRef} src={question.audio_url!} onEnded={() => setPlaying(false)} />
-      <Typography
-        variant="caption"
-        sx={{ color: '#64748b', fontWeight: 700, letterSpacing: 1, display: 'block', mb: 1.5, textTransform: 'uppercase', fontSize: '0.68rem' }}
-      >
-        {hideQuestionTotal ? `Question ${questionNumber}` : `Question ${questionNumber} of ${totalQuestions}`}
-      </Typography>
+      {!hideQuestionCaption && (
+        <Typography
+          variant="caption"
+          sx={{ color: '#64748b', fontWeight: 700, letterSpacing: 1, display: 'block', mb: 1.5, textTransform: 'uppercase', fontSize: '0.68rem' }}
+        >
+          {hideQuestionTotal ? `Question ${questionNumber}` : `Question ${questionNumber} of ${totalQuestions}`}
+        </Typography>
+      )}
       <QuestionPromptBlock
         question={question}
         renderMath={renderMath}
@@ -422,6 +438,7 @@ const SpokenResponseInner: React.FC<{
   selectionLocked?: boolean;
   answerFeedback?: { correctIndex: number; selectedIndex: number } | null;
   hideQuestionTotal?: boolean;
+  hideQuestionCaption?: boolean;
 }> = ({
   question,
   questionNumber,
@@ -436,6 +453,7 @@ const SpokenResponseInner: React.FC<{
   selectionLocked = false,
   answerFeedback = null,
   hideQuestionTotal = false,
+  hideQuestionCaption = false,
 }) => {
   const [rec, setRec] = useState<MediaRecorder | null>(null);
   const chunks = useRef<Blob[]>([]);
@@ -476,9 +494,11 @@ const SpokenResponseInner: React.FC<{
 
   return (
     <Box sx={{ width: '100%' }}>
-      <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 700, letterSpacing: 1, display: 'block', mb: 1.5, textTransform: 'uppercase', fontSize: '0.68rem' }}>
-        {hideQuestionTotal ? `Question ${questionNumber}` : `Question ${questionNumber} of ${totalQuestions}`}
-      </Typography>
+      {!hideQuestionCaption && (
+        <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 700, letterSpacing: 1, display: 'block', mb: 1.5, textTransform: 'uppercase', fontSize: '0.68rem' }}>
+          {hideQuestionTotal ? `Question ${questionNumber}` : `Question ${questionNumber} of ${totalQuestions}`}
+        </Typography>
+      )}
       <QuestionPromptBlock
         question={question}
         renderMath={renderMath}
@@ -540,6 +560,10 @@ interface ExamQuestionBodyProps {
   answerFeedback?: { correctIndex: number; selectedIndex: number } | null;
   /** Adaptive exams: omit "of N" because length can change mid-attempt. */
   hideQuestionTotal?: boolean;
+  /** Question of the Day already titles the card; skip the "Question N" line. */
+  hideQuestionCaption?: boolean;
+  /** Dark card (Question of the Day). Exams stay on the light surface. */
+  surface?: 'light' | 'dark';
 }
 
 const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
@@ -555,10 +579,19 @@ const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
   selectionLocked = false,
   answerFeedback = null,
   hideQuestionTotal = false,
+  hideQuestionCaption = false,
+  surface = 'light',
 }) => {
-  const primary = theme === 'purple' ? '#7b1fa2' : '#0d47a1';
-  const primarySoft = theme === 'purple' ? 'rgba(123,31,162,0.08)' : 'rgba(13,71,161,0.06)';
-  const borderMuted = '#e2e8f0';
+  const dark = surface === 'dark';
+  const primary = dark ? '#a855f7' : theme === 'purple' ? '#7b1fa2' : '#0d47a1';
+  const primarySoft = dark
+    ? 'rgba(168, 85, 247, 0.16)'
+    : theme === 'purple' ? 'rgba(123,31,162,0.08)' : 'rgba(13,71,161,0.06)';
+  const borderMuted = dark ? 'rgba(255,255,255,0.18)' : '#e2e8f0';
+  const ink = dark ? 'rgba(255,255,255,0.92)' : '#334155';
+  const inkMuted = dark ? 'rgba(255,255,255,0.7)' : '#475569';
+  const promptMathSx = { fontWeight: 500, color: ink, lineHeight: 1.6, fontSize: { xs: '1rem', sm: '1.05rem' }, whiteSpace: 'pre-line' as const };
+  const promptTypeSx = { fontWeight: 500, color: ink, lineHeight: 1.6, fontSize: { xs: '1rem', sm: '1.05rem' }, whiteSpace: 'pre-line' as const, mb: 2 };
   const questionCaption = hideQuestionTotal
     ? `Question ${questionNumber}`
     : `Question ${questionNumber} of ${totalQuestions}`;
@@ -584,7 +617,10 @@ const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
         footer={problemReportBlockEarly}
         selectionLocked={selectionLocked}
         hideQuestionTotal={hideQuestionTotal}
+        hideQuestionCaption={hideQuestionCaption}
         renderMath={renderMath}
+        answerFeedback={answerFeedback}
+        surface={surface}
       />
     );
   }
@@ -606,17 +642,20 @@ const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
     const scale = [0, 1, 2, 3, 4];
     return (
       <Box sx={{ width: '100%' }}>
-        <Typography
-          variant="caption"
-          sx={{ color: '#64748b', fontWeight: 700, letterSpacing: 1, display: 'block', mb: 1.5, textTransform: 'uppercase', fontSize: '0.68rem' }}
-        >
-          {questionCaption}
-        </Typography>
+        {!hideQuestionCaption && (
+          <Typography
+            variant="caption"
+            sx={{ color: '#64748b', fontWeight: 700, letterSpacing: 1, display: 'block', mb: 1.5, textTransform: 'uppercase', fontSize: '0.68rem' }}
+          >
+            {questionCaption}
+          </Typography>
+        )}
         <QuestionPromptBlock
           question={question}
           renderMath={renderMath}
-          mathSx={{ lineHeight: 1.6, mb: 3, fontWeight: 400, color: '#334155', fontSize: { xs: '0.95rem', sm: '1rem' } }}
-          typographySx={{ fontWeight: 400, color: '#334155', lineHeight: 1.6, mb: 3, fontSize: { xs: '0.95rem', sm: '1rem' }, whiteSpace: 'pre-line' }}
+          mathSx={{ ...promptMathSx, mb: 3 }}
+          typographySx={{ ...promptTypeSx, mb: 3 }}
+          setupColor={ink}
         />
         {question.instruction && !shouldSuppressInstructionAsDuplicateRule(question) && (
           <InstructionLine text={question.instruction} />
@@ -675,6 +714,7 @@ const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
         selectionLocked={selectionLocked}
         answerFeedback={answerFeedback}
         hideQuestionTotal={hideQuestionTotal}
+        hideQuestionCaption={hideQuestionCaption}
       />
     );
   }
@@ -695,6 +735,7 @@ const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
         selectionLocked={selectionLocked}
         answerFeedback={answerFeedback}
         hideQuestionTotal={hideQuestionTotal}
+        hideQuestionCaption={hideQuestionCaption}
       />
     );
   }
@@ -702,28 +743,31 @@ const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
   if (mode === 'passage_mcq' && question.passage) {
     return (
       <Box sx={{ width: '100%' }}>
-        <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 700, letterSpacing: 1, display: 'block', mb: 1.5, textTransform: 'uppercase', fontSize: '0.68rem' }}>
-          {questionCaption}
-        </Typography>
+        {!hideQuestionCaption && (
+          <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 700, letterSpacing: 1, display: 'block', mb: 1.5, textTransform: 'uppercase', fontSize: '0.68rem' }}>
+            {questionCaption}
+          </Typography>
+        )}
         {renderMath ? (
           <Box sx={{ mb: 2.5 }}>
             <ExamMathBlock>{question.passage}</ExamMathBlock>
           </Box>
         ) : (
-          <Typography sx={{ fontSize: '0.95rem', color: '#334155', lineHeight: 1.7, whiteSpace: 'pre-line', mb: 2.5 }}>
+          <Typography sx={{ fontSize: '0.95rem', color: ink, lineHeight: 1.7, whiteSpace: 'pre-line', mb: 2.5 }}>
             {question.passage}
           </Typography>
         )}
         <QuestionPromptBlock
           question={question}
           renderMath={renderMath}
-          mathSx={{ fontWeight: 400, color: '#334155', mb: 2, lineHeight: 1.6, fontSize: { xs: '0.95rem', sm: '1rem' } }}
-          typographySx={{ fontWeight: 400, color: '#334155', mb: 2, lineHeight: 1.6, fontSize: { xs: '0.95rem', sm: '1rem' }, whiteSpace: 'pre-line' }}
+          mathSx={{ ...promptMathSx, mb: 2 }}
+          typographySx={{ ...promptTypeSx, mb: 2 }}
+          setupColor={ink}
         />
         {question.instruction && !shouldSuppressInstructionAsDuplicateRule(question) && (
-          <InstructionLine text={question.instruction} />
+          <InstructionLine text={question.instruction} color={inkMuted} />
         )}
-        <HumanFriendlyStimulus q={question} border={borderMuted} renderMath={!!renderMath} />
+        <HumanFriendlyStimulus q={question} border={borderMuted} renderMath={!!renderMath} variant={dark ? 'dark' : 'light'} />
         <OptionPicker
           options={opts}
           selectedOption={selectedOption}
@@ -734,6 +778,7 @@ const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
           mathWrap={renderMath}
           selectionLocked={selectionLocked}
           answerFeedback={answerFeedback}
+          surface={surface}
         />
         {problemReportBlock}
       </Box>
@@ -742,19 +787,24 @@ const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
 
   return (
     <Box sx={{ width: '100%' }}>
-      <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 700, letterSpacing: 1, display: 'block', mb: 1.5, textTransform: 'uppercase', fontSize: '0.68rem' }}>
-        {questionCaption}
-      </Typography>
+      {!hideQuestionCaption && (
+        <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 700, letterSpacing: 1, display: 'block', mb: 1.5, textTransform: 'uppercase', fontSize: '0.68rem' }}>
+          {questionCaption}
+        </Typography>
+      )}
       <QuestionPromptBlock
         question={question}
         renderMath={renderMath}
-        mathSx={{ fontWeight: 400, color: '#334155', mb: 2.5, lineHeight: 1.6, fontSize: { xs: '0.95rem', sm: '1rem' } }}
-        typographySx={{ fontWeight: 400, color: '#334155', mb: 2.5, lineHeight: 1.6, fontSize: { xs: '0.95rem', sm: '1rem' }, whiteSpace: 'pre-line' }}
+        mathSx={{ ...promptMathSx, mb: 2.5 }}
+        typographySx={{ ...promptTypeSx, mb: 2.5 }}
+        setupColor={ink}
       />
       {question.instruction && !shouldSuppressInstructionAsDuplicateRule(question) && (
-        <InstructionLine text={question.instruction} />
+        <InstructionLine text={question.instruction} color={inkMuted} />
       )}
-      {!visualChoices && <HumanFriendlyStimulus q={question} border={borderMuted} renderMath={!!renderMath} />}
+      {!visualChoices && (
+        <HumanFriendlyStimulus q={question} border={borderMuted} renderMath={!!renderMath} variant={dark ? 'dark' : 'light'} />
+      )}
       {question.image_url && (
         <Box
           sx={{
@@ -762,7 +812,7 @@ const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
             borderRadius: 2,
             overflow: 'hidden',
             border: `1px solid ${borderMuted}`,
-            bgcolor: '#f8fafc',
+            bgcolor: dark ? 'rgba(255,255,255,0.06)' : '#f8fafc',
             display: 'grid',
             placeItems: 'center',
             minHeight: 200,
@@ -781,6 +831,7 @@ const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
           borderMuted={borderMuted}
           selectionLocked={selectionLocked}
           answerFeedback={answerFeedback}
+          surface={surface}
         />
       ) : (
         <OptionPicker
@@ -793,6 +844,7 @@ const ExamQuestionBodyInner: React.FC<ExamQuestionBodyProps> = ({
           mathWrap={renderMath}
           selectionLocked={selectionLocked}
           answerFeedback={answerFeedback}
+          surface={surface}
         />
       )}
       {problemReportBlock}

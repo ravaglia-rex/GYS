@@ -518,7 +518,7 @@ export type OfficialExamRecentRow = {
   duration_sec: number | null;
   passed: boolean;
   completed_at: string | null;
-  /** True when this sit's numeric score is withheld from the student. */
+  /** Per-sit hold. Student visibility also requires the exam to be on the score-reveal list. */
   score_release_held?: boolean;
 };
 
